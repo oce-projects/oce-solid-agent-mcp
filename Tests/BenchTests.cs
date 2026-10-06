@@ -281,8 +281,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// history, and nothing else. But the code **does not live there** while it
         /// is being written: it lives in the working tree, and it is from there that `build.ps1`
         /// builds the DLL that then runs. Between the change and the commit there is
-        /// a window in which the check said **«non c'e' niente di non
-        /// provato»** while looking at a tree full of stuff never passed through the bench.
+        /// a window in which the check said **«there is nothing
+        /// unproven»** while looking at a tree full of stuff never passed through the bench.
         ///
         /// Measured on 23/9/2026: `Oce.Solid.Agent.Core/Catalog/Operations.cs`
         /// touched at 19:18, last bench run at 15:23, and the
@@ -390,7 +390,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// The last case is the real one: it is the false green that existed before.
         /// When git found **no** untested commit, the guard
-        /// answered «non c'e' niente di non provato» — and that sentence was
+        /// answered «there is nothing unproven» — and that sentence was
         /// false exactly when the tree was full.
         /// </summary>
         private static void TestTouchRule()
@@ -443,10 +443,9 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── A COMMIT CARRIES A RUN ONLY IF THE RUN'S TIMESTAMP CHANGES ──
             //
-            // The shapes are the real ones of W3.1-bis.4: the move kept
-            // `timestamp`, the rewrite turned it into `timestamp` with the same
-            // value. Neither is a run; a new timestamp is.
-            const string oldRun = "{\"timestamp\": \"2026-10-01T11:43:51\", \"passate\": 2160}";
+            // A commit that moves or rewrites the report keeps its `timestamp`:
+            // it is not a run. A new timestamp is.
+            const string oldRun = "{\"timestamp\": \"2026-10-01T11:43:51\", \"count\": 2160}";
             const string sameRunNewKeys = "{\"timestamp\": \"2026-10-01T11:43:51\", \"passed\": 2160}";
             const string newRun = "{\"timestamp\": \"2026-10-02T09:00:00\", \"passed\": 2160}";
             Check("moving the report is not a run",
@@ -454,48 +453,33 @@ namespace Oce.Solid.Agent.ContractTests
                   "same `timestamp` before and after the move");
             Check("rewriting the report's keys is not a run",
                   !CarriesANewRun(oldRun, sameRunNewKeys),
-                  "`timestamp` became `timestamp` with the same value");
+                  "a key was renamed, the `timestamp` has the same value");
             Check("a new timestamp is a run",
                   CarriesANewRun(sameRunNewKeys, newRun),
                   "2026-10-01T11:43:51 then 2026-10-02T09:00:00");
-            Check("an old-path run is still a run",
+            Check("a run after an older run is a run",
                   CarriesANewRun("{\"timestamp\": \"2026-09-30T08:00:00\"}", oldRun),
-                  "the historical deliveries wrote the report at its Italian path");
+                  "2026-09-30T08:00:00 then 2026-10-01T11:43:51");
             Check("the first report ever is a run",
                   CarriesANewRun(null, newRun),
                   "nothing before it");
             Check("an unreadable report is not a run",
                   !CarriesANewRun(oldRun, "{not json"),
                   "no timestamp, no run");
-
-            // And on the real history: the commit that moved the report must
-            // not count as a delivery.
-            string rename = ReportRenameCommit();
-            // Always one check, so the count in Tests/README.md holds on a
-            // squashed history too (where there is no rename to look at).
-            Check("the commit that moved the report is not a delivery",
-                  rename == null || !CommitCarriesReport(rename),
-                  rename == null
-                      ? "no rename of the report in this history: nothing to look at"
-                      : rename.Substring(0, Math.Min(7, rename.Length)) +
-                        " moves the report and runs nothing");
         }
 
         /// <summary>
         /// Does this commit carry a NEW bench run?
         ///
         /// Touching the report file is not enough. W3.1-bis.4 moved
-        /// the report from its Italian path to its English one and then
-        /// rewrote its keys (`timestamp` became `timestamp`): both commits touch
-        /// the file, neither carries a run, and the second one also changes
-        /// the loader and every case. Counting them as deliveries made the
-        /// freshness check skip exactly the commits it exists to catch, and
-        /// the historical commits that did carry a run (they wrote the old
-        /// path) stopped being recognised at all.
+        /// the report to its English path and then rewrote its keys: both
+        /// commits touch the file, neither carries a run, and the second one
+        /// also changes the loader and every case. Counting them as deliveries
+        /// made the freshness check skip exactly the commits it exists to
+        /// catch.
         ///
-        /// So a commit carries a run only when the run's timestamp, read from
-        /// whichever of the two paths exists, differs between `sha~1` and
-        /// `sha`.
+        /// So a commit carries a run only when the run's timestamp differs
+        /// between `sha~1` and `sha`.
         /// </summary>
         private static bool CommitCarriesReport(string sha)
         {
@@ -515,13 +499,10 @@ namespace Oce.Solid.Agent.ContractTests
             return null;
         }
 
-        // Every path the report has had, the newest first, on purpose: the
-        // markers keep window-1-cases.js and window-3-identifiers.js from
-        // rewriting the old ones into the new one on a rerun. Without the
-        // middle one (the path from W3.1-bis.4 to rename window 3) the history
-        // between the two renames carries no report, and no rename is found.
-        private static readonly string[] ReportPaths =
-            { "Bench/report/last.json", "Banco/report/last.json", "Banco/resoconto/ultimo.json" }; // window-1: keep // window-3: keep
+        // The path of the report. Its two older paths (before W3.1-bis.4 and
+        // before W3.1-bis.6) are not read any more (W3.1-bis.11): a commit that
+        // delivered a run at one of them counts as a commit without a report.
+        private static readonly string[] ReportPaths = { "Bench/report/last.json" };
 
         /// <summary>
         /// The verdict, apart from git so it can be made to fail on purpose:
@@ -536,7 +517,7 @@ namespace Oce.Solid.Agent.ContractTests
             return t != RunTimestamp(before);
         }
 
-        /// <summary>`timestamp`, or `timestamp` on reports written before W3.1-bis.4.</summary>
+        /// <summary>The `timestamp` of a report, or null.</summary>
         private static string RunTimestamp(string json)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
@@ -547,22 +528,9 @@ namespace Oce.Solid.Agent.ContractTests
                 if (d == null) return null;
                 object v;
                 if (d.TryGetValue("timestamp", out v) && v != null) return Convert.ToString(v, CultureInfo.InvariantCulture);
-                if (d.TryGetValue("timestamp", out v) && v != null) return Convert.ToString(v, CultureInfo.InvariantCulture);
                 return null;
             }
             catch { return null; }
-        }
-
-        /// <summary>
-        /// The commit that moved the report to its English path, if history
-        /// has one. Null when there is none (a squashed or a younger history).
-        /// </summary>
-        private static string ReportRenameCommit()
-        {
-            foreach (var line in Git("log --format=%H -M --diff-filter=R -- " +
-                                     string.Join(" ", ReportPaths)))
-                if (!string.IsNullOrWhiteSpace(line)) return line;
-            return null;
         }
 
         private static List<string> Git(string arguments)

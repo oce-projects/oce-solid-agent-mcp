@@ -9,12 +9,12 @@
 #  model can ask for; the switch of `SwOperations.Run` is the list of
 #  what can really be done. They are two places, and two places always diverge. Today
 #  they diverge by three names, and those three names the model can ask for: it gets
-#  «operazione sconosciuta» after having written a whole plan.
+#  «unknown operation» after having written a whole plan.
 #
 #  A CHECK MUST NOT BE ABLE TO EXIT 0 BECAUSE IT DID NOT LOOK.
 #  It is the defect this check risked more than any other: reading the `case`
-#  with a regex over 4,700 lines, finding none, and declaring «nessun
-#  disallineamento». Here we defend in three ways:
+#  with a regex over 4,700 lines, finding none, and declaring «no
+#  mismatch». Here we defend in three ways:
 #    1. if the catalogue has fewer than 20 operations we exit 1 saying it was not
 #       read, instead of comparing two empty sets;
 #    2. if fewer than 20 `case` are read from the source, same;
@@ -50,7 +50,7 @@ if (-not $Library) { $Library = Join-Path $root "Oce.Solid.Agent.Core\bin\Releas
 if (-not $Source) { $Source = Join-Path $root "Oce.Solid.Agent.Core\SwOperations.cs" }
 
 $problems = New-Object System.Collections.Generic.List[string]
-function Male($m) { $problems.Add($m) | Out-Null; Write-Host "  [X] $m" -ForegroundColor Red }
+function Bad($m) { $problems.Add($m) | Out-Null; Write-Host "  [X] $m" -ForegroundColor Red }
 function Fine($m) { Write-Host "  [ok] $m" -ForegroundColor Green }
 function Note($m) { Write-Host "       $m" -ForegroundColor DarkGray }
 
@@ -201,20 +201,14 @@ if (Test-Path -LiteralPath $Source) {
     #     case "structural_member":
     #     case "rectangular_frame": return StructuralMember(...);
     #
-    # The check reported `structural_member` as «dichiarato ma non
-    # nello switch», which was false. A check that accuses the right code
+    # The check reported `structural_member` as «declared but not
+    # in the switch», which was false. A check that accuses the right code
     # stops being looked at after twice.
     #
     # We only look inside the body of `Run`, if it is found: elsewhere in the
     # file there are other switches (plane names, view names) that are beside the point.
-    #
-    # Since W3.1-bis.5 the switch sits in `ExecuteWithCurrentNames`: `Run`
-    # translates the names of before the rename (Alias.cs) and hands over. The
-    # method that holds the switch is read; `Run` when it holds it again
-    # (W3.1-bis.11 removes the aliases).
     $body = $text
-    $start = $text.LastIndexOf(" ExecuteWithCurrentNames(")   # the declaration, after the call
-    if ($start -lt 0) { $start = $text.IndexOf("public Outcome Run(") }
+    $start = $text.IndexOf("public Outcome Run(")
     if ($start -ge 0) {
         $fine = $text.IndexOf("`n        }", $start)
         if ($fine -gt $start) { $body = $text.Substring($start, $fine - $start) }
@@ -223,14 +217,14 @@ if (Test-Path -LiteralPath $Source) {
                      ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
 }
 if ($fromSource.Count -lt 20) {
-    Male ("from the source I read only " + $fromSource.Count + " 'case' labels: the " +
+    Bad ("from the source I read only " + $fromSource.Count + " 'case' labels: the " +
           "reading did not work, and a check that did not look cannot " +
           "say that all is well.")
 } else {
     $declaredOnly = @($declared | Where-Object { $_ -notin $fromSource })
     $sourceOnly = @($fromSource | Where-Object { $_ -notin $declared })
     if ($declaredOnly.Count -or $sourceOnly.Count) {
-        Male "ExecutableNames and the 'case' labels of the source do not match"
+        Bad "ExecutableNames and the 'case' labels of the source do not match"
         $declaredOnly | ForEach-Object { Note "declared but not in the switch: $_" }
         $sourceOnly   | ForEach-Object { Note "in the switch but not declared: $_" }
     } else {
@@ -243,7 +237,7 @@ $declaredNotRunnable = @($catalogNames | Where-Object { $_ -notin $declared })
 $undeclaredExecutables = @($declared | Where-Object { $_ -notin $catalogNames })
 
 if ($declaredNotRunnable.Count) {
-    Male ("the catalog declares " + $declaredNotRunnable.Count +
+    Bad ("the catalog declares " + $declaredNotRunnable.Count +
           " operations that the executor does NOT know how to run")
     foreach ($n in $declaredNotRunnable) {
         $op = $operations | Where-Object { $_.name -eq $n } | Select-Object -First 1
@@ -273,7 +267,7 @@ foreach ($op in $operations) {
     foreach ($c in $mandatoryFields) {
         $v = $op.$c
         if ($null -eq $v -or ($v -is [string] -and [string]::IsNullOrWhiteSpace($v))) {
-            Male ("'" + $op.name + "' has no '" + $c + "'")
+            Bad ("'" + $op.name + "' has no '" + $c + "'")
             $withoutField++
         }
     }
@@ -281,18 +275,18 @@ foreach ($op in $operations) {
 if ($withoutField -eq 0) { Fine "every operation has name, family, summary, description, schema" }
 
 # --- 6. the families ---------------------------------------------------------
-# It is the defect already repaired once in esporta_catalogo.py: a family
+# It is the defect already repaired once in the catalogue exporter of the first version: a family
 # declared and empty reaches the model as a door that opens onto nothing.
 $usedFamilies = @($operations | ForEach-Object { $_.family } | Sort-Object -Unique)
 # (the declared families were read, and required not empty, in step 1)
 $empty = @($familiesDeclared | Where-Object { $_ -notin $usedFamilies })
 $notDeclared = @($usedFamilies | Where-Object { $_ -notin $familiesDeclared })
 if ($empty.Count) {
-    Male ("families declared and EMPTY: " + ($empty -join ", "))
+    Bad ("families declared and EMPTY: " + ($empty -join ", "))
     Note "To the model they look like a door that opens onto nothing."
 }
 if ($notDeclared.Count) {
-    Male ("families used but not declared: " + ($notDeclared -join ", "))
+    Bad ("families used but not declared: " + ($notDeclared -join ", "))
 }
 if (-not $empty.Count -and -not $notDeclared.Count) {
     Fine ("the " + $usedFamilies.Count + " families add up")
@@ -305,7 +299,7 @@ Write-Host "=== What must not come out of the catalog" -ForegroundColor Cyan
 # WE SEARCH THE DECODED TEXT, NOT THE RAW FILE.
 #
 # The first draft read the JSON as text and searched for «O:\» without distinguishing
-# case. In the catalogue there is the sentence «...con il tipo:\n tubolare...», where
+# case. In the catalogue there is the sentence «...with the type:\n tubular...», where
 # `\n` is the JSON escape of a newline: the search found `o:` + `\` and
 # reported an internal path that does not exist. Once decoded, that escape
 # becomes a real newline and the false positive disappears.
@@ -337,7 +331,7 @@ foreach ($v in $forbidden) {
     if ($text.IndexOf($v, $mode) -ge 0) { $foundItems += $v }
 }
 if ($foundItems.Count) {
-    Male ("these appear in the catalog: " + ($foundItems -join ", "))
+    Bad ("these appear in the catalog: " + ($foundItems -join ", "))
     Note "The catalog is read by whoever uses the bridge: our own internals do not belong in it."
 } else {
     Fine "no internal path, product name or address"
@@ -349,5 +343,5 @@ if ($problems.Count -eq 0) {
     Write-Host "Everything adds up." -ForegroundColor Green
     exit 0
 }
-Write-Host ($problems.Count.ToString() + " problemi.") -ForegroundColor Red
+Write-Host ($problems.Count.ToString() + " problems.") -ForegroundColor Red
 exit 1

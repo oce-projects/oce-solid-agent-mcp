@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// The places where the bridge knows it was asked for something that is not
     /// there are four. The foreseeable defect is not getting one wrong: it is
     /// adding the fifth and not registering it. So we do not count to four
-    /// — it is demanded that **every** point that asks `_catalogo.Simili(` also
+    /// — it is demanded that **every** point that asks `_catalog.Similar(` also
     /// write in the register, so that the fifth is born already watched.
     /// </summary>
     internal static class RegistryTests
@@ -82,15 +82,15 @@ namespace Oce.Solid.Agent.ContractTests
                 (string)line.Invoke(null, new object[] { timestamp, t, n, s });
 
             // ── a normal line ────────────────────────────────────────────
-            var normal = doIt("operation", "ripiega_lamiera",
-                              new[] { "piega_lamiera" });
+            var normal = doIt("operation", "fold_the_sheet",
+                              new[] { "bend_the_sheet" });
             Check("the line carries when, type and name",
                   normal.Contains("\"timestamp\":\"2026-09-23T21:30:00\"") &&
                   normal.Contains("\"kind\":\"operation\"") &&
-                  normal.Contains("\"name\":\"ripiega_lamiera\""),
+                  normal.Contains("\"name\":\"fold_the_sheet\""),
                   normal);
             Check("and the near names, which are the useful half of the measurement",
-                  normal.Contains("piega_lamiera") && normal.Contains("similar"),
+                  normal.Contains("bend_the_sheet") && normal.Contains("similar"),
                   "it tells «got the spelling wrong» from «asks for something that is not there»");
             Check("it sits on ONE line only, which is what JSONL means",
                   !normal.Contains("\n") && !normal.Contains("\r"),
@@ -103,20 +103,20 @@ namespace Oce.Solid.Agent.ContractTests
             // -- not the line, the file. That is why it is serialized with the
             // same `Protocol.InJson` as the rest of the bridge instead of
             // pasting quotation marks by hand.
-            var bad = doIt("operation", "taglia\"a\"meta" + "\n" + "riga2", null);
+            var bad = doIt("operation", "cut\"in\"half" + "\n" + "line2", null);
             Check("a name with quotes does not break the line",
                   !bad.Contains("\n") && !bad.Contains("\r"),
                   bad);
             Check("and it reads back as JSON, not as broken text",
-                  ReadsBack(bad, "taglia\"a\"meta" + "\n" + "riga2"),
+                  ReadsBack(bad, "cut\"in\"half" + "\n" + "line2"),
                   "the name comes back identical, line break included");
 
             // ── `similar` is there only when there is something ─────────────
-            var without = doIt("tool", "guarda_la_tavola", null);
+            var without = doIt("tool", "look_at_the_drawing", null);
             Check("without near names the field «similar» does not appear",
                   !without.Contains("similar"),
                   "an empty field in every line is noise that somebody then counts");
-            var empty = doIt("tool", "guarda_la_tavola", new string[0]);
+            var empty = doIt("tool", "look_at_the_drawing", new string[0]);
             Check("and not even with an empty list",
                   !empty.Contains("similar"),
                   "zero and absent are the same thing, and are written the same");
@@ -192,19 +192,19 @@ namespace Oce.Solid.Agent.ContractTests
             // when it can. A register that is always silent would pass every check
             // on silence.
             var file = Path.Combine(Path.GetTempPath(),
-                                    "registro-prova-" + Guid.NewGuid().ToString("N") + ".jsonl");
+                                    "registry-probe-" + Guid.NewGuid().ToString("N") + ".jsonl");
             try
             {
                 var good = constructor.Invoke(new object[] { file });
-                annotate(good, "OperationThatDoesNotExist", "fresa_a_candela");
-                annotate(good, "ToolThatDoesNotExist", "apri_la_tavola");
+                annotate(good, "OperationThatDoesNotExist", "end_mill");
+                annotate(good, "ToolThatDoesNotExist", "open_the_drawing");
                 var lines = File.Exists(file) ? File.ReadAllLines(file) : new string[0];
                 Check("it writes one line per question",
-                      lines.Length == 2, lines.Length + " righe");
+                      lines.Length == 2, lines.Length + " lines");
                 Check("and it writes them appending, not overwriting",
                       lines.Length == 2 &&
-                      lines[0].Contains("fresa_a_candela") &&
-                      lines[1].Contains("apri_la_tavola"),
+                      lines[0].Contains("end_mill") &&
+                      lines[1].Contains("open_the_drawing"),
                       "the first stays when the second arrives");
                 Check("and says it wrote them",
                       Convert.ToInt32(read(good, "Written")) == 2 &&
@@ -215,7 +215,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── THE EMPTY NAME IS NOT A QUESTION ──────────────────────────
             var file2 = Path.Combine(Path.GetTempPath(),
-                                     "registro-prova-" + Guid.NewGuid().ToString("N") + ".jsonl");
+                                     "registry-probe-" + Guid.NewGuid().ToString("N") + ".jsonl");
             try
             {
                 var reg = constructor.Invoke(new object[] { file2 });
@@ -235,10 +235,10 @@ namespace Oce.Solid.Agent.ContractTests
             var obstacle = Path.GetTempFileName();
             try
             {
-                var impossible = Path.Combine(obstacle, "dentro-un-file.jsonl");
+                var impossible = Path.Combine(obstacle, "inside-a-file.jsonl");
                 var reg = constructor.Invoke(new object[] { impossible });
                 bool hasRaised = false;
-                try { annotate(reg, "OperationThatDoesNotExist", "fresa_a_candela"); }
+                try { annotate(reg, "OperationThatDoesNotExist", "end_mill"); }
                 catch { hasRaised = true; }
                 Check("if it cannot write it does NOT raise",
                       !hasRaised,
@@ -254,7 +254,7 @@ namespace Oce.Solid.Agent.ContractTests
             // ── NO FILE TO WRITE ON ───────────────────────────────────────
             var withoutFile = constructor.Invoke(new object[] { null });
             bool raised2 = false;
-            try { annotate(withoutFile, "ToolThatDoesNotExist", "x_qualunque"); }
+            try { annotate(withoutFile, "ToolThatDoesNotExist", "x_anything"); }
             catch { raised2 = true; }
             Check("and with no file to write to, the same",
                   !raised2 && read(withoutFile, "WhyItWasSilent") != null,
@@ -361,7 +361,7 @@ namespace Oce.Solid.Agent.ContractTests
                   foundItems == 0,
                   foundItems == 0
                       ? "the JSON-RPC passes there: one line too many is the protocol broken"
-                      : foundItems + " occorrenze");
+                      : foundItems + " occurrences");
             Check("and the rule looks at the code, not at the comments that explain it",
                   File.ReadAllText(source).IndexOf("Console", StringComparison.Ordinal) >= 0,
                   "the header names Console to say not to use it: if this " +

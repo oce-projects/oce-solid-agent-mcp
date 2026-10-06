@@ -6,7 +6,7 @@ seeing the results is not a criterion: it is a conclusion in disguise.*
 ## The four conditions
 
 The same material, the same question, four **isolated** models (nobody sees the
-answers of the others, nobody sees `-verita.txt`, the file with the true values):
+answers of the others, nobody sees `-truth.txt`, the file with the true values):
 
 | | what it receives |
 |---|---|

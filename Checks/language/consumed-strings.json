@@ -235,9 +235,9 @@
       "what": "the prefix of every message of the language gate, which the CI proof looks for in the run log",
       "consumer": {
         "file": "Checks/language/ci-proof.ps1",
-        "sha1": "acb48c733e47",
+        "sha1": "490a63dca882",
         "kind": "regex",
-        "line_hint": 138
+        "line_hint": 125
       },
       "producers": [
         ".github/steps/language-gate.ps1",

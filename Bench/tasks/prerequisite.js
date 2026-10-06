@@ -24,7 +24,7 @@
 //  the part the task describes would make the session measure another part,
 //  so the session is not run, and the run says why.
 //
-//      node Bench/tasks/prerequisite.js --check [--bridge <exe>] [--catalogue-before <file>] [plan...]
+//      node Bench/tasks/prerequisite.js --check [--bridge <exe>] [plan...]
 //      node Bench/tasks/prerequisite.js --build <bridge.exe> <plan> <folder> [--out <result.json>] [--dir <plans folder>]
 //      node Bench/tasks/prerequisite.js --self-test
 //
@@ -32,9 +32,7 @@
 //  operation, every argument, every enum value, every reference between
 //  steps, every expectation path), the tasks against the index, and, with
 //  --bridge, the dry run of the bridge itself with OCE_NO_ATTACH set (it does
-//  not attach to SOLIDWORKS). A bridge whose folder holds the catalogue of before
-//  the rename (the bridge of 9384b2c) is never started: the plans translated to
-//  its protocol are checked against that catalogue (--catalogue-before names it).
+//  not attach to SOLIDWORKS).
 //
 //  --build NEEDS SOLIDWORKS. It runs ONE bridge from the first step to the
 //  last (the identifiers of faces live in the process that read them), builds
@@ -59,30 +57,23 @@
 //      group is refused before anything runs);
 //    - `{PROFILES}` is the folder of the weld profile library: the variable
 //      OCE_WELDMENT_PROFILES of the bench, else the folder of the profile the bridge
-//      lists for «TUBO STRUTTURALE QUADRO»; `{WORK}` is the folder of the session.
-//      Any other `{NAME}` in a plan is a problem (--check), not a literal: the
-//      plans of before the rename carried {PROFILI}, and it would have reached the
-//      bridge as a path;
+//      lists for the square tube (`{SQUARE_TUBE}`, which the plans write and
+//      loadPlan expands to the name of the profile); `{WORK}` is the folder of the session.
+//      Any other `{NAME}` in a plan is a problem (--check), not a literal: it
+//      would have reached the bridge as a path;
 //    - the expectations are a subset of the bench ones: volume_mm3, bodies,
 //      bounding_box_mm, diameters_mm, state.<path> read on the state AFTER the
 //      group, measurements.<path> read on the answer of the step itself. A
 //      state path on a step that is not the last of its group would read the
 //      state after later steps too: --check refuses it.
 //
-//  THE PROTOCOL OF BEFORE. D9 runs the bridge of before the rename too. The
-//  plans are written in English; for that bridge every step is translated by
-//  the reverse run of window 2 (Checks/language/window-2-surface.js, the map
-//  read from English to Italian) and every answer is read back through the
-//  same map, as the scorer does. The only Italian written in this file is the
-//  table MATE_VALUES_BEFORE: the values of a mate (`variant` and `alignment`) are
-//  not enum values of the catalogue and the name map has no row for them (the
-//  schema describes them in prose), so a plan translated by the map alone would
-//  have reached that bridge with «distance» where it wants the word of before,
-//  and it would have refused it. The table is explicit, a value that is not in
-//  it stops the translation, and it leaves the autonomous run together with the
-//  bridge of before (W3.1-bis.11, class `transition`).
+//  THE BRIDGE SPEAKS ENGLISH, AND THIS SCRIPT SPEAKS TO IT ONLY (W3.1-bis.11).
+//  Until then the plans were also translated to the protocol of the bridge
+//  before the rename (9384b2c) through the name map, and a table of mate values
+//  of before was kept for it. The map and the table are gone with that bridge.
 //  The bridge of today takes English values since W3.1-bis.10b and refuses the
-//  others; --check reads them (a plan with a value of before is a problem).
+//  others; --check reads them (a plan with a value that is not one of them is a
+//  problem).
 //
 //  PREREQ_TRACE=<file> appends every request to the bridge and every answer to
 //  that file, one JSON line each: what a failed build read is then on the disk.
@@ -108,8 +99,13 @@ function loadIndex(dir) { return readJson(path.join(dir || PLANS_DIR, 'index.jso
 function listPlans(dir) {
   return fs.readdirSync(dir || PLANS_DIR).filter(f => /^\d\d_.+\.json$/.test(f)).map(f => f.replace(/\.json$/, '')).sort();
 }
+// The name of the square-tube profile of the weldment library, as the Italian
+// installation spells it. The plans write `{SQUARE_TUBE}` and the name lives
+// here, once: it is the name of a file and of the bodies SOLIDWORKS names after it.
+const SQUARE_TUBE = 'TUBO STRUTTURALE QUADRO';
 function loadPlan(name, dir) {
-  const p = readJson(path.join(dir || PLANS_DIR, name + '.json'));
+  const file = path.join(dir || PLANS_DIR, name + '.json');
+  const p = JSON.parse(fs.readFileSync(file, 'utf8').split('{SQUARE_TUBE}').join(SQUARE_TUBE).replace(/^\ufeff/, ''));
   if (p.name !== name) throw new Error('the file is «' + name + '» and inside it says «' + p.name + '»');
   return p;
 }
@@ -286,30 +282,19 @@ function evaluate(expectation, ctx) {
 }
 
 // ── the catalogue ─────────────────────────────────────────────────────────
-// The catalogue of a bridge: the English one (Tools/catalog.json, the one next to
-// the bridge), or the one of the bridge of before the rename, whose keys are read
-// from the map (the catalogue_key rows) so that no Italian name is written here.
-function loadCatalogue(file, before) {
+// The catalogue of a bridge: Tools/catalog.json, or the one next to the bridge.
+function loadCatalogue(file) {
   const c = readJson(file);
-  let kOperations = 'operations', kName = 'name';
-  if (before) { const d = surface().toBefore; kOperations = d.ckey.get('operations'); kName = d.ckey.get('name'); }
   const by = new Map();
-  for (const o of c[kOperations] || []) by.set(o[kName], o);
+  for (const o of c.operations || []) by.set(o.name, o);
   return { by, file };
 }
 
-// Which catalogue sits next to a bridge, without starting it: catalog.json is the
-// English one (and its bridge can dry-run with OCE_NO_ATTACH); another JSON file
-// whose operations are under the key of before is the catalogue of before (and its
-// bridge is never started here: it has no way to stay away from SOLIDWORKS).
+// Which catalogue sits next to a bridge, without starting it: catalog.json (and
+// the bridge can dry-run with OCE_NO_ATTACH).
 function catalogueNextTo(exe) {
-  const dir = path.dirname(exe);
-  if (fs.existsSync(path.join(dir, 'catalog.json'))) return { kind: 'en', file: path.join(dir, 'catalog.json') };
-  const kOperations = surface().toBefore.ckey.get('operations');
-  for (const f of fs.readdirSync(dir).filter(x => /.json$/i.test(x))) {
-    try { if (Array.isArray(readJson(path.join(dir, f))[kOperations])) return { kind: 'before', file: path.join(dir, f) }; } catch (e) { /* not a catalogue */ }
-  }
-  return null;
+  const file = path.join(path.dirname(exe), 'catalog.json');
+  return fs.existsSync(file) ? { file } : null;
 }
 // The problems of ONE step against a catalogue (top-level arguments only; the
 // dry run of the bridge looks at the rest).
@@ -333,24 +318,22 @@ function stepProblems(step, catalogue, label) {
 const EXPECTATION_KEYS = ['what', 'equal_to', 'includes', 'does_not_include', 'tolerance', 'tolerance_why', 'why'];
 
 // Everything that can be said about a plan without SOLIDWORKS.
-function planProblems(plan, catalogue, translate) {
+function planProblems(plan, catalogue) {
   const problems = [];
   let lists;
   try { lists = stepLists(plan); } catch (e) { return [plan.name + ': ' + e.message]; }
   for (const list of lists) {
     const where = plan.name + ' · ' + (list.kind === 'component' ? 'component «' + list.name + '»' : 'document');
     if (list.steps.length === 0) problems.push(where + ': no steps');
-    let steps;
-    try { steps = translate ? translate(list.steps) : list.steps; } catch (e) { problems.push(where + ': ' + e.message); continue; }
-    steps.forEach((s, i) => {
+    list.steps.forEach((s, i) => {
       for (const p of stepProblems(s, catalogue, where + ' · step ' + (i + 1))) problems.push(p);
     });
-    // the values of a mate and the placeholders are read on the plan as written, once
-    if (!translate) list.steps.forEach((s, i) => {
+    // the values of a mate and the placeholders
+    list.steps.forEach((s, i) => {
       for (const p of mateValueProblems(s, where + ' · step ' + (i + 1))) problems.push(p);
       for (const p of placeholderProblems(s, where + ' · step ' + (i + 1))) problems.push(p);
     });
-    // references and expectations are read on the plan as written
+    // references and expectations
     let groups;
     try { groups = groupsOf(list.steps); } catch (e) { problems.push(where + ': ' + e.message); continue; }
     for (const g of groups) {
@@ -503,12 +486,6 @@ class Bridge {
 // check of stepProblems nor the dry run of the bridge sees a wrong one: this does.
 // MateOperations.cs is the source of both tables (the self-test reads it).
 const MATE_VALUES = { variant: ['coincident', 'parallel', 'perpendicular', 'distance'], alignment: ['aligned', 'opposite'] };
-// The same values as the bridge of before the rename (9384b2c) takes them. The name
-// map has no row for them, so they are written here, explicitly.
-const MATE_VALUES_BEFORE = {
-  variant: { coincident: 'coincidente', parallel: 'parallelo', perpendicular: 'perpendicolare', distance: 'distanza' },
-  alignment: { aligned: 'allineato', opposite: 'opposto' },
-};
 const PLACEHOLDERS = ['WORK', 'PROFILES'];
 
 function mateValueProblems(step, label) {
@@ -531,88 +508,15 @@ function placeholderProblems(step, label) {
   return out;
 }
 
-// ── the two protocols ─────────────────────────────────────────────────────
-// English: the names as they are. Before the rename: every name through the
-// map read from English to Italian, and every answer through the map read the
-// other way (the scorer's reading).
-let SURFACE = null;
-function surface() {
-  if (SURFACE) return SURFACE;
-  const w = require(path.join(ROOT, 'Checks', 'language', 'window-2-surface.js'));
-  const map = w.loadMap(ROOT);
-  const toBefore = w.direction(map, true, w.catalogueEnums(ROOT));
-  const caseKeys = readJson(path.join(ROOT, 'Bench', 'case-keys.json'));
-  SURFACE = { w, map, toBefore, caseKeys };
-  return SURFACE;
-}
-// The steps in the form the bridge of before takes them (its own keys for the
-// operation and the arguments of a step, read from the map).
-function stepsToBefore(steps) {
-  const s = surface();
-  const text = JSON.stringify(steps.map(x => ({ operation: x.operation, arguments: x.arguments || {} })));
-  return mateValuesToBefore(steps, JSON.parse(s.w.rewriteCase(s.toBefore, s.caseKeys, text, 'Bench/tasks/prerequisites/plan.json', {})));
-}
-// The map renames the keys of a mate and leaves its values as they are. Here the
-// values of every mate go to the words of before, from MATE_VALUES_BEFORE, read on
-// the English step of the same index; a value that is not in the table stops the
-// translation (a pass-through would be the bridge's refusal, found at the build).
-function mateValuesToBefore(english, translated) {
-  const d = surface().toBefore;
-  const kArguments = d.arg.get('arguments');
-  return translated.map((t, i) => {
-    if (english[i].operation !== 'mate') return t;
-    const args = Object.assign({}, t[kArguments]);
-    for (const name of Object.keys(MATE_VALUES_BEFORE)) {
-      const want = (english[i].arguments || {})[name];
-      if (want === undefined) continue;
-      const word = MATE_VALUES_BEFORE[name][want];
-      const key = d.arg.get(name);
-      if (word === undefined) throw new Error('mate: «' + name + '» = «' + want + '» has no value of before in MATE_VALUES_BEFORE');
-      if (!key || !(key in args)) throw new Error('mate: the key of «' + name + '» of before is not in the translated step');
-      args[key] = word;
-    }
-    return Object.assign({}, t, { [kArguments]: args });
-  });
-}
-// The same, as {operation, arguments} again, to be read against the catalogue
-// of before (which names the same things by its own names).
-function stepsToBeforePlain(steps) {
-  const d = surface().toBefore;
-  const kOperation = d.arg.get('operation'), kArguments = d.arg.get('arguments');
-  return stepsToBefore(steps).map(t => ({ operation: t[kOperation], arguments: t[kArguments] }));
-}
-
-function makeProtocol(kind) {
-  const score = require('./score-autonomous.js');
-  if (kind === 'en') {
-    return {
-      kind,
-      tool: (n) => n,
-      steps: (steps) => steps.map(x => ({ operation: x.operation, arguments: x.arguments || {} })),
-      document: (action, variant) => (variant ? { action, variant } : { action }),
-      build: (steps, extra) => Object.assign({ steps }, extra || {}),
-      answer: (a) => a,
-    };
-  }
-  const d = surface().toBefore;
-  const key = (k) => d.arg.get(k) || k;
+// ── the protocol ──────────────────────────────────────────────────────────
+// The names as they are: the tool, the steps, the document actions, the answer.
+function makeProtocol() {
   return {
-    kind,
-    tool: (n) => d.tool.get(n) || n,
-    steps: stepsToBefore,
-    document: (action, variant) => {
-      const o = {};
-      o[key('action')] = d.sub.get(action) || action;
-      if (variant) o[key('variant')] = (d.enumByArg.get('variant') && d.enumByArg.get('variant').get(variant)) || variant;
-      return o;
-    },
-    build: (steps, extra) => {
-      const o = {};
-      o[key('steps')] = steps;
-      for (const [k, v] of Object.entries(extra || {})) o[key(k)] = v;
-      return o;
-    },
-    answer: (a) => score.readAnswer(a).answer,
+    tool: (n) => n,
+    steps: (steps) => steps.map(x => ({ operation: x.operation, arguments: x.arguments || {} })),
+    document: (action, variant) => (variant ? { action, variant } : { action }),
+    build: (steps, extra) => Object.assign({ steps }, extra || {}),
+    answer: (a) => a,
   };
 }
 
@@ -623,7 +527,7 @@ async function dryRunProblems(exe, plan, dir) {
   bridge.start();
   try {
     await bridge.init();
-    const protocol = makeProtocol(bridge.toolNames.includes('inspect_part') ? 'en' : 'it');
+    const protocol = makeProtocol();
     for (const list of stepLists(plan)) {
       for (const g of groupsOf(list.steps)) {
         const steps = g.steps.map(({ index, step }) => ({
@@ -668,11 +572,11 @@ async function build(options) {
   const profilesFolder = async () => {
     if (profilesDir) return profilesDir;
     if (process.env.OCE_WELDMENT_PROFILES) { profilesDir = process.env.OCE_WELDMENT_PROFILES; return profilesDir; }
-    const r = await bridge.tool(protocol.tool('build'), protocol.build(protocol.steps([{ operation: 'weldment_profiles', arguments: { search: 'TUBO STRUTTURALE QUADRO' } }])), 300000);
+    const r = await bridge.tool(protocol.tool('build'), protocol.build(protocol.steps([{ operation: 'weldment_profiles', arguments: { search: SQUARE_TUBE } }])), 300000);
     const a = r.json ? protocol.answer(r.json) : null;
     const o = a && Array.isArray(a.outcomes) ? a.outcomes[0] : null;
     const first = o && o.measurements && Array.isArray(o.measurements.profiles) ? o.measurements.profiles[0] : null;
-    if (!first || !first.profile_path) throw new Failed('{PROFILES}: OCE_WELDMENT_PROFILES is not set and the bridge lists no profile «TUBO STRUTTURALE QUADRO»: ' + r.text.slice(0, 300));
+    if (!first || !first.profile_path) throw new Failed('{PROFILES}: OCE_WELDMENT_PROFILES is not set and the bridge lists no profile «' + SQUARE_TUBE + '»: ' + r.text.slice(0, 300));
     profilesDir = path.dirname(first.profile_path);
     return profilesDir;
   };
@@ -738,10 +642,9 @@ async function build(options) {
   try {
     await bridge.init();
     result.bridge_version = bridge.version;
-    const kind = bridge.toolNames.includes('inspect_part') ? 'en' : 'it';
-    protocol = makeProtocol(kind);
-    if (kind === 'it' && !bridge.toolNames.includes(protocol.tool('inspect_part'))) throw new Failed('the bridge answers neither inspect_part nor its name before the rename: ' + bridge.toolNames.join(', '));
-    result.protocol = kind;
+    protocol = makeProtocol();
+    if (!bridge.toolNames.includes('inspect_part')) throw new Failed('the bridge has no inspect_part: ' + bridge.toolNames.join(', '));
+    result.protocol = 'en';
     fs.mkdirSync(folder, { recursive: true });
     const lists = stepLists(plan);
     const comps = lists.filter(l => l.kind === 'component');
@@ -817,13 +720,8 @@ function takeOption(args, name) {
 async function commandCheck(args) {
   let bridge = takeOption(args, '--bridge');
   if (bridge) bridge = path.resolve(bridge);   // the bridge runs in its own folder: a relative path would not find it there
-  let before = takeOption(args, '--catalogue-before');
   const dir = takeOption(args, '--dir') || PLANS_DIR;
-  if (bridge) {
-    const next = catalogueNextTo(bridge);
-    if (next && next.kind === 'before') { before = before || next.file; bridge = null; }
-    else if (!next) { console.log('  --  no catalogue next to ' + bridge + ': its dry run is not made'); bridge = null; }
-  }
+  if (bridge && !catalogueNextTo(bridge)) { console.log('  --  no catalogue next to ' + bridge + ': its dry run is not made'); bridge = null; }
   const names = args.length ? args : listPlans(dir);
   let bad = 0;
   const say = (m) => { console.log('  XX  ' + m); bad++; };
@@ -833,11 +731,10 @@ async function commandCheck(args) {
   for (const name of names) {
     let plan;
     try { plan = loadPlan(name, dir); } catch (e) { say(name + ': ' + e.message); continue; }
-    const problems = planProblems(plan, english, null);
-    if (before) for (const p of planProblems(plan, loadCatalogue(before, true), stepsToBeforePlain)) problems.push('(protocol of before) ' + p);
+    const problems = planProblems(plan, english);
     if (bridge) { try { for (const p of await dryRunProblems(bridge, plan, dir)) problems.push(p); } catch (e) { problems.push('dry run: ' + e.message); } }
     if (problems.length) problems.forEach(say);
-    else console.log('  ok  ' + name + ' (' + stepLists(plan).map(l => l.steps.length).reduce((a, b) => a + b, 0) + ' steps' + (bridge ? ', dry run of the bridge' : '') + (before ? ', protocol of before' : '') + ')');
+    else console.log('  ok  ' + name + ' (' + stepLists(plan).map(l => l.steps.length).reduce((a, b) => a + b, 0) + ' steps' + (bridge ? ', dry run of the bridge' : '') + ')');
   }
   console.log(bad ? 'check: ' + bad + ' problem(s)' : 'check: every plan holds');
   return bad === 0 ? 0 : 1;
@@ -931,7 +828,7 @@ async function selfTest() {
     { uid: 'F23', area_mm2: 17920, point_mm: [464, -20, 0], normal: [0, -1, 0], facing: 'down' },
     { uid: 'F26', area_mm2: 17920, point_mm: [-464, 17, 0], normal: [0, -1, 0], facing: 'down' },
   ];
-  const state = { faces, bodies: [{ uid: 'C1', name: 'TUBO STRUTTURALE QUADRO 40x40x3(3)' }, { uid: 'C2', name: 'TUBO STRUTTURALE QUADRO 40x40x3(4)' }] };
+  const state = { faces, bodies: [{ uid: 'C1', name: SQUARE_TUBE + ' 40x40x3(3)' }, { uid: 'C2', name: SQUARE_TUBE + ' 40x40x3(4)' }] };
   const stand = loadPlan('07_tube_stand');
   const gusset = stand.steps.find(s => s.operation === 'gusset');
   const picked = gusset.arguments.faces_uid.map(e => resolveSelector(e, state));
@@ -944,7 +841,7 @@ async function selfTest() {
         /may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', Object.assign({}, state, { truncated: true, faces_total: 99 }))) || ''));
   check('a state truncated by its edges only does not say the faces are cut',
         !/may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', Object.assign({}, state, { truncated: true }))) || ''));
-  check('a body is named by its name', resolveSelector('@body(name=TUBO STRUTTURALE QUADRO 40x40x3(4))', state) === 'C2');
+  check('a body is named by its name', resolveSelector('@body(name=' + SQUARE_TUBE + ' 40x40x3(4))', state) === 'C2');
   check('a selector the runner does not read is refused by its name', /not a selector the runner reads/.test(throws(() => resolveSelector('@dimension(name=D1)', state)) || ''));
 
   // groups and references
@@ -979,8 +876,8 @@ async function selfTest() {
   // the plans against the catalogue
   const catalogue = loadCatalogue(path.join(ROOT, 'Tools', 'catalog.json'));
   const good = { name: 'x', steps: [{ operation: 'extrude_rectangle', arguments: { plane: 'front', length_mm: 1, width_mm: 1, thickness_mm: 1 }, expect: [{ what: 'bodies', equal_to: 1 }] }] };
-  check('a plan that holds has no problem', planProblems(good, catalogue, null).length === 0, planProblems(good, catalogue, null).join('; '));
-  const wrong = (patch) => planProblems(JSON.parse(JSON.stringify(Object.assign({}, good, patch))), catalogue, null);
+  check('a plan that holds has no problem', planProblems(good, catalogue).length === 0, planProblems(good, catalogue).join('; '));
+  const wrong = (patch) => planProblems(JSON.parse(JSON.stringify(Object.assign({}, good, patch))), catalogue);
   check('an operation that does not exist is a problem', wrong({ steps: [{ operation: 'extrude_rectangle_x', arguments: {}, expect: [{ what: 'bodies', equal_to: 1 }] }] }).some(p => /not in the catalogue/.test(p)));
   check('an argument the bridge would ignore is a problem', wrong({ steps: [{ operation: 'extrude_rectangle', arguments: { plane: 'front', length_mm: 1, width_mm: 1, thickness_mm: 1, depth_mm: 2 }, expect: [{ what: 'bodies', equal_to: 1 }] }] }).some(p => /would ignore/.test(p)));
   check('a missing required argument is a problem', wrong({ steps: [{ operation: 'extrude_rectangle', arguments: { plane: 'front' }, expect: [{ what: 'bodies', equal_to: 1 }] }] }).some(p => /needs/.test(p)));
@@ -997,11 +894,11 @@ async function selfTest() {
   const saveStep = (p) => ({ operation: 'save_document', arguments: { path: p }, expect: [{ what: 'bodies', equal_to: 1 }] });
   check('the mate values of today are not a problem', wrong({ steps: [mateStep({ variant: 'distance', distance_mm: 1, alignment: 'opposite' }), mateStep({ variant: 'coincident', alignment: 'aligned' })] }).length === 0,
         wrong({ steps: [mateStep({ variant: 'distance', distance_mm: 1, alignment: 'opposite' })] }).join('; '));
-  check('a mate value of before the rename is a problem, the variant and the alignment alike (seen red)',
-        wrong({ steps: [mateStep({ variant: 'distanza', distance_mm: 1 })] }).some(p => /«variant» = «distanza» is not a value of a mate/.test(p)) &&
-        wrong({ steps: [mateStep({ alignment: 'opposto' })] }).some(p => /«alignment» = «opposto» is not a value of a mate/.test(p)));
-  check('a placeholder of before the rename, or one nobody fills, is a problem; the two the runner fills are not (seen red)',
-        wrong({ steps: [saveStep('{PROFILI}\\x.sldprt')] }).some(p => /«\{PROFILI\}» is not a placeholder/.test(p)) &&
+  check('a mate value that is not one of the bridge, the variant and the alignment alike, is a problem (seen red)',
+        wrong({ steps: [mateStep({ variant: 'far', distance_mm: 1 })] }).some(p => /«variant» = «far» is not a value of a mate/.test(p)) &&
+        wrong({ steps: [mateStep({ alignment: 'reversed' })] }).some(p => /«alignment» = «reversed» is not a value of a mate/.test(p)));
+  check('a placeholder nobody fills is a problem; the two the runner fills are not (seen red)',
+        wrong({ steps: [saveStep('{PROFILE}\\x.sldprt')] }).some(p => /«\{PROFILE\}» is not a placeholder/.test(p)) &&
         wrong({ steps: [saveStep('{WORK}\\x.sldprt'), saveStep('{PROFILES}\\x.sldprt')] }).every(p => !/placeholder/.test(p)));
   const mateSource = fs.readFileSync(path.join(ROOT, 'Oce.Solid.Agent.Core', 'MateOperations.cs'), 'utf8');
   const known = /KnownTypes\s*=\s*\{([^}]*)\}/.exec(mateSource);
@@ -1011,7 +908,7 @@ async function selfTest() {
 
   // the real plans, the index and the tasks
   let realProblems = [];
-  for (const name of listPlans()) realProblems = realProblems.concat(planProblems(loadPlan(name), catalogue, null));
+  for (const name of listPlans()) realProblems = realProblems.concat(planProblems(loadPlan(name), catalogue));
   check('every plan of Bench/tasks/prerequisites holds against the catalogue', realProblems.length === 0, realProblems.slice(0, 3).join('; '));
   check('the bracket of the pair is the plan of task 01', consistencyProblems(PLANS_DIR).length === 0, consistencyProblems(PLANS_DIR).join('; '));
   const ix = indexProblems(PLANS_DIR, __dirname);
@@ -1082,35 +979,6 @@ async function selfTest() {
   } catch (e) { check('the build can be played against a fake bridge', false, e.message); }
   finally { fs.rmSync(dir, { recursive: true, force: true }); }
 
-  // the protocol of before: every step translated, and back
-  try {
-    const s = surface();
-    const back = s.w.direction(s.map, false, null);
-    const sample = loadPlan('03_slotted_plate').steps.map(x => ({ operation: x.operation, arguments: x.arguments }));
-    const there = stepsToBefore(sample);
-    const plain = stepsToBeforePlain(sample);
-    check('every step of a plan is translated to the protocol of before: another operation name, and arguments that are not the English ones',
-          plain.every((x, i) => x.operation !== sample[i].operation) &&
-          plain.every((x, i) => Object.keys(x.arguments).some(k => !(k in sample[i].arguments))), JSON.stringify(plain).slice(0, 200));
-    const round = JSON.parse(s.w.rewriteCase(back, s.caseKeys, JSON.stringify(there), 'Bench/tasks/prerequisites/plan.json', {}));
-    check('and back: the translation read the other way gives the plan again', JSON.stringify(round) === JSON.stringify(sample), JSON.stringify(round).slice(0, 200));
-    // the values of a mate: the map renames the keys and leaves the values, so they go by the table
-    const matePlan = loadPlan('08_box_and_lid').steps;
-    const kArgs = s.toBefore.arg.get('arguments'), kVariant = s.toBefore.arg.get('variant'), kAlignment = s.toBefore.arg.get('alignment');
-    const translated = stepsToBefore(matePlan);
-    const mates = translated.filter((x, i) => matePlan[i].operation === 'mate').map(x => x[kArgs]);
-    check('the values of a mate reach the bridge of before as its own words, not the English ones',
-          mates.length === 3 && mates.every(a => Object.values(MATE_VALUES_BEFORE.variant).includes(a[kVariant]) && Object.values(MATE_VALUES_BEFORE.alignment).includes(a[kAlignment])) &&
-          mates.some(a => a[kVariant] !== matePlan.find(x => x.operation === 'mate').arguments.variant), JSON.stringify(mates).slice(0, 300));
-    check('the table of before has a word for every value of today and for no other',
-          JSON.stringify(Object.keys(MATE_VALUES_BEFORE.variant)) === JSON.stringify(MATE_VALUES.variant) && JSON.stringify(Object.keys(MATE_VALUES_BEFORE.alignment)) === JSON.stringify(MATE_VALUES.alignment));
-    check('a mate value the table does not have stops the translation instead of reaching the bridge (seen red)',
-          /has no value of before/.test(throws(() => stepsToBefore([{ operation: 'mate', arguments: { component_a: 'C2', face_a: 'down', component_b: 'C1', face_b: 'up', variant: 'concentric' } }])) || ''));
-    check('--check reads a plan whose mate value is not in the table as a problem on the protocol of before too',
-          planProblems({ name: 'x', steps: [mateStep({ variant: 'concentric' })] }, loadCatalogue(path.join(ROOT, 'Tools', 'catalog.json')), () => { throw new Error('mate: «variant» = «concentric» has no value of before in MATE_VALUES_BEFORE'); }).some(p => /has no value of before/.test(p)));
-    const p = makeProtocol('it');
-    check('the tools and the document actions of before come from the map too', p.tool('build') !== 'build' && p.tool('inspect_part') !== 'inspect_part' && Object.keys(p.document('create', 'assembly')).length === 2);
-  } catch (e) { check('the protocol of before can be read from the map', false, e.message); }
 
   console.log(bad ? 'self-test: ' + bad + ' failed' : 'self-test: all held');
   return bad === 0;

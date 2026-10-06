@@ -93,7 +93,7 @@ function Obsolete($m) {
     if (-not $m) { return "(the method is not there)" }
     $a = $m.GetCustomAttributes([System.ObsoleteAttribute], $false)
     if ($a.Count -eq 0) { return "NO -- the interop does not mark it" }
-    return "SI': " + $a[0].Message
+    return "YES: " + $a[0].Message
 }
 
 # ── THE EXPECTED VALUES, AND THE VERDICT ────────────────────────────────────
@@ -122,7 +122,7 @@ Write-Output "=== W1.1  Is FeatureFillPattern really Obsolete? ==="
 $ffp = Method "IFeatureManager" "FeatureFillPattern"
 Line "IFeatureManager.FeatureFillPattern" $(if ($ffp) { "it is there" } else { "NOT there" })
 Line "  marked [Obsolete] in the interop?" (Obsolete $ffp)
-if ($ffp) { Line "  ritorna" $ffp.ReturnType.Name }
+if ($ffp) { Line "  returns" $ffp.ReturnType.Name }
 
 $cd = Method "IFeatureManager" "CreateDefinition"
 Line "IFeatureManager.CreateDefinition" $(if ($cd) { "it is there, returns " + $cd.ReturnType.Name } else { "NOT there" })
@@ -157,8 +157,8 @@ Write-Output "=== W1.2  Does InsertRib really return void? ==="
 $rib = Method "IFeatureManager" "InsertRib"
 Line "IFeatureManager.InsertRib" $(if ($rib) { "it is there" } else { "NOT there" })
 if ($rib) {
-    Line "  ritorna" $rib.ReturnType.Name
-    Line "  argomenti" $rib.GetParameters().Count
+    Line "  returns" $rib.ReturnType.Name
+    Line "  arguments" $rib.GetParameters().Count
 }
 $g6 = Method "ISelectionMgr" "GetSelectedObject6"
 Line "ISelectionMgr.GetSelectedObject6" $(if ($g6) { "it is there, returns " + $g6.ReturnType.Name } else { "NOT there" })

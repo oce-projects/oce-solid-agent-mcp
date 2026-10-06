@@ -9,7 +9,7 @@ namespace Oce.Solid.Agent.Core
     /// <summary>
     /// THE WELD SYMBOL ON THE DRAWING (entry GT7).
     ///
-    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 saldtav`) ────────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`probe0089 saldtav`) ────────
     ///
     /// `IDrawingDoc.InsertWeldSymbol(Dim1, Symbol, Dim2, Symmetric, FieldWeld,
     /// ShowOtherSide, DashOnTop, Peripheral, HasProcess, ProcessValue)` returns
@@ -17,7 +17,7 @@ namespace Oce.Solid.Agent.Core
     /// with the arrow on the edge and the ISO dashed line below.
     ///
     /// **The symbol code is the one of the `gtol.sym` library**,
-    /// `<SEZIONE-VOCE>`: the ISO fillet weld is `<WELD-FILL>` (section
+    /// `<SECTION-ITEM>`: the ISO fillet weld is `<WELD-FILL>` (section
     /// `#WELD`, entry `*FILL`). The first probe had tried `<IGWS-FILLET>`,
     /// `<GWS-FILLET>` and «Fillet»: the symbol WAS BORN all the same, with that text
     /// read back equal — and without a triangle. Only the PNG said so. With

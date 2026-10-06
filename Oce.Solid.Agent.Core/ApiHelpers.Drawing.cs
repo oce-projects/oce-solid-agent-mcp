@@ -13,10 +13,10 @@ namespace Oce.Solid.Agent.Core
     /// filter"). See ApiHelpers.cs for the rules every helper follows: each one
     /// quotes its page, and each one throws what the API throws.
     ///
-    /// First user: OperazioniQuoteTavola.KeysAlreadyDimensioned ("already dimensioned
+    /// First user: DrawingDimensionOperations.KeysAlreadyDimensioned ("already dimensioned
     /// in this drawing"). The other walks named by the audit
-    /// (OperazioniTestiQuote, OperazioniQuoteNelPdf, OperazioniTabellaFori,
-    /// StatoTavola: C8-3 and N1, lot Z-C21.3) are meant to move here, one at a
+    /// (DimensionTextOperations, PdfDimensionOperations, HoleTableOperations,
+    /// DrawingState: C8-3 and N1, lot Z-C21.3) are meant to move here, one at a
     /// time behind their own bench case.
     /// </summary>
     internal static partial class ApiHelpers
@@ -129,7 +129,7 @@ namespace Oce.Solid.Agent.Core
         /// determine whether an annotation is hidden if it is on a layer that is
         /// hidden (all annotations of this type are hidden) or if the feature
         /// that owns it is suppressed.» Those two need a probe (TODO,
-        /// Z-C21.10-esito-2, C8-2) and are not guessed here: such a dimension
+        /// Z-C21.10-outcome-2, C8-2) and are not guessed here: such a dimension
         /// still counts as printed, as every dimension did before.
         /// </summary>
         internal static bool IsHiddenByHand(IDisplayDimension dimension)

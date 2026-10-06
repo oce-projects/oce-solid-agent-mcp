@@ -4,7 +4,7 @@
 # stay closed.
 #
 #   DocumentWithoutFile  lets it work on a document never saved to disk.
-#                       For the bridge it is the normal case: we draw on `Parte1`
+#                       For the bridge it is the normal case: we draw on `Part1`
 #                       just opened. For the add-in it is not, because inside a PDM an
 #                       unsaved file is not checked out, and writing to it
 #                       produces changes that fail on save or
@@ -50,7 +50,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $names = @('DocumentWithoutFile', 'AlsoOnDrawings', 'AlsoOnAssemblies')
 $trouble = 0
 
-function Male($line) { Write-Host "  XX $line"; $script:trouble++ }
+function Bad($line) { Write-Host "  XX $line"; $script:trouble++ }
 function Fine($line) { Write-Host "  ok $line" }
 
 Write-Host "=== Inside this repository"
@@ -63,7 +63,7 @@ foreach ($itemName in $names) {
     if ($defs.Count -eq 1) {
         Fine "$itemName defined once only: $($defs[0].Filename)"
     } else {
-        Male "$($defs.Count) definitions of $itemName, one expected"
+        Bad "$($defs.Count) definitions of $itemName, one expected"
     }
 
     # Where it is TURNED ON: the bridge only. We search for the ASSIGNMENT and not the bare
@@ -72,16 +72,16 @@ foreach ($itemName in $names) {
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
         Select-String -Pattern "$itemName\s*=\s*true")
     if ($activations.Count -eq 0) {
-        Male "nobody turns on ${itemName}: either the line is gone, or this check no longer looks where it should"
+        Bad "nobody turns on ${itemName}: either the line is gone, or this check no longer looks where it should"
     } elseif ($activations.Count -gt 1) {
-        Male "$itemName turned on in $($activations.Count) places:"
+        Bad "$itemName turned on in $($activations.Count) places:"
         foreach ($a in $activations) { Write-Host "       $($a.Path):$($a.LineNumber)" }
     } else {
         $location = $activations[0].Path
         if ($location -like '*\Bridge\Session.cs') {
             Fine "$itemName turned on only in Bridge\Session.cs"
         } else {
-            Male "$itemName turned on in $location, which is not Bridge\Session.cs"
+            Bad "$itemName turned on in $location, which is not Bridge\Session.cs"
         }
     }
 }
@@ -100,8 +100,8 @@ $addin = $env:OCE_ADDIN_SOURCES
 
 # `-not $addin` BEFORE `Test-Path`, and it is not a matter of style: with the
 # fallback gone the variable can be empty, and `Test-Path $null` in PowerShell 5.1
-# does not answer `$false` - it raises «Impossibile associare l'argomento al
-# parametro Path perche' e' null», which is a non-terminating error. The script
+# does not answer `$false` - it raises «Cannot bind argument to
+# parameter 'Path' because it is null», which is a non-terminating error. The script
 # would carry on down the wrong branch after printing it.
 if (-not $addin -or -not (Test-Path $addin)) {
     if ($addin) { Write-Host "  -- add-in sources not reachable from here ($addin)." }
@@ -111,12 +111,12 @@ if (-not $addin -or -not (Test-Path $addin)) {
 } else {
     foreach ($itemName in $names) {
         $foundOnes = @(Get-ChildItem -Path $addin -Filter *.cs -Recurse -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -notmatch '\\(bin|obj|esterni)\\' } |
+            Where-Object { $_.FullName -notmatch '\\(bin|obj|external)\\' } |
             Select-String -SimpleMatch $itemName)
         if ($foundOnes.Count -eq 0) {
             Fine "the add-in does not name $itemName"
         } else {
-            Male "the add-in names $itemName in $($foundOnes.Count) places:"
+            Bad "the add-in names $itemName in $($foundOnes.Count) places:"
             foreach ($t in $foundOnes) { Write-Host "       $($t.Path):$($t.LineNumber)" }
         }
     }

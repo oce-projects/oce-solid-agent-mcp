@@ -17,7 +17,7 @@ using SolidWorks.Interop.swconst;
 //  of 30 — thickness T, inner radius R, 40 mm deep. Flattened, it is a
 //  rectangle long
 //
-//      L_piatto = tratto_1 + tratto_2 + BA,    BA = pi/2 * (R + K*T)   (90 degrees)
+//      L_flat = leg_1 + leg_2 + BA,    BA = pi/2 * (R + K*T)   (90 degrees)
 //
 //  where the two segments depend on WHAT the sketch represents: the inner faces
 //  (segments = side - R) or the outer ones (segments = side - R - T). It is not
@@ -111,7 +111,7 @@ internal static class Program
 
             // ── FLATTENED ────────────────────────────────────────────────
             //
-            // MEASURED on the evening of 24/9: `SetBendState(sviluppata)` answers 0 and the
+            // MEASURED on the evening of 24/9: `SetBendState(flattened)` answers 0 and the
             // body stays BENT (bounding box 32 x 40 x 52 before and after). In the
             // sheet metal of today the flat pattern is a FEATURE at the bottom of the tree,
             // suppressed: it is flattened by unsuppressing it. SetBendState is tried
@@ -164,17 +164,17 @@ internal static class Program
             // ── the DXF ──────────────────────────────────────────────────
             //
             // MEASURED on the evening of 24/9: `ExportFlatPatternView` on a NEVER
-            // SAVED part opens «Salva con nome» and the COM call does not return until
+            // SAVED part opens «Save As» and the COM call does not return until
             // somebody closes the window. It is saved first; and the call is
             // made all the same from another thread, with a maximum time, so that a
             // second modal not yet known does not hang the probe.
-            string savedPart = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
+            string savedPart = Path.Combine(Path.GetTempPath(), "sheet-probe.SLDPRT");
             try { if (File.Exists(savedPart)) File.Delete(savedPart); } catch { }
             int se = 0, knows = 0;
             bool saved = doc.Extension.SaveAs(savedPart, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref se, ref knows);
             Says("part saved before the DXF: " + saved + " (errors " + se + ")");
 
-            string dxf = Path.Combine(Path.GetTempPath(), "lamiera-sonda.dxf");
+            string dxf = Path.Combine(Path.GetTempPath(), "sheet-probe.dxf");
             try { if (File.Exists(dxf)) File.Delete(dxf); } catch { }
             bool exported = false;
             string exception = null;
@@ -230,7 +230,7 @@ internal static class Program
         {
             while (ex.InnerException != null) ex = ex.InnerException;
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + ex.GetType().Name + ": " + ex.Message);
+            Console.WriteLine("EXCEPTION: " + ex.GetType().Name + ": " + ex.Message);
             return 9;
         }
         finally
@@ -240,7 +240,7 @@ internal static class Program
                 try { sw.CloseDoc(doc.GetTitle()); Says("part closed without saving"); } catch { }
                 try
                 {
-                    var f = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");
+                    var f = Path.Combine(Path.GetTempPath(), "sheet-probe.SLDPRT");
                     if (File.Exists(f)) File.Delete(f);
                 }
                 catch { }

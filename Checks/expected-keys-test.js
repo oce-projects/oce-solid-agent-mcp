@@ -6,9 +6,9 @@
 //
 //  WHY IT EXISTS
 //
-//  The translation of W3.1-bis renames the keys of the catalogue (.5), of the
+//  The translation of W3.1-bis renamed the keys of the catalogue (.5), of the
 //  cases (.4) and of what the bridge writes. A reader that says
-//  `catalogo.operazioni || []` or `$cat.operazioni` (a missing property is
+//  `catalogue.operations || []` or `$cat.operations` (a missing property is
 //  $null in PowerShell, without an error) keeps running after the rename and
 //  prints zeros that look like a measure. Every such reader of `Checks/`
 //  now exits non-zero when an expected key is missing; this script feeds each
@@ -24,7 +24,7 @@
 //    Checks/check-catalog.ps1       catalogue
 //    Checks/questions-without-answer.js    the question registry of the bridge
 //    Checks/test-x2.js                  the answers of the bridge (--self-test)
-//    Checks/language/detect-italian.js     lexicon.json and baseline.json
+//    Checks/language/detect-italian.js     lexicon.json and exceptions.json
 //
 //  Readers looked at and left as they are, with the reason: measure.js reads
 //  `labels` with a fallback on purpose (a new draw has none yet, and an
@@ -59,12 +59,12 @@ const KEY = {
   operations: 'operations', families: 'families', name: 'name', family: 'family',
   when: 'timestamp', kind: 'kind', similar: 'similar',
 };
-// The keys of a bench case, renamed by window 1 (W3.1-bis.4), and of a step of
-// a plan, which is the bridge's protocol (window 2). A case written with the
-// names of before the window is the wrong key each check feeds the reader.
+// The keys of a bench case, and of a step of a plan, which is the bridge's
+// protocol. A case written with another name is the wrong key each check feeds
+// the reader.
 const CASE = { name: 'name', family: 'family', steps: 'steps', build: 'build', operation: 'operation', args: 'arguments' };
 const PLAN = { operation: 'operation', args: 'arguments' };
-const BEFORE = { name: 'nome', steps: 'passi', operation: 'operazione', operations: 'operazioni', families: 'famiglie', family: 'famiglia', kind: 'tipo' };
+const BEFORE = { name: 'name_of_before', steps: 'steps_of_before', operation: 'operation_of_before', operations: 'operations_of_before', families: 'families_of_before', family: 'family_of_before', kind: 'kind_of_before' };
 const label = (script) => path.basename(script).replace(/\.(js|ps1)$/, '');
 const q = (s) => '"' + s + '"';
 
@@ -126,13 +126,14 @@ const registryGood = write('registry-good.jsonl', JSON.stringify(record) + '\n')
 const registryRenamed = write('registry-renamed.jsonl', JSON.stringify(renamed(renamed(record, KEY.kind, BEFORE.kind), KEY.name, BEFORE.name)) + '\n');
 
 // the gate reads its lexicon from a checkout: a tiny git repository
-function gateRoot(name, mutateLexicon) {
+function gateRoot(name, mutateLexicon, exceptions) {
+  exceptions = exceptions || [];
   const dir = path.join(work, name);
   fs.mkdirSync(path.join(dir, 'Checks', 'language'), { recursive: true });
   const lex = JSON.parse(fs.readFileSync(path.join(ROOT, 'Checks', 'language', 'lexicon.json'), 'utf8'));
   mutateLexicon(lex);
   fs.writeFileSync(path.join(dir, 'Checks', 'language', 'lexicon.json'), JSON.stringify(lex, null, 1), 'utf8');
-  fs.copyFileSync(path.join(ROOT, 'Checks', 'language', 'exceptions.json'), path.join(dir, 'Checks', 'language', 'exceptions.json'));
+  fs.writeFileSync(path.join(dir, 'Checks', 'language', 'exceptions.json'), JSON.stringify(exceptions, null, 1), 'utf8');
   fs.writeFileSync(path.join(dir, 'notes.md'), 'A line of English.\n', 'utf8');
   cp.execFileSync('git', ['init', '-q', dir], { stdio: 'ignore' });
   cp.execFileSync('git', ['-C', dir, '-c', 'core.autocrlf=false', 'add', '-A'], { stdio: 'ignore' });
@@ -141,8 +142,9 @@ function gateRoot(name, mutateLexicon) {
 const lexiconGood = gateRoot('gate-good', () => {});
 const lexiconNoContent = gateRoot('gate-no-content-words', (lex) => { delete lex.content_words; });
 const lexiconEmptyFunction = gateRoot('gate-empty-function-words', (lex) => { lex.function_words = []; });
-const baselineNoSets = write('baseline-no-sets.json', { format: 2, files: {} });
-const baselineGood = write('baseline-good.json', { format: 2, files: {}, sets: { identifiers: [], json_keys: [], protocol: [], paths: [] } });
+// an exception without its signature keys: the gate reads them (null until the owner signs), it does not guess
+const exceptionNoSignature = gateRoot('gate-exception-no-signature', () => {}, [
+  { class: 'todo-reader', file: '^notes\\.md$', pattern: 'English', applies_to: ['detector'], reason: 'a fake', signed_by: null }]);
 
 // ── the cases: [name, run, expected exit (a number, 'any' or 'not 2'), what the output must show]
 const CP = label(COUNT_TESTED), CC = label(CATALOGUE_CHECK), QS = label(QUESTIONS), X2 = label(PROBE_X2), GT = label(GATE);
@@ -169,10 +171,10 @@ const cases = [
   [QS + ': a well-formed registry', () => node(QUESTIONS, [registryGood]), 0, /:\s+1\r?$/m],
   [QS + ': a registry with renamed keys', () => node(QUESTIONS, [registryRenamed]), 1, 'EXPECTED KEYS MISSING'],
   [X2 + ': the answers of the bridge', () => node(PROBE_X2, ['--self-test']), 0, 'The reading fails on every answer without the expected keys.'],
-  [GT + ': a well-formed lexicon runs', () => node(GATE, ['--root', lexiconGood, '--baseline', baselineGood, '--quiet']), 'not 2', null],
-  [GT + ': lexicon without "content_words"', () => node(GATE, ['--root', lexiconNoContent, '--baseline', baselineGood, '--quiet']), 2, 'no list "content_words"'],
-  [GT + ': lexicon with no function words', () => node(GATE, ['--root', lexiconEmptyFunction, '--baseline', baselineGood, '--quiet']), 2, 'the list "function_words" is empty'],
-  [GT + ': baseline without "sets"', () => node(GATE, ['--root', lexiconGood, '--baseline', baselineNoSets, '--quiet']), 2, 'no "sets" object'],
+  [GT + ': a well-formed lexicon runs', () => node(GATE, ['--root', lexiconGood]), 'not 2', null],
+  [GT + ': lexicon without "content_words"', () => node(GATE, ['--root', lexiconNoContent]), 2, 'no list "content_words"'],
+  [GT + ': lexicon with no function words', () => node(GATE, ['--root', lexiconEmptyFunction]), 2, 'the list "function_words" is empty'],
+  [GT + ': an exception without "signed_on"', () => node(GATE, ['--root', exceptionNoSignature]), 2, '"signed_by" and "signed_on" must be there'],
 ];
 
 // With a built library, the catalogue check runs to its end: a declared

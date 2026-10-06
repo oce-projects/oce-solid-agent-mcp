@@ -208,7 +208,7 @@ is run with `--group cases`. No line of C# is needed:
 | `equal_to` | a number, a text, a list of numbers (with tolerance) or a list of TEXT (one by one, and the order counts) |
 | `includes` / `does_not_include` | for the measures that are **sentences** (`state.shape`): a string or a list. They are not combined with `equal_to` |
 | `tolerance` | **absolute**, in mm or mm³. Non-zero → `tolerance_why` is needed, otherwise the case is **broken** |
-| selectors | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z are the point that the state publishes), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Schizzo1,name=D1)`, `@dimension(angular=true)` (the only dimension in degrees, entry Z-C21.2) |
+| selectors | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z are the point that the state publishes), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Sketch1,name=D1)`, `@dimension(angular=true)` (the only dimension in degrees, entry Z-C21.2) |
 | before the step | `select_first`: uids or selectors left SELECTED when the step starts, as someone sitting in front of SOLIDWORKS would leave them (the STL that exported only the selected face). `hide_first`: bodies, or the body of a face, HIDDEN before the step (the hidden body that came out of the overhang check). Both are counted after they are done: a selection that did not succeed is a bench error, not a green (entry Z-C21.2) |
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
 | placeholders | `{PROFILES}` the library of welded profiles of this installation; `{WORK}` the folder a case may WRITE to (`Bench\work\`, ignored by git); `{DATA}` the versioned input files (`Bench\data\`); `{SOLIDWORKS}` the SOLIDWORKS installation folder, for the files that ship WITH it and are not versioned (the table templates; `SW_INSTALL_PATH` if it is not the default one, entry Z-C21.2). A case that names a path of this machine is not a test, it is a memory |
@@ -558,7 +558,7 @@ itself the things that can be counted:
 
 The other half — «the thickness can be READ from the section» — can be said only
 by someone who looks. The two images stay in `Bench/views/`
-(`v4-guscio-intero.png` and `v4-guscio-sezione.png`) precisely for that.
+(`v4-shell-whole.png` and `v4-shell-section.png`) precisely for that.
 
 With `OCE_BRIDGE=...` you point at another executable: it is for testing the
 **installed** one instead of the one just built, which is the only way to know
@@ -729,7 +729,7 @@ cases/drawing/      42   the first case that gets to the DRAWING (entry GT0);
                        letter, the second refused (entry Z-C13); the centre
                        marks on the holes really counted, and the fillets refused
                        (entry W2.11); the BOM of an assembly of two
-                       parts with the balloons («bollatura») (entry GT9); the dimensions of the drawing
+                       parts with the balloons (entry GT9); the dimensions of the drawing
                        found again in the text of the PDF (entry Z-C9); the turned
                        bushing, where the Ø30 outline is not a hole and the
                        depth of the blind hole is also read from the geometry (GT12);
@@ -805,10 +805,6 @@ cases/reanchor/    3   the edge named with the uid read BEFORE two holes is
                        it is refused, never the nearest one; double (two bodies that
                        touch) it is refused, «I do not choose» (entry E19,
                        `uid_from_step`)
-cases/aliases/     4   the names of before the rename, accepted until the first
-                       release (W3.1-bis.5, D4): an operation, an argument, a
-                       value and a selector written in Italian give the same
-                       part, and the step lists them in measurements.deprecated
 ```
 
 `-Family` (entry E19) runs only those folders of the declared cases: the `cases`
@@ -849,7 +845,7 @@ the outside** — and from the outside it is discovered by a stranger, at the
 first attempt.
 
 **`cases/drawing/` holds both things, since 17/9/2026** (entry GT0), and it is
-the only folder like that. The seven `tav_*.json` are plans; the declared cases
+the only folder like that. The seven `dwg_*.json` are plans; the declared cases
 of the `drawing` family are there next to them. **They are not told apart by
 name, they are told apart by SHAPE**: a plan is an array of steps, a case is an
 object with `name`, `why` and `steps`. The loader looks at the root of the JSON,
@@ -879,7 +875,7 @@ by searching for the prefix.
 
 Until 14/9/2026 they were in a temporary session folder, and the path of the
 library was a **constant** pointing inside that folder. When entries B4 and B5
-moved the operations from `OpenPDM.SwAddin.Agente` to
+moved the operations from `OpenPDM.SwAddin` to
 `Oce.Solid.Agent.Core`, the bench stopped starting — and **nobody noticed for
 three days**, because it lived outside the repository and nothing launched it
 any more.

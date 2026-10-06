@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// Four findings of the audit were measured REAL by the Z-C21.3 probes on
     /// 28/9/2026 (the TODO entry of the Z-C21.3 outcome). The bench can build only one of
-    /// their situations (N26, case assiemi/the_mirrored_instance_turns_as_asked);
+    /// their situations (N26, case assemblies/the_mirrored_instance_turns_as_asked);
     /// the others need what a bench case cannot write:
     ///
     ///   C4-2  an assembly cut on one instance (user bodies): the bench has no

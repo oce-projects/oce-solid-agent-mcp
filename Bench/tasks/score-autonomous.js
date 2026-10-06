@@ -30,27 +30,22 @@
 //      node Bench/tasks/score-autonomous.js --self-test
 //
 //  --read-state asks the bridge for its tools first and reads the state with
-//  the tool that bridge has (inspect_part, or guarda_il_pezzo before the
-//  rename); --bridge-info prints its version and protocol (en or it), which
-//  run-autonomous.ps1 records in run.json.
+//  inspect_part; --bridge-info prints its version and protocol (en, or unknown
+//  when the bridge has no inspect_part), which run-autonomous.ps1 records in
+//  run.json.
 //
 //  --compare is the threshold of D9: the median per task (1 = right, 0 =
 //  not) of the run after against the run before; the run holds when at most
 //  one task of fifteen is worse.
 //
-//  THE RUN BEFORE SPEAKS THE PROTOCOL OF BEFORE. D9 compares the bridge before
-//  the rename (9384b2c: `esiti`, `riuscita`, `misure`, `corpi_totali`) with the
-//  bridge after it; a scorer that read only the English keys would find no
-//  outcome in the run before, call every session NOT DONE, and the comparison
-//  «at most one task worse» could not fail. So every answer and every state is
-//  read through the name map first (Checks/language/name-map.tsv, the rows
-//  response_field, operation, enum_value and response_value, with the sites of
-//  Checks/language/window-2-surface.js where a field has two English names):
-//  an answer of the bridge before becomes the answer the bridge after would
-//  write, and an English answer goes through unchanged. score.json records
-//  which protocol each session spoke, and the scorer refuses to score a run in
-//  which no session gave a single outcome, and --compare refuses a score.json
-//  written by a scorer that did not read the protocol of before.
+//  THE SCORER READS THE ENGLISH PROTOCOL ONLY (W3.1-bis.11). Until then it also
+//  read the answers of the bridge before the rename (9384b2c: its answers and
+//  its state in Italian) through the name map, so that D9 could compare that
+//  bridge with this one. The map is archived outside the repository, and so is
+//  that reading: a run is scored when its answers are the ones this bridge
+//  writes, and a run in which no session gave a single outcome is refused
+//  instead of scored. The score.json of a run before that was scored while the
+//  reading existed stays valid for --compare (same format, scorer 2).
 //
 //  Exit 0 on a score written (or a comparison that holds), 1 when the
 //  comparison does not hold or the self-test fails, 2 on a bad argument, a run
@@ -64,65 +59,6 @@ const cp = require('child_process');
 const SCORER_VERSION = 2;
 
 function fail(m) { console.error('score-autonomous: ' + m); process.exit(2); }
-
-// ── the protocol of before, read through the map ─────────────────────────
-// The direction Italian -> English of window 2 (its tables of sites included).
-let DIRECTION = null;
-function direction() {
-  if (DIRECTION) return DIRECTION;
-  const root = path.resolve(__dirname, '..', '..');
-  const w = require(path.join(root, 'Checks', 'language', 'window-2-surface.js'));
-  DIRECTION = w.direction(w.loadMap(root), false, null);
-  return DIRECTION;
-}
-// Keys only the bridge before the rename writes: an answer or a state with one
-// of them speaks the Italian protocol.
-const ITALIAN_MARKS = ['esiti', 'riuscita', 'misure', 'corpi_totali', 'facce', 'stato_dopo', 'operazione'];
-// The state of an ASSEMBLY has neither bodies nor faces: without keys of its own
-// (the documents open, the count of the components) it went through
-// untranslated, and the preparer of the D9 run read «-1 components» on the
-// bridge of before (live proof of 6/10, task 08). Their names of before are read
-// from the map (the response_field rows), like everything else of that protocol.
-const ASSEMBLY_MARKS = ['documents_open', 'how_many_components', 'components_top_level'];
-let MARKS = null;
-function italianMarks() {
-  if (MARKS) return MARKS;
-  const before = [...direction().field].filter(([it, en]) => it !== en && ASSEMBLY_MARKS.includes(en)).map(([it]) => it);
-  MARKS = ITALIAN_MARKS.concat(before);
-  return MARKS;
-}
-function speaksItalian(v) {
-  if (Array.isArray(v)) return v.some(speaksItalian);
-  if (!v || typeof v !== 'object') return false;
-  return Object.keys(v).some(k => italianMarks().includes(k) || speaksItalian(v[k]));
-}
-// An answer (or a state) of the bridge before, as the bridge after writes it:
-// every key by the response_field rows (a field that depends on the field it
-// sits in, or on the operation that writes it, by the sites of the window),
-// the operation of a step by the operation rows, a value by the enum of its
-// key or by the response_value rows. English keys and values have no row and
-// go through as they are.
-function toEnglish(v, op, parent) {
-  const d = direction();
-  if (Array.isArray(v)) return v.map(x => toEnglish(x, op, parent));
-  if (!v || typeof v !== 'object') return v;
-  const opHere = typeof v.operazione === 'string' ? v.operazione : op;
-  const out = {};
-  for (const [k, val] of Object.entries(v)) {
-    let key = d.field.get(k) || k;
-    if (parent && d.fieldInside.has(parent) && d.fieldInside.get(parent).has(k)) key = d.fieldInside.get(parent).get(k);
-    else if (parent === 'misure' && opHere && d.fieldByOp.has(opHere) && d.fieldByOp.get(opHere).has(k)) key = d.fieldByOp.get(opHere).get(k);
-    let now;
-    if (k === 'operazione' && typeof val === 'string') now = d.op.get(val) || val;
-    else if (typeof val === 'string') {
-      const e = d.enumByArg.get(k);
-      now = e && e.has(val) ? e.get(val) : d.rvalue.get(val) || val;
-    } else now = toEnglish(val, opHere, k);
-    out[key] = now;
-  }
-  return out;
-}
-function readAnswer(a) { return speaksItalian(a) ? { answer: toEnglish(a, null, null), italian: true } : { answer: a, italian: false }; }
 
 // ── the table of a task ─────────────────────────────────────────────────
 function tableOf(md) {
@@ -172,12 +108,9 @@ function readRow(r) {
 }
 
 // ── the transcript ───────────────────────────────────────────────────────
-// Every outcome of every step the bridge answered, in order, in the English
-// protocol (an answer of the bridge before is read through the map:
-// `out.italian` says how many were).
+// Every outcome of every step the bridge answered, in order.
 function outcomesOf(jsonl) {
   const out = [];
-  out.italian = 0;
   for (const line of jsonl.split(/\r?\n/)) {
     if (!line.trim()) continue;
     let o;
@@ -190,9 +123,7 @@ function outcomesOf(jsonl) {
         if (part.type !== 'text') continue;
         let raw;
         try { raw = JSON.parse(part.text); } catch (e) { continue; }
-        const r = readAnswer(raw);
-        const a = r.answer;
-        if (a && Array.isArray(a.outcomes)) { if (r.italian) out.italian++; for (const s of a.outcomes) out.push(s); }
+        if (raw && Array.isArray(raw.outcomes)) for (const s of raw.outcomes) out.push(s);
       }
     }
   }
@@ -284,10 +215,9 @@ function scoreRun(dir) {
     const rows = fs.existsSync(mdFile) ? tableOf(fs.readFileSync(mdFile, 'utf8')) : [];
     const stateFile = path.join(dir, task + '-' + m[2] + '.state.json');
     const rawState = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8').replace(/^﻿/, '')) : null;
-    const st = readAnswer(rawState);
     const outcomes = outcomesOf(fs.readFileSync(path.join(dir, f), 'utf8'));
-    const s = scoreSession(rows, outcomes, st.answer);
-    const protocol = outcomes.italian > 0 || st.italian ? 'it (read through the name map)' : outcomes.length || rawState ? 'en' : 'nothing read';
+    const s = scoreSession(rows, outcomes, rawState);
+    const protocol = outcomes.length || rawState ? 'en' : 'nothing read';
     (perTask[task] = perTask[task] || []).push(Object.assign({ n: Number(m[2]), outcomes_read: outcomes.length, protocol }, s));
   }
   // A session the runner did not run because its prerequisite did not hold
@@ -303,7 +233,7 @@ function scoreRun(dir) {
   // not answer). Scoring it would make every comparison hold.
   const sessions = [].concat(...Object.values(perTask));
   if (sessions.length && sessions.every(x => x.outcomes_read === 0))
-    fail('no session of ' + dir + ' gave a single outcome of a step: the answers are not in a protocol this scorer reads, or the bridge never answered. Not scored.');
+    fail('no session of ' + dir + ' gave a single outcome of a step: the answers are not in the protocol this scorer reads (English), or the bridge never answered. Not scored.');
   const summary = {};
   for (const [task, list] of Object.entries(perTask)) {
     summary[task] = { sessions: list.map(x => x.outcome), median_right: median(list.map(x => x.outcome === 'RIGHT' ? 1 : 0)),
@@ -319,12 +249,12 @@ function scoreRun(dir) {
 function compare(before, after) {
   const read = (dir) => {
     const j = JSON.parse(fs.readFileSync(path.join(dir, 'score.json'), 'utf8'));
-    if (j.scorer !== SCORER_VERSION) fail(path.join(dir, 'score.json') + ' was written by a scorer that did not read the protocol of before the rename (scorer ' + (j.scorer || 1) + '): score the run again');
+    if (j.scorer !== SCORER_VERSION) fail(path.join(dir, 'score.json') + ' was written by an older scorer (scorer ' + (j.scorer || 1) + ', this one is ' + SCORER_VERSION + '): score the run again');
     return j;
   };
   const ja = read(before), jb = read(after);
   const protocols = (j) => [...new Set([].concat(...Object.values(j.summary).map(t => t.protocols || [])))].join(', ');
-  console.log('before: ' + protocols(ja) + '; after: ' + protocols(jb) + ' (both scored on the English protocol)');
+  console.log('before: ' + protocols(ja) + '; after: ' + protocols(jb));
   const a = ja.summary;
   const b = jb.summary;
   const worse = Object.keys(a).filter(t => b[t] && b[t].median_right < a[t].median_right);
@@ -337,15 +267,13 @@ function compare(before, after) {
 }
 
 // A fresh bridge over stdio: initialize, tools/list and, when asked, the tool
-// that reads the state, by the name THAT bridge gives it (inspect_part after
-// the rename, guarda_il_pezzo before it: the run before uses the bridge of
-// before, and asking it for inspect_part would read no state at all).
-const INSPECT = { en: 'inspect_part', it: 'guarda_il_pezzo' };
+// that reads the state.
+const INSPECT = { en: 'inspect_part' };
 function askBridge(bridge, withState) {
   const req = (id, method, params) => JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n';
   let input = req(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'score-autonomous', version: '1' } }) +
     JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n' + req(2, 'tools/list', {});
-  if (withState) input += req(3, 'tools/call', { name: INSPECT.en, arguments: {} }) + req(4, 'tools/call', { name: INSPECT.it, arguments: {} });
+  if (withState) input += req(3, 'tools/call', { name: INSPECT.en, arguments: {} });
   const r = cp.spawnSync(bridge, [], { input, encoding: 'utf8', timeout: 240000, cwd: path.dirname(bridge), windowsHide: true, maxBuffer: 64 << 20 });
   const by = {};
   for (const line of String(r.stdout || '').split(/\r?\n/)) {
@@ -355,9 +283,9 @@ function askBridge(bridge, withState) {
   }
   const info = by[1] && by[1].result && by[1].result.serverInfo ? by[1].result.serverInfo : {};
   const names = by[2] && by[2].result && Array.isArray(by[2].result.tools) ? by[2].result.tools.map(t => t.name) : [];
-  const protocol = names.includes(INSPECT.en) ? 'en' : names.includes(INSPECT.it) ? 'it' : 'unknown';
+  const protocol = names.includes(INSPECT.en) ? 'en' : 'unknown';
   let state = null;
-  const answer = by[protocol === 'it' ? 4 : 3];
+  const answer = by[3];
   if (withState && answer && answer.result && !answer.result.isError) {
     state = answer.result.structuredContent || null;
     if (!state && Array.isArray(answer.result.content) && answer.result.content[0]) { try { state = JSON.parse(answer.result.content[0].text); } catch (e) { /* text only */ } }
@@ -395,26 +323,6 @@ function selfTest() {
   check('no successful step is NOT DONE', scoreSession(rows, [{ operation: 'hem', succeeded: false }], state).outcome === 'NOT DONE');
   const jsonl = JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', content: [{ type: 'text', text: JSON.stringify({ outcomes }) }] }] } });
   check('the outcomes are read from a transcript', outcomesOf(jsonl).length === 2);
-  // the run before: the bridge of 9384b2c answers and describes the part in
-  // the Italian protocol, and the same session must score the same
-  const outcomesIt = [{ operazione: 'orlo', riuscita: true, misure: { tipo: 'chiuso' } },
-                      { operazione: 'esporta_stl', riuscita: true, misure: { byte: 684 } }];
-  const jsonlIt = JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', content: [{ type: 'text', text: JSON.stringify({ esiti: outcomesIt }) }] }] } });
-  const stateIt = { volume_mm3: 67700, corpi_totali: 1, facce: [{ diametro_mm: 9.01 }, { normale: [0, 0, 1] }, { diametro_mm: 8.99 }] };
-  const readIt = outcomesOf(jsonlIt);
-  check('the outcomes of the bridge before the rename are read, through the map', readIt.length === 2 && readIt.italian === 1 &&
-        readIt[0].operation === 'hem' && readIt[0].succeeded === true && readIt[0].measurements.kind === 'closed');
-  check('the state of before is read through the map', readAnswer(stateIt).italian && readAnswer(stateIt).answer.bodies_total === 1);
-  check('a session of the bridge before that holds every row is RIGHT, not NOT DONE',
-        scoreSession(rows.slice(0, 6), readIt, readAnswer(stateIt).answer).outcome === 'RIGHT');
-  // An assembly of the bridge before has no body and no face: the run of 6/10 read
-  // it untranslated, «-1 components» (seen red without the three assembly marks).
-  const nameBefore = (en) => [...direction().field].find(([it, e]) => e === en && it !== en)[0];
-  const assemblyIt = {};
-  assemblyIt[nameBefore('documents_open')] = [];
-  assemblyIt[nameBefore('how_many_components')] = 2;
-  check('the state of an ASSEMBLY of before is read through the map too', readAnswer(assemblyIt).italian && readAnswer(assemblyIt).answer.how_many_components === 2);
-  check('an English answer goes through the reading unchanged', !readAnswer({ outcomes }).italian && readAnswer({ outcomes }).answer.outcomes === outcomes);
   check('the median of 1, 0, 1 is 1', median([1, 0, 1]) === 1);
   // a session the runner did not run for a prerequisite that did not hold is read
   // from its file, and one that has a transcript is not
@@ -432,9 +340,8 @@ function selfTest() {
   return bad === 0;
 }
 
-// What another script of this folder may borrow: the preparer of the
-// prerequisites reads the answers of the bridge of before through the same map.
-module.exports = { readAnswer, askBridge, INSPECT, speaksItalian };
+// What another script of this folder may borrow.
+module.exports = { askBridge, INSPECT };
 if (require.main !== module) return;
 
 const argv = process.argv.slice(2);

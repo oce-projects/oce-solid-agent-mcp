@@ -291,7 +291,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("and the ceiling of bodies by number is the real one",
                   casesWithNumbers.Count == BodiesByNumberCap,
                   casesWithNumbers.Count == BodiesByNumberCap
-                      ? "tetto " + BodiesByNumberCap
+                      ? "ceiling " + BodiesByNumberCap
                       : "there are " + casesWithNumbers.Count + ": lower the ceiling to this number");
 
             Check("every step of a case measures something (as the bench demands)", muteSteps.Count == 0,
@@ -299,7 +299,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             Check("all the case files can be read", unreadable.Count == 0,
                   unreadable.Count == 0
-                      ? file.Length + " file (" + declared + " casi, " + planes + " piani)"
+                      ? file.Length + " file (" + declared + " cases, " + planes + " plans)"
                       : string.Join(" | ", unreadable));
 
             var fake = new List<string>();
@@ -457,7 +457,7 @@ namespace Oce.Solid.Agent.ContractTests
             // which it is needed: afterwards, nobody comes back to it.
             Check("the mute descriptions have not increased", mute.Count <= Mute,
                   mute.Count + " mute su " + refusedOperations.Count +
-                  " (tetto " + Mute + "): " + string.Join(", ", mute));
+                  " (ceiling " + Mute + "): " + string.Join(", ", mute));
 
             Check("and the ceiling is the real one", mute.Count == Mute,
                   mute.Count == Mute
@@ -484,12 +484,12 @@ namespace Oce.Solid.Agent.ContractTests
             };
 
         /// <summary>
-        /// THE SECOND HALF OF Z-C6: `Provata = true` must point to a case that
+        /// THE SECOND HALF OF Z-C6: `Tested = true` must point to a case that
         /// RAN, green, in the last run — not to a case that exists.
         ///
         /// On 25/9/2026, writing the cases that were missing, two «tested» operations
         /// turned out never to have worked (`trim_members`, `weld_bead`)
-        /// and one left the catalogue (`gusset`). «Provata» meant that
+        /// and one left the catalogue (`gusset`). «Tested» meant that
         /// somebody had written true there. Now the bench says it: it writes the names
         /// of the green cases in `last.json` («green_cases»), and here they are crossed
         /// with the catalogue served.

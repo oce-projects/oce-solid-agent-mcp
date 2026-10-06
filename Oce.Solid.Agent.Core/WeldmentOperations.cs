@@ -15,7 +15,7 @@ namespace Oce.Solid.Agent.Core
     /// On 8 September 2026 the designer asked «draw a tube
     /// 80x80x5 200 long» and received an extruded body. He said right away that it
     /// was wrong, and the reason is not aesthetic: without a structural member
-    /// THE CUT LIST IS NOT BORN. `Services/DistintaTaglio.cs` has known how to
+    /// THE CUT LIST IS NOT BORN. `Services/CutList.cs` has known how to
     /// read it since 2 September, and it has always read nothing because nobody
     /// created it.
     ///
@@ -407,8 +407,8 @@ namespace Oce.Solid.Agent.Core
             // The server has an index of names sent from a workstation, which
             // may be another one and may be from yesterday. Here is the real
             // disk. If the file is not there, InsertStructuralWeldment5 does not throw:
-            // it returns null, and without this check the user would read «il
-            // membro non e' stato creato» without knowing that the profile was the
+            // it returns null, and without this check the user would read «the
+            // member was not created» without knowing that the profile was the
             // problem.
             if (!File.Exists(profile))
                 return Failed(
@@ -485,8 +485,8 @@ namespace Oce.Solid.Agent.Core
             // A rectangular frame is described by two dimensions and a plane: the
             // four segments are a consequence, not a datum. The server
             // computes them and sends them together, so on that side it was not
-            // noticed; from the bridge the operation answered «Il piano non porta
-            // nessun segmento» without even looking at the frame — that is,
+            // noticed; from the bridge the operation answered «The plane carries no
+            // segment» without even looking at the frame — that is,
             // it asked to compute by hand what it can do by itself, and
             // it asked with a message that did not say so.
             //
@@ -557,10 +557,10 @@ namespace Oce.Solid.Agent.Core
 
             // THE READING OF THE TWO SIZES, IN THE CATALOGUE SPELLING
             // (Z-C21.10 N32). The comparisons below are Ordinal, and until
-            // library 0.140.0 the value arrived as written: «Ingombro» was not
+            // library 0.140.0 the value arrived as written: «Bounding» was not
             // «overall», so it fell into the centre-line branch and a
-            // 1000x800 frame came out 1080x880 with riuscito = true — and so
-            // did any other word («outer»). The bridge's Forma accepts enum
+            // 1000x800 frame came out 1080x880 with succeeded = true — and so
+            // did any other word («outer»). The bridge's Shape accepts enum
             // values without regard to case and rewrites the top-level ones in
             // the catalogue spelling (Bridge/Shape.cs, pattern S20), but the
             // nested «frame» the server builds is not in the catalogue schema
@@ -666,8 +666,8 @@ namespace Oce.Solid.Agent.Core
 
             // IF WE GOT HERE THE SEGMENTS STILL ARE NOT THERE, the frame was there
             // but was not usable — «measured_as» other than «overall», or a
-            // plan that is not recognized. We say that, not «manca il
-            // percorso»: whoever wrote a frame asked for a frame.
+            // plan that is not recognized. We say that, not «the
+            // path is missing»: whoever wrote a frame asked for a frame.
             if (segments == null)
                 return Failed(
                     "You asked for a frame but I could not derive its path " +
@@ -772,7 +772,7 @@ namespace Oce.Solid.Agent.Core
                 //
                 // AND ON THE ROUND TUBE TOO (finding L9-6, NOT REAL). The doubt
                 // was that option 2 might differ from 1 on a round profile. The
-                // Z-C21.3 probe of 28/9/2026 (saldature probe_connected_segments,
+                // Z-C21.3 probe of 28/9/2026 (weldments probe_connected_segments,
                 // TUBO METRICO BHP 42 X 3 against TUBO STRUTTURALE QUADRO
                 // 80X80X5) built, with each option, an L with no corner
                 // treatment, the default one, miter, butt 1 and butt 2, and a T:
@@ -945,10 +945,10 @@ namespace Oce.Solid.Agent.Core
             // user-interface.»
             //
             // The comment that was here reasoned the other way round: it feared a positive
-            // GapValue being ignored, and turned the bit on only with `gioco > 0`.
+            // GapValue being ignored, and turned the bit on only with `gap > 0`.
             // The real damage was the other one: with `gap_mm` at 0 — the default — the
             // bit stayed off and SOLIDWORKS used the last gap given by hand
-            // to Accorcia/Estendi, while the summary said `gap_mm: 0`. The
+            // to the trim/extend feature, while the summary said `gap_mm: 0`. The
             // bridge runs on the same SOLIDWORKS as the real work: it is enough that whoever
             // draws has used a gap from the interface for the later calls
             // to inherit it. The case `cut_without_gap_does_not_inherit` watches it.
@@ -1086,8 +1086,8 @@ namespace Oce.Solid.Agent.Core
         /// How many features the tree has, at the first level. It serves a single thing:
         /// knowing whether a feature that SOLIDWORKS returned really got
         /// in (see `TrimMembers`). -1 if it could not be read (entry
-        /// Z-C8): a half count made «la feature nell'albero non
-        /// c'e'» be said of a successful cut.
+        /// Z-C8): a half count made «the feature is not in the
+        /// tree» be said of a successful cut.
         /// </summary>
         private static int CountTreeFeatures(IModelDoc2 model)
         {
@@ -1112,7 +1112,7 @@ namespace Oce.Solid.Agent.Core
         /// LUNGHEZZA 1000» — in the shop, four 1000 bars where two are
         /// 800. The bench case was green: it asked only that the bodies be 4.
         ///
-        /// The cause, measured (`prova0089 distinta2`): the part was not a
+        /// The cause, measured (the historical probe of 0.89, case «cut list 2»): the part was not a
         /// WELDMENT (`IsWeldment` false: structural members do not put the
         /// «Saldatura» feature), and the automatic cut list does not turn on on a
         /// part that is not one. With the Saldatura feature — put even AFTER the
@@ -1534,7 +1534,7 @@ namespace Oce.Solid.Agent.Core
             if (side1 <= 0 || side2 <= 0)
                 return Failed("The gusset does not have its two legs: set «leg1_mm» and «leg2_mm» to more than zero, for example 60 and 60.");
 
-            // ── THE PROFILE: triangular, or polygonal NON degenerate ─────────
+            // ── THE PROFILE: triangular, or polygonal NOT degenerate ─────────
             string profile = (Str(a, "profile", "triangular") ?? "").Trim().ToLowerInvariant();
             Func<string, bool> given = k =>
             {
@@ -2526,7 +2526,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// How many millimeters of edges of `faccia` lie on top of `altra`: an
+        /// How many millimeters of edges of `faceA` lie on top of `faceB`: an
         /// edge counts if its start, its midpoint and its end
         /// lie on the other face within a thousandth of a millimeter.
         ///
@@ -2637,7 +2637,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// On which two axes a main plane lies.
         ///
-        /// Same convention as the server (`COORDINATE` in ai_disegno.py):
+        /// Same convention as the server (the coordinates constant of the drawing module):
         /// front = XY, top = XZ, right = YZ. If the two tables
         /// diverged, a frame would be born on one plane and be
         /// verified on another — and the verification would fail on a right
@@ -2812,12 +2812,12 @@ namespace Oce.Solid.Agent.Core
         /// THE CATALOG DOCUMENTS ONE AND THE SERVER SENDS ANOTHER, and
         /// both must be served:
         ///
-        ///   from the catalog:  { length_mm, width_mm, piano, centrato, misure }
-        ///   from the server:   { telaio: { length_mm, ... }, segmenti: [...] }
+        ///   from the catalog:  { length_mm, width_mm, plane, centered, measures }
+        ///   from the server:   { frame: { length_mm, ... }, segments: [...] }
         ///
         /// The first is the one the catalog declares in its `required` and
-        /// that the description promises («si chiede con due quote invece che
-        /// con otto coordinate»). The second is built by `valida()` in the
+        /// that the description promises («it is asked with two dimensions instead of
+        /// eight coordinates»). The second is built by the validation function of the
         /// server, which repackages before sending — and that is why
         /// the divergence was not visible on that side: a model that reads
         /// the catalog and writes what is written there arrived here and
@@ -3197,7 +3197,7 @@ namespace Oce.Solid.Agent.Core
             // first-level features means never finding them — and then one believes
             // that a cut list is not there and creates a second one, with two
             // lists of the same metalwork in the shop.
-            // Services/DistintaTaglio.cs has read them this way since 2 September.
+            // Services/CutList.cs has read them this way since 2 September.
             var already = new HashSet<string>(StringComparer.Ordinal);
             IFeature f;
             try { f = partDoc.IFirstFeature(); }

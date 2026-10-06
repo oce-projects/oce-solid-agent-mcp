@@ -11,11 +11,11 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── WHAT IT WAS BEFORE, AND WHY IT WAS NOT ENOUGH ────────────────────
     ///
-    /// Up to 0.91.0 `DocumentState.Read` had an `if (parte == null)` that
+    /// Up to 0.91.0 `DocumentState.Read` had an `if (part == null)` that
     /// answered, for ANY assembly:
     ///
     ///     solid_body: false
-    ///     nota: "documento di assieme: l'assistente non lo modifica ancora"
+    ///     note: "assembly document: the assistant does not modify it yet"
     ///
     /// and returned. It was honest — no assembly operation existed — but it
     /// left the model **blind**: the state is the only thing it sees, and from
@@ -45,7 +45,7 @@ namespace Oce.Solid.Agent.Core
     /// A single `try` around everything would make the whole list disappear because of
     /// **one** component with a broken reference — and broken references, in
     /// a real assembly, are the normality, not the exception. Each field has its
-    /// own `try`, as in `StatoTavola`: what cannot be read is left unsaid, the
+    /// own `try`, as in `DrawingState`: what cannot be read is left unsaid, the
     /// rest arrives.
     ///
     /// And above all: if this function threw, it would break
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.Core
                 if (itsAcc >= 0) entry["mates"] = itsAcc;
 
                 // ── WHICH MATES (entry Z-D3) ────────────────────────────
-                // Measured on 27/9/2026 (`prova0089 zd345`): `GetMates` gives IMate2
+                // Measured on 27/9/2026 (`probe0089 zd345`): `GetMates` gives IMate2
                 // objects (and IFeature); `Type` is `swMateType_e`. They are written by
                 // NAME, in the order in which SOLIDWORKS gives them. «How is this
                 // part mounted, hinged or resting?» is read here.
@@ -494,8 +494,8 @@ namespace Oce.Solid.Agent.Core
 
             // ── WHAT STILL CANNOT BE DONE, SAID HERE ─────────────────────
             //
-            // The note stays, but it is no longer the same: before it said «non lo
-            // modifica ancora» and that was all, that is, it closed the discussion. Now the
+            // The note stays, but it is no longer the same: before it said «does not
+            // modify it yet» and that was all, that is, it closed the discussion. Now the
             // state is there, and the note says **what is missing**, which is another thing.
             // A model that reads «I see four components but I do not know how to
             // mate them» knows what it can ask; one that reads «I do not modify it»

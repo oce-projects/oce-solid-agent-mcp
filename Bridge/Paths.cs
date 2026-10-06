@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.Bridge
 
         /// <summary>
         /// Folders declared read-only, separated by semicolons.
-        /// Example: `OCE_READ_ONLY_FOLDERS=S:\CAD;S:\_LIBRERIE`
+        /// Example: `OCE_READ_ONLY_FOLDERS=S:\CAD;S:\LIBRARIES`
         /// </summary>
         private static IEnumerable<string> ReadOnly()
         {
@@ -164,7 +164,7 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
-        /// Is `pieno` inside `folder`?
+        /// Is `full` inside `folder`?
         ///
         /// The trailing separator is not pedantry: without it, «C:\Dati2» turns out to be
         /// inside «C:\Dati», and a check that says yes when it is no is a

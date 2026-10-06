@@ -19,7 +19,7 @@ namespace Oce.Solid.Agent.Bridge
     /// it step by step, and closes everything inside an undo
     /// entry. Creating or opening a document is not a step of that
     /// kind — it is changing the document one works on. And whoever knows «which
-    /// part I have looked at» is the bridge (`_guardato`, the signatures seen): entry
+    /// part I have looked at» is the bridge (`_seen`, the signatures seen): entry
     /// Z-B6 already said it, «it changes the active document from inside the bridge, and
     /// it must invalidate the signatures at the same instant».
     ///
@@ -367,7 +367,7 @@ namespace Oce.Solid.Agent.Bridge
 
         /// <summary>
         /// An open and visible document, by path or — if it has never been
-        /// saved — by title. `titoli` reports what there was, to say it in a
+        /// saved — by title. `titles` reports what there was, to say it in a
         /// refusal.
         /// </summary>
         private IModelDoc2 FindOpen(ISldWorks sw, string which, out List<string> titles)

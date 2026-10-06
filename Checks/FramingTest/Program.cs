@@ -381,7 +381,7 @@ namespace Checks.FramingTest
                 string clean = shape.Replace(' ', '_').Replace('x', 'X');
                 string file = Path.Combine(folder, clean + "-" + which + ".png");
                 File.WriteAllBytes(file, png);
-                Console.WriteLine("         guardalo: " + file);
+                Console.WriteLine("         look at it: " + file);
             }
             catch { }
         }

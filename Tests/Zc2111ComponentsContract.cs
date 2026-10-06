@@ -71,7 +71,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// STEP count, the BOM reader, and the old reader that must stay gone.
         /// </summary>
         private static readonly string[] OwnNames =
-            "AssemblyMassProperties AssemblyBoundingBox ExpectedSolidsInAssembly ComponentsForEntry PezziDellAssieme".Split(' ');
+            "AssemblyMassProperties AssemblyBoundingBox ExpectedSolidsInAssembly ComponentsForEntry PartsOfTheAssembly".Split(' ');
         private static readonly string MassMember = OwnNames[0];
         private static readonly string BoxMember = OwnNames[1];
         private static readonly string StepCountMember = OwnNames[2];

@@ -108,7 +108,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var orfane = families.Where(f => !declared.ContainsKey(f)).ToList();
                 Check("every family in use is declared", orfane.Count == 0,
-                      orfane.Count == 0 ? declared.Count + " famiglie"
+                      orfane.Count == 0 ? declared.Count + " families"
                                         : "used and not declared: " + string.Join(", ", orfane));
             }
 
@@ -121,12 +121,12 @@ namespace Oce.Solid.Agent.ContractTests
             // ── AND THE CHECK HAS ALREADY TRIGGERED FOR THE WRONG REASON ──
             //
             // The first version looked for «O:\» without distinguishing upper and
-            // lower case, and found **«tipo:\n»**: two letters, the colon and
+            // lower case, and found **«type:\n»**: two letters, the colon and
             // the backslash of a newline. A red that triggers for another reason
             // proves nothing and looks identical to one that works.
             //
             // A drive letter is a letter **not preceded by another
-            // letter**: so «NO:\n» and «tipo:\n» are not one, and «S:\PDM» is.
+            // letter**: so «NO:\n» and «type:\n» are not one, and «S:\PDM» is.
             var text = File.ReadAllText(json);
             var bad = new List<string>();
             foreach (System.Text.RegularExpressions.Match m in
@@ -136,7 +136,7 @@ namespace Oce.Solid.Agent.ContractTests
                 if (text.IndexOf(p, StringComparison.Ordinal) >= 0) bad.Add(p);
             Check("no path of this machine in the catalog",
                   bad.Count == 0,
-                  bad.Count == 0 ? "" : "trovati: " + string.Join(" | ", bad.Take(3)));
+                  bad.Count == 0 ? "" : "found: " + string.Join(" | ", bad.Take(3)));
 
             EveryExecutableIsDeclared(catalogNames);
             TheCatalogHasNotFallenBehind();
@@ -152,8 +152,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// Does `catalog.json` still match the C# catalogue that generates it?
         ///
         /// IT COST A RUN ON 22/9/2026. The operation `note` was written,
-        /// compiled, and the bridge refused it with «non
-        /// esiste nessuna operazione «note». Forse cercavi:
+        /// compiled, and the bridge refused it with «no
+        /// operation «note» exists. Did you mean:
         /// drawing_dimension» — while it existed, it was in the dispatcher and it was
         /// inside the DLL the bridge had just loaded. It was missing only from the
         /// JSON, which is the only thing the bridge looks at to know what
@@ -285,7 +285,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// `ExecutableNames` counted **70** of them, `catalog.json` declared
         /// **68**, and the two that were missing — `center_marks` and
         /// `drawing_cut_list` — were out **for a good reason**
-        /// (`Provata=false`: the APIs say yes and create nothing, 0 -> 0).
+        /// (`Tested=false`: the APIs say yes and create nothing, 0 -> 0).
         ///
         /// But until here nobody compared the two lists, and the same
         /// difference would have been produced by a **forgotten** operation:
@@ -401,7 +401,7 @@ namespace Oce.Solid.Agent.ContractTests
                                 .OrderBy(n => n, StringComparer.Ordinal).ToList();
             Check("no untested operation ended up in the catalog",
                   escaped.Count == 0,
-                  escaped.Count == 0 ? outside.Count + " fuori: " + string.Join(", ", outside)
+                  escaped.Count == 0 ? outside.Count + " outside: " + string.Join(", ", outside)
                                       : "untested but exposed: " + string.Join(", ", escaped));
         }
 
@@ -409,7 +409,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// `Catalog.Similar()`: the case for which the function was rewritten.
         ///
         /// The first attempt looked for the whole word inside the name, and on
-        /// «asole» **it did not find «slot»** — that is, it failed exactly where
+        /// «slotz» **it did not find «slot»** — that is, it failed exactly where
         /// it was needed: whoever gets a name wrong almost always has a close one in mind,
         /// and gets it wrong by one letter.
         /// </summary>
@@ -450,14 +450,14 @@ namespace Oce.Solid.Agent.ContractTests
             Check("an empty name does not blow up and does not invent", di("").Count == 0);
             Check("a name that resembles nothing does not invent",
                   di("qwertyuiop").Count == 0, string.Join(", ", di("qwertyuiop")));
-            Check("it offers no more than five", di("a_asola_foro_taglio_piano").Count <= 5,
-                  di("a_asola_foro_taglio_piano").Count + " offerti");
+            Check("it offers no more than five", di("a_slot_hole_cut_plane").Count <= 5,
+                  di("a_slot_hole_cut_plane").Count + " offered");
         }
 
         // ================================================================
         // THE NUMBER WRITTEN IN THE README IS A MEASUREMENT, AND IT AGES LIKE ALL OF THEM
         //
-        // On 16/9/2026 the README said «trentotto operazioni» in two places
+        // On 16/9/2026 the README said «thirty-eight operations» in two places
         // while the catalogue had sixty. No check could
         // notice it: documents are not compiled, not executed, and
         // nobody rereads them until they are needed by someone who was not there.
@@ -467,8 +467,8 @@ namespace Oce.Solid.Agent.ContractTests
         // Whoever reads it has no way of noticing — it is their only source.
         //
         // The check looks for only TWO forms, not all the numbers that appear:
-        // «<numero> operazioni» and «operazioni di disegno sono <numero>». This way
-        // «Cinque, non sessanta» (which is about the TOOLS) does not make it
+        // «<number> operations» and «drawing operations are <number>». This way
+        // «Five, not sixty» (which is about the TOOLS) does not make it
         // trigger: a check that shouts at a correct sentence gets learned to be
         // ignored, and that is worse than no check.
         // ================================================================
@@ -485,20 +485,17 @@ namespace Oce.Solid.Agent.ContractTests
             try { text = File.ReadAllText(readme); }
             catch (Exception ex) { Check("the README can be read", false, ex.Message); return; }
 
-            // BILINGUAL SINCE W3.1-bis.2 (30/9/2026). The README is going to be
-            // translated, and a reader that knew only Italian number words
-            // would read «ninety-nine drawing operations» as no number at all:
-            // the check would have stopped protecting without failing. So the
-            // reader knows English too, and two silences are red now:
+            // THE READER READS ENGLISH, since W3.1-bis.11 (before it read Italian
+            // number words too, while the README was being translated). Two
+            // silences are red:
             //   * a word that LOOKS like a number and cannot be read (it used
             //     to be skipped by «if (n < 0) continue»);
             //   * a README in which no count can be read at all.
             // The forms stay closed: «N operations», «N drawing operations»
-            // and «drawing operations are N» in English, and the two Italian
-            // ones above. «Six assembly operations» still does not count: the
-            // one English qualifier allowed between number and noun is
-            // «drawing».
-            NumberReaderReadsBothLanguages();
+            // and «drawing operations are N». «Six assembly operations» still
+            // does not count: the one qualifier allowed between number and
+            // noun is «drawing».
+            NumberReaderReadsEnglish();
             CountCheckSeenRed();
 
             int claims;
@@ -515,7 +512,6 @@ namespace Oce.Solid.Agent.ContractTests
                                "README stops saying how many there are, this check must be changed on purpose");
         }
 
-        private const string ItalianNoun = "operazioni";
         private const string EnglishNoun = "operations";
 
         // A word of the window: letters, digits and apostrophes, with inner
@@ -526,11 +522,11 @@ namespace Oce.Solid.Agent.ContractTests
         // four («one hundred and sixty-four») and the qualifier one more. A
         // Markdown asterisk counts as a space.
         private static readonly Regex CountBefore = new Regex(
-            @"(?<![\p{L}\p{Nd}'’-])(?<words>(?:" + Word + @"[\s*]+){1,6}?)(?<noun>" + ItalianNoun + "|" + EnglishNoun + @")\b",
+            @"(?<![\p{L}\p{Nd}'’-])(?<words>(?:" + Word + @"[\s*]+){1,6}?)(?<noun>" + EnglishNoun + @")\b",
             RegexOptions.IgnoreCase);
 
         private static readonly Regex CountAfter = new Regex(
-            @"(?<noun>" + ItalianNoun + @"\s+di\s+disegno\s+sono|drawing\s+operations\s+are)[\s*]+(?<words>" + Word +
+            @"(?<noun>drawing\s+operations\s+are)[\s*]+(?<words>" + Word +
             @"(?:[\s*]+" + Word + @"){0,5})",
             RegexOptions.IgnoreCase);
 
@@ -588,42 +584,28 @@ namespace Oce.Solid.Agent.ContractTests
 
         // ── THE SELF-TESTS ───────────────────────────────────────────────
 
-        private static void NumberReaderReadsBothLanguages()
+        private static void NumberReaderReadsEnglish()
         {
-            // The Italian words are built from the reader's own lists: the
-            // Italian branch is transitional, and its tests add no Italian to
-            // the repository.
-            string it73accent = "settantatré";
-            string it73apostrophe = ItalianTens[5] + ItalianUnits[3] + "'";
-            string it38 = ItalianTens[1].Substring(0, ItalianTens[1].Length - 1) + ItalianUnits[8];
-            string it21 = ItalianTens[0].Substring(0, ItalianTens[0].Length - 1) + ItalianUnits[1];
-            string it94 = ItalianTens[7] + ItalianUnits[4];
-            string glued = ItalianUnits[2] + ItalianTens[4]; // a unit glued to a ten: not a number
             var cases = new[]
             {
-                Tuple.Create(it73accent, 73), Tuple.Create(it73apostrophe, 73), Tuple.Create(it38, 38),
-                Tuple.Create(it21, 21), Tuple.Create(it94, 94), Tuple.Create(glued, -1),
                 Tuple.Create("ninety-six", 96), Tuple.Create("ninety four", 94), Tuple.Create("twenty-one", 21),
                 Tuple.Create("thirty-eight", 38), Tuple.Create("seventy-three", 73), Tuple.Create("thirteen", 13),
                 Tuple.Create("one hundred and sixty-four", 164), Tuple.Create("a hundred", 100),
                 Tuple.Create("two hundred", 200), Tuple.Create("99", 99),
                 // not numbers: -1, and never a guess
-                Tuple.Create("ninety-fuor", -1), Tuple.Create(it38.Remove(it38.Length - 2, 1), -1),
+                Tuple.Create("ninety-fuor", -1), Tuple.Create("thirty-eigt", -1),
                 Tuple.Create("the", -1), Tuple.Create("drawing", -1), Tuple.Create("two ninety-nine", -1),
                 Tuple.Create("hundred and", -1), Tuple.Create("zero hundred", -1),
             };
             var wrong = cases.Where(c => Number(c.Item1) != c.Item2)
                              .Select(c => c.Item1 + "=" + Number(c.Item1) + " (expected " + c.Item2 + ")").ToList();
-            Check("the number reader reads Italian and English number words, and nothing else",
+            Check("the number reader reads English number words, and nothing else",
                   wrong.Count == 0,
                   wrong.Count == 0 ? cases.Length + " of " + cases.Length + " words read as expected" : string.Join("; ", wrong));
         }
 
         private static void CountCheckSeenRed()
         {
-            string it94 = ItalianTens[7] + ItalianUnits[4];
-            string it96 = ItalianTens[7] + ItalianUnits[6];
-            string it94misspelled = it94.Remove(it94.Length - 3, 1);
             var cases = new[]
             {
                 // text, actual count, red expected
@@ -634,17 +616,16 @@ namespace Oce.Solid.Agent.ContractTests
                 Tuple.Create("There are one hundred and sixty-four operations.", 164, false),
                 Tuple.Create("There are one hundred and sixty-four operations.", 64, true),
                 Tuple.Create("The bench prints 99 operations in its header.", 94, true),
-                Tuple.Create("exposes " + it96 + "\n" + ItalianNoun + " as tools", 94, true),
-                Tuple.Create("exposes " + it94 + " " + ItalianNoun + " as tools", 94, false),
+                Tuple.Create("exposes ninety-six\noperations as tools", 94, true),
+                Tuple.Create("exposes ninety-four operations as tools", 94, false),
                 // the silence that used to be green: a number word that cannot be read
-                Tuple.Create("exposes " + it94misspelled + " " + ItalianNoun + " as tools", 94, true),
                 Tuple.Create("It exposes ninety-fuor drawing operations.", 94, true),
                 Tuple.Create("It exposes fourty drawing operations.", 40, true),
-                Tuple.Create("exposes " + ItalianUnits[2] + ItalianTens[4] + " " + ItalianNoun, 260, true),
-                Tuple.Create("exposes ultra" + ItalianTens[4] + " " + ItalianNoun, 160, true),
+                Tuple.Create("exposes two hundred and ninetty operations", 290, true),
+                Tuple.Create("exposes sixtyteen operations", 160, true),
                 // words that are not numbers stay silent
                 Tuple.Create("the other operations, all operations, the drawing operations", 94, false),
-                Tuple.Create("many " + ItalianNoun + " and six assembly operations", 94, false),
+                Tuple.Create("many operations and six assembly operations", 94, false),
             };
             var wrong = new List<string>();
             foreach (var c in cases)
@@ -663,20 +644,6 @@ namespace Oce.Solid.Agent.ContractTests
 
         // ── THE NUMBER READER ────────────────────────────────────────────
 
-        private static readonly string[] ItalianUnits =
-        {
-            "zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette",
-            "otto", "nove", "dieci", "undici", "dodici", "tredici",
-            "quattordici", "quindici", "sedici", "diciassette", "diciotto",
-            "diciannove",
-        };
-
-        private static readonly string[] ItalianTens =
-        {
-            "venti", "trenta", "quaranta", "cinquanta", "sessanta",
-            "settanta", "ottanta", "novanta",
-        };
-
         private static readonly string[] EnglishUnits =
         {
             "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
@@ -690,60 +657,16 @@ namespace Oce.Solid.Agent.ContractTests
         };
 
         /// <summary>
-        /// A number written in words, in Italian from 0 to 99 as before and in
-        /// English from 0 to 999, or in digits. `-1` when the word is not a
-        /// number, which is the normal case and not an error. The Italian
-        /// hundreds are left out on purpose: the Italian branch only has to
-        /// last until the README is translated, and a hundred written in
-        /// Italian words is red below (it looks like a number and cannot be
-        /// read), not silent.
+        /// A number written in words, in English from 0 to 999, or in digits.
+        /// `-1` when the word is not a number, which is the normal case and not
+        /// an error.
         /// </summary>
         private static int Number(string word)
         {
             if (string.IsNullOrWhiteSpace(word)) return -1;
-            var p = word.Trim().ToLowerInvariant().Replace('’', '\'');
+            var p = word.Trim().ToLowerInvariant();
             if (Regex.IsMatch(p, @"^\d{1,4}$")) return int.Parse(p, CultureInfo.InvariantCulture);
-            int n = ItalianNumber(p);
-            return n >= 0 ? n : EnglishNumber(p);
-        }
-
-        private static int ItalianNumber(string p)
-        {
-            if (p.IndexOf(' ') >= 0 || p.IndexOf('-') >= 0) return -1;
-
-            // A COMPOUND «TRE» IS WRITTEN WITH AN ACCENT: without this the
-            // number written properly came back as «not a number», and the
-            // README check kept QUIET. On 25/9/2026 the README was about to go
-            // from seventy-four to seventy-three, and a wrong seventy-three
-            // would have gone through. This repository also writes the accent
-            // as a vowel and an apostrophe, so that form is read too.
-            if (p.Length > 4 && p.EndsWith(ItalianUnits[3] + "'", StringComparison.Ordinal)) p = p.Substring(0, p.Length - 1);
-            else if (p.Length > 3 && p.EndsWith("tré", StringComparison.Ordinal)) p = p.Substring(0, p.Length - 1) + "e";
-            if (p.IndexOf('\'') >= 0) return -1;
-
-            return ItalianBelowHundred(p);
-        }
-
-        private static int ItalianBelowHundred(string p)
-        {
-            for (int i = 0; i < ItalianUnits.Length; i++)
-                if (p == ItalianUnits[i]) return i;
-            for (int d = 0; d < ItalianTens.Length; d++)
-            {
-                int value = (d + 2) * 10;
-                if (p == ItalianTens[d]) return value;
-
-                // THE ELISION. Before «uno» and «otto» the tens lose their last
-                // vowel: without this the thirty-eight that gave birth to the
-                // check would not even be read.
-                var root = ItalianTens[d].Substring(0, ItalianTens[d].Length - 1);
-                for (int u = 1; u <= 9; u++)
-                {
-                    bool elides = u == 1 || u == 8;
-                    if (p == (elides ? root : ItalianTens[d]) + ItalianUnits[u]) return value + u;
-                }
-            }
-            return -1;
+            return EnglishNumber(p);
         }
 
         private static int EnglishNumber(string p)
@@ -782,27 +705,20 @@ namespace Oce.Solid.Agent.ContractTests
 
         /// <summary>
         /// A word that is meant as a number even if the reader cannot read it:
-        /// a digit, the root of a ten (at the start, or inside a longer Italian
-        /// word), an Italian unit glued to more letters, an English «-teen», a
+        /// a digit, the root of a ten (at the start), an English «-teen», a
         /// hyphen joined to a number word, or one letter away from a number
         /// word (six letters or more, so that short words such as «the» are
-        /// never taken for one). What it misses, measured: an Italian hundred
-        /// with nothing of a ten in it («a hundred and five» in Italian words);
-        /// the README says those in English or in digits.
+        /// never taken for one). A count written in another way is the job of
+        /// the second check above (no count at all is red).
         /// </summary>
         private static bool LooksLikeNumber(string word)
         {
-            var w = word.ToLowerInvariant().Replace('’', '\'').Trim('\'');
+            var w = word.ToLowerInvariant().Trim('\'');
             if (w.Any(char.IsDigit)) return true;
             var parts = w.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var part in parts)
             {
-                if (NumberRoots.Any(r => part.StartsWith(r, StringComparison.Ordinal))) return true;
-                // inside a longer Italian word, the tens that English never
-                // writes («vent» is in «event», «quarant» in «quarantine»)
-                if (InnerRoots.Any(r => part.IndexOf(r, 1, StringComparison.Ordinal) > 0)) return true;
-                // a unit glued to more letters: the Italian hundreds
-                if (part.Length >= 6 && ItalianUnits.Skip(2).Take(8).Any(u => part.StartsWith(u, StringComparison.Ordinal))) return true;
+                if (EnglishTens.Any(r => part.StartsWith(r, StringComparison.Ordinal))) return true;
                 if (part.EndsWith("teen", StringComparison.Ordinal) || part == "hundred" || part == "thousand") return true;
                 if (parts.Length > 1 && (EnglishUnits.Contains(part) || EnglishTens.Contains(part))) return true;
                 if (part.Length >= 6 && NumberWords.Any(n => NearlyEqual(part, n))) return true;
@@ -810,29 +726,7 @@ namespace Oce.Solid.Agent.ContractTests
             return false;
         }
 
-        // The roots of the tens and of the teens, in both languages.
-        private static readonly string[] NumberRoots =
-            ItalianTens.Select(t => t.Substring(0, t.Length - 1))
-                       .Concat(ItalianUnits.Skip(11).Select(u => u.Substring(0, 5)))
-                       .Concat(EnglishTens)
-                       .Distinct().ToArray();
-
-        // thirty, fifty, sixty, seventy, eighty, ninety: twenty and forty are
-        // inside English words
-        private static readonly string[] InnerRoots =
-            new[] { 1, 3, 4, 5, 6, 7 }.Select(i => ItalianTens[i].Substring(0, ItalianTens[i].Length - 1)).ToArray();
-
-        private static readonly string[] NumberWords =
-            Enumerable.Range(0, 100).Select(ItalianWord).Concat(EnglishUnits).Concat(EnglishTens).Distinct().ToArray();
-
-        private static string ItalianWord(int n)
-        {
-            if (n < 20) return ItalianUnits[n];
-            var tens = ItalianTens[n / 10 - 2];
-            int u = n % 10;
-            if (u == 0) return tens;
-            return (u == 1 || u == 8 ? tens.Substring(0, tens.Length - 1) : tens) + ItalianUnits[u];
-        }
+        private static readonly string[] NumberWords = EnglishUnits.Concat(EnglishTens).Distinct().ToArray();
 
         /// <summary>One edit apart: a letter changed, added, dropped, or two next ones swapped.</summary>
         private static bool NearlyEqual(string a, string b)

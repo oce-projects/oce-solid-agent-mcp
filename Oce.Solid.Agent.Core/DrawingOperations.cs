@@ -682,7 +682,7 @@ namespace Oce.Solid.Agent.Core
                 // dimension was asked for (N9, see ModelImportAllTypes).
                 // duplicateDims stays FALSE here on purpose: the page of THIS
                 // version says the opposite of the page of the 3
-                // (estratto_obsoleteapi\DrawingDoc\DrawingDoc__InsertModelAnnotations2.htm:
+                // (extracted_obsoleteapi\DrawingDoc\DrawingDoc__InsertModelAnnotations2.htm:
                 // «duplicateDims TRUE to insert duplicate dimensions, FALSE to
                 // eliminate duplicate dimensions»), and the probe of M2 measured
                 // the 3 only.
@@ -770,7 +770,7 @@ namespace Oce.Solid.Agent.Core
             if (after <= before)
             {
                 // HOW MANY THE PART HAS, AND WHICH. Without this answer a
-                // «non e' arrivata nessuna quota» does not distinguish between «the
+                // «no dimension arrived» does not distinguish between «the
                 // call does not work» and «there was nothing to bring»:
                 // they are two different defects and they are repaired in two different places.
                 // HERE THE PART IS ASKED OF THE VIEW, not of the list of
@@ -881,8 +881,8 @@ namespace Oce.Solid.Agent.Core
         /// With <paramref name="allDimensions"/> false every mask carries the
         /// MARKED bit and none the NOT-MARKED bit (finding N9). Measured by
         /// the N9 probe of Z-C21.3 (28/9/2026) on a part with NOTHING
-        /// marked: MARCATE and MARCATE|GENERICO, both placements, brought 0 of
-        /// its 7 unmarked dimensions; NON_MARCATE alone brought all 7.
+        /// marked: MARKED and MARKED|GENERIC, both placements, brought 0 of
+        /// its 7 unmarked dimensions; NOT_MARKED alone brought all 7.
         /// </summary>
         internal static int[] ModelImportMasks(bool allDimensions)
         {
@@ -895,7 +895,7 @@ namespace Oce.Solid.Agent.Core
         /// AllTypes of InsertModelAnnotations2: TRUE only when every dimension
         /// was asked for (finding N9). The current page of the 2 says only
         /// «Obsolete»; the old one,
-        /// estratto_obsoleteapi\DrawingDoc\DrawingDoc__InsertModelAnnotations2.htm,
+        /// extracted_obsoleteapi\DrawingDoc\DrawingDoc__InsertModelAnnotations2.htm,
         /// says «allTypes TRUE to insert all types of annotations, FALSE uses
         /// the types argument»: TRUE ignores the mask. Measured by
         /// the N9 probe: FALSE with the MARKED mask brought no
@@ -923,8 +923,8 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The types of the last fallback, one view at a time (finding N9).
         /// Measured by the N9 probe on the part with nothing marked:
-        /// MARCATE|NON_MARCATE|GENERICO brought all 7 unmarked dimensions (and
-        /// the bridge's whole chain reached them through this step), MARCATE
+        /// MARKED|NOT_MARKED|GENERIC brought all 7 unmarked dimensions (and
+        /// the bridge's whole chain reached them through this step), MARKED
         /// alone brought 0.
         /// </summary>
         internal static int ModelImportViewByViewTypes(bool allDimensions, int extra)
@@ -1077,7 +1077,7 @@ namespace Oce.Solid.Agent.Core
             // The counters count in the document: a dimension on a layer that is not
             // printed, or in a hidden view, counts and does not reach the workshop.
             // Every number printed by the dimensions must appear in the text of the PDF
-            // at least as many times as they print it (OperazioniQuoteNelPdf).
+            // at least as many times as they print it (PdfDimensionOperations).
             int drawingDimensions, dimensionsWithoutText;
             var expectedNumbers = DimensionNumbers(drawing, out drawingDimensions, out dimensionsWithoutText);
             measurements["dimensions_in_drawing"] = drawingDimensions;
@@ -1180,7 +1180,7 @@ namespace Oce.Solid.Agent.Core
             {
                 ["path"] = location,
                 ["byte"] = new FileInfo(location).Length,
-                // The raw mask stays: bench cases read it (misure.avvisi = 0).
+                // The raw mask stays: bench cases read it (measures.warnings = 0).
                 ["warnings"] = warnings,
                 // L13-7: and its swFileSaveWarning_e names.
                 ["save_warnings"] = SaveWarningsForAnswer(warnings),
@@ -1263,7 +1263,7 @@ namespace Oce.Solid.Agent.Core
         /// How many sheets the drawing has, or **-1 if it could not be read**
         /// (entry Z-C8). A drawing always has at least one sheet: a list that
         /// does not arrive is not a zero, it is a read that went badly — and with
-        /// zero `export_pdf` answered «la tavola non ha fogli».
+        /// zero `export_pdf` answered «the drawing has no sheets».
         /// </summary>
         private int CountSheets(IModelDoc2 drawing)
         {
@@ -1517,10 +1517,10 @@ namespace Oce.Solid.Agent.Core
         ///
         /// IT LOOKS LIKE A TRIVIAL QUESTION AND IT IS NOT. Measured at the first try
         /// inside SolidWorks, on 11 September 2026: the plan said
-        /// `C:/Users/.../pezzo.SLDPRT` and SolidWorks answered
-        /// `C:\Users\...\pezzo.SLDPRT`. Same file, two spellings, and a
+        /// `C:/Users/.../part.SLDPRT` and SolidWorks answered
+        /// `C:\Users\...\part.SLDPRT`. Same file, two spellings, and a
         /// comparison between strings that said no. The result was the
-        /// worst possible for a user: «il pezzo non risulta aperto»
+        /// worst possible for a user: «the part is not open»
         /// while the part was there, open, in front of everybody.
         ///
         /// `Path.GetFullPath` is not used because it normalises relative

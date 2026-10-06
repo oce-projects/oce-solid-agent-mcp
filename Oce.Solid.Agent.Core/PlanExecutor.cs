@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Core
         ///   * the add-in works inside a PDM. An unsaved file is not
         ///     checked out, and writing into it produces changes that at
         ///     save time fail or end up in a copy. There the refusal
-        ///     «salvalo su disco prima» is the right thing;
+        ///     «save it to disk first» is the right thing;
         ///   * the MCP bridge works on purpose on a freshly opened `Parte1`. There that
         ///     refusal would make the bridge useless for its normal case.
         ///
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Core
             public bool StoppedBeforeWriting;
         }
 
-        // `pianoId` is no longer in the signature: it is a server number, and
+        // `planeId` is no longer in the signature: it is a server number, and
         // whoever executes must not know that a server exists. The adapter
         // that implements IPlanSource knows it.
         public async Task<Result> RunAsync(
@@ -226,8 +226,8 @@ namespace Oce.Solid.Agent.Core
             // Strings do not hold, and it was measured: a plan that
             // SAVES the part halfway changes both the path (from empty to
             // a file) and the title (from «Parte131» to «z06»). A comparison by
-            // name saw the name change and stopped saying «il documento
-            // attivo e' cambiato mentre eseguivo» — on a document that had
+            // name saw the name change and stopped saying «the active
+            // document changed while I was running» — on a document that had
             // not changed at all, it had only been saved. Refusing what is
             // correct is the worse of the two ways of being wrong.
             //
@@ -289,7 +289,7 @@ namespace Oce.Solid.Agent.Core
             // THE ERROR WINDOW IS TURNED OFF, and put back as it was.
             //
             // Every step rebuilds, and a rebuild with an error opens
-            // «Cosa c'e' che non va»: a modal. The COM call that triggered it
+            // «What's Wrong»: a modal. The COM call that triggered it
             // **never returns**, and a plan launched from an unattended bench
             // stays there all night. It is exactly the lesson
             // already paid for with `swInputDimValOnCreate` on dimensioning.

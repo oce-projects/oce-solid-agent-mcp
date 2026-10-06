@@ -10,9 +10,9 @@ namespace Oce.Solid.Agent.Tools
     /// The catalogue of operations, read from `catalog.json`.
     ///
     /// A SINGLE SOURCE OF TRUTH, AND AN HONEST COPY.
-    /// The real catalogue lives in the server, in `ai_disegno.py`: there are
+    /// The real catalogue lives in the server, in the drawing module of the server: there are
     /// the descriptions written to be read by a model, the schemas, the
-    /// limits, and the `provata` field that decides what exists. This bridge
+    /// limits, and the `tested` field that decides what exists. This bridge
     /// is written in C# and cannot import Python, so it carries along a
     /// copy — regenerated with one command (`Tools/update.md`), never
     /// written by hand.
@@ -184,7 +184,7 @@ namespace Oce.Solid.Agent.Tools
         /// stating the fact.
         ///
         /// THE ROOTS ARE COMPARED, not the words. The first attempt
-        /// looked for the whole word inside the name, and for «asole» it
+        /// looked for the whole word inside the name, and for «slotz» it
         /// did not find «slot» — that is, it failed in the very case it
         /// had been written for: whoever gets a name wrong almost always has
         /// a nearby one in mind, and is off by one letter.

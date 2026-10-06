@@ -15,17 +15,16 @@
 #                                  bridge): the FINISHED part the tables of the
 #                                  tasks measure
 #    <out>/run.json                what ran: language, bridge, its version and
-#                                  protocol (en, or it for the bridge before
-#                                  the rename), catalogue hash, repeats, model,
+#                                  protocol (en), catalogue hash, repeats, model,
 #                                  the isolation of the sessions, start and end
 #
 #  Scoring is another step (score-autonomous.js), so that a scorer that gets
 #  better never needs the model to run again.
 #
 #  D9: every task x3 on the ITALIAN version (the threshold) and x1 on the
-#  English one (a signal); the medians per task of the bridge before the rename
-#  window (the catalogue of the snapshot) against the bridge after it, at most
-#  one task of fifteen worse. The commands are in Bench/tasks/README.md.
+#  English one (a signal); the medians per task of the run before the rename
+#  window (its score.json, kept) against the run after it, at most one task of
+#  fifteen worse. The commands are in Bench/tasks/README.md.
 #
 #  NEEDS SOLIDWORKS, a built bridge and the claude CLI.
 #
@@ -174,8 +173,7 @@ function SessionArguments([string] $text, [string] $configFile) {
     return $a
 }
 
-# The bridge's version and protocol, read before anything runs: the run before
-# the rename speaks Italian, and the scorer reads it through the name map.
+# The bridge's version and protocol, read before anything runs.
 $bridgeInfo = $null
 if (-not $DryRun) {
     $infoLine = & node (Join-Path $PSScriptRoot 'score-autonomous.js') --bridge-info $Bridge
@@ -209,8 +207,7 @@ if ($DryRun) {
         if ($needs) { Write-Host ("      before it: the prerequisite " + $needs.plan + " (the result of task " + $needs.from_task + "), built in that folder, saved and open in front") }
     }
     # What can be checked without SOLIDWORKS: the reference plans against the
-    # catalogue (and the dry run of the bridge, or the catalogue of before when
-    # the bridge is the one of before the rename), the index against the texts of
+    # catalogue and the dry run of the bridge, the index against the texts of
     # the tasks, and the self-tests of the two scripts that close and prepare.
     $dryProblems = 0
     foreach ($check in @(

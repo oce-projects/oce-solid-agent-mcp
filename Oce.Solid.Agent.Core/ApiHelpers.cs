@@ -133,7 +133,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// One object per reading, as the callers do: the obsolete IMassProperty
         /// changed its answers depending on what was read before (measured, see
-        /// OperazioniMisura); the probe below found IMassProperty2 free of that
+        /// MeasureOperations); the probe below found IMassProperty2 free of that
         /// trap, and the callers keep one object per number anyway.
         ///
         /// Guide: IModelDocExtension~CreateMassProperty.html, «Obsolete.
@@ -208,7 +208,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// STILL USED, FOR TWO CALLERS, after Z-C21.7 moved the other part
         /// readings to <see cref="NewPartMassProperty"/>:
-        ///   - the ASSEMBLY (OperazioniMisuraAssieme): the Z-C21.3 probe
+        ///   - the ASSEMBLY (AssemblyMeasureOperations): the Z-C21.3 probe
         ///     probe_mass_property2 measured CreateMassProperty2 on a part only;
         ///     on an assembly it works on COMPONENTS
         ///     (IModelDocExtension~CreateMassProperty2.html: «Before calling this
@@ -216,7 +216,7 @@ namespace Oce.Solid.Agent.Core
         ///     components») and IncludeHiddenBodiesOrComponents then decides
         ///     about hidden components: not measured, while the assembly mass was
         ///     measured with this call (the sum of the parts to the gram);
-        ///   - the DOCUMENT STATE (DocumentState.Massa): CreateMassProperty2
+        ///   - the DOCUMENT STATE (DocumentState.Mass): CreateMassProperty2
         ///     measures what is SELECTED, so the probe cleared the selection
         ///     first, and the state must not: it reads the designer's selection
         ///     a few lines later (DocumentState.TheSelection, the selection field
@@ -406,10 +406,10 @@ namespace Oce.Solid.Agent.Core
         /// face fillet», and it was not: the face fillet selects AFTER
         /// CreateDefinition and Initialize, just before CreateFeature (probe
         /// Checks\FaceFillet\Program.cs, step 4 of its recipe, and
-        /// OperazioniRaccordoFaccia, 28/9/2026), and that is the order measured
+        /// FaceFilletOperations, 28/9/2026), and that is the order measured
         /// to work there. The only feature measured
         /// both ways is the fill pattern: selections before CreateDefinition (A)
-        /// and after it (C) gave the same pattern (OperazioniRipetiRiempimento,
+        /// and after it (C) gave the same pattern (FillPatternOperations,
         /// probe of 28/9/2026). A migration through this helper (FeatureFillet3
         /// in Z-C21.7 above all) must use the order its own feature was measured
         /// with; for a fillet that is after Initialize, which this helper does

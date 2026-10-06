@@ -294,7 +294,7 @@ The installer reads the number, not the text.
 | `SW_INSTALL_PATH` | where the SOLIDWORKS software is installed: the **root**, the one that ends with `\SOLIDWORKS`. It holds both for building and for running — `api\redist` is derived from it |
 | `SW_REDIST` | the old name, still read. It wanted the `api\redist` subfolder and not the root: if both are set, `SW_INSTALL_PATH` wins |
 | `OCE_WRITE_ROOT` | the only folder the bridge may write into. If it is set, everything else on the disk is out |
-| `OCE_READ_ONLY_FOLDERS` | folders the bridge must not write, separated by `;` — for example `S:\CAD;S:\_LIBRERIE`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
+| `OCE_READ_ONLY_FOLDERS` | folders the bridge must not write, separated by `;` — for example `S:\CAD;S:\LIBRARIES`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
 | `OCE_WELDMENT_PROFILES` | the folder of the weldment profiles (`.sldlfp`) that `weldment_profiles` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
 | `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--self-test` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Checks/test-installer.js` sets it unless given `--attach`) |
 
@@ -339,16 +339,13 @@ and so are the `kind` the state reports for a selected entity (`face`, `edge`, `
 `vertex`, `feature`), for a mate, for a drawing view and for `check_body_geometry`.
 `describe_operation` on `mate` shows the exact words it accepts.
 
-**The old Italian names are aliases until the first release.** A client that still
-sends a tool, a sub-action, an operation, a family, an argument or a value by its
-Italian name gets the same answer as with the English name, plus the lines of
-`deprecated` (in `structuredContent` and as the last text of the answer) that say
-which names were accepted and which English name to use instead; the selectors of the
-bench written with the old names are read the same way. The aliases are accepted on
-input only: the answers, the catalog and `describe_operation` speak English only.
-They come from `Checks/language/name-map.tsv`, the map the rename was generated from
-(embedded in the library, `Oce.Solid.Agent.Core/Alias.cs`), and they are removed with
-the map before the release tag.
+**One name for everything.** A tool, a sub-action, an operation, a family, an argument
+or a value is known by its English name only. A name the bridge does not know (an old
+name, a foreign one, a typo) is an unknown name and is treated like any other: an
+unknown tool is an `isError` answer that lists the tools there are, an unknown
+operation is refused with the operations it resembles, an argument the schema does not
+have is reported as ignored, and a value the schema does not list is refused. Nothing is
+translated on the way in.
 
 ## The catalog
 

@@ -14,10 +14,10 @@ namespace Checks.Select
     /// same road — is to select by API and then ask the state what it is
     /// called: `ISelectionMgr` does not know where the selection comes from.
     ///
-    ///     Select.exe faccia 1        the first face of the first body
-    ///     Select.exe spigolo 1       the first edge
-    ///     Select.exe corpo 1         the first body
-    ///     Select.exe niente          empties the selection
+    ///     Select.exe face 1          the first face of the first body
+    ///     Select.exe edge 1          the first edge
+    ///     Select.exe body 1           the first body
+    ///     Select.exe nothing         empties the selection
     ///
     /// The numbers are those of the order in which SOLIDWORKS gives the entities, NOT
     /// the identifiers of the state: they are two different numberings, and it is

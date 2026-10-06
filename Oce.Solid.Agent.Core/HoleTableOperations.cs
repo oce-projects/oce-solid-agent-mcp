@@ -10,7 +10,7 @@ namespace Oce.Solid.Agent.Core
     /// <summary>
     /// THE HOLE TABLE ON THE DRAWING (entry GT5).
     ///
-    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 tabellafori`) ────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`probe0089 holetable`) ────
     ///
     /// `IView.InsertHoleTable2(UseAnchorPoint, X, Y, AnchorType, StartValue,
     /// TableTemplate)`, and `InsertHoleTable3` that replaces it since Z-C21.7,

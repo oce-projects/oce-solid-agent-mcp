@@ -8,9 +8,9 @@ namespace Oce.Solid.Agent.Core
     /// THE STANDARD SECTIONS: from two or three dimensions to the contours to extrude.
     ///
     /// It is the recipe of `extrude_section`. It lived only in the Python server
-    /// (`profilo_sezione`), so from the bridge the operation was **declared in the
+    /// (`section_profile`), so from the bridge the operation was **declared in the
     /// catalogue and not executable**: the model could ask for it and got
-    /// «operazione sconosciuta».
+    /// «unknown operation».
     ///
     /// EVERY SECTION DECLARES WHERE THE ORIGIN FALLS, and it is not a detail: it is the
     /// datum from which all the later features will start. An angle with

@@ -2,7 +2,7 @@
 // one step and the next of the bench, without sending a plan.
 //
 //   node inspect.js                prints the summary
-//   node inspect.js tutto          prints the whole JSON
+//   node inspect.js all          prints the whole JSON
 const { spawn } = require("child_process");
 const path = require("path");
 
@@ -13,12 +13,12 @@ const path = require("path");
 // `run_plans.js`, two files further on, already did it right.
 const ROOT = path.resolve(__dirname, "..");
 const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
-const everything = process.argv[2] === "tutto";
+const everything = process.argv[2] === "all";
 
 const requests = [
   { jsonrpc: "2.0", id: 1, method: "initialize",
     params: { protocolVersion: "2024-11-05", capabilities: {},
-              clientInfo: { name: "banco", version: "1" } } },
+              clientInfo: { name: "bench", version: "1" } } },
   { jsonrpc: "2.0", method: "notifications/initialized" },
   { jsonrpc: "2.0", id: 2, method: "tools/call",
     params: { name: "inspect_part", arguments: {} } },
@@ -40,12 +40,12 @@ p.stdout.on("data", d => {
     if (everything) { console.log(t); p.stdin.end(); return; }
     let s; try { s = JSON.parse(t); } catch (e) { console.log(t); p.stdin.end(); return; }
     console.log(
-      "documento: " + s.document_title +
-      "  piani: " + s.planes_available +
+      "document: " + s.document_title +
+      "  planes: " + s.planes_available +
       "  feature: " + (s.feature ? s.feature.length : 0) +
-      "  altre: " + (s.other_feature || 0) +
+      "  other: " + (s.other_feature || 0) +
       (s.other_feature_kinds ? " " + JSON.stringify(s.other_feature_kinds) : "") +
-      "  corpi: " + (s.bodies_total || 0) +
+      "  bodies: " + (s.bodies_total || 0) +
       "  volume: " + (s.volume_mm3 == null ? "-" : s.volume_mm3));
     p.stdin.end();
   }

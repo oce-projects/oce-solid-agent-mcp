@@ -12,7 +12,7 @@ namespace Oce.Solid.Agent.Core
     /// looked at an assembly and did not know that it rests on files that are elsewhere or
     /// are no longer there.
     ///
-    /// Measured on 27/9/2026 (`prova0089 zb3`, assembly base + lid, then the
+    /// Measured on 27/9/2026 (`probe0089 zb3`, assembly base + lid, then the
     /// lid file renamed on disk and the assembly reopened silently):
     ///
     ///  * `IModelDocExtension.GetDependencies(true, true, false, true, false)` gives

@@ -21,7 +21,7 @@
         { "what": "measurements.active_now", "equal_to": "Left" },
         { "what": "measurements.note_activation", "includes": ["SOLIDWORKS ACTIVATE"] },
         { "what": "state.configuration", "equal_to": "Left",
-          "why": "it is the line the entry asked for: «a configuration created and activated changes the active state read from StatoDocumento»" },
+          "why": "it is the line the entry asked for: «a configuration created and activated changes the active state read from DocumentState»" },
         { "what": "how_many_configuration_names", "equal_to": 3 },
         { "what": "how_many_configurations", "equal_to": 3 },
         { "what": "volume_mm3", "equal_to": 200000,

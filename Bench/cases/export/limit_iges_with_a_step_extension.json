@@ -9,7 +9,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_iges",
-      "arguments": { "path": "{WORK}\\gp3_sbagliato.step", "representation": "solids",
+      "arguments": { "path": "{WORK}\\gp3_wrong.step", "representation": "solids",
                      "reopen_and_compare": true },
       "must_fail": {
         "message_includes": [".iges", "which format to write"],

@@ -14,8 +14,8 @@ namespace Oce.Solid.Agent.Core
     /// THE GEOMETRY, IN PLAIN
     ///   pitch      d  = m·z            the diameter that «rolls»
     ///   base       db = d·cos(α)       from which the involute starts
-    ///   outside    da = d + 2m
-    ///   root       df = d − 2,5m
+    ///   outside    d_a = d + 2m
+    ///   root       d_f = d − 2.5m
     ///   pitch      p  = π·m
     ///
     /// The flank of the tooth is the **involute of the base circle**. A point
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.Core
             // Using psi at the root too, with z=127 the root started at 0.02727
             // rad and ended at 0.02221: it went round the circle BACKWARDS. The
             // sketch cut itself and SOLIDWORKS refused the extrusion
-            // with «L'estrusione non e' stata creata» — a message that says
+            // with «The extrusion was not created» — a message that says
             // nothing about this.
             double deviationMin = tMin - Math.Atan(tMin);
             double psiRoot = psi - deviationMin;
@@ -188,7 +188,7 @@ namespace Oce.Solid.Agent.Core
             // AND WHAT IF THE TEETH TOUCHED AT THE ROOT.
             // The gap at the root measures (angularPitch - 2*psiRoot)*rf. If nothing
             // is left over, the teeth weld to each other and the part is no longer
-            // a gear. It is not a theoretical case: it happens when inv(alfa) grows
+            // a gear. It is not a theoretical case: it happens when inv(alpha) grows
             // with respect to the pitch, that is with many teeth and large pressure
             // angles.
             double cavityAtBottom = (2 * Math.PI / teeth - 2 * psiRoot) * rf;

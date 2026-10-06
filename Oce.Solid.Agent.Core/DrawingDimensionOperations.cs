@@ -461,7 +461,7 @@ namespace Oce.Solid.Agent.Core
 
             // ── THE TEXTS THAT OVERLAP (entry GT12, point 3) ─────────────
             // The true rectangle of each text, read from IDisplayData
-            // (OperazioniTestiQuote): text on text over the whole drawing, text
+            // (DimensionTextOperations): text on text over the whole drawing, text
             // on a line of the part in this view.
             var dimensionsTexts = DimensionTexts(drawing);
             var overlapping = TextsThatOverlap(drawing, view, dimensionsTexts);
@@ -541,7 +541,7 @@ namespace Oce.Solid.Agent.Core
                 // dimensioned is surprising until one knows why. The
                 // reason is a drawing rule, not a defect: «each
                 // element of the object must be dimensioned no more than once»
-                // (UNI ISO 129-1, Sammarone/Zanichelli sheet), and
+                // (UNI ISO 129-1, the sheet of an Italian drawing handbook), and
                 // 120/10/120/10 is repeated dimensioning — «therefore wrong».
                 ["edges_discarded_duplicates"] = duplicates.ToArray(),
 
@@ -575,8 +575,8 @@ namespace Oce.Solid.Agent.Core
                     "in increasing order moving away from the part. It comes from two " +
                     "criteria of the standard — the dimension line is parallel to the " +
                     "dimension it refers to, and lies as far as possible " +
-                    "outside the figures (UNI ISO 129-1, in the data sheet " +
-                    "Sammarone/Zanichelli) — plus the distance: more than 10 mm from the " +
+                    "outside the figures (UNI ISO 129-1, in the sheet of an Italian " +
+                    "drawing handbook) — plus the distance: more than 10 mm from the " +
                     "outline and a constant pitch between 7 and 12 on A3/A4. Inside the border " +
                     "of the sheet: if there is no room on one side, on the other. Holes with the " +
                     "callout and the position from the reference edges (left and " +
@@ -969,7 +969,7 @@ namespace Oce.Solid.Agent.Core
                             // to IT ALONE (adversarial review of 27/9/2026): the position
                             // dimension of a hole takes the edge of the plate as its
                             // reference, and recording its extent made the true height be discarded
-                            // in the next view («gia' quotata in un'altra vista»).
+                            // in the next view («already dimensioned in another view»).
                             if (straight.Count == 1 && ents.Length == 1 && attachedCircles.Count == 0 && !onGeneratrix)
                             {
                                 var p = ApiHelpers.EdgeParameters(straight[0]);
@@ -1236,7 +1236,7 @@ namespace Oce.Solid.Agent.Core
             // ALREADY DIMENSIONED MEANS BEFORE THIS CALL (adversarial review
             // of 27/9/2026). The groups are by diameter AND depth, and with the
             // key of the diameter alone added inside this loop the second group
-            // — two blind Ø8 next to two through Ø8 — ended up «gia' quotato»:
+            // — two blind Ø8 next to two through Ø8 — ended up «already dimensioned»:
             // no callout, no depth, no position. In the workshop all
             // four were drilled through, that is exactly the case the
             // grouping was meant to avoid.
@@ -1290,7 +1290,7 @@ namespace Oce.Solid.Agent.Core
                             head.SheetCenter[0] - 0.015, contour[3] + dimensionOffset * 0.8, 0) as IDisplayDimension;
                 }
                 catch { }
-                string come = "hole callout";
+                string viaHow = "hole callout";
                 // THE COUNT DECIDES, NOT THE OBJECT (Z-C21.8, finding N80). Until
                 // library 0.144.0 a null object sent the hole to the fallback even
                 // when the count of dimensions had gone up: the callout was on the
@@ -1309,7 +1309,7 @@ namespace Oce.Solid.Agent.Core
                         if ((head.Edge as IEntity).Select4(false, null))
                             callout = model.AddDiameterDimension2(
                                 head.SheetCenter[0] - 0.015, contour[3] + dimensionOffset * 0.8, 0) as IDisplayDimension;
-                        come = "diameter dimension";
+                        viaHow = "diameter dimension";
                     }
                     catch { }
                     calloutNotBorn = NotGrown(drawing, dimensionsBefore, callout);
@@ -1349,7 +1349,7 @@ namespace Oce.Solid.Agent.Core
                 // «how_many» stays the number of holes in the group (the geometry),
                 // «prefix_read» is what the sheet says, and a count that did not
                 // stick is a failure. Until library 0.140.0 the answer said
-                // quanti = 4 whatever the callout carried, and the shop would have
+                // how_many = 4 whatever the callout carried, and the shop would have
                 // read one Ø8.
                 string prefixRead = null;
                 try { prefixRead = callout.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix); } catch { }
@@ -1363,8 +1363,8 @@ namespace Oce.Solid.Agent.Core
                 // «Ø8» and nothing else, and a blind hole in the workshop gets drilled through. The
                 // depth is then written by the bridge, from the geometry, in the
                 // suffix — the same «<HOLE-DEPTH>» the callout uses.
-                string depthFrom = come == "hole callout" ? "callout" : null;
-                if (come == "diameter dimension" && head.ThroughAll == false && !double.IsNaN(head.DepthMm))
+                string depthFrom = viaHow == "hole callout" ? "callout" : null;
+                if (viaHow == "diameter dimension" && head.ThroughAll == false && !double.IsNaN(head.DepthMm))
                 {
                     try
                     {
@@ -1375,7 +1375,7 @@ namespace Oce.Solid.Agent.Core
                     catch { }
                 }
                 var described = DescribeDimension(callout, head.Index);
-                described["orientation"] = come;
+                described["orientation"] = viaHow;
                 described["position_mm"] = WhereItEnded(callout);
                 if (callout != null) born.Add(described);
                 else RecordBornWithoutObject(born, described, failed,
@@ -1410,11 +1410,11 @@ namespace Oce.Solid.Agent.Core
                     // The prefix as read back after writing «N×» (N48): the count on
                     // the sheet, next to the count of the geometry above.
                     ["prefix_read"] = prefixRead,
-                    ["how"] = come,
+                    ["how"] = viaHow,
                     ["diameter_reread_mm"] = described.ContainsKey("mm") ? described["mm"] : null,
                     // Null, not false, for a callout born without its object (N80):
                     // its suffix was never read.
-                    ["through_all"] = callout == null ? null : come == "hole callout" ? (object)throughAll : head.ThroughAll,
+                    ["through_all"] = callout == null ? null : viaHow == "hole callout" ? (object)throughAll : head.ThroughAll,
                     ["depth_mm"] = depth,
                     ["depth_from"] = depthFrom,
                     ["callout_suffix"] = callout == null ? null : suffix,
@@ -1745,7 +1745,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Did the extent of the view change after the dimensions were put?
         ///
-        /// «sconosciuto» when one of the two readings is missing: not «no». A
+        /// «unknown» when one of the two readings is missing: not «no». A
         /// comparison that could not be made is not a comparison that went well.
         /// </summary>
         private static string GrownContour(double[] before, double[] after)

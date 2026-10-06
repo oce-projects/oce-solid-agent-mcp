@@ -31,7 +31,7 @@ namespace Oce.Solid.Agent.ContractTests
         private const BindingFlags Any =
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
 
-        // swInsertAnnotation_e (estratto_swconst, swInsertAnnotation_e.html).
+        // swInsertAnnotation_e (extracted_swconst, swInsertAnnotation_e.html).
         private const int Generic = 8, Marked = 32768, NotMarked = 524288, HoleCallout = 1048576;
 
         internal static void RunAll()

@@ -31,12 +31,12 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── THE TRAP OF THE TWO SPELLINGS ───────────────────────────────────
     ///
-    /// `IMassProperty` writes **«Princip*le*»**:
+    /// `IMassProperty` writes **«Principle»**:
     ///
     ///   IMassProperty.PrincipleMomentsOfInertia
     ///   IMassProperty.PrincipleAxesOfInertia
     ///
-    /// `IMassProperty2` writes **«Princip*al*»**:
+    /// `IMassProperty2` writes **«Principal»**:
     ///
     ///   IMassProperty2.PrincipalMomentsOfInertia
     ///   IMassProperty2.PrincipalAxesOfInertia
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             // THE ASSEMBLY HAS ITS OWN ROUTE (entry Z-D1): CreateMassProperty on the whole
-            // assembly, checked against the sum of the parts (OperazioniMisuraAssieme).
+            // assembly, checked against the sum of the parts (AssemblyMeasureOperations).
             if (model is IAssemblyDoc) return AssemblyMassProperties(model, a);
             var partDoc = model as IPartDoc;
             if (partDoc == null)
@@ -412,7 +412,7 @@ namespace Oce.Solid.Agent.Core
         // THE FULL MEASUREMENT BETWEEN TWO ENTITIES  (entry GP5)
         // =================================================================
         //
-        // ── `Calculate(entita)` IGNORES THE ARGUMENT ────────────────────
+        // ── `Calculate(entity)` IGNORES THE ARGUMENT ────────────────────
         //
         // `IMeasure.Calculate(Object Entities)` **takes an argument and does not
         // look at it**: it measures what is SELECTED. Measured on 15/9/2026:
@@ -537,8 +537,8 @@ namespace Oce.Solid.Agent.Core
             //
             // That is the one that holds is always the other. Whoever reads only one
             // has a field that vanishes depending on how many things were asked for —
-            // and it is what happened: the case «area di una faccia sola»
-            // came out with «campo assente: misure.area_mm2». Both are reported,
+            // and it is what happened: the case «area of a single face»
+            // came out with «field absent: measures.area_mm2». Both are reported,
             // with the name that says which is which.
             Put(outside, "area_mm2", measure.Area, 1e6);
             Put(outside, "area_total_mm2", measure.TotalArea, 1e6);
@@ -655,7 +655,7 @@ namespace Oce.Solid.Agent.Core
         /// numbers about nothing are worse than a refusal.
         ///
         /// A BODY ASKED FOR IS RESOLVED THROUGH THE DOCUMENT STATE AND ITS
-        /// SIGNATURE (Z-C21.5, scheme S5), as combine_bodies and the overhang check (OperazioniSporgenze) do:
+        /// SIGNATURE (Z-C21.5, scheme S5), as combine_bodies and the overhang check (OverhangOperations) do:
         /// <see cref="BodyAskedFor"/>. Until then «C2» was the second body of a
         /// GetBodies2 made now (IPartDoc~GetBodies2.html, Remarks: «May vary the
         /// order in which bodies are returned»), and a body named before a cut
@@ -700,7 +700,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// THE BODY A «body_uid» NAMES, through the document state and its
         /// signature (Z-C21.5, scheme S5): <c>BodiesFromUid</c>, which calls
-        /// SignatureMatches, the helper combine_bodies and OperazioniSporgenze already use.
+        /// SignatureMatches, the helper combine_bodies and OverhangOperations already use.
         /// Null with <paramref name="reason"/> when the uid is not a solid body
         /// of the state (the words of the old refusal, which the bench cases
         /// read), or when it no longer names the body the plan looked at (a cut

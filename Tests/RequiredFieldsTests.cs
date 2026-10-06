@@ -53,7 +53,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// <summary>
         /// The required fields that are NOT dimensions, and why they stay
         /// required. The text is the decision, and it must be read: where there is
-        /// «CANDIDATO» the decision has been taken and **has not yet been
+        /// «CANDIDATE» the decision has been taken and **has not yet been
         /// carried out**.
         /// </summary>
         private static readonly Dictionary<string, string> Decided =
@@ -211,7 +211,7 @@ namespace Oce.Solid.Agent.ContractTests
             // 24/9/2026 the two candidates were done, and a check that
             // demands the existence of work to do would become red
             // precisely when the work ends. Now it limits itself to telling them.
-            var candidates = Decided.Where(x => x.Value.StartsWith("CANDIDATO", StringComparison.Ordinal))
+            var candidates = Decided.Where(x => x.Value.StartsWith("CANDIDATE", StringComparison.Ordinal))
                                   .Select(x => x.Key).ToList();
             Check("the fields that would have a workshop value are named", true,
                   candidates.Count == 0
@@ -273,7 +273,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                 Check(operation + "." + theField + " has its default, and is no longer mandatory",
                       Convert.ToString(d) == expected && !mandatoryAnchor,
-                      "default=" + (d == null ? "(nessuno)" : "«" + Convert.ToString(d) + "»") +
+                      "default=" + (d == null ? "(none)" : "«" + Convert.ToString(d) + "»") +
                       ", obbligatorio=" + mandatoryAnchor);
                 return;
             }

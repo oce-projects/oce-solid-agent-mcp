@@ -267,7 +267,7 @@ namespace Oce.Solid.Agent.Installer
                 Console.WriteLine(sign + " " + c.Title + ": " + c.Detail);
                 if (!string.IsNullOrWhiteSpace(c.WhatToDo)) Console.WriteLine("     " + c.WhatToDo);
             }
-            if (checks.Any(c => c.Outcome == Outcome.Male))
+            if (checks.Any(c => c.Outcome == Outcome.Bad))
             {
                 Console.WriteLine("I stop here: there are things to fix.");
                 return ExitNothingInstalled;

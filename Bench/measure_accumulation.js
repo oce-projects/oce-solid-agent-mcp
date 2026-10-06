@@ -42,19 +42,19 @@ function benchRun(closeEachTime) {
     if (closeEachTime) spawnSync(CLOSE, ["--close"], { encoding: "utf8" });
   }
   const remain = spawnSync(CLOSE, [], { encoding: "utf8" }).stdout || "";
-  return { tempi: times, restano: (remain.split(/\r?\n/)[0] || "").trim() };
+  return { times: times, remaining: (remain.split(/\r?\n/)[0] || "").trim() };
 }
 
 function tell(docTitle, r) {
   console.log("");
   console.log("=== " + docTitle);
-  console.log("  " + r.tempi.map(t => t.toFixed(1)).join("  "));
-  const first = r.tempi[0];
-  const last = r.tempi[r.tempi.length - 1];
+  console.log("  " + r.times.map(t => t.toFixed(1)).join("  "));
+  const first = r.times[0];
+  const last = r.times[r.times.length - 1];
   console.log("  first " + first.toFixed(1) + " s, last " + last.toFixed(1) +
               " s  (x" + (last / first).toFixed(1) + ")");
-  console.log("  at the end: " + r.restano);
-  return { primo: first, ultimo: last };
+  console.log("  at the end: " + r.remaining);
+  return { first: first, last: last };
 }
 
 console.log("The same plan " + howMany + " times: " + path.basename(plane));
@@ -63,6 +63,6 @@ const without = tell("new part each time, NEVER closed", benchRun(false));
 const con = tell("new part each time, CLOSED after each plan", benchRun(true));
 
 console.log("");
-console.log(without.ultimo > without.first * 1.5 && con.ultimo < con.first * 1.5
+console.log(without.last > without.first * 1.5 && con.last < con.first * 1.5
   ? "The bench was slowing itself down, and closing no longer does that."
   : "No readable difference between the two ways on this machine.");

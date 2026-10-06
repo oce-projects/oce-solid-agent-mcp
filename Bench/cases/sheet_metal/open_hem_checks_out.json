@@ -1,7 +1,7 @@
 {
   "name": "open_hem_checks_out",
   "family": "sheet_metal",
-  "why": "ENTRY GP18, the fourth operation. An open hem 10 long with gap 1 on the edge at the end of the 50 leg of the L. Measured with the bench probe (`prova0089 orlo`) before writing it: the open one is the formula of the flange with the bend at 180 degrees and the inner radius equal to half the gap — three measurements out of three to the thousandth (gap 1 and 2, length 10 and 15).",
+  "why": "ENTRY GP18, the fourth operation. An open hem 10 long with gap 1 on the edge at the end of the 50 leg of the L. Measured with the bench probe (`probe0089 hem`) before writing it: the open one is the formula of the flange with the bend at 180 degrees and the inner radius equal to half the gap — three measurements out of three to the thousandth (gap 1 and 2, length 10 and 15).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",

@@ -1,7 +1,7 @@
 {
   "name": "sketched_bend_raises_half_the_sheet_metal",
   "family": "sheet_metal",
-  "why": "ENTRY GP18, the fifth operation. A flat sheet-metal part 100 x 40 x 2 (R 2), bent at 90 degrees along a cross line at x = 50 on the top face. Measured with the bench probe (`prova0089 piega`) before writing it: volume unchanged, and the bounding box that matches the calculation — 46 of flat (50 - R - T), the bend of 4.712, and the rest (49.288) that rises from y = 2. A bend does not add sheet metal, it moves it: the flat pattern stays 100.",
+  "why": "ENTRY GP18, the fifth operation. A flat sheet-metal part 100 x 40 x 2 (R 2), bent at 90 degrees along a cross line at x = 50 on the top face. Measured with the bench probe (`probe0089 bend`) before writing it: volume unchanged, and the bounding box that matches the calculation — 46 of flat (50 - R - T), the bend of 4.712, and the rest (49.288) that rises from y = 2. A bend does not add sheet metal, it moves it: the flat pattern stays 100.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",

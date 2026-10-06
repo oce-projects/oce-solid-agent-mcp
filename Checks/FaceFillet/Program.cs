@@ -8,8 +8,8 @@ using SolidWorks.Interop.swconst;
 //  FaceFilletProbe — GP7, the «fillet_face» part (face fillet)
 // =============================================================================
 //
-//  CONTEXT (read from note-interne/TODO.md §GP7, CHANGELOG.md 0.47.0, and from the
-//  historic probe RaccordoProva.cs::AFaccia, never entered in the repo): four attempts, all on a 40x40x40 cube,
+//  CONTEXT (read from the TODO (entry GP7), CHANGELOG.md 0.47.0, and from the
+//  historic fillet probe (its face-fillet method), never entered in the repo): four attempts, all on a 40x40x40 cube,
 //  top face + one side face (ADJACENT faces, they share
 //  an edge), all with
 //
@@ -109,13 +109,13 @@ using SolidWorks.Interop.swconst;
 //
 //  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
-//    0. CONTROLLO (bug originale: FeatureFillet3 + Ftyp=Face + marche 1/2) : NULL   volume 64000 -> 64000 mm3 (tolti 0, atteso 214,6)   corpi 1 -> 1
-//    1. RICETTA GUIDA (CreateDefinition+Initialize(swFaceFillet)+marche 2/4+profilo) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
-//    2. VARIANTE H2 (API nuova, marche SBAGLIATE 1/2) : NULL   volume 64000 -> 64000 mm3 (tolti 0, atteso 214,6)   corpi 1 -> 1
-//    3. VARIANTE H3 (API e marche corrette, SENZA ConicTypeForCrossSectionProfile) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
-//    4. BONUS (SetFaces esplicito, Face2[] tipizzato, senza selezione) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
+//    0. CONTROL (original bug: FeatureFillet3 + Ftyp=Face + marks 1/2) : NULL   volume 64000 -> 64000 mm3 (removed 0, expected 214,6)   bodies 1 -> 1
+//    1. RECIPE OF THE GUIDE (CreateDefinition+Initialize(swFaceFillet)+marks 2/4+profile) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
+//    2. VARIANT H2 (new API, WRONG marks 1/2) : NULL   volume 64000 -> 64000 mm3 (removed 0, expected 214,6)   bodies 1 -> 1
+//    3. VARIANT H3 (API and marks right, WITHOUT ConicTypeForCrossSectionProfile) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
+//    4. BONUS (explicit SetFaces, typed Face2[], no selection) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
 //       SelectByID2: True/True
-//    5. RICETTA GUIDA con SelectByID2 per coordinate (marche 2/4) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (tolti 214,6, atteso 214,6)   corpi 1 -> 1
+//    5. RECIPE OF THE GUIDE with SelectByID2 by coordinates (marks 2/4) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
 //
 //  USAGE   Checks\FaceFillet\bin\FaceFillet.exe, with SOLIDWORKS open
 //        (built by Checks\build-checks.ps1 (and by build.ps1, step 1c)).
@@ -280,7 +280,7 @@ internal static class FaceFilletProbe
                 var d2 = handler.CreateSelectData(); d2.Mark = 4;
                 (side as IEntity).Select4(true, d2);
 
-                // On purpose NOT set: dati.ConicTypeForCrossSectionProfile
+                // On purpose NOT set: data.ConicTypeForCrossSectionProfile
                 data.DefaultRadius = 0.005;
 
                 return doc.FeatureManager.CreateFeature(data) as IFeature;
@@ -290,7 +290,7 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     // BONUS — the same recipe but without going through the selection: the faces
     // are passed directly to SetFaces with a TYPED array Face2[]
-    // (never object[]: it is the trap already paid for on GP8/combina_corpi and
+    // (never object[]: it is the trap already paid for on GP8/combine_bodies and
     // on the APIs with Body2[]/Face2[]). It uses the CORRECT values of
     // swSimpleFilletWhichFaces_e (here it is the right place for that enum:
     // it is precisely the WhichFaceList parameter of SetFaces, not a Mark).
@@ -305,8 +305,8 @@ internal static class FaceFilletProbe
                 data.Initialize((int)swSimpleFilletType_e.swFaceFillet);
 
                 doc.ClearSelection2(true); // here NOTHING is selected: we go through SetFaces
-                // TYPED array Face2[], not object[] (see memory
-                // api_sw_array_tipizzati.md): with object[] the interop passes a
+                // TYPED array Face2[], not object[] (see the memory
+                // note on typed arrays): with object[] the interop passes a
                 // SAFEARRAY of VARIANT and the call may answer with a
                 // phantom feature instead of NULL or a real error.
                 data.SetFaces((int)swSimpleFilletWhichFaces_e.swFaceFilletSet1, new Face2[] { (Face2)up });
@@ -404,7 +404,7 @@ internal static class FaceFilletProbe
     // Engine common to the first 4 scenes: same cube, same two faces
     // (top = normal +Z, side = normal +X, adjacent on an edge),
     // same before/after photograph, same closing without saving.
-    // `costruisci` receives (doc, faccia_alto, faccia_fianco) and returns the
+    // `build` receives (doc, top_face, side_face) and returns the
     // IFeature (or null) — the whole part that changes between the scenes.
     // ------------------------------------------------------------------
     private static void Run(string label, Func<IModelDoc2, IFace2, IFace2, IFeature> build)
@@ -459,7 +459,7 @@ internal static class FaceFilletProbe
 
     // The normal of a PLANAR face, from the underlying surface, flipped if
     // the face is reversed: the normal of `PlaneParams` is that of the
-    // plane, not that of the face. (Copied identically from RaccordoProva.cs.)
+    // plane, not that of the face. (Copied identically from the historic fillet probe.)
     private static double[] Normal(IFace2 f)
     {
         try
@@ -474,7 +474,7 @@ internal static class FaceFilletProbe
         catch { return new double[] { 0, 0, 0 }; }
     }
 
-    // Mean position of a planar face along the axis `indice` (0=X,1=Y,2=Z),
+    // Mean position of a planar face along the axis `index` (0=X,1=Y,2=Z),
     // from its bounding box — enough to ORDER two parallel faces
     // among themselves, not to measure them.
     private static double MeanDimension(IFace2 f, int index)
@@ -507,7 +507,7 @@ internal static class FaceFilletProbe
         return bodies == null ? 0 : bodies.Length;
     }
 
-    // The same 40x40x40 cube as RaccordoProva.cs::Cubo(), to compare
+    // The same 40x40x40 cube as the historic fillet probe, to compare
     // line by line with the 4 attempts already recorded.
     private static IModelDoc2 Cube()
     {

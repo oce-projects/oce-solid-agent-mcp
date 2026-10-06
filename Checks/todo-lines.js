@@ -40,7 +40,7 @@
 //  the sentence wrote by itself**: the identifiers between backticks on the
 //  same line as the cross-reference (`GetRemainingDOFs`, `ReplaceComponents2`). If
 //  NONE of them appears in the cited lines, the cross-reference is broken. It is
-//  the same technique with which `todo-references.js` resolved `vedi C8`.
+//  the same technique with which `todo-references.js` resolved a «see C8» reference.
 //
 //  It is enough that ONE appears: demanding all would punish a sentence that names
 //  two things and cites one. If the line has no identifier between
@@ -111,7 +111,7 @@ for (const r of lines) {
   if (h) stateEntry = h[1];
   else if (/^#{1,4} /.test(r)) stateEntry = null;
 
-  // `NomeFile.cs:123` or `Cartella/NomeFile.cs:123`
+  // `FileName.cs:123` or `Folder/FileName.cs:123`
   for (const m of r.matchAll(/`?([A-Za-z0-9_.\/\\-]+\.(?:cs|js|ps1|json|md)):(\d+)/g)) {
     const key = m[1].replace(/\\/g, '/') + ':' + m[2];
     if (!citedOnes.has(key)) citedOnes.set(key, stateEntry);
@@ -134,7 +134,7 @@ for (const [c, docState] of citedOnes) {
   death.push(c + '  — the file has ' + howMany + ' lines');
 }
 
-console.log('citations `file:riga`:      ' + citedOnes.size);
+console.log('citations `file:line`:      ' + citedOnes.size);
 console.log('that point inside the file: ' + ok);
 console.log('in closed entries, not touched: ' + historical);
 // THE NAMES ARE PRINTED, not only how many there are. A «7» cannot be checked:
@@ -192,7 +192,7 @@ function secondPass(lines, fileName) {
       const b = m[2] ? parseInt(m[2], 10) : null;
       const da = b ? a : Math.max(1, a - BEFORE);
       const al = b ? b : a + AFTER;
-      const location = 'riga ' + (i + 1) + ' → TODO.md:' + a + (b ? '-' + b : '');
+      const location = 'line ' + (i + 1) + ' → TODO.md:' + a + (b ? '-' + b : '');
       const subject = subjects(r);
       if (subject.length === 0) { skippedOnes.push(location + '  (no identifier on the line)'); continue; }
       const window = lines.slice(da - 1, al).join('\n');
@@ -223,7 +223,7 @@ if (process.argv.includes('--self-test')) {
   console.log('');
   console.log('=== TEST OF THE CHECK: the same cross-reference, broken and healthy ===');
   const fake = [];
-  for (let i = 0; i < 40; i++) fake.push('riempitivo');
+  for (let i = 0; i < 40; i++) fake.push('filler');
   fake[29] = 'this talks about `IFace2.Normal` and about undercuts.';
   fake[34] = 'and here instead `GetRemainingDOFs` answers 2 = not available.';
 
@@ -232,8 +232,8 @@ if (process.argv.includes('--self-test')) {
   const sound = fake.slice();
   sound.push('the road is dead: `TODO.md:33-36` records that `GetRemainingDOFs` does not return a count.');
 
-  const a = secondPass(broken, 'FINTO-rotto');
-  const b = secondPass(sound, 'FINTO-sano');
+  const a = secondPass(broken, 'FAKE-broken');
+  const b = secondPass(sound, 'FAKE-sound');
   console.log('');
   if (a === 1 && b === 0) {
     console.log('THE CHECK FIRES on the broken cross-reference and STAYS SILENT on the healthy one. Proven.');

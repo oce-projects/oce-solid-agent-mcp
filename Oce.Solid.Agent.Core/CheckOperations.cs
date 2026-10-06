@@ -47,7 +47,7 @@ namespace Oce.Solid.Agent.Core
     ///    and `Check3` declare it sound, all three, and **only
     ///    `Diagnose().GetGapsCount()` sees it**. An operation built on
     ///    `Check3` — the way that entry GP1 named first — would say
-    ///    «nessun problema» exactly on the case it exists for.
+    ///    «no problem» exactly on the case it exists for.
     ///
     /// So here **all four** are looked at, and the verdict requires them
     /// all to agree.
@@ -115,8 +115,8 @@ namespace Oce.Solid.Agent.Core
             // THE BODIES OF THE PART, counted before the «body_uid» filter
             // (Z-C21.10, finding N61). IPartDoc~GetBodies2.html: «false gets
             // all of the bodies in the part». With one body asked for,
-            // «bodies_total» is 1 on a part of two, and the verdict read «Un solo
-            // corpo solido ... si puo' esportare»: a sentence about the PART,
+            // «bodies_total» is 1 on a part of two, and the verdict read «A single
+            // solid body ... can be exported»: a sentence about the PART,
             // which has two bodies and would give an STL of two shells.
             int bodiesInPart = rawItems.Count(o => o is IBody2);
 
@@ -236,7 +236,7 @@ namespace Oce.Solid.Agent.Core
             // ONE BODY OF SEVERAL: THE VERDICT SPEAKS FOR THAT BODY (N61).
             // «printable» stays the verdict on the body asked for — the
             // question «is this body sound» — and `verdict_about` says which.
-            // The sentence that said «si puo' esportare» of the part is
+            // The sentence that said «can be exported» of the part is
             // replaced by one that names the body and the bodies of the part;
             // the refusal already names the body in each of its reasons and
             // stays as it was. On a part of one body the verdict on the body

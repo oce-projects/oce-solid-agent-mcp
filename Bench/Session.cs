@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.Bench
     /// THE JOINT THAT HAD NEVER BEEN TESTED.
     ///
     /// This project has two benches, and both measure half a thing:
-    ///   - `banco0300.py` tests the PLAN — what the model proposes, given a
+    ///   - the server's plan bench tests the PLAN — what the model proposes, given a
     ///     hand-written state of the document. It draws nothing.
     ///   - `Oce.Solid.Agent.Bench` tests the DRAWING — whether an operation builds the
     ///     right part, given the arguments. It asks nothing of the model.
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.Bench
 
             // THE BODIES LIKE THE FACES (entry Z-C21.2, finding L6-1). The bridge has sent
             // the signatures of the bodies for some time (`McpTools.StateSignatures`, «center_mm»
-            // and «bounding_box_mm»); the bench did not, and with «uid_dal_passo» a body
+            // and «bounding_box_mm»); the bench did not, and with «uid_from_step» a body
             // named before a cut arrived WITHOUT a signature: `SignatureMatches`
             // had nothing to compare and said yes. Entry E4 — the body
             // renumbered by a cut — could not be seen from the bench.

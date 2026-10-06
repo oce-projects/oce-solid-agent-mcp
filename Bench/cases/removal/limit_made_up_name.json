@@ -14,7 +14,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
                     "tolerance_why": "400000 minus pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "delete_feature",
-      "arguments": { "feature_uid": "Taglio-Che-Non-Esiste" },
+      "arguments": { "feature_uid": "Cut-That-Does-Not-Exist" },
       "must_fail": {
         "message_includes": ["I cannot find the feature", "There are:"],
         "volume_unchanged": true,

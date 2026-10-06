@@ -15,7 +15,7 @@ namespace Oce.Solid.Agent.Core.Catalog
     /// an assertion inside a project, instead of a comparison between two
     /// repositories that nobody redoes.
     ///
-    /// It used to live in `ai_disegno.py`, and whoever cloned this repository COULD NOT
+    /// It used to live in the drawing module of the server, and whoever cloned this repository COULD NOT
     /// regenerate `catalog.json`: the server, docker and a
     /// disposable container were needed. Now `Oce.Solid.Agent.Catalog.exe` is needed.
     ///
@@ -2157,7 +2157,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the weld, use «weld_bead».",
                     // No example: the two green cases name the faces with the
                     // bench selectors (@face(area~=...,normal=...)), which the
-                    // client cannot copy (see OperationSpec.Esempio).
+                    // client cannot copy (see OperationSpec.Example).
                     Example = null,
                     Precondition = "solid_body_and_face",
                     Schema = O(
@@ -2723,10 +2723,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     // ── PROVEN SINCE 26/9/2026 (library 0.125.0) ──────────
                     //
-                    // Since 17/9 it was `Provata = false`: `AutoInsertCenterMarks2`
+                    // Since 17/9 it was `Tested = false`: `AutoInsertCenterMarks2`
                     // answered True and put zero marks in 25 combinations, and
                     // `InsertCenterMark2/3` on the selected edges zero. On
-                    // 26/9 (`prova0089 croci2`, with the positive check):
+                    // 26/9 (the historical probe of 0.89, case «center crosses 2», with the positive check):
                     // the marks on the holes WERE THERE (SOLIDWORKS puts them when creating the
                     // view) and `GetCenterMarkCount` did not count them; from code a new
                     // mark is not born. The operation is a check: it counts
@@ -2834,7 +2834,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "segments shortened by the chamfer are not dimensioned. A blind hole "
                         + "carries the depth («Ø8 ↧5»); if the callout is not born, I write it myself from the geometry."
                         + "\n\nTHE «4×» IS READ BACK: after writing the count in front of the "
-                        + "callout I read its prefix again (fori[].prefix_read). If the count did "
+                        + "callout I read its prefix again (holes[].prefix_read). If the count did "
                         + "not stick, the holes are listed in edges_not_dimensioned and the count "
                         + "must be written by hand; «how_many» is the number of holes, not the text."
                         + "\n\nA CIRCLE IS NOT ALWAYS A HOLE: the outline of a round "
@@ -3202,7 +3202,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     //
                     // It is not proven — and cannot be — on whether
                     // what is written is right: a note is free text,
-                    // and «materiale S355» on an S275 part passes every
+                    // and «material S355» on an S275 part passes every
                     // count and every re-reading.
                     Tested = true,
                     Summary =
@@ -3318,8 +3318,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "in the middle."),
                             "label", O(
                                 "type", "string",
-                                "description", "the letter of the section: «A» gives the title «Vista in "
-                                    + "sezione A-A» (in the language of the installation). Default «A»."),
+                                "description", "the letter of the section: «A» gives the title "
+                                    + "«Vista in sezione A-A» (in the language of the installation). Default «A»."),
                             "depth_mm", O(
                                 "type", "number",
                                 "description", "depth of the cut for a partial "

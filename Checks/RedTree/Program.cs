@@ -38,7 +38,7 @@ namespace Checks.RedTree
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
-            Console.WriteLine("documento: " + doc.GetTitle());
+            Console.WriteLine("document: " + doc.GetTitle());
 
             bool showed = true;
             try
@@ -66,7 +66,7 @@ namespace Checks.RedTree
                 {
                     // The real signature of this installation has THREE outputs,
                     // not five: `GetWhatsWrong(out Features, out
-                    // ErrorCodes, out Warnings)`. Read with ControlliApiQuote,
+                    // ErrorCodes, out Warnings)`. Read with the guide checks (Checks/signatures-api.ps1),
                     // not remembered.
                     object names = null, errors = null, warnings = null;
                     doc.Extension.GetWhatsWrong(out names, out errors, out warnings);
@@ -74,7 +74,7 @@ namespace Checks.RedTree
                     var ve = errors as int[];
                     var goes = warnings as bool[];
                     for (int i = 0; vn != null && i < vn.Length; i++)
-                        Console.WriteLine("  guaio " + i + ": «" + vn[i] + "»" +
+                        Console.WriteLine("  defect " + i + ": «" + vn[i] + "»" +
                             (ve != null && i < ve.Length
                                 ? ", error " + ve[i] + " (" + Explain(ve[i]) + ")" : "") +
                             (goes != null && i < goes.Length ? ", warning " + goes[i] : ""));

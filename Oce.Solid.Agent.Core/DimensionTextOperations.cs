@@ -9,7 +9,7 @@ namespace Oce.Solid.Agent.Core
     /// <summary>
     /// THE TEXT OF THE DIMENSIONS, AND WHERE IT FALLS (entry GT12, point 3).
     ///
-    /// ── THE EXTENT IS READ, NOT ESTIMATED (26/9/2026, `prova0089 ciecotav`) ──
+    /// ── THE EXTENT IS READ, NOT ESTIMATED (26/9/2026, `probe0089 ciecotav`) ──
     ///
     /// GT11 had written «the extent of the text of a dimension cannot be read from
     /// anywhere». By reflection on the interop there is no `GetExtent` on
@@ -212,7 +212,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// The segment passes INSIDE the rectangle (shrunk by `-margine` if
+        /// The segment passes INSIDE the rectangle (shrunk by `-margin` if
         /// negative: a line that grazes the border of the text does not cover it).
         /// </summary>
         private static bool SegmentInRectangle(double[] s, double[][] r, double margin)

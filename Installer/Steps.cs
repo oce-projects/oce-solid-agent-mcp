@@ -9,7 +9,7 @@ using Microsoft.Win32;
 namespace Oce.Solid.Agent.Installer
 {
     /// <summary>How a check went: green, yellow, red.</summary>
-    internal enum Outcome { Fine, Warning, Male }
+    internal enum Outcome { Fine, Warning, Bad }
 
     internal sealed class CheckItem
     {
@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.Installer
     /// THE CHECKS AND THE INSTALLATION, WITHOUT INTERFACE.
     ///
     /// It is kept apart from the window on purpose: so the same logic can
-    /// be run without a window (`Installer.exe /silenzioso`) and, above all, it
+    /// be run without a window (`Installer.exe /silent`) and, above all, it
     /// can be read without having to read the code of the buttons too.
     ///
     /// THE RULE OF THIS FILE: a check that fails must say WHAT TO DO,
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.Installer
             return new CheckItem
             {
                 Title = ".NET Framework 4.8",
-                Outcome = Outcome.Male,
+                Outcome = Outcome.Bad,
                 Detail = "installed release " + release + ", at least 528040 is needed",
                 WhatToDo = "Download .NET Framework 4.8 from " +
                            "https://dotnet.microsoft.com/download/dotnet-framework/net48",
@@ -296,7 +296,7 @@ namespace Oce.Solid.Agent.Installer
             return new CheckItem
             {
                 Title = "SOLIDWORKS installed",
-                Outcome = Outcome.Male,
+                Outcome = Outcome.Bad,
                 Detail = "cannot find the api\\redist folder",
                 // There is no Browse button for SOLIDWORKS, in the window or
                 // anywhere else (entry H19, A7): the text named one.
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Installer
             return new CheckItem
             {
                 Title = "Bridge to install",
-                Outcome = Outcome.Male,
+                Outcome = Outcome.Bad,
                 Detail = "cannot find " + ExecutableName,
                 WhatToDo =
                     "This installer does not have the bridge inside and cannot find it " +
@@ -403,7 +403,7 @@ namespace Oce.Solid.Agent.Installer
             return new CheckItem
             {
                 Title = "Drawing operations",
-                Outcome = Outcome.Male,
+                Outcome = Outcome.Bad,
                 Detail = LibraryName + " is neither inside nor next to it",
                 WhatToDo =
                     "This installer is incomplete. If you cloned the " +

@@ -47,7 +47,7 @@ function Line($label, $val) {
 function FileC($filePath) {
     if (Test-Path $filePath) {
         $b = (Get-Item $filePath).Length
-        return ("SI'  " + "{0:N0}" -f $b + " byte")
+        return ("YES  " + "{0:N0}" -f $b + " byte")
     }
     return "NO"
 }
@@ -67,8 +67,8 @@ function Find($itemName) {
         $f = Get-ChildItem -Path $root -Filter $itemName -Recurse -File -ErrorAction SilentlyContinue |
              Select-Object -First 1
         if ($f) {
-            return ("SI'  " + "{0:N0}" -f $f.Length + " byte  ->  " +
-                    $f.DirectoryName.Replace($root, "<radice>"))
+            return ("YES  " + "{0:N0}" -f $f.Length + " byte  ->  " +
+                    $f.DirectoryName.Replace($root, "<root>"))
         }
     } catch { }
     return "NOT FOUND under the root"
@@ -84,7 +84,7 @@ function Coclass($dll) {
         return $asm.GetTypes() | Where-Object {
             $_.IsClass -and $_.GUID -ne [Guid]::Empty
         } | ForEach-Object {
-            [pscustomobject]@{ Nome = $_.Name; Guid = $_.GUID }
+            [pscustomobject]@{ Name = $_.Name; Guid = $_.GUID }
         }
     } catch { return @() }
 }
@@ -120,8 +120,8 @@ function Recorded($guid) {
 
 # ONLY THE REGISTERED ONES ARE PRINTED, plus the count of the others.
 #
-# The first run listed 26 `SwDMDocumentNClass` one by one, all «non
-# registrato», and the line that counted -- the factory, the only one created with
+# The first run listed 26 `SwDMDocumentNClass` one by one, all «not
+# registered», and the line that counted -- the factory, the only one created with
 # `new` -- vanished in the middle. A list that reads badly is a list that is not
 # read, and then the measurement has not been done.
 function List($dll) {
@@ -129,11 +129,11 @@ function List($dll) {
     $reg = 0
     foreach ($c in $cc) {
         $location = Recorded $c.Guid
-        if ($location) { Line ("  " + $c.Nome) "REGISTERED -> $location"; $reg++ }
+        if ($location) { Line ("  " + $c.Name) "REGISTERED -> $location"; $reg++ }
     }
     Line "coclasses in the interop" ("" + $cc.Count + ", of which registered: " + $reg)
     if ($reg -eq 0 -and $cc.Count -gt 0) {
-        # THIS LINE SAID «il modulo e' sul disco ma non si puo' creare», and it
+        # THIS LINE SAID «the module is on disk but cannot be created», and it
         # was a blind conclusion: on 24/9/2026 Simulation ran (entry S3)
         # and the coclasses of ITS interop turn out 0 registered out of 80, as here.
         # The coclasses of the interop are not the add-in. The add-in is resolved further
@@ -150,7 +150,7 @@ Write-Output ""
 # ── Z-H1: SOLIDWORKS Utilities -----------------------------------------------
 Write-Output "=== Z-H1  SOLIDWORKS Utilities (IThicknessAnalysis) ==="
 Line "sldutils folder" $(if (Test-Path (Join-Path $root "sldutils")) {
-    "SI'  " + (Get-ChildItem (Join-Path $root "sldutils") -File | Measure-Object).Count + " file" } else { "NO" })
+    "YES  " + (Get-ChildItem (Join-Path $root "sldutils") -File | Measure-Object).Count + " file" } else { "NO" })
 Line "ThickChkswu.dll" (Find "ThickChkswu.dll")
 Line "interop gtswutilities" (FileC (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll"))
 List (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll")
@@ -224,7 +224,7 @@ Write-Output ""
 # two cases that the first draft of the probe got wrong:
 #
 #   - .NET add-in: InprocServer32 is `mscoree.dll`, and the real file is in
-#     `CodeBase`. The first probe said «FILE ASSENTE» for OpenPDM, which is
+#     `CodeBase`. The first probe said «FILE MISSING» for OpenPDM, which is
 #     installed and starts by itself;
 #   - relative paths: `.\sldUtils\SwLoaderSw.dll` is relative to the root of
 #     SOLIDWORKS.
@@ -292,10 +292,10 @@ function Startup($guid) {
 
 # The modules, by ProgID. They are added here, not guessed.
 $modules = @(
-    @{ nome = "Simulation";          progId = "SldWorks.Simulation";         positivo = $true },
-    @{ nome = "OpenPDM (add-in .NET)"; guid = "{0FED85A2-3F4A-4F2C-8DCF-7C8AE1E15A5C}"; positivo = $true },
-    @{ nome = "SOLIDWORKS Utilities (Z-H1)"; progId = "Utilities.UtilitiesApp" },
-    @{ nome = "Analysis Tools";      progId = "AnalysisTools.AnalysisAddin" }
+    @{ name = "Simulation";          progId = "SldWorks.Simulation";         positive = $true },
+    @{ name = "OpenPDM (add-in .NET)"; guid = "{0FED85A2-3F4A-4F2C-8DCF-7C8AE1E15A5C}"; positive = $true },
+    @{ name = "SOLIDWORKS Utilities (Z-H1)"; progId = "Utilities.UtilitiesApp" },
+    @{ name = "Analysis Tools";      progId = "AnalysisTools.AnalysisAddin" }
 )
 
 Write-Output "=== THE ADD-INS, RESOLVED (ProgID -> CLSID -> file) ==="
@@ -304,18 +304,18 @@ foreach ($m in $modules) {
     $g = $m.guid
     if (-not $g -and $m.progId) { $g = ProgIdClsid $m.progId }
     if (-not $g) {
-        Line $m.nome "ProgID NOT registered"
-        if ($m.positivo) { $blindOnes++ }
+        Line $m.name "ProgID NOT registered"
+        if ($m.positive) { $blindOnes++ }
         continue
     }
     $f = ServerFile $g
     $outcome = if (-not $f) { "CLSID without server" }
-             elseif (Test-Path $f) { "RAGGIUNGIBILE" }
+             elseif (Test-Path $f) { "REACHABLE" }
              else { "server declared, FILE MISSING" }
     $a = Startup $g
-    Line $m.nome ($outcome + $(if ($a) { " - $a" } else { "" }))
-    if ($f) { Write-Output ("      -> " + $f.Replace($root, "<radice>")) }
-    if ($m.positivo -and $outcome -ne "RAGGIUNGIBILE") { $blindOnes++ }
+    Line $m.name ($outcome + $(if ($a) { " - $a" } else { "" }))
+    if ($f) { Write-Output ("      -> " + $f.Replace($root, "<root>")) }
+    if ($m.positive -and $outcome -ne "REACHABLE") { $blindOnes++ }
 }
 Write-Output ""
 
@@ -341,7 +341,7 @@ Write-Output ""
 if ($blindOnes -gt 0) {
     Write-Output "XX  BLIND CRITERION: $blindOnes positive checks do not turn out to be reachable."
     Write-Output "    Simulation and the .NET add-in MUST resolve: if they do not, the probe is"
-    Write-Output "    wrong, and every 'not reachable' above is worth nothing."
+    Write-Output "    wrong, and every «not reachable» above is worth nothing."
     exit 1
 }
 Write-Output "Positive checks: reachable. The criterion sees what it must see."

@@ -2,7 +2,7 @@
 //  How many «tested» operations really have something that tests them  (entry Z-C6)
 // =============================================================================
 //
-//  `Provata = true` in the catalogue means two different things that in the file
+//  `Tested = true` in the catalogue means two different things that in the file
 //  read the same:
 //
 //    - «somebody measured it once»          <- a signature in the changelog
@@ -11,15 +11,15 @@
 //  This counts the second. For every operation in the catalogue it looks whether there is
 //  something that exercises it, and distinguishes THREE ways, because they are not worth the same:
 //
-//    caso dichiarato   a file in `Bench\cases\` with expectations inside.
+//    declared case   a file in `Bench\cases\` with expectations inside.
 //                      It runs on every run, and if the behaviour changes it turns
 //                      red. It is the only one that is worth it fully.
 //
-//    C# del banco      a group written by hand. It runs on every run and asserts
+//    bench C#      a group written by hand. It runs on every run and asserts
 //                      in C#: it is worth it, and it is written here so that it is not
 //                      read as a hole.
 //
-//    piano a mano      an ARRAY in `cases\drawing\`, which launches `run_plans.js`.
+//    hand-written plan      an ARRAY in `cases\drawing\`, which launches `run_plans.js`.
 //                      **It runs in no run and asserts nothing**: it is
 //                      a note of how it was measured, not a check.
 //
@@ -81,8 +81,8 @@ function stopIfMissing() {
 // ── THE OPERATIONS THAT A CLIENT SEES ────────────────────────────────────
 //
 // We read the exported catalogue and not the C#: it is what reaches the client,
-// and it is what `Provata = true` is the promise of. The exporter already leaves
-// out the `Provata = false` ones and says so out loud while writing the file.
+// and it is what `Tested = true` is the promise of. The exporter already leaves
+// out the `Tested = false` ones and says so out loud while writing the file.
 let catalog;
 try { catalog = JSON.parse(fs.readFileSync(CATALOG, 'utf8').replace(/^\ufeff/, '')); }
 catch (e) {
@@ -109,11 +109,6 @@ function scroll(folder) {
   catch (e) { missingKeys.push(folder + ': cannot read the folder (' + e.message + ')'); return; }
   for (const v of entries) {
     const p = path.join(folder, v.name);
-    // The cases of the aliases (W3.1-bis.5, decision D4) exercise the
-    // dictionary of the old names, not an operation, and two of them name
-    // their operation in Italian on purpose: they are not counted here.
-    // Removed with the aliases in W3.1-bis.11.
-    if (v.isDirectory() && v.name === 'aliases' && path.resolve(folder) === path.resolve(CASES)) continue;
     if (v.isDirectory()) { scroll(p); continue; }
     if (!v.name.endsWith('.json')) continue;
     const where = path.relative(ROOT, p).replace(/\\/g, '/');
@@ -139,8 +134,8 @@ function scroll(folder) {
     const lists = ['steps', 'build'].filter((k) => Object.prototype.hasOwnProperty.call(j, k));
     if (lists.length === 0) missingKeys.push(where + ': neither "steps" nor "build"');
     // THE REGRESSION CASES ARE NOT CASES OF A NORMAL RUN (25/9/2026). Their
-    // `costruisci` runs only with `-Regression`, and this script
-    // counted them as «caso dichiarato»: the recount of 24/9 said 72 out of 73,
+    // `build` runs only with `-Regression`, and this script
+    // counted them as «declared case»: the recount of 24/9 said 72 out of 73,
     // and the contract check on the GREEN cases of the last run found
     // three operations (hole_wizard, extrude_on_face, fillet_edges) that in
     // a normal run nobody touched. Now they sit in a separate way.
@@ -172,17 +167,17 @@ stopIfMissing();
 
 function howItIsTested(op) {
   const quotationMarks = '"' + op + '"';
-  if (fromCases.has(op)) return { come: 'declared case', dettaglio: fromCases.get(op).slice(0, 3).join(', ') };
+  if (fromCases.has(op)) return { how: 'declared case', detail: fromCases.get(op).slice(0, 3).join(', ') };
   if (fromRegression.has(op))
-    return { come: 'regression only', dettaglio: 'runs only with -Regression: ' + fromRegression.get(op).slice(0, 3).join(', ') };
-  if (textCs.indexOf(quotationMarks) >= 0) return { come: 'bench C#', dettaglio: '' };
+    return { how: 'regression only', detail: 'runs only with -Regression: ' + fromRegression.get(op).slice(0, 3).join(', ') };
+  if (textCs.indexOf(quotationMarks) >= 0) return { how: 'bench C#', detail: '' };
   if (plansText.indexOf(quotationMarks) >= 0)
-    return { come: 'hand-written plan only', dettaglio: 'does not run in any run, asserts nothing' };
-  return { come: 'NOTHING', dettaglio: 'in the catalog, and no run touches it' };
+    return { how: 'hand-written plan only', detail: 'does not run in any run, asserts nothing' };
+  return { how: 'NOTHING', detail: 'in the catalog, and no run touches it' };
 }
 
 const perMode = { 'declared case': [], 'regression only': [], 'bench C#': [], 'hand-written plan only': [], 'NOTHING': [] };
-for (const op of operations) perMode[howItIsTested(op).come].push(op);
+for (const op of operations) perMode[howItIsTested(op).how].push(op);
 
 if (!orphansOnly) {
   console.log('catalog: ' + CATALOG);

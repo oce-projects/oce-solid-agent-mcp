@@ -1,7 +1,7 @@
 {
   "name": "assembly_says_which_file_it_depends_on",
   "family": "assemblies",
-  "why": "ENTRY Z-B3. An assembly is a graph of files on disk, and the model did not know which files it rests on. Measured on 27/9/2026 (prova0089 zb3): GetDependencies gives the name/path pairs at every level; the parameter «ListBrokenRefs» does NOT flag the files that are missing (the cover renamed on disk showed up like the others) — only the disk says so. The case proves the healthy assembly; the missing file was seen by the probe (File.Exists false, component suppressed, OpenDoc6 errors 2).",
+  "why": "ENTRY Z-B3. An assembly is a graph of files on disk, and the model did not know which files it rests on. Measured on 27/9/2026 (probe0089 zb3): GetDependencies gives the name/path pairs at every level; the parameter «ListBrokenRefs» does NOT flag the files that are missing (the cover renamed on disk showed up like the others) — only the disk says so. The case proves the healthy assembly; the missing file was seen by the probe (File.Exists false, component suppressed, OpenDoc6 errors 2).",
   "defect_caught": "An empty dependency list, or one with a single file; the component files taken for missing; the state saying file_missing on a healthy assembly.",
   "assembly": {
     "components": [

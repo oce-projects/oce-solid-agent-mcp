@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Bench
     /// <summary>
     /// THE SEVEN OPERATIONS NOT YET TESTED.
     ///
-    /// WHY THE FIELD «provata» EXISTS IN ai_disegno.py.
+    /// WHY THE FIELD «tested» EXISTS IN THE SERVER'S CATALOGUE.
     /// A signature verified by reflection is not enough. HoleWizard5, called
     /// with the right signature and the right parameters, built a hole of 50.8 mm
     /// — two inches — with the right name in the tree and without giving any
@@ -34,14 +34,14 @@ namespace Oce.Solid.Agent.Bench
     /// they are re-read from the geometry, because the point of the check is precisely
     /// to know whether the part ended up where it was believed.
     ///
-    /// Those that pass become `provata=True` in ai_disegno.py, in the same
+    /// Those that pass become `tested=True` in the server's catalogue, in the same
     /// commit in which the RAG records the measured numbers.
     /// </summary>
     internal static partial class Program
     {
         // THE LIST OF THESE CHECKS IS NO LONGER HERE.
         //
-        // Up to 0.40.0 there was a `NuoveOperazioni()` that called them in a row.
+        // Up to 0.40.0 there was a `NewOperations()` that called them in a row.
         // Since entry F13 they are in the table of the groups, in `Program.cs`:
         // **in the same order**, with a name in front of each one, so that
         // `--group shell` launches just one. Two lists — one to launch them
@@ -56,10 +56,10 @@ namespace Oce.Solid.Agent.Bench
         // `cases\sentence\clean_shaft_declares_profile.json` and
         // `cases\sentence\drilled_shaft_no_longer_declares_profile.json` (entry
         // F11). They became files when the expectations learned to
-        // ask Â«contieneÂ» and Â«non_contieneÂ» on a sentence instead of
-        // Â«ugualeÂ» on a number.
+        // ask «contains» and «does_not_contain» on a sentence instead of
+        // «equal» on a number.
         //
-        // THE RED IS ALL IN Â«non_contieneÂ». A sentence that declares the
+        // THE RED IS ALL IN «does_not_contain». A sentence that declares the
         // profile of the three diameters on a part that no longer has that profile
         // fails nothing: it is the right description of ANOTHER
         // part, and
@@ -190,7 +190,7 @@ namespace Oce.Solid.Agent.Bench
                         doc.ViewZoomtofit2();
                         doc.GraphicsRedraw2();
                         string itemName = view.Item1;
-                        string file = System.IO.Path.Combine(folder, "piastra_" + itemName + ".bmp");
+                        string file = System.IO.Path.Combine(folder, "plate_" + itemName + ".bmp");
                         if (doc.SaveBMP(file, 1024, 768) && System.IO.File.Exists(file))
                         {
                             done++;
@@ -258,7 +258,7 @@ namespace Oce.Solid.Agent.Bench
                     var itemList = v as System.Collections.IList;
                     Console.WriteLine(string.Format("  {0,-22} {1}",
                         key,
-                        itemList != null ? itemList.Count + " voci" : Convert.ToString(v)));
+                        itemList != null ? itemList.Count + " items" : Convert.ToString(v)));
                 }
 
                 // THE FEATURES: this is where the blindness shows. A designer who
@@ -287,7 +287,7 @@ namespace Oce.Solid.Agent.Bench
                             Console.WriteLine("    " + k + " = " + Describe(d[k]));
                 }
                 Check("census of what the model sees", true,
-                      json.Length + " caratteri, " + (feature == null ? 0 : feature.Count) +
+                      json.Length + " characters, " + (feature == null ? 0 : feature.Count) +
                       " features, " + (faces == null ? 0 : faces.Count) + " faces");
             }
             catch (Exception ex) { Check("census of what the model sees", false, Why(ex)); }
@@ -306,8 +306,8 @@ namespace Oce.Solid.Agent.Bench
         /// What faces the test plate really has.
         ///
         /// IT IS NOT A CHECK, IT IS A QUESTION. On the first run inside SolidWorks
-        /// fifteen cases all died on the same line — «nessuna faccia
-        /// davanti» — and the cause could be in three different places: the plate
+        /// fifteen cases all died on the same line — «no face
+        /// in front» — and the cause could be in three different places: the plate
         /// built on a plane that is not the one I thought, the state that
         /// does not list that face, or `Facing` that calls it in another way.
         /// Printing the list removes the deduction.
@@ -334,7 +334,7 @@ namespace Oce.Solid.Agent.Bench
                         f.TryGetValue("area_mm2", out area);
                         Console.WriteLine(string.Format(
                             "  {0,-4} verso={1,-9} area={2,-10} normale={3}",
-                            f["uid"], v ?? "(nessuno)", area,
+                            f["uid"], v ?? "(none)", area,
                             n is System.Collections.IEnumerable && !(n is string)
                                 ? "[" + string.Join(",", (n as System.Collections.IEnumerable)
                                     .Cast<object>().Select(o => Convert.ToString(o))) + "]"
@@ -386,11 +386,11 @@ namespace Oce.Solid.Agent.Bench
 
             // Copy: the originals stay, and one more appears.
             // Three bodies of 100,000, and the copy is at +600.
-            // baricentroZ = (100000*0 + 100000*0 + 100000*600) / 300000 = 200.
+            // centroidZ = (100000*0 + 100000*0 + 100000*600) / 300000 = 200.
             Move("copy a plate at +600 in Z (the castle)", 0, 0, 600, true, 1,
                    expectedBodies: 3, volumeExpected: 300000, centerMoveZ: 200);
             // Two copies: +600 and +1200.
-            // baricentroZ = (0 + 0 + 600 + 1200) / 4 = 450.
+            // centroidZ = (0 + 0 + 600 + 1200) / 4 = 450.
             Move("two copies, at +600 and +1200", 0, 0, 600, true, 2,
                    expectedBodies: 4, volumeExpected: 400000, centerMoveZ: 450);
 
@@ -561,7 +561,7 @@ namespace Oce.Solid.Agent.Bench
         // stepped shaft of the example, the half turn, the hollow bushing and the
         // profile straddling the axis with its twin.
         //
-        // THE TOLERANCE IS THE DIFFERENCE. Here `atteso * 0.02` was accepted:
+        // THE TOLERANCE IS THE DIFFERENCE. Here `expected * 0.02` was accepted:
         // on the cylinder of 62,831 mm3 that is 1,256 mm3 of allowed slack, more
         // than a through M20 hole. In the files it is +-0.5 mm3, and the why of the
         // tolerance is written next to it (the computation has pi inside).
@@ -605,7 +605,7 @@ namespace Oce.Solid.Agent.Bench
         // ── WHAT STAYS HERE, AND WHY IT CANNOT BECOME A FILE ──────────────
         //
         // The real question is not «the axis exists», it is «the patterns
-        // FIND IT AGAIN». They find it again with `SelectByID2(nome, "AXIS", ...)`: if
+        // FIND IT AGAIN». They find it again with `SelectByID2(name, "AXIS", ...)`: if
         // that line does not attach, `create_axis` succeeds, the state shows
         // the axis, and the pattern fails right afterwards — that is the operation
         // is useless and nothing says so.
@@ -699,9 +699,9 @@ namespace Oce.Solid.Agent.Bench
         // THE FILE CLAMPS HARDER THAN THE C# IT REPLACES. Here the mirror
         // was verified by looking for ONE copy far from the seed; the case writes the
         // two centers, both of them, and the y that does NOT flip. And the check
-        // Â«nessuno spigolo curvo e' offerto al modelloÂ» that was here was
-        // green regardless: it counted the edges with Â«drittoÂ»: false, and
-        // that field in the state does not exist - it is called Â«curvoÂ». After a
+        // «no curved edge is offered to the model» that was here was
+        // green regardless: it counted the edges with «straight»: false, and
+        // that field in the state does not exist - it is called «curved». After a
         // through hole the curved edges are TWO, the model can name them, and
         // the refusal is a real case instead of a road believed
         // closed. They are launched with `--group cases`.
@@ -740,7 +740,7 @@ namespace Oce.Solid.Agent.Bench
         // ==================================================================
 
         /// <summary>
-        /// The solid volume in mm3. `GetMassProperties(densita)[3]` is the
+        /// The solid volume in mm3. `GetMassProperties(density)[3]` is the
         /// volume in m3: measured, not remembered.
         /// </summary>
         private static double DocumentVolume(IModelDoc2 doc)

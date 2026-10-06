@@ -1,7 +1,7 @@
 {
   "name": "limit_dimension_that_will_not_leave_the_fillet_alone",
   "family": "features",
-  "why": "Two fillets of 8 on the edges at the top, then the thickness brought to 6: the fillet no longer fits. SOLIDWORKS DOES NOT FAIL — it rebuilds clean, zero features in error, and changes the shape by itself (measured with the bench probe `prova0089 storia`, 26/9/2026). The only sign is that the base extrusion loses two whole faces (6 -> 4): the sides are taken by the fillets. It is the mechanism of case r05 of the regression, the last of the silences. `set_dimension` must refuse, say WHICH fillet, and put back the previous value.",
+  "why": "Two fillets of 8 on the edges at the top, then the thickness brought to 6: the fillet no longer fits. SOLIDWORKS DOES NOT FAIL — it rebuilds clean, zero features in error, and changes the shape by itself (measured with the bench probe `probe0089 history`, 26/9/2026). The only sign is that the base extrusion loses two whole faces (6 -> 4): the sides are taken by the fillets. It is the mechanism of case r05 of the regression, the last of the silences. `set_dimension` must refuse, say WHICH fillet, and put back the previous value.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

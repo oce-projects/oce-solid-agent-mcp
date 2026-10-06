@@ -44,7 +44,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The current sheet with what occupies it: the title block and the views,
-        /// except `esclusa` (the view that is about to be moved).
+        /// except `excluded` (the view that is about to be moved).
         /// </summary>
         private static FreeSheet ReadSheet(IDrawingDoc drawing, IView excluded, string excludedTable = null)
         {

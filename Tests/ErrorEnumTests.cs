@@ -7,12 +7,12 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// `if (errore != 0)` CAN BE EXACTLY BACKWARDS (entry Z-C7).
+    /// `if (error != 0)` CAN BE EXACTLY BACKWARDS (entry Z-C7).
     ///
     /// ── THE FACT, MEASURED ───────────────────────────────────────────────
     ///
     /// `swAddMateError_NoError` is worth **1**; `ErrorUknown` is worth **0**. On that
-    /// API an `if (errore != 0)` declares a **successful** mate failed,
+    /// API an `if (error != 0)` declares a **successful** mate failed,
     /// and gives no symptom: the mate is there, the message says no.
     ///
     /// And it is not an isolated case. On 23/9/2026, by reflection on the interops of
@@ -63,7 +63,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// a check that shouts about tolerances stops being read.
         /// </summary>
         private static readonly Regex Suspicious = new Regex(
-            @"\b\w*(?:err|errore|error|stato|status)\w*\s*(?:==|!=)\s*\d+(?![\d.])",
+            @"\b\w*(?:err|error|status)\w*\s*(?:==|!=)\s*\d+(?![\d.])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
@@ -103,8 +103,8 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 "if (error != 0) return null;",
                 "if (error == 0) { }",
-                "while (statoUscita != 1)",
-                "if (ErroreMate == 0) return;",
+                "while (statusExit != 1)",
+                "if (MateError == 0) return;",
             };
             int taken = 0;
             foreach (var r in mustFire) if (Suspicious.IsMatch(r)) taken++;
@@ -118,7 +118,7 @@ namespace Oce.Solid.Agent.ContractTests
             var mustStaySilent = new[]
             {
                 "if (error != (int)swAddMateError_e.swAddMateError_NoError)",
-                "if (erroreU > 0.5 || erroreV > 0.5)",
+                "if (uError > 0.5 || vError > 0.5)",
                 "if (errors.Count > 0) return;",
                 "var status = 0;",
             };

@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.Tools
         /// the date and compare the whole line. And it serializes with the same
         /// `Protocol.InJson` as the rest of the bridge, instead of gluing
         /// quotes by hand: a model may very well invent
-        /// an operation called `taglia"a"meta`, and a broken JSONL line
+        /// an operation called `cut"in"half`, and a broken JSONL line
         /// makes the file unreadable from then on.
         /// </summary>
         public static string Line(
@@ -176,7 +176,7 @@ namespace Oce.Solid.Agent.Tools
             if (string.IsNullOrWhiteSpace(itemName))
             {
                 // An empty name is not a question: `McpTools` already answers
-                // «manca «operation»», and it is a form problem of the plan, not
+                // ««operation» is missing», and it is a form problem of the plan, not
                 // something somebody wanted and was not there. Recording it
                 // would fill the file with lines that teach nothing.
                 WhyItWasSilent = "empty name: it is not a question";

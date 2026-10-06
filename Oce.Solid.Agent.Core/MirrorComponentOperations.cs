@@ -10,7 +10,7 @@ namespace Oce.Solid.Agent.Core
     /// MIRRORING A COMPONENT (entry GA11): the right and the left bracket, the
     /// most common case of metalwork.
     ///
-    /// Measured on 27/9/2026 (`prova0089 ga11`, base 120x80x10 + bracket
+    /// Measured on 27/9/2026 (`probe0089 ga11`, base 120x80x10 + bracket
     /// 20x40x10 at x = +40, assembly right plane) with the modern way,
     /// `FeatureManager.CreateDefinition(swFmMirrorComponent)` →
     /// `IMirrorComponentFeatureData` → `CreateFeature` («SpecchiaComponente1»,

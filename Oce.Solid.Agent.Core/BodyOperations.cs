@@ -99,7 +99,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Tail of the message when the main body is the default (the first
         /// body, by position) and it coincides with a named tool: without it,
-        /// «e' anche il corpo principale» would sound like a choice of whoever asks.
+        /// «it is also the main body» would sound like a choice of whoever asks.
         /// </summary>
         private const string DefaultMain =
             ", the default: the first body, taken by position because you did not " +
@@ -164,7 +164,7 @@ namespace Oce.Solid.Agent.Core
             // now. Here it now goes through the same point.
             //
             // AND THE BODIES FOUND ARE PASSED AS THEY ARE, as move_bodies does
-            // with `firma.Entity`. The first draft searched for them again inside the
+            // with `signature.Entity`. The first draft searched for them again inside the
             // GetBodies2 above with ReferenceEquals/Equals: it holds only if
             // SOLIDWORKS gives the same COM object for the same body in two
             // calls, and this is not measured (review of Z-C21.2). Where it is needed
@@ -172,7 +172,7 @@ namespace Oce.Solid.Agent.Core
             // tools — SOLIDWORKS is asked: ISldWorks~IsSame.html, «Gets
             // whether the two specified objects are the same object», «Return
             // Value Object equality as defined by swObjectEquality», as in
-            // StatoTavola.
+            // DrawingState.
             //
             // The `_ref` (table L6-1): without them, a plan «cut, then boolean»
             // has no valid way to name the bodies — the uids read
@@ -335,7 +335,7 @@ namespace Oce.Solid.Agent.Core
             // feature is there, the tree has grown, and the part is another.
             //
             // `SWBODYADD`, AND UP TO 0.116.0 NO (entry Z-C18). The comparison was
-            // with `swCombineBodiesOperationAdd` (= 0), while `tipo` is 15903:
+            // with `swCombineBodiesOperationAdd` (= 0), while `type` is 15903:
             // two different enums — exactly the ones that the comment at the head of
             // this file tells apart — and the guard could not fire.
             // Measured on 25/9/2026: with two distant bodies SOLIDWORKS does not create
@@ -744,7 +744,7 @@ namespace Oce.Solid.Agent.Core
             });
         }
 
-        // `IndiceDelCorpo` («C2» -> index 1 of a new GetBodies2) was
+        // `BodyIndex` («C2» -> index 1 of a new GetBodies2) was
         // removed with entry Z-C21.2: it was the resolution by position that
         // finding L6-1 found wrong. The uids of the bodies go through
         // `BodiesFromUid` (WeldmentOperations.cs), which looks at the signature.

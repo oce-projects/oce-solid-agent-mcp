@@ -39,8 +39,8 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// The null has a name.
         ///
-        /// On 15/9/2026 a check came out red with «Riferimento a un oggetto
-        /// non impostato su un'istanza di oggetto.» and nothing else: in eighteen places
+        /// On 15/9/2026 a check came out red with «Object reference not set
+        /// to an instance of an object.» and nothing else: in eighteen places
         /// of the bench `NewPart()` was used without looking at whether it had
         /// produced anything, and a `NullReferenceException` does not say which of the
         /// eighteen. Now `NewPart()` does not return null: it raises an exception
@@ -140,7 +140,7 @@ namespace Oce.Solid.Agent.Bench
             // ── THE RED: a face that moved WITH RESPECT TO the part ──
             //
             // Without this, «the sentence comes out» would pass even if it always said
-            // «ci sta ancora» — that is even if the comparison between the two fractions
+            // «it still fits» — that is even if the comparison between the two fractions
             // were not there. It is the case that counts: a hole 20 mm from the edge on
             // a plate that goes from 100 to 300 STAYS 20 mm from the edge, and the
             // fraction says it went to 60. Saying it is useful; deciding it
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.Bench
 
             // The same part that grows, but the face that moves by HALF
             // instead of staying where it was in proportion: the sentence must say
-            // two different percentages and must NOT say «ci sta ancora».
+            // two different percentages and must NOT say «it still fits».
             string different = di(
                 new[] { 100.0, 0.0, 0.0 }, new[] { 150.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
@@ -173,8 +173,8 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// THE REAL CRITERION OF ENTRY E10: a search for «frazione» or
-        /// «proporzional» inside `SignatureMatches` or inside the
+        /// THE REAL CRITERION OF ENTRY E10: a search for «fraction» or
+        /// «proportional» inside `SignatureMatches` or inside the
         /// re-finding loop must return **empty**.
         ///
         /// ── WHY A CHECK THAT READS THE SOURCE ────────────────────────────
@@ -246,7 +246,7 @@ namespace Oce.Solid.Agent.Bench
             if (da < 0 || a <= da || a > text.Length) return false;
             string part = text.Substring(da, a - da);
             return part.IndexOf("fraction", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                   part.IndexOf("proporzional", StringComparison.OrdinalIgnoreCase) >= 0;
+                   part.IndexOf("proportional", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>

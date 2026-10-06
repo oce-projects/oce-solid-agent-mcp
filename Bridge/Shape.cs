@@ -108,7 +108,7 @@ namespace Oce.Solid.Agent.Bridge
         /// How deep one goes into nested objects.
         ///
         /// The schemas of this catalog reach two levels
-        /// (`feature_rif.passo`). Three is a margin, and the ceiling is there because a
+        /// (`feature_ref.step`). Three is a margin, and the ceiling is there because a
         /// check that calls itself with no bottom is a way of getting stuck.
         /// </summary>
         private const int MaximumDepth = 3;
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.Bridge
             // it then went on to the library untouched, and the library
             // compares Ordinal: `SelectPlane` read «Top» as an
             // unknown name and fell back to the front plane (the box on the
-            // wrong plane, riuscita:true, finding N33), and
+            // wrong plane, succeeded:true, finding N33), and
             // `rectangular_frame` read «Overall» as not-«overall», that
             // is the centreline branch (a 1080x880 frame for 1000x800, N32).
             // Teaching every comparison in the library to ignore case would
@@ -233,7 +233,7 @@ namespace Oce.Solid.Agent.Bridge
         /// of the wrong form. It is the same form as <see cref="Check"/>,
         /// one level further down.
         ///
-        /// The name of the field is written in full — «feature_rif.passo» — or whoever
+        /// The name of the field is written in full — «feature_ref.step» — or whoever
         /// reads the message does not know where to look: the same name «step» can
         /// be under three different references in the same schema.
         /// </summary>
@@ -260,7 +260,7 @@ namespace Oce.Solid.Agent.Bridge
 
             // ── what is there, but of the wrong form ──
             // Over a copy, as in Check: an enum value such as
-            // «faccia_rif.genere» can be rewritten in `value_text` on the way.
+            // «face_ref.kind» can be rewritten in `value_text` on the way.
             foreach (var entry in val.ToList())
             {
                 if (entry.Key.StartsWith("_")) continue;

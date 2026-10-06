@@ -424,7 +424,7 @@ function inside(spans, offset) {
 }
 
 // `via`, when given, is a helper of the consumer that does the search with
-// the literal it receives (bench.ps1 has `Prendi "<regex>"`): its literal
+// the literal it receives (bench.ps1 has `Take "<regex>"`): its literal
 // arguments are sites too, of the kind and case the entry declares.
 function sitesOf(text, lang, via) {
   const lexed = lexFile(text, lang);

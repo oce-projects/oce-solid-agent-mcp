@@ -58,7 +58,7 @@ internal static class Program
         catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
         Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
-        string file = Path.Combine(Path.GetTempPath(), "orfana-sonda.SLDPRT");
+        string file = Path.Combine(Path.GetTempPath(), "orphan-probe.SLDPRT");
         IModelDoc2 part = null, drawingDoc = null;
         bool askedForTheValue = true, off = false;
         try
@@ -248,7 +248,7 @@ internal static class Program
         {
             while (ex.InnerException != null) ex = ex.InnerException;
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + ex.GetType().Name + ": " + ex.Message);
+            Console.WriteLine("EXCEPTION: " + ex.GetType().Name + ": " + ex.Message);
             return 9;
         }
         finally

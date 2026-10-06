@@ -230,8 +230,8 @@ namespace Oce.Solid.Agent.Core
         /// neutral face.
         ///
         /// A straight wall is perpendicular to the neutral one: its angle with
-        /// the normal of the neutral one is 90 degrees. Drafted by `alfa`, it becomes
-        /// `90 - alfa` or `90 + alfa` depending on the direction — and since the direction
+        /// the normal of the neutral one is 90 degrees. Drafted by `alpha`, it becomes
+        /// `90 - alpha` or `90 + alpha` depending on the direction — and since the direction
         /// can be flipped, both are accepted and counted.
         ///
         /// Only PLANAR faces are counted: a cylindrical face that is drafted

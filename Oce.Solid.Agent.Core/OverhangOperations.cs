@@ -153,7 +153,7 @@ namespace Oce.Solid.Agent.Core
                         // IFace2~Normal.html, Remarks: «If the face is not a
                         // planar face, then this property returns 0,0,0.» The
                         // comment that stood here promised «and it is stated», and the
-                        // code looked only at `normale == null`: with (0,0,0)
+                        // code looked only at `normal == null`: with (0,0,0)
                         // Product gave 0, the face turned out «facing up» and
                         // was never flagged, whatever its
                         // slope. If no face tessellated, the answer

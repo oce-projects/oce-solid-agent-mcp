@@ -108,5 +108,5 @@
       "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres: the hundredth is rounding"
     }
   ],
-  "_why_the_anchor": "ENTRY E18, the last part. Up to library 0.118.0 the `costruisci` gave the holes at absolute coordinates — an instruction nobody would give for «20 from the corners» — and the case stayed silent by construction. Now every position carries its anchor to the two nearby edges; the EXPECTATIONS are those from before (corrected on 25/9 because the plate grows on one side only). The old way is still proved by the twin `r01b_four_holes_stay_where_they_are`."
+  "_why_the_anchor": "ENTRY E18, the last part. Up to library 0.118.0 the `build` gave the holes at absolute coordinates — an instruction nobody would give for «20 from the corners» — and the case stayed silent by construction. Now every position carries its anchor to the two nearby edges; the EXPECTATIONS are those from before (corrected on 25/9 because the plate grows on one side only). The old way is still proved by the twin `r01b_four_holes_stay_where_they_are`."
 }

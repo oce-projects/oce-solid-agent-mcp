@@ -31,8 +31,8 @@ namespace Oce.Solid.Agent.Bench
     /// `inspect_part`, which does not even go through the executor.
     ///
     /// `Oce.Solid.Agent.ContractTests` already talks to the bridge over stdio, but **without
-    /// SOLIDWORKS**: there every plan dies on «non c'e' nessun documento
-    /// aperto», which is a true refusal and proves nothing about the rest. Here the
+    /// SOLIDWORKS**: there every plan dies on «there is no open
+    /// document», which is a true refusal and proves nothing about the rest. Here the
     /// document is there. The transport is the same — `Shared/McpClient.cs` —
     /// because two transports would be two places in which to repair the BOM.
     ///
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.Bench
                 var r = Mcp.Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"banco\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"bench\",\"version\":\"1\"}}}");
                 Check("port: initialize answers", r != null,
                       r != null ? "" : "nothing within " + (Mcp.TimeoutMs / 1000) + "s. Lines seen: " +
                                        string.Join(" | ", p.Views.ToArray()));
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.Bench
                 // ── 3. RED BY CONSTRUCTION: an assembly operation on a part ──
                 var refusal = ResponseText(Mcp.Ask(p, 4, Call(4, "build",
                     "{\"steps\":[{\"operation\":\"insert_component\",\"arguments\":" +
-                    "{\"path\":\"C:\\\\non\\\\esiste.SLDPRT\"}}]}")));
+                    "{\"path\":\"C:\\\\does\\\\not-exist.SLDPRT\"}}]}")));
 
                 // ONLY `succeeded: false`, and no spare `||`. The first
                 // draft also accepted an answer that contained the
@@ -265,7 +265,7 @@ namespace Oce.Solid.Agent.Bench
                   front() == docTitle, "front «" + front() + "» — " + Short(returns));
 
             // ── RED: a file that does not exist changes nothing ───────────
-            var nonexistent = Path.Combine(Expectations.Work, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
+            var nonexistent = Path.Combine(Expectations.Work, "does-not-exist-" + Guid.NewGuid().ToString("N") + ".sldprt");
             var no = ResponseText(Mcp.Ask(p, 10, Call(10, "document",
                 "{\"action\":\"open\",\"path\":\"" + nonexistent.Replace("\\", "\\\\") + "\"}")));
             Check("document: «open» on a file that does not exist refuses, and what was in front stays in front",
@@ -274,7 +274,7 @@ namespace Oce.Solid.Agent.Bench
 
             // ── open a real file: the new part is saved, closed, reopened
             //    from the bridge, and the path must be the one asked for ─
-            saved = Path.Combine(Expectations.Work, "porta_documento.sldprt");
+            saved = Path.Combine(Expectations.Work, "port_document.sldprt");
             try { if (File.Exists(saved)) { File.SetAttributes(saved, FileAttributes.Normal); File.Delete(saved); } } catch { }
             // THE REFERENCE TAKEN AFTER «create», not a search by name.
             // `GetOpenDocumentByName` with the title of a document NEVER SAVED
@@ -381,7 +381,7 @@ namespace Oce.Solid.Agent.Bench
         ///     action `activate`; `undo` must withdraw the plan from the part.
         ///     RED ON BRIDGE 0.124.1, by the code path, for the reason the live
         ///     probe M19 measured in its phase N: the state after the plan was
-        ///     read on the window in front (McpTools.cs:2113, `_sessione.State`),
+        ///     read on the window in front (McpTools.cs:2113, `_session.State`),
         ///     the drawing, whose volume and feature count did not change, so
         ///     `hasBuilt` was false, no memory was written, and `undo`
         ///     answered that it had no plan to withdraw («NOTHING TO WITHDRAW
@@ -678,7 +678,7 @@ namespace Oce.Solid.Agent.Bench
             var hello = second == null ? null : Mcp.Ask(second, 1,
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                 "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
-                "\"clientInfo\":{\"name\":\"banco-2\",\"version\":\"1\"}}}");
+                "\"clientInfo\":{\"name\":\"bench-2\",\"version\":\"1\"}}}");
             if (hello == null)
             {
                 BenchError("undo honesty, case d", "the second bridge did not start or did not answer initialize");

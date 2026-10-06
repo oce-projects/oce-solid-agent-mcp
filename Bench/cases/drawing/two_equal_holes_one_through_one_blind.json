@@ -1,7 +1,7 @@
 {
   "name": "two_equal_holes_one_through_one_blind",
   "family": "drawing",
-  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding 1. QuotaIFori groups the holes by diameter AND depth on purpose so as not to write «2× Ø8 ↧5» on a through hole and a blind one; but the key of the «already dimensioned» was the diameter alone, added inside the same loop: the second group (the blind one) ended up «already dimensioned in this drawing», without callout, without depth and without position. In the workshop it got drilled through. A 120 x 80 x 10 plate with a through Ø8 and a blind Ø8 5 deep.",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding 1. DimensionTheHoles groups the holes by diameter AND depth on purpose so as not to write «2× Ø8 ↧5» on a through hole and a blind one; but the key of the «already dimensioned» was the diameter alone, added inside the same loop: the second group (the blind one) ended up «already dimensioned in this drawing», without callout, without depth and without position. In the workshop it got drilled through. A 120 x 80 x 10 plate with a through Ø8 and a blind Ø8 5 deep.",
   "defect_caught": "The second group of holes of the same diameter skipped as already dimensioned; a blind hole that leaves the drawing without callout or depth.",
   "_the_views_are_called_by_uid": "V2 from above (the holes as circles).",
   "start": { "new_part": true },

@@ -21,7 +21,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── THREE TRAPS, all without an error ─────────────────────────────────
     ///
-    ///  1. `SetBendState(sviluppata)` answers 0 and `GetBendState` says
+    ///  1. `SetBendState(flattened)` answers 0 and `GetBendState` says
     ///     «flattened», and the body stays BENT. The flat pattern is read by removing
     ///     the suppression from the «FlatPattern» feature at the bottom of the tree, and
     ///     putting it back.
@@ -341,7 +341,7 @@ namespace Oce.Solid.Agent.Core
             double expectedVolume = extraFlatPattern * t * Units.Mm(along);
             double? added = volumeAfter - volumeBefore;
 
-            // BORN EMPTY: it is attempt 9 of the probe — a «Bordo-Flangia»
+            // BORN EMPTY: it is attempt 9 of the probe — a «Edge-Flange»
             // in the tree that adds nothing. A part equal to before is not
             // confirmed.
             if (added.HasValue && added.Value < 0.5 * expectedVolume)
@@ -453,7 +453,7 @@ namespace Oce.Solid.Agent.Core
         /// flat END face, as wide as the thickness (area = T x length).
         /// Null with the reason, which says which edge is needed.
         ///
-        /// THE SIDE OF A SHEET METAL IS NOT A SINGLE FACE (`prova0089 elle`,
+        /// THE SIDE OF A SHEET METAL IS NOT A SINGLE FACE (`probe0089 ell`,
         /// 26/9/2026): it is broken into stretches, and every stretch is exactly as wide as the
         /// thickness. So the edges along the sides are border edges too, and they
         /// really are; the tangent edge of a bend is not, where one
@@ -530,7 +530,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// THE HEM (entry GP18): the edge folded back on itself, closed or open.
         ///
-        /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 orlo`) ────────
+        /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`probe0089 hem`) ────────
         ///
         /// `InsertSheetMetalHem2` works on the SELECTED edge and is born at the
         /// first try — no sketch, unlike the edge flange.
@@ -635,7 +635,7 @@ namespace Oce.Solid.Agent.Core
         /// THE SKETCHED BEND (entry GP18): the sheet metal bends along a line
         /// drawn on one of its faces.
         ///
-        /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 piega`) ────────
+        /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`probe0089 bend`) ────────
         ///
         /// `InsertSheetMetal3dBend(Angle, UseDefaultRadius, Radius, FlipDir,
         /// BendPos, PCBA)` with the SKETCH of the line selected is born at the first
@@ -1091,7 +1091,7 @@ namespace Oce.Solid.Agent.Core
             // A LIST IS AN IEnumerable, not an `object[]`. Measured at the first
             // bench run (25/9/2026): the arguments arrive as lists of the
             // serializer of whoever calls, and an `as object[]` gave null on an L
-            // written correctly — refused with «vuole almeno due punti». It is the
+            // written correctly — refused with «it wants at least two points». It is the
             // same rule as `HasList`, which was already there.
             object raw;
             var list = a != null && a.TryGetValue("points", out raw) && !(raw is string)

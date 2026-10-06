@@ -36,7 +36,7 @@ using SolidWorks.Interop.gtswutilities;
 //        .GetToolInterface(gtSWThickChk = 7, out err)             -> IThicknessAnalysis
 //        .Init()
 //        .SetThicknessAnalysisBody(IBody2)
-//        .RunThinAnalysis2(soglia, risoluzione, gtResultNoUI, report, ...)
+//        .RunThinAnalysis2(threshold, resolution, gtResultNoUI, report, ...)
 //        .GetMinTckOnAnalArea(out err) / GetNumCriticalFaces(out err)
 //        .Close()
 //
@@ -229,7 +229,7 @@ internal static class Program
         catch (Exception ex)
         {
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + Root(ex).GetType().Name + ": " + Root(ex).Message);
+            Console.WriteLine("EXCEPTION: " + Root(ex).GetType().Name + ": " + Root(ex).Message);
             return 8;
         }
         finally

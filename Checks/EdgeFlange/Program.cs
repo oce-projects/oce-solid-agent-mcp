@@ -123,7 +123,7 @@ internal static class Program
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
                 }
-                catch (Exception ex) { Console.WriteLine("      tentativo " + t + " alza: " + ex.Message); }
+                catch (Exception ex) { Console.WriteLine("      attempt " + t + " raised: " + ex.Message); }
                 Console.WriteLine("      attempt " + t + " (" + (t == 1 ? "nothing selected, sketches null"
                     : t == 2 ? "edge selected, sketches null" : t == 3 ? "edge selected, sketches [null]"
                     : t == 4 ? "InsertSheetMetalEdgeFlange, the old one"
@@ -182,11 +182,11 @@ internal static class Program
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
                     }
                     catch (Exception ex) { Console.WriteLine("      attempt 9 raises: " + ex.Message); }
-                    Console.WriteLine("      attempt 9 (Edge[], Feature[]{schizzo di profilo}, LONG 20): " + (flange == null ? "null" : flange.Name));
+                    Console.WriteLine("      attempt 9 (Edge[], Feature[]{profile sketch}, LONG 20): " + (flange == null ? "null" : flange.Name));
                 }
             }
 
-            // ATTEMPT 10 (26/9/2026). Number 9 makes a «Bordo-Flangia» be born that
+            // ATTEMPT 10 (26/9/2026). Number 9 makes a «Edge-Flange» be born that
             // adds no material, and SOLIDWORKS replaces the sketch with one of
             // its own: the line on a perpendicular plane is not a profile. In the
             // window the profile of the edge flange is a RECTANGLE on the
@@ -235,7 +235,7 @@ internal static class Program
             // THE TREE, afterwards: did the failed attempts leave anything? Is the
             // flange that was born in error? And the volume, which says whether the flange
             // really added material.
-            Console.WriteLine("      albero:");
+            Console.WriteLine("      tree:");
             var fa = doc.FirstFeature() as IFeature;
             while (fa != null)
             {
@@ -245,7 +245,7 @@ internal static class Program
                 if (typ != "RefPlane" && typ != "OriginProfileFeature" && !typ.EndsWith("Folder") &&
                     typ != "MaterialFolder" && typ != "DetailCabinet" && typ != "SensorFolder" &&
                     typ != "HistoryFolder" && typ != "SelectionSetFolder" && typ != "EqnFolder")
-                    Console.WriteLine("        " + fa.Name + " [" + typ + "]" + (code != 0 ? " ERRORE " + code + (warning ? " (avviso)" : "") : ""));
+                    Console.WriteLine("        " + fa.Name + " [" + typ + "]" + (code != 0 ? " ERROR " + code + (warning ? " (warning)" : "") : ""));
                 fa = fa.GetNextFeature() as IFeature;
             }
             var bodiesAfter = ((IPartDoc)doc).GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
@@ -271,7 +271,7 @@ internal static class Program
             // flange declares (OffsetDistance, at the outer virtual sharp) is
             // the height of the profile plus the thickness; with the position «material
             // inside» the 50 side loses its R + T at the end. The flat pattern
-            // grows by (Lo - R - T) + BA - (R + T). ModifyDefinition on
+            // grows by (Len - R - T) + BA - (R + T). ModifyDefinition on
             // OffsetDistance answers true and changes nothing: the length is
             // commanded by the profile.
             double ba = Math.PI / 2 * (2 + 0.5 * 2);
@@ -285,7 +285,7 @@ internal static class Program
         catch (Exception ex)
         {
             while (ex.InnerException != null) ex = ex.InnerException;
-            Console.WriteLine("ECCEZIONE: " + ex.GetType().Name + ": " + ex.Message);
+            Console.WriteLine("EXCEPTION: " + ex.GetType().Name + ": " + ex.Message);
             return 9;
         }
         finally

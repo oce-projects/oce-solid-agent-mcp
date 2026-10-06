@@ -84,7 +84,7 @@ namespace Oce.Solid.Agent.Core
         /// the same frame is asked for, nothing is measured any more.
         /// </summary>
         /// <returns>
-        /// {sporgenzaU, sporgenzaV} in mm, or null if it could not be
+        /// {overhangU, overhangV} in mm, or null if it could not be
         /// measured. In that case WHOEVER CALLS MUST FAIL, not guess:
         /// a frame with the wrong dimensions is the defect that this
         /// file exists to close.
@@ -307,7 +307,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// Builds a test frame and returns how far it protrudes beyond
-        /// the path, on the two axes: {sporgenzaU, sporgenzaV} in mm.
+        /// the path, on the two axes: {overhangU, overhangV} in mm.
         /// </summary>
         private static double[] TestFrame(
             ISldWorks sw, string profile, string configuration,
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Core
             // THE TRIAL MEMBER OPENS THE PROFILE LIBRARY TOO (Z-C21.10 N31).
             // InsertStructuralWeldment5 below is a real insertion, and
             // SOLIDWORKS opens the library by itself and leaves it modified,
-            // as OperazioniSaldatura measured for the real one. Closing the
+            // as WeldmentOperations measured for the real one. Closing the
             // trial document may or may not take the library with it: the
             // guide says «This method also closes any non-active hidden
             // documents» (ISldWorks~CloseDoc.html), and whether a library
@@ -394,7 +394,7 @@ namespace Oce.Solid.Agent.Core
                     theGroup.GapForOtherGroups = gapMm / 1000.0;
                 }
 
-                // Option 1, as the real member (OperazioniSaldatura, where the
+                // Option 1, as the real member (WeldmentOperations, where the
                 // measure is): 0 and 3 give no feature, and 1 and 2 gave the
                 // same bodies on the round tube and on the square one in every
                 // scene of the L9-6 probe (28/9/2026).
@@ -416,7 +416,7 @@ namespace Oce.Solid.Agent.Core
                     (int)swBodyType_e.swSolidBody, false) as object[];
                 if (bodies == null || bodies.Length == 0) return null;
                 // Approximate ON PURPOSE: paired with the same approximation in
-                // OperazioniSaldatura.BodiesBoundingBox, so that the two cancel out.
+                // WeldmentOperations.BodiesBoundingBox, so that the two cancel out.
                 var total = ApiHelpers.UnionOfBoxes(bodies, c => ApiHelpers.ApproximateBoundingBox(c as IBody2));
                 if (total == null) return null;
 

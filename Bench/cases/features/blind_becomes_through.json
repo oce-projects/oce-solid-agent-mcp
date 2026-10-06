@@ -1,7 +1,7 @@
 {
   "name": "blind_becomes_through",
   "family": "features",
-  "why": "ENTRY Z-F4. A blind hole that must become through, a plate that must grow: before, the only way was to redo the part. Measured on 27/9/2026 (prova0089 zf4): GetDefinition as IExtrudeFeatureData2, SetEndCondition/SetDepth, ModifyDefinition change the feature in place, and the hole on the top face follows the plate as it grows.",
+  "why": "ENTRY Z-F4. A blind hole that must become through, a plate that must grow: before, the only way was to redo the part. Measured on 27/9/2026 (probe0089 zf4): GetDefinition as IExtrudeFeatureData2, SetEndCondition/SetDepth, ModifyDefinition change the feature in place, and the hole on the top face follows the plate as it grows.",
   "defect_caught": "The definition believed changed because ModifyDefinition answered true, without reading it back or looking at the volume; «through_all» on an extrusion; the hole that does not follow the face when the plate grows.",
   "start": { "new_part": true },
   "steps": [

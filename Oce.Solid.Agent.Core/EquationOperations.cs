@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.Core
     /// SOLIDWORKS already has, and a parametric model is the only kind that someone who does not
     /// design can change without breaking anything.
     ///
-    /// Measured on 27/9/2026 (`prova0089 zf1`, `zf1b`, plate 120x80x10):
+    /// Measured on 27/9/2026 (`probe0089 zf1`, `zf1b`, plate 120x80x10):
     ///
     ///  * `IEquationMgr.Add3(-1, "\"wall\" = 12mm", true, swAllConfiguration,
     ///    null)` returns the index (0); `"\"D1@Estrusione-Estrusione1\" = \"wall\""`
@@ -85,7 +85,7 @@ namespace Oce.Solid.Agent.Core
             string itemName = (Str(a, "name", "") ?? "").Trim();
             if (!GoodVariableName(itemName))
                 return Failed("«name» is the name of the variable: letters, digits and «_», it starts with a letter " +
-                               "(for example «wall», «clearance», «raggio_angolo»), not «" + itemName + "».");
+                               "(for example «wall», «clearance», «corner_radius»), not «" + itemName + "».");
             double val; string error;
             string expression = Str(a, "expression", null);
             bool number = a != null && a.ContainsKey("value_mm");

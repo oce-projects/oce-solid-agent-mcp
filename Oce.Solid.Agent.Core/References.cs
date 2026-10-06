@@ -100,7 +100,7 @@ namespace Oce.Solid.Agent.Core
         /// ONE OF THE THREE BASE PLANES, RECOGNISED BY ITS GEOMETRY (scheme S19:
         /// findings L10-6, C3-6 and C3-6 extended; Z-C21.5).
         ///
-        /// Until Z-C21.5 the bridge took «frontale / superiore / destro» as the
+        /// Until Z-C21.5 the bridge took the Italian names of the three base planes as the
         /// first / second / third RefPlane of the tree, in four places
         /// (FindBasePlane, SelectPlane, the section of PartView and
         /// mirror_component). IPartDoc~IFirstFeature.html: «This method
@@ -236,7 +236,7 @@ namespace Oce.Solid.Agent.Core
         /// elements define the translation component». So the NORMAL IS THE
         /// THIRD ROW (indices 6, 7, 8), not the third column, measured on
         /// 16/9/2026 on an oblique plane where the column gives a turned vector
-        /// (plane_three_points, OperazioniPiani); the ORIGIN is the translation
+        /// (plane_three_points, PlaneOperations); the ORIGIN is the translation
         /// (indices 9, 10, 11), which is what the bench reads as
         /// «last_plane_mm» (top_plane_plus_100: [0, 100, 0]).
         /// </summary>
@@ -737,7 +737,7 @@ namespace Oce.Solid.Agent.Core
         /// says why instead of capping.
         ///
         /// NOT MEASURED ON SOLIDWORKS when written (no CAD available): the
-        /// bench case saldature/the_end_cap_skips_a_drilled_wall is the proof.
+        /// bench case weldments/the_end_cap_skips_a_drilled_wall is the proof.
         ///
         /// True: every inner loop is the void. False: at least one inner loop
         /// is a machined hole. Null: something could not be read, and

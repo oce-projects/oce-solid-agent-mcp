@@ -1,11 +1,11 @@
 // =============================================================================
-//  todo-references.js - does «vedi la voce K14» point to an entry that exists?
+//  todo-references.js - does «see entry K14» point to an entry that exists?
 // =============================================================================
 //
 //  WHY IT EXISTS
 //
-//  The TODO refers to itself all the time: «voce K17», «vedi Z-C4»,
-//  «come la GT0». They are the seams of the file: it is how an entry says why it
+//  The TODO refers to itself all the time: «entry K17», «see Z-C4»,
+//  «like GT0» (in Italian words). They are the seams of the file: it is how an entry says why it
 //  exists without repeating what is already written elsewhere.
 //
 //  **A broken cross-reference is worse than no cross-reference**: whoever reads goes to look,
@@ -15,7 +15,7 @@
 //  (`todo-signatures.ps1`), applied to the internal cross-references.
 //
 //  The twin of this check already exists and is in the contract checks:
-//  «nel TODO due voci non si chiamano allo stesso modo». That one prevents
+//  «in the TODO no two entries are named the same way». That one prevents
 //  one name from indicating two; this one, that a name indicates none.
 //
 //  USAGE
@@ -53,7 +53,7 @@ for (const r of lines) {
 
 // ── THE CROSS-REFERENCES ───────────────────────────────────────────────
 //
-// Only the explicit forms: «voce X», «voci X e Y», «vedi X». Searching for every
+// Only the explicit forms: «entry X», «entries X and Y», «see X» (the TODO's Italian words). Searching for every
 // acronym that looks like a name would collect half of the prose -- and a
 // list that fishes up the false ones is not read.
 const NAME = '([A-Z][A-Za-z0-9]*(?:[.\\-][A-Za-z0-9]+)*)';
@@ -86,7 +86,7 @@ if (brokenOnes.size === 0) {
   console.log('All the cross-references of the TODO point to an entry that exists.');
 } else {
   console.log('CROSS-REFERENCES TO ENTRIES THAT DO NOT EXIST: ' + brokenOnes.size);
-  for (const [itemName, line] of brokenOnes) console.log('  !  ' + itemName + '   (riga ' + line + ')');
+  for (const [itemName, line] of brokenOnes) console.log('  !  ' + itemName + '   (line ' + line + ')');
   console.log('');
   console.log('It may be a renamed entry, one never written, or an acronym that');
   console.log('looks like a name. It is something to look at, not a fault.');

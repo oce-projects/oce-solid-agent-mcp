@@ -57,7 +57,7 @@ namespace Checks.DetailView
                 return 2;
             }
             var drawing = (IDrawingDoc)doc;
-            Console.WriteLine("tavola: " + doc.GetTitle());
+            Console.WriteLine("drawing: " + doc.GetTitle());
 
             // 1. THE VIEW TO BE DETAILED. The first «view» is the sheet: it is skipped.
             IView target = null;

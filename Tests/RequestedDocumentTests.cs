@@ -18,7 +18,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// found a real hole. But the family is an approximation, and
     /// `checks` proves it by itself:
     ///
-    ///     cartiglio                -> DRAWING
+    ///     title_block              -> DRAWING
     ///     interference_check       -> ASSEMBLY
     ///     mass_properties          -> PART      ... and five more
     ///
@@ -35,7 +35,7 @@ namespace Oce.Solid.Agent.ContractTests
     internal static class RequestedDocumentTests
     {
         /// <summary>The values that the field can take, and nothing else. An
-        /// open vocabulary becomes «part», «Parte», «part», «part» in
+        /// open vocabulary becomes «part», «Part», «parts», «prt» in
         /// six months, and then no check can read it any more.</summary>
         private static readonly string[] Allowed =
             { "part", "assembly", "drawing", "any", "none" };
@@ -99,7 +99,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("no operation stays silent about the document", withoutField.Count == 0,
                   withoutField.Count == 0
                       ? entries.Length + " operations, all declared"
-                      : "tacciono: " + string.Join(", ", withoutField));
+                      : "silent: " + string.Join(", ", withoutField));
 
             Check("and none uses a word outside the vocabulary",
                   outsideVocabulary.Count == 0,
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.ContractTests
                 {
                     if (part == "any" || part == "none") continue;
                     if (!allowedByExecutor.Contains(part))
-                        unreachable.Add(part + " (" + pair.Value + " operazioni)");
+                        unreachable.Add(part + " (" + pair.Value + " operations)");
                 }
             }
             Check("no operation promises a document that the executor refuses",

@@ -88,7 +88,7 @@ no reason is an expectation that widens until it passes.
   plate, a lid. *A bench built on invented parts measures how well the model
   makes invented parts.*
 - **The first form of tasks 01 and 06** (`l_bracket.json` and `one_meter_frame.json`,
-  JSON with the keys «compito» and «come_si_misura») is gone: it was the Italian
+  JSON with the keys «task» and «how_it_is_measured») is gone: it was the Italian
   original of those two tasks, nothing read it (the run reads `NN_*.md`), and
   their words and numbers are in `01_l_bracket.md` and `06_welded_frame.md`. It is
   in the history of the repository (`git log --follow Bench/tasks/l_bracket.json`).
@@ -105,19 +105,14 @@ cannot read (one component of an assembly) is listed BY HAND with its session.
 `score-autonomous.js --self-test` checks the reading of the tables and of the
 outcomes without SOLIDWORKS.
 
-**The run before speaks the protocol of before.** The bridge of 9384b2c answers
-`esiti`, `riuscita`, `misure` and describes the part with `corpi_totali` and <!-- window-2: keep -->
-`facce`; read with the English keys only, every session of the run before would <!-- window-2: keep -->
-be NOT DONE and «at most one task worse» could not fail. So the scorer reads
-every answer and every state through the name map (the rows `response_field`,
-`operation`, `enum_value`, `response_value`, with the sites of
-`Checks/language/window-2-surface.js`), `--read-state` reads the state with the
-tool the bridge has (`inspect_part`, or `guarda_il_pezzo` before the rename), <!-- window-2: keep -->
-`run.json` records the bridge's version and protocol, a run in which no session
-gave a single outcome is refused instead of scored, and `--compare` refuses a
-`score.json` of a scorer that did not read the protocol of before. The
-self-test has a session of the bridge before that must score RIGHT (seen red
-with the reading through the map switched off: 3 checks fail).
+**The scorer reads the English protocol only** (W3.1-bis.11). Until then it also read
+the answers of the bridge before the rename (9384b2c) through the name map, so that D9
+could compare that bridge with this one; the map is archived outside the repository
+and so is that reading. `--read-state` reads the state with `inspect_part`,
+`run.json` records the bridge's version and protocol (`en`), a run in which no
+session gave a single outcome is refused instead of scored, and `--compare` refuses a
+`score.json` of an older scorer. The `score.json` of the run before, scored while the
+reading existed, is kept and still compares (same format).
 
 **Each session sees the bridge and nothing else**: an empty temporary folder of
 its own (so no `Bench/tasks/NN_*.md` with the expected answers, no cases, no
@@ -135,18 +130,17 @@ the operation, the count is `balloons_placed`): W3.1-bis.5 rewrote them on the
 real fields, naming the step whose answer holds them.
 
 The threshold of D9: every task ×3 on the Italian version (median per task of
-the bridge before the rename against the bridge after it, at most one task of
-fifteen worse), ×1 on the English version (a signal, not a threshold). The
-Italian version is not in the repository; `<it>` below is its folder.
+the run before the rename against the run after it, at most one task of fifteen
+worse), ×1 on the English version (a signal, not a threshold). The Italian version
+is not in the repository; `<it>` below is its folder. The run before was made with the
+bridge of 9384b2c and scored while the scorer could read it: its folder and its
+`score.json` are what `--compare` takes. This runner speaks to a bridge that answers
+in English, so a new run before cannot be made with it.
 
 ```powershell
-# before: the bridge of the snapshot (the catalogue before the rename), built in a worktree of 9384b2c
-.\Bench\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label before `
-    -Bridge <worktree of 9384b2c>\bin\oce-solid-agent-mcp.exe
 # after: this bridge
 .\Bench\tasks\run-autonomous.ps1 -Language it -TasksDir <it> -Repeats 3 -Label after
 .\Bench\tasks\run-autonomous.ps1 -Language en -Repeats 1 -Label after
-node Bench\tasks\score-autonomous.js Bench\report\autonomous\<stamp>-it-before
 node Bench\tasks\score-autonomous.js Bench\report\autonomous\<stamp>-it-after
 node Bench\tasks\score-autonomous.js Bench\report\autonomous\<stamp>-en-after
 node Bench\tasks\score-autonomous.js --compare Bench\report\autonomous\<stamp>-it-before Bench\report\autonomous\<stamp>-it-after
@@ -202,29 +196,27 @@ one, names one the text does not, or holds a plan no task uses.
 What the run does NOT measure any more in tasks 09-15 is whether the model can
 build the earlier part: tasks 01-08 measure that.
 
-**The plans are a protocol of their own, and run on both bridges.** They are
-written in English; for the bridge of before the rename each step is translated
-by the reverse run of window 2 (the map read from English to Italian) and each
-answer is read back through the map, as the scorer does. The same plans pass
-`prerequisite.js --check` against the catalogue of the bridge of 9384b2c.
+**The plans are a protocol of their own.** They are written in English and pass
+`prerequisite.js --check` against the catalogue of this bridge (until W3.1-bis.11 they
+were also translated for the bridge before the rename and checked against its
+catalogue; that bridge is no longer spoken to).
 
 **What was proven without SOLIDWORKS** (`run-autonomous.ps1 -DryRun` runs it):
 every plan against the catalogue (operations, arguments, enum values, the
 references between steps, the paths of the expectations), the dry run of the
-bridge with `OCE_NO_ATTACH` set, the translation to the protocol of before and
-back, the build and the three ways to fail against a script that plays the
+bridge with `OCE_NO_ATTACH` set, the build and the three ways to fail against a script that plays the
 bridge, the closing rule against a script that plays SOLIDWORKS (with the
 defect of 6/10 reproduced), and the index against the texts of the tasks.
 
 **What was proven on SOLIDWORKS** (6/10, both bridges: after = 0.127.1, before =
-9384b2c through the map; `PREREQ_TRACE=<file>` keeps every request and answer of
-a build). Ten of the twelve builds hold: `01_l_bracket`, `02_bolt_circle_flange`,
-`03_slotted_plate`, `08_box_and_lid` and `09_bracket_pair` on both bridges, every
-expectation of their tasks checked. What the first proof taught, and is now in
+9384b2c through the map that is archived now; `PREREQ_TRACE=<file>` keeps every
+request and answer of a build). Ten of the twelve builds hold: `01_l_bracket`,
+`02_bolt_circle_flange`, `03_slotted_plate`, `08_box_and_lid` and `09_bracket_pair`
+on both bridges, every expectation of their tasks checked. What the first proof taught, and is now in
 the plans and the runner:
 
-- a selector never names a face by `normal=`: the bridge of before writes the
-  facing in Italian and the map translates that field only in the cases, so the
+- a selector never names a face by `normal=`: the bridge of before wrote the
+  facing in Italian and the translation covered that field only in the cases, so the
   face is named by numbers (area, and x, y, z of `point_mm`);
 - `diameters_mm` is refused only when the FACES are cut (`faces_total` written),
   not on any `truncated` state: 36 edges set it on the slotted plate;
@@ -236,15 +228,15 @@ the plans and the runner:
   refused as REDUNDANT, so only the first bracket is mated;
 - the base of the box and the plate of the pair are fixed by `fix_component`,
   and the plan checks it, instead of resting on the order of the inserts;
-- the state of an assembly of before has neither bodies nor faces, and the
+- the state of an assembly of before had neither bodies nor faces, and the
   scorer did not see it as Italian: its keys (documents open, count of the
-  components) are now marks of that protocol, read from the map.
+  components) became marks of that protocol (the reading is gone with the map).
 
 **After the move to the protocol of .10-bis** (integration-1, 6/10 evening) the plans
 `08_box_and_lid` and `09_bracket_pair` were built again on SOLIDWORKS on both
 bridges, every expectation of their tasks checked: on the bridge of today with the
-English mate values, on the bridge of before through the table
-`MATE_VALUES_BEFORE` of `prerequisite.js`.
+English mate values, on the bridge of before through a table of its mate words
+(removed from `prerequisite.js` in W3.1-bis.11 with that bridge).
 
 **The stand (`07_tube_stand`, tasks 11 and 15) still does not build**, on either
 bridge, and the runner refuses those sessions (on both sides, so the comparison is

@@ -28,7 +28,7 @@ namespace Checks.GearTest
     /// correction is exactly pi*m/2, and the SPACE between one tooth and the next,
     /// which is just as much. They are two different measurements:
     ///
-    ///   * the thickness is wrong if psi or inv(alfa) is wrong;
+    ///   * the thickness is wrong if psi or inv(alpha) is wrong;
     ///   * the space is wrong if the angular pitch is wrong.
     ///
     /// A single right number is not enough to say the formula is right; two
@@ -80,7 +80,7 @@ namespace Checks.GearTest
 
             // WHAT MUST BE REFUSED, and the reason why.
             //
-            // The root closes when 2.5*tan(alfa) exceeds pi/2, that is beyond
+            // The root closes when 2.5*tan(alpha) exceeds pi/2, that is beyond
             // 32.15 degrees of pressure angle: the tooth becomes so wide
             // at the base that no space is left between one tooth and the next. At 35 degrees
             // with 60 teeth 0.14 mm are missing.
@@ -96,7 +96,7 @@ namespace Checks.GearTest
 
             Console.WriteLine();
             if (trouble == 0) { Console.WriteLine("Everything adds up."); return 0; }
-            Console.WriteLine(trouble + " scostamenti.");
+            Console.WriteLine(trouble + " deviations.");
             return 1;
         }
 
@@ -108,10 +108,10 @@ namespace Checks.GearTest
             string reason;
             var contours = SpurGear.Contours(
                 z, m, alphaDeg, 0, false, PointsPerSide, out reason);
-            if (contours == null) { Male("rifiutata: " + reason); return; }
+            if (contours == null) { Bad("refused: " + reason); return; }
 
             var points = FirstContourPoints(contours);
-            if (points.Count < z * 4) { Male("only " + points.Count + " points: the outline is not what I think"); return; }
+            if (points.Count < z * 4) { Bad("only " + points.Count + " points: the outline is not what I think"); return; }
 
             double r = m * z / 2.0;
             double planStep = Math.PI * m;
@@ -133,7 +133,7 @@ namespace Checks.GearTest
             // This is the check that would have caught by itself the defect of
             // z=127: the root hooked to the wrong angle made a piece of the
             // turn be travelled backwards, the sketch cut itself and
-            // SOLIDWORKS only said «L'estrusione non e' stata creata».
+            // SOLIDWORKS only said «The extrusion was not created».
             //
             // A closed contour that turns in one direction has the unrolled angle
             // always increasing. A negative step is a self-intersection, and it is
@@ -148,7 +148,7 @@ namespace Checks.GearTest
             double noise = 3e-4 / (r - 1.25 * m);
             double back = BiggerStepBack(points);
             if (back > noise)
-                Male(string.Format(CultureInfo.InvariantCulture,
+                Bad(string.Format(CultureInfo.InvariantCulture,
                     "the outline goes back by {0:0.000000} rad: it cuts itself",
                     back));
             else
@@ -162,7 +162,7 @@ namespace Checks.GearTest
             Crossings(points, r, upCrossings, downCrossings);
             if (upCrossings.Count != z || downCrossings.Count != z)
             {
-                Male(string.Format(CultureInfo.InvariantCulture,
+                Bad(string.Format(CultureInfo.InvariantCulture,
                     "crossings of the pitch circle: {0} up and {1} down, " +
                     "expected {2} and {2}", upCrossings.Count, downCrossings.Count, z));
                 return;
@@ -231,10 +231,10 @@ namespace Checks.GearTest
             string head = string.Format(CultureInfo.InvariantCulture,
                 "z={0}  m={1}  alpha={2} degrees  (must refuse)", z, m, alphaDeg);
             Console.WriteLine(head);
-            if (contours != null) { Male("accepted instead"); Console.WriteLine(); return; }
+            if (contours != null) { Bad("accepted instead"); Console.WriteLine(); return; }
             if (fragment.Length > 0 && reason.IndexOf(fragment, StringComparison.Ordinal) < 0)
             {
-                Male("refused for another reason: " + reason);
+                Bad("refused for another reason: " + reason);
                 Console.WriteLine();
                 return;
             }
@@ -324,11 +324,11 @@ namespace Checks.GearTest
             string line = string.Format(CultureInfo.InvariantCulture,
                 "{0,-34} {1,10:0.#####}  expected {2,10:0.#####}  deviation {3:0.000000}",
                 what, had, expected, deviation);
-            if (double.IsNaN(had) || deviation > within) Male(line);
+            if (double.IsNaN(had) || deviation > within) Bad(line);
             else Console.WriteLine("  ok  " + line);
         }
 
-        private static void Male(string line)
+        private static void Bad(string line)
         {
             trouble++;
             Console.WriteLine("  XX  " + line);

@@ -10,7 +10,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// The state lists up to sixty faces with area, point and normal. They are the
     /// right numbers, and it is a list: to know that the part is «a box
-    /// 120x80x50 svuotata 4, con quattro fori Ø12» it has to be worked out. This
+    /// 120x80x50 shelled 4, with four holes Ø12» it has to be worked out. This
     /// class works it out once only, here, and says it.
     ///
     /// ── WHY IT CAN BE WORTH MORE THAN AN IMAGE ─────────────────────────────
@@ -30,8 +30,8 @@ namespace Oce.Solid.Agent.Core
     /// say» instead of guessing.
     ///
     /// Concretely: **the name of the family is written only when a TYPE of
-    /// feature authorizes it.** `Shell` says «svuotato», `Revolution` says
-    /// «di rivoluzione»: they are what the designer did, not what
+    /// feature authorizes it.** `Shell` says «shelled», `Revolution` says
+    /// «of revolution»: they are what the designer did, not what
     /// it looks like. For everything else the measures are given and that is all.
     ///
     /// «Plate» is not said because one dimension is small compared with the others:
@@ -143,8 +143,8 @@ namespace Oce.Solid.Agent.Core
         /// from the sentence alone with the **exact** volume. The fifth, a stepped
         /// shaft, came out at 3.8% — and the model had said in advance
         /// why: «it does not say how many steps the profile has, where the
-        /// step falls, nor the intermediate diameters». The sentence said «pezzo di
-        /// rivoluzione» and nothing else, that is the name of the family without a
+        /// step falls, nor the intermediate diameters». The sentence said «part of
+        /// revolution» and nothing else, that is the name of the family without a
         /// dimension.
         ///
         /// ── HOW IT IS DERIVED, AND FROM WHAT ─────────────────────────────
@@ -177,8 +177,8 @@ namespace Oce.Solid.Agent.Core
         ///
         /// The second is the strong one: it catches the cross holes, the keyways, and a
         /// hollow part (where a cylindrical face is internal and removes material
-        /// instead of adding it). If it does not come back, **it stays silent**: «pezzo di
-        /// rivoluzione» remains, which is little but is true.
+        /// instead of adding it). If it does not come back, **it stays silent**: «part of
+        /// revolution» remains, which is little but is true.
         /// </summary>
         private static string TurnedProfile(
             Dictionary<string, object> docState, double[] boundingBox, double volume)
@@ -287,7 +287,7 @@ namespace Oce.Solid.Agent.Core
         /// The first writing asked for only one — «all at the same
         /// distance from an axis» — and on the **very first sentence ever generated**
         /// it declared that the four holes of a rectangular plate lie
-        /// «su una circonferenza Ø90 a passo 90 gradi». They lie at the vertices of a
+        /// «on a circle Ø90 at a 90 degree pitch». They lie at the vertices of a
         /// **160 x 90** rectangle.
         ///
         /// Equidistant from an axis means on a CYLINDER, not on a

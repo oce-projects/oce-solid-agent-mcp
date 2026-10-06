@@ -51,9 +51,9 @@ namespace Oce.Solid.Agent.ContractTests
             // a different path are two different parts, and taking them for one
             // is exactly the defect that this function defends against.
             Check("same path, different title: the same document",
-                  equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\b.SLDPRT", "Parte2")));
+                  equal(id(@"S:\a\b.SLDPRT", "Part1"), id(@"S:\a\b.SLDPRT", "Part2")));
             Check("different path, same title: NOT the same document",
-                  !equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\c.SLDPRT", "Parte1")));
+                  !equal(id(@"S:\a\b.SLDPRT", "Part1"), id(@"S:\a\c.SLDPRT", "Part1")));
 
             // ── THE TWO BACKSLASHES ARE THE SAME BACKSLASH ───────────────
             Check("«/» and «\\» are the same path",
@@ -65,9 +65,9 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── THE NEVER-SAVED ARE COMPARED BY TITLE ────────────────────
             Check("without a path, the title decides",
-                  equal(id("", "Parte286"), id("", "Parte286")));
+                  equal(id("", "Part286"), id("", "Part286")));
             Check("without a path, different titles: different documents",
-                  !equal(id("", "Parte286"), id("", "Parte287")));
+                  !equal(id("", "Part286"), id("", "Part287")));
 
             // ── TWO EMPTY IDENTITIES ARE NOT THE SAME DOCUMENT ───────────
             //
@@ -76,12 +76,12 @@ namespace Oce.Solid.Agent.ContractTests
             // letting any document through.
             Check("two empty identities are NOT the same document",
                   !equal(id("", ""), id("", "")));
-            Check("null is not the same as nothing", !equal(null, id("", "Parte1")));
+            Check("null is not the same as nothing", !equal(null, id("", "Part1")));
             Check("null and null are not the same document", !equal(null, null));
 
             // ── ONE SAVED AND ONE NOT: different ─────────────────────────
             Check("one saved and one never saved, same title: different",
-                  !equal(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
+                  !equal(id(@"S:\a\Part1.SLDPRT", "Part1"), id("", "Part1")));
 
             TheTurnKey(bridge);
             TheTurnFires(bridge);
@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("the bridge: file version = VERSION.txt",
                   vi.FileVersion == expectation + ".0", "file " + vi.FileVersion + ", VERSION.txt " + expectation);
             Check("the bridge: product version = VERSION.txt",
-                  vi.ProductVersion == expectation, "prodotto " + vi.ProductVersion);
+                  vi.ProductVersion == expectation, "product " + vi.ProductVersion);
 
             var install = Path.Combine(Root(), "dist", "Installer.exe");
             if (!File.Exists(install))
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.ContractTests
             // A path that does not exist and that no real bridge is using:
             // the lock is its own and that is all.
             var fake = new FakeDocument(
-                @"C:\prova-turno\" + Guid.NewGuid().ToString("N") + ".sldprt", "prova");
+                @"C:\probe-turn\" + Guid.NewGuid().ToString("N") + ".sldprt", "probe");
             var key = keyOf.Invoke(null, new object[] { fake, null }) as string;
             if (string.IsNullOrEmpty(key)) { Check("the test key is there", false, ""); return; }
             string itemName = @"Local\OceSolidAgent_" + key;
@@ -216,8 +216,8 @@ namespace Oce.Solid.Agent.ContractTests
             if (t1 != null) t1.Dispose();
 
             // 2. held by ANOTHER PROCESS: the bridge must refuse.
-            //    The child takes the mutex, writes «preso» and waits.
-            string ready = Path.Combine(Path.GetTempPath(), "turno-" + key.Substring(0, 12) + ".txt");
+            //    The child takes the mutex, writes «taken» and waits.
+            string ready = Path.Combine(Path.GetTempPath(), "turn-" + key.Substring(0, 12) + ".txt");
             try { File.Delete(ready); } catch { }
             string command =
                 "$m = New-Object System.Threading.Mutex($false, '" + itemName + "'); " +
@@ -265,7 +265,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 4. another document is not touched by the lock of the first.
             var tA = test();
-            var other = new FakeDocument(@"C:\prova-turno\altro-" + Guid.NewGuid().ToString("N") + ".sldprt", "altro");
+            var other = new FakeDocument(@"C:\probe-turn\other-" + Guid.NewGuid().ToString("N") + ".sldprt", "other");
             var tB = take.Invoke(null, new object[] { other, null }) as IDisposable;
             Check("a different document does not wait for the lock of the first", tA != null && tB != null);
             if (tA != null) tA.Dispose();
@@ -315,7 +315,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── NOTHING CHANGED IS `null`, NOT AN EMPTY SENTENCE ─────────
             //
-            // The caller writes `if (cambiato != null)`. An empty string
+            // The caller writes `if (changed != null)`. An empty string
             // would pass that check and would stop «build» saying nothing:
             // the worse of the two ways of getting it wrong, because the warning is there and
             // it is not clear what it is about.
@@ -325,7 +325,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── THE VOLUME, WITH THE PREVIOUS NUMBER AND THE CURRENT ONE ──
             //
-            // «The volume has changed» obliges one to trust; «da 96000 a 94500» can be
+            // «The volume has changed» obliges one to trust; «from 96000 to 94500» can be
             // checked. It is the criterion written in entry X2, and it is the
             // difference between a warning that is read and one that one learns to
             // ignore.
@@ -421,7 +421,7 @@ namespace Oce.Solid.Agent.ContractTests
             };
 
             Check("the same path gives the same key",
-                  key(@"S:\a\b.sldprt", "b") == key(@"S:\a\b.sldprt", "altro"),
+                  key(@"S:\a\b.sldprt", "b") == key(@"S:\a\b.sldprt", "other"),
                   "and the title does not matter: the file counts");
             Check("different capitals, same key",
                   key(@"S:\A\B.SLDPRT", "") == key(@"s:\a\b.sldprt", ""),
@@ -435,14 +435,14 @@ namespace Oce.Solid.Agent.ContractTests
             // two different parts would block each other.
             string along = @"S:\" + new string('x', 200) + @"\";
             Check("two files in a very deep folder stay distinct",
-                  key(along + "uno.sldprt", "") != key(along + "due.sldprt", ""),
+                  key(along + "one.sldprt", "") != key(along + "two.sldprt", ""),
                   "it is the case that a truncation of the path would have merged");
 
             Check("without a path the title is used",
-                  key("", "Parte286") != null &&
-                  key("", "Parte286") == key("", "Parte286"));
+                  key("", "Part286") != null &&
+                  key("", "Part286") == key("", "Part286"));
             Check("different titles, different keys",
-                  key("", "Parte286") != key("", "Parte287"));
+                  key("", "Part286") != key("", "Part287"));
 
             // NOTHING IN, NOTHING OUT: no key, and therefore no lock.
             // Locking on an invented key would merge different documents and

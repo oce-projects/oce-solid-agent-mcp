@@ -22,7 +22,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// WHY THIS CLASS EXISTS: THE SIXTH DEFECT THAT GAVE NO ERROR
     ///
-    /// Up to 0.25.1 the check was a single function, `ForiMancanti`, which
+    /// Up to 0.25.1 the check was a single function, `MissingHoles`, which
     /// returned `null` to say «all fine». It was honest: it returned `null`
     /// also when it had not been able to look at anything, and one of its `return
     /// null` even had the comment
@@ -37,14 +37,14 @@ namespace Oce.Solid.Agent.Core
     ///
     /// Whoever called it then wrote, unconditionally:
     ///
-    ///     misure["positions_checked"] = true;
+    ///     measures["positions_checked"] = true;
     ///
     /// THE FUNCTION REFUSED TO INVENT THE VERDICT, AND THE CALLER INVENTED IT IN
     /// ITS PLACE.
     ///
     /// And the bench, which trusted that field to decide the pass, read it
-    /// with `misure.ContainsKey("positions_checked")`: a key that is always
-    /// written. The branch that printed «POSIZIONI NON VERIFICATE» was dead code
+    /// with `measures.ContainsKey("positions_checked")`: a key that is always
+    /// written. The branch that printed «POSITIONS NOT VERIFIED» was dead code
     /// — it could not fire. A check never seen to fire is not a
     /// check, and this one was so twice over: in the bridge and in the bench.
     ///

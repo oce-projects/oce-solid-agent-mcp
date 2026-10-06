@@ -13,27 +13,27 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// The bridge keeps three things about the document it has looked at:
     ///
-    ///     _guardato        WHICH document
+    ///     _seen        WHICH document
     ///     _signatureSeen   how it was, in short (volume, features, files)
     ///     _seenSignatures      the signatures of the individual faces
     ///
     /// In `RunPlan` there was a line that moved **only the first**:
-    /// `_guardato = adesso;`. It was enough for a plan to name another document
+    /// `_seen = now;`. It was enough for a plan to name another document
     /// — `document: "..."`, the legitimate and documented way — for, from that
-    /// moment on, `_guardato` to point to the new part and the signatures to the old one.
+    /// moment on, `_seen` to point to the new part and the signatures to the old one.
     ///
     /// ── WHY IT WAS NOT SEEN ───────────────────────────────────────────────
     ///
     /// Because the trouble does not arrive there: it arrives **at the next call**. At that
     /// point the document in front is the new one, `theCheckedOne` comes back true,
     /// and the comparison runs against the signatures of another part. Two outcomes, both
-    /// wrong: refusing a good plan saying «il pezzo e'
-    /// cambiato», or **letting through** a plan on uids that are no
+    /// wrong: refusing a good plan saying «the part has
+    /// changed», or **letting through** a plan on uids that are no
     /// longer valid — which is the defect this project has chased for weeks.
     ///
     /// ── AND THE PRINCIPLE WAS ALREADY WRITTEN TWO LINES ABOVE ─────────────
     ///
-    /// The comment of the local variable `firme` said: *«better no
+    /// The comment of the local variable `signatures` said: *«better no
     /// comparison than a comparison between two different parts»*. It was right, it was there,
     /// and it held for the local variable — not for the fields that remain. **A
     /// rule written by half is a rule that somebody will apply by
@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.ContractTests
     internal static class DocumentSignaturesTests
     {
         /// <summary>
-        /// The lines in which `_guardato` changes **by itself**, that is, without
+        /// The lines in which `_seen` changes **by itself**, that is, without
         /// the signatures being redone or thrown away in the eight lines OF CODE around it.
         ///
         /// ── OF CODE, AND NOT RAW LINES ────────────────────────────────

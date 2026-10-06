@@ -9,10 +9,10 @@ namespace Oce.Solid.Agent.Core
     /// <summary>
     /// THE FLAT PATTERN VIEW ON THE DRAWING (entry GT13).
     ///
-    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 sviltav`) ────────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`probe0089 flatview`) ────────
     ///
-    /// `IDrawingDoc.CreateFlatPatternViewFromModelView3(percorso,
-    /// configurazione, X, Y, Z, NascondiPieghe, Ribalta)` on the L of the sheet
+    /// `IDrawingDoc.CreateFlatPatternViewFromModelView3(path,
+    /// configuration, X, Y, Z, HideBendLines, Flip)` on the L of the sheet
     /// metal cases (30 + 50, thickness 2, radius 2, depth 40): the view is born
     /// at the first attempt, `IsFlatPatternView` true, one bend line.
     ///
@@ -224,7 +224,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Brings the view to a free spot of the sheet (OperazioniPostoSulFoglio),
+        /// Brings the view to a free spot of the sheet (SheetPlacementOperations),
         /// or checks that the one asked for is free. False with the reason.
         /// </summary>
         private static bool FlatPatternInItsPlace(IDrawingDoc drawing, IView view, bool requested, out string location, out string reason)

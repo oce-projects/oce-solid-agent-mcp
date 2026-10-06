@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── MEASURED AND LOOKED AT BEFORE WRITING THEM, 26/9/2026 ────────────────
     ///
-    /// `prova0089 annotazioni` and `annotazioni2`, drawing of the 120x80x10 plate:
+    /// `probe0089 annotations` and `annotations2`, drawing of the 120x80x10 plate:
     ///
     ///  - `IModelDocExtension.InsertSurfaceFinishSymbol3` returns the object and the Ra
     ///    can be read back (`GetText(swSFSymbolMaximumRoughness)` = «3.2»). BUT THE

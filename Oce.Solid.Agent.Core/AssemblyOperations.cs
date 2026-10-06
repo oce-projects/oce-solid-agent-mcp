@@ -289,12 +289,12 @@ namespace Oce.Solid.Agent.Core
         /// `grounded` separately (entry GA1).
         /// </summary>
         /// <remarks>
-        /// `internal` and not `private`: `StatoAssieme` reads it too (entry GA5),
+        /// `internal` and not `private`: `AssemblyState` reads it too (entry GA5),
         /// and two copies of the same reading are two things to keep aligned by
         /// hand.
         /// </remarks>
         /// <remarks>
-        /// `internal`: `StatoAssieme` uses it too, for the same reason
+        /// `internal`: `AssemblyState` uses it too, for the same reason
         /// why `DegreesOfFreedom` is internal — one reading, one place
         /// to repair.
         /// </remarks>
@@ -353,7 +353,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         internal sealed class DegreesOfFreedomRead
         {
-            /// <summary>The name of the status: «non disponibile», «libero», …</summary>
+            /// <summary>The name of the status: «not available», «free», …</summary>
             public string State;
 
             /// <summary>How many degrees, or `-1` if it could not be known.</summary>
@@ -437,7 +437,7 @@ namespace Oce.Solid.Agent.Core
         /// `null` from `GetMates` really means zero. If not even the name
         /// can be read, nothing is known and `-1` is said.
         ///
-        /// The difference is not academic: `accoppiamenti = 0` leads to
+        /// The difference is not academic: `mates = 0` leads to
         /// «resting», which is a **warning**; `-1` leads to «I do not know»,
         /// which is another thing. Confusing them would mean either keeping quiet about a danger
         /// or shouting about one that is not there.
@@ -471,7 +471,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Where the origin of the component is, in mm, or `null`.
         ///
-        /// Same reading as `StatoAssieme`, and for the same reason it is written
+        /// Same reading as `AssemblyState`, and for the same reason it is written
         /// only once: `GetTotalTransform(false)`, indices 9-10-11 of
         /// `ArrayData`. The `false` excludes the explode transformation — with
         /// `true` the position **in the exploded view** would be read.

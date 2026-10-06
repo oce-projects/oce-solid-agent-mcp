@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Core
     /// The materials installed on this workstation, read from the real archives.
     ///
     /// WHY WRITING THE NAME IS NOT ENOUGH
-    /// `IPartDoc.SetMaterialPropertyName2(config, archivio, nome)` returns
+    /// `IPartDoc.SetMaterialPropertyName2(config, database, name)` returns
     /// **void**. If the database or the name do not exist it raises nothing and does not
     /// change anything: the previous material is read back. Measured on 9 September
     /// 2026 — asking for «AISI 304» in the «materiali personalizzati» database

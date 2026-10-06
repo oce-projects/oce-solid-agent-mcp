@@ -5,8 +5,8 @@
 // WHY HERE AND NOT IN THE BENCH. `face_ref: {step, kind}` names a step
 // of the SAME plan, and the bench executes one operation at a time: there the
 // reference cannot even be formulated. The first writing of this check
-// was in the bench and came out red for the wrong reason — «di quel passo
-// non ho la geometria» — without ever reaching the code it was supposed to test.
+// was in the bench and came out red for the wrong reason — «I have no geometry for that step» —
+// without ever reaching the code it was supposed to test.
 //
 // A red that fires for another reason proves nothing, and looks identical
 // to one that works.
@@ -167,7 +167,7 @@ async function invoke(tool, args) {
   let data = null;
   const i = text.indexOf("{");
   if (i >= 0) { try { data = JSON.parse(text.slice(i)); } catch (e) {} }
-  return { testo: text, dati: data, errore: !!r.isError };
+  return { text: text, data: data, failed: !!r.isError };
 }
 
 let failed = 0;
@@ -186,7 +186,7 @@ function shorter(s) {
 // state of the document, and looking for a word in it would give false positives.
 function stepsError(data) {
   if (!data || !Array.isArray(data.outcomes)) return "";
-  return data.outcomes.filter(e => e && e.errore).map(e => e.errore).join(" | ");
+  return data.outcomes.filter(e => e && e.error).map(e => e.error).join(" | ");
 }
 
 async function plane(itemName, steps) {
@@ -199,7 +199,7 @@ async function plane(itemName, steps) {
 (async function () {
   await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
-    clientInfo: { name: "prova_faccia_foro", version: "1" },
+    clientInfo: { name: "probe_face_hole", version: "1" },
   });
   warn("notifications/initialized");
 
@@ -210,28 +210,28 @@ async function plane(itemName, steps) {
   // ── RED 1 ──────────────────────────────────────────────────────────────
   const a = await plane("RED 1", FILLET_IS_NOT_HOLE);
   if (a) {
-    const why = stepsError(a.dati);
+    const why = stepsError(a.data);
     check("RED: «the hole wall» of a FILLET is refused",
-          a.errore && /convex/i.test(why),
-          a.errore ? shorter(why) : "did NOT refuse: it took the fillet's face");
+          a.failed && /convex/i.test(why),
+          a.failed ? shorter(why) : "did NOT refuse: it took the fillet's face");
   }
 
   // ── GREEN ──────────────────────────────────────────────────────────────
-  const b = await plane("VERDE", THE_HOLE_IS_PICKED);
+  const b = await plane("GREEN", THE_HOLE_IS_PICKED);
   if (b) {
     check("a real hole, only one, is taken",
-          !b.errore,
-          b.errore ? shorter(stepsError(b.dati)) :
-                     "volume " + (b.dati || {}).volume_after_mm3);
+          !b.failed,
+          b.failed ? shorter(stepsError(b.data)) :
+                     "volume " + (b.data || {}).volume_after_mm3);
   }
 
   // ── RED 2 ──────────────────────────────────────────────────────────────
   const c = await plane("RED 2", MULTIPLE_WALLS);
   if (c) {
-    const why = stepsError(c.dati);
+    const why = stepsError(c.data);
     check("RED: several hole walls, «the» wall does not exist",
-          c.errore && /hole walls/i.test(why),
-          c.errore ? shorter(why) : "did NOT refuse: it chose one at random");
+          c.failed && /hole walls/i.test(why),
+          c.failed ? shorter(why) : "did NOT refuse: it chose one at random");
   }
 
   console.log("");

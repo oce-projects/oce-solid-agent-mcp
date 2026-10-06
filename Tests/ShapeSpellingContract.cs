@@ -18,16 +18,16 @@ namespace Oce.Solid.Agent.ContractTests
     /// untouched, and the library compares Ordinal, so the accepted
     /// «Top» became an unknown name there: SelectPlane fell back to
     /// the front plane (finding N33, the plate on the wrong plane with
-    /// riuscita:true) and rectangular_frame read «Overall» as the
+    /// succeeded:true) and rectangular_frame read «Overall» as the
     /// centreline frame (finding N32, 1080x880 for 1000x800). The fix is one
-    /// rewrite in the Forma, in the very dictionary that «build» then hands
+    /// rewrite in the Shape, in the very dictionary that «build» then hands
     /// to the library (Tools/McpTools.cs).
     ///
     /// This group runs the Forma of the BUILT bridge, by reflection, against
     /// the schemas of the served catalogue: no SOLIDWORKS. The library half of
     /// the fix (an unknown plane name is refused, never the front plane) needs
     /// the CAD and is the bench case
-    /// `estrusioni/unknown_plane_does_not_fall_back_to_front`.
+    /// `extrusions/unknown_plane_does_not_fall_back_to_front`.
     /// </summary>
     internal static class ShapeSpellingContract
     {
@@ -121,7 +121,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ["x_mm"] = 0, ["y_mm"] = 0, ["diameter_mm"] = 10, ["face_ref"] = face,
             };
             refusal = onCatalogue("cylindrical_cut", hole);
-            Check("cylindrical_cut: «faccia_rif.genere» «Top_Face» becomes «top_face»",
+            Check("cylindrical_cut: «face_ref.kind» «Top_Face» becomes «top_face»",
                   refusal == null && Same(face["kind"], "top_face"),
                   (refusal ?? "accepted") + ", kind = " + Show(face["kind"]));
 
@@ -149,7 +149,7 @@ namespace Oce.Solid.Agent.ContractTests
                 },
             };
             var ambiguous = new Dictionary<string, object> { ["mode"] = "Abc" };
-            refusal = shape("finta", twoWays, ambiguous);
+            refusal = shape("fake", twoWays, ambiguous);
             Check("«Abc» against «abc» and «ABC» is refused, not guessed",
                   refusal != null && Same(ambiguous["mode"], "Abc"),
                   (refusal ?? "accepted") + ", mode = " + Show(ambiguous["mode"]));

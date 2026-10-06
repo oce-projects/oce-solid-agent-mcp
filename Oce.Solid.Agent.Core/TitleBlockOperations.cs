@@ -35,7 +35,7 @@ namespace Oce.Solid.Agent.Core
     /// ── THE PAIR THAT SOLVES IT, AND THEY ARE TWO DIFFERENT CALLS ─────────
     ///
     ///     INote.get_PropertyLinkedText()  ->  «$PRP:"Descrizione"»   WHAT IT ASKS FOR
-    ///     INote.GetText()                 ->  «Coperchio»            WHAT IT SHOWS
+    ///     INote.GetText()                 ->  «Lid»            WHAT IT SHOWS
     ///
     /// Whoever reads only `GetText()` sees an empty box and does not know why. Whoever
     /// reads both knows **the exact name to write**, with its spelling,
@@ -165,7 +165,7 @@ namespace Oce.Solid.Agent.Core
             // `Descrizione`, written on the part and reread, no longer appeared
             // among the shown ones. Retried from the bridge, **it did not reproduce**.
             //
-            // With the earlier fields that red said only «non dice
+            // With the earlier fields that red said only «does not say
             // Descrizione», and did not tell apart two opposite things:
             //
             //   * the property is NOT on the model   -> whoever draws must
@@ -322,8 +322,8 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         /// <summary>
         /// The property name without the suffix the operation sticks
-        /// on to say WHERE it comes from: «Descrizione  (dal pezzo, non dal
-        /// disegno)» returns «Descrizione».
+        /// on to say WHERE it comes from: «Descrizione  (from the part, not from the
+        /// drawing)» returns «Descrizione».
         ///
         /// It lives here and is not written twice because the suffix is a presentation
         /// choice, and whoever compares two lists must compare the

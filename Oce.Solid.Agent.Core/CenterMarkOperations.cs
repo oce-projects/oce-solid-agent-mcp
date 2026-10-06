@@ -18,7 +18,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// On 17/9 three probes: `AutoInsertCenterMarks2` (25 combinations),
     /// `InsertCenterMark2/3`: «answers True and puts nothing», counting with
-    /// `GetCenterMarkCount`. On 26/9 (`prova0089 croci2..croci7`):
+    /// `GetCenterMarkCount`. On 26/9 (`probe0089 marks2..marks7`):
     ///
     ///   1. **THE MARKS WERE THERE.** SOLIDWORKS puts them on the holes by itself when it creates
     ///      the view (document option `swDetailingAutoInsertCenterMarksForHoles`,
@@ -60,7 +60,7 @@ namespace Oce.Solid.Agent.Core
                     "There is no view «" + wanted + "». There are: " + string.Join(", ", names) +
                     " (or V1..V" + names.Count + ").");
 
-            // ONLY THE HOLES (whole circles). Measured on 26/9/2026 (`prova0089
+            // ONLY THE HOLES (whole circles). Measured on 26/9/2026 (`probe0089
             // croci6`): `AddCenterMark` on a fillet ARC selected in the
             // view makes nothing be born, 4 arcs out of 4. Slots have two arcs
             // and one single mark in the middle. Both are refused, with the measurement.
@@ -345,7 +345,7 @@ namespace Oce.Solid.Agent.Core
                 // THE CIRCLE IS AN INNER RING OF A PLANAR FACE: the border of a
                 // hole lies inside the face it goes through; the border of a disc or the
                 // head of a shaft is the OUTER ring of its face.
-                // Measured on 26/9/2026 (\`prova0089 croci8\`): FaceInSurfaceSense
+                // Measured on 26/9/2026 (\`probe0089 marks8\`): FaceInSurfaceSense
                 // does NOT tell them apart — real hole, false disc — because the direction of the
                 // surface depends on how it was born; the ring does not.
                 foreach (var oc in (e.GetCoEdges() as object[]) ?? new object[0])
@@ -364,7 +364,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The centres of the marks that the view already has, as
         /// `ICenterMark.GetPosition(0)` gives them: RELATIVE TO THE CENTRE OF THE VIEW, not on the
-        /// sheet. Measured on 26/9/2026 (`prova0089 croci4`): a circle at
+        /// sheet. Measured on 26/9/2026 (`probe0089 marks4`): a circle at
         /// 54.5/110.69 on the sheet, in a view centred at 94.5/110.69, has the
         /// mark at -40/0. The first code compared them with the sheet, and the second
         /// call put three double marks.
@@ -420,10 +420,10 @@ namespace Oce.Solid.Agent.Core
         ///
         /// It returned zero, and the comment said it was «the cautious direction». It
         /// was not: if the reading BEFORE failed, any mark afterwards
-        /// looked new and the message said «messe N croci» even on a
+        /// looked new and the message said «placed N crosses» even on a
         /// view that already had them; if the one AFTER failed, the loop tried
-        /// all three styles (double marks) and then said «quella vista non
-        /// ha fori». A number that was not read cannot be compared.
+        /// all three styles (double marks) and then said «that view has
+        /// no holes». A number that was not read cannot be compared.
         /// </summary>
         private static int HowManyCenterMarks(IView view)
         {
@@ -444,14 +444,14 @@ namespace Oce.Solid.Agent.Core
     }
 
     /// <summary>
-    /// THE CENTRE MARKS ARE COUNTED BY ENUMERATING THEM (26/9/2026, `prova0089 croci5`).
+    /// THE CENTRE MARKS ARE COUNTED BY ENUMERATING THEM (26/9/2026, `probe0089 marks5`).
     ///
     /// `IView.GetCenterMarkCount()` answered **0** on a view with three marks:
     /// the ones that SOLIDWORKS puts by itself on the holes when it creates the view (document
     /// option `swDetailingAutoInsertCenterMarksForHoles`, turned on here) it does not
     /// count; it counts only those added afterwards. `GetFirstCenterMark` /
-    /// `GetNext` sees them all. The «blocco» of W2.11 of 17/9 — «l'API dice si'
-    /// e non mette niente» — was largely this counter: the marks
+    /// `GetNext` sees them all. The «block» of W2.11 of 17/9 — «the API says yes
+    /// and puts nothing» — was largely this counter: the marks
     /// were there, and nobody saw them. The operation and the state use it.
     /// </summary>
     internal static class CountCenterMarks

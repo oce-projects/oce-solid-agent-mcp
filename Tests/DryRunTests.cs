@@ -40,7 +40,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
 
                 // ── A PLAN WRONG IN FOUR DIFFERENT WAYS ───────────────────
                 //
@@ -51,7 +51,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var bad = Obj(Ask(p, 20,
                     "{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" +
-                    "{\"operation\":\"estrudi_rettangolino\"}," +
+                    "{\"operation\":\"extrude_rectanglino\"}," +
                     "{\"operation\":\"extrude_rectangle\",\"arguments\":{\"length_mm\":100}}," +
                     "{\"operation\":\"extrude_circle\",\"arguments\":" +
                     "{\"diameter_mm\":40,\"height_mm\":10,\"depth_mm\":5}}," +
@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.ContractTests
                       Short(text));
 
                 Check("it catches the operation that does not exist",
-                      text.Contains("estrudi_rettangolino") && text.Contains("does not exist"),
+                      text.Contains("extrude_rectanglino") && text.Contains("does not exist"),
                       "and tries to suggest similar names");
 
                 Check("it catches the required argument that is missing",

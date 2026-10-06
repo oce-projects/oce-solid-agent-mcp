@@ -86,7 +86,7 @@ namespace Oce.Solid.Agent.Bench
 
             var testCase = new Dictionary<string, object>
             {
-                ["name"] = "ga0_assieme_di_due",
+                ["name"] = "ga0_assembly_of_two",
                 ["assembly"] = new Dictionary<string, object>
                 {
                     ["components"] = new List<object>
@@ -101,7 +101,7 @@ namespace Oce.Solid.Agent.Bench
             var file = new List<string>();
             try
             {
-                p = PrepareDocument("ga0_assieme_di_due", testCase);
+                p = PrepareDocument("ga0_assembly_of_two", testCase);
                 if (p == null || p.Document == null)
                 {
                     // `PrepareDocument` has already called `BenchError` and
@@ -114,7 +114,7 @@ namespace Oce.Solid.Agent.Bench
                 var ass = p.Document as IAssemblyDoc;
                 int howMany = ass == null ? -1 : HowManyComponents(ass);
                 Check("the assembly is born with two components", howMany == 2,
-                      howMany + " componenti");
+                      howMany + " components");
 
                 int thereAre = 0;
                 foreach (var f in file) if (File.Exists(f)) thereAre++;
@@ -184,11 +184,11 @@ namespace Oce.Solid.Agent.Bench
             ///
             /// ── WHY THE NAME IS NOT ENOUGH ──────────────────────────────
             ///
-            /// A drawing is born as `Disegno38 - Foglio1` and is saved
-            /// afterwards, becoming `drawing_dimensions_itself - Foglio1`. The bench
+            /// A drawing is born as `Drawing38 - Sheet1` and is saved
+            /// afterwards, becoming `drawing_dimensions_itself - Sheet1`. The bench
             /// marked the title **at the moment the document
             /// appeared**, that is the old one, and at the end of the case
-            /// `CloseDoc("Disegno38 - Foglio1")` closed nothing **and did not
+            /// `CloseDoc("Drawing38 - Sheet1")` closed nothing **and did not
             /// say so**. The drawing stayed open, and an open drawing
             /// keeps its part open: two documents per case, fourteen
             /// at the end of the run.
@@ -281,14 +281,14 @@ namespace Oce.Solid.Agent.Bench
 
             // ── 1-3. the components, one by one, built and saved ──────────
             //
-            // `da_inserire: false` BUILDS BUT DOES NOT INSERT, and it is the way in
+            // `to_insert: false` BUILDS BUT DOES NOT INSERT, and it is the way in
             // which a case tests `insert_component`: the file is there, it is open,
             // and the insertion is done by the STEP, not by the preparation. Without this
             // line a case could never test the operation that inserts —
             // it would find the component already inside, and would measure the work
             // of the preparation believing it measured the operation.
             //
-            // The case names the path with `{WORK}\<caso>_<componente>.sldprt`:
+            // The case names the path with `{WORK}\<case>_<component>.sldprt`:
             // the placeholder already exists and is valid on any machine. *A case
             // that names a path of this machine is not a check, it is a
             // memento.*

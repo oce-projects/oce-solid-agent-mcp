@@ -5,7 +5,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  probe_cambia_estrusione_base — what IExtrudeFeatureData2.IsBossFeature says
+//  probe_change_base_extrusion — what IExtrudeFeatureData2.IsBossFeature says
 //  for the FIRST extrusion of a part (the base), for a later boss and for a cut
 // =============================================================================
 //
@@ -57,7 +57,7 @@ internal static class Program
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0.030, 0, 0, 0.040, 0.010, 0);
             var boss = Extrude(doc, 0.020);
-            Console.WriteLine("rialzo: " + (boss == null ? "null" : boss.Name) + ", volume " + Fmt(Volume(doc)));
+            Console.WriteLine("boss: " + (boss == null ? "null" : boss.Name) + ", volume " + Fmt(Volume(doc)));
             // cut through all, both directions
             if (!SelectBasePlane(doc, 2)) { Console.WriteLine("top plane not selected (3)"); return 4; }
             sm.InsertSketch(true);
@@ -72,7 +72,7 @@ internal static class Program
                 false, true, true, false, false, false,
                 (int)swStartConditions_e.swStartSketchPlane, 0, false, true) as IFeature;
             doc.ClearSelection2(true);
-            Console.WriteLine("taglio: " + (cut == null ? "null" : cut.Name) + ", volume " + Fmt(Volume(doc)));
+            Console.WriteLine("cut: " + (cut == null ? "null" : cut.Name) + ", volume " + Fmt(Volume(doc)));
 
             foreach (var f in new[] { basePlate, boss, cut })
             {
@@ -82,14 +82,14 @@ internal static class Program
                 try { t1 = f.GetTypeName(); } catch { }
                 var d = f.GetDefinition() as IExtrudeFeatureData2;
                 string b0 = "?", b1 = "?";
-                try { b0 = d.IsBossFeature().ToString(); } catch (Exception ex) { b0 = "ALZA " + ex.Message; }
+                try { b0 = d.IsBossFeature().ToString(); } catch (Exception ex) { b0 = "RAISED " + ex.Message; }
                 try
                 {
                     bool acc = d.AccessSelections(doc, null);
                     b1 = d.IsBossFeature() + " (AccessSelections " + acc + ")";
                     d.ReleaseSelectionAccess();
                 }
-                catch (Exception ex) { b1 = "ALZA " + ex.Message; }
+                catch (Exception ex) { b1 = "RAISED " + ex.Message; }
                 Console.WriteLine("  «" + f.Name + "» GetTypeName2=" + t2 + " GetTypeName=" + t1 +
                                   " IsBossFeature=" + b0 + " | after AccessSelections=" + b1);
             }

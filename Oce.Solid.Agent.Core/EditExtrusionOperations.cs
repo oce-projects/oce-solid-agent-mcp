@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Core
     /// the extrusion and the extruded cut: a blind that must become through,
     /// a plate that must grow. Before, the only route was to remake the part.
     ///
-    /// Measured on 27/9/2026 (`prova0089 zf4`, plate 120x80x10, blind hole
+    /// Measured on 27/9/2026 (`probe0089 zf4`, plate 120x80x10, blind hole
     /// Ø8 x 5 = 95748.67 mm³): `IFeature.GetDefinition()` as
     /// `IExtrudeFeatureData2`, `AccessSelections`, `SetEndCondition` /
     /// `SetDepth`, `ModifyDefinition`:

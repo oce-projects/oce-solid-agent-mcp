@@ -565,7 +565,7 @@ console.log("\n=== CASE 4 (half) - the config locked by another process");
 const cfg4 = path.join(BENCH, "locked.json");
 fs.copyFileSync(MODEL, cfg4);
 const byte4 = fs.readFileSync(cfg4);
-const signal = path.join(BENCH, "locked.pronto");
+const signal = path.join(BENCH, "locked.ready");
 const keep = require("child_process").spawn("powershell", ["-NoProfile", "-Command",
   "$f=[System.IO.File]::Open('" + cfg4 + "','Open','ReadWrite','None'); " +
   "Set-Content -Path '" + signal + "' -Value ok; Start-Sleep -Seconds 60; $f.Close()"],
@@ -591,7 +591,7 @@ if (!fs.existsSync(signal)) {
 
 // ── CASE 3 — uninstallation ──────────────────────────────────────────────
 console.log("\n=== CASE 3 - uninstall");
-const extraneous = path.join(folder, "un-mio-log.txt");
+const extraneous = path.join(folder, "my-own-log.txt");
 fs.writeFileSync(extraneous, "stuff put there by whoever uses the program\n");
 // H19 A5: uninstall now removes the client entry too; --config keeps this
 // run on the temporary file, away from the real clients of whoever runs it.
@@ -603,17 +603,17 @@ outcome("3. exit 0, and the entry is gone from the client config (H19 A5)",
 
 const remain = fs.existsSync(folder) ? fs.readdirSync(folder) : null;
 outcome("3. the folder is NOT deleted if other people's stuff is left inside",
-  remain !== null && remain.includes("un-mio-log.txt"),
+  remain !== null && remain.includes("my-own-log.txt"),
   remain === null ? "folder deleted with a file of the user inside"
-                   : "resta: " + remain.join(", "));
+                   : "left: " + remain.join(", "));
 outcome("3. the bridge is gone",
   remain !== null && !remain.includes("oce-solid-agent-mcp.exe"),
   remain === null ? "n/d" : remain.join(", "));
 // H15: installation and uninstallation read the same list. What
 // remains must be ONLY the stuff of whoever uses the program.
 outcome("3. no file of the installation is left",
-  remain !== null && remain.length === 1 && remain[0] === "un-mio-log.txt",
-  remain === null ? "n/d" : "resta: " + remain.join(", "));
+  remain !== null && remain.length === 1 && remain[0] === "my-own-log.txt",
+  remain === null ? "n/d" : "left: " + remain.join(", "));
 
 // ── summary ──────────────────────────────────────────────────────────────
 const failed = outcomes.filter(e => !e.passes);

@@ -1,7 +1,7 @@
 {
   "name": "cap_closes_the_pipe",
   "family": "weldments",
-  "why": "ENTRY Z-C6. `end_cap` was in the catalogue with `Provata = true` and no bench run touched it. Measured on 25/9/2026: it works, and the volume it adds can be counted by hand to the mm3.",
+  "why": "ENTRY Z-C6. `end_cap` was in the catalogue with `Tested = true` and no bench run touched it. Measured on 25/9/2026: it works, and the volume it adds can be counted by hand to the mm3.",
 
   "defect_caught": "The cap that is born on one end only, or outside the tube instead of inside. Two caps inside give +42250 mm3 and three bodies; a single one would give +21125, and a cap resting outside flush (80 x 80) would give +32000 each.",
 

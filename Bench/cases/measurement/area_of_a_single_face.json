@@ -2,7 +2,7 @@
   "name": "area_of_a_single_face",
   "family": "measurement",
   "why": "A single face: 40x40 makes 1600 mm2, not 3200. It is the same measurement as the two-faces case, asked on one: if the selection were not emptied first, the area would still be that of two -- believable, of the right part, and wrong by double.",
-  "_already_seen_red": "`Area` and `TotalArea` alternate, and this case caught it. Measured on 15/9/2026: with ONE face `Area` is 1600 and `TotalArea` answers -1; with TWO faces `Area` answers -1 and `TotalArea` is 3200. The one that holds is always the other. Reading only one, the field disappeared depending on how many things were asked -- «field missing: misure.area_mm2» -- and this case is what keeps it said.",
+  "_already_seen_red": "`Area` and `TotalArea` alternate, and this case caught it. Measured on 15/9/2026: with ONE face `Area` is 1600 and `TotalArea` answers -1; with TWO faces `Area` answers -1 and `TotalArea` is 3200. The one that holds is always the other. Reading only one, the field disappeared depending on how many things were asked -- «field missing: measurements.area_mm2» -- and this case is what keeps it said.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,7 +12,7 @@
     { "operation": "measure_between",
       "arguments": { "uid": "@face(normal=front)", "uid2": "@face(normal=back)" },
       "expect": [ { "what": "measurements.area_total_mm2", "equal_to": 3200, "tolerance": 0.5,
-                    "tolerance_why": "two faces of 1600, and it is «area_totale» because with two entities `Area` does not answer" } ] },
+                    "tolerance_why": "two faces of 1600, and it is «area_total» because with two entities `Area` does not answer" } ] },
     { "operation": "measure_between",
       "arguments": { "uid": "@face(normal=front)" },
       "expect": [

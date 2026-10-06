@@ -54,24 +54,20 @@ namespace Oce.Solid.Agent.Bench
         /// THE FOLDERS OF CASES ARE NAMED, not discovered.
         ///
         /// In `cases/` there also live the plans of the old format, which
-        /// `run_plans.js` executes and which here would all be «il file non e' un
-        /// oggetto JSON»: discovering the folders by themselves would mean
+        /// `run_plans.js` executes and which here would all be «the file is not a
+        /// JSON object»: discovering the folders by themselves would mean
         /// turning somebody else's file into a bench error at every run.
         ///
         /// A new family is added here, and whoever forgets it finds out
         /// right away: its cases do not run and the count of expectations does not go up.
         /// </summary>
-        /// <summary>The Italian names each case was run with (W3.1-bis.5, D4), and whether it is a case of Bench/cases/aliases.</summary>
-        private static readonly Dictionary<string, int> AliasUses = new Dictionary<string, int>(StringComparer.Ordinal);
-        private static readonly Dictionary<string, bool> AliasCaseFolder = new Dictionary<string, bool>(StringComparer.Ordinal);
-
         private static readonly string[] Families =
         {
             "features", "pairs", "slot", "chamfer", "revolve", "plane",
             "mirror", "patterns", "axis", "removal", "sentence", "check",
             "export", "measurement", "bodies", "document_properties", "text", "frames",
             "assemblies", "drawing",
-            // «weldments» (then «saldature») came in on 23/9/2026 with entry Z-C6: five
+            // «weldments» (then «welds») came in on 23/9/2026 with entry Z-C6: five
             // catalog operations were exercised by NOTHING — not by a
             // case, not by C#, not by a plan — and four of the five are
             // of this family.
@@ -98,11 +94,6 @@ namespace Oce.Solid.Agent.Bench
             // «uid_from_step», the only way to make the bench take the
             // bridge's road.
             "reanchor",
-            // «aliases» (W3.1-bis.5, decision D4): one case per kind of name
-            // of before the rename (operation, argument, value, selector),
-            // written with that name on purpose. Removed in W3.1-bis.11 with
-            // the aliases.
-            "aliases",
         };
 
         /// <summary>
@@ -235,7 +226,7 @@ namespace Oce.Solid.Agent.Bench
             //
             // `last.json` carried the totals and nothing else: «972 tests, 0 failed» does not
             // say WHICH cases ran, and so nobody could check
-            // that every `Provata = true` pointed to a case that really runs. On
+            // that every `Tested = true` pointed to a case that really runs. On
             // 25/9/2026, while writing the missing cases, two catalog operations
             // turned out never to have worked. This line is collected by `bench.ps1`
             // into `green_cases`, and the contract suite crosses it with the catalog.
@@ -245,10 +236,6 @@ namespace Oce.Solid.Agent.Bench
             Console.WriteLine("green cases: " + string.Join(" ",
                 howItWent.Where(kv => kv.Value).Select(kv => kv.Key)
                            .OrderBy(k => k, StringComparer.Ordinal)));
-
-            // THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5): the line is written
-            // at the end of the run (WriteAliasUses, from Main), when the
-            // regression and every other group have run too.
         }
 
         /// <summary>
@@ -256,7 +243,7 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         private sealed class Twinning
         {
-            public string Label;     // «lim_… · passo 2»
+            public string Label;     // «lim_… · step 2»
             public string Case;          // whoever names it
             public string Twin;       // who must succeed
             public string Operation;    // the step that refused
@@ -393,7 +380,7 @@ namespace Oce.Solid.Agent.Bench
             // THE REAL COMPARISON IS IN `Expectations`, which is a pure function on
             // two dictionaries and the check `Oce.Solid.Agent.ContractTests` without CAD. Here
             // only the work that touches the CAD remains: finding the file and reading it.
-            // `Attese.` BY FORCE: the method next to it has the same name, and
+            // `Expectations.` BY FORCE: the method next to it has the same name, and
             // without the prefix the compiler chooses that one — that is, itself,
             // forever.
             //
@@ -474,21 +461,21 @@ namespace Oce.Solid.Agent.Bench
             {
                 ["feature"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "Foro1", ["kind"] = "HoleWzd" },
-                    new Dictionary<string, object> { ["uid"] = "Foro2", ["kind"] = "HoleWzd" },
-                    new Dictionary<string, object> { ["uid"] = "Estrusione1", ["kind"] = "Extrusion" },
+                    new Dictionary<string, object> { ["uid"] = "Hole1", ["kind"] = "HoleWzd" },
+                    new Dictionary<string, object> { ["uid"] = "Hole2", ["kind"] = "HoleWzd" },
+                    new Dictionary<string, object> { ["uid"] = "Extrusion1", ["kind"] = "Extrusion" },
                 },
             };
             Check("F3: @feature(n=2) takes the second",
-                  Test(() => Select("@feature(kind=HoleWzd,n=2)", feature)) == "Foro2", "");
+                  Test(() => Select("@feature(kind=HoleWzd,n=2)", feature)) == "Hole2", "");
             Check("F3 RED: @feature(n=3) out of two, it refuses",
                   Why(() => Select("@feature(kind=HoleWzd,n=3)", feature)).Contains("I found 2"),
                   "");
 
             // ── THE DIMENSION: the document title is put in by the bench ────
             //
-            // `piani/cambia_diametro.json` writes «D1@Schizzo1@Parte76.Part», and
-            // that «Parte76» changes at every run: that plan cannot be
+            // `plans/change_diameter.json` writes «D1@Sketch1@Part76.Part», and
+            // that «Part76» changes at every run: that plan cannot be
             // re-run. The case names the dimension, the title is resolved here.
             var conQuote = new Dictionary<string, object>
             {
@@ -496,18 +483,18 @@ namespace Oce.Solid.Agent.Bench
                 {
                     new Dictionary<string, object>
                     {
-                        ["uid"] = "Estrusione1",
+                        ["uid"] = "Extrusion1",
                         ["dimensions"] = new List<object>
                         {
-                            new Dictionary<string, object> { ["name"] = "D1@Schizzo1@Parte99.Part" },
-                            new Dictionary<string, object> { ["name"] = "D2@Schizzo1@Parte99.Part" },
+                            new Dictionary<string, object> { ["name"] = "D1@Sketch1@Part99.Part" },
+                            new Dictionary<string, object> { ["name"] = "D2@Sketch1@Part99.Part" },
                         },
                     },
                 },
             };
             Check("F3: @dimension returns the name with the document of NOW",
-                  Test(() => Select("@dimension(feature=Schizzo1,name=D1)", conQuote))
-                      == "D1@Schizzo1@Parte99.Part", "");
+                  Test(() => Select("@dimension(feature=Sketch1,name=D1)", conQuote))
+                      == "D1@Sketch1@Part99.Part", "");
 
             // ── THE BODY, BY NAME: the parentheses of the name break nothing ─
             //
@@ -519,15 +506,15 @@ namespace Oce.Solid.Agent.Bench
             {
                 ["bodies"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "C1", ["name"] = "TUBO 80X80X5(2)" },
-                    new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBO 80X80X5(1)" },
+                    new Dictionary<string, object> { ["uid"] = "C1", ["name"] = "TUBE 80X80X5(2)" },
+                    new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBE 80X80X5(1)" },
                 },
             };
             Check("F3: @body(name=...) takes the body by name, parentheses included",
-                  Test(() => Select("@body(name=TUBO 80X80X5(2))", bodies)) == "C1",
-                  Test(() => Select("@body(name=TUBO 80X80X5(2))", bodies)));
+                  Test(() => Select("@body(name=TUBE 80X80X5(2))", bodies)) == "C1",
+                  Test(() => Select("@body(name=TUBE 80X80X5(2))", bodies)));
             Check("F3 RED: @body with a name that does not exist, it refuses",
-                  Why(() => Select("@body(name=TUBO 80X80X5(3))", bodies)).Contains("I did not find it"),
+                  Why(() => Select("@body(name=TUBE 80X80X5(3))", bodies)).Contains("I did not find it"),
                   "");
 
             // ── A TOLERANCE WITHOUT THE WHY IS A BROKEN CASE ────────────────
@@ -634,7 +621,7 @@ namespace Oce.Solid.Agent.Bench
             try { return f(); } catch { return null; }
         }
 
-        /// <summary>The exception message, or «non ha rifiutato».</summary>
+        /// <summary>The exception message, or «did not refuse».</summary>
         private static string Why(Func<string> f)
         {
             try { f(); return "DID NOT REFUSE"; }
@@ -655,7 +642,7 @@ namespace Oce.Solid.Agent.Bench
         /// ── WHY THIS AND NOT A HAND-WRITTEN FIELD ─────────────────────────
         ///
         /// It is **the only mechanical way** of imposing that a check has already
-        /// failed at least once. A hand-written `provata_a_fallire` is
+        /// failed at least once. A hand-written «proven to fail» flag is
         /// a declaration, and a declaration is copied from the case next to it;
         /// a mutation is not. And it costs little precisely here, because the plan is
         /// given: mutating a JSON is trivial, mutating the C# of SOLIDWORKS is not.
@@ -665,7 +652,7 @@ namespace Oce.Solid.Agent.Bench
         /// Mutating an argument that the operation **ignores** — `depth_mm`
         /// on a through cut — rightly stays green and is not blindness.
         /// Those mutations are skipped by **reading the catalog**: the schema of
-        /// `depth_mm` says «solo se non passante», and that line is read
+        /// `depth_mm` says «only if not through», and that line is read
         /// instead of being copied here.
         ///
         /// ── AND ONLY THE STEPS WITH EXPECTATIONS ARE MUTATED ──────────────
@@ -675,10 +662,10 @@ namespace Oce.Solid.Agent.Bench
         /// green without this saying anything about its expectations.
         /// </summary>
         /// <remarks>
-        /// IT IS NOT CALLED `Prova…`, AND IT IS NOT A WHIM. `TestThatTheTableCoversEverything`
-        /// (entry F13) demands that every `Prova…()` method be in the table of the
+        /// IT IS NOT CALLED `Test…`, AND IT IS NOT A WHIM. `TestThatTheTableCoversEverything`
+        /// (entry F13) demands that every `Test…()` method be in the table of the
         /// groups, and this is not a group: it is **another run**, which replaces
-        /// the groups. Calling it `ProvaMutazioni` the check came out
+        /// the groups. Calling it `TestMutations` the check came out
         /// red — rightly — on the first full run after it was written.
         /// </remarks>
         private static void MutationsRun()
@@ -725,7 +712,7 @@ namespace Oce.Solid.Agent.Bench
                 {
                     bool turnedRed = TestMutation(m.Case);
                     if (turnedRed) red++;
-                    else survived.Add(m.Come);
+                    else survived.Add(m.How);
                 }
 
                 bool blind = red == 0;
@@ -740,7 +727,7 @@ namespace Oce.Solid.Agent.Bench
                 // A CASE WITH SOME SURVIVING MUTATION IS NOT RED: it is
                 // a case whose expectations leave some arguments free, and the
                 // report line says so by name. Only the BLIND one is red.
-                Check("muta: " + itemName, !blind,
+                Check("mutate: " + itemName, !blind,
                       mutations.Count + " mutations, " + red + " red" +
                       (survived.Count > 0 ? " — still green: " + string.Join(", ", survived) : ""));
             }
@@ -751,7 +738,7 @@ namespace Oce.Solid.Agent.Bench
 
         private sealed class Mutation
         {
-            public string Come;                           // «passo 1 · thickness_mm 40 -> 60»
+            public string How;                            // «step 1 · thickness_mm 40 -> 60»
             public Dictionary<string, object> Case;       // the whole case, already mutated
         }
 
@@ -788,12 +775,12 @@ namespace Oce.Solid.Agent.Bench
                     if (Ignored(operation, key, arguments, schemas)) continue;
 
                     object changed;
-                    string come;
+                    string how;
                     if (val is bool)
                     {
                         bool b = (bool)val;
                         changed = !b;
-                        come = "step " + (i + 1) + " · " + key + " " + b + "->" + (!b);
+                        how = "step " + (i + 1) + " · " + key + " " + b + "->" + (!b);
                     }
                     else
                     {
@@ -807,7 +794,7 @@ namespace Oce.Solid.Agent.Bench
                         // a real mutation.
                         double n = Math.Abs(d) < 1e-9 ? 1.0 : d * 1.5;
                         changed = n;
-                        come = "step " + (i + 1) + " · " + key + " " +
+                        how = "step " + (i + 1) + " · " + key + " " +
                                d.ToString("0.##", CultureInfo.InvariantCulture) + "->" +
                                n.ToString("0.##", CultureInfo.InvariantCulture);
                     }
@@ -816,7 +803,7 @@ namespace Oce.Solid.Agent.Bench
                     var itsSteps = Items(copy, "steps");
                     var itsStep = itsSteps[i] as Dictionary<string, object>;
                     ((Dictionary<string, object>)itsStep["arguments"])[key] = changed;
-                    outside.Add(new Mutation { Come = come, Case = copy });
+                    outside.Add(new Mutation { How = how, Case = copy });
                 }
             }
             return outside;
@@ -824,8 +811,8 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// Does the operation ignore that argument, here and now? It is read from the
-        /// CATALOG: a description that begins with «solo se non X» says that
-        /// the field counts only when `X` is false, and «solo se X» the opposite.
+        /// CATALOG: a description that begins with «only if not X» says that
+        /// the field counts only when `X` is false, and «only if X» the opposite.
         /// Mutating an ignored field leaves the case green, and that green
         /// would look like blindness.
         /// </summary>
@@ -841,9 +828,9 @@ namespace Oce.Solid.Agent.Bench
             const string prefix = "only if ";
             if (!descriptionText.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return false;
             string rest = descriptionText.Substring(prefix.Length).Trim();
-            bool denied = rest.StartsWith("non ", StringComparison.OrdinalIgnoreCase);
+            bool denied = rest.StartsWith("not ", StringComparison.OrdinalIgnoreCase);
             if (denied) rest = rest.Substring(4).Trim();
-            // Only a field name: «solo se non passante». If the condition is
+            // Only a field name: «only if not through». If the condition is
             // a sentence, it is not interpreted — better one mutation too many than
             // one skipped because of an assumption about the language.
             if (rest.Contains(" ")) return false;
@@ -994,7 +981,7 @@ namespace Oce.Solid.Agent.Bench
         /// A list and not a chain of `if` for a measured reason: the list
         /// of names lived in `Expectations.Measure`, far from whoever really measures, and
         /// two new measurements added here and forgotten there came out as
-        /// «non so misurare «last_plane_mm»: i nomi sono …» with the old
+        /// «I do not know how to measure «last_plane_mm»: the names are …» with the old
         /// list next to it — a message that said something false about itself.
         /// Now the names are the keys, and the message reads them.
         ///
@@ -1003,7 +990,7 @@ namespace Oce.Solid.Agent.Bench
         /// Because written as `static readonly ... = new Dictionary...` THE BENCH
         /// NO LONGER STARTS:
         ///
-        ///     Eccezione non gestita: System.TypeInitializationException
+        ///     Unhandled exception: System.TypeInitializationException
         ///     ---> System.IO.FileNotFoundException: SolidWorks.Interop.sldworks
         ///
         /// A static field initializer ends up in the class constructor of
@@ -1133,8 +1120,8 @@ namespace Oce.Solid.Agent.Bench
         /// A measurement of the document, or a refusal that says which ones exist.
         ///
         /// It used to return `null` for an unknown name, and a `null` compared with
-        /// a number is a RED: the check failed saying «atteso 100, trovato
-        /// (niente)», which looks like a defect of the bridge and is not. A name
+        /// a number is a RED: the check failed saying «expected 100, found
+        /// (nothing)», which looks like a defect of the bridge and is not. A name
         /// that does not exist is a bench error, and must be said as such.
         /// </summary>
         private static object FromDocument(string what, IModelDoc2 doc,
@@ -1333,7 +1320,6 @@ namespace Oce.Solid.Agent.Bench
             // which would say the same thing worse.
             Preparation prepared = null;
             bool green;
-            int aliasUsesAtStart = AliasUsesNow();
             try
             {
                 prepared = PrepareDocument(itemName, testCase);
@@ -1357,69 +1343,9 @@ namespace Oce.Solid.Agent.Bench
             finally
             {
                 ThrowAwayPreparation(prepared);
-                CountAliasUses(itemName, filePath, aliasUsesAtStart);
             }
 
             return OnThisLibrary(itemName, testCase, green);
-        }
-
-        // ── THE ITALIAN NAMES THE RUN ACCEPTED (W3.1-bis.5, decision D4) ─────
-        //
-        // The library counts every name its aliases translate (Alias.Uses); the
-        // bench reads the counter before and after each case, so a case is
-        // charged with everything it made the library translate: its steps,
-        // the failed ones too, the selectors of its steps and of its
-        // expectations, the components of its assembly. A line per step would
-        // miss all of those. The whole run is read too, so a name translated
-        // outside any case (a group of the bench) is counted as well.
-        // Removed in W3.1-bis.11.
-        private static int _aliasUsesAtStartOfRun = -1;
-        private static int _aliasUsesInAliasCases;
-
-        private static int AliasUsesNow()
-        {
-            var read = Expectations.AliasUsesNow;
-            if (read == null) return 0;
-            int now = read();
-            if (_aliasUsesAtStartOfRun < 0) _aliasUsesAtStartOfRun = now;
-            return now;
-        }
-
-        private static void CountAliasUses(string name, string path, int atStart)
-        {
-            if (Expectations.AliasUsesNow == null) return;
-            int used = AliasUsesNow() - atStart;
-            if (used <= 0) return;
-            int before;
-            AliasUses.TryGetValue(name, out before);
-            AliasUses[name] = before + used;
-            bool inAliases = path != null &&
-                string.Equals(Path.GetFileName(Path.GetDirectoryName(path)), "aliases", StringComparison.Ordinal);
-            AliasCaseFolder[name] = inAliases;
-            if (inAliases) _aliasUsesInAliasCases += used;
-        }
-
-        /// <summary>
-        /// The line «alias uses: ...» at the end of the run, which bench.ps1
-        /// writes into last.json as alias_uses: the names of every case, and the
-        /// whole run as the library counted it. «outside the alias cases» is the
-        /// whole run minus the alias cases, and must be 0.
-        /// </summary>
-        internal static void WriteAliasUses()
-        {
-            if (Expectations.AliasUsesNow == null)
-            {
-                Console.WriteLine("alias uses: not counted (a library without the aliases of W3.1-bis.5)");
-                return;
-            }
-            int start = _aliasUsesAtStartOfRun < 0 ? Expectations.AliasUsesNow() : _aliasUsesAtStartOfRun;
-            int whole = Expectations.AliasUsesNow() - start;
-            int inCases = AliasUses.Values.Sum();
-            var outside = AliasUses.Keys.Where(k => !AliasCaseFolder[k]).OrderBy(k => k, StringComparer.Ordinal).ToList();
-            Console.WriteLine("alias uses: " + whole + " in the whole run, " + inCases + " in " + AliasUses.Count +
-                              " cases; outside the alias cases: " + (whole - _aliasUsesInAliasCases) +
-                              (outside.Count > 0 ? " (" + string.Join(" ", outside) + ")" : "") +
-                              (whole - inCases > 0 ? " (" + (whole - inCases) + " outside any case)" : ""));
         }
 
         /// <summary>
@@ -1431,7 +1357,7 @@ namespace Oce.Solid.Agent.Bench
         /// an older version, that case **must** fail: if it passes, it
         /// was guarding nothing.
         ///
-        /// A hand-written `provata_a_fallire` is a declaration, and a
+        /// A hand-written «proven to fail» flag is a declaration, and a
         /// declaration is copied from the case next to it. This one is not: it is decided by the
         /// library that runs.
         /// </summary>
@@ -1463,7 +1389,7 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// It is in a method of its own because `--mutate` (entry F6) re-runs the SAME
         /// case with an argument changed, and that case does not come from a file:
-        /// it comes from an in-memory copy. `gemelle` and `path` may be
+        /// it comes from an in-memory copy. `twins` and `path` may be
         /// null — there is no pair to record there and no file
         /// next to which to look.
         /// </summary>
@@ -1481,8 +1407,8 @@ namespace Oce.Solid.Agent.Bench
                 // `create_drawing` opens a drawing, and from there on the steps
                 // work on that one. As long as this was `doc` and nothing else, a case
                 // that created a drawing put the views inside the part — or more
-                // often stopped on «il documento attivo non e' una
-                // tavola». It is the reason why **none of the ten GT
+                // often stopped on «the active document is not a
+                // drawing». It is the reason why **none of the ten GT
                 // entries ever had a bench case**: it was not lack of will, it is
                 // that the bench did not know how to follow the second document.
                 //
@@ -1509,7 +1435,7 @@ namespace Oce.Solid.Agent.Bench
                     // road that in production nobody travels. Whoever writes
                     // a plan reads the state ONCE and then writes three steps;
                     // from the second on the uids they carry are the old ones,
-                    // and the bridge attaches the old signatures to them. «uid_dal_passo: 2»
+                    // and the bridge attaches the old signatures to them. «uid_from_step: 2»
                     // does the same: selectors and signatures from the state BEFORE
                     // step 2. Without this the search for edges by signature
                     // could not even be written as a check.
@@ -1538,7 +1464,6 @@ namespace Oce.Solid.Agent.Bench
                     // A SELECTOR THAT DOES NOT RESOLVE IS NOT A RED CHECK:
                     // the case could not be RUN, and calling it «failed»
                     // would make one believe that something was measured (entry F4).
-                    DeprecatedSelectors.Clear();
                     try { arguments = Resolve(rawArg, uidState) as Dictionary<string, object>; }
                     catch (CouldNotMeasure ex) { BenchError(label, ex.Message); return false; }
                     catch (Exception ex) { Check(label, false, ex.Message); return false; }
@@ -1603,21 +1528,6 @@ namespace Oce.Solid.Agent.Bench
                     string error;
                     IModelDoc2 born;
                     var measurements = Run(current, operation, arguments, out error, out born, docState);
-                    // The Italian selectors this step was written with (Expectations.SelectorAlias):
-                    // the bench resolves selectors before the library sees the step, so it adds
-                    // them to the library's own `deprecated` lines. Removed in W3.1-bis.11.
-                    if (measurements != null && DeprecatedSelectors.Count > 0)
-                    {
-                        object fromLibrary;
-                        var library = measurements.TryGetValue("deprecated", out fromLibrary) && fromLibrary is string[]
-                            ? (string[])fromLibrary : new string[0];
-                        measurements["deprecated"] = DeprecatedSelectors.Concat(library).ToArray();
-                    }
-                    // The Italian names are counted per case from the library's own
-                    // counter (CountAliasUses, around the whole case), not from these
-                    // lines: a failed step, a selector of an expectation and the
-                    // steps that prepare an assembly leave none here.
-
                     // IT CHANGES ONLY IF THE STEP SUCCEEDED. A `create_drawing`
                     // that failed midway may have left a document on the monitor
                     // and it is not the one to continue on: following a document
@@ -1629,7 +1539,7 @@ namespace Oce.Solid.Agent.Bench
                         try { whatItIsCalled = current.GetTitle(); } catch { }
                         // It is SAID. A silent change of document is the
                         // thing that makes a red case unreadable three steps
-                        // further on: one reads «la vista non c'e'» and goes
+                        // further on: one reads «the view is not there» and goes
                         // to look for the defect in the wrong operation.
                         Console.WriteLine("       | from here on it works on «" +
                                           (whatItIsCalled ?? "(untitled)") + "»");
@@ -1649,7 +1559,7 @@ namespace Oce.Solid.Agent.Bench
                         //
                         // Here the drawing is still called `Disegno38 -
                         // Foglio1`; two steps after the case saves it and it becomes
-                        // `drawing_dimensions_itself - Foglio1`. By marking the name of
+                        // `drawing_dimensions_itself - Sheet1`. By marking the name of
                         // now, at the end of the case SOLIDWORKS was asked to
                         // close a document that no longer existed under that
                         // name — and `CloseDoc` on an unknown name is not an
@@ -1982,9 +1892,9 @@ namespace Oce.Solid.Agent.Bench
             var nextTo = Path.Combine(Path.GetDirectoryName(casePath), twin + ".json");
             if (!File.Exists(nextTo))
             {
-                // «gemella mancante» is one of the three bench errors that
-                // entry F2 named by name, together with «caso non ammesso» and
-                // «campo assente».
+                // «twin missing» is one of the three bench errors that
+                // entry F2 named by name, together with «case not allowed» and
+                // «field absent».
                 BenchError(label, "the twin «" + twin + "» does not exist");
                 return false;
             }

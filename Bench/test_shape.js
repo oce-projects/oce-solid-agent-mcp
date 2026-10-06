@@ -84,7 +84,7 @@ async function invoke(tool, args) {
   let data = null;
   const i = text.indexOf("{");
   if (i >= 0) { try { data = JSON.parse(text.slice(i)); } catch (e) {} }
-  return { testo: text, dati: data, errore: !!r.isError };
+  return { text: text, data: data, failed: !!r.isError };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ async function testOne(number, itemName) {
   }
   const trueFile = path.join(VIEWS, itemName + "-state.json");
   if (!fs.existsSync(trueFile)) {
-    check("pezzo " + number, false,
+    check("part " + number, false,
           "the real state is missing: run `node collect_views.js` first");
     return;
   }
@@ -141,12 +141,12 @@ async function testOne(number, itemName) {
 
   await invoke("inspect_part");
   const done = await invoke("build", { steps: steps });
-  if (done.errore) {
-    check("part " + number, false, "the plan does not pass: " + shorter(done.testo));
+  if (done.failed) {
+    check("part " + number, false, "the plan does not pass: " + shorter(done.text));
     return;
   }
 
-  const rebuilt = (done.dati || {}).state_after || {};
+  const rebuilt = (done.data || {}).state_after || {};
   const rebuiltVolume = rebuilt.volume_mm3;
   const trueVolume = real.volume_mm3;
   const okVolume = neighbors(rebuiltVolume, trueVolume, TOLERANCE);
@@ -156,9 +156,9 @@ async function testOne(number, itemName) {
     ? ((rebuiltVolume - trueVolume) / trueVolume * 100).toFixed(1) + "%"
     : "?";
 
-  check("pezzo " + number + " " + itemName.slice(2), okVolume && okBoundingBox,
+  check("part " + number + " " + itemName.slice(2), okVolume && okBoundingBox,
         "volume " + (rebuiltVolume == null ? "?" : Math.round(rebuiltVolume * 10) / 10) +
-        " contro " + trueVolume + " (" + deviation + ")" +
+        "  against " + trueVolume + " (" + deviation + ")" +
         (okBoundingBox ? "" : ", different BOUNDING BOX: " + JSON.stringify(rebuilt.bounding_box_mm) +
                             " against " + JSON.stringify(real.bounding_box_mm)));
 }
@@ -166,7 +166,7 @@ async function testOne(number, itemName) {
 (async function () {
   await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
-    clientInfo: { name: "prova_forma", version: "1" },
+    clientInfo: { name: "probe_shape", version: "1" },
   });
   warn("notifications/initialized");
 

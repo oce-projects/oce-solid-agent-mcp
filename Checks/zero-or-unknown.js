@@ -1,12 +1,12 @@
 // =============================================================================
-//  zero-or-unknown.js - are «zero» and «non ho potuto leggere» the same thing?
+//  zero-or-unknown.js - are «zero» and «I could not read it» the same thing?
 // =============================================================================
 //
 //  WHY IT EXISTS (entry Z-C8)
 //
 //  It has already been paid for once. `IComponent2.GetMates()` returns **`null`
-//  when there are zero**, not an empty array, and the bridge answered «non ho potuto
-//  leggere» on a component that had zero.
+//  when there are zero**, not an empty array, and the bridge answered «I could not
+//  read it» on a component that had zero.
 //
 //  The same exchange also runs the other way round, and it is the most dangerous:
 //  a function that READS from the CAD and answers `0` from its `catch`. Zero is not

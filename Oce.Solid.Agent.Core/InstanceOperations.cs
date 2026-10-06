@@ -19,10 +19,10 @@ namespace Oce.Solid.Agent.Core
     /// There is no «SkipInstance». The data of the feature is taken, the
     /// `SkippedItemArray` is written, and it is put back:
     ///
-    ///     var dati = ripetizione.GetDefinition();
-    ///     dati.AccessSelections(modello, null);
-    ///     dati.SkippedItemArray = new int[] { 2 };
-    ///     ripetizione.ModifyDefinition(dati, modello, null);
+    ///     var data = pattern.GetDefinition();
+    ///     data.AccessSelections(model, null);
+    ///     data.SkippedItemArray = new int[] { 2 };
+    ///     pattern.ModifyDefinition(data, model, null);
     ///
     /// It is a write AFTER creation, not a parameter: so the
     /// pattern is made first, with the operations that already exist, and then

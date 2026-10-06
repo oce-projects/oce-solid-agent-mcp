@@ -34,7 +34,7 @@ namespace Oce.Solid.Agent.Bench
     {
         /// <summary>
         /// Where the drawing library is. Default: next to
-        /// the executable. It is changed with `--library &lt;percorso&gt;`.
+        /// the executable. It is changed with `--library &lt;path&gt;`.
         ///
         /// BEFORE IT WAS A CONSTANT that pointed to a temporary folder of
         /// a session, and that path no longer exists today. A bench that can
@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.Bench
         /// On 24/9/2026 it was at **0.105.0.0**, six versions behind. Launching
         /// the executable by hand to iterate fast on two new cases, it
         /// said that two defaults just implemented **did not exist**:
-        /// «Manca il nome del materiale», «campo assente: misure.nota_assunto».
+        /// «The name of the material is missing», «field absent: measures.note_assumed».
         /// They were in the source and in the other two copies. *The symptom was
         /// perfect and the cause was not in the code.*
         ///
@@ -108,7 +108,7 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>The names of the types, after the move into the library.</summary>
         /// <remarks>
-        /// They were `OpenPDM.SwAddin.Agente.*`. Entries B4 and B5 moved the
+        /// They were `OpenPDM.SwAddin.*`. Entries B4 and B5 moved the
         /// operations into `Oce.Solid.Agent.Core`, and since then this bench
         /// **no longer started**: `GetType(..., true)` raises on a type that
         /// is not there. Nobody had noticed because the bench lived
@@ -414,21 +414,6 @@ namespace Oce.Solid.Agent.Bench
                 _tOperations = _addin.GetType(NS + "SwOperations", true);
                 _tState = _addin.GetType(NS + "DocumentState", true);
                 _tOutcome = _addin.GetType(NS + "SwOperations+Outcome", true);
-                // The Italian selectors of before W3.1-bis.5, read through the
-                // dictionary of the library (Alias.cs); a library from before
-                // it has none, and the selectors are read as written.
-                var tAlias = _addin.GetType(NS + "Alias", false);
-                var selectorMethod = tAlias == null ? null
-                    : tAlias.GetMethod("Selector", new[] { typeof(string), typeof(List<string>) });
-                if (selectorMethod != null)
-                    Expectations.SelectorAlias = (s, notes) => (string)selectorMethod.Invoke(null, new object[] { s, notes });
-                var usesProperty = tAlias == null ? null
-                    : tAlias.GetProperty("Uses", BindingFlags.Public | BindingFlags.Static);
-                if (usesProperty != null)
-                {
-                    Expectations.AliasUsesNow = () => (int)usesProperty.GetValue(null, null);
-                    AliasUsesNow();   // the start of the count of the run
-                }
             }
             catch (Exception ex)
             {
@@ -449,9 +434,9 @@ namespace Oce.Solid.Agent.Bench
             // library to measure is already in hand.
             //
             // AND THEY ARE TWO NUMBERS (entry F15). `ExecutableNames` are all those
-            // that the library knows how to execute, including the `Provata = false` ones that
+            // that the library knows how to execute, including the `Tested = false` ones that
             // `build.ps1` keeps out of `catalog.json`. Up to 0.112.0 it
-            // printed «catalogo: 73» and the served catalog had 71: on 24/9
+            // printed «catalog: 73» and the served catalog had 71: on 24/9
             // an agent explained the difference with «the two copies of the
             // library diverge» — a true theme of the project, applied in the
             // wrong place. A label that says something the number is not
@@ -563,7 +548,7 @@ namespace Oce.Solid.Agent.Bench
                 // It is raised here and not inside `Run()` because the groups are
                 // eighteen different methods and asking each of them to remember it
                 // means that sooner or later one forgets — and a group
-                // that does not declare itself ends up in «(fuori gruppo)», which is
+                // that does not declare itself ends up in «(no group)», which is
                 // visible, but later.
                 _groupInProgress = theGroup.Name;
                 try { theGroup.Run(); }
@@ -642,7 +627,6 @@ namespace Oce.Solid.Agent.Bench
             CheckCountPerGroup();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
-            WriteAliasUses();
 
             var summary =
                 (notLaunched.Count > 0
@@ -766,26 +750,26 @@ namespace Oce.Solid.Agent.Bench
                              Actions = one(TestFeatureCap), SlowOnly = true,
                              WhyItWeighs = "85 features, about half an hour: run with --slow" },
 
-                // Those that were inside `NuoveOperazioni()`.
+                // Those that were inside `NewOperations()`.
                 new Group { Name = "shot",       What = "take the view shot",        Actions = one(CaptureView) },
                 new Group { Name = "what-it-sees",  What = "what the model sees", Actions = one(HowMuchTheModelSees) },
                 new Group { Name = "faces",        What = "the faces of the plate", Actions = one(PrintPlateFaces) },
                 new Group { Name = "move-bodies", What = "move_bodies",           Actions = one(TestMoveBodies) },
                 // «slot» is no longer there: it became fifteen files in
                 // `cases/slot/`, and it is launched with `--group cases` (entry F11).
-                // «smusso» is no longer there: it became three files in
+                // «chamfer» is no longer there: it became three files in
                 // `cases/chamfer/`, and it is launched with `--group cases` (entry F11).
                 // «revolve» is no longer there: it became five files in
                 // `cases/revolve/`. The tolerance is the difference: the C#
-                // accepted `atteso * 0.02`, which on the cylinder of 62,831 mm³
+                // accepted `expected * 0.02`, which on the cylinder of 62,831 mm³
                 // is 1,256 mm³ of allowed slack.
                 // «shell» is no longer there: it became two files in
                 // `cases/features/`, and it is launched with `--group cases`.
-                // «crea-piano» is no longer there: it became three files in
+                // «create-plane» is no longer there: it became three files in
                 // `cases/plane/`, and the expectation is on WHERE THE PLANE ENDED UP
                 // (`last_plane_mm`), not on the distance that the bridge
                 // copies.
-                // «crea-asse» stayed in C# for ONE line only: that the axis
+                // «create-axis» stayed in C# for ONE line only: that the axis
                 // re-attaches with SelectByID2("AXIS"), which is a COM
                 // call and not a catalog operation. All the rest of the
                 // family is in `cases/axis/`.
@@ -802,7 +786,7 @@ namespace Oce.Solid.Agent.Bench
                 new Group { Name = "client-port",
                              What = "the cases that go through the bridge (F14)",
                              Actions = one(TheClientPort) },
-                // «ripeti», «mirror» and «togliere» are no longer there: they
+                // «repeat», «mirror» and «remove» are no longer there: they
                 // became `cases/patterns/`, `cases/mirror/` and
                 // `cases/removal/`, and they are launched with `--group cases`.
                 // «shape» is no longer there: it became `cases/sentence/`, since
@@ -834,7 +818,7 @@ namespace Oce.Solid.Agent.Bench
         /// THE DEFECT THAT THE GROUPS INTRODUCE, and that gives no error.
         ///
         /// Before entry F13, forgetting to call a new check meant
-        /// not adding it to `NuoveOperazioni()`. Now it means not
+        /// not adding it to `NewOperations()`. Now it means not
         /// adding it to the table of the groups — same oversight, same
         /// silence: the bench keeps saying «all adds up» on one check fewer,
         /// and the total count is looked at by nobody from one run to the next.
@@ -853,7 +837,7 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// ── AND THE RED IS NO LONGER A NUMBER ────────────────────────────
         ///
-        /// It was `famiglie.Count >= 15`, and on 15/9/2026 it turned red without
+        /// It was `families.Count >= 15`, and on 15/9/2026 it turned red without
         /// anything having broken: entry F11 turned six families
         /// of checks into JSON files, and the methods went down to twelve. **A numeric
         /// floor on something that must shrink is a red with an
@@ -862,7 +846,7 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// Now the sieve must find ITSELF. `TestThatTheTableCoversEverything`
         /// is a `private static void` method without parameters that begins with
-        /// «Prova»: if reflection does not list it, it does not work — and the thing
+        /// «Test»: if reflection does not list it, it does not work — and the thing
         /// does not depend on how many families there are today. The count stays
         /// written next to it as data, not as a threshold.
         /// </summary>
@@ -919,7 +903,7 @@ namespace Oce.Solid.Agent.Bench
         /// `PadRight(52)` alone adds nothing when the name is already
         /// 52 long, and the journal came out like this:
         ///
-        ///     OK   ...misure.copie_fattemisure.copie_fatte 3 (atteso 3)
+        ///     OK   ...measurements.copies_mademeasurements.copies_made 3 (expected 3)
         ///
         /// Two words stuck together that look like a single word. It is not an
         /// aesthetic detail: the journal is what one reads when the bench
@@ -1173,7 +1157,7 @@ namespace Oce.Solid.Agent.Bench
                 };
                 lines.AddRange(_withoutExpectation);
                 File.WriteAllLines(location, lines);
-                Console.WriteLine("   l'elenco: " + location);
+                Console.WriteLine("   the list: " + location);
             }
             catch (Exception ex)
             {
@@ -1209,7 +1193,7 @@ namespace Oce.Solid.Agent.Bench
         // Now there is one **of the bench**, `Bench/in-progress.txt`, written and
         // flushed line by line. `last-run.txt` stays what it was, and the
         // end-of-run summary does not change by a comma: it is what
-        // LEGGIMI documents and what is looked at when the run is over.
+        // README documents and what is looked at when the run is over.
         //
         // ── WHY THERE IS A TIME ON EVERY LINE ─────────────────────────────
         //
@@ -1574,7 +1558,7 @@ namespace Oce.Solid.Agent.Bench
         /// ── THE DEFECT, PAID FOR TWICE ───────────────────────────────────
         ///
         /// The state of a document lists `documents_open`, so the check
-        /// «state: sotto i 16 KB su un telaio da quattro barre» also measures
+        /// «state: under 16 KB on a frame of four bars» also measures
         /// what is open besides the frame. On 14/9/2026 six parts
         /// left open by a run of `run_plans.js` were worth ~650
         /// characters and took the check from 15,628 to 16,280: **red without
@@ -1741,7 +1725,7 @@ namespace Oce.Solid.Agent.Bench
             var list = all.Invoke(null, new object[] { _sw, (Action<string>)(s => { }) })
                 as System.Collections.IList;
             Check("reads the material archives", list != null && list.Count > 100,
-                  (list == null ? "null" : list.Count + " materiali"));
+                  (list == null ? "null" : list.Count + " materials"));
 
             foreach (var testCase in new[]
             {
@@ -1904,9 +1888,9 @@ namespace Oce.Solid.Agent.Bench
                 double d = measurements.ContainsKey("diameter_machined_mm")
                     ? Convert.ToDouble(measurements["diameter_machined_mm"]) : 0;
                 // THE KEY WAS ALWAYS THERE, and this branch could not fire.
-                // Up to 0.25.1 here there was `misure.ContainsKey(...)`, and the
-                // bridge wrote that key unconditionally: `verificate`
-                // was true by construction, «POSIZIONI NON VERIFICATE» was
+                // Up to 0.25.1 here there was `measures.ContainsKey(...)`, and the
+                // bridge wrote that key unconditionally: `verified`
+                // was true by construction, «POSITIONS NOT VERIFIED» was
                 // dead code, and these checks measured only the diameter
                 // believing they measured the positions too.
                 // Now the key must be read AND be true, and the bridge writes a
@@ -2065,7 +2049,7 @@ namespace Oce.Solid.Agent.Bench
                 // thread, depth, end condition), the diameter of the
                 // cylindrical faces, the volume of the part, and the suppressed
                 // features. That is the difference between a model that reads
-                // «Foro filettato M8-1» and one that reads «M8 ISO, preforo 6,8».
+                // «Threaded hole M8-1» and one that reads «M8 ISO, tap drill 6.8».
                 //
                 // Before raising it again: look whether there is a field that
                 // REPEATS another field. Three were found in
@@ -2094,7 +2078,7 @@ namespace Oce.Solid.Agent.Bench
                 // having changed. Half an hour spent hunting for a regression that
                 // was not there.
                 //
-                // `ChiudiScarti --close` alone does not close them: it spares
+                // `CloseLeftovers --close` alone does not close them: it spares
                 // on purpose the documents with a file. The folder is needed:
                 //   CloseLeftovers.exe --close "...\Bench\work"
                 //
@@ -2288,7 +2272,7 @@ namespace Oce.Solid.Agent.Bench
                 int temporaryAfter = TemporaryFiles(model);
                 Check("photograph: no file left in the temp folder",
                       temporaryAfter <= temporaryBefore,
-                      temporaryBefore + " prima, " + temporaryAfter + " dopo");
+                      temporaryBefore + " before, " + temporaryAfter + " after");
             }
             finally { Close(doc); }
         }
@@ -2478,8 +2462,8 @@ namespace Oce.Solid.Agent.Bench
         /// it is the only legitimate change of document in the catalog. As long as the
         /// bench executed every step always on the SAME document, a case that
         /// created a drawing put the views **inside the part** — or more
-        /// probably failed saying «il documento attivo non e' una
-        /// tavola», which is the reason why no GT entry ever had a
+        /// probably failed saying «the active document is not a
+        /// drawing», which is the reason why no GT entry ever had a
         /// bench case.
         ///
         /// **SOLIDWORKS is not asked which is the active document.** The
@@ -2655,7 +2639,7 @@ namespace Oce.Solid.Agent.Bench
         /// started from.
         ///
         /// WHY `ex.Message` IS NOT ENOUGH. On 15/9/2026 a check printed
-        /// «Riferimento a un oggetto non impostato su un'istanza di oggetto.»
+        /// «Object reference not set to an instance of an object.»
         /// and nothing else. That sentence says that something was null and does not say
         /// **what**, nor whether the null was in the bench or in the library: to
         /// locate it another run of seventeen minutes was needed.
@@ -2665,8 +2649,8 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// **The reflection wrapper is also discarded.** The bench calls
         /// the library with `Invoke`, so whatever blows up in there
-        /// arrives as `TargetInvocationException` — «Eccezione generata dalla
-        /// destinazione di una chiamata», which says nothing at all.
+        /// arrives as `TargetInvocationException` — «Exception has been thrown by the
+        /// target of an invocation», which says nothing at all.
         /// The one that matters is always the `InnerException`.
         /// </summary>
         private static string Why(Exception ex)
@@ -2946,9 +2930,9 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// ── WHAT IT COST NOT TO HAVE IT ──────────────────────────────────
         ///
-        /// On 15/9/2026 the check «spostamento nullo (deve fallire)» came out
-        /// red with «Riferimento a un oggetto non impostato su un'istanza di
-        /// oggetto.», and nothing else. In the red run the line that the
+        /// On 15/9/2026 the check «null displacement (must fail)» came out
+        /// red with «Object reference not set to an instance of
+        /// an object.», and nothing else. In the red run the line that the
         /// library prints before refusing was missing too, so the null was **before**
         /// the call to be tested — but in eighteen places of the bench
         /// `NewPart()` was used without looking at whether it had produced

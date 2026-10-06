@@ -39,7 +39,7 @@ namespace Oce.Solid.Agent.Core
     ///     (swRibExtrusionDirection_e): they are re-read and reported as
     ///     DECLARED by the feature, next to the volume which is the measure.
     ///
-    /// The historic probes (NervaturaProva, SbloccoProva 1-3, 16/9/2026)
+    /// The historic probes (the four probes of 16/9/2026)
     /// ALL passed IsNormToSketch = true — even those that already had
     /// the right L with the diagonal in the void — and never turned the
     /// direction of the material. RAG note 82zz-quinquies.
@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Core
     /// rib born crooked are removed with `DeleteSelection2` (not with
     /// EditDelete, which opens a confirmation window and the COM call does not
     /// return: see `DeleteFeature`), from the youngest to the oldest, and
-    /// the volume is re-read (`IsBackAsItWas` in OperazioniGuardie).
+    /// the volume is re-read (`IsBackAsItWas` in GuardOperations).
     /// </summary>
     public partial class SwOperations
     {
@@ -478,7 +478,7 @@ namespace Oce.Solid.Agent.Core
             bool everything = true;
             var names = new List<string>();
             // A SKETCH THAT A FAILED InsertRib HAS TOUCHED CANNOT BE DELETED, ONLY
-            // SUPPRESSED. Measured on 28/9/2026 (probe cinque/probe_nervatura_ritira,
+            // SUPPRESSED. Measured on 28/9/2026 (probe five/probe_rib_withdraw,
             // SOLIDWORKS 29.5.1): after two failed InsertRib on a plate with no walls
             // the rib sketch has no children and selects fine, yet
             // DeleteSelection2 answers false with swDelete_Absorbed, swDelete_Children

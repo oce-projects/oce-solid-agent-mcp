@@ -366,7 +366,7 @@ namespace Oce.Solid.Agent.Core
                         // value of the cosine is used. The first draft refused EVERY
                         // non-planar face, even a cylinder that meets the face at 90
                         // degrees along a line (a half-round resting on it): a
-                        // sharp edge, and the message «bordo di un raccordo» there
+                        // sharp edge, and the message «edge of a fillet» there
                         // was false. The fillet is recognised because it is TANGENT:
                         // its normal on the edge is that of the face.
                         double[] nf = null;
@@ -619,7 +619,7 @@ namespace Oce.Solid.Agent.Core
         /// THE ANCHOR OF `hole_wizard` (entry E18, the last piece). The sketch of the
         /// points is made by HoleWizard, and `PositionHoles` puts the points in it: here
         /// we re-enter it, and each point receives its anchor. Measured on 25/9/2026
-        /// (`prova0089 guidato`, case r01): the positioning sketch is
+        /// (`probe0089 guided`, case r01): the positioning sketch is
         /// the sub-sketch with the points and without segments, it is opened with
         /// `EditSketch`, eight horizontal/vertical dimensions to the edges make it
         /// fully defined, and after the edit the holes stand at
@@ -826,9 +826,9 @@ namespace Oce.Solid.Agent.Core
         /// may overrun an edge with the real radius.
         ///
         /// CENTRED AXES TOO, AND THE WIDEST CUT (Z-C21.2, finding N50). This
-        /// check skipped centred axes (`!asse.Centrata`), and ReadAnchor runs
+        /// check skipped centred axes (`!axis.Centered`), and ReadAnchor runs
         /// with the half sizes at 0 for hole_wizard, so its rule «the profile fits
-        /// between the two edges» (the «non ci sta» refusal in ReadAnchor)
+        /// between the two edges» (the «it does not fit» refusal in ReadAnchor)
         /// never fired: an M8 centred between two edges 6 mm apart was
         /// confirmed, and the hole cut through both of them. The same rule is
         /// applied here, half the gap against the radius, with the same `Coord`
@@ -1183,7 +1183,7 @@ namespace Oce.Solid.Agent.Core
         /// `error` not null means the sketch is not as needed (with
         /// the anchor it is a refusal, without it it is only one dimension fewer).
         ///
-        /// MEASURED on 25/9/2026 (`prova0089 stadio`, `stadio2`), plate 200 x
+        /// MEASURED on 25/9/2026 (`probe0089 stadium`, `stadium2`), plate 200 x
         /// 120, slot 60 x 20 at 0 and at 30 degrees:
         ///
         ///   the ends drawn with AddToDB         already merged: 6 points (4 fillets and
@@ -1498,7 +1498,7 @@ namespace Oce.Solid.Agent.Core
         /// IModelDocExtension~AddSpecificDimension.html: «Error Result status as
         /// defined in swAddSpecificDimension_e», and swAddSpecificDimension_e
         /// has swAddSpecificDimension_Success 0 and
-        /// swAddSpecificDimension_DimTypeMismatch 1. Only `quota == null` was
+        /// swAddSpecificDimension_DimTypeMismatch 1. Only `dimension == null` was
         /// checked, and the caller counted a dimension of unknown type and
         /// value. Now the status must be Success and the value, read back,
         /// must be <paramref name="betweenDeg"/> or its supplement: an angular

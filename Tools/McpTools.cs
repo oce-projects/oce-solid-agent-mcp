@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.Tools
         /// five without bench cases — by gut feeling.
         ///
         /// It is never null: if there is nowhere to write, it stays silent by itself. An
-        /// `if (_registro != null)` scattered in four places is the way
+        /// `if (_registry != null)` scattered in four places is the way
         /// the fifth place forgets it.
         /// </summary>
         private readonly QuestionRegistry _registry;
@@ -659,7 +659,7 @@ namespace Oce.Solid.Agent.Tools
 
             // THE DOCUMENT IN FRONT HAS CHANGED (or might have): what
             // had been looked at and its signatures are thrown away TOGETHER. «build» at
-            // this point answers «non ho ancora guardato nessun pezzo», which
+            // this point answers «I have not looked at any part yet», which
             // is the truth.
             _seen = null;
             _signatureSeen = null;
@@ -695,56 +695,7 @@ namespace Oce.Solid.Agent.Tools
             // from where the first one got to.
             _wire = new Mcp.Progress.Wire(token);
 
-            // THE NAMES OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs,
-            // decision D4): a tool, an action, a family, an operation, an
-            // argument or a value written with its Italian name is translated
-            // BEFORE any check of this bridge reads it, and the answer lists
-            // each one in `deprecated`. Input only: the answers, the catalogue
-            // and describe_operation speak English. Removed in W3.1-bis.11.
-            List<string> deprecated = new List<string>();
-            itemName = Oce.Solid.Agent.Core.Alias.Tool(itemName, deprecated);
-            if (arguments != null)
-                Oce.Solid.Agent.Core.Alias.ToolArguments(itemName, arguments, ToolSchema(itemName), deprecated);
-            return WithDeprecated(Dispatch(itemName, arguments), deprecated);
-        }
-
-        /// <summary>The input schema of a tool, as tools/list gives it, or null.</summary>
-        private Dictionary<string, object> ToolSchema(string itemName)
-        {
-            var tools = Items() as object[];
-            if (tools == null) return null;
-            foreach (var x in tools)
-            {
-                var s = x as Dictionary<string, object>;
-                object n, schema;
-                if (s != null && s.TryGetValue("name", out n) && string.Equals(n as string, itemName, StringComparison.Ordinal) &&
-                    s.TryGetValue("inputSchema", out schema))
-                    return schema as Dictionary<string, object>;
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// The answer of a tool, with the Italian names it accepted: in
-        /// `structuredContent.deprecated` when there is structured content, and
-        /// always as a last text item, so that a client reading only the text
-        /// sees it too.
-        /// </summary>
-        internal static Dictionary<string, object> WithDeprecated(Dictionary<string, object> answer, List<string> deprecated)
-        {
-            if (answer == null || deprecated == null || deprecated.Count == 0) return answer;
-            object data;
-            var structured = answer.TryGetValue("structuredContent", out data) ? data as Dictionary<string, object> : null;
-            if (structured != null) structured["deprecated"] = deprecated.ToArray();
-            object c;
-            var content = answer.TryGetValue("content", out c) ? c as object[] : null;
-            var line = new Dictionary<string, object>
-            {
-                ["type"] = "text",
-                ["text"] = "deprecated: " + string.Join("; ", deprecated),
-            };
-            answer["content"] = (content ?? new object[0]).Concat(new object[] { line }).ToArray();
-            return answer;
+            return Dispatch(itemName, arguments);
         }
 
         private Dictionary<string, object> Dispatch(string itemName, Dictionary<string, object> arguments)
@@ -768,7 +719,7 @@ namespace Oce.Solid.Agent.Tools
                     // WE SAY WHICH ONES EXIST, not just that this one does not.
                     //
                     // A model that got the name wrong has no way to
-                    // correct itself by reading «non conosco x»: it can only
+                    // correct itself by reading «I do not know x»: it can only
                     // try guessing again, and that is how one ends up
                     // calling the same wrong thing three times. The names
                     // are seven: they fit in one line, and cost less than one more
@@ -795,7 +746,7 @@ namespace Oce.Solid.Agent.Tools
 
         /// <summary>
         /// HOW THE PART WAS MADE when «inspect_part» looked at it
-        /// (entry X2) — not WHICH part it was, which is `_guardato`.
+        /// (entry X2) — not WHICH part it was, which is `_seen`.
         ///
         /// ── TWO QUESTIONS THAT LOOK LIKE ONE ─────────────────────────
         ///
@@ -1323,8 +1274,8 @@ namespace Oce.Solid.Agent.Tools
         /// What changed between two signatures, in Italian, or `null` if
         /// nothing changed (entry X2).
         ///
-        /// **IT STOPS WITH THE CRITERION, NOT WITH A VERDICT.** «Il volume e'
-        /// passato da 96.000 a 94.500 da quando l'hai guardato» can be
+        /// **IT STOPS WITH THE CRITERION, NOT WITH A VERDICT.** «The volume went
+        /// from 96,000 to 94,500 since you looked at it» can be
         /// checked; «the state has changed» forces one to trust. The
         /// difference matters because a warning that cannot be verified is
         /// learned to be ignored, and that is the risk written in the entry.
@@ -1646,7 +1597,7 @@ namespace Oce.Solid.Agent.Tools
                     {
                         var theField = Convert.ToString(r);
                         if (string.IsNullOrEmpty(theField)) continue;
-                        // `x_rif` holds for `x_uid` and vice versa: the catalogue
+                        // `x_ref` holds for `x_uid` and vice versa: the catalogue
                         // declares one of the two mandatory, and asking for
                         // both would be a wrong refusal.
                         var twin = theField.EndsWith("_uid", StringComparison.Ordinal)
@@ -1852,13 +1803,13 @@ namespace Oce.Solid.Agent.Tools
             // Here we do not guess and do not switch window by ourselves: we
             // COMPARE with what «inspect_part» had described, and if it
             // does not match we stop. Whoever knows what they are doing can say
-            // explicitly «yes, the one in front» with `qualunque_documento`.
+            // explicitly «yes, the one in front» with `any_document`.
             var now = StateIdentity(before);
             var named = Text(arguments, "document");
 
             // WE NAME THE DOCUMENT, WE DO NOT SWITCH THE CHECK OFF.
             //
-            // The first version had a `qualunque_documento: true` to
+            // The first version had a `any_document: true` to
             // override the refusal. It was a defect: an argument that
             // disables a defence is an invitation to disable it, and whoever
             // meets it has every incentive to retry with it
@@ -1944,7 +1895,7 @@ namespace Oce.Solid.Agent.Tools
             // `_seenSignatures` say HOW IT WAS. As long as this line moved
             // only the first, a plan that named another
             // document — `document: "..."`, the legitimate path — was enough for
-            // `_guardato` from then on to point to the new part and the
+            // `_seen` from then on to point to the new part and the
             // signatures to the old part.
             //
             // The trouble is not seen immediately: it is seen at the NEXT call, where
@@ -2067,9 +2018,9 @@ namespace Oce.Solid.Agent.Tools
                 // THE STEP GOES ON UNDER THE CATALOGUE'S NAME (Z-C21.10,
                 // pattern S20). `Knows` finds the operation ignoring case,
                 // and until 0.140.0 the step went on under the name as it was
-                // written. The library dispatches Ordinal: «Estrudi_Rettangolo»
-                // came back «Operazione sconosciuta» right after this check had
-                // said it exists, and «Rivoluzione», which carries «contours»,
+                // written. The library dispatches Ordinal: «Extrude_Rectangle»
+                // came back «Unknown operation» right after this check had
+                // said it exists, and «Revolve», which carries «contours»,
                 // fell into the profile extrusion the comment above warns
                 // about, with no «thickness_mm». Same rule as the enum values
                 // in Bridge/Shape.cs: what passes here goes on spelled as the
@@ -2102,10 +2053,10 @@ namespace Oce.Solid.Agent.Tools
                 //
                 // ONLY THE FORM, NEVER THE MERIT: see Bridge/Shape.cs.
                 //
-                // AND THE FORMA REWRITES `suoi` IN PLACE (Z-C21.10, S20): an
+                // AND THE FORMA REWRITES `its` IN PLACE (Z-C21.10, S20): an
                 // enum value accepted with a different case («Top»)
                 // comes out spelled as the catalogue spells it («top»).
-                // `suoi` is the very dictionary the step below hands to the
+                // `its` is the very dictionary the step below hands to the
                 // library, which compares Ordinal.
                 var crookedShape = Bridge.Shape.Check(
                     itemName, _catalog.Schema(itemName), itsItems);
@@ -2181,7 +2132,7 @@ namespace Oce.Solid.Agent.Tools
                 // so a window brought to the front between the reading of
                 // `before` and this call got the plan, and the memory mixed the
                 // numbers of two documents. It now stops before writing when
-                // the active document is not `adesso`.
+                // the active document is not `now`.
                 var done = _session.ExecutePlan(toDo, out var runError, _wire,
                                                   IdentityForTheExecutor(now));
                 planRun = _session.LastPlanResult;
@@ -2302,7 +2253,7 @@ namespace Oce.Solid.Agent.Tools
 
                 // ── AND ALSO WHO IT IS, NOT JUST HOW IT IS MADE ─────────────
                 //
-                // `_guardato` used to be brought back to the identity read BEFORE
+                // `_seen` used to be brought back to the identity read BEFORE
                 // executing, and a plan that contains `save_document` changes the
                 // document's identity while it runs: before the save
                 // it is «Parte1597» without a path, after it is a path on disk.
@@ -2836,11 +2787,11 @@ namespace Oce.Solid.Agent.Tools
         ///
         /// Up to bridge 0.124.1 this summary said that the way out was to try,
         /// check, and undo the wrong try with a redo. Measured false on
-        /// 1/10/2026 (probe `redo`; RAG note 82zz_duodecies, section «La sonda
-        /// viva di M19»): SOLIDWORKS never redoes an undo entry recorded
+        /// 1/10/2026 (probe `redo`; RAG note 82zz_duodecies, section «The live
+        /// probe of M19»): SOLIDWORKS never redoes an undo entry recorded
         /// through the API, and every plan of this bridge is one; only an
-        /// action that was not recorded comes back. And the answer said «L'ho
-        /// rimesso a posto subito» whenever EditRedo2 did not throw, without
+        /// action that was not recorded comes back. And the answer said «I put it
+        /// back right away» whenever EditRedo2 did not throw, without
         /// looking. So now:
         ///  * when the memory is covered (something is KNOWN to be on top of
         ///    the plan's entry), or the part reads differently from how the
@@ -2969,7 +2920,7 @@ namespace Oce.Solid.Agent.Tools
                 // compared: a property, a configuration.
                 //
                 // Up to bridge 0.124.1 a redo followed here, blind, and the
-                // answer said «L'ho rimesso a posto subito» whenever EditRedo2
+                // answer said «I put it back right away» whenever EditRedo2
                 // did not throw. Measured on 1/10/2026 (probe `redo`): an undo
                 // entry recorded through the API is never redone, so that
                 // answer lied for every plan of this bridge. Now the part is
@@ -3378,7 +3329,7 @@ namespace Oce.Solid.Agent.Tools
         ///
         /// Only the fields that the schema calls `*_uid` are looked at: they are those
         /// that name geometry **that was already there**. The geometry created by the
-        /// plan itself is named with `*_rif`, which cites the STEP and not
+        /// plan itself is named with `*_ref`, which cites the STEP and not
         /// the identifier — and it is the only way, because at the time the
         /// plan is written that face does not exist and nobody can give it a
         /// name.
@@ -3390,7 +3341,7 @@ namespace Oce.Solid.Agent.Tools
         /// against displacement; this protects against invention.
         ///
         /// THE LEGITIMATE IS NOT REFUSED. A plan that creates geometry and then
-        /// works on it is normal, and passes: it uses `*_rif`. The message says so,
+        /// works on it is normal, and passes: it uses `*_ref`. The message says so,
         /// because a refusal that does not point to the good way only teaches
         /// to retry at random.
         /// </summary>
@@ -3676,7 +3627,7 @@ namespace Oce.Solid.Agent.Tools
         /// For a project whose thesis is «no geometry exists unless
         /// someone has confirmed it», declaring them is the minimum.
         ///
-        /// `idempotente` deserves a line: `build` is NOT. Running the
+        /// `idempotent` deserves a line: `build` is NOT. Running the
         /// same plan again does not put the part back as it was — it makes a SECOND hole.
         /// Declaring it idempotent would invite a client to retry by itself
         /// after a network error, and the part would come out with double the
@@ -3719,7 +3670,7 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
-        /// The names of the tools, for the «non lo conosco» message.
+        /// The names of the tools, for the «I do not know it» message.
         ///
         /// Written by hand and not derived from `Items()`: building the real list
         /// to answer an error would mean rebuilding sixty JSON schemas

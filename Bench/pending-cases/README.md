@@ -84,7 +84,7 @@ between a help and a decision taken behind your back.
 ## Something that these cases propose and have no right to decide
 
 The field they look at is called **`measurements.note_assumption`** — it was
-called `misure.assunto` while it was a proposal, and it was aligned with the
+called `measurements.assumed` while it was a proposal, and it was aligned with the
 `note_*` convention that the repository already used (`note_identifiers`,
 `note_volume`) when it was implemented, on 24/9/2026. Whoever implements it can
 call it differently or put it elsewhere — in that case the `what` line of the

@@ -61,8 +61,8 @@ namespace Oce.Solid.Agent.Core
         ///
         /// ── THE 16 KB CEILING WAS ALREADY EXCEEDED ───────────────────
         ///
-        /// The bench check «stato: sotto i 16 KB su un telaio da quattro
-        /// barre» passed at **15,922** characters against 16,000: seventy-eight of
+        /// The bench check «state: under 16 KB on a frame of four
+        /// bars» passed at **15,922** characters against 16,000: seventy-eight of
         /// margin. But the bench runs with **one document open only**, because
         /// it refuses to start otherwise (entry K12). With two documents —
         /// the normal situation of whoever works — the same frame measures
@@ -509,11 +509,11 @@ namespace Oce.Solid.Agent.Core
         /// things that are harmless for a compiler are not:
         ///
         ///   * adding a parameter with a default value → `Invoke` with
-        ///     two arguments on a method that wants three answers «Mancata
-        ///     corrispondenza nel numero dei parametri». Measured on
+        ///     two arguments on a method that wants three answers «Parameter count
+        ///     mismatch». Measured on
         ///     14/9/2026: the bench went from 88 checks and 0 failed to **70 and 58**;
         ///   * adding an OVERLOAD → `GetMethod("Read")` finds two and
-        ///     answers «Trovata corrispondenza ambigua». Measured half an hour
+        ///     answers «Ambiguous match found». Measured half an hour
         ///     later, repairing the first error with the second.
         ///
         /// **Any change to the set of signatures of a method breaks
@@ -570,8 +570,8 @@ namespace Oce.Solid.Agent.Core
 
             // THE ASSEMBLY IS DESCRIBED, NOT REFUSED (entry GA1).
             //
-            // Up to 0.91.0 there was a single line here — «documento di assieme:
-            // l'assistente non lo modifica ancora» — and it returned. It was true and
+            // Up to 0.91.0 there was a single line here — «assembly document:
+            // the assistant does not modify it yet» — and it returned. It was true and
             // made the model blind: the state is the only thing it sees, and from
             // that line it could not know how many components there were, what they
             // were called, which were suppressed. It could not even
@@ -580,7 +580,7 @@ namespace Oce.Solid.Agent.Core
             // Now it is described (`AssemblyState.cs`), and what is NOT yet known how to
             // do is said in there, in full. The branch comes BEFORE the cast to
             // `IPartDoc` because an assembly is not a part and would fall into the
-            // `parte == null` below.
+            // `part == null` below.
             if (docType == (int)swDocumentTypes_e.swDocASSEMBLY)
             {
                 DescribeAssembly(model as IAssemblyDoc, data);
@@ -592,7 +592,7 @@ namespace Oce.Solid.Agent.Core
             if (partDoc == null)
             {
                 // It is neither a part, nor a drawing, nor an assembly: here nothing
-                // is guessed. Saying «di assieme» as the previous version did
+                // is guessed. Saying «of an assembly» as the previous version did
                 // would be a wrong diagnosis on a document that
                 // nobody looked at.
                 data["solid_body"] = false;
@@ -860,7 +860,7 @@ namespace Oce.Solid.Agent.Core
             // They are in two fields and not in one because they are in two different
             // places: those of the document and those of the active configuration
             // are not inherited and do not see each other. A single field,
-            // «proprieta», would be a merge that does not exist in the file,
+            // «properties», would be a merge that does not exist in the file,
             // and whoever read it back would have no way of knowing where to look.
             var document = ReadProperty(model, "");
             if (document.Count > 0) data["property"] = document;
@@ -1132,7 +1132,7 @@ namespace Oce.Solid.Agent.Core
                     // The radius is read from `CylinderParams`, which returns a
                     // vector of seven numbers: point (0-2), axis (3-5), radius
                     // in metres (6). It is the same recipe already in production
-                    // to recognise the holes in `OperazioniFori`.
+                    // to recognise the holes in `HoleOperations`.
                     double radiusMm;
                     double[] cylinderAxis;
                     // `= null` is not pedantry: `CylinderOf` assigns it with
@@ -1188,7 +1188,7 @@ namespace Oce.Solid.Agent.Core
                         // six holes on Ø90: two independent models
                         // answered **Ø79**, both with confidence 5 out of 5.
                         //
-                        // `center_mm` and not `asse_mm`: `axis` above is already
+                        // `center_mm` and not `axis_mm`: `axis` above is already
                         // the DIRECTION, and two almost homonymous fields that mean
                         // different things are the surest way to get them
                         // swapped.
@@ -1250,9 +1250,9 @@ namespace Oce.Solid.Agent.Core
                     // THE NAME IS WRITTEN ONLY ONCE, AT THE END.
                     //
                     // Writing it on every face costs: on a welded frame the
-                    // names of the features are things like «TUBO STRUTTURALE
-                    // QUADRO 80X80X5(1)», and sixty faces that come from
-                    // four features repeated them sixty times.
+                    // names of the features are things like
+                    // «TUBO STRUTTURALE QUADRO 80X80X5(1)», and sixty faces that
+                    // come from four features repeated them sixty times.
                     // Measured: the state of a four-bar frame went
                     // from under 16 KB to **18,629 characters**, and there is
                     // a bench check that watches that ceiling.
@@ -1458,7 +1458,7 @@ namespace Oce.Solid.Agent.Core
 
             // ── THE SHAPE IN ONE SENTENCE (entry V3) ─────────────────────
             //
-            // It goes LAST because it reads `dati`: the bounding box, the volume, the
+            // It goes LAST because it reads `data`: the bounding box, the volume, the
             // features and the faces must all be there already. Putting it first
             // would mean describing half a part without anybody
             // noticing — the sentence would come out all the same, only shorter.
@@ -1500,7 +1500,7 @@ namespace Oce.Solid.Agent.Core
         /// the name of a configuration for that configuration.
         ///
         /// THEY ARE READ RESOLVED. A property can be a formula
-        /// («"SW-Mass@pezzo.SLDPRT"») and then it has two values: the one written and
+        /// («"SW-Mass@part.SLDPRT"») and then it has two values: the one written and
         /// the one that comes out of it. Whoever looks at the card sees the second, and this
         /// is a description of what is seen.
         /// </summary>
@@ -1567,7 +1567,7 @@ namespace Oce.Solid.Agent.Core
         {
             try
             {
-                // Only the fallback when GetExtremePoint does not answer (Ingombro).
+                // Only the fallback when GetExtremePoint does not answer (Overall).
                 var b = ApiHelpers.ApproximateBoundingBox(body);
                 if (b == null || b.Length < 6) return null;
                 var outside = new double[6];
@@ -1653,7 +1653,7 @@ namespace Oce.Solid.Agent.Core
                     Put(entry, "hole_type", Text(() => d.FastenerType));
                     Put(entry, "size", Text(() => d.FastenerSize));
                     // THE WORKED DIAMETER, with the four-family recipe
-                    // already in production in `OperazioniFori`: which of the four
+                    // already in production in `HoleOperations`: which of the four
                     // fields is filled depends on the type of hole, and
                     // reading only one would give zero without saying so.
                     double diam = Math.Max(
@@ -1861,7 +1861,7 @@ namespace Oce.Solid.Agent.Core
         /// Whether the face is cylindrical: the radius in mm and the direction of the axis.
         ///
         /// `CylinderParams` returns seven numbers — point (0-2), axis (3-5),
-        /// radius in METRES (6). The recipe is copied from `OperazioniFori`, which
+        /// radius in METRES (6). The recipe is copied from `HoleOperations`, which
         /// already uses it in production to recognise the holes: it is reused instead of
         /// rewritten, because two copies diverge at the first edit.
         /// </summary>
@@ -1946,7 +1946,7 @@ namespace Oce.Solid.Agent.Core
         ///   ICurve.LineParams -> Object    (point 0-2, direction 3-5)
         ///   ICurve.CircleParams -> Object  (centre 0-2, axis 3-5, radius 6)
         ///
-        /// Returns false if the edge is NOT straight; in that case `raggio` is
+        /// Returns false if the edge is NOT straight; in that case `radius` is
         /// the radius of the circle, when it is a circle.
         /// </summary>
         private static bool EdgeDirection(IEdge edge, out string along, out double radius)
@@ -2240,7 +2240,7 @@ namespace Oce.Solid.Agent.Core
             // could not even be tested.
             //
             // `ICurve.GetLength3` between the two parameters of the edge: it is already
-            // used and measured in `OperazioniSaldatura` for the perimeter. If it does not
+            // used and measured in `WeldmentOperations` for the perimeter. If it does not
             // answer we go back to the chord, which for a segment is the same
             // thing; if not even the ends can be read, -1: «I do not know», not
             // «zero long» (entry Z-C8).
@@ -2335,8 +2335,8 @@ namespace Oce.Solid.Agent.Core
             { ["uid"] = itemName, ["kind"] = typ };
 
             // THE UID OF A FEATURE IS ITS NAME, and a name
-            // can be renamed. Whoever renames «Taglio1» to «Foro cavo» and
-            // then calls another feature «Taglio1» has just
+            // can be renamed. Whoever renames «Cut1» to «Hollow hole» and
+            // then calls another feature «Cut1» has just
             // transferred the identifier from one thing to another,
             // and nobody notices.
             //

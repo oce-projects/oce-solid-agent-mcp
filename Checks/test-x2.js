@@ -8,14 +8,14 @@
 //  `build`, and that the refusal really comes out of the client's door.
 //
 //  That wiring has already had a defect, half an hour after being written:
-//  the signature was not updated after `build`, so `guarda -> disegna ->
-//  disegna` stopped at the second accusing a part that the bridge
+//  the signature was not updated after `build`, so `look -> draw ->
+//  draw` stopped at the second accusing a part that the bridge
 //  itself had changed. It is the false positive that entry X2 put among the risks, and
 //  no contract check could see it.
 //
 //  THIS PROBE TESTS THE TWO HALVES, AND THE SECOND COUNTS AS MUCH AS THE FIRST:
 //
-//    1. `guarda -> disegna -> disegna` passes. No false positive.
+//    1. `look -> draw -> draw` passes. No false positive.
 //    2. the FILE is touched from outside, and the following `build` stops saying what
 //       has changed.
 //
@@ -28,7 +28,7 @@
 //  23/9/2026: after `save_document` the open document keeps
 //  answering `path: ""`. The file is on disk, but the session does not
 //  bind to it, so in the signature there is no date to compare - and the
-//  probe said «non rileva» on a half that it was not even looking at.
+//  probe said «does not detect» on a half that it was not even looking at.
 //  *A probe that tests the wrong thing is worse than no probe: it gives a
 //  red that sends one looking for the defect where it is not.*
 //
@@ -48,7 +48,7 @@ const NEW = path.join(ROOT, 'Checks', 'NewPart', 'bin', 'NewPart.exe');
 const CHANGE = path.join(ROOT, 'Checks', 'ChangeByHand', 'bin', 'ChangeByHand.exe');
 const CLOSE = path.join(ROOT, 'Checks', 'CloseLeftovers', 'bin', 'CloseLeftovers.exe');
 const WORK = path.join(ROOT, 'Bench', 'work');
-const PART = path.join(WORK, 'prova_x2.SLDPRT');
+const PART = path.join(WORK, 'probe_x2.SLDPRT');
 
 let trouble = 0;
 function ok(itemName, real, detail) {
@@ -79,8 +79,8 @@ function openBridge() {
     }
   });
   return {
-    processo: p,
-    chiedi(body, waitMs) {
+    proc: p,
+    ask(body, waitMs) {
       return new Promise((resolve, refuse) => {
         const id = body.id;
         const tempo = setTimeout(() => {
@@ -94,7 +94,7 @@ function openBridge() {
         p.stdin.write(JSON.stringify(body) + '\n');
       });
     },
-    chiudi() { try { p.stdin.end(); } catch (e) {} try { p.kill(); } catch (e) {} },
+    close() { try { p.stdin.end(); } catch (e) {} try { p.kill(); } catch (e) {} },
   };
 }
 
@@ -111,16 +111,16 @@ function call(itemName, args) {
 // EXPECTED KEYS (W3.1-bis.2, item 5). An answer to tools/call carries
 // `result.content[0].text` (the MCP protocol). The first version read an
 // answer without it (a JSON-RPC `error`, or a renamed field) as "no error,
-// empty text", and every `!r.male` check passed on it. Now such an answer is
+// empty text", and every `!r.failed` check passed on it. Now such an answer is
 // a failure of its own, whatever the check that reads it expects.
 function read(r) {
   const c = r && r.result && r.result.content;
   if (!Array.isArray(c) || c.length === 0 || !c[0] || typeof c[0].text !== 'string') {
     trouble++;
     console.log('  NO   the answer has no result.content[0].text: ' + String(JSON.stringify(r)).slice(0, 160));
-    return { testo: '', male: true };
+    return { text: '', failed: true };
   }
-  return { testo: c[0].text, male: !!r.result.isError };
+  return { text: c[0].text, failed: !!r.result.isError };
 }
 
 // node Checks\test-x2.js --self-test: the reading above, seen failing on
@@ -162,39 +162,39 @@ async function main() {
 
   const bridge = openBridge();
   try {
-    await bridge.chiedi({
+    await bridge.ask({
       jsonrpc: '2.0', id: ++sequentialId, method: 'initialize',
       params: { protocolVersion: '2024-11-05', capabilities: {},
-                clientInfo: { name: 'prova-x2', version: '1' } },
+                clientInfo: { name: 'probe-x2', version: '1' } },
     }, 120000);
 
     console.log('=== 1. inspect -> build -> build, without false positives');
 
-    let r = read(await bridge.chiedi(call('inspect_part', {})));
-    ok('inspect_part risponde', !r.male, r.male ? r.testo.slice(0, 110) : '');
+    let r = read(await bridge.ask(call('inspect_part', {})));
+    ok('inspect_part answers', !r.failed, r.failed ? r.text.slice(0, 110) : '');
 
-    r = read(await bridge.chiedi(call('build', {
+    r = read(await bridge.ask(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 120, width_mm: 80, thickness_mm: 10 } }],
     }), 180000));
-    ok('the first build passes', !r.male, r.male ? r.testo.slice(0, 160) : '');
+    ok('the first build passes', !r.failed, r.failed ? r.text.slice(0, 160) : '');
 
     // THE LINE THAT COUNTS. The first `build` changed the volume: if the signature
     // had not been updated, this second one would stop accusing a
     // hand modification that did not happen. It is the false positive that entry X2
     // put among the risks, and it really happened for half an hour.
-    r = read(await bridge.chiedi(call('build', {
+    r = read(await bridge.ask(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 30, width_mm: 30, thickness_mm: 5 } }],
     }), 180000));
-    ok('the second build passes (no false positive)', !r.male,
-       r.male ? r.testo.split('\n')[0].slice(0, 160) : '');
+    ok('the second build passes (no false positive)', !r.failed,
+       r.failed ? r.text.split('\n')[0].slice(0, 160) : '');
 
     console.log('');
     console.log('=== 2. someone changes the part from outside, and the next build stops');
 
-    r = read(await bridge.chiedi(call('inspect_part', {})));
-    ok('inspect_part takes the signature', !r.male, r.male ? r.testo.slice(0, 110) : '');
+    r = read(await bridge.ask(call('inspect_part', {})));
+    ok('inspect_part takes the signature', !r.failed, r.failed ? r.text.slice(0, 110) : '');
 
     // THE EXTERNAL MODIFICATION. Another process, which the bridge does not know,
     // extrudes a small block in the active document.
@@ -202,36 +202,36 @@ async function main() {
     try {
       saidByChange = execFileSync(CHANGE, ['15'], { encoding: 'utf8' }).trim();
     } catch (e) {
-      saidByChange = "(esploso) " + (e.stdout || e.message || "").toString().trim();
+      saidByChange = "(exploded) " + (e.stdout || e.message || "").toString().trim();
     }
     ok('someone changed the part from outside',
        saidByChange.indexOf('volume:') >= 0 &&
        saidByChange.indexOf("NOTHING CHANGED") < 0,
        saidByChange.split('\n').pop());
 
-    r = read(await bridge.chiedi(call('build', {
+    r = read(await bridge.ask(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 20, width_mm: 20, thickness_mm: 5 } }],
     }), 180000));
-    ok('the next build stops', r.male, r.testo.split('\n')[0].slice(0, 100));
+    ok('the next build stops', r.failed, r.text.split('\n')[0].slice(0, 100));
     ok('and says WHAT changed',
-       r.testo.indexOf('the volume') >= 0 || r.testo.indexOf('features') >= 0,
-       r.testo.split('\n')[0].slice(0, 130));
-    ok('and says what to do', r.testo.indexOf('inspect_part') >= 0, '');
+       r.text.indexOf('the volume') >= 0 || r.text.indexOf('features') >= 0,
+       r.text.split('\n')[0].slice(0, 130));
+    ok('and says what to do', r.text.indexOf('inspect_part') >= 0, '');
 
     // AND AFTER READING AGAIN, WE START OVER. A refusal that cannot be left is not
     // a defence, it is a wall: entry X2 asks to stop WITH THE CRITERION, and
     // the criterion says what to do to carry on.
-    r = read(await bridge.chiedi(call('inspect_part', {})));
-    ok('it reads again', !r.male, '');
-    r = read(await bridge.chiedi(call('build', {
+    r = read(await bridge.ask(call('inspect_part', {})));
+    ok('it reads again', !r.failed, '');
+    r = read(await bridge.ask(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 20, width_mm: 20, thickness_mm: 5 } }],
     }), 180000));
-    ok('and after reading again it goes on', !r.male,
-       r.male ? r.testo.split('\n')[0].slice(0, 130) : '');
+    ok('and after reading again it goes on', !r.failed,
+       r.failed ? r.text.split('\n')[0].slice(0, 130) : '');
   } finally {
-    bridge.chiudi();
+    bridge.close();
   }
 
   console.log('');

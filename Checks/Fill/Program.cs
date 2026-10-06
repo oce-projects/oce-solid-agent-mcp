@@ -9,8 +9,8 @@ using SolidWorks.Interop.swconst;
 //  ProbeFill — fill pattern and table pattern (TODO W1.1), rewritten by the review of 28/9/2026
 // =============================================================================
 //
-//  WHAT THE SEVEN BLOCKED VARIANTS REALLY DID (SbloccoProva,
-//  SbloccoProva2, SbloccoProva3, 16/9/2026, never in the repo): all seven called
+//  WHAT THE SEVEN BLOCKED VARIANTS REALLY DID (the three historical probes of
+//  16/9/2026, never in the repo): all seven called
 //  CreateDefinition(swFmFillPattern) FIRST, with NOTHING selected, and then
 //  wrote the object properties (PatternFillBoundaryArray, PatternFeatureArray,
 //  PatternDirection) on the data object. Not one pre-selected with marks.
@@ -55,17 +55,17 @@ using SolidWorks.Interop.swconst;
 //  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    PROBE FILL (W1.1) — SOLIDWORKS 29.5.1
-//          selezionati 3 (marca 4: 1, 5: 2, 1: 1, 16384: 1)
-//      A  ricetta ufficiale: 4 + 1 + 16384 PRIMA di CreateDefinition  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (fori in piu' 14), corpi 1 -> 1, feature in errore 0
-//          selezionati 2 (marca 4: 1, 5: 1, 1: 0, 16384: 1)
-//      A2 come A, senza direzione  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (fori in piu' 0), corpi 1 -> 1, feature in errore 0
-//          selezionati 3 (marca 4: 1, 5: 2, 1: 1, 16384: 1)
-//      C  stesse selezioni, ma DOPO CreateDefinition  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (fori in piu' 14), corpi 1 -> 1, feature in errore 0
-//          selezionati 3 (marca 4: 1, 5: 2, 1: 2, 16384: 1)
-//      D  faccia del foro con marca 5 (FACES)  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (fori in piu' 14), corpi 1 -> 1, feature in errore 0
-//      B  controllo: via storica, proprieta' scritte, niente selezione  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (fori in piu' 0), corpi 1 -> 1, feature in errore 0
-//      T  tabella: seme marca 4, PointArray piatto  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (fori in piu' 0), corpi 1 -> 1, feature in errore 0
-//    RIEPILOGO: 3/6 tentativi hanno creato una feature.
+//          selected 3 (mark 4: 1, 5: 2, 1: 1, 16384: 1)
+//      A  official recipe: 4 + 1 + 16384 BEFORE CreateDefinition  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
+//          selected 2 (mark 4: 1, 5: 1, 1: 0, 16384: 1)
+//      A2 as A, without direction  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (extra holes 0), bodies 1 -> 1, features in error 0
+//          selected 3 (mark 4: 1, 5: 2, 1: 1, 16384: 1)
+//      C  same selections, but AFTER CreateDefinition  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
+//          selected 3 (mark 4: 1, 5: 2, 1: 2, 16384: 1)
+//      D  hole face with mark 5 (FACES)  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
+//      B  control: historical route, properties written, no selection  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (extra holes 0), bodies 1 -> 1, features in error 0
+//      T  table: seed mark 4, flat PointArray  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (extra holes 0), bodies 1 -> 1, features in error 0
+//    SUMMARY: 3/6 attempts created a feature.
 // =============================================================================
 
 internal static class Program
@@ -105,7 +105,7 @@ internal static class Program
                 {
                     double v0 = Volume(model.Doc); int b0 = Bodies(model.Doc); var before = FeatureKeys(model.Doc);
                     IFeature f = null; string raised = "";
-                    try { f = at.Value(model); } catch (Exception ex) { while (ex.InnerException != null) ex = ex.InnerException; raised = " ALZA: " + ex.Message; }
+                    try { f = at.Value(model); } catch (Exception ex) { while (ex.InnerException != null) ex = ex.InnerException; raised = " RAISED: " + ex.Message; }
                     try { model.Doc.EditRebuild3(); } catch { }
                     double v1 = Volume(model.Doc);
                     bool isNew = f != null && !before.Contains(f.Name + "|" + f.GetTypeName2());
@@ -115,7 +115,7 @@ internal static class Program
                               ", bodies " + b0 + " -> " + Bodies(model.Doc) + ", features in error " + InError(model.Doc);
                 }
             }
-            catch (Exception ex) { outcome = "ECCEZIONE " + ex.Message; }
+            catch (Exception ex) { outcome = "EXCEPTION " + ex.Message; }
             finally { if (model != null && model.Doc != null && !keep) { try { _sw.CloseDoc(model.Doc.GetTitle()); } catch { } } }
             Console.WriteLine("  " + at.Key + "  ->  " + outcome);
         }
@@ -134,7 +134,7 @@ internal static class Program
         if (!propertiesRoute)
         {
             string s = SelectMarked(m, withDirection, faceAsObject);
-            if (s != null) { Console.WriteLine("      selezione: " + s); return null; }
+            if (s != null) { Console.WriteLine("      selection: " + s); return null; }
         }
         if (selectBefore) data = fm.CreateDefinition((int)swFeatureNameID_e.swFmFillPattern) as IFillPatternFeatureData;
         if (data == null) { Console.WriteLine("      CreateDefinition(105) -> null"); return null; }

@@ -41,7 +41,7 @@ namespace Oce.Solid.Agent.Core
     /// column**. Looking for the column «QTY» by position, or by header,
     /// would mean summing the wrong column on a table template
     /// different from the house one — and a cut list with the quantities of the
-    /// column «lunghezza» is plausible, gets printed, and in the workshop the
+    /// column «length» is plausible, gets printed, and in the workshop the
     /// wrong number of bars is cut.
     ///
     /// ── AND THE COMPARISON, WHICH IS THE POINT ──────────────────────────
@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent.Core
 
             // THE VIEW LIKE THE OTHER DRAWING OPERATIONS: by uid (V1, V2...) or
             // by name. Up to 0.124.0 only by name — «V1», as the state calls it,
-            // answered «non c'e'» (seen by the first bench case that
+            // answered «it is not there» (seen by the first bench case that
             // called it, 26/9/2026).
             string reason;
             var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
@@ -419,7 +419,7 @@ namespace Oce.Solid.Agent.Core
             }
             measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
 
-            // ── 3. DOVE (OperazioniPostoSulFoglio) ──────────────────────────
+            // ── 3. DOVE (SheetPlacementOperations) ──────────────────────────
             string tableName = null;
             try { tableName = (table.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
             var sheet = ReadSheet(drawing, null, tableName);

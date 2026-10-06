@@ -88,7 +88,7 @@ if (-not $todo) {
 }
 $text = Get-Content $todo -Raw
 
-# `ITipo::Membro` or `ITipo.Membro`. Only what starts with a
+# `IType::Member` or `IType.Member`. Only what starts with a
 # capital I followed by a capital is taken: it is the convention of the SOLIDWORKS COM interfaces,
 # and without that filter half of the prose would be collected.
 # THE MEMBER IS THE LAST IDENTIFIER BEFORE THE PARENTHESIS.
@@ -98,7 +98,7 @@ $text = Get-Content $todo -Raw
 #
 #     IModelDocExtension :: SFSymbol InsertSurfaceFinishSymbol3(Int32 ...)
 #
-# that is `Tipo :: Ritorno Metodo(`. Result: twenty-three "missing members"
+# that is `Type :: Return Method(`. Result: twenty-three "missing members"
 # that were **return types** -- IView.Object, IDrawingDoc.Void,
 # IFeatureManager.Feature. *A probe that shouts twenty-three false alarms is
 # read by nobody*, and it is the way in which a check dies.
@@ -107,13 +107,13 @@ $text = Get-Content $todo -Raw
 # property without a parenthesis.
 $foundOnes = [ordered]@{}
 
-# 1. `ITipo :: [Ritorno] Metodo(`
+# 1. `IType :: [Return] Method(`
 foreach ($m in [regex]::Matches($text, '\b(I[A-Z][a-z]\w*)\s*(?:::|\.)\s*(?:[A-Za-z_]\w*\s+)?([A-Za-z_]\w*)\s*\(')) {
     $key = $m.Groups[1].Value + "." + $m.Groups[2].Value
     if (-not $foundOnes.Contains($key)) { $foundOnes[$key] = $true }
 }
 
-# 2. `ITipo.Property` without a parenthesis. The filter `I[A-Z][a-z]` keeps out
+# 2. `IType.Property` without a parenthesis. The filter `I[A-Z][a-z]` keeps out
 #    the acronyms written in prose -- «ISO», «IGES» -- which are not interfaces.
 # Two negations, and both are needed:
 #   (?!\s*\()            it is not a method -- that is taken by form 1

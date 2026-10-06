@@ -88,7 +88,7 @@ namespace Shared
             // UTF-8 `StreamWriter` writes the preamble: three bytes, `EF BB BF`,
             // before the first line.
             //
-            // The bridge answered `-32700: Primitiva JSON non valida`, and it was
+            // The bridge answered `-32700: Invalid JSON primitive`, and it was
             // true — what reached it was not JSON, it was three bytes and then
             // some JSON. The symptom, though, looked like something else, «initialize does not
             // respond», because the error line does not carry the id of the

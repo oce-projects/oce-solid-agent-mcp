@@ -2,7 +2,7 @@
   "name": "dimensions_arrive_in_the_pdf",
   "family": "drawing",
   "why": "ENTRY Z-C9, the «objects» half. The counters count in the document: a dimension on a level that does not print, or in a hidden view, counts and does not reach the workshop. export_pdf now re-reads the text of the PDF and demands that every number printed by the dimensions be there at least as many times as they print it.",
-  "defect_caught": "The check that lights up on a good drawing (a split number, the comma in place of the decimal point, a symbol like <MOD-DIAM> counted as a number). The opposite defect — the check that does NOT see a hidden dimension — was caught by the little test rig (prova0089 pdfq, 26/9/2026): the callout «Ø12 PASSANTE» moved to a non-printing level, and the PDF says «12 (on the drawing 1, in the PDF 0)». The bench has no operation that moves a dimension to another level.",
+  "defect_caught": "The check that lights up on a good drawing (a split number, the comma in place of the decimal point, a symbol like <MOD-DIAM> counted as a number). The opposite defect — the check that does NOT see a hidden dimension — was caught by the little test rig (probe0089 pdfq, 26/9/2026): the callout «Ø12 PASSANTE» moved to a non-printing level, and the PDF says «12 (on the drawing 1, in the PDF 0)». The bench has no operation that moves a dimension to another level.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

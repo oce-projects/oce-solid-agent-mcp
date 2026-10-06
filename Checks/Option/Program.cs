@@ -71,7 +71,7 @@ namespace Checks.Option
             }
             catch { }
 
-            Console.WriteLine("opzione " + number + " prima:");
+            Console.WriteLine("option " + number + " before:");
             Console.WriteLine("  application: " + (appOk ? app.ToString() : "not readable"));
             Console.WriteLine("  document    : " +
                 (doc == null ? "no active document" : docOk ? document.ToString() : "not readable"));

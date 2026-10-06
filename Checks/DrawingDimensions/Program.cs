@@ -41,7 +41,7 @@ namespace Checks.DrawingDimensions
                 return 2;
             }
             _drawing = (IDrawingDoc)_doc;
-            Console.WriteLine("tavola: " + _doc.GetTitle());
+            Console.WriteLine("drawing: " + _doc.GetTitle());
 
             // 1. THE VIEWS, AND WHAT THEY ALREADY HAVE.
             var viewNames = new List<string>();
@@ -132,14 +132,14 @@ namespace Checks.DrawingDimensions
             for (int source = 0; source <= 4; source++)
             {
                 int f = source;
-                Test("v3 fonte=" + f + " marcate", () => V3(f, marked, true, false));
-                Test("v3 fonte=" + f + " generico", () => V3(f, generic, true, false));
+                Test("v3 source=" + f + " marked", () => V3(f, marked, true, false));
+                Test("v3 fonte=" + f + " generic", () => V3(f, generic, true, false));
             }
 
             // The real values of the constants, because a wrong enum gives zero
             // without saying anything.
-            Console.WriteLine("  (fonte=" + fromModel + " marcate=" + marked +
-                " notMarked=" + notMarked + " generico=" + generic + ")");
+            Console.WriteLine("  (source=" + fromModel + " marked=" + marked +
+                " notMarked=" + notMarked + " generic=" + generic + ")");
 
             // THE OLD VERSIONS, which have the parameter `AllTypes`: the one
             // that 3 removed. With AllTypes true the type mask no longer

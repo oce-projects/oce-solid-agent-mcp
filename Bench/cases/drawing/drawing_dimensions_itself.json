@@ -7,7 +7,7 @@
 
   "defect_caught": "A dimension that **appears** and measures something else. On paper it reads the same as a right one, and in the workshop it is cut to the wrong number. That is why the case is not satisfied with `dimensions_placed`: it demands the **millimetres**, and they are those of the part — **120 the length and 10 the thickness**, the two dimensions of the outline this view shows.",
 
-  "_this_line_said_5_and_it_was_wrong": "Up to 22/9/2026 the line above said «120 the plate, 5 the chamfer». The 5 came from a probe made on ANOTHER part, and the expectation of step 6 had already been corrected to 10 with the explanation written beside it — but this sentence had not. So the case CHECKED 10 and DECLARED 5: green every time, and whoever read it without getting to the end learned a false number. It is the defect of documents (RAG note `82c_il_difetto_che_non_da_errore_nei_documenti`) inside the file that teaches that very defect.",
+  "_this_line_said_5_and_it_was_wrong": "Up to 22/9/2026 the line above said «120 the plate, 5 the chamfer». The 5 came from a probe made on ANOTHER part, and the expectation of step 6 had already been corrected to 10 with the explanation written beside it — but this sentence had not. So the case CHECKED 10 and DECLARED 5: green every time, and whoever read it without getting to the end learned a false number. It is the defect of documents (RAG note `82c`) inside the file that teaches that very defect.",
 
   "start": { "new_part": true },
   "steps": [
@@ -66,7 +66,7 @@
           "why": "the first dimension is the smallest — 10 mm, the thickness — and goes first: «the dimension lines are to be drawn in progressive order, from the smaller to the larger, moving away from the outline of the figures». On this part the smallest is the vertical one, so this expectation proves the order AND the classification together" },
 
         { "what": "measurements.contour_grown", "equal_to": "no",
-          "_the_code_does_the_comparison": "The first draft of this expectation used an operator `uguale_a_campo` to compare `contour_view_after_mm` with `contour_view_mm`. **That operator does not exist**: the evaluator of the bench compares a measure with a declared value, not two measures with each other. An expectation written with an invented operator is not a weaker expectation: it is a line the bench cannot read. The comparison was moved inside the operation, which answers «yes», «no» or «unknown» — and «unknown» when one of the two readings is missing, because a comparison that could not be made is not a comparison that went well.",
+          "_the_code_does_the_comparison": "The first draft of this expectation used an operator `equal_to_field` to compare `contour_view_after_mm` with `contour_view_mm`. **That operator does not exist**: the evaluator of the bench compares a measure with a declared value, not two measures with each other. An expectation written with an invented operator is not a weaker expectation: it is a line the bench cannot read. The comparison was moved inside the operation, which answers «yes», «no» or «unknown» — and «unknown» when one of the two readings is missing, because a comparison that could not be made is not a comparison that went well.",
           "why": "THE OUTLINE DOES NOT GROW with the dimensions attached to the view. If it grew, every following dimension would run further away than the previous one and nobody would link the two things to the placement. Measured on 23/9: [28.56, 218.55, 160.44, 240.43] before and after" },
 
         { "what": "measurements.dimensions_mm", "includes": ["120"],
@@ -79,7 +79,7 @@
           "why": "THE COUNTERPART, and it is the one that says **in which view** it dimensioned. 80 is the width of the plate: it is seen in the view from above, not in this one. If it appeared, the operation would have dimensioned **another view** — and the two expectations above would be green all the same, because there too there is a 120. Without this line, «contains 120» does not say where." },
 
         { "what": "measurements.what_it_does_not_check", "includes": ["overlapping_texts"],
-          "_the_root_not_the_whole_word": "This expectation looked for the root «accavall», not the whole word (measured on 23/9: «accavallano» -> «si accavalla»). On 26/9 the text stopped conjugating it and cites the name of the field, «overlapping_texts»: window 2 translated that quotation, and with it the Italian root. The name cited is today the most stable proof: it is what the code writes literally.",
+          "_the_root_not_the_whole_word": "This expectation looked for the stem of a word, not the whole word (measured on 23/9: the stem matched the conjugated form the text used). On 26/9 the text stopped conjugating it and cites the name of the field, «overlapping_texts»: window 2 translated the text, and the stem with it. The name cited is today the most stable proof: it is what the code writes literally.",
           "why": "the blindness travels with the answer: the operation puts RIGHT dimensions, not a NICE drawing, and does not look at whether they overlap the drawing. Whoever reads this answer may not have read the catalogue" },
 
         { "what": "state.dimensions_orphan_total", "equal_to": 0,

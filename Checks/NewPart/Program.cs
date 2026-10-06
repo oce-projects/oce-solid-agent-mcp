@@ -43,7 +43,7 @@ namespace Checks.NewPart
                 Console.Error.WriteLine("No part template (.prtdot) found.");
                 return 1;
             }
-            Console.WriteLine("modello: " + model);
+            Console.WriteLine("model: " + model);
 
             var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
             if (doc == null)

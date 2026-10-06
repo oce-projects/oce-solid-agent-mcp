@@ -2,7 +2,7 @@
  {
   "operation": "set_dimension",
   "arguments": {
-   "dimension": "D42@NonEsiste",
+   "dimension": "D42@DoesNotExist",
    "value_mm": 10
   }
  }

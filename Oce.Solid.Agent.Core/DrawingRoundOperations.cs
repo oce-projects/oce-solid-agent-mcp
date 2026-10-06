@@ -11,7 +11,7 @@ namespace Oce.Solid.Agent.Core
     /// diameters, in the longitudinal view of a bushing, a pin, a
     /// stepped shaft.
     ///
-    /// ── WHAT WAS MEASURED FIRST (27/9/2026, `prova0089 tornito`..`tornito8`) ──
+    /// ── WHAT WAS MEASURED FIRST (27/9/2026, `probe0089 turned`..`turned8`) ──
     ///
     /// On the stepped shaft of the «revolve» example (Ø30x40, Ø20x30,
     /// Ø34x20), in the front view:
@@ -157,7 +157,7 @@ namespace Oce.Solid.Agent.Core
                 // out): the dimension is on the sheet and its value cannot be read
                 // back. It keeps its place (the next length goes one step
                 // further out), its row with the value unknown, and its key in
-                // `gia`: another view of the sheet must not dimension it again.
+                // `done`: another view of the sheet must not dimension it again.
                 if (q != null && !CorrectReread(model, q, expectedValueMm, false, what, failed)) continue;
                 if (horizontal) below++; else sideways++;
                 var described = DescribeDimension(q, f.Item2.Index);
@@ -183,8 +183,8 @@ namespace Oce.Solid.Agent.Core
             //
             // THE GENERATRICES ARE READ AGAIN BEFORE EVERY DIMENSION: they are objects of the
             // view, not of the model, and after a new dimension the ones read before
-            // may no longer be selectable (measured on 27/9/2026, `orvert`: the
-            // second pair «presa True/False»). The dimension is a declared HORIZONTAL or
+            // may no longer be selectable (measured on 27/9/2026, `horvert`: the
+            // second pair «taken True/False»). The dimension is a declared HORIZONTAL or
             // VERTICAL one (AddVerticalDimension2 for a horizontal axis):
             // on two generatrices of the same face SOLIDWORKS puts the
             // Ø in by itself. `Extension.AddDimension` with two entities makes nothing be born.
@@ -221,7 +221,7 @@ namespace Oce.Solid.Agent.Core
                 // BORN WITHOUT ITS OBJECT (N80), as the lengths above: the row
                 // with the value unknown, not in `round_diameters_mm` (which lists
                 // the diameters read back with their Ø), and the keys of this
-                // cylinder in `gia`, so that it is neither dimensioned again nor
+                // cylinder in `done`, so that it is neither dimensioned again nor
                 // reported as not reached.
                 if (q != null && !CorrectReread(model, q, expectedValueMm, true, what, failed)) continue;
                 var described = DescribeDimension(q, -1);
@@ -401,7 +401,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The generatrices of the view, grouped by face (radius and ends
         /// along the axis). FIRST IT IS REDRAWN AND THE FACE IS ASKED SEVERAL TIMES:
-        /// measured on 27/9/2026 (`prova0089 gendiag`), `GetFace` answers null
+        /// measured on 27/9/2026 (`probe0089 gendiag`), `GetFace` answers null
         /// on all of them until the drawing is redrawn and the question repeated.
         /// </summary>
         private static Generatrices ReadGeneratrices(IModelDoc2 model, IView view)
@@ -409,7 +409,7 @@ namespace Oce.Solid.Agent.Core
             var g = new Generatrices();
             // OBSOLETE-MEASURED: stepped_shaft_dimensioned_from_the_side — IModelDoc2~GraphicsRedraw2.html:
             // "Obsolete. Superseded by IModelView::GraphicsRedraw". The redraw is what makes
-            // ISilhouetteEdge.GetFace answer (null on every edge until then: probe prova0089
+            // ISilhouetteEdge.GetFace answer (null on every edge until then: probe probe0089
             // gendiag, 27/9/2026). The replacement was not measured here: remeasure in Z-C21.7 (N20).
             try { model.GraphicsRedraw2(); } catch { }
             try { g.All = (view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_SilhouetteEdge) as object[]) ?? new object[0]; } catch { }
@@ -460,7 +460,7 @@ namespace Oce.Solid.Agent.Core
         /// true, and each caller describes it instead of taking it for «not
         /// born». Until library 0.145.0 this read «q == null || not grown» and
         /// answered null for both, so the three callers reported as missing a
-        /// dimension that was on the sheet and left its key out of `gia`: another
+        /// dimension that was on the sheet and left its key out of `done`: another
         /// view, or another pair of silhouette edges, could then dimension the
         /// same thing a second time.
         /// </summary>
@@ -592,7 +592,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Which face a circle of the round part borders: «plane» if one of its faces is a
         /// plane perpendicular to the axis (a head, a shoulder), otherwise
-        /// «cono» (a chamfer), «toro» (a fillet) or «altro».
+        /// «cone» (a chamfer), «torus» (a fillet) or «other».
         /// </summary>
         private static string WhatBordersTheCircle(IEdge edge, double[] axis)
         {

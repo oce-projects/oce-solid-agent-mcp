@@ -2,15 +2,17 @@
 // API help marks obsolete, refined (Z-C21.6).
 //
 // Usage:
-//   node Checks/obsolete-api-list.js <folder with the extracted help>
+//   node Checks/obsolete-api-list.js <folder with the extracted help> [<main folder> <obsolete folder>]
 //
 // The folder is the one where sldworksapi.chm and obsoleteapi.chm were
-// extracted (read only) during Z-C21.1: it must contain `estratto` (the pages of
-// sldworksapi.chm) and `estratto_obsoleteapi` (the pages of obsoleteapi.chm).
+// extracted (read only) during Z-C21.1: it must contain `extracted` (the pages of
+// sldworksapi.chm) and `extracted_obsoleteapi` (the pages of obsoleteapi.chm), or the
+// two folders named by the second and third argument (an extraction made before
+// the English names keeps the names it was made with).
 // The help is Dassault's and is NOT copied into this repository: only member
 // names, which are already public in the interop assemblies, end up in the TSV.
 //
-// WHY A REFINED LIST AND NOT THE RAW ONE (note-interne/audit/obsoleti.json).
+// WHY A REFINED LIST AND NOT THE RAW ONE (the audit file of the internal notes).
 // The raw list took every method or property page containing the word
 // "obsolete" or "superseded by". That catches 27 false positives, all of the
 // same shape: the page of a CURRENT member saying "the difference between this
@@ -51,8 +53,8 @@ const path = require('path');
 
 const root = process.argv[2];
 if (!root) { console.error('usage: node obsolete-api-list.js <extracted help folder>'); process.exit(2); }
-const main = path.join(root, 'estratto');
-const obsoleteGuide = path.join(root, 'estratto_obsoleteapi');
+const main = path.join(root, process.argv[3] || 'extracted');
+const obsoleteGuide = path.join(root, process.argv[4] || 'extracted_obsoleteapi');
 for (const d of [main, obsoleteGuide])
   if (!fs.existsSync(d)) { console.error('missing folder: ' + d); process.exit(2); }
 

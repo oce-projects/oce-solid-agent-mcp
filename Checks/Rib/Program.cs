@@ -9,9 +9,9 @@ using SolidWorks.Interop.swconst;
 //  ProbeRib — the rib ("rib", TODO W1.2), rewritten by the review of 28/9/2026
 // =============================================================================
 //
-//  WHAT THE HISTORICAL PROBES REALLY DID (NervaturaProva, SbloccoProva, SbloccoProva2,
-//  SbloccoProva3, 16/9/2026, never in the repo; RAG note 82zz-quinquies): EVERY InsertRib call passed IsNormToSketch: true.
-//  SbloccoProva2/3 even had the right geometry — an L bracket 60x60x10,
+//  WHAT THE HISTORICAL PROBES REALLY DID (the three probes of
+//  16/9/2026, never in the repo; RAG note 82zz-quinquies): EVERY InsertRib call passed IsNormToSketch: true.
+//  The last two even had the right geometry — an L bracket 60x60x10,
 //  50 deep, a plane at mid depth (z = 25), a diagonal (10,40)->(40,10) that
 //  touches both inner walls and lies in the void — and still asked for an
 //  extrusion NORMAL to the sketch, which on that line has nothing to hit.
@@ -42,7 +42,7 @@ using SolidWorks.Interop.swconst;
 //   L3  L bracket, as L1 but the sketch left OPEN at the call (TODO W1.2, "where to restart from")
 //   S1  shelled box 40x40x20 (guide shape), line at mid height on the Right plane, parallel, material false
 //   S2  as S1, material true                                           -> expected +720 mm3 (36 x 10 x 2)
-//   P1  plate 40x40x2 with the line 10 mm above (NervaturaProva), parallel, material false
+//   P1  plate 40x40x2 with the line 10 mm above (the first historical probe), parallel, material false
 //   P2  as P1, material true   (no walls: tells whether the region must be bounded)
 //
 //  Ground truth: a NEW feature of type "Rib" (IFeature~GetTypeName2) AND the
@@ -54,15 +54,15 @@ using SolidWorks.Interop.swconst;
 //  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    PROBE RIB (W1.2) — SOLIDWORKS 29.5.1
-//      [  -  ] L0 L, normale allo schizzo (come le sonde storiche) (atteso niente)  ->  «Schizzo2» selezionato True, Rib nessuna, volume 55000 -> 55000 (0), corpi 1 -> 1
-//      [NATA]  L1 L, parallela, materiale dritto (atteso +2700)  ->  «Schizzo2» selezionato True, Rib «Nervatura1», volume 55000 -> 57700 (+2700), corpi 1 -> 1
-//      [  -  ] L2 L, parallela, materiale girato (atteso +2700)  ->  «Schizzo2» selezionato True, Rib nessuna, volume 55000 -> 55000 (0), corpi 1 -> 1
-//      [NATA]  L3 L, parallela, schizzo lasciato APERTO (atteso +2700)  ->  schizzo aperto, nessuna selezione, Rib «Nervatura1», volume 55000 -> 57700 (+2700), corpi 1 -> 1
-//      [  -  ] S1 scatola svuotata, parallela, materiale dritto (atteso +720)  ->  «Schizzo2» selezionato True, Rib nessuna, volume 8672 -> 8672 (0), corpi 1 -> 1
-//      [NATA]  S2 scatola svuotata, parallela, materiale girato (atteso +720)  ->  «Schizzo2» selezionato True, Rib «Nervatura1», volume 8672 -> 9392 (+720), corpi 1 -> 1
-//      [  -  ] P1 piastra senza pareti, parallela, materiale dritto (atteso ?)  ->  «Schizzo2» selezionato True, Rib nessuna, volume 3200 -> 3200 (0), corpi 1 -> 1
-//      [  -  ] P2 piastra senza pareti, parallela, materiale girato (atteso ?)  ->  «Schizzo2» selezionato True, Rib nessuna, volume 3200 -> 3200 (0), corpi 1 -> 1
-//    RIEPILOGO: 3/8 casi hanno fatto nascere una «Rib».
+//      [  -  ] L0 L, normal to the sketch (like the historical probes) (expected nothing)  ->  «Schizzo2» selected True, Rib none, volume 55000 -> 55000 (0), bodies 1 -> 1
+//      [BORN]  L1 L, parallel, material straight (expected +2700)  ->  «Schizzo2» selected True, Rib «Nervatura1», volume 55000 -> 57700 (+2700), bodies 1 -> 1
+//      [  -  ] L2 L, parallel, material flipped (expected +2700)  ->  «Schizzo2» selected True, Rib none, volume 55000 -> 55000 (0), bodies 1 -> 1
+//      [BORN]  L3 L, parallel, sketch left OPEN (expected +2700)  ->  sketch open, no selection, Rib «Nervatura1», volume 55000 -> 57700 (+2700), bodies 1 -> 1
+//      [  -  ] S1 hollowed box, parallel, material straight (expected +720)  ->  «Schizzo2» selected True, Rib none, volume 8672 -> 8672 (0), bodies 1 -> 1
+//      [BORN]  S2 hollowed box, parallel, material flipped (expected +720)  ->  «Schizzo2» selected True, Rib «Nervatura1», volume 8672 -> 9392 (+720), bodies 1 -> 1
+//      [  -  ] P1 plate without walls, parallel, material straight (expected ?)  ->  «Schizzo2» selected True, Rib none, volume 3200 -> 3200 (0), bodies 1 -> 1
+//      [  -  ] P2 plate without walls, parallel, material flipped (expected ?)  ->  «Schizzo2» selected True, Rib none, volume 3200 -> 3200 (0), bodies 1 -> 1
+//    SUMMARY: 3/8 cases gave birth to a «Rib».
 // =============================================================================
 
 internal static class Program
@@ -101,8 +101,8 @@ internal static class Program
         foreach (var c in cases)
         {
             try { Run(c, keep); }
-            catch (Exception ex) { while (ex.InnerException != null) ex = ex.InnerException; c.Outcome = "ECCEZIONE " + ex.Message; }
-            Console.WriteLine((c.Born ? "  [NATA]  " : "  [  -  ] ") + c.Name + " (atteso " + c.Expected + ")  ->  " + c.Outcome);
+            catch (Exception ex) { while (ex.InnerException != null) ex = ex.InnerException; c.Outcome = "EXCEPTION " + ex.Message; }
+            Console.WriteLine((c.Born ? "  [BORN]  " : "  [  -  ] ") + c.Name + " (expected " + c.Expected + ")  ->  " + c.Outcome);
         }
         int born = cases.FindAll(x => x.Born).Count;
         Console.WriteLine();
@@ -162,7 +162,7 @@ internal static class Program
                     IsDrafted: false, DraftOutward: false, DraftAngle: 0,
                     IsNormToSketch: c.NormToSketch, IsDraftedFromWall: false);
             }
-            catch (Exception ex) { raised = " ALZA: " + ex.Message; }
+            catch (Exception ex) { raised = " RAISED: " + ex.Message; }
             if (c.LeaveOpen) { try { doc.SketchManager.InsertSketch(true); } catch { } }
             try { doc.EditRebuild3(); } catch { }
 
@@ -194,7 +194,7 @@ internal static class Program
         var sm = doc.SketchManager;
         if (shape == Shape.LBracket)
         {
-            // Same L as SbloccoProva2.Elle: front plane (XY), horizontal wall y 0..10, vertical wall x 0..10, 50 deep in Z.
+            // Same L as the second historical probe: front plane (XY), horizontal wall y 0..10, vertical wall x 0..10, 50 deep in Z.
             if (!SelectBasePlane(doc, 1)) return "front plane not selected";
             sm.InsertSketch(true);
             sm.CreateLine(0, 0, 0, 0.060, 0, 0);

@@ -580,7 +580,7 @@ function tokenizeAll(items) {
 
 // ── comments: where a file keeps them, found by the same parsers ────────────
 // The token streams above drop comments; this is the other half, used by the
-// comment translation (window-4-comments.js): every comment of a file as a
+// comment translation (a script of an earlier rename window, archived): every comment of a file as a
 // range [start, end) of the text, found by the parser and never by looking
 // for `//` in the raw text (a `//` inside a string is not a comment, and a
 // `#` inside a here-string is not one either).

@@ -1,7 +1,7 @@
 {
   "name": "fixed_is_not_mated",
   "family": "assemblies",
-  "why": "ENTRIES Z-D3, Z-D4, Z-D5. The state of an assembly said HOW MANY mates a component has, not WHICH; it did not say whether a component is a sub-assembly, hidden or transparent; and fixing or freeing a component was not possible. Measured on 27/9/2026 (prova0089 zd345): GetMates gives IMate2 with the type (swMateType_e); the transparency is in MaterialPropertyValues[7]; FixComponent/UnfixComponent on the selected component work in both directions, even on the first component, which SOLIDWORKS fixes by itself.",
+  "why": "ENTRIES Z-D3, Z-D4, Z-D5. The state of an assembly said HOW MANY mates a component has, not WHICH; it did not say whether a component is a sub-assembly, hidden or transparent; and fixing or freeing a component was not possible. Measured on 27/9/2026 (probe0089 zd345): GetMates gives IMate2 with the type (swMateType_e); the transparency is in MaterialPropertyValues[7]; FixComponent/UnfixComponent on the selected component work in both directions, even on the first component, which SOLIDWORKS fixes by itself.",
   "defect_caught": "A mate read with the wrong type (the enum by number); a component that was fixed and on re-reading is still free (FixComponent is void: it says nothing); the first component, fixed by SOLIDWORKS, that cannot be freed; a sub-assembly or a hidden component that the state does not tell apart.",
   "assembly": {
     "components": [

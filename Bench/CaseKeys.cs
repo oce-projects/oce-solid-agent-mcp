@@ -198,7 +198,7 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// The keys of a case that no context admits, each with its path
-        /// (`passi[3].attese[1].the_key`). Empty when the case is clean. Values
+        /// (`steps[3].expectations[1].the_key`). Empty when the case is clean. Values
         /// that are not objects or lists of objects are not entered: argument
         /// names belong to the catalogue, not to the case.
         /// </summary>

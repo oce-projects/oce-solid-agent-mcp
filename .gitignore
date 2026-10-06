@@ -83,8 +83,8 @@ Checks/*.local.js
 #                           Five probes check it and keep doing so from
 #                           here; on a clone that does not have it they stop saying
 #                           that they did not check (Checks/where-is-the-todo.js).
-#   CONFRONTO.md            the comparison with someone else's project, by name.
-#   PROVE-INSTALLATORE.md   the results of ONE acceptance session of
+#   the comparison file     the comparison with someone else's project, by name.
+#   the acceptance file     the results of ONE acceptance session of
 #                           14/9/2026, stopped at Installer.exe 0.7.1.
 #
 # WITHOUT THIS LINE THE FIRST `git add -A` PUTS THEM BACK IN. And it is exactly

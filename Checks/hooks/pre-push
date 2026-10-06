@@ -5,7 +5,7 @@
 # WHY A HOOK AND NOT A LINE IN A LIST.
 #
 # On 14 September 2026 `check-publishability.ps1` already existed, was already
-# right, and one minute before the first push said «Pulito» about the tree while the
+# right, and one minute before the first push said «Clean» about the tree while the
 # history still carried a network path in 155 places over 41 commits. The
 # check did not fail: what failed was that somebody ran it.
 #
@@ -105,9 +105,8 @@ fi
 # self-test that feeds it fake cases, one per way of failing, and expects red
 # where it must and green where it must: token-stream.js (the token streams
 # of C#, JavaScript and PowerShell), expected-keys-test.js (every JSON reader
-# of the checks exits 1 when an expected key is missing), same-il.ps1 (the
-# disassembled assemblies) and name-map-extract.js (the checks of the name
-# map of W3.1-bis.3). A self-test that cannot run on this machine (no
+# of the checks exits 1 when an expected key is missing) and same-il.ps1 (the
+# disassembled assemblies). A self-test that cannot run on this machine (no
 # Roslyn, no ildasm: exit 2) is said and does not stop the push, for the same
 # reason the interop probes are not here; one that runs and is not as
 # expected does.
@@ -131,17 +130,13 @@ net_check() {
 net_check token-stream.js node "$here/../language/token-stream.js" --self-test || exit 1
 net_check expected-keys-test.js node "$here/../expected-keys-test.js" || exit 1
 net_check same-il.ps1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$here/../language/same-il.ps1" -SelfTest || exit 1
-net_check name-map-extract.js node "$here/../language/name-map-extract.js" --self-test || exit 1
 
-# THE LANGUAGE GATE (entry W3.1-bis.1). The Italian in the repository may go
-# down, never up. The CI is the real gate; this runs the same script on the
-# commits being PUSHED (read from git, not from the working tree, so work not
-# yet committed changes nothing): every commit against its parent, with the
-# rules of the parent, and a raise only with the trailer
-# "Language-Baseline-Raise:" on the commit that raises. Then, on each pushed
-# tip, --tighten: if the Italian went down and baseline.json was not lowered,
-# the push stops until the lower baseline is committed, so the ratchet closes
-# on what was just translated.
+# THE LANGUAGE GATE (entry W3.1-bis.1, closed in W3.1-bis.11). The repository
+# is English: 0 outside the signed exceptions, blocking. The CI is the real
+# gate; this runs the same script on the tip being PUSHED (read from git, not
+# from the working tree, so work not yet committed changes nothing). A change
+# to the gate itself needs the trailer "Language-Gate-Config-Change:" on its
+# commit.
 language_gate="$here/../language/detect-italian.js"
 language_step="$here/../../.github/steps/language-gate.ps1"
 if [ ! -f "$language_gate" ] || [ ! -f "$language_step" ]; then
@@ -160,21 +155,8 @@ echo "$pushed_refs" | while read -r local_ref local_sha remote_ref remote_sha; d
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$language_step" -Head "$local_sha" -Base "$remote_sha"
     if [ $? -ne 0 ]; then
         echo "" >&2
-        echo "pre-push: STOPPED. The language gate says above which commit grew (or why it" >&2
-        echo "cannot run). New text is written in English." >&2
-        exit 1
-    fi
-    node "$language_gate" --rev "$local_sha" --config-rev "$local_sha" --baseline "git:$local_sha" --tighten --quiet
-    gate_exit=$?
-    if [ $gate_exit -eq 3 ]; then
-        echo "" >&2
-        echo "pre-push: STOPPED. The Italian went down at $local_sha but Checks/language/baseline.json" >&2
-        echo "was not lowered: run node Checks/language/detect-italian.js --tighten, commit, push again." >&2
-        exit 1
-    fi
-    if [ $gate_exit -ne 0 ]; then
-        echo "" >&2
-        echo "pre-push: STOPPED. The tree of $local_sha is not within its own baseline (see above)." >&2
+        echo "pre-push: STOPPED. The language gate says above what is left outside the signed" >&2
+        echo "exceptions, or which entry waits for the owner's signature (or why it cannot run)." >&2
         exit 1
     fi
 done || exit 1

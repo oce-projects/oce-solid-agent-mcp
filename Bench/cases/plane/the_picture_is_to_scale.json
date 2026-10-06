@@ -1,7 +1,7 @@
 {
   "name": "the_picture_is_to_scale",
   "family": "plane",
-  "why": "ENTRY Z-F5. The most frequent input in a small workshop is a photo or a pen sketch: the image must be put into a sketch, TO SCALE, to trace over it. A 400 x 200 pixel PNG (Bench/data/retrace_400x200.png: a black rectangle on white) 120 mm wide, with the bottom-left corner at 10,20. Measured on 27/9/2026 (prova0089 zf5): it goes in at 1 px = 1 mm, SetSize and SetOrigin bring it where asked, and GetPointOnSketchFromPixel wants (column, row) contrary to the name of its arguments.",
+  "why": "ENTRY Z-F5. The most frequent input in a small workshop is a photo or a pen sketch: the image must be put into a sketch, TO SCALE, to trace over it. A 400 x 200 pixel PNG (Bench/data/retrace_400x200.png: a black rectangle on white) 120 mm wide, with the bottom-left corner at 10,20. Measured on 27/9/2026 (probe0089 zf5): it goes in at 1 px = 1 mm, SetSize and SetOrigin bring it where asked, and GetPointOnSketchFromPixel wants (column, row) contrary to the name of its arguments.",
   "defect_caught": "The image put in at 1 px = 1 mm (400 mm instead of 120); the scale believed because SetSize answered true; the PDF taken for an image.",
   "start": { "new_part": true },
   "steps": [
@@ -20,7 +20,7 @@
           "tolerance_why": "399 columns by 0.3 mm, from the two pixels brought into the sketch",
           "why": "the scale verified on the image, not believed" } ] },
     { "operation": "sketch_picture",
-      "arguments": { "path": "{DATA}\\ricalco.pdf", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
+      "arguments": { "path": "{DATA}\\tracing.pdf", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
       "must_fail": {
         "message_includes": ["PDF", "PNG"],
         "twin": "the_picture_is_to_scale" } }

@@ -50,7 +50,7 @@ namespace Checks.SectionView
                 return 2;
             }
             var drawing = (IDrawingDoc)doc;
-            Console.WriteLine("tavola: " + doc.GetTitle());
+            Console.WriteLine("drawing: " + doc.GetTitle());
 
             // 1. THE VIEW TO SECTION.
             // The first view of the sheet IS the sheet (type 1): it is skipped. The
@@ -159,7 +159,7 @@ namespace Checks.SectionView
             // ── THE HATCHING: TWO NUMBERS, AND BEFORE AND AFTER THE RECALCULATION ──
             //
             // Measured on 23/9/2026 because the operation `section_view`
-            // refused at its first real use saying «non ha tratteggio»
+            // refused at its first real use saying «it has no hatching»
             // on a cut that crosses a solid plate. It is one of two things:
             // either the hatching is not there until the drawing is recalculated, or
             // the number I was reading is not what I believed.

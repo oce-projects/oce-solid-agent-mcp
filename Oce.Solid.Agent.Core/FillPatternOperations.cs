@@ -282,7 +282,7 @@ namespace Oce.Solid.Agent.Core
             var measurements = new Dictionary<string, object> { ["feature_type"] = typ };
             DeclaredByFill(feature, measurements);
 
-            // «Niente e' cambiato» is the false success: CompareCopy catches it.
+            // «Nothing changed» is the false success: CompareCopy catches it.
             var stopped = CompareCopy(
                 model, volumeBefore, bodiesBefore, facesBefore, measurements, "The fill pattern");
             if (stopped != null) return Failed(stopped + RemoveFill(model, feature, volumeBefore));
@@ -399,7 +399,7 @@ namespace Oce.Solid.Agent.Core
         /// to the feature. An edge with `IEntity.Select4` and a
         /// `SelectData` with `Mark = 1`: the call of the probe
         /// (Checks\Fill, `Mark(selMgr, 1)`), the same as
-        /// `Select(gestore, faccia, marca)` for the boundary face. A reference axis
+        /// `Select(manager, face, mark)` for the boundary face. A reference axis
         /// per feature (`Select2` with the mark): the probe did not use
         /// any, and it is said in the catalogue.
         /// </summary>

@@ -53,7 +53,7 @@ function Die($message) {
 if ($Clean) {
     if (Test-Path $Where) { Remove-Item $Where -Recurse -Force }
     git -C $Root worktree prune
-    Write-Output ("tolto " + $Where)
+    Write-Output ("removed " + $Where)
     exit 0
 }
 
@@ -74,7 +74,7 @@ if ($commit -eq $null) {
     Die ("no commit declares AssemblyVersion " + $Version + ".0. " +
            "Versions can be read with:  git log --format='%h %s' -- Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs")
 }
-Write-Output ("versione " + $Version + " -> commit " + $commit.Substring(0, 7))
+Write-Output ("version " + $Version + " -> commit " + $commit.Substring(0, 7))
 
 # --- a throwaway worktree ---------------------------------------------------
 if (Test-Path $Where) { Remove-Item $Where -Recurse -Force }

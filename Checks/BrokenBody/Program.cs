@@ -190,7 +190,7 @@ namespace Checks.BrokenBody
             {
                 var c = bodies[i];
                 Console.WriteLine("  body " + (i + 1) + "  type " + TypeName(c));
-                Console.WriteLine("    facce            " + Number(() => c.GetFaceCount()));
+                Console.WriteLine("    faces            " + Number(() => c.GetFaceCount()));
                 Console.WriteLine("    Check()          " + Number(() => c.Check()));
                 Console.WriteLine("    Check2()         " + Number(() => c.Check2()));
 
@@ -225,7 +225,7 @@ namespace Checks.BrokenBody
         private static string Number(Func<int> f)
         {
             try { return f().ToString(); }
-            catch (Exception ex) { return "ERRORE " + ex.Message; }
+            catch (Exception ex) { return "ERROR " + ex.Message; }
         }
 
         /// <summary>An integer from a COM call, or -999 if it could not be had.</summary>
@@ -310,7 +310,7 @@ namespace Checks.BrokenBody
                 var sm = doc.SketchManager;
                 sm.InsertSketch(true);
                 var rect = sm.CreateCornerRectangle(x1, y1, 0, x2, y2, 0) as object[];
-                Console.WriteLine("  rettangolo: " + (rect == null ? "null" : rect.Length + " segmenti"));
+                Console.WriteLine("  rectangle: " + (rect == null ? "null" : rect.Length + " segments"));
                 sm.InsertSketch(false);
                 if (!SelectLastSketch(doc))
                 {

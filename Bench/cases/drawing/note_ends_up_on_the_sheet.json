@@ -54,7 +54,7 @@
           "why": "the position re-read from the object, not the one set: a note that ends up elsewhere exists, is counted, and may not be on the paper" },
 
         { "what": "measurements.what_it_does_not_check", "includes": ["free text"],
-          "_the_first_draft_searched_for_lowercase_true": "And the run saw it red: the answer says «be TRUE» in capitals, and `contiene` is case-sensitive. The defect was in the expectation, not in the operation — but from outside the two are written the same, and for twenty minutes I looked at the right code. Now the expectation looks for **«free text»**, which in the sentence is in lower case because it is prose and not an emphasis: an expectation hung on a word that somebody might decide to shout is an expectation hung on punctuation.",
+          "_the_first_draft_searched_for_lowercase_true": "And the run saw it red: the answer says «be TRUE» in capitals, and `includes` is case-sensitive. The defect was in the expectation, not in the operation — but from outside the two are written the same, and for twenty minutes I looked at the right code. Now the expectation looks for **«free text»**, which in the sentence is in lower case because it is prose and not an emphasis: an expectation hung on a word that somebody might decide to shout is an expectation hung on punctuation.",
           "why": "the blindness travels with the answer: the operation guarantees that the note is there and says what you wrote, not that it is right to write it. «Material S355» on an S275 part passes every count and every re-read" } ] }
   ]
 }

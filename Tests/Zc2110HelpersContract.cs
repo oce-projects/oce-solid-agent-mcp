@@ -9,7 +9,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// <summary>
     /// THE PURE RULES BEHIND THE Z-C21.10 FIXES THE BENCH CANNOT REACH.
     ///
-    /// Several findings of Z-C21.10 (esito 2) were fixed in branches no bench
+    /// Several findings of Z-C21.10 (outcome 2) were fixed in branches no bench
     /// case can build: a probe that fails once and then succeeds (N36), a
     /// stale archive line (N36), an interference array shorter than its count
     /// (N34), a view of another model on another sheet (N43), a dimension
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.ContractTests
                 {
                     var lines = new System.Collections.Generic.List<string>
                     {
-                        "SYNTHETIC IGES FOR PROVE.CONTRATTI".PadRight(72) + "S      1",
+                        "SYNTHETIC IGES FOR TESTS.CONTRACTS".PadRight(72) + "S      1",
                         "1H,,1H;".PadRight(72) + "G      1",
                     };
                     int seq = 0;
@@ -264,12 +264,12 @@ namespace Oce.Solid.Agent.ContractTests
 
                 // (a) THE KEY CHANGES WITH THE FILE.
                 Func<long, long, string> key = (ticks, length) => (string)Call(section, "FrameKey",
-                    "C:\\x\\TUBO.sldlfp", ticks, length, "80X80X5", 0, 1, 0.0, 1, 0.0);
+                    "C:\\x\\TUBE.sldlfp", ticks, length, "80X80X5", 0, 1, 0.0, 1, 0.0);
                 string k = key(1000, 2000);
                 Check("N36: the frame key changes with the library file's date and size",
                       k == key(1000, 2000) && k != key(1001, 2000) && k != key(1000, 2001), k);
                 bool current = (bool)Call(section, "IsCurrentKey", k);
-                bool old = (bool)Call(section, "IsCurrentKey", "telaio|X|80X80X5|0|1|0|1|0");
+                bool old = (bool)Call(section, "IsCurrentKey", "legacy|X|80X80X5|0|1|0|1|0");
                 Check("N36: a key of the old format is not current, so it is dropped on load",
                       current && !old, "new " + current + ", old " + old);
 

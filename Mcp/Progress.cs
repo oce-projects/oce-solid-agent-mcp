@@ -90,9 +90,9 @@ namespace Oce.Solid.Agent.Mcp
         /// THE THREAD OF A REQUEST: the token, and how much has already been said.
         ///
         /// It is always built, even without a token: so the points that use
-        /// it do not each have an `if`. An `if (filo != null)` scattered over
+        /// it do not each have an `if`. An `if (wire != null)` scattered over
         /// four places is the way the fifth forgets it —
-        /// it is the same reason why `McpTools._registro` is never null.
+        /// it is the same reason why `McpTools._registry` is never null.
         /// </summary>
         internal sealed class Wire
         {

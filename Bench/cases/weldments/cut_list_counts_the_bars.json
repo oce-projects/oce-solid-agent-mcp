@@ -1,7 +1,7 @@
 {
   "name": "cut_list_counts_the_bars",
   "family": "weldments",
-  "why": "ENTRY Z-C6. `cut_list` has been in the catalogue with `Provata = true` forever, and until 23/9/2026 **no bench run touched it**: not a declared case, not the bench's C#, not a hand-made plan. «Provata» there meant «someone measured it once», not «something checks it every time» — and the two things read the same in the file.",
+  "why": "ENTRY Z-C6. `cut_list` has been in the catalogue with `Tested = true` forever, and until 23/9/2026 **no bench run touched it**: not a declared case, not the bench's C#, not a hand-made plan. «Tested» there meant «someone measured it once», not «something checks it every time» — and the two things read the same in the file.",
 
   "_why_it_counts": "It is the document you go to the workshop with, and it is the reason a frame is made with structural members instead of extrusions. A cut list that counts the wrong bars sends the wrong iron to be cut, and gives no error.",
 

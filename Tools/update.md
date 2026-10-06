@@ -28,8 +28,8 @@ thousand characters would send you looking by eye.
 
 ## Why it is in C# and not in the server
 
-The catalogue used to live in the server, in `ai_disegno.py`, and this file was a
-copy of it. Regenerating it meant: packing the server's sources, sending them
+The catalogue used to live in the server, in its drawing module (a Python file of the
+server's repository), and this file was a copy of it. Regenerating it meant: packing the server's sources, sending them
 over with `scp`, running them inside a throw-away container, and bringing the
 result back. Three steps, two machines, and docker.
 
@@ -96,17 +96,17 @@ unless somebody deletes that step.
 
 ## The server side, which is still to be done
 
-`ai_disegno.py` is still the source of the catalogue **for the server**: until it
+The server's drawing module is still the source of the catalogue **for the server**: until it
 reads this JSON, there are two sources and they will diverge.
 
-Established with a grep from the server's side: `CATALOGO_DISEGNO` has **three**
-consumers besides the one that defines it, and they use `.nome`, `.provata` and
-`.precondizione`, all of them fields that the C# record has. *(Paths and lines
+Established with a grep from the server's side: the constant that holds the catalogue
+has **three** consumers besides the one that defines it, and they use the name, the
+proven flag and the precondition, all of them fields that the C# record has. *(Paths and lines
 used to be written here in full: they belong to another repository, which is
 private, and its structure is not something this one should recount.)*
 
-But `ai_disegno.py` also keeps `limiti` and `riassunto`, which are **not** among
-the six exported fields and are used by `valida()` and to build the plan to
+But the server's drawing module also keeps the limits and the summary, which are **not** among
+the six exported fields and are used by its validation function and to build the plan to
 confirm. So the inversion leaves part of the record in Python: it is not a
 replacement, it is a split. It is the work that entry C3 had already declared
 outside its own estimate.

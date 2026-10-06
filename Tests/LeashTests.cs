@@ -68,7 +68,7 @@ namespace Oce.Solid.Agent.ContractTests
             // «I retry» or «I cancel» would be false: a stuck COM call
             // cannot be cancelled.
             // WITHOUT IGNORING CASE this line was born red: the report
-            // says «**N**on si puo' annullare» because a sentence starts there.
+            // says «**N**othing can be undone» because a sentence starts there.
             // It is the third time that a string comparison has fallen like this in
             // this repository — the COMPARISON is fixed, not the message.
             Check("and does not promise to cancel it",

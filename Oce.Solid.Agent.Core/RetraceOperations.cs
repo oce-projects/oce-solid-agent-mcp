@@ -12,7 +12,7 @@ namespace Oce.Solid.Agent.Core
     /// photo, a sketch with the dimensions in pen. The model can read
     /// the image; what it lacks is the place to put it, to scale, on a plane.
     ///
-    /// Measured on 27/9/2026 (`prova0089 zf5`, a 400x200 px PNG):
+    /// Measured on 27/9/2026 (`probe0089 zf5`, a 400x200 px PNG):
     ///
     ///  * `ISketchManager.InsertSketchPicture(file)` in the sketch opened on a
     ///    plane: it enters at 1 px = 1 mm (400 x 200 mm), origin 0,0; the feature is

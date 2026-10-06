@@ -55,7 +55,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var r = Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
                 Check("initialize risponde", r != null,
                       r != null ? Short(r)
                                 : "nothing within " + (TimeoutMs / 1000) + "s. Lines seen so far: " +
@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                 // ── AND THE VERSION IT ANNOUNCES IS THE REAL ONE ─────────────
                 //
-                // It was not: `Program.cs` held `const Versione =
+                // It was not: `Program.cs` held `const Version =
                 // "0.2.0"` while `VERSION.txt` said 0.80.0, and it stayed
                 // that way for seventy-eight minor versions. There was nothing
                 // wrong in the code — there were TWO places to write
@@ -149,7 +149,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // U1.1). Changed on purpose, like the seventh.
                 Check("tools/list gives exactly nine tools",
                       tools != null && tools.Length == 9,
-                      tools == null ? "(nothing)" : tools.Length + " strumenti: " +
+                      tools == null ? "(nothing)" : tools.Length + " tools: " +
                           string.Join(", ", tools.Select(s => Convert.ToString(Inside(s, "name")))));
 
                 // ── THE ANNOTATIONS TELL THE TRUTH ───────────────────────
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.ContractTests
                       itsList != null && itsList.ContainsKey("structuredContent") &&
                       itsList["structuredContent"] != null,
                       itsList != null && itsList.ContainsKey("structuredContent")
-                          ? "c'e'" : "manca");
+                          ? "there" : "missing");
                 // NO `outputSchema`, and it is a choice: whoever declares it MUST
                 // respect it, and the shape of the state changes with the document. A
                 // partial schema would make correct answers be rejected. If one
@@ -338,7 +338,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                 var levelNo = Obj(Ask(p, 7,
                     "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"logging/setLevel\"," +
-                    "\"params\":{\"level\":\"fortissimo\"}}"));
+                    "\"params\":{\"level\":\"loudest\"}}"));
                 var levelError = Inside(levelNo, "error") as Dictionary<string, object>;
                 Check("logging/setLevel REFUSES an invented level",
                       levelError != null,
@@ -410,7 +410,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // The red case: without it, «not found» would be a dead end.
                 var missing = Obj(Ask(p, 44,
                     "{\"jsonrpc\":\"2.0\",\"id\":44,\"method\":\"resources/read\",\"params\":" +
-                    "{\"uri\":\"catalog://operation/questa_non_esiste\"}}"));
+                    "{\"uri\":\"catalog://operation/this_does_not_exist\"}}"));
                 var uriError = Inside(missing, "error") as Dictionary<string, object>;
                 var messageUri = uriError == null
                     ? null : Convert.ToString(Inside(uriError, "message"));
@@ -444,7 +444,7 @@ namespace Oce.Solid.Agent.ContractTests
                           ? p.LinesRead + " lines, all JSON"
                           : "non-JSON lines: " + string.Join(" | ", p.LinesNotJson.Take(3)));
                 Check("on stdout there were lines to read", p.LinesRead > 0,
-                      p.LinesRead + " righe");
+                      p.LinesRead + " lines");
 
                 Close(p);
             }
@@ -480,7 +480,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
                 Write(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
 
                 var r = Obj(Ask(p, 9,

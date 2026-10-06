@@ -11,8 +11,8 @@ using SolidWorks.Interop.swconst;
 // =============================================================================
 //
 //  `PlanExecutor.PreliminaryChecks` refuses a plan if
-//  `ISldWorks.CommandInProgress` is true: «SOLIDWORKS e' occupato in un
-//  comando». The sentence appears in ONE place of the repository, the line that
+//  `ISldWorks.CommandInProgress` is true: «SOLIDWORKS says a sequence of API calls
+//  is in progress». The sentence appears in ONE place of the repository, the line that
 //  produces it. No case, no check: an unverified promise.
 //
 //  HERE A REAL MODAL IS OPENED and we look at what they say, while it is open:
@@ -131,10 +131,10 @@ internal static class Program
                 if (enabled == open) bogusUser32++;
                 if (returned && inProgress.HasValue && inProgress.Value != open) bogusCom++;
 
-                Console.WriteLine("  " + benchRun + "     " + (open ? "APERTO " : "chiuso ") + "  " +
+                Console.WriteLine("  " + benchRun + "     " + (open ? "OPEN   " : "closed ") + "  " +
                                   enabled.ToString().PadRight(6) + " (" + msU + ")".PadRight(10) + "        " +
                                   (!returned ? "NOT RETURNED within 5000 ms"
-                                   : inProgress.HasValue ? inProgress.Value + " (" + msC + ")" : "eccezione"));
+                                   : inProgress.HasValue ? inProgress.Value + " (" + msC + ")" : "exception"));
 
                 if (open)
                 {

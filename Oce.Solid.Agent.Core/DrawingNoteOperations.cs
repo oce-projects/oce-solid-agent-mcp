@@ -41,7 +41,7 @@ namespace Oce.Solid.Agent.Core
     /// GD&T), all unblocked precisely by the fact that a note is born.
     ///
     /// Here both are counted, and both come out in the answer:
-    /// `note_foglio_*` and `note_viste_*`. *Two numbers, two different things, and
+    /// `sheet_notes_*` and `view_notes_*`. *Two numbers, two different things, and
     /// adding them would make an empty drawing look full.*
     ///
     /// ── WHERE IT ENDS UP, AND WHY IT IS CHECKED FIRST ───────────────────
@@ -264,7 +264,7 @@ namespace Oce.Solid.Agent.Core
         /// that is the real views — would answer zero with the note in its place.
         ///
         /// **-1 when it could not be read** (entry Z-C8). With zero, a
-        /// failed read AFTER gave the refusal «nessuna nota e' nata» with the
+        /// failed read AFTER gave the refusal «no note was born» with the
         /// note in its place. A drawing always has the sheet: if it is not there, it
         /// is not a zero, it is a read that went badly.
         /// </summary>

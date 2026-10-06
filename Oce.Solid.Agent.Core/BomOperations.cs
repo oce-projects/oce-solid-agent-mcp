@@ -10,7 +10,7 @@ namespace Oce.Solid.Agent.Core
     /// <summary>
     /// THE BILL OF MATERIALS AND THE BALLOONING IN THE DRAWING (entry GT9).
     ///
-    /// «Bollatura» is the workshop name for the balloons with the item numbers
+    /// The operation is named for the balloons with the item numbers, in the workshop's English
     /// (decided on 26/9/2026): the operation is named after it.
     ///
     /// `IView.InsertBomTable4(UseAnchorPoint, X, Y, AnchorType, BomType,
@@ -790,7 +790,7 @@ namespace Oce.Solid.Agent.Core
 
             // DOES EVERY ENTRY OF THE BILL OF MATERIALS HAVE ITS BALLOON? (seen on the
             // Starlink assembly, 26/9/2026: the disc covered in the isometric stayed without,
-            // and the answer said «fatto»). The item numbers of the
+            // and the answer said «done»). The item numbers of the
             // bill of materials are compared with the balloons of the WHOLE drawing, and it is said which are missing:
             // another view is ballooned, where that component can be seen.
             var entries = BomItemNumbers(drawing);

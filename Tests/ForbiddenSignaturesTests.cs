@@ -68,7 +68,7 @@ namespace Oce.Solid.Agent.ContractTests
                     "IModelDoc2.EditDelete asks for confirmation with a window: inside " +
                     "SOLIDWORKS the COM call does not return and the CAD stays stuck. Use " +
                     "`model.Extension.DeleteSelection2(swDelete_Absorbed)`. " +
-                    "It was forbidden only in comments, and OperazioniTabellaFori really " +
+                    "It was forbidden only in comments, and HoleTableOperations really " +
                     "called it (found by the W-S workflow on 27/9/2026)"
                 },
             };

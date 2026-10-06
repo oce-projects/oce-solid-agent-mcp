@@ -42,8 +42,8 @@ namespace Checks.Undo
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
 
-            Console.WriteLine("documento: " + doc.GetTitle());
-            Console.WriteLine(Line("prima", Volume(doc)));
+            Console.WriteLine("document: " + doc.GetTitle());
+            Console.WriteLine(Line("before", Volume(doc)));
 
             for (int i = 0; i < howMany; i++)
             {
@@ -61,8 +61,8 @@ namespace Checks.Undo
             }
             try { doc.EditRebuild3(); } catch { }
 
-            Console.WriteLine("annullamenti: " + howMany);
-            Console.WriteLine(Line("dopo", Volume(doc)));
+            Console.WriteLine("undos: " + howMany);
+            Console.WriteLine(Line("after", Volume(doc)));
             return 0;
         }
 

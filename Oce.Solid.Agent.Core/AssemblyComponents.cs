@@ -55,8 +55,8 @@ namespace Oce.Solid.Agent.Core
     ///    one that is not hidden (IComponent2~IsHidden.html: only ConsiderSuppressed
     ///    true turns a lightweight component into hidden).
     /// What each operation does with lightweight, envelope and hidden components is
-    /// decided by the operation, on its own measurement: see OperazioniMisuraAssieme
-    /// and OperazioniDistintaBase.
+    /// decided by the operation, on its own measurement: see AssemblyMeasureOperations
+    /// and BomOperations.
     /// </summary>
     internal static class AssemblyComponents
     {

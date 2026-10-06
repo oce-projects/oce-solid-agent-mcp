@@ -14,10 +14,10 @@ namespace Oce.Solid.Agent.Core
     /// turner does not know whether a pin or a cable goes in it. Put on the dimension of the
     /// MODEL, the tolerance reaches the drawing by itself with `model_dimensions`.
     ///
-    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`prova0089 tolq`) ─────────
+    /// ── MEASURED BEFORE WRITING IT, 26/9/2026 (`probe0089 tolq`) ─────────
     ///
     /// `IDimension.Tolerance` (`IDimensionTolerance`): `Type` (swTolType_e),
-    /// `SetValues2(min, max, config, nomi)`, `SetFitValues(foro, albero)`.
+    /// `SetValues2(min, max, config, names)`, `SetFitValues(hole, shaft)`.
     ///
     ///   symmetric ±0.05           -> type 4, min -0.05, max +0.05
     ///   H7 on Ø10 (types 8 and 7) -> min 0, max +0.015: SOLIDWORKS computes the

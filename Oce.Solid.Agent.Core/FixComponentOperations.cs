@@ -12,7 +12,7 @@ namespace Oce.Solid.Agent.Core
     /// part, fixed does. A fixed component does not move because someone
     /// nailed it down, not because it is mated.
     ///
-    /// Measured on 27/9/2026 (`prova0089 zd345`): the selected component
+    /// Measured on 27/9/2026 (`probe0089 zd345`): the selected component
     /// (`IComponent2.Select4`) and `IAssemblyDoc.FixComponent()` /
     /// `UnfixComponent()` — both `void`: the outcome is read back with
     /// `IsFixed`. It works in both directions, EVEN on the first component, the one

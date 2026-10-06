@@ -1,7 +1,7 @@
 {
   "name": "cut_list_in_the_drawing",
   "family": "drawing",
-  "why": "ENTRY GT2. Since 17/9/2026 `drawing_cut_list` was in the catalogue with `Provata = false`: `InsertWeldmentTable` returned null in 24 combinations out of 24, and the entry said «the block is bigger than the entry». On 26/9 the cause: the frame was not a WELDMENT (`IsWeldment` false), and without the «Weldment» feature the automatic cut list is not born, and without the automatic cut list the table is not born. Now `cut_list` makes a weldment of the part, and the table is born: two items, 2 x 1000 and 2 x 800.",
+  "why": "ENTRY GT2. Since 17/9/2026 `drawing_cut_list` was in the catalogue with `Tested = false`: `InsertWeldmentTable` returned null in 24 combinations out of 24, and the entry said «the block is bigger than the entry». On 26/9 the cause: the frame was not a WELDMENT (`IsWeldment` false), and without the «Weldment» feature the automatic cut list is not born, and without the automatic cut list the table is not born. Now `cut_list` makes a weldment of the part, and the table is born: two items, 2 x 1000 and 2 x 800.",
   "defect_caught": "Three: the table that is not born (the part not a weldment), the table with all the bars in one row (the cut list made with `InsertWeldmentCutList2` on all the bodies: «4 x 1000»), and the table that sums a number of bars different from the part.",
   "_the_views_are_called_by_uid": "V1 front: the frame is on the front plane, and there the four bars are seen.",
   "start": { "new_part": true },

@@ -29,7 +29,7 @@ namespace Oce.Solid.Agent.Bench
             Console.WriteLine();
             Console.WriteLine("=== orphans: the dimension left without an edge (Z-A2) ===");
             IModelDoc2 part = null, drawing = null;
-            string file = Path.Combine(Expectations.Work, "orfane_banco.sldprt");
+            string file = Path.Combine(Expectations.Work, "orphans_bench.sldprt");
             bool asked = true, off = false;
             try
             {
@@ -104,7 +104,7 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
-        /// <summary>A rectangle on the top plane, extruded by `alto` meters.</summary>
+        /// <summary>A rectangle on the top plane, extruded by `height` meters.</summary>
         private static IFeature Extrusion(IModelDoc2 doc, double x1, double y1, double x2, double y2, double up)
         {
             doc.ClearSelection2(true);

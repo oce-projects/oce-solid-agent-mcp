@@ -1,7 +1,7 @@
 {
   "name": "weld_bead_goes_between_touching_faces",
   "family": "weldments",
-  "why": "ENTRY Z-C6. `weld_bead` was in the catalogue with `Provata = true` and **has never created a bead**: it passed to `InsertCosmeticWeldBead2` all the faces of two sets of bodies, and that call returns null in every combination tried on 25/9/2026. The bead is born only with the old call, by selection, and with ONE face per side. From library 0.114.0 the operation takes two faces.",
+  "why": "ENTRY Z-C6. `weld_bead` was in the catalogue with `Tested = true` and **has never created a bead**: it passed to `InsertCosmeticWeldBead2` all the faces of two sets of bodies, and that call returns null in every combination tried on 25/9/2026. The bead is born only with the old call, by selection, and with ONE face per side. From library 0.114.0 the operation takes two faces.",
 
   "defect_caught": "The bead between faces that do not touch. SOLIDWORKS creates it just the same — measured: it is born, and the side read back from the feature is 40 instead of the 4 asked — and a weld that does not exist would end up in the BOM. Step 4 demands it refused. Step 5 takes the other easy mistake: the HEAD of the short bar resting on the long one does really touch, but it is a face-against-face contact, and a fillet bead there makes no sense.",
 

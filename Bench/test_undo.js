@@ -100,7 +100,7 @@ async function invoke(tool, args) {
   const r = m.result || {};
   const text = (r.content || []).map(c => c.text).filter(Boolean).join("\n");
   let data = null; try { data = JSON.parse(text); } catch (e) {}
-  return { testo: text, dati: data, errore: !!r.isError };
+  return { text: text, data: data, failed: !!r.isError };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ function cleanPart() {
 async function benchRun() {
   await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
-    clientInfo: { name: "prova_annulla", version: "1" },
+    clientInfo: { name: "probe_undo", version: "1" },
   });
   warn("notifications/initialized");
 
@@ -149,8 +149,8 @@ async function benchRun() {
   // no plan, so it does not know what it would remove.
   const empty = await invoke("undo");
   check("RED 1: with no plan, it refuses",
-        empty.errore && /no plan to withdraw/i.test(empty.testo),
-        shorter(empty.testo));
+        empty.failed && /no plan to withdraw/i.test(empty.text),
+        shorter(empty.text));
 
   if (!cleanPart()) {
     check("a clean part", false, "NewPart did not answer");
@@ -158,21 +158,21 @@ async function benchRun() {
   }
 
   const seen = await invoke("inspect_part");
-  check("the clean part can be read", !seen.errore && seen.dati != null,
-        seen.dati ? "volume " + seen.dati.volume_mm3 : shorter(seen.testo));
+  check("the clean part can be read", !seen.failed && seen.data != null,
+        seen.data ? "volume " + seen.data.volume_mm3 : shorter(seen.text));
 
   // ── THE GREEN: two steps, withdrawn together ───────────────────────────
   const done = await invoke("build", { steps: PLAN_TWO_STEPS });
-  const volumeAfterPlan = done.dati ? done.dati.volume_after_mm3 : null;
-  check("the two-step plan builds", !done.errore && volumeAfterPlan > 0,
-        done.errore ? shorter(done.testo) : "volume " + volumeAfterPlan);
-  if (done.errore) return;
+  const volumeAfterPlan = done.data ? done.data.volume_after_mm3 : null;
+  check("the two-step plan builds", !done.failed && volumeAfterPlan > 0,
+        done.failed ? shorter(done.text) : "volume " + volumeAfterPlan);
+  if (done.failed) return;
 
   const withdrawn = await invoke("undo");
-  const d = withdrawn.dati || {};
+  const d = withdrawn.data || {};
   check("undo takes back the whole plan",
-        !withdrawn.errore && d.undone === true,
-        withdrawn.errore ? shorter(withdrawn.testo) : "undone");
+        !withdrawn.failed && d.undone === true,
+        withdrawn.failed ? shorter(withdrawn.text) : "undone");
   check("the volume goes back to zero",
         d.volume_after_mm3 != null && Math.abs(d.volume_after_mm3) < 0.001,
         "volume " + d.volume_after_mm3 + " (era " + d.volume_before_mm3 + ")");
@@ -203,15 +203,15 @@ async function benchRun() {
   // what was there BEFORE the plan, which this bridge did not do.
   const bis = await invoke("undo");
   check("RED 2: the second time it refuses",
-        bis.errore && /no plan to withdraw/i.test(bis.testo),
-        shorter(bis.testo));
+        bis.failed && /no plan to withdraw/i.test(bis.text),
+        shorter(bis.text));
 
   // ── RED 3: another document in front ───────────────────────────────────
   const other = await invoke("build", { steps: PLAN_ONE_STEP });
-  check("a second plan builds", !other.errore,
-        other.errore ? shorter(other.testo)
-                     : "volume " + (other.dati || {}).volume_after_mm3);
-  if (other.errore) return;
+  check("a second plan builds", !other.failed,
+        other.failed ? shorter(other.text)
+                     : "volume " + (other.data || {}).volume_after_mm3);
+  if (other.failed) return;
 
   if (!cleanPart()) {
     check("RED 3: with another document in front, it refuses", false,
@@ -220,8 +220,8 @@ async function benchRun() {
   }
   const wrong = await invoke("undo");
   check("RED 3: with another document in front, it refuses",
-        wrong.errore && /document changed/i.test(wrong.testo),
-        shorter(wrong.testo));
+        wrong.failed && /document changed/i.test(wrong.text),
+        shorter(wrong.text));
 }
 
 benchRun()

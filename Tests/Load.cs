@@ -46,7 +46,7 @@ namespace Oce.Solid.Agent.ContractTests
                     // does not find it again by name: as soon as a type of that assembly
                     // names another one of the same assembly, a resolution
                     // request starts that without this line ends in
-                    // «non e' stato possibile caricare oce-solid-agent-mcp,
+                    // «could not load file or assembly oce-solid-agent-mcp,
                     // Version=0.0.0.0» — a message that looks like a missing
                     // file and is instead a file already in memory.
                     if (_bridge != null &&

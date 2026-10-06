@@ -48,7 +48,7 @@
                      "_signatures": { "E999": {} },
                      "anchor": { "x": { "edge_uid": "@edge(axis=Y,x~=100,z~=20)", "distance_mm": 20 },
                                  "y": { "edge_uid": "@edge(axis=X,y~=60,z~=20)", "distance_mm": 20 } } },
-      "_why_the_fake_signatures": "Risk 2 of the critic: without a signature `FirmaCombacia` says yes, and between equal edges the order of the state is not guaranteed. The bridge sends the signatures of EVERYTHING in the state, so a plan that carries `_signatures` without that of an edge of the anchor does not know which edge it meant. The declared bench attaches no signatures: this fake entry puts in one that has nothing to do with it, and that is enough for the rule to fire.",
+      "_why_the_fake_signatures": "Risk 2 of the critic: without a signature `SignatureMatches` says yes, and between equal edges the order of the state is not guaranteed. The bridge sends the signatures of EVERYTHING in the state, so a plan that carries `_signatures` without that of an edge of the anchor does not know which edge it meant. The declared bench attaches no signatures: this fake entry puts in one that has nothing to do with it, and that is enough for the rule to fire.",
       "must_fail": { "message_includes": ["carries the signatures of the entities"], "volume_unchanged": true,
                         "no_extra_feature": true, "twin": "anchored_hole_follows_the_border" } },
     { "operation": "rectangular_cut",

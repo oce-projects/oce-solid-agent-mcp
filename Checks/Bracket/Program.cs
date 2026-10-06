@@ -134,7 +134,7 @@ internal static class Program
             // ── THE MATERIAL GOES ON THE PART, AND IS READ BACK ──────────
             //
             // The first attempt went through Simulation:
-            // `SolidManager -> componente -> corpo -> SetLibraryMaterial("", nome)`.
+            // `SolidManager -> component -> body -> SetLibraryMaterial("", name)`.
             // It answered **0**, which looks like success, and then `RunAnalysis`
             // gave **19 = swsRunAnalysisErrorMaterialNotDefined**: the
             // material was not there. An empty library does not mean «the
@@ -159,8 +159,8 @@ internal static class Program
             if (string.IsNullOrEmpty(put))
             {
                 Console.WriteLine("  the material did NOT stick: reading it back I find nothing.");
-                Console.WriteLine("    archivio: " + archive);
-                Console.WriteLine("    nome:     " + MaterialName);
+                Console.WriteLine("    archive:  " + archive);
+                Console.WriteLine("    name:     " + MaterialName);
                 return 5;
             }
             Says("material «" + put + "» (read back, not assumed)");
@@ -190,7 +190,7 @@ internal static class Program
 
             // ── 1. LO STUDIO ─────────────────────────────────────────────
             int errStudio;
-            CWStudy studio = handler.CreateNewStudy3("mensola-s3", StaticStudy, 0, out errStudio);
+            CWStudy studio = handler.CreateNewStudy3("bracket-s3", StaticStudy, 0, out errStudio);
             if (studio == null)
             {
                 Console.WriteLine("  CreateNewStudy3 -> null, error " + errStudio);
@@ -346,7 +346,7 @@ internal static class Program
             Console.WriteLine();
             Console.WriteLine("  by hand:            " + expected.ToString("0.0") + " MPa");
             Console.WriteLine("  the API, fine mesh: " + last.ToString("0.0") + " MPa");
-            Console.WriteLine("  scarto:            " + deviation.ToString("0.0") + " %");
+            Console.WriteLine("  deviation:         " + deviation.ToString("0.0") + " %");
             Console.WriteLine();
             if (deviation <= 10.0)
             {
@@ -373,7 +373,7 @@ internal static class Program
     /// <summary>
     /// The maximum stress from the array of `GetMinMaxStress`.
     ///
-    /// THE SHAPE IS `[nodoMin, valoreMin, nodoMax, valoreMax]`, and the first
+    /// THE SHAPE IS `[minNode, minValue, maxNode, maxValue]`, and the first
     /// version of this probe took the **maximum of the four numbers**.
     /// So it caught `11875`, which is the NODE NUMBER, and printed it as
     /// MPa: 11,875 MPa against 60 expected, a deviation of 19,691%.
@@ -401,7 +401,7 @@ internal static class Program
     /// <summary>
     /// The DIN library, looked up on disk instead of written by hand.
     ///
-    /// It lives under `lang\<lingua>\sldmaterials`, and the language changes from
+    /// It lives under `lang\<language>\sldmaterials`, and the language changes from
     /// one installation to another: here there are two, Italian and
     /// English. A constant path would work on this machine and on
     /// no other.
@@ -520,7 +520,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("      ." + itemName + " alza: " + Root(ex).Message);
+            Console.WriteLine("      ." + itemName + " raised: " + Root(ex).Message);
             return null;
         }
     }

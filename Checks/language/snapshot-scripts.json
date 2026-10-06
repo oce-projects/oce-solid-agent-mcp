@@ -1,8 +1,7 @@
 {
  "about": [
   "The scripts of the snapshot (Checks/language/snapshot.js, entry W3.1-bis.2, item 11): every script of the folders below, run or skipped with its reason. A script of these folders that this file does not name stops the snapshot, and so does an entry whose script is gone.",
-  "An entry: script (a path from the root; a folder with a trailing slash is a compiled program), then either run: true or skip: the reason. Optional: args ({TEMP} is a fresh temporary folder), needs (files that must exist before anything runs), todo (it reads the TODO: TODO_MD is set), varies_with (what its counts also depend on outside the tree: todo, head, or a file), volatile_lines (lines whose numbers are not counts, each with its reason), probe and program (a compiled probe, run only with --with-probes), timeout_s.",
-  "The rename windows of W3.1-bis (.4 to .6) rename the scripts and this file in the same commit."
+  "An entry: script (a path from the root; a folder with a trailing slash is a compiled program), then either run: true or skip: the reason. Optional: args ({TEMP} is a fresh temporary folder), needs (files that must exist before anything runs), todo (it reads the TODO: TODO_MD is set), varies_with (what its counts also depend on outside the tree: todo, head, or a file), volatile_lines (lines whose numbers are not counts, each with its reason), probe and program (a compiled probe, run only with --with-probes), timeout_s."
  ],
  "format": 1,
  "folders": ["Checks", ".github/steps"],
@@ -33,7 +32,7 @@
   { "script": "Checks/solidworks-modules.ps1", "run": true },
   { "script": "Checks/build-checks.ps1", "run": true, "needs": ["Oce.Solid.Agent.Core/bin/Release/Oce.Solid.Agent.Core.dll"] },
   { "script": "Checks/test-x2.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/test-x2.js", "skip": "without --self-test it drives SOLIDWORKS through the bridge and the CambiaAMano probe" },
+  { "script": "Checks/test-x2.js", "skip": "without --self-test it drives SOLIDWORKS through the bridge and the ChangeByHand probe" },
   { "script": "Checks/test-installer.js", "skip": "needs dist/Installer.exe (a full build.ps1), and it installs, verifies and uninstalls some forty times in a temporary folder (about a minute); since H19 it does not attach to SOLIDWORKS unless given --attach (OCE_NO_ATTACH)" },
   { "script": "Checks/prepare-release.ps1", "skip": "prepares a release: runs build.ps1 (which rewrites Tools/catalog.json and dist/), fetches origin and runs the contract suite, which starts the bridge; it stops on an uncommitted tree by design" },
   { "script": "Checks/obsolete-api-list.js", "skip": "rebuilds the tracked Tests/data/obsolete-api-members.tsv from the SOLIDWORKS help extracted outside the repository: it writes a tracked file, and its input is not here" },
@@ -55,21 +54,6 @@
   { "script": "Checks/language/see-it-fail.js", "skip": "without --check it edits the detector, the lexicon and the CI step in the working tree, one mutation at a time, and runs the contract suite once per mutation (about a minute each)" },
   { "script": "Checks/language/ci-proof.ps1", "skip": "pushes throw-away branches to GitHub (with --no-verify) and runs the CI on them: an action outside this machine" },
   { "script": "Checks/language/snapshot.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/language/name-map-extract.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/language/name-map-extract.js", "run": true, "args": ["--counts"], "varies_with": ["Bench/report/tests.json"] },
-  { "script": "Checks/language/name-map-extract.js", "run": true, "args": ["--check"], "varies_with": ["Bench/report/tests.json"] },
-  { "script": "Checks/language/name-map-extract.js", "skip": "without an option it rewrites the tracked Checks/language/name-map.tsv from the tree" },
-  { "script": "Checks/language/window-1-cases.js", "run": true, "args": ["--check"] },
-  { "script": "Checks/language/window-1-cases.js", "skip": "without --check it is rename window 1 itself: it moves and rewrites the bench cases of the tree (and --reverse-proof extracts two trees into a temporary folder and runs the window backwards there)" },
-  { "script": "Checks/language/window-2-surface.js", "run": true, "args": ["--check"] },
-  { "script": "Checks/language/window-2-surface.js", "skip": "without --check it is rename window 2 itself: it rewrites the catalogue, the cases and the sources of the tree (and the proofs extract two trees into a temporary folder and run the window there)" },
-  { "script": "Checks/language/window-5-messages.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/language/window-5-messages.js", "skip": "without --self-test it is window 5 itself (--extract, --apply write the sources and the cases of the tree) or a check against a revision (--check needs --rev, the tree before the window)" },
-  { "script": "Checks/language/window-6-catalogue.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/language/window-6-catalogue.js", "skip": "without --self-test it is window 6 itself (--extract, --apply and --ratchet write the sources and the data of the tree) or a check against a revision (--check, --catalog-proof need --rev, the tree before the window)" },
-  { "script": "Checks/language/window-5-scan.js", "skip": "a module of window-5-messages.js, which reads the string literals of a file by its parser: run alone it only prints the units of a file it is given" },
-  { "script": "Checks/language/update-names-in-notes.js", "run": true, "args": ["--self-test"] },
-  { "script": "Checks/language/update-names-in-notes.js", "skip": "without --self-test it rewrites the notes it is given (the TODO, the memories, the RAG): files outside the repository, named by the owner at the merge" },
 
   { "script": "Checks/GearTest/", "run": true, "probe": true, "program": "Checks/GearTest/bin/GearTest.exe", "needs": ["Checks/GearTest/bin/GearTest.exe"] },
   { "script": "Checks/OutlineTest/", "run": true, "probe": true, "program": "Checks/OutlineTest/bin/OutlineTest.exe", "needs": ["Checks/OutlineTest/bin/OutlineTest.exe"] },
@@ -108,11 +92,6 @@
   { "script": "Checks/Thickness/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/PdfText/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/ExtrusionType/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
-  { "script": "Checks/claude-json-watch.js", "skip": "it samples the .claude.json of the user profile for a number of seconds: a measurement of the machine, not a check of the tree" },
-  { "script": "Checks/language/window-3-identifiers.js", "skip": "without --check it is rename window 3 itself (--moves, --references, --identifiers move and rewrite the tree with git mv and Roslyn); --check needs --from, the tree before the window" },
-  { "script": "Checks/language/window-3-mentions.js", "skip": "a module of window-3-identifiers.js (the mentions of the old names in the notes): run alone it rewrites the notes it is given" },
-  { "script": "Checks/language/window-3-renamer.js", "skip": "a module of window-3-identifiers.js (the identifier step, through Roslyn): run alone it renames in the tree" },
-  { "script": "Checks/language/window-3-scripts.js", "skip": "a module of window-3-identifiers.js (the scripts batch): run alone it renames in the scripts of the tree" },
-  { "script": "Checks/language/window-4-comments.js", "skip": "without --self-test it is window 4 itself (it rewrites the comments of the tree); --check needs --rev, the tree before the window" }
+  { "script": "Checks/claude-json-watch.js", "skip": "it samples the .claude.json of the user profile for a number of seconds: a measurement of the machine, not a check of the tree" }
  ]
 }

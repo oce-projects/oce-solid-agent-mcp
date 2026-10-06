@@ -22,7 +22,7 @@ namespace Oce.Solid.Agent.Core
     /// an instruction that led nowhere, and the only thing it
     /// could do was to **make up** an `.sldlfp` path and a size name.
     ///
-    /// And making up the size gives no error: `OperazioniSaldatura` already says it
+    /// And making up the size gives no error: `WeldmentOperations` already says it
     /// in its comment — *«if the size is not there, SOLIDWORKS does NOT
     /// fail: it uses the active configuration of the profile. The part comes out with
     /// a different wall from the confirmed one, the rebuild is clean, and nobody
@@ -32,7 +32,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── IT IS READ WITHOUT OPENING ANYTHING ──────────────────────────
     ///
-    /// `ISldWorks.GetConfigurationNames(percorso)` reads the sizes of an
+    /// `ISldWorks.GetConfigurationNames(path)` reads the sizes of an
     /// `.sldlfp` **without opening the document**: no window, no
     /// extra document among the open ones, nothing to close again. It is the same
     /// call that the `structural_member` check already uses.
@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.Core
 
             // TWO MESSAGES AND NOT ONE. `Directory.Exists(null)` answers `false`
             // without raising anything, so with the variable unset the
-            // refusal said «Non trovo la cartella dei profili: ««»» — an
+            // refusal said «I cannot find the profiles folder: ««»» — an
             // empty path between quotation marks, which reads as a failure and not
             // as something to do. *Unset and wrong are two different
             // problems and ask for two different actions.*

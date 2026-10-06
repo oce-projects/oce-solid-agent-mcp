@@ -13,9 +13,9 @@ namespace Checks.PositionsTest
     /// that returned «all fine» even in FOUR roads in which it had looked at
     /// nothing — including the most frequent one, «I found no
     /// cylindrical face of the expected diameter». And the bench decided the pass with
-    /// `misure.ContainsKey("positions_checked")`: an always-written key.
+    /// `measures.ContainsKey("positions_checked")`: an always-written key.
     ///
-    /// The branch that printed «POSIZIONI NON VERIFICATE» could not trigger.
+    /// The branch that printed «POSITIONS NOT VERIFIED» could not trigger.
     /// A check never seen to trigger is not a check.
     ///
     /// WHY HERE AND NOT IN THE BENCH. The case that counts — zero cylindrical faces
@@ -47,7 +47,7 @@ namespace Checks.PositionsTest
 
             Console.WriteLine();
             if (trouble == 0) { Console.WriteLine("Everything adds up."); return 0; }
-            Console.WriteLine(trouble + " scostamenti.");
+            Console.WriteLine(trouble + " deviations.");
             return 1;
         }
 
@@ -62,7 +62,7 @@ namespace Checks.PositionsTest
             // THIS IS THE DEFECT. The feature exists, the points were
             // requested, but on the part there is no cylindrical face of the
             // expected diameter: the holes might not be there at all.
-            // Before, this road came out as «verificate».
+            // Before, this road came out as «verified».
             Outcome("no cylindrical face found",
                   PositionsOutcome.NotVerifiable,
                   new List<double[]>(), null, TwoPoints());
@@ -86,8 +86,8 @@ namespace Checks.PositionsTest
                   new List<double[]> { ZAxis(30, 20) }, null, new List<double[]>());
 
             // A REASON ALWAYS, AND NEVER EMPTY: whoever reads must know WHY it
-            // could not be looked at, or «non verificabile» is as useless as
-            // «verificate» was false.
+            // could not be looked at, or «not verifiable» is as useless as
+            // «verified» was false.
             string reason;
             PositionsVerdict.Judge(new List<double[]>(), null, PlaneXy, 0.01, TwoPoints(), out reason);
             True("the reason is there and it is a sentence",
@@ -288,7 +288,7 @@ namespace Checks.PositionsTest
             if (ok)
             {
                 Console.WriteLine("  ok  " + itemName.PadRight(52) +
-                    (expected == double.MaxValue ? "lontanissimo"
+                    (expected == double.MaxValue ? "very far"
                      : had.ToString("0.######", CultureInfo.InvariantCulture) + " m"));
                 return;
             }

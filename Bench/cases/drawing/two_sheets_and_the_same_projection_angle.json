@@ -39,7 +39,7 @@
         { "what": "measurements.projection_angle", "equal_to": "first",
           "why": "**THE THING THIS CASE EXISTS TO CATCH.** The drawing template of the workshop is in first angle projection; the new sheet must be in first angle too. This value is NOT the one passed to `NewSheet4`: it is the one **re-read from the new sheet** after the creation. If `NewSheet4` accepted the parameter and wrote another one, this expectation would turn red and no other would notice." },
         { "what": "state.sheets[1].name", "equal_to": "Assembly",
-          "why": "THE TWO READINGS AGREE: the operation says «created Montaggio», the state re-reads the drawing sheet by sheet and finds it in second place. Two independent roads." },
+          "why": "THE TWO READINGS AGREE: the operation says «created Assembly», the state re-reads the drawing sheet by sheet and finds it in second place. Two independent roads." },
         { "what": "state.sheets[1].projection_angle", "equal_to": "first",
           "why": "and on the projection angle too. The state reads it from `GetProperties2()[4]` on its own, knowing nothing of what was passed to `NewSheet4`. **This is the second half of the comparison between the two sheets** -- the first arrives at the next step.",
           "_why_only_for_this_sheet": "The state writes `projection_angle` **only of the ACTIVE sheet**, and it is not an oversight: the properties of a sheet can be read only from the current one, and changing sheet to read them would be a reading that modifies. That is why the comparison between the two projection angles cannot be made in a single instant: this one is read now, and the first sheet at the next step, when it becomes active again." },
@@ -61,7 +61,7 @@
           "why": "**AND HERE THE COMPARISON CLOSES, which is the point of the whole case.** At the previous step, with the sheet «Assembly» active, the state said «first». Now, with «Foglio1» active, it says «first» too. **The two sheets agree** -- and it is the only thing that no other measure of this drawing would see: two sheets with different projection angles produce a plausible drawing, a complete PDF, and a part cut upside down. One sheet is read at a time because it is the only honest way: the properties are read from the active sheet, and changing sheet to read them would be a reading that modifies." } ] },
 
     { "operation": "activate_sheet",
-      "arguments": { "name": "Non-Esiste" },
+      "arguments": { "name": "Does-Not-Exist" },
       "must_fail": {
         "message_includes": ["There is no sheet", "Foglio1", "Assembly"],
         "volume_unchanged": true,

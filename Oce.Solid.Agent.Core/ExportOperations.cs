@@ -562,7 +562,7 @@ namespace Oce.Solid.Agent.Core
         //   swIGESExportSketchEntities     off: «Specifies whether to export
         //                                  sketch entities»
         //
-        // (estratto_swconst/FileSaveAsIGESOptions.htm, «System Options > Export
+        // (extracted_swconst/FileSaveAsIGESOptions.htm, «System Options > Export
         // > IGES 5.3».) THE THREE «off» ARE Z-C21.10, finding N59: they were
         // left as the user's profile had them. With «IGES wireframe (3D curves)»
         // ticked the page says the solid body is converted to curves (whether
@@ -582,7 +582,7 @@ namespace Oce.Solid.Agent.Core
         //
         // ── AP242 IS NOT A VALUE OF swStepAP (Z-C21.13, finding C5-7) ────────
         //
-        // The page lists two values only (estratto_swconst/
+        // The page lists two values only (extracted_swconst/
         // FileSaveAsSTEPOptions.htm, «203 = STEP AP203 format», «214 = STEP
         // AP214 format»), and until library 0.143.0 this code wrote 242 anyway.
         // The probe probe_step_ap242 (29/9/2026, SOLIDWORKS 2021 SP5.1): 242 is
@@ -1192,7 +1192,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The refusal for an answer of PublishSTEP242File, or null for success.
-        /// swStep242Error_e (its page in estratto_swconst): «Status codes for
+        /// swStep242Error_e (its page in extracted_swconst): «Status codes for
         /// exporting SOLIDWORKS MBD 3D PDF files to STEP 242»,
         /// swPublishStep242_Success 0, swPublishStep242_InvalidPath 1,
         /// swPublishStep242_UnknownError 3, swPublishStep242_MBDLicenseNotAvailable
@@ -1431,7 +1431,7 @@ namespace Oce.Solid.Agent.Core
         /// ourselves, and `LoadFile4` opens it without a warning. Measured on
         /// 15/9/2026 on a cube of 200,000 mm³: `OpenDoc6` with `swDocPART`
         /// 2097152, with `swDocIMPORTED_PART` 1024 («invalid file type»),
-        /// `LoadFile4(percorso, "", null)` **open, one body, 200000 mm³**.
+        /// `LoadFile4(path, "", null)` **open, one body, 200000 mm³**.
         ///
         /// It is a message that sends one looking for the fault on the wrong
         /// side: whoever reads it goes to look at the file, and the file is

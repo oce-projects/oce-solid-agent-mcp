@@ -51,8 +51,8 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// What broke compared with the snapshot, in a sentence («2 lavorazioni
-        /// sono andate in errore»), or null if nothing. A count that cannot be
+        /// What broke compared with the snapshot, in a sentence («2 features
+        /// went into error»), or null if nothing. A count that cannot be
         /// read (-1) does not accuse: «I do not know» is not «broken».
         ///
         /// «aperture» says whether it makes sense to count the closed openings. It makes sense when

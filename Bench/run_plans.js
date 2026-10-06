@@ -65,8 +65,8 @@ function resolvePlaceholder(text) {
 // left the file without anybody to provide it: `prepareFolder` created
 // `profiles/` and put nothing inside it.
 //
-// Measured on 14/9/2026: five cases answered «Il profilo ... non esiste su
-// questa postazione», which is a right message for a problem that was not there.
+// Measured on 14/9/2026: five cases answered «The profile ... does not exist on
+// this workstation», which is a right message for a problem that was not there.
 //
 // WHY A COPY AND NOT THE ORIGINAL. Inserting a profile OPENS its
 // `.SLDLFP` and leaves it dirty: the bench would work on the real
@@ -116,7 +116,7 @@ function aRun(list, onThis) {
     const requests = [
       { jsonrpc: "2.0", id: 1, method: "initialize",
         params: { protocolVersion: "2024-11-05", capabilities: {},
-                  clientInfo: { name: "banco", version: "1" } } },
+                  clientInfo: { name: "bench", version: "1" } } },
       { jsonrpc: "2.0", method: "notifications/initialized" },
       { jsonrpc: "2.0", id: 2, method: "tools/call",
         params: { name: "inspect_part", arguments: {} } },
@@ -211,7 +211,7 @@ async function main() {
     const startedAt = process.hrtime.bigint();
     await aRun([f], null);
     const seconds = Number(process.hrtime.bigint() - startedAt) / 1e9;
-    times.push({ piano: path.basename(f), secondi: seconds });
+    times.push({ plan: path.basename(f), seconds: seconds });
     console.log("  [tempo] " + path.basename(f) + ": " + seconds.toFixed(1) + " s");
 
     // IT IS CLOSED AFTER EVERY PLAN, NOT AT THE END.
@@ -229,9 +229,9 @@ async function main() {
     console.log("=== The timings, in order of execution");
     times.forEach((t, i) =>
       console.log("  " + String(i + 1).padStart(3) + ". " +
-                  t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));
-    const first = times.slice(0, 3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, times.length);
-    const last = times.slice(-3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, times.length);
+                  t.plan.padEnd(28) + t.seconds.toFixed(1) + " s"));
+    const first = times.slice(0, 3).reduce((a, t) => a + t.seconds, 0) / Math.min(3, times.length);
+    const last = times.slice(-3).reduce((a, t) => a + t.seconds, 0) / Math.min(3, times.length);
     console.log("  first three: " + first.toFixed(1) + " s on average" +
                 "   last three: " + last.toFixed(1) + " s");
     console.log(last > first * 1.3

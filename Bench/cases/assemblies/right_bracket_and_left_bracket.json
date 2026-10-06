@@ -1,7 +1,7 @@
 {
   "name": "right_bracket_and_left_bracket",
   "family": "assemblies",
-  "why": "ENTRY GA11. The right bracket and the left one is the most common case of metalwork, and the danger lies in the link: linked and unwanted, you change the right one and the left one changes with it; unlinked and unwanted, you correct the right one and the left one stays wrong without saying so. Measured on 27/9/2026 (prova0089 ga11): IMirrorComponentFeatureData gives the three things — the instance of the same file, the linked opposite file (a single feature, MirrorStock) and the unlinked one (the copied features). The case proves all three, on three different planes so that they do not overlap.",
+  "why": "ENTRY GA11. The right bracket and the left one is the most common case of metalwork, and the danger lies in the link: linked and unwanted, you change the right one and the left one changes with it; unlinked and unwanted, you correct the right one and the left one stays wrong without saying so. Measured on 27/9/2026 (probe0089 ga11): IMirrorComponentFeatureData gives the three things — the instance of the same file, the linked opposite file (a single feature, MirrorStock) and the unlinked one (the copied features). The case proves all three, on three different planes so that they do not overlap.",
   "defect_caught": "The mirror that is born from the wrong part; the opposite file believed linked that is unlinked (or the other way round); the instance that creates a file instead; untyped arrays that make a phantom feature.",
   "assembly": {
     "components": [
@@ -28,7 +28,7 @@
           "why": "on the right plane (YZ) x changes sign" },
         { "what": "state.how_many_components", "equal_to": 3 } ] },
     { "operation": "mirror_component",
-      "arguments": { "component": "C2", "plane": "front", "mode": "opposite_linked", "suffix": "_legata" },
+      "arguments": { "component": "C2", "plane": "front", "mode": "opposite_linked", "suffix": "_linked" },
       "expect": [
         { "what": "measurements.new_file", "equal_to": true },
         { "what": "measurements.linked_to_original", "equal_to": true, "why": "the tree of the new file is MirrorStock: it follows the original" },
@@ -36,7 +36,7 @@
           "tolerance_why": "the same",
           "why": "on the front plane (XY) z changes sign" } ] },
     { "operation": "mirror_component",
-      "arguments": { "component": "C2", "plane": "top", "mode": "opposite_unlinked", "suffix": "_slegata" },
+      "arguments": { "component": "C2", "plane": "top", "mode": "opposite_unlinked", "suffix": "_unlinked" },
       "expect": [
         { "what": "measurements.new_file", "equal_to": true },
         { "what": "measurements.linked_to_original", "equal_to": false, "why": "the copied features: it no longer follows the original" },

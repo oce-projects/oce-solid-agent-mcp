@@ -69,7 +69,7 @@ using System.Runtime.InteropServices;
 //          12 mm and pitch 10 mm. Duplicates removed by GEOMETRY and not by
 //          value: two 10 mm steps are two elements, and both must be
 //          dimensioned.
-// 0.102.0: the counter of the horizontal band was called `soprattutto`
+// 0.102.0: the counter of the horizontal band was called `above_all`
 //          and put the dimensions BELOW (entry K15). Nothing else changes in the
 //          behaviour: it is a name that said the opposite of what it
 //          did, and a trap for whoever reads it in six months.
@@ -146,7 +146,7 @@ using System.Runtime.InteropServices;
 //          the bridge is someone else's service while the bench is a
 //          run that either finishes or is not needed.
 // 0.111.0: `apply_material.material` is S235JR if not stated and
-//          `combine_bodies.operation` is unisci (entry Z-G3), and the
+//          `combine_bodies.operation` is union (entry Z-G3), and the
 //          answer SAYS that the bridge chose it. This note was missing:
 //          the version had been raised and told only in the bridge's
 //          CHANGELOG (0.84.0). Written on 24/9/2026 with 0.112.0.
@@ -202,7 +202,7 @@ using System.Runtime.InteropServices;
 //            faces instead of two sets of bodies, uses the call by
 //            selection (the only one that creates it), checks first that the faces
 //            touch at an angle and re-reads the leg from the feature.
-//          - `gusset` leaves the catalogue (`Provata = false`): it is not born in
+//          - `gusset` leaves the catalogue (`Tested = false`): it is not born in
 //            any of the sixteen variants tried.
 // 0.115.0: THE DIMENSIONED DRAWING, LOOKED AT (entry GT11). Asked for a drawing
 //          to look at, the drawing — with the bench green — had four defects:
@@ -305,7 +305,7 @@ using System.Runtime.InteropServices;
 //          «Saldatura» if it is missing, turns on the automatic cut list on the folder
 //          of the bodies, reads the entries (description, length, quantity) and
 //          checks that the quantities add up to the bodies. With the same care
-//          `drawing_cut_list` is born: Provata (and takes the view by uid,
+//          `drawing_cut_list` is born: tested (and takes the view by uid,
 //          V1, like the other drawing operations). And `flat_pattern_view` (entry
 //          GT13): the flattened sheet metal on the drawing; the bounding box from the visible
 //          edges (the contour of the view said 92.6 for 80.7) against the
@@ -317,7 +317,7 @@ using System.Runtime.InteropServices;
 //          green: the cut list (17 columns of the table template) came out of the
 //          sheet and the flat pattern fell into the title block — now the
 //          columns that are not needed in the workshop are hidden and table and view go into a
-//          free place (OperazioniPostoSulFoglio). And GT12: `drawing_dimension`
+//          free place (SheetPlacementOperations). And GT12: `drawing_dimension`
 //          re-reads the depth of the blind hole from the callout and looks at the
 //          real rectangle of every text (IDisplayData) against the other texts and
 //          the lines of the part (the pieces of one same dimension — the callout «Ø8 ↧5»
@@ -338,8 +338,8 @@ using System.Runtime.InteropServices;
 //          demands that every number printed by the dimensions be there (a dimension on a
 //          layer that is not printed counts in the document and in the workshop does not
 //          arrive). Seen to fire: the Ø12 callout on a layer that is not
-//          printable, «12 (sulla tavola 1, nel PDF 0)».
-//          `palloncini` becomes `balloons` (workshop vocabulary) and says which
+//          printable, «12 (on drawing 1, in the PDF 0)».
+//          the workshop word for balloons becomes `balloons` and says which
 //          entries of the bill of materials remain without a balloon in the WHOLE drawing
 //          (seen on the Starlink: the disc covered in the isometric). A view
 //          where every entry is already ballooned elsewhere is no longer an error.
@@ -417,8 +417,8 @@ using System.Runtime.InteropServices;
 //          (ObsoleteCallsContract, SelectionMarksContract, SelectionMarks.cs).
 // 0.140.0: the four operations rebuilt from the API help: fillet_face
 //          (CreateDefinition(swFmFillet), marks 2/4), fill_pattern
-//          (IFillPatternFeatureData, marks 1/4/16384), nervatura (InsertRib
-//          parallel to the sketch), fazzoletto back in the catalogue (mark 1
+//          (IFillPatternFeatureData, marks 1/4/16384), rib (InsertRib
+//          parallel to the sketch), gusset back in the catalogue (mark 1
 //          and a profile that is not degenerate).
 // 0.141.0: Z-C21.2-bis, the silent defects of the second audit round that
 //          need no probe: the profile library closed and checked (N31), the
@@ -475,10 +475,10 @@ using System.Runtime.InteropServices;
 //          and knows when a later entry sits on top.
 // 0.150.0: W3.1-bis.5, rename window 2: the operations, arguments, values,
 //          selectors and answer fields of the library are English names,
-//          generated from the name map (Checks/language/window-2-surface.js).
+//          generated from the name map (archived outside the repository in 0.152.0).
 // 0.150.1: W3.1-bis.6, rename window 3: the library is Oce.Solid.Agent.Core
 //          (assembly, namespaces, folder) and its file names are English,
-//          from the name map (Checks/language/window-3-identifiers.js).
+//          from the name map (archived outside the repository in 0.152.0).
 // 0.150.2: W3.1-bis.10b, the names the library still held in Italian: the
 //          values of the mates (`coincident`, `parallel`, `perpendicular`,
 //          `distance`; `aligned`, `opposite`) and of the state (the kinds of
@@ -494,8 +494,14 @@ using System.Runtime.InteropServices;
 //          an edge whose curve runs the other way is normalized); the first
 //          insert_component into an empty assembly is no longer refused (the
 //          count is asked of GetComponentCount, not read off a null array).
-[assembly: AssemblyVersion("0.151.0.0")]
-[assembly: AssemblyFileVersion("0.151.0.0")]
+// 0.152.0: W3.1-bis.11, closure of the translation. The input dictionary is gone
+//          (Alias.cs and every reader of it): a tool, operation, argument or
+//          value that is not the English name is an unknown name, like any
+//          other. The Italian branches of the number reader of the tests and
+//          of the refusals table are gone with it. The surface has one name
+//          for everything.
+[assembly: AssemblyVersion("0.152.0.0")]
+[assembly: AssemblyFileVersion("0.152.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -510,4 +516,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.151.0")]
+[assembly: AssemblyInformationalVersion("0.152.0")]

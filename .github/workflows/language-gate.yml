@@ -7,14 +7,14 @@
 #  request could switch the gate off by editing them. Here the trigger is
 #  pull_request_target, so this file and the checkout are the ones of the
 #  target branch. The gate script of the base fetches the merge commit of the
-#  pull request and judges every commit of it from the object store:
-#  check (d) runs the PARENT's detector, lexicon and exceptions, and a change
-#  to any of them needs the trailer "Language-Gate-Config-Change:".
+#  pull request and judges it from the object store, against zero outside the
+#  signed exceptions, with the detector of the BASE; a change to the detector,
+#  the lexicon or the exceptions needs the trailer
+#  "Language-Gate-Config-Change:".
 #
 #  pull_request_target runs with the target branch's token. This job asks
-#  for `contents: read` only and uses no secret: check (a) runs the detector
-#  that each commit carries, i.e. code from the pull request, and with a
-#  read-only token that is no more than what `pull_request` already allows.
+#  for `contents: read` only and uses no secret: it runs the detector of the
+#  base, and reads the pull request's files as data.
 #
 #  Branch protection should require this check (and CODEOWNERS covers
 #  .github/ and Checks/language/): a gate that can be merged red is a sign.

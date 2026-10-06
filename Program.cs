@@ -26,7 +26,7 @@ namespace Oce.Solid.Agent
         /// THE VERSION IS READ FROM `VERSION.txt`, WHICH TRAVELS INSIDE
         /// THE EXECUTABLE AS A RESOURCE.
         ///
-        /// There used to be `const string Versione = "0.2.0"` here, and it stayed
+        /// There used to be `const string Version = "0.2.0"` here, and it stayed
         /// **for seventy-eight minor versions**: the bridge said 0.2.0
         /// in `initialize` while `VERSION.txt` was at 0.80.0. Whoever
         /// recorded the MCP conversation carried around a false number,
@@ -263,19 +263,10 @@ namespace Oce.Solid.Agent
                         return Protocol.Error(
                             id, Protocol.InvalidParameters, "«uri» is missing");
 
-                    // THE URIs OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs, decision
-                    // D4): read as the English ones until the first release, and the
-                    // answer says so in `deprecated`. Removed in W3.1-bis.11.
-                    var deprecated = new List<string>();
-                    uri = Oce.Solid.Agent.Core.Alias.ResourceUri(uri, deprecated);
                     var risorse = new Risorse(catalog);
                     var content = risorse.Read(uri);
                     if (content != null)
-                    {
-                        var answerWithNotes = content as Dictionary<string, object>;
-                        if (deprecated.Count > 0 && answerWithNotes != null) answerWithNotes["deprecated"] = deprecated.ToArray();
                         return Protocol.Response(id, content);
-                    }
 
                     // A URI THAT DOES NOT EXIST SAYS WHAT EXISTS. A bare «not
                     // found» leaves the asker the only remedy that does not
@@ -513,7 +504,7 @@ namespace Oce.Solid.Agent
             //
             // Here the state used to be asked and, without an open document, the
             // state returns null: the dry run exited 1, and the installer said
-            // «Installato, ma il giro secco non ha confermato» — with SOLIDWORKS
+            // «Installed, but the dry run did not confirm» — with SOLIDWORKS
             // on and empty, which is the normal state of whoever has just turned on the
             // computer. Found on 14/9, left without a checkbox until 24/9, and
             // seen again that evening: the bench had closed everything and case 2

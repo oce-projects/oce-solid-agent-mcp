@@ -243,7 +243,7 @@ namespace Oce.Solid.Agent.Installer
                     c.Outcome == Outcome.Warning ? Color.FromArgb(160, 110, 0) :
                     Color.FromArgb(190, 30, 30);
                 _checks.Items.Add(line);
-                if (c.Outcome == Outcome.Male) locked = true;
+                if (c.Outcome == Outcome.Bad) locked = true;
             }
 
             _client.Items.Clear();

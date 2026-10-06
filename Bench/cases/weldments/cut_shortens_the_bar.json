@@ -1,7 +1,7 @@
 {
   "name": "cut_shortens_the_bar",
   "family": "weldments",
-  "why": "ENTRY Z-C6. `trim_members` was in the catalogue with `Provata = true` and no case touched it. When the case was written, on 25/9/2026, it turned out that **it had never cut anything**: it passed the bodies as `object[]`, SOLIDWORKS answered with a «Accorcia/Estendi1» feature that did not enter the tree, and the operation said `bodies_trimmed: 1` on a part identical to before. With `Body2[]` the cut is born.",
+  "why": "ENTRY Z-C6. `trim_members` was in the catalogue with `Tested = true` and no case touched it. When the case was written, on 25/9/2026, it turned out that **it had never cut anything**: it passed the bodies as `object[]`, SOLIDWORKS answered with a «Accorcia/Estendi1» feature that did not enter the tree, and the operation said `bodies_trimmed: 1` on a part identical to before. With `Body2[]` the cut is born.",
 
   "defect_caught": "Two, and they are the same lie seen from both sides. Step 5 catches the cut that does not cut: the T must lose exactly the 40 mm by which the short bar enters the long one, and a phantom cut would leave the volume as it was. Step 4 catches the guard that does not bite: between two parallel bars that do not meet SOLIDWORKS STILL answers with the phantom feature — even with the typed arrays — and the operation must say so instead of confirming.",
 

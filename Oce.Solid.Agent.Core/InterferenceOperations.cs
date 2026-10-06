@@ -149,8 +149,8 @@ namespace Oce.Solid.Agent.Core
                 // interferences». The count IS the size of the array. With a null
                 // list, a shorter one, or an item that is not an IInterference,
                 // `readVolumes` stayed true: the partial sum went into
-                // volume_total_mm3 and into the verdict («2 INTERFERENZE, per 0
-                // mm3 in tutto», riuscita:true when GetInterferences threw). Now
+                // volume_total_mm3 and into the verdict («2 INTERFERENCES, for 0
+                // mm3 in all», succeeded:true when GetInterferences threw). Now
                 // any of the three makes the volume unknown
                 // (`InterferenceListProblem`), and `interferences_read` says how
                 // many were actually read.
@@ -231,7 +231,7 @@ namespace Oce.Solid.Agent.Core
             // N18: the components the check looks at are the ones that are not
             // suppressed. Until library 0.144.0 the count of components looked
             // at took every component, suppressed ones included. GetSuppression2
-            // answers swComponentSuppressionState_e, as in StatoAssieme.
+            // answers swComponentSuppressionState_e, as in AssemblyState.
             // The components are read from the array GetComponents gave, the
             // same ones the list above was built from.
             var states = new List<int?>();
@@ -297,7 +297,7 @@ namespace Oce.Solid.Agent.Core
                     "writing one smaller than the true one.";
 
             // A ZERO COUNT WITH INTERFERENCES IN THE LIST is not «none» (N34):
-            // the two calls disagree, and «Nessuna interferenza» with
+            // the two calls disagree, and «No interference» with
             // succeeded:true is the one answer that sends a part that does not
             // fit to the shop.
             if (howMany == 0 && interferencesRead > 0)

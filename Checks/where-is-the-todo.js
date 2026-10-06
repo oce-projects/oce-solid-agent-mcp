@@ -16,7 +16,7 @@
 // passed.*
 //
 //     const { findTheTodo } = require('./where-is-the-todo.js');
-//     const fileTodo = findTheTodo(radice, process.argv);
+//     const fileTodo = findTheTodo(root, process.argv);
 //     if (!fileTodo) process.exit(0);   // the message has already been printed
 //
 // THE ORDER OF SEARCH, and no step is for convenience:

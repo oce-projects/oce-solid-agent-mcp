@@ -1,7 +1,7 @@
 {
   "name": "limit_moved_axis",
   "family": "patterns",
-  "why": "ENTRY E4, the AXES part. Up to library 0.113.0 an axis was {uid, tipo} and nothing else: if between the confirmation of the plan and the execution someone redid it elsewhere under the same name as before, `circular_pattern` repeated around the new axis, in silence. Here the signature says an axis that passes 30 mm from the true one: the step must refuse, say by how much it moved, and not touch the part.",
+  "why": "ENTRY E4, the AXES part. Up to library 0.113.0 an axis was {uid, type} and nothing else: if between the confirmation of the plan and the execution someone redid it elsewhere under the same name as before, `circular_pattern` repeated around the new axis, in silence. Here the signature says an axis that passes 30 mm from the true one: the step must refuse, say by how much it moved, and not touch the part.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_circle",

@@ -49,10 +49,10 @@ namespace Checks.SketchOnSheet
                 return 2;
             }
             var drawing = (IDrawingDoc)doc;
-            Console.WriteLine("tavola: " + doc.GetTitle());
+            Console.WriteLine("drawing: " + doc.GetTitle());
 
             var sheet = (ISheet)drawing.GetCurrentSheet();
-            Console.WriteLine("foglio: " + sheet.GetName());
+            Console.WriteLine("sheet: " + sheet.GetName());
             var property = sheet.GetProperties2() as double[];
             if (property != null && property.Length >= 7)
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
@@ -149,7 +149,7 @@ namespace Checks.SketchOnSheet
             {
                 int typ = selection.GetSelectedObjectType3(1, -1);
                 Console.WriteLine("selected type: " + typ + "  (" + TypeNameOf(typ) + ")");
-                Console.WriteLine("marca: " + selection.GetSelectedObjectMark(1));
+                Console.WriteLine("mark: " + selection.GetSelectedObjectMark(1));
             }
 
             // 5. AND WITH A MARK? The APIs that want an entity «of a certain

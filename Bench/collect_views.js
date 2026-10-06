@@ -13,10 +13,10 @@
 //
 // WHAT IT WRITES, in `Bench/views/`:
 //
-//   <forma>-isometrica.png
-//   <forma>-frontale.png  <forma>-superiore.png  <forma>-destra.png
-//   <forma>-state.json          the state WITHOUT images, as it is received today
-//   <forma>-verita.txt          what it really is, taken from `_truth` in the plan
+//   <shape>-isometric.png
+//   <shape>-front.png  <shape>-top.png  <shape>-right.png
+//   <shape>-state.json          the state WITHOUT images, as it is received today
+//   <shape>-truth.txt          what it really is, taken from `_truth` in the plan
 //
 // The truth is in the plan's file and not here: whoever judges must not be able to
 // read it together with the material, and whoever writes the plan is the only one who knows it.
@@ -88,7 +88,7 @@ async function invoke(tool, args) {
   const text = parts.filter(c => c.type === "text").map(c => c.text).join("\n");
   const images = parts.filter(c => c.type === "image");
   let data = null; try { data = JSON.parse(text); } catch (e) {}
-  return { testo: text, dati: data, immagini: images, errore: !!r.isError };
+  return { text: text, data: data, images: images, failed: !!r.isError };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -134,17 +134,17 @@ async function collect(planPath) {
 
   await invoke("inspect_part");
   const done = await invoke("build", { steps: steps });
-  if (done.errore) {
+  if (done.failed) {
     console.log("  NO  the plan did not pass: " +
-                done.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
+                done.text.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
-  const volume = (done.dati || {}).volume_after_mm3;
+  const volume = (done.data || {}).volume_after_mm3;
   console.log("  ok  built, volume " + volume + " mm3");
 
   // ── the state, without images: it is what the model receives TODAY ──
   const stateOnly = await invoke("inspect_part");
-  const docState = stateOnly.dati || stateFromText(stateOnly.testo);
+  const docState = stateOnly.data || stateFromText(stateOnly.text);
   fs.writeFileSync(path.join(OUTPUT, itemName + "-state.json"),
                    JSON.stringify(docState, null, 1));
   const characters = fs.statSync(path.join(OUTPUT, itemName + "-state.json")).size;
@@ -155,16 +155,16 @@ async function collect(planPath) {
   // ── the images ──
   const one = await invoke("inspect_part", { views: FIRST_ROUND });
   const three = await invoke("inspect_part", { views: SECOND_ROUND });
-  const written = saveImages(itemName, FIRST_ROUND, one.immagini)
-    .concat(saveImages(itemName, SECOND_ROUND, three.immagini));
+  const written = saveImages(itemName, FIRST_ROUND, one.images)
+    .concat(saveImages(itemName, SECOND_ROUND, three.images));
   if (!written.length) {
     console.log("  NO  no image: " +
-                one.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
+                one.text.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
   console.log("  ok  " + written.join(", "));
 
-  fs.writeFileSync(path.join(OUTPUT, itemName + "-verita.txt"),
+  fs.writeFileSync(path.join(OUTPUT, itemName + "-truth.txt"),
                    truth + "\nmeasured volume: " + volume + " mm3\n");
   return true;
 }
@@ -172,7 +172,7 @@ async function collect(planPath) {
 (async function () {
   await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
-    clientInfo: { name: "raccogli_viste", version: "1" },
+    clientInfo: { name: "collect_views", version: "1" },
   });
   warn("notifications/initialized");
 

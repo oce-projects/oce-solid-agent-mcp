@@ -20,17 +20,17 @@ namespace Oce.Solid.Agent.Core
     ///
     /// The entry asked to establish «whether writing on
     /// `IConfiguration.get_CustomPropertyManager()` or passing the name to
-    /// `IModelDocExtension.get_CustomPropertyManager(nome)` gives equivalent
+    /// `IModelDocExtension.get_CustomPropertyManager(name)` gives equivalent
     /// results: two roads never compared». Measured on 16/9/2026:
     ///
-    ///   written «Hand» = SX via Extension(nome)
-    ///       re-read via Extension(nome)  ->  «SX»
+    ///   written «Hand» = SX via Extension(name)
+    ///       re-read via Extension(name)  ->  «SX»
     ///       re-read via IConfiguration   ->  «SX»
     ///   written «Revision» = B via IConfiguration
     ///       re-read via IConfiguration   ->  «B»
-    ///       re-read via Extension(nome)  ->  «B»
+    ///       re-read via Extension(name)  ->  «B»
     ///
-    /// **They are equivalent.** Here `Extension(nome)` is used, which does not need
+    /// **They are equivalent.** Here `Extension(name)` is used, which does not need
     /// the configuration object in hand.
     ///
     /// ── BUT THE DOCUMENT AND THE CONFIGURATION ARE TWO DRAWERS ─────────

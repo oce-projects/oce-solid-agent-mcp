@@ -17,7 +17,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// (JustCreatedSketch), `extrude_profile` and `revolve` found the
     /// sketch to lock after the feature the same way (LockSketch), and
     /// circular_sweep took its path as the last sketch of the tree, 2D or 3D
-    /// (UltimoSchizzoFeature). Since then each caller takes the names of the
+    /// (LastSketchFeature). Since then each caller takes the names of the
     /// tree (FeatureNamesNow) before it selects the plane or face and opens the
     /// sketch, and the sketch is the one of its type born since (FeatureBorn),
     /// as 0.146.0 already did for the planes, the axes and the loft.
@@ -35,7 +35,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// two rules apart:
     ///  * the source: JustCreatedSketch answers FeatureBorn of a
     ///    ProfileFeature on its own names parameter and walks nothing itself;
-    ///    UltimoSchizzoFeature is gone; in the three sources a sketch type is
+    ///    LastSketchFeature is gone; in the three sources a sketch type is
     ///    written only as the type of a FeatureBorn call; every call of
     ///    SelectJustCreatedSketch, LockSketch and JustCreatedSketch in
     ///    the library, and every FeatureBorn of a sketch, gets names assigned
@@ -47,7 +47,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// On library 0.146.0 three of the four checks are red (run on a copy of
     /// that tree, built apart): the source check (the calls without names, the
-    /// two walks, UltimoSchizzoFeature), its seen-red companion (the untouched
+    /// two walks, LastSketchFeature), its seen-red companion (the untouched
     /// source is already red) and SketchNotIdentified, which is not there. The
     /// sketch trees are green there by design: BornFeatureIndex came with
     /// 0.146.0, and the check guards the decision the callers now rely on.
@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// already has, not new names.
         /// </summary>
         private static readonly string[] LibraryNames =
-            "SelectJustCreatedSketch LockSketch JustCreatedSketch UltimoSchizzoFeature".Split(' ');
+            "SelectJustCreatedSketch LockSketch JustCreatedSketch LastSketchFeature".Split(' ');
 
         /// <summary>Selects the sketch just drawn (the eight operations and the engraving).</summary>
         private static readonly string SelectLookup = LibraryNames[0];
@@ -138,7 +138,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("S7: every sketch lookup gets the names its caller took before opening that sketch",
                   problems.Count == 0,
                   problems.Count == 0
-                      ? "JustCreatedSketch is FeatureBorn of a ProfileFeature; no UltimoSchizzoFeature; sketch types only as " +
+                      ? "JustCreatedSketch is FeatureBorn of a ProfileFeature; no LastSketchFeature; sketch types only as " +
                         "FeatureBorn types; " + Summary(sources)
                       : string.Join(" | ", problems));
 
@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.ContractTests
                        "namesBeforeSketch, \"Extrusion\", out born) ?? LastOfType(((IPartDoc)model).IFirstFeature(), \"ProfileFeature\");"),
                 Change("PathOperations.cs", "the sweep path falling back on the last sketch of the tree",
                        "pathNamesBefore, \"3DProfileFeature\", out pathsBorn);",
-                       "pathNamesBefore, \"3DProfileFeature\", out pathsBorn) ?? UltimoSchizzoFeature(null);"),
+                       "pathNamesBefore, \"3DProfileFeature\", out pathsBorn) ?? LastSketchFeature(null);"),
                 Change("PathOperations.cs", "the sweep path looked for as a 2D sketch",
                        "\"3DProfileFeature\", out pathsBorn);",
                        "\"ProfileFeature\", out pathsBorn);"),
@@ -177,8 +177,8 @@ namespace Oce.Solid.Agent.ContractTests
                   red.Count == 0 ? changes.Length + " changes, each one red" : string.Join(" | ", red));
 
             // ── NO LOOP KEEPS THE LAST NEW FEATURE OF A TYPE ─────────────
-            // Review of the Z-C21.5 leftovers: the sketched bend (OperazioniLamiera)
-            // and the rib (OperazioniNervatura) walked the tree and kept the LAST
+            // Review of the Z-C21.5 leftovers: the sketched bend (SheetMetalOperations)
+            // and the rib (RibOperations) walked the tree and kept the LAST
             // feature of a type whose name was new, so two born gave one of them
             // without a word. Both now go through FeatureBorn.
             var loops = LastNewOfTypeLoops(sources);
@@ -358,7 +358,7 @@ namespace Oce.Solid.Agent.ContractTests
             // 2. The old sweep lookup is gone, from every source.
             foreach (var kv in code)
                 if (Regex.IsMatch(kv.Value, @"\b" + OldSweepLookup + @"\b"))
-                    problems.Add(kv.Key + ": UltimoSchizzoFeature is back (the last sketch of the tree)");
+                    problems.Add(kv.Key + ": LastSketchFeature is back (the last sketch of the tree)");
 
             // 3. In the three sources a sketch type is written only as the type of a FeatureBorn call.
             foreach (var file in ThreeSources)

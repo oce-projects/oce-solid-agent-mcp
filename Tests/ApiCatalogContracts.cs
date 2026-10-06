@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                 // THE COMPARISON HAS TEETH: one character changed in one line
                 // must make it fail. A comparison that cannot fail compares
-                // nothing (controllo_mai_visto_scattare).
+                // nothing (a check never seen firing is not a check).
                 var broken = (string[])cs.Clone();
                 int i = Array.FindIndex(broken, l => l.StartsWith("IEdge.IGetTwoAdjacentFaces2(", StringComparison.Ordinal));
                 if (i >= 0) broken[i] = broken[i].Replace("Face2& Face1", "Face2 Face1");
@@ -446,7 +446,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
                 var sig = Inside(Obj(Ask(p, 40,
                     "{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"api_signature\",\"arguments\":{\"name\":\"IModelDocExtension.IsSamePersistentID\"}}}")),

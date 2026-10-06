@@ -52,8 +52,6 @@ compared, and the comparison says so.
 | `--skip-script <id>` | record one registry entry as skipped by the caller |
 | `--with-probes` | also run the registry entries marked `probe` |
 | `--show <n>` | differences printed per section (all of them are counted) |
-| `--window <n>` | `compare`: the snapshot was taken before rename window `<n>` of W3.1-bis; its case folders, case names, case keys and the case part of the test identities (`File.cs:Method:ordinal@<case>`) are read through that window's renames, by the script of the window itself. Window 1 (`Checks/language/window-1-cases.js`, W3.1-bis.4); window 2 (`Checks/language/window-2-surface.js`, W3.1-bis.5) reads through window 1 first and then renames the operation, the path (`what`) and the value of every assertion, the snapshot's copy of the catalogue (rewritten as the window rewrites `Tools/catalog.json`) and the list of tools (names, titles, schemas, the names the descriptions quote); window 3 (`window-3-identifiers.js`, W3.1-bis.6) adds the folders, files and identifiers of the sources, read from the name map: the ids of the calls and of the string units (`file:member:ordinal`), the units that satisfied an assertion, the paths of the scripts and the test identities (the file name and the method of `File.cs:Method:ordinal`); window 4 (the comments) changes nothing it compares; from window 5 (W3.1-bis.8) the texts are translated, so the words of a literal and of an assertion are no longer compared (the shape of each call is: where its holes are, how many literals it holds) and the members that satisfied an assertion are not either: `window-5-messages.js --check` proves the words against the tree before the window, unit by unit |
-| `map-proof <snapshot>` | the snapshot alone, no ledger and no scripts run: every identity it holds, read through `--window <n>` (default 5), is looked for in the tree, and the count of those found is printed with the list of those that are not |
 
 Exit codes: 0 the snapshot is written, or no difference anywhere; 1 a
 difference outside the unstable list (or a self-test check not as expected);
@@ -158,7 +156,7 @@ in `values_not_text`). A list of texts is one assertion per element.
 
 | key | content |
 |---|---|
-| `id` | `<folder>/<file>#<path>`, the path in the case (`steps[2].must_fail.message_includes` since window 1 of W3.1-bis.4; a snapshot taken before it has `passi[2].deve_fallire.il_messaggio_contiene`) |
+| `id` | `<folder>/<file>#<path>`, the path in the case (`steps[2].must_fail.message_includes`) |
 | `case`, `case_name`, `root` | the case file, its name, declared or regression |
 | `step`, `operation`, `what` | the step it belongs to, its operation, the measure of the expectation |
 | `kind`, `key`, `value` | message_contains, contains, not_contains or equals; the key; the text |
@@ -248,7 +246,7 @@ Why a lost member counts even when another literal still contains the text:
 the words a case asserts on a refusal are often in a description of the
 catalogue too. With the refusal translated, the description would keep the
 assertion "satisfied" while the bench goes red. Seen on the real tree on
-1/10/2026: the mate type a case asserts with `uguale` translated in
+1/10/2026: the mate type a case asserts with the word `equal` translated in
 `AssemblyState.cs`, and the same word still in the catalogue, compared as
 "no difference" before this rule.
 
@@ -285,37 +283,11 @@ folder kept). It runs with
 ## What it does not do
 
 - Renamed identities: the comparison matches tests, cases, literals and
-  assertions by identity, exactly. `--window 1` reads the case folders, case
-  names and case keys of a snapshot taken before window 1 through its renames
-  (W3.1-bis.4); it is not in the self-test, and was seen on the real tree on
-  1/10/2026: the assertions of the snapshot of that day matched one for one.
-  `--window 2` adds the renames of window 2 (W3.1-bis.5): the operations,
-  paths and values of the assertions, the catalogue and the tools, read by
-  `window-2-surface.js` itself (`snapshotRenames`). `--window 3` adds the
-  renames of window 3 (W3.1-bis.6): the folders, files and identifiers of the
-  sources, read from `name-map.tsv` through `window-3-identifiers.js` (a path
-  by its folder and file rows, a member by its identifier row, the few symbols
-  the renamer names by hand), for the calls and the string units, the units
-  that satisfied an assertion, the scripts and the tests of the ledger.
-  `--window 4` is the same (comments are not read), and `--window 5` adds
-  W3.1-bis.8: the messages are translated, so the words are not compared.
-  What the map cannot explain is not hidden: two Italian names that the map
-  gives ONE English name are one member now, and the ordinals of its units run
-  on through both (the proof then compares the COUNT of units of that member);
-  and a list of units gone on purpose says which ones and why (window 2 put the
-  Italian names of the operations, the tools and the views into `Alias.cs`,
-  and moved the body of `Esegui` into `ExecuteWithCurrentNames`). A snapshot
-  taken before window 3 keeps the old name of its own files
-  (`catalogo.json`): the tool reads that one when `catalog.json` is not there.
-  `map-proof` on the snapshot of 1/10/2026 (head 2f30804) against the tree of
-  W3.1-bis.8 found every identity: 1071 of 1071 calls, 11841 of 11841 string
-  units (22 gone on purpose), 8283 of 8283 units that satisfied an assertion,
-  98 of 98 tests (each by its recording call in `Bench/*.cs`, 301 now), 75 of 75
-  scripts. `compare --window 5` on the same snapshot (tools, tests and scripts
-  skipped for want of a bridge, a ledger and a night) gives 3 differences,
-  all explained: the property name of the drawing template that an argument name
-  once held by chance, and two cases that window 2 added whose template
-  the tool cannot see.
+  assertions by identity, exactly. Until W3.1-bis.11 a snapshot taken before a
+  rename window could be read through that window's renames (`--window`,
+  `map-proof`); the name map and the tools of the windows are archived outside the
+  repository (`note-interne/lingua/archivio`), and a snapshot is now compared with a
+  tree that has the same names: take a new one before a change that renames.
 - The reflection read of the tools and the stdio read are two ways to the same
   answers; their equality on one bridge has to be seen once with SOLIDWORKS
   closed (`take` twice, once with each `--tools-from`, and compare).

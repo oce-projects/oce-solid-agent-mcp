@@ -23,7 +23,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// ── WHAT IT TESTS ────────────────────────────────────────────────────────
     ///
     ///   * the **catalogue**: fields, families, no path of this machine
-    ///     inside the descriptions, and `Similar()` which on «asole» finds «slot»;
+    ///     inside the descriptions, and `Similar()` which on a name wrong by one letter finds «slot»;
     ///   * `Session.SameDocument()` — the guard against the extruded block
     ///     in somebody else's part, which until today had no check;
     ///   * the **MCP protocol**, talking to the bridge on stdin/stdout as
@@ -56,7 +56,7 @@ namespace Oce.Solid.Agent.ContractTests
             public string Detail;
         }
 
-        private static string _group = "generale";
+        private static string _group = "general";
 
         internal static void Group(string itemName)
         {
@@ -87,8 +87,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// references `SolidWorks.Interop.*` with a `HintPath` on the SOLIDWORKS
         /// installation. On a GitHub runner that folder is not there and will not
         /// be. **Measured, not deduced**: building with
-        /// `/p:SwInstallPath=Z:\non-esiste` two hundred errors come out, and among them
-        /// `CS0246: il nome di tipo IModelDoc2 non e' stato trovato`.
+        /// `/p:SwInstallPath=Z:\does-not-exist` two hundred errors come out, and among them
+        /// `CS0246: the type name IModelDoc2 could not be found`.
         ///
         /// The README meanwhile said «the CI builds, runs the contract
         /// checks and refuses a delivery in which nobody ran the
@@ -98,7 +98,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// ── WHY SKIPPING IS NOT ENOUGH ───────────────────────────────────
         ///
-        /// The temptation is `if (!File.Exists(ponte)) return;`: the suite
+        /// The temptation is `if (!File.Exists(bridge)) return;`: the suite
         /// becomes green and nobody knows any more that half of the checks was not
         /// done. It is the defect that this repository reproaches
         /// elsewhere, applied to its own CI.
@@ -282,7 +282,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// THIS CHECK IS COUNTED TOO. It runs last, so when it
         /// looks at `Outcomes.Count` it itself is not there yet: the number written
-        /// in the document must equal `Esiti.Count + 1`. It is not a trick,
+        /// in the document must equal `Outcomes.Count + 1`. It is not a trick,
         /// it is the only count that adds up — and the document must say the total that
         /// the user reads on the screen, not that minus one.
         /// </summary>
@@ -291,8 +291,8 @@ namespace Oce.Solid.Agent.ContractTests
             Group("the README of the tests");
 
             // THE COUNT HOLDS FOR A WHOLE RUN (entry F9-bis). Where SOLIDWORKS
-            // is not there, a group of forty checks becomes ONE «non
-            // eseguibile qui» line: the total collapses, the README is still right, and
+            // is not there, a group of forty checks becomes ONE «not runnable
+            // here» line: the total collapses, the README is still right, and
             // this check would turn red accusing the right document.
             // A check that knows it cannot answer says so.
             if (NotRunnableHere > 0)
@@ -405,7 +405,7 @@ namespace Oce.Solid.Agent.ContractTests
             Zc2113ExportUnitsContract.RunAll();
             Zc2113SplineCentreMarksContract.RunAll();
             DocumentByPathContract.RunAll();
-            AliasLayerContract.RunAll();
+            NoAliasContract.RunAll();
             DescriptionValuesContract.RunAll();
             RefusalKeywordsContract.RunAll();
             Zc2189WeldAssemblyContract.RunAll();
@@ -496,7 +496,7 @@ namespace Oce.Solid.Agent.ContractTests
                   dassault.Count == 0,
                   dassault.Count == 0
                       ? myOwn.GetReferencedAssemblies().Length + " references, none of them from Dassault"
-                      : "trovati: " + string.Join(", ", dassault));
+                      : "found: " + string.Join(", ", dassault));
         }
 
         /// <summary>
@@ -529,7 +529,7 @@ namespace Oce.Solid.Agent.ContractTests
             Group("the sources are in the projects");
 
             // folder (relative to the root) -> csproj that must list it.
-            // The `Checks\<attrezzo>\` have one csproj per tool and stand
+            // The `Checks\<tool>\` have one csproj per tool and stand
             // outside the solution on purpose: they are not checked here.
             var map = new[]
             {
@@ -589,7 +589,7 @@ namespace Oce.Solid.Agent.ContractTests
                             continue;
                         inspected++;
                         // The NAME is looked for between quotes: it covers both
-                        // `Include="Pippo.cs"` and `Include="Bridge\Pippo.cs"`.
+                        // `Include="Foo.cs"` and `Include="Bridge\Bar.cs"`.
                         if (text.IndexOf(itemName + "\"", StringComparison.OrdinalIgnoreCase) < 0)
                             outside.Add(folder + "\\" + itemName + " → " + m.Project);
                     }
@@ -687,7 +687,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// The README of the bench has a table «folder / how many cases / what they
         /// test». Looked at on 17/9/2026: **four numbers out of twenty were
-        /// wrong** — `features` said 2 and had 7, `ripeti` 3
+        /// wrong** — `features` said 2 and had 7, `repeat` 3
         /// and had 6. Nobody had noticed, because a number in a document does not
         /// fail: it ages.
         ///
@@ -715,7 +715,7 @@ namespace Oce.Solid.Agent.ContractTests
             try { text = File.ReadAllText(readme); }
             catch (Exception ex) { Check("the README of the bench can be read", false, ex.Message); return; }
 
-            // `cases/<nome>/` followed by spaces and a number. The
+            // `cases/<name>/` followed by spaces and a number. The
             // continuation lines (the description that wraps) do not have the number
             // and do not match: it is intended.
             //
@@ -724,7 +724,7 @@ namespace Oce.Solid.Agent.ContractTests
             // («This line used to count it ... «cases/shape/ 5»»), and
             // `cases/shape/` is not in the repository by choice. Locally it passed,
             // because the five files are there; in a clean clone — the CI — it was
-            // «nominate e non esistenti: forma», red on every push since 0.85.0.
+            // «named and not existing: shape», red on every push since 0.85.0.
             var shape = new System.Text.RegularExpressions.Regex(
                 @"^cases/([a-z_]+)/\s+(\d+)", System.Text.RegularExpressions.RegexOptions.Multiline);
 
@@ -754,7 +754,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             Check("every folder named in the README exists",
                   absent.Count == 0,
-                  absent.Count == 0 ? declared.Count + " cartelle"
+                  absent.Count == 0 ? declared.Count + " folders"
                                      : "named and not existing: " + string.Join(", ", absent));
             Check("the numbers in the README are how many files there are",
                   wrong.Count == 0,
@@ -837,7 +837,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── 2. the families the catalogue SERVES to the clients ─────────
             var json = Path.Combine(Root(), "bin", "catalog.json");
-            // As in the group «il catalogo» (entry F9-bis): where the bridge could not
+            // As in the group «the catalogue» (entry F9-bis): where the bridge could not
             // be built, `bin\\` is empty and the good file is the one in the
             // repository. This check reads a JSON and a C# source: it has
             // nothing to ask SOLIDWORKS, and stopping here would mean not
@@ -893,7 +893,6 @@ namespace Oce.Solid.Agent.ContractTests
                 { "exports", "swDocPART"     },
                 { "identity",     "swDocPART"     },
                 { "document",    "swDocPART"     },
-                { "annullare",    "swDocPART"     },
                 { "sheet_metal",      "swDocPART"     },
                 { "dimensions",        "swDocPART"     },
             };
@@ -908,7 +907,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             var promises = families
                 .Where(f => serve.ContainsKey(f) && !allowed.Contains(serve[f]))
-                .Select(f => f + " (vuole " + serve[f] + ")")
+                .Select(f => f + " (needs " + serve[f] + ")")
                 .ToList();
 
             Check("no served family is refused before the first step",
@@ -939,7 +938,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// ── THE EXCEPTION, AND IT IS A REAL CONVENTION ────────────────────
         ///
         /// When an entry is redone, the original is kept below with the previous name
-        /// and the wording «traccia originale, tenuta per riferimento»:
+        /// and the wording the TODO's marker of an original trace kept for reference:
         /// there the double name is intended and says something. So the duplicate is
         /// accepted **only** if one of the two is a trace.
         ///
@@ -958,7 +957,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// does not notice because those cases never existed for it.
         ///
         /// It happened on 23/9/2026 writing entry Z-C6: the folder
-        /// `saldature\` was born with its first case inside, and would have stayed
+        /// `weldments\` was born with its first case inside, and would have stayed
         /// mute. *A hand-written list is a thing that one day somebody
         /// forgets to lengthen, and the way they forget it is by not
         /// noticing.*
@@ -1006,7 +1005,7 @@ namespace Oce.Solid.Agent.ContractTests
                 listed.Add(m.Groups[1].Value);
 
             Check("the list of the families can be read", listed.Count >= 10,
-                  listed.Count + " famiglie");
+                  listed.Count + " families");
             if (listed.Count < 10) return;
 
             // `regression` is NOT in the list, and it is not a defect: it has a
@@ -1260,8 +1259,8 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // `Bench\bin\Oce.Solid.Agent.Core.dll` is the one that
             // `Oce.Solid.Agent.Bench.exe` REALLY loads, and for two days this
-            // group called itself «il ponte e il banco caricano la stessa
-            // libreria» while comparing two copies of which **neither
+            // group called itself «the bridge and the bench load the same
+            // library» while comparing two copies of which **neither
             // was the one of the bench in execution**. The first is the source
             // from which `bench.ps1` copies it while building.
             //

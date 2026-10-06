@@ -9,7 +9,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_stl",
-      "arguments": { "path": "{WORK}\\gp2_sbagliato.stp" },
+      "arguments": { "path": "{WORK}\\gp2_wrong.stp" },
       "must_fail": {
         "message_includes": ["does not end in .stl", "which format to write"],
         "volume_unchanged": true,

@@ -104,7 +104,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("with `_meta` but without progressToken, neither",
                   read(new Dictionary<string, object>
                   {
-                      ["_meta"] = new Dictionary<string, object> { ["altro"] = 1 },
+                      ["_meta"] = new Dictionary<string, object> { ["other"] = 1 },
                   }) == null,
                   "`_meta` also carries other things");
 
@@ -207,7 +207,7 @@ namespace Oce.Solid.Agent.ContractTests
             var off = newItem(null);
             Check("without a token the thread is off", !(bool)read(off, "On"), "");
             total(off, 3);
-            planStep(off, 1, "uno");
+            planStep(off, 1, "one");
             planStep(off, 2, "due");
             Check("and off it sends nothing",
                   Convert.ToInt32(read(off, "Mandate")) == 0,
@@ -216,7 +216,7 @@ namespace Oce.Solid.Agent.ContractTests
             // ── ON ───────────────────────────────────────────────────────
             var isOn = newItem("g");
             total(isOn, 4);
-            planStep(isOn, 1, "uno");
+            planStep(isOn, 1, "one");
             planStep(isOn, 2, "due");
             Check("with a token it sends one step at a time",
                   Convert.ToInt32(read(isOn, "Mandate")) == 2,
@@ -232,7 +232,7 @@ namespace Oce.Solid.Agent.ContractTests
                   Convert.ToInt32(read(isOn, "Mandate")) == 2 &&
                   Convert.ToInt32(read(isOn, "Discarded")) == 2,
                   "the specification demands that `progress` grows, and here it has to grow");
-            planStep(isOn, 3, "tre");
+            planStep(isOn, 3, "three");
             Check("and after a discarded one the next one goes through anyway",
                   Convert.ToInt32(read(isOn, "Mandate")) == 3,
                   "discarding does not block the thread, it discards that step");
@@ -245,7 +245,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// <summary>
         /// S0 does not ask for «a progress report»: it asks that whoever looks from outside
         /// tell **«it is working» from «it is stuck» without looking at the
-        /// CPU**. The step number alone does not say it — «passo 3 di 5»
+        /// CPU**. The step number alone does not say it — «step 3 of 5»
         /// is identical whether that step started two seconds ago or eleven
         /// minutes ago.
         ///
@@ -298,7 +298,7 @@ namespace Oce.Solid.Agent.ContractTests
                   write("step 3") == "step 3 \u2014 2m14s", write("step 3"));
 
             // THIS IS THE CASE OF S0: eleven minutes on the same step.
-            // Without the time, «passo 3 di 5» is identical to two seconds ago, and
+            // Without the time, «step 3 of 5» is identical to two seconds ago, and
             // whoever looks does not know whether to wait or to kill the process.
             now = now.AddMinutes(9);
             Check("and at eleven minutes you can see it is a lot",
@@ -455,7 +455,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
 
                 // ── WITH THE TOKEN ─────────────────────────────────────────
                 //
@@ -514,7 +514,7 @@ namespace Oce.Solid.Agent.ContractTests
                 int beforeAnn = p.Views.Count;
                 Write(p,
                     "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"," +
-                    "\"params\":{\"requestId\":30,\"reason\":\"basta cosi'\"}}");
+                    "\"params\":{\"requestId\":30,\"reason\":\"enough\"}}");
                 // We wait for the bridge to say something, and then we look at what.
                 Line(p, 3000);
                 var said = p.Views.Skip(beforeAnn)

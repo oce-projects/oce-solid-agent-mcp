@@ -82,9 +82,9 @@ namespace Oce.Solid.Agent.ContractTests
             // «SOLIDWORKS is not responding» without numbers cannot be told from
             // an opinion. Whoever reads the report must be able to see how many
             // attempts and on which threshold, without opening the code.
-            // NOT «contains a 3»: it contains «3 tentativi». The first version
+            // NOT «contains a 3»: it contains «3 attempts». The first version
             // of this line looked for the digit and passed while the report
-            // said «0 tentativi di fila andati a vuoto» — the 3 that it found
+            // said «0 attempts in a row came to nothing» — the 3 that it found
             // was the threshold, in the same sentence. See `_whenItFires`.
             string report = s1.Report();
             Check("the report says how many attempts", report.Contains("3 attempts"), report);

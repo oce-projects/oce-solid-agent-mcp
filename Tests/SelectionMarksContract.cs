@@ -24,8 +24,8 @@ namespace Oce.Solid.Agent.ContractTests
     ///      `SelectByID2(..., append, N, callout, option)`, `.Mark = N`. A new
     ///      call must take its mark from the table, where the page is quoted;
     ///   3. nor does a call to a helper of the source that takes the mark as a
-    ///      parameter (an `int` parameter named mark, marca or marchio, such as
-    ///      `OperazioniSformo.Seleziona(gestore, faccia, int marchio)`): the
+    ///      parameter (an `int` parameter named mark, such as
+    ///      `DraftOperations.Select(manager, face, int mark)`): the
     ///      literal would reach `SelectData.Mark` one call later, where rule 2
     ///      only sees a variable (review of Z-C21.6).
     ///
@@ -42,8 +42,8 @@ namespace Oce.Solid.Agent.ContractTests
         private static readonly Regex MeasuredRx = new Regex(@"MEASURED:\s*([A-Za-z0-9_\-]+)", RegexOptions.Compiled);
         private static readonly Regex MarkAssignRx = new Regex(@"\.\s*Mark\s*=\s*([1-9]\d*)\b", RegexOptions.Compiled);
         private static readonly Regex DeclWithParamsRx = new Regex(@"(?<![\w.])([A-Za-z_]\w*)\s*\(([^()]*)\)\s*(?=\{|=>|$)", RegexOptions.Compiled | RegexOptions.Multiline);
-        private static readonly Regex MarkParamRx = new Regex(@"\bint\s+(?i:mark|marca|marchio)\s*(=|$)", RegexOptions.Compiled);
-        private static readonly Regex NamedMarkArgRx = new Regex(@"^\s*(?i:mark|marca|marchio)\s*:\s*([1-9]\d*)\s*$", RegexOptions.Compiled);
+        private static readonly Regex MarkParamRx = new Regex(@"\bint\s+(?i:mark)\s*(=|$)", RegexOptions.Compiled);
+        private static readonly Regex NamedMarkArgRx = new Regex(@"^\s*(?i:mark)\s*:\s*([1-9]\d*)\s*$", RegexOptions.Compiled);
 
         internal static void RunAll()
         {
@@ -200,7 +200,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         /// <summary>
         /// Methods declared in <paramref name="code"/> with an `int` parameter
-        /// named mark, marca or marchio: name -> the positions of those parameters.
+        /// named mark: name -> the positions of those parameters.
         /// </summary>
         private static void CollectMarkParameters(string code, Dictionary<string, HashSet<int>> into)
         {

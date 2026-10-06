@@ -39,7 +39,7 @@ namespace Checks.OutlineTest
 
             Console.WriteLine();
             if (trouble == 0) { Console.WriteLine("Everything adds up."); return 0; }
-            Console.WriteLine(trouble + " scostamenti.");
+            Console.WriteLine(trouble + " deviations.");
             return 1;
         }
 
@@ -81,7 +81,7 @@ namespace Checks.OutlineTest
             Holds("reversed square", ClosedShape.Area(P(
                 new[] { 0.0, 0 }, new[] { 0.0, 10 }, new[] { 10.0, 10 }, new[] { 10.0, 0 })), 100, 1e-9);
 
-            Holds("triangolo", ClosedShape.Area(P(
+            Holds("triangle", ClosedShape.Area(P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 0.0, 10 })), 50, 1e-9);
 
             // Three points in a row: null area. It is the case that the check on the
@@ -91,7 +91,7 @@ namespace Checks.OutlineTest
 
             // An L-shaped polygon, which is not convex: the Gauss formula does not
             // notice, and it is right so.
-            Holds("elle", ClosedShape.Area(P(
+            Holds("ell", ClosedShape.Area(P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 4 },
                 new[] { 4.0, 4 }, new[] { 4.0, 10 }, new[] { 0.0, 10 })), 64, 1e-9);
             Console.WriteLine();
@@ -120,7 +120,7 @@ namespace Checks.OutlineTest
             }
             CleanCase("five-pointed star", star);
 
-            Dirty("papillon", P(
+            Dirty("bowtie", P(
                 new[] { 0.0, 0 }, new[] { 100.0, 0 }, new[] { 0.0, 50 }, new[] { 100.0, 50 }));
 
             Dirty("crooked bow tie", P(
@@ -129,7 +129,7 @@ namespace Checks.OutlineTest
             // A TRIANGLE CANNOT SELF-INTERSECT. With three sides all three are
             // adjacent to each other, and if the check does not skip the adjacent
             // pairs it accuses every triangle that exists.
-            CleanCase("triangolo", P(
+            CleanCase("triangle", P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 5.0, 8 }));
             Console.WriteLine();
         }
@@ -142,7 +142,7 @@ namespace Checks.OutlineTest
             Sta("the center", new[] { 0.0, 0 }, square, true);
             Sta("just inside", new[] { 49.9, 0 }, square, true);
             Sta("just outside", new[] { 50.1, 0 }, square, false);
-            Sta("lontano", new[] { 215.0, 0 }, square, false);
+            Sta("far away", new[] { 215.0, 0 }, square, false);
 
             // The L is the case that unmasks a check made with the bounding box
             // instead of with the polygon: this point sits
@@ -161,14 +161,14 @@ namespace Checks.OutlineTest
         // ==================================================================
         //
         // THE PARITY OF THE CROSSINGS CANNOT ANSWER ON THE BORDER, and the
-        // answer it gives DEPENDS ON THE SIDE. With the comparison `x < taglio` a
+        // answer it gives DEPENDS ON THE SIDE. With the comparison `x < cut` a
         // vertex on the right border turns out outside and the same vertex on the left
         // border turns out inside.
         //
         // It would not be serious if it were a detail of a single point. But the
         // check of the contours in `SensibleOutline` classifies ALL the vertices
         // of a contour and refuses when it finds some inside and some outside
-        // together («sta A CAVALLO del bordo esterno»). A cut-out flush with the
+        // together («the profile straddles the outer border»). A cut-out flush with the
         // right border has two vertices «outside» and two «inside»: refused. The
         // same cut-out mirrored to the left has all four vertices
         // «inside»: accepted.
@@ -220,7 +220,7 @@ namespace Checks.OutlineTest
                     rightInside + " inside out of 4, on the left " + leftInside +
                     "): that is why `WhereItIs` exists");
             else
-                Male("`Inside` alone is no longer asymmetric (" + rightInside +
+                Bad("`Inside` alone is no longer asymmetric (" + rightInside +
                      " and " + leftInside + "): check again whether `WhereItIs` is still needed");
 
             // And one that REALLY straddles must stay straddling.
@@ -232,7 +232,7 @@ namespace Checks.OutlineTest
                 Console.WriteLine("  ok  a really straddling cut-out: " +
                     d + " inside, " + f + " outside, " + b + " on the border");
             else
-                Male("a really straddling cut-out is no longer seen: " +
+                Bad("a really straddling cut-out is no longer seen: " +
                      d + " inside, " + f + " outside, " + b + " on the border");
 
             Console.WriteLine();
@@ -280,7 +280,7 @@ namespace Checks.OutlineTest
                     d1 + " inside, " + b1 + " on the border, " + f1 + " outside)");
                 return;
             }
-            Male(what + ": on the right " + d1 + "/" + f1 + "/" + b1 +
+            Bad(what + ": on the right " + d1 + "/" + f1 + "/" + b1 +
                  ", on the left " + d2 + "/" + f2 + "/" + b2 +
                  "  (inside/outside/border) - same geometry, different verdict");
         }
@@ -290,7 +290,7 @@ namespace Checks.OutlineTest
         {
             var had = ClosedShape.WhereItIs(point, polygon);
             if (had == expected) Console.WriteLine("  ok  " + what + ": " + had);
-            else Male(what + ": said " + had + ", expected " + expected);
+            else Bad(what + ": said " + had + ", expected " + expected);
         }
 
         // ------------------------------------------------------------------
@@ -302,8 +302,8 @@ namespace Checks.OutlineTest
 
         private static void Count(string what, List<double[]> ring, int expected)
         {
-            if (ring.Count == expected) Console.WriteLine("  ok  " + what + ": " + expected + " punti");
-            else Male(what + ": " + ring.Count + " points, expected " + expected);
+            if (ring.Count == expected) Console.WriteLine("  ok  " + what + ": " + expected + " points");
+            else Bad(what + ": " + ring.Count + " points, expected " + expected);
         }
 
         private static void Holds(string what, double had, double expected, double within)
@@ -312,7 +312,7 @@ namespace Checks.OutlineTest
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                     "  ok  {0}: {1:0.####}", what, had));
             else
-                Male(string.Format(CultureInfo.InvariantCulture,
+                Bad(string.Format(CultureInfo.InvariantCulture,
                     "{0}: {1:0.######} instead of {2:0.######}", what, had, expected));
         }
 
@@ -320,27 +320,27 @@ namespace Checks.OutlineTest
         {
             int location = ClosedShape.WhereItCrosses(ring);
             if (location < 0) Console.WriteLine("  ok  " + what + ": does not cross itself");
-            else Male(what + ": accused of crossing itself at side " + location + ", and it is not true");
+            else Bad(what + ": accused of crossing itself at side " + location + ", and it is not true");
         }
 
         private static void Dirty(string what, List<double[]> ring)
         {
             int location = ClosedShape.WhereItCrosses(ring);
             if (location >= 0) Console.WriteLine("  ok  " + what + ": crosses itself at side " + location);
-            else Male(what + ": crosses itself and does not notice");
+            else Bad(what + ": crosses itself and does not notice");
         }
 
         private static void Sta(string what, double[] point, List<double[]> polygon, bool expected)
         {
             bool inside = ClosedShape.Inside(point, polygon);
             if (inside == expected)
-                Console.WriteLine("  ok  " + what + ": " + (inside ? "dentro" : "fuori"));
+                Console.WriteLine("  ok  " + what + ": " + (inside ? "inside" : "outside"));
             else
-                Male(what + ": said " + (inside ? "inside" : "outside") +
+                Bad(what + ": said " + (inside ? "inside" : "outside") +
                      ", expected " + (expected ? "inside" : "outside"));
         }
 
-        private static void Male(string line)
+        private static void Bad(string line)
         {
             trouble++;
             Console.WriteLine("  XX  " + line);

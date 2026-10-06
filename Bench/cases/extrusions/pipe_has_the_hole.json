@@ -1,7 +1,7 @@
 {
   "name": "pipe_has_the_hole",
   "family": "extrusions",
-  "why": "ENTRY Z-C6. `extrude_profile` is in the catalogue with `Provata = true`, and until 24/9/2026 only three hand-written plans touched it (`bridge/c2_*`) which demand nothing. The case is that of the plan `c2_pipe_from_catalog`: two concentric circles, and the second must be a HOLE.",
+  "why": "ENTRY Z-C6. `extrude_profile` is in the catalogue with `Tested = true`, and until 24/9/2026 only three hand-written plans touched it (`bridge/c2_*`) which demand nothing. The case is that of the plan `c2_pipe_from_catalog`: two concentric circles, and the second must be a HOLE.",
   "defect_caught": "Two outlines one inside the other can be read in two ways: a ring (the second one removes) or two overlapping cylinders (the second one adds, and disappears inside the first). In the second case the part comes out SOLID, the rebuild is clean, and a 60x5 pipe becomes a 60 round bar. The volume tells them apart by a factor of three.",
   "start": { "new_part": true },
   "steps": [

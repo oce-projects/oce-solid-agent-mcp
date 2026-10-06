@@ -1,28 +1,28 @@
 # =============================================================================
-#  ci-proof.ps1 - see the language gate fire ON THE CI (entry W3.1-bis.1)
+#  ci-proof.ps1 - see the language gate fire ON THE CI (entry W3.1-bis.1, W3.1-bis.11)
 # =============================================================================
 #
 #  A gate never seen firing is not a gate. The contract LanguageGateTests
 #  proves the detector and the gate script on a throw-away repository; this
 #  proves the CI step, on GitHub, with throw-away branches cut from the
 #  current HEAD, each started with `gh workflow run tests.yml --ref <branch>
-#  -f base=<HEAD>` so the step judges exactly the commits of the case:
+#  -f base=<HEAD>` so the step judges exactly the commits of the case.
 #
-#    italian-line      one Italian comment line, baseline untouched
-#                      -> the "Language gate" step must FAIL
-#    raise-unsigned    the same line, baseline.json rewritten in the same
-#                      commit, no trailer                      -> FAIL
-#    raise-signed      the same, with the trailer
-#                      "Language-Baseline-Raise: <reason>"     -> PASS
-#    signed-later      two commits: the Italian line (unsigned), then a raise
-#                      signed in the SECOND commit             -> FAIL
-#                      (a signature covers only its own commit)
-#    lexicon-loosened  the words of the Italian line taken out of lexicon.json,
-#                      the line added, the baseline rewritten, and only
-#                      "Language-Gate-Config-Change:"          -> FAIL
-#                      (the commit is judged with its parent's lexicon)
-#    rename            a file renamed by hand, baseline rewritten, no
-#                      trailer                                 -> PASS
+#  The gate judges the tip against ZERO outside the signed exceptions, so the
+#  answer on a branch depends on the tree it starts from: while an entry of
+#  exceptions.json waits for the owner's signature, HEAD itself fails. The
+#  cases are therefore read against HEAD:
+#
+#    head              no commit at all: the CI step on HEAD, as it is. Its
+#                      answer (success or failure) is what the cases below
+#                      that say "as HEAD" must give
+#    italian-line      one Italian comment line                    -> FAIL
+#    config-unsigned   an entry added to exceptions.json, no trailer
+#                      "Language-Gate-Config-Change:"              -> FAIL
+#    config-signed     the same entry, with the trailer            -> as HEAD
+#                      (the change is visible and accepted: it adds an entry
+#                      for the README that waits for the signature or holds)
+#    rename            a file renamed by hand                      -> as HEAD
 #
 #  The Italian line comes from `injection_samples` in lexicon.json. The
 #  branches are pushed with --no-verify (the local hook would stop them, and
@@ -55,7 +55,6 @@ Push-Location $work
 $cases = @()
 try {
     & git remote set-url origin $url; Must 'git remote set-url'
-    $detector = Join-Path $work 'Checks\language\detect-italian.js'
     $target = Join-Path $work 'Checks\language\measure.js'
     # the helpers are Node: PowerShell 5 would re-encode and re-indent the JSON
     $helper = Join-Path $work 'ci-proof-helper.js'
@@ -63,57 +62,45 @@ try {
 const fs = require('fs');
 const [, , what, file] = process.argv;
 const lex = JSON.parse(fs.readFileSync('Checks/language/lexicon.json', 'utf8'));
-const line = '// ' + lex.injection_samples.prose + '\n';
-if (what === 'line') fs.appendFileSync(file, line);
-if (what === 'loosen') {
-  const words = lex.injection_samples.prose.split(/\s+/);
-  for (const k of ['function_words', 'content_words', 'weak_words']) lex[k] = (lex[k] || []).filter(w => !words.includes(w));
-  fs.writeFileSync('Checks/language/lexicon.json', JSON.stringify(lex, null, 1) + '\n');
+if (what === 'line') fs.appendFileSync(file, '// ' + lex.injection_samples.prose + '\n');
+if (what === 'entry') {
+  const f = 'Checks/language/exceptions.json';
+  const list = JSON.parse(fs.readFileSync(f, 'utf8'));
+  list.push({ class: 'todo-reader', file: '^README\\.md$', pattern: 'ci-proof-never-written', applies_to: ['detector'],
+    reason: 'a throw-away entry of the CI proof, it matches nothing', signed_by: null, signed_on: null });
+  fs.writeFileSync(f, JSON.stringify(list, null, 1) + '\n');
 }
 '@ | Set-Content -Path $helper -Encoding ASCII
 
     $cases = @(
-        @{ Name = 'italian-line';     Expect = 'failure' },
-        @{ Name = 'raise-unsigned';   Expect = 'failure' },
-        @{ Name = 'raise-signed';     Expect = 'success' },
-        @{ Name = 'signed-later';     Expect = 'failure' },
-        @{ Name = 'lexicon-loosened'; Expect = 'failure' },
-        @{ Name = 'rename';           Expect = 'success' }
+        @{ Name = 'head';            Expect = 'any' },
+        @{ Name = 'italian-line';    Expect = 'failure' },
+        @{ Name = 'config-unsigned'; Expect = 'failure' },
+        @{ Name = 'config-signed';   Expect = 'as head' },
+        @{ Name = 'rename';          Expect = 'as head' }
     )
     foreach ($c in $cases) {
         $c.Branch = "gate-proof/$stamp-$($c.Name)"
         & git checkout --quiet -B $c.Branch $head; Must "git checkout $($c.Branch)"
         $subject = "Language gate proof on the CI: $($c.Name) (throw-away branch)"
         switch ($c.Name) {
+            'head' {
+                & git commit --quiet --allow-empty -m $subject; Must 'git commit'
+            }
             'italian-line' {
                 & node $helper line $target; Must 'line'
                 & git commit --quiet -am $subject; Must 'git commit'
             }
-            'raise-unsigned' {
-                & node $helper line $target; Must 'line'
-                & node $detector --write-baseline | Out-Null; Must 'write-baseline'
+            'config-unsigned' {
+                & node $helper entry; Must 'entry'
                 & git commit --quiet -am $subject; Must 'git commit'
             }
-            'raise-signed' {
-                & node $helper line $target; Must 'line'
-                & node $detector --write-baseline | Out-Null; Must 'write-baseline'
-                & git commit --quiet -am $subject -m 'Language-Baseline-Raise: proof that a signed raise passes (throw-away branch)'; Must 'git commit'
-            }
-            'signed-later' {
-                & node $helper line $target; Must 'line'
-                & git commit --quiet -am "$subject (1 of 2, unsigned)"; Must 'git commit'
-                & node $detector --write-baseline | Out-Null; Must 'write-baseline'
-                & git commit --quiet -am "$subject (2 of 2)" -m 'Language-Baseline-Raise: signed on the wrong commit'; Must 'git commit'
-            }
-            'lexicon-loosened' {
-                & node $helper loosen; Must 'loosen'
-                & node $helper line $target; Must 'line'
-                & node $detector --write-baseline | Out-Null; Must 'write-baseline'
-                & git commit --quiet -am $subject -m 'Language-Gate-Config-Change: proof that a looser lexicon does not judge itself'; Must 'git commit'
+            'config-signed' {
+                & node $helper entry; Must 'entry'
+                & git commit --quiet -am $subject -m 'Language-Gate-Config-Change: proof that a signed change to the gate is accepted (throw-away branch)'; Must 'git commit'
             }
             'rename' {
                 & git mv RELEASE.md RELEASE-NOTES.md; Must 'git mv'
-                & node $detector --write-baseline | Out-Null; Must 'write-baseline'
                 & git commit --quiet -am $subject; Must 'git commit'
             }
         }
@@ -135,7 +122,7 @@ if (what === 'loosen') {
         $c.Got = if ($step) { $step.conclusion } else { 'no step' }
         $c.Run = $id
         if ($c.Got -eq 'failure') {
-            & gh run view $id --log-failed | Select-String 'LANGUAGE GATE' | Select-Object -First 8 | ForEach-Object { Write-Output ("    " + $_.Line) }
+            & gh run view $id --log-failed | Select-String 'LANGUAGE GATE|signed_by and signed_on are null' | Select-Object -First 8 | ForEach-Object { Write-Output ("    " + $_.Line) }
         }
     }
 } finally {
@@ -144,9 +131,11 @@ if (what === 'loosen') {
 
 $ok = $true
 Write-Output ""
+$headGot = ($cases | Where-Object { $_.Name -eq 'head' }).Got
 foreach ($c in $cases) {
-    $mark = if ($c.Got -eq $c.Expect) { 'ok' } else { $ok = $false; 'XX' }
-    Write-Output ("  {0}  {1,-17} expected {2,-8} got {3,-8} run {4}" -f $mark, $c.Name, $c.Expect, $c.Got, $c.Run)
+    $want = switch ($c.Expect) { 'any' { $c.Got } 'as head' { $headGot } default { $c.Expect } }
+    $mark = if ($c.Got -eq $want) { 'ok' } else { $ok = $false; 'XX' }
+    Write-Output ("  {0}  {1,-17} expected {2,-8} got {3,-8} run {4}" -f $mark, $c.Name, $want, $c.Got, $c.Run)
 }
 if (-not $KeepBranches) {
     foreach ($c in $cases) { if ($c.Branch) { & git -C $root push --quiet --no-verify $Remote --delete $c.Branch 2>$null } }

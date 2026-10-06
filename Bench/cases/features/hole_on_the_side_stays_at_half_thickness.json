@@ -1,7 +1,7 @@
 {
   "name": "hole_on_the_side_stays_at_half_thickness",
   "family": "features",
-  "why": "ENTRY E18, risk 4 of the critic: the anchor rules speak of the axes OF THE FACE (`assi[]`), not of the X and Y of the model. On the right face (normal +X) x_mm is the Y of the model and y_mm the Z: a Ø6 hole 30 from the top and centred in the thickness. Raising the plate, the top goes from 60 to 120 and the hole must follow it (Y 30 -> 90); thickening it from 20 to 30 the hole must stay at the middle (Z 10 -> 15). Measured on 25/9/2026 with the bench probe.",
+  "why": "ENTRY E18, risk 4 of the critic: the anchor rules speak of the axes OF THE FACE (`axes[]`), not of the X and Y of the model. On the right face (normal +X) x_mm is the Y of the model and y_mm the Z: a Ø6 hole 30 from the top and centred in the thickness. Raising the plate, the top goes from 60 to 120 and the hole must follow it (Y 30 -> 90); thickening it from 20 to 30 the hole must stay at the middle (Z 10 -> 15). Measured on 25/9/2026 with the bench probe.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-//  detect-italian.js - the language gate (entry W3.1-bis.1)
+//  detect-italian.js - the language gate (entry W3.1-bis.1, closed in W3.1-bis.11)
 // =============================================================================
 //
 //  WHAT IT MEASURES
@@ -13,7 +13,13 @@
 //  that git thinks is binary but has a text extension is READ here, and the
 //  report lists every file read.
 //
-//  NINE CATEGORIES, NEVER SUMMED
+//  THE RULE, SINCE W3.1-bis.11: ZERO. Until then the gate was a ratchet (the
+//  Italian in the repository could go down, never up, against a baseline.json).
+//  The repository is English now, and the rule is the one of the release
+//  conditions: 0 in every category, for every file, outside the SIGNED
+//  exceptions. There is no baseline and no transition category any more.
+//
+//  EIGHT CATEGORIES, NEVER SUMMED
 //
 //    comments     prose inside comments (C#, JS, PowerShell, shell, YAML, XML)
 //    strings      prose inside string literals (also inside the holes of an
@@ -29,20 +35,6 @@
 //                 braces are set aside; a name joined by hyphens or dots
 //                 is registered whole as well as word by word
 //    paths        every segment of every tracked path
-//    transition   Italian that is allowed only until the tag: whatever an
-//                 exception of class "transition" moves here (aliases, map
-//                 rows, bilingual branches). It must be 0 at a v* tag
-//                 (--zero transition, run by the CI step on a tag).
-//
-//  The first four and `transition` count ITALIAN WORDS PER FILE (the signals
-//  of the prose check below): they may not grow in any file, so Italian
-//  appended to a line that is already Italian is growth too. The other four
-//  are a REPOSITORY-WIDE SET of whole names: no Italian name may appear that
-//  is not already there. A new case may still use the Italian case keys until
-//  they are renamed, but a new identifier glued together from Italian words
-//  that already exist separately is a new element, and is blocked. A name
-//  that was a tracked path segment is not new when it shows up in text after
-//  the file is renamed.
 //
 //  THE PROSE CHECK, in this order:
 //    1. the spans matched by an exception are blanked;
@@ -58,40 +50,44 @@
 //       lexicon.json). A line is Italian with one
 //       strong signal or two weak ones; its score is the number of signals.
 //
-//  EXCEPTIONS (exceptions.json) are patterns, never files. A json_path is
-//  allowed only for the class detector-lexicon on a file of Checks/language/;
-//  a pattern may not match an Italian function word on its own, nor take away
-//  a third of the Italian of a sentinel sentence; one without "file" may not
-//  match an Italian content word on its own; and an exception that suppresses
-//  too much on the tree (exception_limits in lexicon.json) is refused.
+//  EXCEPTIONS (exceptions.json) are patterns, never files, and there are six
+//  classes (a closed list): changelog-history, changelog-quote,
+//  solidworks-localized, data-becomes-geometry, todo-reader, detector-lexicon.
+//  Every entry has pattern, class, reason (in English), signed_by and signed_on.
+//
+//    AN ENTRY COUNTS ONLY WHEN IT IS SIGNED. `signed_by` and `signed_on` are
+//    null until the owner signs: an unsigned entry suppresses nothing, and the
+//    gate lists every entry that waits for the signature, with the lines it
+//    would cover, apart from the Italian that no entry covers at all.
+//
+//  A json_path is allowed only for the class detector-lexicon on a file of
+//  Checks/language/; a pattern may not match an Italian function word on its
+//  own, nor take away a third of the Italian of a sentinel sentence; one
+//  without "file" may not match an Italian content word on its own; and an
+//  exception that suppresses too much on the tree (exception_limits in
+//  lexicon.json) is refused. The two classes of the changelog are the
+//  exceptions to the last rule, by shape: changelog-quote is the text between
+//  guillemets in CHANGELOG.md, and changelog-history is a `scope` (from the
+//  first line that matches `scope.from` to the end of CHANGELOG.md, found in
+//  the text and never written as a line number).
 //
 //  USAGE
-//    node Checks/language/detect-italian.js              compare with baseline.json
+//    node Checks/language/detect-italian.js              the gate: exit 0 only with nothing left
 //    node Checks/language/detect-italian.js --json       full report as JSON
-//    node Checks/language/detect-italian.js --file <p>   hits of one file
-//    node Checks/language/detect-italian.js --write-baseline
-//    node Checks/language/detect-italian.js --baseline <file>   compare with another baseline
-//    node Checks/language/detect-italian.js --baseline git:<rev>   ... the one committed there
-//                                            (git:A+B merges two: the parents of a merge)
+//    node Checks/language/detect-italian.js --file <p>   hits of one file (signed exceptions only)
 //    node Checks/language/detect-italian.js --rev <rev>  read the tree of a commit, not the disk
 //    node Checks/language/detect-italian.js --config-rev <rev>   lexicon and exceptions of that commit
-//    node Checks/language/detect-italian.js --renames <file>     { "new/path": "old/path" }
-//    node Checks/language/detect-italian.js --zero <category>    that category must be 0
-//    node Checks/language/detect-italian.js --tighten    rewrite the baseline if the tree went down
-//    node Checks/language/detect-italian.js --compare-baselines <old> <new>   (files or git:<rev>)
-//    node Checks/language/detect-italian.js --report <file>   also write the comparison as JSON
+//    node Checks/language/detect-italian.js --report <file>   also write the verdict as JSON
 //    node Checks/language/detect-italian.js --root <dir> run on another checkout
 //
-//  The CI step (.github/steps/language-gate.ps1) judges every commit of a
-//  range against its parent with these options.
+//  The CI step (.github/steps/language-gate.ps1) runs the gate on the tip it
+//  judges, with the detector of the base when the gate itself changed.
 //
 //  EXIT CODES
-//    0  nothing grew
-//    1  a category grew (the offending lines are printed), or --zero failed
+//    0  nothing left outside the signed exceptions
+//    1  Italian is left: outside every exception, or covered only by entries
+//       that wait for the signature (both are printed)
 //    2  the gate cannot run (bad exceptions file, unreadable tracked file...)
-//    3  --tighten only: the tree went down; baseline.json was rewritten
-//       (working tree) or has to be (--rev): commit it
-//    4  the baseline asked for does not exist (a revision before the gate)
 // =============================================================================
 
 'use strict';
@@ -101,8 +97,8 @@ const path = require('path');
 const cp = require('child_process');
 
 const CATEGORIES = ['comments', 'strings', 'markdown', 'json_values', 'identifiers',
-  'json_keys', 'protocol', 'paths', 'transition'];
-const COUNT_CATEGORIES = ['comments', 'strings', 'markdown', 'json_values', 'transition'];
+  'json_keys', 'protocol', 'paths'];
+const COUNT_CATEGORIES = ['comments', 'strings', 'markdown', 'json_values'];
 const SET_CATEGORIES = ['identifiers', 'json_keys', 'protocol', 'paths'];
 
 // The closed list of binary extensions. A tracked file is skipped ONLY if its
@@ -116,34 +112,26 @@ const BINARY_EXTENSIONS = new Set([
   '.ttf', '.otf', '.woff', '.woff2', '.eot',
 ]);
 
-// The closed list of exception classes (TODO, entry W3.1-bis, section 1, with
-// decision D2 of 28/9/2026: no "changelog history" class).
+// The closed list of exception classes (TODO, entry W3.1-bis, section 1). A new
+// class is not added in the commit that needs it: it is asked of the owner.
 const EXCEPTION_CLASSES = new Set([
-  'solidworks-localized', 'workshop-lexicon', 'quote', 'data-becomes-geometry',
-  'todo-reader', 'detector-lexicon', 'transition',
+  'changelog-history', 'changelog-quote', 'solidworks-localized', 'data-becomes-geometry',
+  'todo-reader', 'detector-lexicon',
 ]);
+// The classes the reach limits do not judge: by their shape they cover a lot of
+// CHANGELOG.md on purpose (the quotes between guillemets; the entries of the
+// history), and the gate's own lexicon.
+const NO_REACH_LIMIT = new Set(['changelog-history', 'changelog-quote', 'detector-lexicon']);
 
 // Built from escapes so that this file carries no accented letter of its own.
 const ACCENTED = '\u00e0\u00e8\u00e9\u00ec\u00f2\u00f9\u00c0\u00c8\u00c9\u00cc\u00d2\u00d9';
 const LETTER = 'A-Za-z\u00c0-\u00ff';
 
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
-// The folder of the gate's own files. Rename window 3 (W3.1-bis.6) moves it
-// from Controlli/lingua to Checks/language: a commit is read where ITS files  // window-3: keep
-// are, so the gate judges the commits on both sides of the move (the newer
-// name first).
-const LANG_DIRS = ['Checks/language', 'Controlli/lingua'];  // window-3: keep
-function langDirOnDisk(root) {
-  for (const d of LANG_DIRS) if (fs.existsSync(path.join(root, d, 'lexicon.json'))) return d;
-  return LANG_DIRS[0];
-}
+// The folder of the gate's own files.
+const LANG_DIR = 'Checks/language';
 function showFromRev(root, rev, name, stdio) {
-  let last = null;
-  for (const d of LANG_DIRS) {
-    try { return cp.execFileSync('git', ['-C', root, 'show', rev + ':' + d + '/' + name], { maxBuffer: 256 << 20, stdio }); }
-    catch (err) { last = err; }
-  }
-  throw last;
+  return cp.execFileSync('git', ['-C', root, 'show', rev + ':' + LANG_DIR + '/' + name], { maxBuffer: 256 << 20, stdio });
 }
 
 // -----------------------------------------------------------------------------
@@ -158,7 +146,7 @@ function readJson(file) {
 // (`--config-rev`): the CI judges a commit with the lexicon and the
 // exceptions of its PARENT, so a commit cannot loosen the rules it is judged by.
 function readConfigFile(root, rev, name) {
-  if (!rev) return readJson(path.join(root, langDirOnDisk(root), name));
+  if (!rev) return readJson(path.join(root, LANG_DIR, name));
   const buf = showFromRev(root, rev, name, ['ignore', 'pipe', 'pipe']);
   return JSON.parse(buf.toString('utf8').replace(/^\ufeff/, ''));
 }
@@ -178,16 +166,6 @@ function checkLexicon(lex) {
   }
   for (const k of LEXICON_NOT_EMPTY) if (lex[k].length === 0) fail('lexicon.json: the list "' + k + '" is empty');
   for (const s of lex.italian_suffixes) if (!s || typeof s.pattern !== 'string') fail('lexicon.json: an entry of "italian_suffixes" has no "pattern"');
-}
-
-// A baseline is { files: { path: { category: n } }, sets: { category: [...] } }.
-// A baseline without them would compare the tree with nothing.
-function checkBaseline(b, where) {
-  if (b === null || typeof b !== 'object' || Array.isArray(b)) fail(where + ': a baseline must be an object');
-  if (b.files === null || typeof b.files !== 'object' || Array.isArray(b.files)) fail(where + ': no "files" object');
-  if (b.sets === null || typeof b.sets !== 'object' || Array.isArray(b.sets)) fail(where + ': no "sets" object');
-  for (const c of SET_CATEGORIES) if (!Array.isArray(b.sets[c])) fail(where + ': no set "' + c + '"');
-  return b;
 }
 
 function loadConfig(root, configRev) {
@@ -212,10 +190,12 @@ function loadConfig(root, configRev) {
     limits: lex.exception_limits || {},
   };
   config.exceptions = validateExceptions(exc, lex, config);
+  config.rawExceptions = exc;
   return config;
 }
 
-// An exception is a pattern with a class, a reason, a signature and a date.
+// An exception is a pattern with a class, a reason and a signature (who signed
+// it and when, both null until the owner signs: the entry then waits).
 // Never a whole file, directly or by a side door:
 //   * an entry with only a `file` is refused;
 //   * a `json_path` (which can cover every value of a file) is allowed only
@@ -225,7 +205,11 @@ function loadConfig(root, configRev) {
 //   * a pattern without `file` that matches one Italian content word on its
 //     own is refused (a localized SOLIDWORKS feature name needs its file);
 //   * after the scan, an exception that suppresses too much is refused
-//     (`checkExceptionReach`, limits in lexicon.json).
+//     (`checkExceptionReach`, limits in lexicon.json), except the classes of
+//     NO_REACH_LIMIT;
+//   * the class changelog-history is a `scope` on CHANGELOG.md (the width
+//     checks cannot judge it: the scope is what keeps it narrow), and
+//     changelog-quote lives in CHANGELOG.md.
 function validateExceptions(list, lex, cfg) {
   if (!Array.isArray(list)) fail('exceptions.json must be an array');
   const sentinels = lex.exception_sentinels || [];
@@ -235,47 +219,60 @@ function validateExceptions(list, lex, cfg) {
   return list.map((e, i) => {
     const where = 'exceptions.json entry ' + i;
     if (!EXCEPTION_CLASSES.has(e.class)) fail(where + ': class "' + e.class + '" is not in the closed list');
-    for (const k of ['reason', 'signed_by', 'date']) if (!e[k] || typeof e[k] !== 'string') fail(where + ': missing "' + k + '"');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date)) fail(where + ': date must be YYYY-MM-DD');
+    if (!e.reason || typeof e.reason !== 'string') fail(where + ': missing "reason"');
+    if (!('signed_by' in e) || !('signed_on' in e)) fail(where + ': "signed_by" and "signed_on" must be there (null until the owner signs)');
+    const sb = e.signed_by, so = e.signed_on;
+    if (!((sb === null && so === null) || (typeof sb === 'string' && sb && typeof so === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(so))))
+      fail(where + ': "signed_by" and "signed_on" are both null (not signed) or a name and a date YYYY-MM-DD');
     if (!Array.isArray(e.applies_to) || e.applies_to.length === 0) fail(where + ': missing "applies_to"');
     if (!e.pattern && !e.json_path) fail(where + ': an exception needs "pattern" or "json_path" - never a whole file');
-    const out = { index: i, class: e.class, appliesToDetector: e.applies_to.includes('detector'), hasFile: !!e.file };
+    const out = { index: i, class: e.class, appliesToDetector: e.applies_to.includes('detector'), hasFile: !!e.file,
+      signed: sb !== null };
+    const scoped = e.class === 'changelog-history';
+    if (e.class === 'changelog-history' || e.class === 'changelog-quote') {
+      if (e.file !== '^CHANGELOG\\.md$') fail(where + ': the classes of the changelog name exactly the file ^CHANGELOG\\.md$');
+    }
+    if (scoped) {
+      if (!e.scope || typeof e.scope.from !== 'string' || !e.scope.from.startsWith('^'))
+        fail(where + ': changelog-history needs "scope": { "from": "<regex anchored with ^>" }, the first line of the history');
+      try { out.scopeFrom = new RegExp(e.scope.from); } catch (err) { fail(where + ': scope.from does not compile: ' + err.message); }
+    } else if (e.scope) fail(where + ': only changelog-history has a "scope"');
     if (e.pattern) {
       try { out.pattern = new RegExp(e.pattern, 'g'); out.full = new RegExp('^(?:' + e.pattern + ')$'); }
       catch (err) { fail(where + ': pattern does not compile: ' + err.message); }
       if (out.full.test('')) fail(where + ': pattern matches the empty string');
-      for (const w of functionWords) {
-        for (const form of [w, w[0].toUpperCase() + w.slice(1), w.toUpperCase()]) {
-          if (out.full.test(form)) fail(where + ': pattern matches the Italian function word "' + form + '" on its own: too wide');
-        }
-      }
-      if (!e.file) {
-        for (const w of contentWords) {
-          for (const form of [w, w[0].toUpperCase() + w.slice(1)]) {
-            if (out.full.test(form)) fail(where + ': pattern without "file" matches the Italian word "' + form + '" on its own: name the file');
+      if (!scoped) {
+        for (const w of functionWords) {
+          for (const form of [w, w[0].toUpperCase() + w.slice(1), w.toUpperCase()]) {
+            if (out.full.test(form)) fail(where + ': pattern matches the Italian function word "' + form + '" on its own: too wide');
           }
         }
-      }
-      for (const s of sentinels) {
-        out.pattern.lastIndex = 0;
-        const m = s.match(out.pattern);
-        if (m && m.join('').replace(/\s/g, '').length >= s.replace(/\s/g, '').length / 3)
-          fail(where + ': pattern swallows the sentinel sentence "' + s + '": too wide');
-        if (cfg) {
-          const before = proseScore(s, cfg).score;
+        if (!e.file) {
+          for (const w of contentWords) {
+            for (const form of [w, w[0].toUpperCase() + w.slice(1)]) {
+              if (out.full.test(form)) fail(where + ': pattern without "file" matches the Italian word "' + form + '" on its own: name the file');
+            }
+          }
+        }
+        for (const s of sentinels) {
           out.pattern.lastIndex = 0;
-          const after = proseScore(s.replace(out.pattern, m2 => ' '.repeat(m2.length)), cfg).score;
-          if (before > 0 && before - after >= before / 3)
-            fail(where + ': pattern takes away ' + (before - after) + ' of the ' + before + ' Italian words of the sentinel "' + s + '": too wide');
+          const m = s.match(out.pattern);
+          if (m && m.join('').replace(/\s/g, '').length >= s.replace(/\s/g, '').length / 3)
+            fail(where + ': pattern swallows the sentinel sentence "' + s + '": too wide');
+          if (cfg) {
+            const before = proseScore(s, cfg).score;
+            out.pattern.lastIndex = 0;
+            const after = proseScore(s.replace(out.pattern, m2 => ' '.repeat(m2.length)), cfg).score;
+            if (before > 0 && before - after >= before / 3)
+              fail(where + ': pattern takes away ' + (before - after) + ' of the ' + before + ' Italian words of the sentinel "' + s + '": too wide');
+          }
         }
       }
     }
     if (e.json_path) {
       if (e.class !== 'detector-lexicon') fail(where + ': json_path is allowed only for the class detector-lexicon');
-      // one file of the gate's folder; while rename window 3 is in flight the
-      // file may be named under both folder names:
-      // ^(?:Controlli/lingua|Checks/language)/<name>$  // window-3: keep
-      if (!e.file || !/^\^(?:Checks\/language|Controlli\/lingua|\(\?:Controlli\/lingua\|Checks\/language\))\/[A-Za-z0-9_.\\-]+\$$/.test(e.file))  // window-3: keep
+      // one file of the gate's folder
+      if (!e.file || !/^\^Checks\/language\/[A-Za-z0-9_.\\-]+\$$/.test(e.file))
         fail(where + ': a json_path exception must name exactly one file of Checks/language/ (^Checks/language/<name>$)');
       if (!e.json_path.startsWith('^')) fail(where + ': json_path must be anchored with ^');
       try { out.jsonPath = new RegExp(e.json_path); } catch (err) { fail(where + ': json_path does not compile: ' + err.message); }
@@ -298,7 +295,7 @@ function checkExceptionReach(report, cfg) {
   const reach = report.exceptionReach || {};
   for (const [idx, perFile] of Object.entries(reach)) {
     const e = cfg.exceptions[idx];
-    if (e.class === 'detector-lexicon') continue; // json_path on the gate's own files, checked by name above
+    if (NO_REACH_LIMIT.has(e.class)) continue; // by shape: the gate's lexicon, the changelog classes (see NO_REACH_LIMIT)
     let total = 0;
     for (const [f, n] of Object.entries(perFile)) {
       total += n;
@@ -1014,31 +1011,35 @@ function decode(buf) {
   return buf.toString('utf8').replace(/^\ufeff/, '');
 }
 
+// The exceptions that apply to a file. An entry counts only when it is SIGNED
+// (signed_by and signed_on both set, by the owner): an unsigned one suppresses
+// nothing, and the gate says it is waiting. `cfg.provisional` counts the unsigned
+// ones too, which is how the gate tells «Italian that an unsigned entry would
+// cover» from «Italian outside every entry».
 function exceptionsFor(file, cfg) {
-  return cfg.exceptions.filter(e => e.appliesToDetector && (!e.file || e.file.test(file)));
+  return cfg.exceptions.filter(e => e.appliesToDetector && (e.signed || cfg.provisional) && (!e.file || e.file.test(file)));
 }
 
-// Blank the spans an exception covers. Returns { text, transition, matched }.
+// Blank the spans an exception covers. Returns { text, matched }.
 function applyTextExceptions(text, excs) {
-  let t = text, transition = false;
+  let t = text;
   const matched = [];
   for (const e of excs) {
     if (!e.pattern) continue;
     e.pattern.lastIndex = 0;
     const replaced = t.replace(e.pattern, m => ' '.repeat(m.length));
     if (replaced !== t) {
-      if (e.class === 'transition') transition = true;
       matched.push(e.index);
       t = replaced;
     }
   }
-  return { text: t, transition, matched };
+  return { text: t, matched };
 }
 
-// Does an exception cover this whole element? Returns null or { kind: 'skip' | 'transition', index }.
+// Does an exception cover this whole element? Returns null or { index }.
 function elementException(element, excs) {
   for (const e of excs) {
-    if (e.full && e.full.test(element)) return { kind: e.class === 'transition' ? 'transition' : 'skip', index: e.index };
+    if (e.full && e.full.test(element)) return { index: e.index };
   }
   return null;
 }
@@ -1070,19 +1071,29 @@ function compoundOf(name, cfg) {
 
 function analyzeText(file, text, cfg) {
   const kind = kindOf(file);
-  const excs = exceptionsFor(file, cfg);
+  const all = exceptionsFor(file, cfg);
+  // an exception with a scope (class changelog-history) applies from the first
+  // line that matches its `scope.from` to the end of the file; the line is
+  // found in the text, never written down as a number
+  const scopeStart = new Map();
+  if (all.some(e => e.scopeFrom)) {
+    const ls = text.split('\n');
+    for (const e of all) if (e.scopeFrom) {
+      const at = ls.findIndex(l => e.scopeFrom.test(l));
+      scopeStart.set(e.index, at < 0 ? Infinity : at + 1);
+    }
+  }
+  const excsAt = (line) => all.filter(e => !e.scopeFrom || line >= scopeStart.get(e.index));
   const hits = []; // { category, line, text, element?, score? }
   const reach = {}; // exception index -> hits it suppressed
   const credit = (indices) => { for (const i of indices) reach[i] = (reach[i] || 0) + 1; };
   const addProse = (category, line, raw) => {
+    const excs = excsAt(line);
     const ex = applyTextExceptions(raw, excs);
     const v = proseVerdict(ex.text, cfg);
     if (ex.matched.length) {
       const whole = proseVerdict(raw, cfg);
-      if (whole.score > v.score) {
-        if (ex.transition) hits.push({ category: 'transition', line, text: raw.trim(), score: whole.score - v.score });
-        credit(ex.matched.filter(i => cfg.exceptions[i].class !== 'transition'));
-      }
+      if (whole.score > v.score) credit(ex.matched);
     }
     if (v.italian) hits.push({ category, line, text: raw.trim(), score: v.score });
     for (const nm of v.names) addElement('identifiers', line, nm, raw);
@@ -1101,9 +1112,9 @@ function analyzeText(file, text, cfg) {
   };
   const addElement = (category, line, element, context) => {
     if (!isItalianName(element, cfg)) return;
-    const ex = elementException(element, excs);
-    if (ex && ex.kind === 'skip') { credit([ex.index]); return; }
-    hits.push({ category: ex ? 'transition' : category, line, element, text: (context || element).trim() });
+    const ex = elementException(element, excsAt(line));
+    if (ex) { credit([ex.index]); return; }
+    hits.push({ category, line, element, text: (context || element).trim() });
   };
   // A name: its words one by one, and the whole compound when it is one.
   const addName = (category, line, name, context) => {
@@ -1115,15 +1126,15 @@ function analyzeText(file, text, cfg) {
   };
   // A value without spaces is a name, not prose: its words go to `protocol`.
   const addTokenValue = (category, line, value) => {
+    const excs = excsAt(line);
     const ex = elementException(value, excs);
-    if (ex && ex.kind === 'skip') { if (isItalianName(value, cfg)) credit([ex.index]); return; }
-    if (ex) { if (isItalianName(value, cfg)) hits.push({ category: 'transition', line, element: value, text: value }); return; }
-    // spans an exception covers inside a longer value (Taglio-Estrusione1
+    if (ex) { if (isItalianName(value, cfg)) credit([ex.index]); return; }
+    // spans an exception covers inside a longer value (a feature name
     // inside a JSON example) are blanked before the value is cut into names
     const blanked = applyTextExceptions(value, excs);
-    const target = blanked.transition ? 'transition' : category;
-    if (/[\\/]/.test(blanked.text)) { addPathValue(target, line, blanked.text, value); return; }
-    for (const piece of blanked.text.split(/\s+/)) if (piece) addName(target, line, piece, value);
+    if (blanked.matched.length) credit(blanked.matched);
+    if (/[\\/]/.test(blanked.text)) { addPathValue(category, line, blanked.text, value); return; }
+    for (const piece of blanked.text.split(/\s+/)) if (piece) addName(category, line, piece, value);
   };
   // A string value: a name if it has no spaces once its selectors and
   // placeholders are set aside; prose otherwise (and the selectors are names).
@@ -1147,22 +1158,22 @@ function analyzeText(file, text, cfg) {
     catch (err) { items = null; }
     if (items) {
       for (const it of items) {
-        const jex = excs.find(e => e.jsonPath && e.jsonPath.test(it.path));
-        if (jex) { if (jex.class !== 'transition') continue; }
+        const jex = all.find(e => e.jsonPath && e.jsonPath.test(it.path));
+        if (jex) { credit([jex.index]); continue; }
         if (it.type === 'key') {
           // a key with spaces is still ONE key: it is registered whole
           if (/\s/.test(it.key.trim())) {
-            const ex = applyTextExceptions(it.key, excs);
-            if (proseVerdict(ex.text, cfg).italian) hits.push({ category: jex || ex.transition ? 'transition' : 'json_keys', line: it.line, element: it.key.trim(), text: it.key.trim() });
+            const ex = applyTextExceptions(it.key, excsAt(it.line));
+            if (proseVerdict(ex.text, cfg).italian) hits.push({ category: 'json_keys', line: it.line, element: it.key.trim(), text: it.key.trim() });
           }
-          else addElement(jex ? 'transition' : 'json_keys', it.line, it.key, it.key);
+          else addElement('json_keys', it.line, it.key, it.key);
           continue;
         }
         const v = it.value;
         if (!v.trim()) continue;
         const parts = v.split('\n');
-        if (parts.length > 1) { parts.forEach(part => { if (part.trim()) addProse(jex ? 'transition' : 'json_values', it.line, part); }); continue; }
-        addValue(jex ? 'transition' : 'protocol', jex ? 'transition' : 'json_values', it.line, v);
+        if (parts.length > 1) { parts.forEach(part => { if (part.trim()) addProse('json_values', it.line, part); }); continue; }
+        addValue('protocol', 'json_values', it.line, v);
       }
       return { kind, hits, reach, parseError: null };
     }
@@ -1279,8 +1290,8 @@ function scanTree(root, cfg, only, rev) {
     for (const s of segments) {
       if (!s || !isItalianName(s, cfg)) continue;
       const ex = elementException(s, pexc);
-      if (ex && ex.kind === 'skip') continue;
-      pathHits.push({ category: ex ? 'transition' : 'paths', line: 0, element: s, text: f });
+      if (ex) continue;
+      pathHits.push({ category: 'paths', line: 0, element: s, text: f });
     }
     if (isBinaryByExtension(f)) {
       report.skipped_binary.push(f);
@@ -1331,172 +1342,63 @@ function summarize(report) {
   return report;
 }
 
-function baselineOf(report) {
-  const sortedFiles = {};
-  for (const f of Object.keys(report.files).sort()) sortedFiles[f] = report.files[f];
-  const sets = {};
-  for (const c of SET_CATEGORIES) sets[c] = [...report.sets[c].keys()].sort();
-  return {
-    about: 'Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. ' +
-      'Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. ' +
-      'A raise needs the trailer "Language-Baseline-Raise: <reason>" on the commit that raises it.',
-    format: 2,
-    totals: report.totals,
-    files: sortedFiles,
-    sets,
-  };
-}
-
-// Merge baselines (the parents of a merge commit): per file the larger count,
-// per set the union.
-function mergeBaselines(list) {
-  if (list.length === 1) return list[0];
-  const files = {};
-  const sets = {};
-  for (const b of list) {
-    for (const [f, counts] of Object.entries(b.files || {})) {
-      files[f] = files[f] || {};
-      for (const [c, n] of Object.entries(counts)) files[f][c] = Math.max(files[f][c] || 0, n);
-    }
-    for (const c of SET_CATEGORIES) sets[c] = [...new Set((sets[c] || []).concat(b.sets[c] || []))];
-  }
-  return { files, sets };
-}
-
-// Compare a tree (or a newer baseline) with a baseline. Returns the list of
-// growths, each { category, file?, from, to, elements? }. `renames` maps a new
-// path to its old one (git's rename detection between the two commits): a
-// renamed file is compared with the counts of its old path.
-function compare(base, current, renames) {
-  const growth = [];
-  const allFiles = new Set(Object.keys(current.files));
-  for (const f of allFiles) {
-    const now = current.files[f] || {};
-    const old = renames && renames[f] && !base.files[f] ? renames[f] : f;
-    const before = base.files[old] || {};
-    for (const c of COUNT_CATEGORIES) {
-      const a = before[c] || 0, b = now[c] || 0;
-      if (b > a) growth.push({ category: c, file: f, from: a, to: b, renamedFrom: old !== f ? old : undefined });
-    }
-  }
-  for (const c of SET_CATEGORIES) {
-    const baseSet = new Set(base.sets[c] || []);
-    // a name that was a tracked path segment is not new when it shows up as
-    // a reference in text after the file was renamed (the old file name
-    // quoted in a comment of another file)
-    const known = new Set();
-    if (c === 'identifiers' || c === 'protocol') {
-      for (const seg of base.sets.paths || []) { known.add(seg); const t = []; collectTokens(seg, t); t.forEach(x => known.add(x)); }
-    }
-    const cur = current.sets[c] instanceof Map ? [...current.sets[c].keys()] : (current.sets[c] || []);
-    const fresh = cur.filter(e => !baseSet.has(e) && !known.has(e));
-    if (fresh.length) growth.push({ category: c, from: baseSet.size, to: baseSet.size + fresh.length, elements: fresh });
-  }
-  return growth;
-}
-
-
-function lowered(base, current) {
-  // true if the tree is strictly below the baseline somewhere
-  for (const f of Object.keys(base.files)) {
-    for (const c of COUNT_CATEGORIES) if ((base.files[f][c] || 0) > ((current.files[f] || {})[c] || 0)) return true;
-  }
-  for (const c of SET_CATEGORIES) {
-    const cur = new Set(current.sets[c] instanceof Map ? [...current.sets[c].keys()] : current.sets[c]);
-    for (const e of base.sets[c] || []) if (!cur.has(e)) return true;
-  }
-  return false;
-}
-
 // -----------------------------------------------------------------------------
-//  Command line
+//  The verdict
 // -----------------------------------------------------------------------------
+
+// What the tree says, with the entries that wait for a signature.
+//   signed       the report with the SIGNED exceptions only: what the gate fails on
+//   provisional  the report with every entry counted as if signed: what is left
+//                is Italian that no entry covers at all
+// Returns { signed, provisional, waiting, outside, lines }.
+function judge(root, cfg, only, rev, wholeTree) {
+  cfg.provisional = false;
+  const signed = scanTree(root, cfg, only, rev);
+  cfg.provisional = true;
+  const provisional = scanTree(root, cfg, only, rev);
+  cfg.provisional = false;
+  if (wholeTree) checkExceptionReach(provisional, cfg);
+  const waiting = [];
+  for (const e of cfg.exceptions) {
+    if (e.signed) continue;
+    const reach = provisional.exceptionReach[e.index] || {};
+    const files = Object.keys(reach);
+    waiting.push({ index: e.index, class: e.class, entry: e, lines: files.reduce((n, f) => n + reach[f], 0), files });
+  }
+  const outside = [];
+  for (const [f, hs] of Object.entries(provisional.hits)) for (const h of hs) outside.push({ file: f, category: h.category, line: h.line, element: h.element, text: h.text });
+  const left = [];
+  for (const [f, hs] of Object.entries(signed.hits)) for (const h of hs) left.push({ file: f, category: h.category, line: h.line, element: h.element, text: h.text });
+  return { signed, provisional, waiting, outside, left };
+}
 
 function parseArgs(argv) {
-  const a = { json: false, write: null, baseline: null, file: null, tighten: false, root: null, compareBaselines: null,
-    quiet: false, rev: null, configRev: null, renames: null, zero: [] };
+  const a = { json: false, file: null, root: null, report: null, rev: null, configRev: null };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     if (x === '--json') a.json = true;
-    else if (x === '--write-baseline') { a.write = (argv[i + 1] && !argv[i + 1].startsWith('--')) ? argv[++i] : ''; }
-    else if (x === '--baseline') a.baseline = argv[++i];
     else if (x === '--file') a.file = argv[++i];
-    else if (x === '--tighten') a.tighten = true;
     else if (x === '--root') a.root = argv[++i];
-    else if (x === '--quiet') a.quiet = true;
     else if (x === '--report') a.report = argv[++i];
     else if (x === '--rev') a.rev = argv[++i];
     else if (x === '--config-rev') a.configRev = argv[++i];
-    else if (x === '--renames') a.renames = argv[++i];
-    else if (x === '--zero') a.zero.push(argv[++i]);
-    else if (x === '--compare-baselines') { a.compareBaselines = [argv[i + 1], argv[i + 2]]; i += 2; }
     else if (x === '--help' || x === '-h') { a.help = true; }
     else { a.unknown = x; }
   }
   return a;
 }
 
-function printGrowth(growth, report, quiet) {
-  // --quiet is for callers that decide themselves (the CI step, a signed
-  // raise): the lines stay, the capitals and the verdict go.
-  const lead = quiet ? 'language gate: ' : 'LANGUAGE GATE: ';
-  for (const g of growth) {
-    if (g.file) {
-      console.log(lead + g.category + ' grew in ' + g.file + (g.renamedFrom ? ' (renamed from ' + g.renamedFrom + ')' : '') +
-        ': ' + g.from + ' -> ' + g.to + ' Italian words');
-      // the count is per file, so the gate cannot tell which line is new:
-      // it shows the Italian lines of the file, the last ones first
-      const hs = ((report && report.hits[g.file]) || []).filter(h => h.category === g.category).slice(-8).reverse();
-      if (hs.length) console.log('    Italian lines of the file, last first (the count is per file, not per line):');
-      for (const h of hs) console.log('    ' + g.file + ':' + h.line + ': ' + h.text.slice(0, 160));
-    } else {
-      console.log(lead + 'new Italian element in ' + g.category + ' (' + g.elements.length + '):');
-      for (const e of g.elements.slice(0, 30)) {
-        const where = report && report.sets[g.category] instanceof Map ? report.sets[g.category].get(e) : '';
-        console.log('    ' + e + (where ? '   (' + where + ')' : ''));
-      }
-      if (g.elements.length > 30) console.log('    ... and ' + (g.elements.length - 30) + ' more');
-    }
-  }
-}
-
-// A baseline is a file, or git:<rev> for the committed baseline of a revision
-// (read through git, byte for byte, so no shell decodes it on the way).
-// Several revisions joined by "+" (git:A+B) are merged: the parents of a
-// merge commit. Returns null, after saying why, when there is none.
-function loadBaseline(spec, root) {
-  if (spec.startsWith('git:')) {
-    const list = [];
-    for (const rev of spec.slice(4).split('+')) {
-      let buf;
-      try {
-        buf = showFromRev(root, rev, 'baseline.json', ['ignore', 'pipe', 'ignore']);
-      } catch (err) {
-        console.log('language gate: no baseline.json in ' + rev);
-        return null;
-      }
-      list.push(checkBaseline(JSON.parse(buf.toString('utf8').replace(/^\ufeff/, '')), 'baseline.json of ' + rev));
-    }
-    return mergeBaselines(list);
-  }
-  const file = path.resolve(spec);
-  if (!fs.existsSync(file)) { console.log('language gate: no baseline at ' + file); return null; }
-  return checkBaseline(readJson(file), file);
-}
-
-// The renames between two commits, as a JSON file { "new/path": "old/path" }
-// (written by the CI step from `git diff -M --name-status`).
-function loadRenames(file) {
-  if (!file) return null;
-  const r = readJson(path.resolve(file));
-  if (typeof r !== 'object' || Array.isArray(r)) fail('--renames: expected an object { new: old }');
-  return r;
-}
-
 function writeJson(file, obj) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(obj, null, 1) + '\n', 'utf8');
 }
+
+function printTotals(report, label) {
+  const parts = CATEGORIES.map(c => c + '=' + report.totals[c]);
+  console.log('language gate totals (' + label + '): ' + parts.join(' '));
+}
+
+const clip = (s, n) => (s.length > n ? s.slice(0, n - 3) + '...' : s);
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -1508,40 +1410,31 @@ function main() {
   }
   if (args.unknown) { console.error('detect-italian: unknown argument ' + args.unknown); return 2; }
   const root = path.resolve(args.root || ROOT_DEFAULT);
-  const renames = loadRenames(args.renames);
-
-  if (args.compareBaselines) {
-    const [a, b] = args.compareBaselines.map(x => loadBaseline(x, root));
-    if (!a || !b) return 4;
-    const growth = compare(a, b, renames);
-    if (growth.length) {
-      console.log((args.quiet ? 'language gate: ' : 'LANGUAGE GATE: ') + 'the baseline itself was raised:');
-      printGrowth(growth, null, args.quiet);
-      return 1;
-    }
-    console.log('language gate: the new baseline is not above the old one.');
-    return 0;
-  }
-
   const cfg = loadConfig(root, args.configRev);
-  const report = scanTree(root, cfg, args.file ? [args.file.replace(/\\/g, '/')] : null, args.rev);
+  const only = args.file ? [args.file.replace(/\\/g, '/')] : null;
+  const v = judge(root, cfg, only, args.rev, !args.file);
+  const report = v.signed;
 
   if (report.unreadable.length) {
     console.log('LANGUAGE GATE: tracked files that cannot be read (the gate would be blind on them):');
     report.unreadable.forEach(u => console.log('    ' + u));
     return 2;
   }
-  // how far each exception reaches can only be judged on the whole tree
-  if (!args.file) checkExceptionReach(report, cfg);
 
   if (args.json) {
-    const out = baselineOf(report);
-    out.files_listed = report.files_listed;
-    out.files_read = report.files_read;
-    out.skipped_binary = report.skipped_binary;
-    out.parse_errors = report.parse_errors;
-    out.exception_reach = report.exceptionReach;
-    out.hits = report.hits;
+    const out = {
+      format: 3,
+      totals: report.totals,
+      totals_with_unsigned_entries: v.provisional.totals,
+      files_listed: report.files_listed,
+      files_read: report.files_read,
+      skipped_binary: report.skipped_binary,
+      parse_errors: report.parse_errors,
+      exception_reach: v.provisional.exceptionReach,
+      waiting_for_signature: v.waiting.map(w => ({ index: w.index, class: w.class, lines: w.lines, files: w.files })),
+      hits: report.hits,
+      outside_every_entry: v.outside,
+    };
     process.stdout.write(JSON.stringify(out, null, 1) + '\n');
     return 0;
   }
@@ -1554,73 +1447,52 @@ function main() {
     return 0;
   }
 
-  const baselineFile = path.join(root, langDirOnDisk(root), 'baseline.json');
-  if (args.write !== null) {
-    if (args.rev) { console.log('LANGUAGE GATE: --write-baseline works on the working tree, not on --rev'); return 2; }
-    const target = args.write ? path.resolve(args.write) : baselineFile;
-    writeJson(target, baselineOf(report));
-    console.log('language gate: baseline written to ' + target);
-    printTotals(report);
+  if (args.report) writeJson(path.resolve(args.report), {
+    held: v.left.length === 0, totals: report.totals, totals_with_unsigned_entries: v.provisional.totals,
+    waiting_for_signature: v.waiting.map(w => ({ index: w.index, class: w.class, lines: w.lines, files: w.files })),
+    outside_every_entry: v.outside, files_read: report.files_read, skipped_binary: report.skipped_binary,
+  });
+
+  console.log('language gate: ' + report.files_read.length + ' files read, ' + report.skipped_binary.length + ' binary by extension.');
+  printTotals(report, 'signed exceptions only');
+  if (v.waiting.length) {
+    console.log('');
+    console.log('language gate: ' + v.waiting.length + ' exception entr' + (v.waiting.length === 1 ? 'y waits' : 'ies wait') +
+      " for the owner's signature (signed_by and signed_on are null); an unsigned entry suppresses nothing:");
+    for (const w of v.waiting) {
+      const e = w.entry;
+      const raw = cfg.rawExceptions[w.index];
+      console.log('  [' + w.index + '] ' + e.class + '  covers ' + w.lines + ' occurrence(s) in ' + w.files.length + ' file(s)' +
+        (raw.file ? '  file ' + raw.file : '') + (raw.pattern ? '  pattern ' + clip(raw.pattern, 110) : '') +
+        (raw.json_path ? '  json_path ' + clip(raw.json_path, 80) : ''));
+      console.log('        reason: ' + clip(raw.reason, 200));
+      if (w.lines === 0) console.log('        (it covers nothing in this tree: remove it, or it is dead weight)');
+    }
+  }
+  if (v.outside.length) {
+    console.log('');
+    const nfiles = new Set(v.outside.map(h => h.file)).size;
+    console.log('LANGUAGE GATE: ITALIAN OUTSIDE EVERY EXCEPTION (' + v.outside.length + ' occurrences in ' + nfiles + ' files):');
+    for (const h of v.outside.slice(0, 200)) console.log('    ' + h.file + ':' + h.line + ' ' + h.category + ': ' + (h.element ? '[' + h.element + '] ' : '') + clip(h.text, 140));
+    if (v.outside.length > 200) console.log('    ... and ' + (v.outside.length - 200) + ' more (--json lists them all)');
+  }
+  console.log('');
+  if (v.left.length === 0) {
+    console.log('language gate: held (nothing left outside the signed exceptions).');
     return 0;
   }
-
-  // --zero <category>: the category must be empty in the whole tree (the
-  // transition category at a release tag).
-  for (const c of args.zero) {
-    if (!CATEGORIES.includes(c)) { console.log('LANGUAGE GATE: --zero: unknown category ' + c); return 2; }
-    if (report.totals[c] > 0) {
-      console.log('LANGUAGE GATE: ' + c + ' must be 0 here and is ' + report.totals[c] + ':');
-      for (const [f, hs] of Object.entries(report.hits)) {
-        for (const h of hs.filter(x => x.category === c).slice(0, 5)) console.log('    ' + f + ':' + h.line + ': ' + h.text.slice(0, 160));
-      }
-      return 1;
-    }
-  }
-
-  const against = args.baseline || baselineFile;
-  const base = loadBaseline(against, root);
-  if (!base) return 4;
-  const growth = compare(base, report, renames);
-  if (args.report) writeJson(path.resolve(args.report), {
-    growth, totals: report.totals, files_read: report.files_read, skipped_binary: report.skipped_binary,
-  });
-  if (!args.quiet) printTotals(report, base);
-  if (growth.length) {
-    printGrowth(growth, report, args.quiet);
-    if (args.quiet) return 1;
-    console.log('');
-    console.log('LANGUAGE GATE: FAILED. New text is written in English. If this growth is');
-    console.log('intended (a rename window, an approved exception), rewrite the baseline with');
-    console.log('--write-baseline and add the trailer "Language-Baseline-Raise: <reason>" to the');
-    console.log('message of that commit; the reason goes into the CHANGELOG entry too.');
-    return 1;
-  }
-  if (args.tighten && lowered(base, report)) {
-    if (args.rev || against.startsWith('git:')) {
-      console.log('language gate: the Italian went DOWN at ' + (args.rev || 'the working tree') +
-        '; run node Checks/language/detect-italian.js --tighten on the working tree and commit the baseline.');
-      return 3;
-    }
-    writeJson(path.resolve(against), baselineOf(report));
-    console.log('language gate: the tree went DOWN; ' + against + ' was rewritten. Commit it.');
-    return 3;
-  }
-  console.log('language gate: nothing grew (' + report.files_read.length + ' files read, ' +
-    report.skipped_binary.length + ' binary by extension).');
-  return 0;
+  console.log('LANGUAGE GATE: FAILED, ' + v.left.length + ' occurrence(s) are left outside the signed exceptions: ' +
+    v.outside.length + ' outside every entry, ' + (v.left.length - v.outside.length) + ' covered only by entries that wait for the signature.');
+  if (v.outside.length === 0) console.log('The owner signs the entries above (signed_by, signed_on) and the gate holds; nothing else is left to write.');
+  else console.log('New text is written in English. An approved exception is an entry of one of the six classes, with its reason, signed by the owner.');
+  return 1;
 }
 
-
-function printTotals(report, base) {
-  const parts = CATEGORIES.map(c => c + '=' + report.totals[c] + (base && base.totals ? '/' + base.totals[c] : ''));
-  console.log('language gate totals' + (base ? ' (tree/baseline)' : '') + ': ' + parts.join(' '));
-}
-
-module.exports = { loadConfig, analyzeText, scanTree, baselineOf, compare, lowered, splitName, isItalianName,
+module.exports = { loadConfig, analyzeText, scanTree, judge, splitName, isItalianName,
   proseVerdict, proseScore, listFiles, treeSource, isBinaryByExtension, decode, kindOf, parseJsonItems, pathSegmentsOf,
-  mergeBaselines, checkExceptionReach,
+  checkExceptionReach,
   lexers: { lexCLike, lexPowerShell, lexHash, lexIgnore, lexYaml, lexXml, lexMarkdown },
-  CATEGORIES, COUNT_CATEGORIES, SET_CATEGORIES, BINARY_EXTENSIONS };
+  CATEGORIES, COUNT_CATEGORIES, SET_CATEGORIES, BINARY_EXTENSIONS, EXCEPTION_CLASSES };
 
 if (require.main === module) {
   let code;

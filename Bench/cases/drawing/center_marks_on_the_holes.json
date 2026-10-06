@@ -3,7 +3,7 @@
   "family": "drawing",
   "why": "ENTRY W2.11. Blocked since 17/9/2026 for «the API says yes and puts nothing». On 26/9 the probe found that the marks WERE THERE: SOLIDWORKS puts them by itself on the holes when it creates the view (document option «centre marks on holes», switched on here), and IView.GetCenterMarkCount() answers 0 because it does not count those. Enumerating them (GetFirstCenterMark/GetNext) there are three. From code a new mark is not born (measured: with the automatic ones removed, AddCenterMark does not put any back): the operation is a CHECK, which says which holes have the mark and refuses if one is missing.",
   "defect_caught": "Four: the counter that says zero on a sheet with three marks (the state, which recounts them on its own); the DOUBLE marks on the holes that already have them; a second call that doubles; and the fillets, on which the mark from code is not born (measured: 4 arcs out of 4), which must be a refusal and not a «done» with zero marks.",
-  "_and_the_hole_without_a_mark": "The refusal for a hole without a mark was proved by the little test rig (prova0089 croci7), removing the automatic marks: the bench has no operation that removes them, and on this installation every hole has its mark.",
+  "_and_the_hole_without_a_mark": "The refusal for a hole without a mark was proved by the little test rig (probe0089 marks7), removing the automatic marks: the bench has no operation that removes them, and on this installation every hole has its mark.",
   "_the_views_are_called_by_uid": "V2, the view from above: the holes are circles.",
   "start": { "new_part": true },
   "steps": [

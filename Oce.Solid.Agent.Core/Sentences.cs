@@ -49,7 +49,7 @@ namespace Oce.Solid.Agent.Core
         /// The fraction of the bounding box — `u = (x − minX) / (maxX − minX)` — is the
         /// explanation that the messages of this library lack: when a
         /// part grows, «the face moved by 60 mm» is true and says
-        /// nothing, while «stava al 100% del lato e ci sta ancora» says
+        /// nothing, while «it was at 100% of the side and it still fits» says
         /// **what happened**.
         ///
         /// It is also, as an IDENTITY CRITERION, the only one of the proposed roads

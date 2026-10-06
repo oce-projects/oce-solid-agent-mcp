@@ -67,10 +67,10 @@ namespace Oce.Solid.Agent.ContractTests
             // It is the trap in its literal form: a dictionary that does not
             // find the key returns null, and null compared with null passes.
             Check("missing field: not evaluated, and it says which ones there were",
-                  Raise(() => { string x; Expectations.Matches(Expectation("measurements.non_esiste", 0.0), null, docState, measurements, out x); },
-                       "missing field: measurements.non_esiste"));
+                  Raise(() => { string x; Expectations.Matches(Expectation("measurements.does_not_exist", 0.0), null, docState, measurements, out x); },
+                       "missing field: measurements.does_not_exist"));
             Check("missing field: it lists the fields that were there",
-                  Raise(() => { string x; Expectations.Matches(Expectation("measurements.non_esiste", 0.0), null, docState, measurements, out x); },
+                  Raise(() => { string x; Expectations.Matches(Expectation("measurements.does_not_exist", 0.0), null, docState, measurements, out x); },
                        "faces_removed, facing, removed_mm3"));
 
             // ── A DECLARED NULL IS MEASURED ───────────────────────────────
@@ -113,10 +113,10 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // THE LIST OF NAMES IS NO LONGER IN THE EVALUATOR, and this is the
             // proof that it does not go back. It was there, and it came unstuck: two new measurements
-            // added to whoever measures and forgotten here came out as «non
-            // so misurare «last_plane_mm»: i nomi sono …» with the old
+            // added to whoever measures and forgotten here came out as «I do not
+            // know how to measure «last_plane_mm»: the names are …» with the old
             // list next to it — a message that said what was false about itself,
-            // and that gave ERRORE DI BANCO to a check that the bridge passed.
+            // and that gave BENCH ERROR to a check that the bridge passed.
             //
             // Now the evaluator does not judge the names: it passes them to whoever has the
             // document, and it is that one who says it does not know them. The passing is
@@ -130,8 +130,8 @@ namespace Oce.Solid.Agent.ContractTests
                     "I cannot measure «" + c + "»: the names are volume_mm3");
             };
             Check("an unknown «what»: the refusal of whoever measures arrives whole",
-                  Raise(() => { string x; Expectations.Matches(Expectation("pippo", 1.0), strict, docState, measurements, out x); },
-                       "I cannot measure «pippo»"));
+                  Raise(() => { string x; Expectations.Matches(Expectation("foo", 1.0), strict, docState, measurements, out x); },
+                       "I cannot measure «foo»"));
             Check("an unknown «what» is really asked of whoever measures", arrived);
 
             // ── TWO DIFFERENT PROFILES ARE NOT WRITTEN THE SAME ───────────
@@ -171,35 +171,35 @@ namespace Oce.Solid.Agent.ContractTests
             // ── A LIST THAT HAS NO NUMBERS ────────────────────────────────
             //
             // `["C2"]` — the bodies a boolean worked on. Until
-            // 0.81.0 it came out as «non e' un elenco di numeri: System.String[]»: a
+            // 0.81.0 it came out as «is not a list of numbers: System.String[]»: a
             // true and useless message, because the case asked something
             // sensible and the evaluator did not know how to compare it.
             var withLists = new Dictionary<string, object>
             {
-                ["utensili"] = new List<object> { "C2", "C3" },
+                ["tools"] = new List<object> { "C2", "C3" },
                 ["one"] = new List<object> { "C2" },
-                ["misti"] = new List<object> { "C2", 7.0 },
+                ["mixed"] = new List<object> { "C2", 7.0 },
             };
             Func<string, object, Dictionary<string, object>> att = (c, u) =>
                 new Dictionary<string, object> { ["what"] = c, ["equal_to"] = u };
 
             Check("list of text: equal passes",
-                  Expectations.Matches(att("state.utensili", new List<object> { "C2", "C3" }),
+                  Expectations.Matches(att("state.tools", new List<object> { "C2", "C3" }),
                                   null, withLists, measurements, out d), d);
             Check("list of text RED: a different element",
-                  !Expectations.Matches(att("state.utensili", new List<object> { "C2", "C9" }),
+                  !Expectations.Matches(att("state.tools", new List<object> { "C2", "C9" }),
                                    null, withLists, measurements, out d), d);
             Check("list of text RED: the ORDER matters",
-                  !Expectations.Matches(att("state.utensili", new List<object> { "C3", "C2" }),
+                  !Expectations.Matches(att("state.tools", new List<object> { "C3", "C2" }),
                                    null, withLists, measurements, out d), d);
             Check("list of text RED: one fewer",
-                  !Expectations.Matches(att("state.utensili", new List<object> { "C2" }),
+                  !Expectations.Matches(att("state.tools", new List<object> { "C2" }),
                                    null, withLists, measurements, out d), d);
             Check("list of text: even a single one",
                   Expectations.Matches(att("state.one", new List<object> { "C2" }),
                                   null, withLists, measurements, out d), d);
             Check("mixed list of text and numbers: compared as text",
-                  Expectations.Matches(att("state.misti", new List<object> { "C2", 7.0 }),
+                  Expectations.Matches(att("state.mixed", new List<object> { "C2", 7.0 }),
                                   null, withLists, measurements, out d), d);
             Check("list of text RED: if the measurement is NOT a list, it says so",
                   !Expectations.Matches(att("state.material", new List<object> { "C2" }),
@@ -314,7 +314,7 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // `measurements.profiles[0].measurements` is a list: asking that it CONTAIN
             // an entry is the most natural thing in the world, and until 0.91.0
-            // it failed with «non dice "80X80X5": System.String[]» — a true
+            // it failed with «does not say "80X80X5": System.String[]» — a true
             // and useless message. For «equals» the lists of text had already
             // been taught; for «contains» they had not, and nobody had noticed
             // because no case asked for it.
@@ -374,7 +374,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("sentence RED: whoever measures answers nothing, and the sentence is missing",
                   !Expectations.Matches(
                       new Dictionary<string, object>
-                      { ["what"] = "forma_del_pezzo", ["includes"] = new List<object> { "x" } },
+                      { ["what"] = "shape_of_the_part", ["includes"] = new List<object> { "x" } },
                       c => null, docState, measurements, out d) &&
                   d.IndexOf("is missing", StringComparison.Ordinal) >= 0, d);
             Check("sentence RED: an empty list asks for nothing, and is refused",
@@ -413,14 +413,14 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 ["bodies"] = new List<object>
                 {
-                    new Dictionary<string, object> { ["uid"] = "C1", ["name"] = "TUBO 80X80X5(2)" },
-                    new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBO 80X80X5(1)" },
+                    new Dictionary<string, object> { ["uid"] = "C1", ["name"] = "TUBE 80X80X5(2)" },
+                    new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBE 80X80X5(1)" },
                 },
             };
             Check("selector: @body takes by name, parentheses included",
-                  Expectations.Select("@body(name=TUBO 80X80X5(1))", bodies) == "C2");
+                  Expectations.Select("@body(name=TUBE 80X80X5(1))", bodies) == "C2");
             Check("selector: @body with a name that is not there, it is refused",
-                  Raise(() => Expectations.Select("@body(name=TUBO 80X80X5(3))", bodies), "I did not find it"));
+                  Raise(() => Expectations.Select("@body(name=TUBE 80X80X5(3))", bodies), "I did not find it"));
 
             // THE EDGE BY WHERE IT IS (entry E18): x, y, z read point_mm. The
             // four edges 120 long of a plate are told apart only like this.

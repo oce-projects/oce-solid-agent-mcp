@@ -31,8 +31,8 @@
     <!-- x64 LIKE THE BRIDGE, and it is not a matter of taste: an `AnyCPU`
          executable on .NET Framework starts as 32-bit (`Prefer32Bit` is true by
          default), and loading the x64 image of the bridge from a 32-bit process
-         gives `BadImageFormatException` — a message that speaks of «file o
-         assembly non caricabile» and looks like a missing file.-->
+         gives `BadImageFormatException` — a message that speaks of «file or
+         assembly could not be loaded» and looks like a missing file.-->
     <PlatformTarget>x64</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
     <OutputPath>bin\</OutputPath>
@@ -99,7 +99,7 @@
     <Compile Include="Zc2113ExportUnitsContract.cs" />
     <Compile Include="Zc2113SplineCentreMarksContract.cs" />
     <Compile Include="DocumentByPathContract.cs" />
-    <Compile Include="AliasLayerContract.cs" />
+    <Compile Include="NoAliasContract.cs" />
     <Compile Include="DescriptionValuesContract.cs" />
     <Compile Include="RefusalKeywordsContract.cs" />
     <Compile Include="Zc2189WeldAssemblyContract.cs" />

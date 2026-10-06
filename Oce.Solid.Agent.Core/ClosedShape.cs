@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.Core
     /// can be tested only with the CAD open gets tested little.
     ///
     /// CONVENTION ON THE POINTS. A ring is passed **without repeating the first
-    /// point at the end**: the last side is always from `punti[n-1]` to `punti[0]`.
+    /// point at the end**: the last side is always from `points[n-1]` to `points[0]`.
     /// Repeating it would add a side of length zero, which confuses
     /// both the count of the area and that of the crossings. Hence
     /// <see cref="Ring"/>, which removes it if it is there.
@@ -102,7 +102,7 @@ namespace Oce.Solid.Agent.Core
         /// WHY THREE ANSWERS AND NOT TWO.
         ///
         /// The parity of the crossings cannot answer on the border, and the
-        /// answer it gives DEPENDS ON THE SIDE: with the comparison `x &lt; taglio` a
+        /// answer it gives DEPENDS ON THE SIDE: with the comparison `x &lt; cut` a
         /// vertex on the right border comes out outside, and the same vertex on the
         /// left border comes out inside.
         ///
@@ -110,7 +110,7 @@ namespace Oce.Solid.Agent.Core
         /// contours classifies ALL the vertices and decides from those. Measured on
         /// 14/9/2026 on a 100x100 plate: a pocket flush with the RIGHT border —
         /// (30,-10)(50,-10)(50,10)(30,10) — has two vertices «outside» and two
-        /// «inside», and was refused as «a cavallo del bordo esterno». The
+        /// «inside», and was refused as «straddles the outer border». The
         /// same pocket mirrored to the LEFT has all four vertices
         /// «inside», and passed.
         ///
@@ -125,8 +125,8 @@ namespace Oce.Solid.Agent.Core
         /// the open slot is drawn as ONE contour only with eight points, not
         /// as two that touch.
         ///
-        /// Measured, three geometries, one single result — «L'estrusione non e'
-        /// stata creata»:
+        /// Measured, three geometries, one single result — «The extrusion was
+        /// not created»:
         ///
         ///   * pocket flush with the right border;
         ///   * the same mirrored to the left;
@@ -239,7 +239,7 @@ namespace Oce.Solid.Agent.Core
         /// involved is returned; -1 if it is clean.
         ///
         /// The index is returned and not a boolean because the message must be able to
-        /// say WHERE: «si incrocia» on a shape of two hundred vertices helps
+        /// say WHERE: «it crosses itself» on a shape of two hundred vertices helps
         /// nobody to repair it.
         ///
         /// COST. It is a comparison of all the sides with all: n²/2. On a wheel

@@ -5,7 +5,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  SeguiIlBordo — does a hole dimensioned against an EDGE follow it? (entry E18, a and b)
+//  FollowTheEdge — does a hole dimensioned against an EDGE follow it? (entry E18, a and b)
 // =============================================================================
 //
 //  Three of the four silences of `--regression` are coordinates inside a
@@ -50,7 +50,7 @@ internal static class Program
     }
 
     private static ISldWorks _sw;
-    private static string _variant = "bordi";
+    private static string _variant = "edges";
     private static ISketch _cutSketch;
     private static bool _listRelations = true;
     private static IModelDoc2 _doc;
@@ -59,7 +59,7 @@ internal static class Program
     private static int Main(string[] arguments)
     {
         bool keep = Array.IndexOf(arguments, "--keep") >= 0;
-        if (Array.IndexOf(arguments, "--b=convertiti") >= 0) _variant = "convertiti";
+        if (Array.IndexOf(arguments, "--b=converted") >= 0) _variant = "converted";
         Console.WriteLine();
         Console.WriteLine("FOLLOW THE EDGE — does a hole dimensioned against the edge follow it? (entry E18, variant B: " + _variant + ")");
         Console.WriteLine();
@@ -148,7 +148,7 @@ internal static class Program
             var cB = Circle(tr, 0.0, 0.0, zFront, 0.005);
             var pB = (ISketchPoint)((ISketchArc)cB).GetCenterPoint2();
             ISketchSegment line = null;
-            if (_variant == "convertiti")
+            if (_variant == "converted")
             {
                 // The left and right edges CONVERTED into the sketch (they follow
                 // the model by themselves) and set to CONSTRUCTION, otherwise they would enter
@@ -229,7 +229,7 @@ internal static class Program
         {
             while (ex.InnerException != null) ex = ex.InnerException;
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + ex.GetType().Name + ": " + ex.Message);
+            Console.WriteLine("EXCEPTION: " + ex.GetType().Name + ": " + ex.Message);
             return 9;
         }
         finally
@@ -289,7 +289,7 @@ internal static class Program
                 }
             }
         }
-        catch (Exception ex) { Console.WriteLine("        relazioni: " + ex.Message); }
+        catch (Exception ex) { Console.WriteLine("        relations: " + ex.Message); }
 
         double xmin = Math.Min(box[0], box[3]), ymin = Math.Min(box[1], box[4]);
         double xmax = Math.Max(box[0], box[3]), ymax = Math.Max(box[1], box[4]);

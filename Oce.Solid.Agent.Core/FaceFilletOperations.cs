@@ -124,7 +124,7 @@ namespace Oce.Solid.Agent.Core
             // TWO UIDs, ONE FACE. After a recovery by signature two different
             // names can have ended up on the same face: SOLIDWORKS is asked
             // (ISldWorks~IsSame.html, «Gets whether the two specified
-            // objects are the same object»), as in OperazioniCorpi.
+            // objects are the same object»), as in BodyOperations.
             bool same = ReferenceEquals(face1, face2);
             if (!same)
             {
@@ -147,7 +147,7 @@ namespace Oce.Solid.Agent.Core
             //  * opposite normals and they face each other (the walls of a pocket) at distance
             //    d: only with r = d/2. With r = d/2 SOLIDWORKS is let to try,
             //    and the guards afterwards say whether it was born.
-            // The probe took the «facce parallele» variant out of the run
+            // The probe took the «parallel faces» variant out of the run
             // (Checks\FaceFillet, REVISION 28/9/2026) precisely because a
             // NULL there would not have measured the API but the geometry.
             string parallel = ParallelPlanarFaces(face1, face2, uid1, uid2, radius);

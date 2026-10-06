@@ -369,8 +369,8 @@ namespace Oce.Solid.Agent.Core
         /// The first draft did `(comp as IEntity).Select4(false, null)`,
         /// which is how faces and edges are selected in the whole rest
         /// of this project. **`IComponent2` cannot be cast to `IEntity`:** the
-        /// cast returns `null`, and the call blows up with «Riferimento a un
-        /// oggetto non impostato» — a message that talks about something entirely different.
+        /// cast returns `null`, and the call blows up with «Object reference not
+        /// set to an instance of an object» — a message that talks about something entirely different.
         ///
         /// `IComponent2` has a `Select4` **of its own**, with three parameters instead of
         /// two:

@@ -70,9 +70,6 @@
 //        a folder git ignores: the snapshot is not versioned, its format is)
 //    node Checks/language/snapshot.js compare <snapshot dir> [--ledger <tests.json>] [options]
 //        the current tree (and the ledger of a new run, if given) against it
-//    node Checks/language/snapshot.js map-proof <snapshot dir> [--window <n>]
-//        the snapshot alone: every identity it holds, read through the renames of the
-//        windows (default 5), looked for in the tree: found or listed (no ledger, no scripts)
 //    node Checks/language/snapshot.js --self-test
 //        a fake snapshot of a fake tree: every way of differing seen red,
 //        the same tree seen green, an unstable case listed apart
@@ -91,34 +88,6 @@
 //    --skip-script <id>    record that registry entry as skipped by the caller
 //    --with-probes         also run the probes the registry marks "probe"
 //    --show <n>            differences printed per category (default 25)
-//    --window <n>          compare, map-proof: the snapshot was taken before
-//                          rename window <n> of W3.1-bis; it is read through
-//                          that window's renames (and the windows before it),
-//                          so a renamed case, operation, file or method is the
-//                          same one, not one gone and one new. 1: case names,
-//                          folders and keys (Checks/language/window-1-cases.js);
-//                          2: also the operations, paths and values of the
-//                          assertions, the catalogue and the tools
-//                          (window-2-surface.js); 3: also the folders, files
-//                          and identifiers of the sources, read from the name
-//                          map (window-3-identifiers.js): the ids of the calls,
-//                          the string units, the satisfiers of the assertions,
-//                          the scripts and the tests (file:method:ordinal);
-//                          4: the comments, which change nothing it compares;
-//                          5: also the messages, which are translated: the
-//                          words of a literal and of an assertion are no longer
-//                          compared (window-5-messages.js --check proves them
-//                          against the tree before the window, unit by unit),
-//                          what is compared is where the literal is, its
-//                          holes, and that every assertion is still satisfied
-//    map-proof <snapshot>  the snapshot alone, no ledger and no scripts: every
-//                          identity the snapshot holds (the calls, the string
-//                          units, the satisfiers of the assertions, the
-//                          scripts, the tests of its ledger) is read through
-//                          --window <n> (default 5) and looked for in the tree.
-//                          It says how many are found, and lists the ones that
-//                          are not: a name the window renamed and the map does
-//                          not know, or a thing that is really gone.
 //
 //  EXIT CODES
 //    0  take: the snapshot is written; compare: no difference anywhere
@@ -145,8 +114,7 @@ const FORMAT = 2;
 const ROOT_DEFAULT = path.resolve(__dirname, '..', '..');
 const SECTIONS = ['catalogue', 'tools', 'literals', 'assertions', 'tests', 'scripts'];
 
-// Where things are in a tree, relative to its root. The rename windows
-// (W3.1-bis.4 to .6) change these paths together with the tree.
+// Where things are in a tree, relative to its root.
 const LAYOUT = {
   catalogue: 'Tools/catalog.json',
   projects: ['Oce.Solid.Agent.Core/Oce.Solid.Agent.Core.csproj', 'Oce.Solid.Agent.csproj'],
@@ -324,8 +292,7 @@ function catalogueOf(root) {
   return catalogueRecord(fs.readFileSync(file));
 }
 
-// The record of a catalogue from its bytes (the tree's, or the snapshot's
-// copy read through the renames of a window).
+// The record of a catalogue from its bytes (the tree's, or the snapshot's copy).
 function catalogueRecord(raw) {
   let json;
   try { json = JSON.parse(raw.toString('utf8').replace(/^\ufeff/, '')); } catch (e) { cannot('the catalogue is not valid JSON: ' + e.message); }
@@ -349,26 +316,11 @@ function catalogueRecord(raw) {
   };
 }
 
-// The copy of the catalogue inside a snapshot is catalog.json; a snapshot taken before window 3 (W3.1-bis.6) renamed the file calls it
-// catalogo.json, and a snapshot is never rewritten.
-function catalogCopy(snapDir) {
-  const now = path.join(snapDir, 'catalog.json');
-  const before = path.join(snapDir, 'catalogo.json');
-  return !fs.existsSync(now) && fs.existsSync(before) ? before : now;
-}
-
-function compareCatalogue(snapDir, cur, rep, ren) {
-  let old = readJson(path.join(snapDir, 'catalogue.json'), 'the catalogue section of the snapshot');
-  let oldJson = readJson(catalogCopy(snapDir), 'the copy of the catalogue in the snapshot');
-  if (ren && ren.catalogue) {
-    // the snapshot's copy, rewritten as the window rewrote the catalogue
-    const renamed = catalogueRecord(Buffer.from(ren.catalogue(readText(catalogCopy(snapDir), 'the copy of the catalogue in the snapshot')), 'utf8'));
-    old = renamed.record;
-    oldJson = renamed.json;
-  }
+function compareCatalogue(snapDir, cur, rep) {
+  const old = readJson(path.join(snapDir, 'catalogue.json'), 'the catalogue section of the snapshot');
+  const oldJson = readJson(path.join(snapDir, 'catalog.json'), 'the copy of the catalogue in the snapshot');
   const now = cur.record;
   rep.section('catalogue (' + LAYOUT.catalogue + ')', 'catalogue');
-  if (ren && ren.catalogue) rep.line('the catalogue of the snapshot is read through the renames of window ' + ren.window + ' (--window)');
   if (old.sha256_normalized === now.sha256_normalized) {
     rep.line('same: ' + Object.keys(now.operations).length + ' operations, ' + Object.keys(now.families).length +
              ' families, normalized sha256 ' + short(now.sha256_normalized) +
@@ -709,15 +661,9 @@ async function toolsOf(root, opts) {
   };
 }
 
-function compareTools(snapDir, cur, rep, ren) {
+function compareTools(snapDir, cur, rep) {
   const old = readJson(path.join(snapDir, 'tools.json'), 'the tools section of the snapshot');
-  if (ren && ren.tools) {
-    // the tools of the snapshot, renamed as the window renamed Tools/McpTools.cs
-    old.tools = ren.tools(old.tools);
-    old.tools_sha256 = sha256(stable(old.tools));
-  }
   rep.section('tools (initialize and tools/list of the bridge; snapshot from ' + old.source + ', now from ' + cur.source + ')', 'tools');
-  if (ren && ren.tools) rep.line('the tools of the snapshot are read through the renames of window ' + ren.window + ' (--window)');
   if (old.server.version !== cur.server.version) rep.line('bridge version ' + old.server.version + ' -> ' + cur.server.version + ' (recorded, not a difference)');
   if (old.server.name !== cur.server.name) rep.diff('server name ' + old.server.name + ' -> ' + cur.server.name);
   if (old.initialize_sha256 !== cur.initialize_sha256) {
@@ -1065,30 +1011,16 @@ function scanSources(root) {
   }
 }
 
-// where a call has its holes and how many literals are inside it: what is left to compare once the words are translated
-const callShape = (c) => c.args.map(a => a.map(p => (p === null ? 'h' : 't')).join('')).join('|') + '/' + c.inner.length;
-
-function compareLiterals(snapDir, cur, rep, ren) {
+function compareLiterals(snapDir, cur, rep) {
   const old = readJson(path.join(snapDir, 'literals.json'), 'the literals section of the snapshot');
   rep.section('literals of ' + CALLEES.join('/') + '(...), by file:method:ordinal', 'literals');
   if (old.calls.some(c => !Array.isArray(c.inner))) cannot('literals.json has calls without "inner": a snapshot of an older format, take it again');
-  if (ren && ren.window >= 3) {
-    old.calls = old.calls.map(c => Object.assign({}, c, { id: ren.callId(c.id), file: ren.path(c.file), member: ren.member(ren.path(c.file), c.member), units: c.units.map(ren.unitId) }));
-    old.sources = old.sources.map(x => Object.assign({}, x, { file: ren.path(x.file), project: ren.path(x.project) }));
-    rep.line('the calls of the snapshot are read through the renames of window ' + ren.window + ' (--window): folders, files and methods of the name map');
-    if (ren.translated) rep.line('the words of the literals are translated from window 5: the shape of each call (where its holes are, how many literals are in it) is compared, not its words');
-  }
   const oldBy = new Map(old.calls.map(c => [c.id, c]));
   const curBy = new Map(cur.calls.map(c => [c.id, c]));
   let same = 0;
   for (const [id, c] of oldBy) {
     const n = curBy.get(id);
     if (!n) { rep.diff('vanished  ' + id + ' (line ' + c.line + ')', ['was ' + clip(c.text, 150)]); continue; }
-    if (ren && ren.translated) {
-      if (callShape(n) === callShape(c)) { same++; continue; }
-      rep.diff('changed   ' + id + ' (line ' + c.line + ' -> ' + n.line + '): the shape of the call is not the same', ['was ' + clip(c.text, 150), 'now ' + clip(n.text, 150)]);
-      continue;
-    }
     const innerSame = stable(n.inner) === stable(c.inner);
     if (n.text === c.text && innerSame) { same++; continue; }
     const detail = n.text === c.text ? [] : ['was ' + clip(c.text, 150), 'now ' + clip(n.text, 150)];
@@ -1294,138 +1226,11 @@ const satisfiers = (x) => (x.candidates.length ? x.candidates : x.template);
 // `file:member:sN` -> `file:member`
 const memberOfUnit = (id) => id.replace(/:s\d+$/, '');
 
-// The identities of a snapshot taken before a rename window, read through
-// the renames of that window (--window). Window 1 (W3.1-bis.4, the bench
-// cases): the case folders, the case names and the case keys of the name
-// map. Window 2 (W3.1-bis.5, the MCP surface) reads through window 1 first,
-// then through its own renames: the operation of each assertion, its path
-// and the value it compares, the catalogue (the snapshot's copy rewritten as
-// the window rewrites Tools/catalog.json) and the list of tools. The
-// script of each window does the reading, so that this comparison and the
-// window cannot disagree on a name. A snapshot taken after window 1 reads the
-// same way: window 1 on English names changes nothing.
-function windowRenames(n, root, snapDir) {
-  if (n === null) return null;
-  if (!Number.isInteger(n) || n < 1 || n > 5) cannot('--window: windows 1 (W3.1-bis.4, the bench cases), 2 (.5, the MCP surface), 3 (.6, the names of the sources), 4 (.7, the comments) and 5 (.8, the messages) are known');
-  const one = windowOneRenames(root);
-  if (n === 1) return one;
-  const catText = snapDir && fs.existsSync(catalogCopy(snapDir)) ? readText(catalogCopy(snapDir), 'the copy of the catalogue in the snapshot') : null;
-  const two = require('./window-2-surface.js').snapshotRenames(root, catText);
-  const out = {
-    window: n,
-    caseKey: one.caseKey, name: one.name, folder: one.folder,
-    testId: one.testId,
-    catalogue: catText === null ? null : two.catalogue,
-    tools: two.tools,
-    assertion: (x0) => {
-      const x = one.assertion(x0);
-      return Object.assign({}, x, { operation: two.operation(x.operation), what: two.what(x.what, x.operation),
-        value: two.value(x.key, x.what, x.value, x.operation) });
-    },
-  };
-  if (n >= 3) { Object.assign(out, windowThreeRenames(root, one)); out.translated = n >= 5; }
-  return out;
-}
-
-// Window 3 (W3.1-bis.6) renamed the folders, the files and the identifiers of the sources from a map (name-map.tsv): a path
-// is read through the folder and file rows, a method or a type through the identifier rows (and the few symbols the renamer
-// names by hand). Windows 4 (comments) and 5 (messages) rename nothing that an identity holds: from window 5 on the TEXT of
-// a literal and of an assertion is translated, so it is no longer compared word by word (`translated`).
-function windowThreeRenames(root, one) {
-  const w3 = require('./window-3-identifiers.js');
-  const map = w3.loadMap(root);
-  const hand = require('./window-3-renamer.js').SYMBOL_OVERRIDES;
-  const pathOf = (p) => (typeof p === 'string' ? (w3.newPathFor(p, map) || p) : p);
-  // A body that moved to another member between the snapshot and now, which is not a rename: window 2 (W3.1-bis.5, decision D4)
-  // put the alias layer around `Run`, and the body that was `Esegui` (101 string units, in the same order) is
-  // `ExecuteWithCurrentNames` now; `Run` itself only translates the old names and calls it.
-  const MOVED = [{ file: 'Oce.Solid.Agent.Core/SwOperations.cs', from: 'Run', to: 'ExecuteWithCurrentNames' }];
-  const memberOf = (file, m) => {
-    if (typeof m !== 'string') return m;
-    for (const o of hand) if (o[0] === file && o[2] === m && (o[1] === 'Method' || o[1] === 'NamedType')) return o[3];
-    const en = map.identifier.has(m) ? map.identifier.get(m) : m;
-    for (const mv of MOVED) if (mv.file === file && mv.from === en) return mv.to;
-    return en;
-  };
-  // file:member:tail, the file from the root (a path has no colon, a member can be <file> or .ctor)
-  const split = (id) => {
-    const i = id.lastIndexOf(':');
-    const j = i < 0 ? -1 : id.lastIndexOf(':', i - 1);
-    return j < 0 ? null : { file: id.slice(0, j), member: id.slice(j + 1, i), tail: id.slice(i + 1) };
-  };
-  const unitId = (id) => {
-    const x = split(id);
-    if (!x) return id;
-    const file = pathOf(x.file);
-    return file + ':' + memberOf(file, x.member) + ':' + x.tail;
-  };
-  // File.cs:Method:ordinal[#k][@case]: the file name alone, the method alone
-  const testId = (id) => {
-    const base = one.testId(id);
-    const m = /^([^:]+):([^:]+):(.*)$/.exec(base);
-    if (!m) return base;
-    return (map.file.has(m[1]) ? map.file.get(m[1]) : m[1]) + ':' + (map.identifier.has(m[2]) ? map.identifier.get(m[2]) : m[2]) + ':' + m[3];
-  };
-  const scriptId = (id) => id.replace(/^(\S+)/, (m) => pathOf(m));
-  return { path: pathOf, member: memberOf, unitId, callId: unitId, scriptId, testId, translated: false };
-}
-
-function windowOneRenames(root) {
-  const n = 1;
-  const w = require('./window-1-cases.js');
-  const d = w.direction(w.loadMap(root), false);
-  const text = w.textRewriter(d);
-  const name = (s) => (typeof s === 'string' && d.name.has(s) ? d.name.get(s) : s);
-  const folder = (s) => (d.caseFolders.includes(s) ? d.folder.get(s) : s);
-  const key = (k) => (d.key.has(k) ? d.key.get(k) : k);
-  const caseKey = (k) => { const i = k.indexOf('/'); return i < 0 ? k : folder(k.slice(0, i)) + '/' + name(k.slice(i + 1)); };
-  const keyPath = (p) => (typeof p === 'string' ? p.split('.').map(s => s.replace(/^[^[]+/, key)).join('.') : p);
-  return {
-    window: n,
-    caseKey, name, folder,
-    testId: (id) => id.replace(/@([^#]+)/, (m, s) => '@' + name(s)),
-    assertion: (x) => {
-      const c = caseKey(x.case);
-      const p = keyPath(x.path);
-      return Object.assign({}, x, { id: c + '#' + p, case: c, case_name: name(x.case_name), path: p, step: keyPath(x.step),
-        key: key(x.key), value: typeof x.value === 'string' ? text(x.value) : x.value });
-    },
-  };
-}
-
-function compareAssertions(snapDir, cur, rep, ren, root) {
+function compareAssertions(snapDir, cur, rep) {
   const old = readJson(path.join(snapDir, 'assertions.json'), 'the assertions section of the snapshot');
-  if (ren) old.assertions = old.assertions.map(ren.assertion);
-  if (ren && ren.window >= 3) {
-    old.assertions = old.assertions.map(x => Object.assign({}, x, { candidates: x.candidates.map(ren.unitId), equal: x.equal.map(ren.unitId), template: x.template.map(ren.unitId) }));
-  }
   const oldUnits = new Map(readJson(path.join(snapDir, 'strings.json'), 'the string units of the snapshot').units
-    .map(u => [ren && ren.window >= 3 ? ren.unitId(u.id) : u.id, u]));
-  // a member of the catalogue (descriptions, window .9) is still Italian when the messages are translated: an assertion whose
-  // literals were all of the catalogue, or a member of it that no longer satisfies, is waiting for .9, not lost
-  const waitingFor9 = (m) => !!(ren && ren.translated) && /(^|\/)Catalog\//.test(m);
-  // an assertion on a value the case itself passes to the program (an argument, a property name it writes) is satisfied by the
-  // program echoing it back: no literal of the sources holds it, before the translation or after (windows 3 to 5)
-  const echoCache = new Map();
-  const echoed = (x) => {
-    if (!(ren && ren.window >= 3 && root) || typeof x.value !== 'string' || x.value.length < 5 || x.kind === 'not_contains') return false;
-    if (!echoCache.has(x.case)) {
-      const set = new Set();
-      try {
-        const body = JSON.parse(fs.readFileSync(path.join(root, LAYOUT.cases, x.case + '.json'), 'utf8').replace(/^\ufeff/, ''));
-        const walk = (o, inArgs) => {
-          if (Array.isArray(o)) { o.forEach(y => walk(y, inArgs)); return; }
-          if (o && typeof o === 'object') { for (const k of Object.keys(o)) walk(o[k], inArgs || k === 'arguments'); return; }
-          if (inArgs && typeof o === 'string') set.add(o.trim().toLowerCase());
-        };
-        walk(body, false);
-      } catch (e) { /* not a case file: nothing is echoed */ }
-      echoCache.set(x.case, set);
-    }
-    return echoCache.get(x.case).has(x.value.trim().toLowerCase());
-  };
+    .map(u => [u.id, u]));
   rep.section('textual assertions of the cases, and the literals that satisfy them', 'assertions');
-  if (ren) rep.line('the assertions of the snapshot are read through the renames of window ' + ren.window + ' (--window)');
   const oldBy = new Map(old.assertions.map(x => [x.id, x]));
   const curBy = new Map(cur.list.map(x => [x.id, x]));
   const textOf = (u) => clip(renderParts((oldUnits.get(u) || { parts: ['?'] }).parts), 90);
@@ -1433,12 +1238,10 @@ function compareAssertions(snapDir, cur, rep, ren, root) {
   for (const [id, x] of oldBy) {
     const n = curBy.get(id);
     if (!n) { rep.diff('assertion gone: ' + id + ' «' + clip(x.value, 80) + '»'); continue; }
-    if (n.value !== x.value && !(ren && ren.translated)) rep.diff('assertion changed: ' + id, ['was «' + clip(x.value, 100) + '»', 'now «' + clip(n.value, 100) + '»']);
+    if (n.value !== x.value) rep.diff('assertion changed: ' + id, ['was «' + clip(x.value, 100) + '»', 'now «' + clip(n.value, 100) + '»']);
     const was = satisfiers(x), now = satisfiers(n);
     if (now.length === 0) {
       if (was.length === 0) { stillWithout++; continue; }
-      if (was.every(u => waitingFor9(memberOfUnit(u)))) { stillWithout++; continue; }
-      if (echoed(n)) { stillWithout++; continue; }
       rep.diff('without a satisfying literal now: ' + id + ' (' + x.kind + ' «' + clip(n.value, 80) + '»)',
         ['satisfied in the snapshot by ' + was.length + (x.candidates.length ? '' : ' template(s)') + ':']
           .concat(was.slice(0, 3).map(u => u + ' «' + textOf(u) + '»')));
@@ -1452,9 +1255,7 @@ function compareAssertions(snapDir, cur, rep, ren, root) {
     // its ordinal, so a literal added before it in the same member does not
     // count as a loss.
     const nowMembers = new Set(now.map(memberOfUnit));
-    // from window 5 the value is translated, so its satisfiers are the members that hold the NEW words, not the ones that held the
-    // old: the members are not compared (window-5-messages.js --check does it, assertion by assertion, with the homes of each)
-    const lost = ren && ren.translated ? [] : Array.from(new Set(was.map(memberOfUnit))).filter(m => !nowMembers.has(m) && !waitingFor9(m));
+    const lost = Array.from(new Set(was.map(memberOfUnit))).filter(m => !nowMembers.has(m));
     if (lost.length) {
       rep.diff('lost ' + lost.length + ' of the members whose literals satisfied it: ' + id + ' (' + x.kind + ' «' + clip(n.value, 80) + '»)',
         lost.slice(0, 3).map(m => 'no longer in ' + m + ': ' + was.filter(u => memberOfUnit(u) === m).slice(0, 2).map(u => '«' + textOf(u) + '»').join(', '))
@@ -1553,21 +1354,10 @@ function testsSection(fileA, fileB) {
   };
 }
 
-function compareTests(snapDir, ledgerFile, rep, ren) {
+function compareTests(snapDir, ledgerFile, rep) {
   const old = readJson(path.join(snapDir, 'tests.json'), 'the tests section of the snapshot');
-  if (ren) {
-    const tests = {};
-    for (const [id, x] of Object.entries(old.tests)) tests[ren.testId(id)] = Object.assign({}, x, { subject: ren.name(x.subject) });
-    const cases = {};
-    for (const [k, x] of Object.entries(old.cases)) cases[ren.caseKey(k)] = Object.assign({}, x, { name: ren.name(x.name), folder: ren.folder(x.folder) });
-    old.tests = tests;
-    old.cases = cases;
-    old.unstable_cases = old.unstable_cases.map(u => Object.assign({}, u, { case: ren.caseKey(u.case), name: ren.name(u.name) }));
-    old.unstable_tests = old.unstable_tests.map(u => Object.assign({}, u, { id: ren.testId(u.id) }));
-  }
   const N = readLedger(ledgerFile);
   rep.section('bench tests by file:method:ordinal, and expectations per case (ledger ' + N.meta.file + ', mode ' + N.meta.mode + ', library ' + N.meta.library + ')', 'tests');
-  if (ren) rep.line('the tests and cases of the snapshot are read through the renames of window ' + ren.window + ' (--window)');
   if (old.same_ledger_twice) rep.line('NOTE: the snapshot was taken with one run given twice; its unstable list is empty by construction');
   // A run that is not full, or whose tests are not all named, is not the
   // run a step is judged by: a difference in itself, even when every test
@@ -1845,12 +1635,8 @@ function compareRows(oldAll, curAll) {
   return { diffs, drops };
 }
 
-function compareScripts(snapDir, cur, rep, ren) {
+function compareScripts(snapDir, cur, rep) {
   const old = readJson(path.join(snapDir, 'scripts.json'), 'the scripts section of the snapshot');
-  if (ren && ren.window >= 3) {
-    old.results = old.results.map(r => Object.assign({}, r, { id: ren.scriptId(r.id) }));
-    rep.line('the scripts of the snapshot are read through the renames of window ' + ren.window + ' (--window): their folders and file names');
-  }
   rep.section('scripts of ' + cur.folders.join(', ') + ': exit codes and counts', 'scripts');
   const oldBy = new Map(old.results.map(r => [r.id, r]));
   const curBy = new Map(cur.results.map(r => [r.id, r]));
@@ -2070,19 +1856,19 @@ async function compare(snapDir, opts) {
   if (reg && !todo && !opts.noTodo && reg.entries.some(e => e.todo && e.run)) {
     cannot('the registry runs scripts that read the TODO, and there is no TODO: pass --todo <TODO.md> (or set TODO_MD), or --no-todo');
   }
-  if (on.catalogue) compareCatalogue(snapDir, catalogueOf(root), rep, windowRenames(opts.window, root, snapDir));
+  if (on.catalogue) compareCatalogue(snapDir, catalogueOf(root), rep);
   if (on.literals || on.assertions) {
     const scan = scanSources(root);
-    if (on.literals) compareLiterals(snapDir, scan, rep, windowRenames(opts.window, root, snapDir));
-    if (on.assertions) compareAssertions(snapDir, assertionsSection(root, scan), rep, windowRenames(opts.window, root, snapDir), root);
+    if (on.literals) compareLiterals(snapDir, scan, rep);
+    if (on.assertions) compareAssertions(snapDir, assertionsSection(root, scan), rep);
   }
-  if (on.tests) compareTests(snapDir, opts.ledgers[0], rep, windowRenames(opts.window, root, snapDir));
-  if (on.tools) compareTools(snapDir, await toolsOf(root, opts), rep, windowRenames(opts.window, root, snapDir));
+  if (on.tests) compareTests(snapDir, opts.ledgers[0], rep);
+  if (on.tools) compareTools(snapDir, await toolsOf(root, opts), rep);
   if (reg) {
     console.log('');
     console.log('running the scripts:');
     const kept = fs.mkdtempSync(path.join(os.tmpdir(), 'snapshot-compare-'));
-    compareScripts(snapDir, scriptsSection(root, reg, { todo, withProbes: opts.withProbes, skipScripts: opts.skipScripts }, kept), rep, windowRenames(opts.window, root, snapDir));
+    compareScripts(snapDir, scriptsSection(root, reg, { todo, withProbes: opts.withProbes, skipScripts: opts.skipScripts }, kept), rep);
     rep.line('the outputs of this run are kept in ' + kept + ', those of the snapshot in ' + path.join(snapDir, 'scripts'));
   }
 
@@ -2122,8 +1908,8 @@ function fakeTree(dir, change) {
   write(LAYOUT.catalogue, {
     [K.families]: { solids: 'Solid bodies' },
     [K.operations]: [
-      { [K.name]: 'make_block', famiglia: 'solids', description: change.catalogue ? 'Makes a box.' : 'Makes a block.' },
-      { [K.name]: 'cut_hole', famiglia: 'solids', description: 'Cuts a hole.' },
+      { [K.name]: 'make_block', family: 'solids', description: change.catalogue ? 'Makes a box.' : 'Makes a block.' },
+      { [K.name]: 'cut_hole', family: 'solids', description: 'Cuts a hole.' },
     ],
   });
   const lib = LAYOUT.projects[0];
@@ -2213,7 +1999,7 @@ function fakeTree(dir, change) {
 }
 
 function fakeLedger(file, variant) {
-  const t = (id, subject, outcome, label) => ({ id, file: 'Program.cs', method: 'Cases', ordinal: 1, line: 10, subject, occurrence: 1, outcome, group: 'casi', label });
+  const t = (id, subject, outcome, label) => ({ id, file: 'Program.cs', method: 'Cases', ordinal: 1, line: 10, subject, occurrence: 1, outcome, group: 'cases', label });
   const c = (name, outcome, attempted, checked) => ({ name, folder: 'blocks', kind: 'declared', outcome, expectations_attempted: attempted, expectations_checked: checked, tests: {} });
   const wideFails = variant === 'wide_fails';
   const noteChecked = variant === 'B' || variant === 'note_moves' ? 1 : 2;
@@ -2327,23 +2113,6 @@ function selfTest() {
         return run(['compare', broken].concat(common(base), ['--ledger', A]));
       })(), 2, [/the literals section of the snapshot is missing/]],
     ];
-    // windows 3 to 5: a snapshot's identities read through a name map of five rows, and what is NOT in the map is left alone
-    const mapDir = path.join(work, 'map-root');
-    fs.mkdirSync(path.join(mapDir, 'Checks', 'language'), { recursive: true });
-    fs.writeFileSync(path.join(mapDir, 'Checks', 'language', 'name-map.tsv'), [
-      'type\tit\ten\tcount\twhere\tnote',
-      'folder\tAlpha\tCore\t1\t-\t', 'file\tBravo.cs\tTests.cs\t1\t-\t', 'project\tAlpha\tCore\t1\t-\t',
-      'identifier\tCharlie\tRun\t1\t-\t', 'identifier\tDelta\tCheck\t1\t-\t',
-    ].join('\n') + '\n');
-    const three = windowThreeRenames(mapDir, { testId: (id) => id });
-    const again = (title, got, want) => [title, { code: got === want ? 0 : 1, out: 'got «' + got + '», wanted «' + want + '»' }, 0, []];
-    checks.push(
-      again('window 3: a path is read through the folder and file rows', three.path('Alpha/Bravo.cs'), 'Core/Tests.cs'),
-      again('window 3: a unit id is read through the path and the identifier rows', three.unitId('Alpha/Bravo.cs:Charlie:s7'), 'Core/Tests.cs:Run:s7'),
-      again('window 3: a call id likewise', three.callId('Alpha/Bravo.cs:Delta:3'), 'Core/Tests.cs:Check:3'),
-      again('window 3: the id of a test (file name alone, method alone, #k and case kept)', three.testId('Bravo.cs:Charlie:2#3@kase'), 'Tests.cs:Run:2#3@kase'),
-      again('window 3: a name the map does not know is left as it is (nothing is invented)', three.unitId('Alpha/Bravo.cs:Other:s1'), 'Core/Tests.cs:Other:s1'),
-      again('window 3: a script id keeps its arguments', three.scriptId('Alpha/Bravo.cs --check'), 'Core/Tests.cs --check'));
     let ok = 0;
     for (const [title, r, code, patterns] of checks) {
       const missing = patterns.filter(p => !p.test(r.out));
@@ -2364,7 +2133,7 @@ function selfTest() {
 // ── main ────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
   const a = { mode: null, snapshot: null, root: ROOT_DEFAULT, out: null, ledgers: [], todo: null, noTodo: false, bridge: null,
-    toolsFrom: 'auto', toolsTimeout: 90, skip: new Set(), skipScripts: new Set(), withProbes: false, show: 25, window: null };
+    toolsFrom: 'auto', toolsTimeout: 90, skip: new Set(), skipScripts: new Set(), withProbes: false, show: 25 };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     const next = () => { if (i + 1 >= argv.length) cannot(x + ' needs a value'); return argv[++i]; };
@@ -2381,141 +2150,22 @@ function parseArgs(argv) {
     else if (x === '--skip-script') a.skipScripts.add(next());
     else if (x === '--with-probes') a.withProbes = true;
     else if (x === '--show') a.show = parseInt(next(), 10);
-    else if (x === '--window') { a.window = parseInt(next(), 10); if (!(a.window >= 1 && a.window <= 5)) cannot('--window: windows 1 to 5 are known'); }
     else if (x.startsWith('--')) cannot('unknown option ' + x);
-    else if (!a.mode && (x === 'take' || x === 'compare' || x === 'map-proof')) a.mode = x;
-    else if ((a.mode === 'compare' || a.mode === 'map-proof') && !a.snapshot) a.snapshot = x;
+    else if (!a.mode && (x === 'take' || x === 'compare')) a.mode = x;
+    else if (a.mode === 'compare' && !a.snapshot) a.snapshot = x;
     else cannot('unexpected argument ' + x);
   }
   if (!['auto', 'stdio', 'reflection'].includes(a.toolsFrom)) cannot('--tools-from is auto, stdio or reflection');
   if (!a.mode) cannot('say take, compare <snapshot> or --self-test');
-  if ((a.mode === 'compare' || a.mode === 'map-proof') && !a.snapshot) cannot(a.mode + ' needs the snapshot folder');
+  if (a.mode === 'compare' && !a.snapshot) cannot('compare needs the snapshot folder');
   if (!(a.show >= 0)) cannot('--show needs a number');
   return a;
-}
-
-// The recording calls of the bench in the sources of the tree: File.cs:Method:ordinal, the identity of a test in the ledger
-// (Bench/TestLedger.cs: the ordinal counts the recording calls of that member name in that file, in source order).
-const RECORDING = ['Check', 'CheckExpectation', 'Skipped', 'BenchError'];
-function recordingCalls(root) {
-  const dir = path.join(root, 'Bench');
-  const files = fs.readdirSync(dir).filter(x => x.endsWith('.cs')).sort().map(x => path.join(dir, x));
-  const helper = tokenStream.compileRoslynProgram(SCAN_HELPER, 'SnapshotScan');
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'snapshot-recording-'));
-  try {
-    const list = path.join(tmp, 'files.txt');
-    const out = path.join(tmp, 'scan.jsonl');
-    fs.writeFileSync(list, files.join('\n') + '\n', 'utf8');
-    const r = cp.spawnSync(helper.exe, [helper.roslyn, list, out, RECORDING.join(',')], { encoding: 'utf8', maxBuffer: 64 << 20, windowsHide: true });
-    if (r.status !== 0 || !fs.existsSync(out)) cannot('the scan of the bench failed (exit ' + r.status + '):\n' + (r.stdout || '') + (r.stderr || ''));
-    const ids = new Set();
-    for (const line of fs.readFileSync(out, 'utf8').split('\n')) {
-      if (!line.trim()) continue;
-      const o = JSON.parse(line);
-      if (o.errors.length) cannot(o.file + ' does not parse as C#:\n    ' + o.errors.join('\n    '));
-      for (const c of o.calls) ids.add(path.basename(o.file) + ':' + c.member + ':' + c.ordinal);
-    }
-    return ids;
-  } finally {
-    fs.rmSync(tmp, { recursive: true, force: true });
-  }
-}
-
-// Units that are GONE on purpose between the snapshot and now, which no rename explains: window 2 (W3.1-bis.5, decision D4) took
-// the Italian names of the operations, the tools and the views out of the switches of the code and put them in Alias.cs, which
-// is removed in W3.1-bis.11. The old units of those names are the ones listed, by file, member and ordinal of the snapshot.
-const GONE_ON_PURPOSE = [
-  { file: 'Oce.Solid.Agent.Core/DrawingOperations.cs', member: 'SwViewNames', from: 28, to: 38, why: 'the Italian synonyms of the names of the views of SOLIDWORKS now come in through Alias.cs' },
-  { file: 'Tools/McpTools.cs', member: 'Invoke', from: 1, to: 11, why: 'the switch on the Italian names of the tools, and its refusal, now come in through Alias.cs' },
-];
-const goneOnPurpose = (id) => {
-  const i = id.lastIndexOf(':');
-  const j = id.lastIndexOf(':', i - 1);
-  if (j < 0) return null;
-  const file = id.slice(0, j), member = id.slice(j + 1, i), n = parseInt(id.slice(i + 1).replace(/^s/, ''), 10);
-  return GONE_ON_PURPOSE.find(g => g.file === file && g.member === member && n >= g.from && n <= g.to) || null;
-};
-
-// The snapshot alone: every identity it holds, read through the renames of the window asked for, is looked for in the tree.
-function mapProof(snapDir, opts) {
-  const root = opts.root;
-  snapDir = path.resolve(snapDir);
-  const manifest = readJson(path.join(snapDir, 'snapshot.json'), 'the snapshot manifest');
-  if (manifest.format !== FORMAT) cannot('the snapshot is of format ' + manifest.format + ', this tool reads ' + FORMAT);
-  const n = opts.window === null ? 5 : opts.window;
-  const ren = windowRenames(n, root, snapDir);
-  console.log('map proof: ' + snapDir + ' (taken ' + manifest.taken + ' at ' + (manifest.git.head || '?').slice(0, 10) + ') read through window ' + n + ' against ' + root);
-  let bad = 0;
-  // Two Italian names that the map gives ONE English name (the row says "merged") are one member now: the ordinals of its
-  // units run on through both, so the id of a unit moves while the unit is there. For such a member (file and name) what
-  // can be proved is the COUNT: the units of the old members that map to it are as many as the units it has now.
-  const groupOf = (id) => id.slice(0, id.lastIndexOf(':'));
-  const counts = (ids) => { const m = new Map(); for (const id of ids) m.set(groupOf(id), (m.get(groupOf(id)) || 0) + 1); return m; };
-  let accounted = 0;
-  const gone = new Map();
-  const unmatched = (mapped, curIds) => {
-    const cur = curIds instanceof Set ? curIds : new Set(curIds);
-    let missing = mapped.filter(id => !cur.has(id));
-    if (!missing.length) return missing;
-    missing = missing.filter(id => { const g = goneOnPurpose(id); if (g) gone.set(id, g); return !g; });
-    if (!missing.length) return missing;
-    const was = counts(mapped), now = counts(cur);
-    const left = missing.filter(id => was.get(groupOf(id)) !== now.get(groupOf(id)));
-    accounted += missing.length - left.length;
-    return left;
-  };
-  const report = (what, total, missing, note) => {
-    console.log('  ' + what + ': ' + (total - missing.length) + ' of ' + total + ' found' + (missing.length ? ', ' + missing.length + ' not' : ''));
-    for (const m of missing.slice(0, opts.show)) console.log('      not found: ' + m);
-    if (missing.length > opts.show) console.log('      ... ' + (missing.length - opts.show) + ' more');
-    if (note) console.log('      ' + note);
-    if (missing.length) bad++;
-  };
-  const has = (sec) => isObject(manifest.sections) && Array.isArray(manifest.sections[sec]);
-  const scan = scanSources(root);
-  if (has('literals')) {
-    const old = readJson(path.join(snapDir, 'literals.json'), 'the literals section of the snapshot');
-    const cur = new Set(scan.calls.map(c => c.id));
-    const mapped = old.calls.map(c => ren.callId(c.id));
-    report('the calls of ' + CALLEES.join('/') + ' (file:method:ordinal)', mapped.length, unmatched(mapped, cur));
-  }
-  if (has('assertions')) {
-    const old = readJson(path.join(snapDir, 'strings.json'), 'the string units of the snapshot');
-    const cur = new Set(scan.units.map(u => u.id));
-    const mapped = old.units.map(u => ren.unitId(u.id));
-    report('the string units (file:member:sN)', mapped.length, unmatched(mapped, cur));
-    const a = readJson(path.join(snapDir, 'assertions.json'), 'the assertions section of the snapshot');
-    const sat = new Set();
-    for (const x of a.assertions) for (const u of satisfiers(x)) sat.add(ren.unitId(u));
-    report('the units that satisfied an assertion', sat.size, unmatched(Array.from(sat), cur));
-  }
-  if (has('tests')) {
-    const t = readJson(path.join(snapDir, 'tests.json'), 'the tests section of the snapshot');
-    const cur = recordingCalls(root);
-    const ids = Object.keys(t.tests).map(id => ren.testId(id).replace(/[#@].*$/, ''));
-    const uniq = Array.from(new Set(ids));
-    report('the tests of the ledger (File.cs:Method:ordinal), by their recording call', uniq.length, uniq.filter(id => !cur.has(id)),
-           cur.size + ' recording calls in Bench/*.cs now');
-  }
-  if (has('scripts')) {
-    const sc = readJson(path.join(snapDir, 'scripts.json'), 'the scripts section of the snapshot');
-    const mapped = Array.from(new Set(sc.results.map(r => ren.scriptId(r.id).split(' ')[0])));
-    report('the scripts (their paths)', mapped.length, mapped.filter(p => !fs.existsSync(path.join(root, p))));
-  }
-  if (gone.size) {
-    console.log('  ' + gone.size + ' units gone on purpose, counted as accounted for:');
-    for (const g of GONE_ON_PURPOSE) { const n = Array.from(gone.keys()).filter(id => gone.get(id) === g).length; if (n) console.log('      ' + g.file + ':' + g.member + ' s' + g.from + '..s' + g.to + ' (' + n + ' ids): ' + g.why); }
-  }
-  if (accounted) console.log('  ' + accounted + ' ids moved inside members whose English names merged (same file, same count of units now as the old members had together): counted as found');
-  console.log(bad ? 'map proof: ' + bad + ' kind(s) of identity not all found' : 'map proof: every identity of the snapshot is found');
-  return bad ? 1 : 0;
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.mode === 'self-test') return selfTest();
   if (args.mode === 'take') return take(args);
-  if (args.mode === 'map-proof') return mapProof(args.snapshot, args);
   return compare(args.snapshot, args);
 }
 

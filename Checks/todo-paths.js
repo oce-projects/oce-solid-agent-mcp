@@ -75,7 +75,7 @@ const ELSEWHERE = [/^Agente\//, /^Services\//, /^client-windows\//, /^scratchpad
 // «closed entry», and keeping them distinct is the point: three different reasons why
 // a path is not found, and only one is a defect.
 // A name made at run time is not a file to open either: the bench writes its
-// report of a run as `Bench/report/AAAAMMGG_hhmm.md`, one per date. The TODO
+// report of a run as `Bench/report/<date>_<time>.md`, one per date. The TODO
 // quotes the pattern; window 1 of W3.1-bis (.4) moved it from its Italian
 // folder, and before that the pattern was found only because a closed entry
 // quoted it first.
@@ -88,7 +88,7 @@ const EXTENSIONS = ['.cs', '.json', '.md', '.ps1', '.js', '.csproj', '.yml', '.t
 function location(p) {
   for (const b of BASES) {
     const full = path.join(root, b, p);
-    if (fs.existsSync(full)) return b === '' ? '(radice)' : b;
+    if (fs.existsSync(full)) return b === '' ? '(root)' : b;
   }
   return null;
 }
@@ -112,24 +112,12 @@ const announced = new Set();
 // The entry W3.1-bis is the record of the rename into English: it quotes the
 // folders and files by the names they had when each window was planned, on
 // purpose, as the CHANGELOG does. Window 3 (W3.1-bis.6) moved the folders,
-// and its `--todo` rewrites every open entry except this one. A path of that
-// entry that does not exist is judged in the names of after: if the name map
-// turns it into a file that exists, it is a name of before, not a broken
-// reference. Only inside that entry: anywhere else an old name is a stale
-// pointer and stays red.
+// and its rewrite of the names touched every open entry except this one. A
+// path of that entry that does not exist is a name of before, not a broken
+// reference (the name map that translated it into the new name is archived,
+// outside the repository, since W3.1-bis.11). Only inside that entry:
+// anywhere else an old name is a stale pointer and stays red.
 const RENAME_ENTRY = /^(#{2,5}) (?:\[[ x~]\] )?W3\.1-bis\b/;
-let renameMap = null;
-function nameOfAfter(p) {
-  if (renameMap === null) {
-    try { renameMap = require('./language/window-3-identifiers.js').loadMap(root); }
-    catch (e) { renameMap = false; }
-  }
-  if (!renameMap) return null;
-  const segs = p.split('/');
-  const out = segs.map((s, i) => (i === segs.length - 1 ? renameMap.file.get(s) : renameMap.folder.get(s) || renameMap.project.get(s)) || s);
-  const q = out.join('/');
-  return q !== p && location(q) ? q : null;
-}
 
 let stateEntry = null;          // ' ', 'x' or '~' of the entry we are in
 let renameLevel = 0;            // heading level of the entry W3.1-bis while inside it
@@ -175,9 +163,9 @@ let ok = 0;
 for (const [p, docState] of citations) {
   if (ELSEWHERE.some(r => r.test(p)) || TRANSIENTS.some(r => r.test(p))) { otherRepo.push(p); continue; }
   const b = location(p);
-  if (b) { ok++; if (all) console.log('  ok   ' + p + (b === '(radice)' ? '' : '   [sotto ' + b + ']')); continue; }
+  if (b) { ok++; if (all) console.log('  ok   ' + p + (b === '(root)' ? '' : '   [under ' + b + ']')); continue; }
   if (docState === 'x') historical.push(p);      // closed entry: it is a name from back then
-  else if (inRenameEntry.has(p) && !outsideRenameEntry.has(p) && nameOfAfter(p)) renamedBefore.push(p);
+  else if (inRenameEntry.has(p) && !outsideRenameEntry.has(p)) renamedBefore.push(p);
   else if (announced.has(p)) toDo.push(p);   // open entry that says «(da creare)»
   else missingItems.push(p + (docState === null ? '   (outside an entry)' : ''));
 }
@@ -196,7 +184,7 @@ if (missingItems.length === 0) {
   for (const p of missingItems) console.log('  !  ' + p);
   console.log('');
   console.log('It may be a renamed file, one never written, or a folder');
-  console.log('not yet in the BASI list. It is something to look at, not a fault.');
+  console.log('not yet in the BASES list. It is something to look at, not a fault.');
   // EXITS 1, because the pre-push hook reads it. A probe that prints and
   // then exits 0 is a probe that no hook can use.
   process.exitCode = 1;

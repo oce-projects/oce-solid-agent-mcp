@@ -13,8 +13,8 @@ namespace Oce.Solid.Agent.Core
     ///
     /// «How much does it weigh» and «what bounding box does it fit in» are the first two questions about a
     /// watertight box, and `mass_properties` / `body_bounding_box` refused an
-    /// assembly with «questo documento non e' un pezzo». Measured on 27/9/2026
-    /// (`prova0089 zd1`, AISI 304 base + S235JR lid + a third instance
+    /// assembly with «this document is not a part». Measured on 27/9/2026
+    /// (`probe0089 zd1`, AISI 304 base + S235JR lid + a third instance
     /// SUPPRESSED):
     ///
     ///  * `CreateMassProperty()` on the assembly, with no bodies added: 1.06752 kg,
@@ -25,7 +25,7 @@ namespace Oce.Solid.Agent.Core
     ///    into the assembly with `Transform2` — a copy of the body and `ApplyTransform`.
     ///  * The assembly's STEP is written (`SaveAs3`, as for the part) and in the
     ///    text it has one `MANIFOLD_SOLID_BREP` per body. READING IT BACK with `LoadFile4`
-    ///    opens the modal «Nuovo documento SOLIDWORKS» and the call does not return:
+    ///    opens the modal «New SOLIDWORKS Document» and the call does not return:
     ///    the check is the count of the solids in the text, not the reopening.
     /// </summary>
     public partial class SwOperations
@@ -33,9 +33,9 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The components of an assembly as <see cref="AssemblyComponents"/> reads them,
         /// or a refusal: null list, or a component whose load state (GetSuppression2)
-        /// cannot be read. Z-C21.11: this replaced PezziDellAssieme, which asked
+        /// cannot be read. Z-C21.11: this replaced the old components helper, which asked
         /// IsSuppressed — TRUE on a lightweight component (measured) — and so called
-        /// lightweight parts «soppressi» and left them out.
+        /// lightweight parts «suppressed» and left them out.
         /// </summary>
         private static List<AssemblyComponent> ComponentsOrRefusal(IAssemblyDoc assemblyDoc, string what, out string refusal)
         {
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.Core
                     "answered null): its material is not known, so no mass.");
 
             // ONE OBJECT PER NUMBER, as for the part: IMassProperty changes its
-            // answers depending on what it was asked before (OperazioniMisura).
+            // answers depending on what it was asked before (MeasureOperations).
             var take = new Func<Func<IMassProperty, object>, object>(read =>
             {
                 try

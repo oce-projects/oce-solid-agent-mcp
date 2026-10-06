@@ -112,12 +112,12 @@ internal static class Program
                     bool s1 = marks[0] == 0 || doc.Extension.SelectByID2("", "FACE", 0.020, 0.0, -0.010, true, marks[0], null, 0);
                     bool s2 = marks[1] == 0 || doc.Extension.SelectByID2("", "FACE", 0.0, 0.005, -0.010, true, marks[1], null, 0);
                     bool s3 = marks[2] == 0 || doc.Extension.SelectByID2("", "FACE", 0.020, 0.005, 0.0, true, marks[2], null, 0);
-                    try { done = partDoc.AutoDimensionScheme(options); } catch (Exception ex) { Console.WriteLine("      alza: " + ex.Message); }
+                    try { done = partDoc.AutoDimensionScheme(options); } catch (Exception ex) { Console.WriteLine("      raised: " + ex.Message); }
                     annAfter = partDoc.GetAnnotationCount();
                     loadAfter = partDoc.GetFeatureCount();
-                    Says("marchi " + string.Join("/", marks) + " (selezioni " + s1 + "/" + s2 + "/" + s3 +
-                         "): AutoDimensionScheme -> " + done + ", " + loadAfter + " caratteristiche, " + annAfter + " annotazioni");
-                    // WE DO NOT LOOK AT `fatto`: measured on the evening of 24/9, it answers
+                    Says("marks " + string.Join("/", marks) + " (selections " + s1 + "/" + s2 + "/" + s3 +
+                         "): AutoDimensionScheme -> " + done + ", " + loadAfter + " features, " + annAfter + " annotations");
+                    // WE DO NOT LOOK AT `done`: measured on the evening of 24/9, it answers
                     // False even when it has put six right dimensions. We look at
                     // whether the annotations are there.
                     if (annAfter > 3) break;
@@ -139,7 +139,7 @@ internal static class Program
                         typ.IndexOf("Cylinder", StringComparison.OrdinalIgnoreCase) >= 0) aHole = true;
                 }
             // THE VALUES, not only the count: the name carries the value in
-            // brackets («DistanzaTra2@Piano10(60)»). Six dimensions with random
+            // brackets («Distance2@Plane10(60)» on an English installation). Six dimensions with random
             // numbers would be six dimensions, and none of them right.
             var expectedValues = new System.Collections.Generic.List<double> { 20, 10, 60, 100, 50, 30 };
             var ann = partDoc.GetAnnotations() as object[];
@@ -184,7 +184,7 @@ internal static class Program
         {
             while (ex.InnerException != null) ex = ex.InnerException;
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + ex.GetType().Name + ": " + ex.Message);
+            Console.WriteLine("EXCEPTION: " + ex.GetType().Name + ": " + ex.Message);
             return 9;
         }
         finally

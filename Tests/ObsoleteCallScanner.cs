@@ -117,7 +117,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///      cast (`(IEntity)x`, `x as IFace2`), a well-known accessor
     ///      (`.Extension`, `.FeatureManager`...), `new T(...)`, an element of a
     ///      `T[]`, or the return type of a method declared in the scanned
-    ///      source (`var vista = ResolveView(...)` is an IView because
+    ///      source (`var view = ResolveView(...)` is an IView because
     ///      ResolveView is declared `IView ResolveView(`). A `var` whose type
     ///      cannot be inferred HIDES any outer name, as it does in C#. With a
     ///      known SOLIDWORKS type the verdict is exact;
@@ -132,7 +132,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///      mistakes "not flagged" for "checked".
     ///
     /// A type found OUTSIDE the scope of the call is never used: it made
-    /// `gia.Add` (a HashSet) look like an IModelDoc2 call and let an obsolete
+    /// `done.Add` (a HashSet) look like an IModelDoc2 call and let an obsolete
     /// `IView.Name` pass as `IConfigurationManager.Name` (review of Z-C21.6).
     ///
     /// Comments and string literals are blanked before looking, so that
@@ -311,7 +311,7 @@ namespace Oce.Solid.Agent.ContractTests
             m = CallRx.Match(rhs);
             if (m.Success)
             {
-                // The call must be the WHOLE right-hand side: `Method(a).Altro` is not Metodo's type.
+                // The call must be the WHOLE right-hand side: `Method(a).Other` is not the type of Method.
                 int open = m.Index + m.Length - 1, depth = 0, j = open;
                 for (; j < rhs.Length; j++)
                 {
@@ -548,7 +548,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var head = before.Substring(0, j).TrimEnd();
                 if (last == ']')
                 {
-                    // An element of an array: `facce[i].Normal` with `IFace2[] facce`.
+                    // An element of an array: `faces[i].Normal` with `IFace2[] faces`.
                     var arr = TrailingIdentRx.Match(head);
                     if (!arr.Success) return null;
                     var t = TypeOf(f, line, col, arr.Groups[1].Value);

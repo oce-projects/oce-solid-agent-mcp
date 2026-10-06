@@ -1,7 +1,7 @@
 {
   "name": "the_seventeen_tooth_gear_can_be_made",
   "family": "extrusions",
-  "why": "ENTRY Z-C6. `spur_gear` was in the catalogue with `Provata = true` and only a hand-written plan touched it, which demands nothing. Seventeen teeth and not eighteen because it is the EDGE: below the undercut limit the generator refuses, and the limit 2/sin²(20°) is 17.097. Practice rounds down and the wheel of 17 teeth is made every day; rounding up would refuse it — saying no to a normal part, which is the worst way to be wrong.",
+  "why": "ENTRY Z-C6. `spur_gear` was in the catalogue with `Tested = true` and only a hand-written plan touched it, which demands nothing. Seventeen teeth and not eighteen because it is the EDGE: below the undercut limit the generator refuses, and the limit 2/sin²(20°) is 17.097. Practice rounds down and the wheel of 17 teeth is made every day; rounding up would refuse it — saying no to a normal part, which is the worst way to be wrong.",
 
   "defect_caught": "The limit rounded the wrong way (this wheel refused), and the three measures that define a wheel — pitch circle m*z, tip m*(z+2), root m*(z-2,5) — wrong or swapped. The volume and the bounding box, read from the part, say that the profile drawn is the one declared.",
 

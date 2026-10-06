@@ -25,7 +25,7 @@ namespace Oce.Solid.Agent.Mcp
     /// Two doors onto the same thing become two things the day one
     /// of the two is written separately. So this class **knows nothing about the
     /// catalog**: it takes the same `Catalog` object that the tools use
-    /// and calls the same two methods, `Items(null)` and `Description(nome)`.
+    /// and calls the same two methods, `Items(null)` and `Description(name)`.
     /// There is no point where one could write «also» here.
     /// A contract check verifies it byte for byte, because *a rule
     /// that lives only in a comment is a rule that one day someone does not

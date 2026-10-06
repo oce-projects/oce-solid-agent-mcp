@@ -7,7 +7,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  probe_fazzoletto — entry GP20: "the gusset is not born"
+//  probe_gusset — entry GP20: "the gusset is not born"
 // =============================================================================
 //
 //  WHAT THIS PROBE MEASURES AND WHY
@@ -32,11 +32,11 @@ using SolidWorks.Interop.swconst;
 //  ProfileD3=0, ProfileAngle=0, ProfileD4=0 ALWAYS: a profile with angle or
 //  side zero is degenerate (it closes on itself), and SOLIDWORKS rejects it
 //  silently — the same defect "null without error on invalid
-//  geometry" already paid for elsewhere in this project (see memory
-//  api-sw-array-tipizzati).
+//  geometry" already paid for elsewhere in this project (see the memory note
+//  on typed arrays in the SolidWorks API).
 //
 //  CORRECTION FROM THE REVIEW (28/9/2026), read in the historic code
-//  (prova0089, Gusset(), variant "polygonal", never entered in the repo): a
+//  (probe0089, Gusset(), variant "polygonal", never entered in the repo): a
 //  non-degenerate TRIANGLE (BIsProfile=false, D1=D2=60) HAS ALREADY been tried,
 //  but WITHOUT a mark, and gave null; the mark 1/1 was tried only with the
 //  degenerate polygon (Gusset(), "marca1"). The combination never tried is
@@ -98,79 +98,79 @@ using SolidWorks.Interop.swconst;
 //
 //  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
-//    PROBE FAZZOLETTO — voce GP20 (il fazzoletto di saldatura non nasce)
-//      T di due tubolari 80x80x5 (lunga 600 mm + corta 300 mm, tagliata)
-//      una T fresca per ciascuna variante, chiusa senza salvare a fine giro
-//    agganciato a SOLIDWORKS 29.5.1
-//    0 — CONTROLLO: la ricetta esatta spedita nel ponte (WeldmentOperations.cs)
-//      profilo degenere: BIsProfile=true (poligono) con D3=0 e D4=0 (BUseLenDim=true) e' un poligono a lato zero — la stessa forma spedita nel ponte, mai cambiata in 16 varianti.
-//        01. T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo 80X80X5
-//        02. due corpi, classificati lungo/corto per ingombro in X
-//        03. corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)
-//        04. trovate le due facce: alta della lunga (40800 mm2) e laterale della corta (17680 mm2)
-//        RISULTATO — InsertGussetFeature3 (marca 0)
-//          feature creata:  NO
-//          tipo feature:    -
-//          corpi:           2 -> 2
-//          feature albero:  22 -> 22
+//    PROBE GUSSET — entry GP20 (the weldment gusset is not created)
+//      T of two 80x80x5 tubes (long 600 mm + short 300 mm, trimmed)
+//      a fresh T for each variant, closed without saving at the end of the run
+//    attached to SOLIDWORKS 29.5.1
+//    0 — CONTROL: the exact recipe shipped in the bridge (WeldmentOperations.cs)
+//      degenerate profile: BIsProfile=true (polygon) with D3=0 and D4=0 (BUseLenDim=true) is a polygon with side zero — the same shape shipped in the bridge, never changed in 16 variants.
+//        01. fresh T: long 600 mm (X) + short 300 mm (Z), profile 80X80X5
+//        02. two bodies, classified long/short by extent in X
+//        03. short one trimmed by the long one (InsertWeldmentTrimFeature2, EndCond=Trim)
+//        04. the two faces found: top of the long one (40800 mm2) and side of the short one (17680 mm2)
+//        RESULT — InsertGussetFeature3 (mark 0)
+//          feature created:  NO
+//          feature type:    -
+//          bodies:          2 -> 2
+//          tree features:   22 -> 22
 //          volume mm3:      1264161.94 -> 1264161.94   (delta +0)
-//          VERDETTO:        come previsto
-//    1 — RICETTA DELLA GUIDA (Insert_Gusset_Feature_Example_CSharp.htm): triangolo, marca 1/1
-//      ricetta letta parola per parola dalla pagina d'esempio (stessi valori, lati 60 mm invece di 25/25 mm per pesare quanto la voce GP20 chiede: 60x60/2x5 = 9000 mm3 a lati pieni).
-//        01. T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo 80X80X5
-//        02. due corpi, classificati lungo/corto per ingombro in X
-//        03. corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)
-//        04. trovate le due facce: alta della lunga (40800 mm2) e laterale della corta (17680 mm2)
-//        RISULTATO — InsertGussetFeature3 (marca 1)
-//          feature creata:  SI'
-//          tipo feature:    Gusset
-//          corpi:           2 -> 3
-//          feature albero:  22 -> 23
+//          VERDICT:         as expected
+//    1 — RECIPE OF THE GUIDE (Insert_Gusset_Feature_Example_CSharp.htm): triangle, mark 1/1
+//      recipe read word by word from the example page (same values, sides of 60 mm instead of 25/25 mm to weigh what entry GP20 asks: 60x60/2x5 = 9000 mm3 with full sides).
+//        01. fresh T: long 600 mm (X) + short 300 mm (Z), profile 80X80X5
+//        02. two bodies, classified long/short by extent in X
+//        03. short one trimmed by the long one (InsertWeldmentTrimFeature2, EndCond=Trim)
+//        04. the two faces found: top of the long one (40800 mm2) and side of the short one (17680 mm2)
+//        RESULT — InsertGussetFeature3 (mark 1)
+//          feature created:  YES
+//          feature type:    Gusset
+//          bodies:          2 -> 3
+//          tree features:   22 -> 23
 //          volume mm3:      1264161.94 -> 1273161.94   (delta +9000)
-//          attesa GP20:     ~9000 mm3 (60x60/2 x 5, meno lo smusso se c'e')
-//          VERDETTO:        come previsto
-//    2 — IPOTESI 'basta un profilo non degenere': poligono con D3/D4 reali
-//      stessa forma POLIGONALE che il ponte intendeva (BIsProfile=true), ma con D3 e D4 diversi da zero: isola 'il profilo era degenere' da 'serviva il triangolo'.
-//        01. T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo 80X80X5
-//        02. due corpi, classificati lungo/corto per ingombro in X
-//        03. corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)
-//        04. trovate le due facce: alta della lunga (40800 mm2) e laterale della corta (17680 mm2)
-//        RISULTATO — InsertGussetFeature3 (marca 1)
-//          feature creata:  SI'
-//          tipo feature:    Gusset
-//          corpi:           2 -> 3
-//          feature albero:  22 -> 23
+//          expected GP20:     ~9000 mm3 (60x60/2 x 5, minus the chamfer if there is one)
+//          VERDICT:         as expected
+//    2 — HYPOTHESIS «a non-degenerate profile is enough»: polygon with real D3/D4
+//      the same POLYGONAL shape the bridge meant (BIsProfile=true), but with D3 and D4 different from zero: it isolates «the profile was degenerate» from «the triangle was needed».
+//        01. fresh T: long 600 mm (X) + short 300 mm (Z), profile 80X80X5
+//        02. two bodies, classified long/short by extent in X
+//        03. short one trimmed by the long one (InsertWeldmentTrimFeature2, EndCond=Trim)
+//        04. the two faces found: top of the long one (40800 mm2) and side of the short one (17680 mm2)
+//        RESULT — InsertGussetFeature3 (mark 1)
+//          feature created:  YES
+//          feature type:    Gusset
+//          bodies:          2 -> 3
+//          tree features:   22 -> 23
 //          volume mm3:      1264161.94 -> 1277099.44   (delta +12937.5)
-//          attesa GP20:     ~9000 mm3 (60x60/2 x 5, meno lo smusso se c'e')
-//          VERDETTO:        come previsto
-//    3 — IPOTESI 'bastava la marca': ricetta del ponte (profilo degenere incluso) con marca 1/1
-//      identica alla variante 0, sola differenza la marca 1 su entrambe le facce invece di nessuna: se fallisce come la 0, la marca da sola non e' la causa (il TODO gia' la dava provata, ma non necessariamente con QUESTI stessi parametri messi insieme).
-//        01. T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo 80X80X5
-//        02. due corpi, classificati lungo/corto per ingombro in X
-//        03. corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)
-//        04. trovate le due facce: alta della lunga (40800 mm2) e laterale della corta (17680 mm2)
-//        RISULTATO — InsertGussetFeature3 (marca 1)
-//          feature creata:  NO
-//          tipo feature:    -
-//          corpi:           2 -> 2
-//          feature albero:  22 -> 22
+//          expected GP20:     ~9000 mm3 (60x60/2 x 5, minus the chamfer if there is one)
+//          VERDICT:         as expected
+//    3 — HYPOTHESIS «the mark was enough»: recipe of the bridge (degenerate profile included) with mark 1/1
+//      identical to variant 0, the only difference being mark 1 on both faces instead of none: if it fails like 0, the mark alone is not the cause (the TODO already gave it as proven, but not necessarily with THESE same parameters put together).
+//        01. fresh T: long 600 mm (X) + short 300 mm (Z), profile 80X80X5
+//        02. two bodies, classified long/short by extent in X
+//        03. short one trimmed by the long one (InsertWeldmentTrimFeature2, EndCond=Trim)
+//        04. the two faces found: top of the long one (40800 mm2) and side of the short one (17680 mm2)
+//        RESULT — InsertGussetFeature3 (mark 1)
+//          feature created:  NO
+//          feature type:    -
+//          bodies:          2 -> 2
+//          tree features:   22 -> 22
 //          volume mm3:      1264161.94 -> 1264161.94   (delta +0)
-//          VERDETTO:        DIVERSO DAL PREVISTO — guarda qui sopra
-//    4 — IPOTESI 'e' l'array, non la selezione': stessa ricetta della 1, via InsertGussetFeature2
-//      stessi parametri della variante 1 ma le facce passate come Face2[] esplicito, senza nessuna selezione/marca: la pagina di InsertGussetFeature2 non la richiede.
-//        01. T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo 80X80X5
-//        02. due corpi, classificati lungo/corto per ingombro in X
-//        03. corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)
-//        04. trovate le due facce: alta della lunga (40800 mm2) e laterale della corta (17680 mm2)
-//        RISULTATO — InsertGussetFeature2 (Face2[])
-//          feature creata:  SI'
-//          tipo feature:    Gusset
-//          corpi:           2 -> 3
-//          feature albero:  22 -> 23
+//          VERDICT:         DIFFERENT FROM EXPECTED — look above
+//    4 — HYPOTHESIS «it is the array, not the selection»: same recipe as 1, through InsertGussetFeature2
+//      same parameters as variant 1 but the faces passed as an explicit Face2[], with no selection/mark: the page of InsertGussetFeature2 does not require one.
+//        01. fresh T: long 600 mm (X) + short 300 mm (Z), profile 80X80X5
+//        02. two bodies, classified long/short by extent in X
+//        03. short one trimmed by the long one (InsertWeldmentTrimFeature2, EndCond=Trim)
+//        04. the two faces found: top of the long one (40800 mm2) and side of the short one (17680 mm2)
+//        RESULT — InsertGussetFeature2 (Face2[])
+//          feature created:  YES
+//          feature type:    Gusset
+//          bodies:          2 -> 3
+//          tree features:   22 -> 23
 //          volume mm3:      1264161.94 -> 1273161.94   (delta +9000)
-//          attesa GP20:     ~9000 mm3 (60x60/2 x 5, meno lo smusso se c'e')
-//          VERDETTO:        come previsto
-//    1 variante/i non si sono comportate come previsto: guarda sopra.
+//          expected GP20:     ~9000 mm3 (60x60/2 x 5, minus the chamfer if there is one)
+//          VERDICT:         as expected
+//    1 variant(s) did not behave as expected: look above.
 // =============================================================================
 
 internal static class Program
@@ -268,7 +268,7 @@ internal static class Program
             },
             new Ricetta
             {
-                Title = "2 — HYPOTHESIS 'a non-degenerate profile is enough': polygon with real D3/D4",
+                Title = "2 — HYPOTHESIS «a non-degenerate profile is enough»: polygon with real D3/D4",
                 Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -280,11 +280,11 @@ internal static class Program
                 FailureExpected = false,
                 WhyItFailsOrMaybe =
                     "the same POLYGONAL shape the bridge intended (BIsProfile=true), but with D3 and D4 " +
-                    "different from zero: it isolates 'the profile was degenerate' from 'the triangle was needed'.",
+                    "different from zero: it isolates «the profile was degenerate» from «the triangle was needed».",
             },
             new Ricetta
             {
-                Title = "3 — HYPOTHESIS 'the mark was enough': the bridge's recipe (degenerate profile included) with mark 1/1",
+                Title = "3 — HYPOTHESIS «the mark was enough»: the bridge's recipe (degenerate profile included) with mark 1/1",
                 Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -301,7 +301,7 @@ internal static class Program
             },
             new Ricetta
             {
-                Title = "4 — HYPOTHESIS 'it is the array, not the selection': same recipe as 1, via InsertGussetFeature2",
+                Title = "4 — HYPOTHESIS «it is the array, not the selection»: same recipe as 1, via InsertGussetFeature2",
                 Call = "InsertGussetFeature2",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -395,7 +395,7 @@ internal static class Program
                 if (r.Call == "InsertGussetFeature2")
                 {
                     // No selection: the faces go as a typed array Face2[].
-                    // (memory api-sw-array-tipizzati: object[] gives a phantom feature)
+                    // (memory note on typed arrays: object[] gives a phantom feature)
                     var faces = new Face2[] { (Face2)tallLongFace, (Face2)shortSideFace };
                     feature = doc.FeatureManager.InsertGussetFeature2(
                         r.Depth, r.DirType, r.LocType, r.IsProfile,
@@ -439,7 +439,7 @@ internal static class Program
             Console.WriteLine("    RESULT — " + r.Call + (r.Call == "InsertGussetFeature3" ? " (mark " + r.Mark + ")" : " (Face2[])"));
             Console.WriteLine("      feature created:  " + (born ? "YES" : "NO") + (callError != null ? "   [exception: " + callError + "]" : ""));
             Console.WriteLine("      feature type:    " + typ);
-            Console.WriteLine("      corpi:           " + bodiesBefore + " -> " + bodiesAfter);
+            Console.WriteLine("      bodies:          " + bodiesBefore + " -> " + bodiesAfter);
             Console.WriteLine("      tree features:   " + featureBefore + " -> " + featureAfter);
             Console.WriteLine("      volume mm3:      " +
                 (volumeBefore.HasValue ? volumeBefore.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") + " -> " +
@@ -449,7 +449,7 @@ internal static class Program
                 Console.WriteLine("      expected GP20:     ~9000 mm3 (60x60/2 x 5, minus the chamfer if there is one)");
 
             bool asExpected = r.FailureExpected ? !born : born;
-            Console.WriteLine("      VERDETTO:        " + (asExpected ? "come previsto" : "DIFFERENT FROM EXPECTED — look above"));
+            Console.WriteLine("      VERDICT:         " + (asExpected ? "as expected" : "DIFFERENT FROM EXPECTED — look above"));
 
             return asExpected;
         }
@@ -534,7 +534,7 @@ internal static class Program
         theGroup.Segments = new SketchSegment[] { (SketchSegment)seg };
 
         // SOLIDWORKS opens the profile library by itself and leaves it DIRTY
-        // (OperazioniSaldatura.CloseLibraryAgain): a stray Ctrl+S would rewrite
+        // (WeldmentOperations.CloseLibraryAgain): a stray Ctrl+S would rewrite
         // the shared company library. Close it again, but only if it was not
         // already open before this insert.
         var sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");

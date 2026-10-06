@@ -1,7 +1,7 @@
 {
   "name": "drawing_exports_to_pdf",
   "family": "drawing",
-  "why": "ENTRY Z-C6. `set_sheet`, `model_view` and `export_pdf` are in the catalogue with `Provata = true` and until 24/9/2026 only a hand-written plan touched them (`dwg_3_sheet`, `dwg_5_isometric`, `dwg_7_pdf`): a note of how it was measured once, which runs in no run and demands nothing. This case lines them up on a real drawing and demands from each one thing that can go wrong silently.",
+  "why": "ENTRY Z-C6. `set_sheet`, `model_view` and `export_pdf` are in the catalogue with `Tested = true` and until 24/9/2026 only a hand-written plan touched them (`dwg_3_sheet`, `dwg_5_isometric`, `dwg_7_pdf`): a note of how it was measured once, which runs in no run and demands nothing. This case lines them up on a real drawing and demands from each one thing that can go wrong silently.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

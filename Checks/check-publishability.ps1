@@ -22,7 +22,7 @@
 #      `NOTICE` did not have a good one and were read by nobody.
 #
 #   3. And it only looked at the TREE. On 14/9/2026, one minute before the first push,
-#      it said «Pulito»: the tree had really been repaired. But `git push` sends
+#      it said «Clean»: the tree had really been repaired. But `git push` sends
 #      the HISTORY, and in the history the path was still there in 155 places over 41
 #      commits - because blobs live in every intermediate tree, not only in the two
 #      commits where `git log -S` reports a change.
@@ -44,7 +44,7 @@
 # TWO PRECAUTIONS THAT CANNOT BE DEDUCED, and each cost a false positive:
 #
 #   1. `Select-String` does NOT distinguish upper and lower case by itself. Searching
-#      "O:\" it found `esempio:\n` inside a JSON description - that is "o" +
+#      "O:\" it found `example:\n` inside a JSON description - that is "o" +
 #      ":" + the escape of a newline. Drive letters are searched with
 #      -CaseSensitive and with the rule that no letter comes before.
 #   2. The files that NAME the forbidden things because their job is to search for them
@@ -70,7 +70,7 @@ $binary = @(
 # THE EXCEPTIONS, ONE PER PATTERN AND NEVER ONE PER FILE
 # ==============================================================================
 #
-# HERE STOOD `$possonoNominarli`, three file names applied inside `Lines()` and
+# HERE STOOD `$canNameThem`, three file names applied inside `Lines()` and
 # therefore valid for EVERY pattern: whoever was in that list was not checked
 # at all. It looked narrow - only three names - and instead it was the widest
 # of the exceptions, because it did not say WHAT it exempted from.
@@ -103,16 +103,33 @@ $binary = @(
 # files into English, and the history that is pushed still carries them under
 # the names they had before (the commits before the move, and the merges that
 # bring them in): the same files, the same job, so each list below names a
-# file by both its names. $renamedBy3 is that pairing, from the name map.
-$renamedBy3 = @{ 'check-catalog.ps1' = 'controlla-catalogo.ps1'; 'check-publishability.ps1' = 'controlla-pubblicabilita.ps1';
-                 'cleanup-history.js' = 'bonifica-storia.js'; 'CatalogTests.cs' = 'ProveCatalogo.cs' }
-function WithNamesOfBefore($names) { @($names) + @($names | Where-Object { $renamedBy3.ContainsKey($_) } | ForEach-Object { $renamedBy3[$_] }) }
+# file by both its names. The pairing is not written down anywhere: git itself
+# knows it (`git log --follow` lists every path a file has had), so the old
+# names are read from the history and no list of them has to be kept.
+function WithNamesOfBefore($names) {
+    $all = @($names)
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    foreach ($name in @($names)) {
+        $paths = @(& git.exe -C $root ls-files "*$name" 2>$null | Where-Object { (Split-Path $_ -Leaf) -eq $name })
+        if ($paths.Count -eq 0) { $paths = @("Checks/$name") }
+        foreach ($path in $paths) {
+            foreach ($before in @(& git.exe -C $root log --all --follow --name-only --format= -- $path 2>$null)) {
+                if (-not $before) { continue }
+                $leaf = Split-Path $before -Leaf
+                if ($leaf -and ($all -notcontains $leaf)) { $all += $leaf }
+            }
+        }
+    }
+    $ErrorActionPreference = $old
+    $all
+}
 $twoChecks = WithNamesOfBefore @('check-catalog.ps1', 'check-publishability.ps1')
 
 # THE EXCEPTION WAS ON THE FILE, AND IT HAD TO BE ON THE SHAPE. THREE REAL ADDRESSES
 # CAME OUT FROM HERE.
 #
-# Here stood `$loDiceIlTodo = @('TODO.md')`, passed to the pattern `192\.168\.`
+# Here stood `$theTodoSaysSo = @('TODO.md')`, passed to the pattern `192\.168\.`
 # because entry A1 lists what must not go out and to list it has to
 # write it. The comment said «it holds ONLY for the patterns that entry
 # discusses»; the code exempted the WHOLE FILE, and `Look` compares the name of the
@@ -134,7 +151,7 @@ $twoChecks = WithNamesOfBefore @('check-catalog.ps1', 'check-publishability.ps1'
 # private (verified with `gh repo view`: visibility PRIVATE), so no outsider
 # could ever have read them. But they were inside the history that on the day
 # of publication would have gone out all at once, and this check exists
-# exactly for that day: it ran, said «ok nessun indirizzo interno», and
+# exactly for that day: it ran, said «ok no internal address», and
 # was right according to the rule it had been given.
 #
 # THE REPAIR IS NOT A NARROWER EXCEPTION, it is a rule that looks at the
@@ -184,7 +201,7 @@ $sessionOnly = WithNamesOfBefore @('cleanup-history.js', 'check-publishability.p
 #
 # This bridge was born from a larger project and talks to it: naming it and
 # telling where the catalogue comes from is fine, and the bare name of a file
-# (`ai_disegno.py`) is context, not a leak.
+# (`the_drawing_module.py`) is context, not a leak.
 #
 # But on 24/9/2026 a census by hand found written in full
 # `api/<file>.py:283`, `services/<file>.py:104` and `:252` - that is FOLDERS,
@@ -222,7 +239,7 @@ $talkAboutDisks = (WithNamesOfBefore @('CHANGELOG.md', 'CatalogTests.cs')) + $tw
 # This function CANNOT be called `Git`: PowerShell does not distinguish upper
 # and lower case in command names, so `& git` in here would resolve to the
 # function itself instead of the executable - infinite recursion, and the error
-# that is read is «Overflow della profondita' delle chiamate», which does not name the
+# that is read is «call depth overflow», which does not name the
 # cause. The different name is the repair, as for `ReadWithAnchor`.
 function RunGit($arguments) {
     $old = $ErrorActionPreference
@@ -255,7 +272,7 @@ function Lines($pattern, $caseSensitive) {
     # -LiteralPath, NOT the pipeline. An array of strings sent to
     # `Select-String` through the pipeline is taken as TEXT TO SEARCH FOR, not as a
     # list of files: the check searched for the user name inside the NAMES of the
-    # paths and answered «ok nessuno» without having opened a single file.
+    # paths and answered «ok none» without having opened a single file.
     # It was seen only because the pattern `S:\` matches every absolute path
     # of this drive and blew up the line below.
     if ($caseSensitive) { $foundOnes = Select-String -LiteralPath $script:list -Pattern $pattern -CaseSensitive }
@@ -319,7 +336,7 @@ $exists = (RunGit @('rev-parse', '--verify', '--quiet', $upstream))
 # `git filter-branch -- --all` rewrites the LOCAL remote references too.
 # After the cleanup of 23/9/2026 `origin/main` here pointed to a rewritten
 # commit: `origin/main..HEAD` gave 29 commits out of 104, and this check
-# said «Pulito» after having looked at less than a third of them.
+# said «Clean» after having looked at less than a third of them.
 #
 # The real remote, meanwhile, still had the previous history. At the force-push
 # all 104 will go out - that is, the check measured something different from
@@ -377,7 +394,7 @@ if ($toPush.Count -eq 0) {
             if ($_ -notmatch '^([0-9a-f]{7,40}):([^:]+):(\d+):') { return $false }
             $filePath = $Matches[2] -replace '/', '\'
             # Only `$except`, that is the exception OF THE PATTERN. Here there also stood
-            # `PuoNominarli`, the list valid for all the patterns together: it is
+            # `CanNameThem`, the list valid for all the patterns together: it is
             # gone, and with it the pass that the two checks had
             # on the internal address.
             if ($except -contains (Split-Path -Leaf $filePath)) { return $false }

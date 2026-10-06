@@ -18,7 +18,7 @@ namespace Checks.CloseLeftovers
     /// WHAT IT CLOSES, AND WHAT IT DOES NOT TOUCH.
     /// Only two categories, and the second is read from the command line:
     ///
-    ///   1. the documents NEVER SAVED (empty path): they are the "ParteNN" that
+    ///   1. the documents NEVER SAVED (empty path): they are the "PartNN" that
     ///      are born from the checks and do not exist on disk;
     ///   2. those whose path starts with one of the folders passed as an
     ///      argument — the session scratchpad, typically.
@@ -109,7 +109,7 @@ namespace Checks.CloseLeftovers
             }
 
             Console.WriteLine(toClose.Count + " to close, " + kept.Count + " kept.");
-            foreach (var t in kept) Console.WriteLine("  tenuto:  " + t);
+            foreach (var t in kept) Console.WriteLine("  kept:    " + t);
             if (!reallyClose)
             {
                 foreach (var t in toClose) Console.WriteLine("  would be closed:  " + t.Title);

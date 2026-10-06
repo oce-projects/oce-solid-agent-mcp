@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.Bench
         {
             public string Name;
             public string Intent;
-            public Outcome Come;
+            public Outcome HowItWent;
             public string Why;
         }
 
@@ -87,23 +87,21 @@ namespace Oce.Solid.Agent.Bench
                 using (var scope = Ledger.OpenCase(Path.GetFileNameWithoutExtension(f),
                                                    Path.GetFileName(Path.GetDirectoryName(f)), "regression"))
                 {
-                    int aliasUsesAtStart = AliasUsesNow();
                     var e = ACase(f);
-                    CountAliasUses("regression/" + Path.GetFileNameWithoutExtension(f), f, aliasUsesAtStart);
                     scope.Outcome = scope.HasBenchErrors ? "bench_error"
-                                  : e.Come == Outcome.Holds ? "holds"
-                                  : e.Come == Outcome.DetachesAndSaysSo ? "breaks_and_says_so"
+                                  : e.HowItWent == Outcome.Holds ? "holds"
+                                  : e.HowItWent == Outcome.DetachesAndSaysSo ? "breaks_and_says_so"
                                   : "breaks_silently";
                     outcomes.Add(e);
                 }
 
-            int holds = outcomes.Count(e => e.Come == Outcome.Holds);
-            int noisy = outcomes.Count(e => e.Come == Outcome.DetachesAndSaysSo);
-            int silent = outcomes.Count(e => e.Come == Outcome.DetachesInSilence);
+            int holds = outcomes.Count(e => e.HowItWent == Outcome.Holds);
+            int noisy = outcomes.Count(e => e.HowItWent == Outcome.DetachesAndSaysSo);
+            int silent = outcomes.Count(e => e.HowItWent == Outcome.DetachesInSilence);
 
             Console.WriteLine();
             foreach (var e in outcomes)
-                Console.WriteLine("  " + Symbol(e.Come) + "  " + e.Name.PadRight(34) +
+                Console.WriteLine("  " + Symbol(e.HowItWent) + "  " + e.Name.PadRight(34) +
                                   e.Intent.PadRight(22) + Short(e.Why));
 
             WriteRegression(outcomes, holds, noisy, silent);
@@ -147,7 +145,7 @@ namespace Oce.Solid.Agent.Bench
         private static CaseOutcome ACase(string filePath)
         {
             string itemName = Path.GetFileNameWithoutExtension(filePath);
-            var outside = new CaseOutcome { Name = itemName, Intent = "?", Come = Outcome.DetachesInSilence };
+            var outside = new CaseOutcome { Name = itemName, Intent = "?", HowItWent = Outcome.DetachesInSilence };
 
             Dictionary<string, object> testCase;
             try
@@ -259,13 +257,13 @@ namespace Oce.Solid.Agent.Bench
 
                 if (done == null)
                 {
-                    outside.Come = Outcome.DetachesAndSaysSo;
+                    outside.HowItWent = Outcome.DetachesAndSaysSo;
                     outside.Why = "the modification was refused: " + Short(modError);
                     return outside;
                 }
                 if (!rebuilt || inError > 0)
                 {
-                    outside.Come = Outcome.DetachesAndSaysSo;
+                    outside.HowItWent = Outcome.DetachesAndSaysSo;
                     outside.Why = !rebuilt
                         ? "the rebuild did not succeed"
                         : inError + " features in error";
@@ -287,7 +285,7 @@ namespace Oce.Solid.Agent.Bench
                     // `same_as_before`: the expected value is the measurement from before, and it is put
                     // in the expectation now. This way the comparison is made by the same
                     // code as always, and the message comes out in the same
-                    // format: «centers_x_mm [...] (atteso [...])».
+                    // format: «centers_x_mm [...] (expected [...])».
                     if (True(expectation, "same_as_before"))
                     {
                         object era;
@@ -312,14 +310,14 @@ namespace Oce.Solid.Agent.Bench
 
                 if (broken.Count == 0)
                 {
-                    outside.Come = Outcome.Holds;
+                    outside.HowItWent = Outcome.Holds;
                     outside.Why = "rebuilt clean, the geometry is where the intent says";
                 }
                 else
                 {
                     // REBUILD FINE, NO ERROR, AND THE GEOMETRY IS
                     // ELSEWHERE. It is the number that counts.
-                    outside.Come = Outcome.DetachesInSilence;
+                    outside.HowItWent = Outcome.DetachesInSilence;
                     outside.Why = string.Join(" · ", broken.Take(2));
                 }
                 return outside;
@@ -381,8 +379,8 @@ namespace Oce.Solid.Agent.Bench
                 };
                 foreach (var e in outcomes)
                     t.Add("| `" + e.Name + "` | " + e.Intent + " | " +
-                          (e.Come == Outcome.Holds ? "holds"
-                           : e.Come == Outcome.DetachesAndSaysSo ? "says so" : "**silence**") +
+                          (e.HowItWent == Outcome.Holds ? "holds"
+                           : e.HowItWent == Outcome.DetachesAndSaysSo ? "says so" : "**silence**") +
                           " | " + (e.Why ?? "").Replace("|", "/") + " |");
 
                 t.Add("");
@@ -392,7 +390,7 @@ namespace Oce.Solid.Agent.Bench
                 t.Add("|---|---|---|");
                 foreach (var g in outcomes.GroupBy(e => e.Intent))
                     t.Add("| " + g.Key + " | " + g.Count() + " | " +
-                          g.Count(e => e.Come == Outcome.Holds) + " |");
+                          g.Count(e => e.HowItWent == Outcome.Holds) + " |");
 
                 File.WriteAllText(file, string.Join("\r\n", t) + "\r\n",
                                   new System.Text.UTF8Encoding(false));

@@ -25,7 +25,7 @@ namespace Oce.Solid.Agent.Core
         /// first, so nobody has to remember it.
         ///
         /// GetCurveParams3 returns ICurveParamData, not a double[] (checked by
-        /// reflection on the interop 29.5.1.1, see DocumentState.Estremi).
+        /// reflection on the interop 29.5.1.1, see the extreme-point reader of DocumentState).
         /// </summary>
         internal static ICurveParamData EdgeParameters(IEdge edge)
         {
@@ -114,7 +114,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The obsolete array form of the edge parameters, for the one call site
-        /// that still reads it by position (OperazioniTesto, sketch-text
+        /// that still reads it by position (TextOperations, sketch-text
         /// outline).
         ///
         /// Guide: IEdge~GetCurveParams2.html, «Obsolete. Superseded by
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.Core
         /// returned are approximate and should not be used for comparison or
         /// calculation purposes. Furthermore, the bounding box may vary after
         /// rebuilding the model.» The same choice was already written twice
-        /// (DocumentState, OperazioniMisura); it now lives here once.
+        /// (DocumentState, MeasureOperations); it now lives here once.
         /// </summary>
         internal static double[] TrueBoundingBox(IBody2 body)
         {
@@ -257,7 +257,7 @@ namespace Oce.Solid.Agent.Core
         /// however, are directed away from the body material». So IFace2.Normal
         /// is the OUTWARD normal of the face, while the surface's own PlaneParams
         /// would point inwards for half the faces of a solid (References.Normal,
-        /// where this helper comes from; OperazioniSporgenze measured IFace2.Normal
+        /// where this helper comes from; OverhangOperations measured IFace2.Normal
         /// leaving the material on six faces out of six, 16/9/2026).
         /// </summary>
         internal static double[] NormalIfPlanar(IFace2 face)

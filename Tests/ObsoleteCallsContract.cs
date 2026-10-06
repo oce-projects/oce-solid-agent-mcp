@@ -168,9 +168,9 @@ namespace Oce.Solid.Agent.ContractTests
             ["IModelDoc2.CreatePlaneFixed2"] = "superseded by IFeatureManager::InsertRefPlane (plane through three points); the Z-C21.3 probe measured only the " +
                                                "offset plane (mark 0, Distance constraint, migrated in Z-C21.7), not the three-point plane: not measured yet",
             ["IModelDoc2.GetActiveConfiguration"] = "M44/C4-1: IConfigurationManager::ActiveConfiguration",
-            ["IModelDoc2.GraphicsRedraw2"] = "N20/M44: IModelView::GraphicsRedraw; the two in OperazioniTondoTavola are OBSOLETE-MEASURED",
+            ["IModelDoc2.GraphicsRedraw2"] = "N20/M44: IModelView::GraphicsRedraw; the two in DrawingRoundOperations are OBSOLETE-MEASURED",
             ["IModelDocExtension.CreateMassProperty"] = "S2/L17-3: only in ApiHelpers.NewMassProperty, for two callers the Z-C21.3 probe did not cover. The ASSEMBLY " +
-                                                        "(OperazioniMisuraAssieme): probe_mass_property2 measured CreateMassProperty2 on a part only, and on an " +
+                                                        "(AssemblyMeasureOperations): probe_mass_property2 measured CreateMassProperty2 on a part only, and on an " +
                                                         "assembly it works on components (hidden ones: IncludeHiddenBodiesOrComponents, not measured). The DOCUMENT " +
                                                         "STATE (DocumentState.Mass): CreateMassProperty2 measures what is selected, the probe cleared the selection " +
                                                         "first, and the state reads the designer's selection afterwards; left in place, a pre-selected body is " +
@@ -246,7 +246,7 @@ namespace Oce.Solid.Agent.ContractTests
                 "IModelDoc2 model = null; model.Extension.SaveAs3(p, 0, 1, null, null, ref e, ref w);",
                 "IFeature f = null; f.Select2(false, 0);",
                 "var list = new List<int>(); list.Add(1);",
-                "// quota.SystemValue is obsolete, see the guide",
+                "// dimension.SystemValue is obsolete, see the guide",
                 "var s = \"dimension.SystemValue\";",
                 "var s = $\"dimension.SystemValue {x}\";",
                 "IPartDoc partDoc = null; var b = partDoc.GetBodies2(0, false);",

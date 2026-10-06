@@ -9,7 +9,7 @@ using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
 // =============================================================================
-//  TestoNelPdf — does the text of a drawing come out of the PDF as TEXT? (GT3-bis)
+//  TextInThePdf — does the text of a drawing come out of the PDF as TEXT? (GT3-bis)
 // =============================================================================
 //
 //  GT3 proved that the title block SHOWS a property (`INote.GetText()`
@@ -62,7 +62,7 @@ internal static class Program
         catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
         Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
-        string pdf = Path.Combine(Path.GetTempPath(), "testo-nel-pdf-sonda.pdf");
+        string pdf = Path.Combine(Path.GetTempPath(), "text-in-the-pdf-probe.pdf");
         IModelDoc2 doc = null;
         try
         {
@@ -179,7 +179,7 @@ internal static class Program
         {
             while (ex.InnerException != null) ex = ex.InnerException;
             Console.WriteLine();
-            Console.WriteLine("ECCEZIONE: " + ex.GetType().Name + ": " + ex.Message);
+            Console.WriteLine("EXCEPTION: " + ex.GetType().Name + ": " + ex.Message);
             return 9;
         }
         finally

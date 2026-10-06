@@ -47,7 +47,7 @@ namespace Oce.Solid.Agent.Core
     /// assemblies.
     ///
     /// **And `swAddMateError_NoError` IS WORTH 1, not 0** (`ErrorUknown` is worth 0): an
-    /// `if (errore != 0)` would declare a successful mate failed.
+    /// `if (error != 0)` would declare a successful mate failed.
     ///
     /// ── THE SECOND NUMBER: WHAT THE MATE BLOCKS (TODO entry Z-C14) ───────
     ///
@@ -197,7 +197,7 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 model.ClearSelection2(true);
-                // THE TWO SELECTIONS ARE READ (Z-C21.8, «Select4 in accoppia»).
+                // THE TWO SELECTIONS ARE READ (Z-C21.8, «Select4 in mate»).
                 // IEntity~Select4.html, Return Value: «True if entity is
                 // selected, false if not». Until library 0.144.0 both answers
                 // were dropped, and AddMate5 ran on whatever the selection held:
@@ -321,7 +321,7 @@ namespace Oce.Solid.Agent.Core
             measurements["resting_a"] = !fixedA && laterA == 0;
             measurements["resting_b"] = !fixedB && laterB == 0;
 
-            // Z-C14: per component, in the order of mates_before/dopo.
+            // Z-C14: per component, in the order of mates_before/after.
             measurements["blocked_directions_before"] = new object[] { beforeA.Blocked, beforeB.Blocked };
             measurements["blocked_directions_after"] = new object[] { afterA.Blocked, afterB.Blocked };
             measurements["degrees_removed"] = new object[] { DegreesRemoved(beforeA, afterA), DegreesRemoved(beforeB, afterB) };

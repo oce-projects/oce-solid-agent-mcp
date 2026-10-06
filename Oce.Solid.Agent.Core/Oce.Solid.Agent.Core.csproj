@@ -19,7 +19,7 @@
      the references, it means code that does not belong here has come back in.
 
   3. `PlanExecutor.cs`. It is the only file of the layer that depends on OpenPDM
-     (`ApiClient`), and it enters only behind the `IFontePiano` interface — entry B3
+     (`ApiClient`), and it enters only behind an interface of its own (the source of the plan) — entry B3
      of the TODO. Until that exists, it stays out.
 
   LangVersion 9.0 and not 7.3: the add-in compiles at 9.0 and the code uses it. The
@@ -189,15 +189,6 @@
     <Compile Include="Units.cs" />
     <Compile Include="SolidWorksMaterials.cs" />
     <Compile Include="SectionProfile.cs" />
-    <Compile Include="Alias.cs" />
-  </ItemGroup>
-
-  <!-- THE ITALIAN NAMES OF BEFORE W3.1-bis.5, accepted on input until the first release
-       (Alias.cs, decision D4): the dictionary is the name map itself. Removed in W3.1-bis.11. -->
-  <ItemGroup>
-    <EmbeddedResource Include="..\Checks\language\name-map.tsv">
-      <LogicalName>name-map.tsv</LogicalName>
-    </EmbeddedResource>
   </ItemGroup>
 
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

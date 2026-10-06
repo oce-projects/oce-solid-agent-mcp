@@ -158,7 +158,7 @@ namespace Oce.Solid.Agent.Core
         /// Guide: IFeatureManager~InsertMultiFaceDraft.html, «then these items have a selection mark of 1».
         /// The marks are given inside the description of the FlipDir parameter,
         /// not in the Remarks (which only say to select with SelectByID2).
-        /// Passed through OperazioniSformo.Seleziona; swapped with the faces'
+        /// Passed through DraftOperations.Select; swapped with the faces'
         /// mark the feature is still created and drafts the wrong faces
         /// (draft_four_walls).
         public const int DraftNeutralFace = 1;
@@ -171,7 +171,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>The two faces that carry a weldment gusset.</summary>
         /// Guide: IFeatureManager~InsertGussetFeature3.html, «select two faces that are the supporting legs of this gusset with a Mark of 1».
-        /// Used by fazzoletto (OperazioniSaldatura, 0.140.0). Until then the two
+        /// Used by the gusset (WeldmentOperations, 0.140.0). Until then the two
         /// faces were selected with no mark and the gusset was never created
         /// (GP20, M27): the probe of 28/9/2026 showed that the cause was the
         /// degenerate profile, and that with a valid profile the recipe of
@@ -183,7 +183,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>The edges of a variable-radius fillet.</summary>
         /// Guide: IFeatureManager~FeatureFillet3.html, «Variable radius fillets Call IModelDocExtension::SelectByID2 with Mark = 1 to select the edges to fillet».
-        /// DIVERGES: S9/M37 — variable_fillet (OperazioniCorpi) selects the
+        /// DIVERGES: S9/M37 — variable_fillet (BodyOperations) selects the
         /// edge and its two vertices with no mark, measured working
         /// (fillet_that_changes_radius).
         /// Moving to this mark belongs with the CreateDefinition migration of

@@ -24,22 +24,20 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// SO: a paragraph of a description that declares a limit in the first person begins
     /// exactly «I REFUSE IF », in capitals, followed by the condition. «I REFUSE», alone or
-    /// with another word, is not that; nor is any of the Italian forms.
+    /// with another word, is not that.
     ///
     /// WHAT IS A DECLARATION. A paragraph (the text between two blank lines) that begins
-    /// with one of the forms the keyword has had: the Italian ones and the English ones
-    /// that were written by hand. A refusal told in the middle of a sentence («the step
+    /// with one of the forms the keyword has had: «I REFUSE» and «I refuse», written by
+    /// hand with another word after them. A refusal told in the middle of a sentence («the step
     /// is refused and AddMate5 is not called») is prose, not a declaration, and is not
     /// read here. A heading in capitals about a refusal that is not in the first person
     /// («A REDUNDANT MATE IS REFUSED:») is not a declaration either.
     ///
-    /// THE RATCHET. The Italian forms go away as the descriptions are translated, family
-    /// by family, and a family that has been translated is already in the one form. The
-    /// count of declarations that are NOT, kept in Tests/data/refusal-keyword-ceiling.txt,
-    /// is exact: more is red, and fewer is red until the number is lowered (a ceiling above
-    /// the real count would let a description go back unseen). `window-6-catalogue.js
-    /// --ratchet` writes the real count. It reaches zero with the last family, and then the
-    /// Italian forms leave the pattern below.
+    /// THE RATCHET. The count of declarations that are NOT in the form, kept in
+    /// Tests/data/refusal-keyword-ceiling.txt, is exact: more is red, and fewer is red until
+    /// the number is lowered (a ceiling above the real count would let a description go
+    /// back unseen). It reached zero with the last family translated (W3.1-bis.9), and
+    /// the Italian forms left the pattern below in W3.1-bis.11.
     ///
     /// Written like the other contracts of the descriptions: first seen red on planted
     /// text, then read on the catalogue the bridge serves (Tools/catalog.json).
@@ -50,29 +48,13 @@ namespace Oce.Solid.Agent.ContractTests
         internal const string Keyword = "I REFUSE IF ";
 
         /// <summary>
-        /// Where the number of declarations that are not yet in the one form is kept: the
-        /// families still in Italian (and the English paragraphs of the other families that
-        /// were written by hand with another verb). It falls with every family translated;
-        /// **zero when the last one is**.
+        /// Where the number of declarations that are not in the one form is kept (the
+        /// paragraphs written by hand with another verb). **Zero.**
         /// </summary>
         private static readonly string CeilingFile = Path.Combine("Tests", "data", "refusal-keyword-ceiling.txt");
 
-        // The Italian forms are written in ROT13 and undone here: this file is judged by the
-        // language gate, and the words of the old keyword are the one thing it has to name.
-        private static string Rot13(string s)
-        {
-            var sb = new StringBuilder(s.Length);
-            foreach (var c in s)
-            {
-                if (c >= 'a' && c <= 'z') sb.Append((char)('a' + (c - 'a' + 13) % 26));
-                else if (c >= 'A' && c <= 'Z') sb.Append((char)('A' + (c - 'A' + 13) % 26));
-                else sb.Append(c);
-            }
-            return sb.ToString();
-        }
-
         private static readonly Regex DeclarationStart = new Regex(
-            "^(?:" + Rot13("ZV EVSVHGB") + "|" + Rot13("EVSVHGN") + "|" + Rot13("Evsvhgn") + "|I REFUSE|I refuse)\\b",
+            "^(?:I REFUSE|I refuse)\\b",
             RegexOptions.CultureInvariant);
 
         /// <summary>The paragraphs of a description that declare a limit in the first person.</summary>
@@ -99,9 +81,6 @@ namespace Oce.Solid.Agent.ContractTests
             var planted = string.Join("\n\n", new[]
             {
                 "A paragraph before.",
-                Rot13("ZV EVSVHGB FR") + " the plane is not one of the three.",
-                Rot13("ZV EVSVHGB fr") + " the name is missing.",
-                Rot13("EVSVHGN") + " if the dimension is read only.",
                 "I refuse when the volume does not change.",
                 "I REFUSE when SOLIDWORKS does not accept it.",
                 "I refuse the frame, and draw nothing, when the profile is missing.",
@@ -111,9 +90,9 @@ namespace Oce.Solid.Agent.ContractTests
             });
             var all = Declarations(planted);
             var out_ = OutOfForm(planted);
-            Check("the detector finds the six old forms of the keyword and leaves the right one and the prose alone",
-                  all.Count == 7 && out_.Count == 6 && !out_.Any(p => p.StartsWith(Keyword, StringComparison.Ordinal)),
-                  "declarations " + all.Count + "/7, out of form " + out_.Count + "/6");
+            Check("the detector finds the old forms of the keyword and leaves the right one and the prose alone",
+                  all.Count == 4 && out_.Count == 3 && !out_.Any(p => p.StartsWith(Keyword, StringComparison.Ordinal)),
+                  "declarations " + all.Count + "/4, out of form " + out_.Count + "/3");
 
             // 2. The catalogue the bridge serves.
             var file = Path.Combine(Root(), "bin", "catalog.json");
@@ -154,7 +133,7 @@ namespace Oce.Solid.Agent.ContractTests
                       (wrong.Count > ceiling ? ": " + string.Join(", ", wrong.Take(6)) + (wrong.Count > 6 ? " ..." : "") : ""));
             Check("and the ceiling is the real one",
                   wrong.Count == ceiling,
-                  wrong.Count == ceiling ? "the number written down is the count" : "the count is " + wrong.Count + " and the file says " + ceiling + ": lower it with `node Checks/language/window-6-catalogue.js --ratchet`");
+                  wrong.Count == ceiling ? "the number written down is the count" : "the count is " + wrong.Count + " and the file says " + ceiling + ": lower it in Tests/data/refusal-keyword-ceiling.txt");
         }
     }
 }

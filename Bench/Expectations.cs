@@ -152,8 +152,8 @@ namespace Oce.Solid.Agent.Bench
             // ── WHEN THE MEASUREMENT IS A SENTENCE ────────────────────────
             //
             // `state.shape` is not a number: it is the description that the part
-            // gives of itself — «una rivoluzione del profilo Ø30 per 40, Ø20
-            // per 30, Ø34 per 20». Demanding it EQUAL would mean rewriting
+            // gives of itself — «a revolution of the profile Ø30 for 40, Ø20
+            // for 30, Ø34 for 20». Demanding it EQUAL would mean rewriting
             // the case at every comma fixed; what matters is that the
             // pieces that matter are there, and that those that must NOT be there
             // are not — the second half is the more important one, because
@@ -196,7 +196,7 @@ namespace Oce.Solid.Agent.Bench
                 // ── A LIST THAT HAS NO NUMBERS ───────────────────────────
                 //
                 // `["C2"]`, the bodies a boolean worked on. Up to
-                // 0.81.0 it ended in «non e' un elenco di numeri:
+                // 0.81.0 it ended in «is not a list of numbers:
                 // System.String[]» — a message true and useless: the case
                 // asked for a sensible thing and the evaluator did not know how to
                 // compare it. A list of TEXT is compared one by one,
@@ -227,7 +227,7 @@ namespace Oce.Solid.Agent.Bench
                     detail = what + " is not a list of numbers: " + WhatWas(measured);
                     return false;
                 }
-                detail = what + " " + Set(measuredValues) + " (atteso " + Set(expectedValues) +
+                detail = what + " " + Set(measuredValues) + " (expected " + Set(expectedValues) +
                             (tolerance > 0 ? " ±" + tolerance.ToString(CultureInfo.InvariantCulture) : "") + ")";
                 if (expectedValues.Length != measuredValues.Length) return false;
                 for (int i = 0; i < expectedValues.Length; i++)
@@ -292,7 +292,7 @@ namespace Oce.Solid.Agent.Bench
             // «100X100X6». Asking that it CONTAIN an entry is the most
             // natural thing there is, and up to 0.91.0 it failed with
             //
-            //     non dice «80X80X5»: System.String[]
+            //     does not say «80X80X5»: System.String[]
             //
             // — a message true and useless, because `Convert.ToString` on an
             // array gives the name of the type. For `equal_to` text lists
@@ -354,9 +354,9 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// ── THE THREE INCIDENTS ──────────────────────────────────────────
         ///
-        ///   21/9  an expectation looked for «vero», the text said «VERO»
-        ///   23/9  it looked for «accavallano», the text says «si accavalla»
-        ///   23/9  it looked for «che serviva», the text says «CHE SERVIVA»
+        ///   21/9  an expectation looked for «true», the text said «TRUE»
+        ///   23/9  it looked for «overlap», the text says «overlaps»
+        ///   23/9  it looked for «that was needed», the text says «THAT WAS NEEDED»
         ///
         /// The second was an ending, and it was fixed by looking for the root.
         /// The first and the third are the same thing, and they were not defects of the
@@ -381,7 +381,7 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// It has no operator, and that must be said instead of leaving it to be discovered.
         /// No case today needs one: it was looked at before removing the
-        /// exact comparison. The day it was needed, `contiene_esatto` is added
+        /// exact comparison. The day it was needed, `contains_exact` is added
         /// — a different name, not one more boolean on
         /// this one, because a switch that changes the meaning of an operator
         /// is an operator in disguise.
@@ -426,7 +426,7 @@ namespace Oce.Solid.Agent.Bench
             // THERE IS NO LONGER A LIST OF NAMES HERE.
             //
             // There was one, and it came unglued: a new measurement added to whoever
-            // measures, and forgotten here, came out «non so misurare» with the old list
+            // measures, and forgotten here, came out «I do not know how to measure» with the old list
             // next to it — a message that says something false about itself.
             // Everything that has no prefix is asked of whoever has the document,
             // and it is that one that says whether it does not know that name.
@@ -450,9 +450,9 @@ namespace Oce.Solid.Agent.Bench
         /// DIFFERENT PROFILES ARE WRITTEN THE SAME. The comparison between a case that
         /// must fail and its twin was made this way, and it became blind
         /// precisely on the argument that tells them apart. The blindness goes in both
-        /// directions: here it gave an honest bench error — «e' identica al
-        /// rifiuto» on a pair that differed ONLY in the contours —
-        /// but the same line would have said «differisce per 1 argomento»
+        /// directions: here it gave an honest bench error — «it is identical to the
+        /// refusal» on a pair that differed ONLY in the contours —
+        /// but the same line would have said «it differs by 1 argument»
         /// looking at two lists it had not read.
         ///
         /// It is here, and not next to whoever uses it, because it is a pure function
@@ -740,31 +740,8 @@ namespace Oce.Solid.Agent.Bench
             return raw;
         }
 
-        /// <summary>
-        /// THE SELECTORS OF BEFORE W3.1-bis.5 (decision D4): a selector written with
-        /// the names of before the rename is read as its English spelling. Set by the bench when it loads the
-        /// library (Oce.Solid.Agent.Core.Alias.Selector, the name map itself); the
-        /// contracts leave it null and read selectors as written. Each name it
-        /// translates goes into <see cref="DeprecatedSelectors"/>, which the
-        /// runner of the cases adds to the step's `measurements.deprecated`.
-        /// Removed in W3.1-bis.11.
-        /// </summary>
-        internal static Func<string, List<string>, string> SelectorAlias;
-        internal static readonly List<string> DeprecatedSelectors = new List<string>();
-
-        /// <summary>
-        /// How many Italian names the library has translated since the bench
-        /// started (Oce.Solid.Agent.Core.Alias.Uses): every step, a failed one
-        /// too, every selector of a step or of an expectation, every step that
-        /// prepares the components of an assembly. The bench counts the
-        /// difference over each case. Null with a library from before the
-        /// aliases. Removed in W3.1-bis.11.
-        /// </summary>
-        internal static Func<int> AliasUsesNow;
-
         internal static string Select(string expression, Dictionary<string, object> docState)
         {
-            if (SelectorAlias != null) expression = SelectorAlias(expression, DeprecatedSelectors);
             int opens = expression.IndexOf('(');
             if (opens < 0 || !expression.EndsWith(")", StringComparison.Ordinal))
                 throw new CouldNotMeasure("malformed selector: «" + expression + "»");
@@ -797,7 +774,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// `verso=davanti, lungo~=100`: the `~` means «about», and it is for
+        /// `normal=front, length~=100`: the `~` means «about», and it is for
         /// lengths, which are never whole when the part has been rebuilt.
         /// </summary>
         internal sealed class Condition
@@ -949,12 +926,12 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// `@dimension(feature=Schizzo1,name=D1)` -> the EXTENDED name of the dimension, as
-        /// the state writes it: `D1@Schizzo1@Parte286.Part`.
+        /// `@dimension(feature=Sketch1,name=D1)` -> the EXTENDED name of the dimension, as
+        /// the state writes it: `D1@Sketch1@Part286.Part`.
         ///
         /// It is the selector that the entry called «not a luxury»:
-        /// `piani/cambia_diametro.json` writes the name with the document title
-        /// inside, and that `Parte76` changes at every run — **that plan today cannot
+        /// `plans/change_diameter.json` writes the name with the document title
+        /// inside, and that `Part76` changes at every run — **that plan today cannot
         /// be re-run.** By resolving it against the state, the case names the
         /// dimension and the title is put in by the bench.
         ///
@@ -997,7 +974,7 @@ namespace Oce.Solid.Agent.Bench
                     var dimension = q as Dictionary<string, object>;
                     if (dimension == null || !dimension.ContainsKey("name")) continue;
                     string extended = Convert.ToString(dimension["name"]);
-                    // «D1@Schizzo1@Parte286.Part» -> short «D1», inside «Schizzo1»
+                    // «D1@Sketch1@Part286.Part» -> short «D1», inside «Sketch1»
                     var parts = extended.Split('@');
                     if (parts.Length < 2) continue;
                     if (call != null &&

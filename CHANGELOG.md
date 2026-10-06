@@ -9,7 +9,7 @@
 > the rule of entry I1 still holds — *a rewritten changelog is a changelog that
 > lies*. Names of operations, arguments, fields, classes, files and folders are
 > given in their English form from the rename map
-> (`Checks/language/name-map.tsv`), so that they match the repository as it is
+> (`Checks/language/name-map.tsv`, archived outside the repository in W3.1-bis.11), so that they match the repository as it is
 > published; SOLIDWORKS names, literal values and names with no row in the map
 > stay as they were written. The entries of the rename windows (W3.1-bis.4 to
 > .6) are the one place where the names from before the rename are quoted on
@@ -32,6 +32,123 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
+
+Last window of W3.1-bis. It closes what the first ten left open on purpose: the
+dictionary that still accepted the Italian names on input, and a language gate that
+only promised not to grow. Decision D4 (no alias) and the order of 1/10/2026
+(«tutta l'intera repo con niente escluso deve essere in inglese») are applied to the letter.
+Built on `integration-1` (c4707ef). Nothing here touched SOLIDWORKS: the contracts ran
+with `OCE_NO_ATTACH=1` and the bench running on `integ1` was not disturbed.
+
+**1. The input dictionary is gone.** `Alias.cs` (the table that translated tools,
+operations, arguments, values, selectors and resource URIs on the way in), the name
+map embedded in the library, `SwOperations.AttachDeprecated` and the lines that told the
+caller «deprecated» are removed, with every reader: `Mcp/Tools`, `Program.cs`, the
+bench counters `alias_uses` and the family `aliases` of declared cases (four cases),
+`AliasLayerContract`. `SwOperations.Run()` now holds the switch itself. An old name is
+an unknown name and is treated as every other unknown name: an unknown tool is `isError`
+and lists the tools there are, an unknown operation is refused as unknown, an unknown
+argument is reported as ignored and never moved to another one. The new contract
+`NoAliasContract` proves it twice, without SOLIDWORKS: by reflection (no type that
+translates, no `.tsv` resource) and over stdio on the built bridge.
+*A hidden Italian protocol came out with it:* `Bench/DeclaredCases.cs` recognised an
+ignored argument by the Italian word that began the old message; it now reads the
+English `not `. The case `c4_frame_axis` still asked for `measured_as: «asse»`, an alias;
+it asks for `center_distance`. The cases that made up a name («Non-Esiste» and the like)
+now make up an English one.
+
+**2. The Italian branches of the tests.** `CatalogTests.Number()` reads the operation
+counts of the README in English and digits only (16 fakes, seen red); the remedy table
+of `RefusalsTests` and `RefusalKeywordsContract` has English forms only (floor 228 of 938,
+unchanged). `SafetyNetSelfTests` no longer runs the name-map checks.
+
+**3. Archived, not deleted.** The rename map (`name-map.tsv`) and the tools that only
+served it — `name-map-extract.js`, `update-names-in-notes.js`, the `window-*.js` and
+`window-*.json` of the rename windows, `Alias.cs` with its contract and the four alias
+cases — were moved out of the repository into an archive folder of the owner's
+notes, with a note that says from which commit they come. Every reader was fixed: `snapshot.js` and its registry (the script table stops
+the tool on a script it does not name, and names the new probe set), `same-il.ps1`
+(generic, it takes the map as a parameter), the pre-push hook (the name-map self-test
+is gone), `check-publishability.ps1` (the old script names are no longer a list: the
+exceptions by name read them from `git log --follow`, which already knows every path a
+file had), `Checks/todo-paths.js`. `Checks/language/baseline.json` is gone.
+
+**4. The gate is zero, and blocking.** `Checks/language/detect-italian.js` used to count
+the Italian of the tree and fail if it went up against a baseline. It now counts the
+Italian outside the exceptions the owner has SIGNED, and fails if there is any: an
+exception counts only when `signed_by` and `signed_on` are filled; until then the gate
+lists the waiting entries (reason, pattern, files, how much each would cover) and fails.
+The transition categories (the ratchet, the baseline, the frozen totals) are removed;
+the eight categories stay. The closed list of classes is six: `changelog-history`,
+`changelog-quote`, `solidworks-localized`, `data-becomes-geometry`, `todo-reader`,
+`detector-lexicon`. Every entry names a narrow pattern, never a whole file, and the
+reach limits of `lexicon.json` judge it (40 hits in a file, half of the Italian of a
+file from ten hits, 300 in the tree; not the changelog classes and the lexicon). The CI
+step `language-gate.ps1` is strict (marker `language-gate-strict`): it judges the head with
+the detector of the base when the base is already strict, and a change to
+`exceptions.json`, `lexicon.json` or the detector needs the trailer
+`Language-Gate-Config-Change` in the commit. `see-it-fail.js` (20 mutations, each seen
+red), `ci-proof.ps1` and `LanguageGateTests` were rewritten for the new rule.
+
+**5. Everything the gate found, translated.** Every hit the gate found became English: the
+probes of `Checks/` (names of classes, files and messages), the scripts of `Checks/` and
+`Bench/` (`count-tested.js`, `error-enum.ps1`, `solidworks-modules.ps1`, ...), the
+comments and strings of the library, the stale identifiers that the cases and the notes
+still quoted («Provata» is `Tested`, the readers by their current names), the `rag:` and
+`memory:` references of `Tools/api_knowledge.json` (the note id is kept, `rag:82d`; the
+slug is dropped), the report of the last bench run. `Bench/tasks/prerequisites/07_tube_stand.json`
+writes the square-tube profile as `{SQUARE_TUBE}` and `prerequisite.js` holds the name once.
+`Tests/Zc2111ComponentsContract.cs` keeps its «old reader must stay gone» check under an
+English name (`PartsOfTheAssembly`).
+
+**6. The exceptions to sign: 40 entries, none signed.** The gate lists them and nothing
+else. By class: `detector-lexicon` 2 (the word lists of `lexicon.json`; the patterns of
+`exceptions.json` itself), `changelog-quote` 1 (the text between «» in this file),
+`changelog-history` 1 (this file from the entry of W3.1-bis.10b down), `solidworks-localized`
+22, `data-becomes-geometry` 2, `todo-reader` 12. The 22 of SOLIDWORKS are the names it
+writes in the language of the installation: the default names of features, sketches, axes,
+sheets and parts; the square-tube profile of the weldment library; the hole callout word;
+the center-mark option; the section and drawing view names; the reserved equation word;
+the standard views; the cut-list columns; the mirror, weldment and solid-body names; the
+hole wizard thread type; the material classes; the three base planes; the configurations
+of the company template; the title-block properties; the drawing template name; the
+default configuration and front plane quoted in the README. The two of
+`data-becomes-geometry` are the engraved test word (whose 56 outlines are counted) and the
+note of the drawing standard of the catalogue example. The 12 `todo-reader` entries are one
+per family of words of `count-todo.js` (seven, so that none covers the file), the readers
+`todo-paths.js`, `todo-references.js` and `todo-lines.js`, and the folder of the owner's
+notes (the TODO lives there).
+
+**The plan for the English drawing template.** The title-block properties are a
+temporary `solidworks-localized` entry. To remove it: make, with SOLIDWORKS, a drawing
+template and a part template with English property names and the same links, replace
+the names in `TitleBlockOperations`, the catalogue examples, the case
+`title_block_says_what_it_wants` and the case
+`limit_property_on_a_configuration_that_does_not_exist`, run the bench on the new
+template, and delete the entry. The same template removes the cut-list column entry and the
+drawing template name entry.
+
+**Things for the owner to decide or know.**
+- `OPENPDM_ADDIN` is still read (`Bridge/Session.cs`) next to `OCE_DRAWING_LIBRARY`; it is
+  an English name and was left; decide whether it stays.
+- The autonomous run lost its «before» mode (D9): it compared two runs through a
+  name list that no longer exists; the stored `score.json` of the earlier run still compares.
+- `Checks/todo-paths.js` now reports one more missing path (eight against seven): the
+  TODO cites the archived `window-3-renamer.js`; the TODO is the owner's.
+
+**Proofs.** `build.ps1` green (bridge, catalogue, probes, payload, installer); `Tools/catalog.json`
+differs in one line (a field name in the text of `drawing_dimension`); contracts 813 checks, 3
+red, all of them the freshness of the bench report (`the bench ran on the current library` and
+the two dates), which only a bench run can turn green; `test-installer.js` 65 checks passed, none failed;
+`snapshot.js take` writes the script table (35 scripts run, 48 skipped with their reason) and
+`--self-test` 28 of 28; `token-stream.js --self-test` 34 of 34; `consumed-strings.js` 39 entries,
+0 broken; `see-it-fail.js --check` 20 mutations; `check-workflow.ps1` all good;
+`check-publishability.ps1` clean. The gate, in strict mode, fails and lists exactly the 40
+unsigned entries — «0 outside every entry» — and with the 40 signed (tried on a copy) it holds.
+
+---
+
 ## Unreleased — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0
 
 **One branch, from the tip of `w31bis-10b` (33451b7: windows .7 to .10-bis on main
@@ -49,7 +166,7 @@ entries of both stay in this file.
    title) with the English options of .10-bis (`--close`, `--spare`) and the English
    text of the comments. What the merge cannot see, and was fixed by reading the new
    files against .10-bis: the three cases and the probe `Checks/D9Defects` still named
-   `{LAVORO}`, `{PROFILI}`, `PROFILI_SALDATURA`, `--chiudi` and `--risparmia`; they are
+   the Italian placeholders, environment variable and options; they are
    `{WORK}`, `{PROFILES}`, `OCE_WELDMENT_PROFILES`, `--close` and `--spare` now.
    `Tools/catalog.json` merged by itself and was regenerated from the built library:
    identical, and its diff against .10-bis is the `cut_list` description only.
@@ -81,8 +198,8 @@ entries of both stay in this file.
    aligned, opposite, each with the word of before), applied when a plan is translated
    for that bridge; a value that is not in the table stops the translation. `--check`
    reads what neither the enum check nor the dry run of the bridge could see: a mate
-   value of before on the bridge of today, and a placeholder nobody fills (`{PROFILI}`
-   would have reached the bridge as a path). The self-test reads `MateOperations.cs` to
+   value of before on the bridge of today, and a placeholder nobody fills (the Italian
+   profiles placeholder would have reached the bridge as a path). The self-test reads `MateOperations.cs` to
    prove that the table of today is the one the bridge takes, and each new check was
    seen red first. `--check` resolves a relative `--bridge` path (the bridge runs in its
    own folder, and a relative path did not find it there).
@@ -90,7 +207,7 @@ entries of both stay in this file.
    words) and described the tasks as JSON files that no longer exist: it is translated
    and says what a task is now (a Markdown file whose first blockquote the runner hands
    to the model and whose table `How it is measured` the scorer reads). The Italian
-   originals of the task texts stay in `note-interne/lingua/compiti-it`, outside the
+   originals of the task texts stay in the owner's internal notes, outside the
    repository, and `run-autonomous.ps1 -Language it -TasksDir` takes them from there.
    **`l_bracket.json` and `one_meter_frame.json` are removed, not translated:** they
    were the first form, in Italian, of tasks 01 and 06; nothing reads them (the runner
@@ -148,7 +265,7 @@ through step 9 and stops at step 10, the first gusset, on defect (3) of the list
 `d9-defects` left on purpose (the state lists the 60 largest faces of 177); the plan
 and the README say so, and the runner keeps refusing tasks 11 and 15 on both sides.
 Nothing in SOLIDWORKS was left open (the desk was read empty at the end). This machine
-has no `PROFILI_SALDATURA` nor `OCE_WELDMENT_PROFILES` set: the runs above set the
+has neither the old Italian-named variable nor `OCE_WELDMENT_PROFILES` set: the runs above set the
 second for their own process only.
 
 **The language gate on this branch.** Three commits carry a trailer.
@@ -216,7 +333,7 @@ wrong are gone, and a reader who compares a number across versions must see it.
    after the first and the second insertion both agree. The count is now asked of
    `GetComponentCount` (page `IAssemblyDoc~GetComponentCount.html`). Bench case
    `the_first_component_goes_into_an_empty_assembly`;
-4. **`CloseLeftovers --chiudi` closed by title.** It now closes a saved
+4. **`CloseLeftovers --close` closed by title.** It now closes a saved
    document by its path and a never-saved one by its title. Measured
    (`D9Defects names`, `closing`): the path is exact; a title matches whole first,
    and a name that matches no title whole falls back to the base name and closes

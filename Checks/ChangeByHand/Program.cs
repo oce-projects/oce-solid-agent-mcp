@@ -72,7 +72,7 @@ namespace Checks.ChangeByHand
                 return 1;
             }
 
-            Console.WriteLine("documento: " + doc.GetTitle());
+            Console.WriteLine("document: " + doc.GetTitle());
 
             // THE VOLUME BEFORE AND AFTER, because «I called the extrusion» is not
             // «the part has changed». It is the same rule the bridge applies

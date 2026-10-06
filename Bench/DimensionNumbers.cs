@@ -28,7 +28,7 @@ namespace Oce.Solid.Agent.Bench
             Console.WriteLine();
             Console.WriteLine("=== numbers: is the printed number the model's? (Z-C2) ===");
             IModelDoc2 part = null, drawing = null;
-            string file = Path.Combine(Expectations.Work, "numeri_banco.sldprt");
+            string file = Path.Combine(Expectations.Work, "numbers_bench.sldprt");
             try
             {
                 part = NewPart();

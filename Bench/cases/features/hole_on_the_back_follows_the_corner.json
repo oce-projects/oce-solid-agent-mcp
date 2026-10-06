@@ -1,7 +1,7 @@
 {
   "name": "hole_on_the_back_follows_the_corner",
   "family": "features",
-  "why": "ENTRY E18, risk 4 of the critic, the second half: the BACK face (normal -Z). The sketch on a face that looks backwards has X reversed with respect to the model (`PuntoNelloSchizzo` says so), and an anchor that reasoned in sketch coordinates would measure from the wrong side. Blind Ø8 hole 20 from the right side and from the top: after 260 x 180 it must be at (140, 100). Measured on 25/9/2026 with the bench probe.",
+  "why": "ENTRY E18, risk 4 of the critic, the second half: the BACK face (normal -Z). The sketch on a face that looks backwards has X reversed with respect to the model (`PointInSketch` says so), and an anchor that reasoned in sketch coordinates would measure from the wrong side. Blind Ø8 hole 20 from the right side and from the top: after 260 x 180 it must be at (140, 100). Measured on 25/9/2026 with the bench probe.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

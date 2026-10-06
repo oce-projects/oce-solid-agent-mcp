@@ -51,7 +51,7 @@ namespace Oce.Solid.Agent.Core
         /// sketch made by this step from one already there; that is now
         /// <see cref="_featureNamesAtStepStart"/>, which says WHICH features
         /// were born and not only that the tree grew. The count is still read
-        /// after a withdrawal (OperazioniAncora, OperazioniRipetiRiempimento):
+        /// after a withdrawal (AnchorOperations, FillPatternOperations):
         /// a tree longer than at the start means the step left something in
         /// the part.
         ///
@@ -108,7 +108,7 @@ namespace Oce.Solid.Agent.Core
         /// ourselves, and this sentence stays for the case where we do NOT manage to. The
         /// reason for the change is measured: on 11 September 2026, eight requests
         /// beyond the limits produced seven right refusals and seven orphan
-        /// sketches. The message was honest, but «puoi toglierlo con Ctrl+Z»
+        /// sketches. The message was honest, but «you can remove it with Ctrl+Z»
         /// seven times is not a repair: it is a task handed to the reader.
         ///
         /// Whoever receives it now knows two true things together: that the operation
@@ -174,7 +174,7 @@ namespace Oce.Solid.Agent.Core
         /// Measured on 14 September 2026: the origin answers ISketch to
         /// `GetSpecificFeature2` exactly like a real sketch, and on an empty
         /// document it is the last feature of the tree. It is not a translated name —
-        /// that one is `Name`, which in Italian says «Origine» — it is
+        /// that one is `Name`, which in an Italian installation is the localized name of the origin — it is
         /// the API's TYPE name, which does not change with the language.
         /// </summary>
         private const string PartOrigin = "OriginProfileFeature";
@@ -238,7 +238,7 @@ namespace Oce.Solid.Agent.Core
         /// the server expands them into `contours` before they arrive here, and the `default`
         /// branch falls back to the profile extrusion when it finds
         /// contours. Called with their real arguments they answer
-        /// «operazione sconosciuta». The check that compares the two sets says so; without
+        /// «unknown operation». The check that compares the two sets says so; without
         /// a list, it would be a regex over 4,700 lines that breaks at the first
         /// reformatting.
         ///
@@ -246,7 +246,7 @@ namespace Oce.Solid.Agent.Core
         /// We defend against it in two ways, both in the check and none in
         /// good will: we verify that every name in here is really
         /// dispatchable (calling `Run` and looking that it does NOT answer
-        /// «operazione sconosciuta»), and we compare with the `case` labels read from the
+        /// «unknown operation»), and we compare with the `case` labels read from the
         /// source — where reading zero is a failure, not a success.
         /// </summary>
         public static readonly string[] ExecutableNames =
@@ -299,40 +299,6 @@ namespace Oce.Solid.Agent.Core
             Dictionary<string, object> arguments,
             DocumentState docState,
             IReadOnlyDictionary<int, References.Step> stepsDone = null)
-        {
-            // THE NAMES OF BEFORE W3.1-bis.5 (Alias.cs, decision D4): an
-            // Italian operation, argument or value is translated here, for the
-            // callers of the library that do not come through the bridge (the
-            // bench, the add-in), and the answer says so in `deprecated`. The
-            // bridge translates before its own checks, so its plans arrive here
-            // in English. Removed in W3.1-bis.11.
-            List<string> deprecated = Alias.Step(ref operation, arguments);
-            Outcome outcome = ExecuteWithCurrentNames(model, operation, arguments, docState, stepsDone);
-            AttachDeprecated(outcome, deprecated);
-            return outcome;
-        }
-
-        /// <summary>
-        /// The deprecated lines of a step on its outcome: always in
-        /// `measurements.deprecated` (an outcome whose operation left no
-        /// measurements gets them anyway, or the warning would be lost on a
-        /// step that worked), and on a failed step in the error too, which is
-        /// what a caller reads first. Removed with the aliases in W3.1-bis.11.
-        /// </summary>
-        public static void AttachDeprecated(Outcome outcome, List<string> deprecated)
-        {
-            if (outcome == null || deprecated == null || deprecated.Count == 0) return;
-            if (outcome.Measurements == null) outcome.Measurements = new Dictionary<string, object>();
-            outcome.Measurements["deprecated"] = deprecated.ToArray();
-            if (!outcome.Succeeded) outcome.Error = outcome.Error + " (" + string.Join("; ", deprecated) + ")";
-        }
-
-        private Outcome ExecuteWithCurrentNames(
-            IModelDoc2 model,
-            string operation,
-            Dictionary<string, object> arguments,
-            DocumentState docState,
-            IReadOnlyDictionary<int, References.Step> stepsDone)
         {
             _stepsDone = stepsDone ?? new Dictionary<int, References.Step>();
             // It is emptied at the START: emptying it at the end would leave it full
@@ -760,7 +726,7 @@ namespace Oce.Solid.Agent.Core
         /// the entity to dimension — it is WHERE the number is to be written.
         ///
         /// THE VALUE POP-UP IS TURNED OFF, and this is the line that matters.
-        /// `AddDimension` places the dimension and then opens «Modifica» to ask
+        /// `AddDimension` places the dimension and then opens «Modify» to ask
         /// what it is worth, and stays there waiting for an answer that will never
         /// come. It does not fail, does not throw, does not time out: it gets stuck. In
         /// production this code runs INSIDE SolidWorks — it would mean
@@ -817,7 +783,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
-            // ZERO-E-ZERO: `messe` counts the dimensions BORN, one by one; one that is not
+            // ZERO-E-ZERO: `placed` counts the dimensions BORN, one by one; one that is not
             // born is not a dimension. The catch blocks below close the selection and
             // put the preference back: they do not touch the count.
             int put = 0;
@@ -962,7 +928,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// Before, this recipe lived only in the Python server, so the
         /// operation was **declared in the catalog and not executable**: from the
-        /// bridge it answered «operazione sconosciuta» to whoever asked for it with its
+        /// bridge it answered «unknown operation» to whoever asked for it with its
         /// real arguments.
         /// </summary>
         private Outcome ExtrudeSection(IModelDoc2 model, Dictionary<string, object> a)
@@ -980,7 +946,7 @@ namespace Oce.Solid.Agent.Core
             // The catalog schema declares them all together because it is
             // a single operation, but a tube has no diameter and a
             // round bar has no wall: if one is missing say WHICH, not
-            // «parametri non validi».
+            // «invalid parameters».
             var m = new Dictionary<string, double>();
             var missingItems = new List<string>();
             foreach (var q in wanted)
@@ -1506,7 +1472,7 @@ namespace Oce.Solid.Agent.Core
                     }
 
                     // MISSING AND NON-NUMERIC ARE TWO DIFFERENT THINGS.
-                    // Before, both ended up in «non e' un numero»,
+                    // Before, both ended up in «is not a number»,
                     // because the absent key threw inside the same
                     // try. Whoever wrote just {"circle":[0,0]} must
                     // be sent to put in the diameter, not to check a
@@ -1677,7 +1643,7 @@ namespace Oce.Solid.Agent.Core
                     var p = ring[location];
                     // MEASURED, and it is worth saying as it is: on a bow-tie
                     // SOLIDWORKS stops, but the only thing it says is
-                    // «L'estrusione non e' stata creata» — which does not help to
+                    // «The extrusion was not created» — which does not help to
                     // understand where the trouble is. This message exists to
                     // give the point, not to add a refusal.
                     reason = string.Format(
@@ -1707,7 +1673,7 @@ namespace Oce.Solid.Agent.Core
             //   inside     is a void. Normal.
             //   straddling cuts the outer edge. Always incoherent: it is
             //              neither a void nor a region, and SOLIDWORKS stops
-            //              saying only «L'estrusione non e' stata creata».
+            //              saying only «The extrusion was not created».
             //   outside    is a REGION OF ITS OWN. It is legitimate: four tabs
             //              on a face are four detached contours.
             //
@@ -1738,7 +1704,7 @@ namespace Oce.Solid.Agent.Core
                     // THE TWO SIDES MUST GIVE THE SAME ANSWER, AND THE ANSWER
                     // IS NO. Measured: slot on the right, slot on the left and a diamond
                     // touching at a single vertex all three fail with
-                    // «L'estrusione non e' stata creata». Two contours that
+                    // «The extrusion was not created». Two contours that
                     // touch do not delimit a region; an open slot is
                     // drawn as ONE contour only, with eight points.
                     // The gain is not letting more through: it is answering
@@ -1895,7 +1861,7 @@ namespace Oce.Solid.Agent.Core
         // mm hole on a 314x274 face, and a hole asked for at x = 5000 on a part
         // that reaches 157, both ended up with
         //
-        //     «Il taglio non e' stato creato. Nel pezzo e' rimasto lo schizzo»
+        //     «The cut was not created. The sketch is left in the part»
         //
         // which is not a diagnosis: it is the observation that SolidWorks said
         // no. The reader does not know whether to shrink the hole, move it, or
@@ -1903,9 +1869,9 @@ namespace Oce.Solid.Agent.Core
         //
         // The two causes can however be told apart BEFORE drawing, with numbers already
         // in hand: the part's bounding box and the profile asked for. The model to
-        // imitate is the fillet, which in the same round did not say «non e'
-        // riuscito» but «200 mm e' troppo per lo spigolo «E1», lungo 314 mm: non
-        // ci sta neanche meta'» — that is the CRITERION, not the verdict: the reader
+        // imitate is the fillet, which in the same round did not say «it did not
+        // succeed» but «200 mm is too much for the edge «E1», 314 mm long: it
+        // does not even fit half» — that is the CRITERION, not the verdict: the reader
         // knows how to choose R150 without having to guess it.
         //
         // WHY THE CHECKS ARE THESE TWO AND NOT TWO TIGHTER ONES.
@@ -2088,7 +2054,7 @@ namespace Oce.Solid.Agent.Core
         // SolidWorks does not create the feature, and 0.43.0 takes the sketch away
         // as it should. What is left in the reader's hands is:
         //
-        //     «Il taglio non e' stato creato.»
+        //     «The cut was not created.»
         //
         // Four words. It is again the disease of 80u — an observation
         // instead of a diagnosis — in fact worse than before, because before it at least
@@ -2170,7 +2136,7 @@ namespace Oce.Solid.Agent.Core
             foreach (var c in samples)
                 if (PointOnFace(face, axes, offsetM, c[0], c[1])) onCount++;
 
-            // «sulla faccia», not «su la faccia»: the preposition is contracted
+            // «on the face» with one preposition for all three sentences: the preposition is chosen
             // in here, because all three sentences use it.
             string location = string.IsNullOrEmpty(uidFace)
                 ? "on the chosen face"
@@ -2377,7 +2343,7 @@ namespace Oce.Solid.Agent.Core
             // the antenna: the cable passage asked on a side, with
             // «through_all». Removed 3,922.2 mm3 against the 1,961.1 of a single
             // wall — exactly double, because the cut came out
-            // of the back too. The operation said «riuscito», the part
+            // of the back too. The operation said «succeeded», the part
             // had one hole too many, and no check noticed.
             //
             // Whoever draws a box and writes «through_all» almost always means
@@ -2474,9 +2440,9 @@ namespace Oce.Solid.Agent.Core
             // document is not a part, when `GetBodies2` gives null and from the
             // `catch` that wraps everything — that is, on every error road.
             // So that branch could not fire, and a zero from a failed
-            // reading passed as if it were a measure: `tolti` became
+            // reading passed as if it were a measure: `removed` became
             // the WHOLE volume of the part, and on a perfectly successful hole
-            // a `note_volume` came out saying «192.000 mm³ invece di 392,7».
+            // a `note_volume` came out saying «192,000 mm³ instead of 392.7».
             // The false alarm on the correct one, that is exactly what this
             // entry declares worse than the defect it is closing.
             //
@@ -2825,7 +2791,7 @@ namespace Oce.Solid.Agent.Core
                     // on its own, the contour opens by fractions of a
                     // millimeter. An open contour cannot be cut, and indeed
                     // on 10 September 2026 twelve tests out of twelve ended with
-                    // «l'asola non e' stata tagliata».
+                    // «the slot was not cut».
                     ISketchSegment[] created;
                     drawn = DrawStadium(
                         sketches, pTopA, pTopB, pBottomA, pBottomB, pCrestA, pCrestB,
@@ -3013,7 +2979,7 @@ namespace Oce.Solid.Agent.Core
         /// and then proposed the same `rectangular_frame` twice, which the
         /// validator refused. It was not the model that was wrong: there was
         /// no operation able to move what it had already made.
-        /// With `copia = true` the castle is made in one step — the second frame
+        /// With `copy = true` the castle is made in one step — the second frame
         /// is a COPY of the first, moved by 600.
         ///
         /// SIGNATURES VERIFIED by reflection on interop 29.5.1.1:
@@ -3038,7 +3004,7 @@ namespace Oce.Solid.Agent.Core
         /// subset of bodies moves the center of gravity of the WHOLE part by a
         /// known fraction — that of the moved volume over the total volume:
         ///
-        ///     centro_dopo = centro_prima + (volume_mosso / volume_totale) * d
+        ///     center_after = center_before + (volume_moved / volume_total) * d
         ///
         /// It is an exact equality, not an estimate, and it falls apart at once if the
         /// distance is wrong even slightly. `IBody2.GetMassProperties`
@@ -3090,9 +3056,9 @@ namespace Oce.Solid.Agent.Core
             mark.Mark = SelectionMarks.MoveCopyBodyBody;
             // A BODY IS NOT AN IEntity, AND THE DIFFERENCE DOES NOT SHOW UNTIL
             // IT IS TRIED. Measured on 10 September 2026 inside SolidWorks:
-            // `corpo as IEntity` returns null in the interop, the counter stayed at
-            // zero and all five displacement tests said «i corpi
-            // indicati non si sono lasciati selezionare». Faces and edges
+            // `body as IEntity` returns null in the interop, the counter stayed at
+            // zero and all five displacement tests said «the bodies
+            // indicated could not be selected». Faces and edges
             // are IEntity; bodies have their own `IBody2.Select2`.
             int selected = 0;
             foreach (var c in bodies)
@@ -3246,7 +3212,7 @@ namespace Oce.Solid.Agent.Core
 
                 // THE ARCS ARE GIVEN BY THREE POINTS, NOT BY DIRECTION.
                 //
-                // Before they were `CreateArc(centro, capo1, capo2, Direction)` with
+                // Before they were `CreateArc(center, end1, end2, Direction)` with
                 // `Direction = -1` written by hand. A direction, however, lives in the
                 // SKETCH's plane, while the points are built in the
                 // MODEL's system, and the transformation between the two does not
@@ -3260,7 +3226,7 @@ namespace Oce.Solid.Agent.Core
                 // test the count was 1724.8 mm3 instead of 2675.2, that is
                 // exactly (L−W)·W − pi·r^2 in place of + pi·r^2.
                 //
-                // `Create3PointArc(capo1, capo2, puntoSull'arco)` removes the
+                // `Create3PointArc(end1, end2, pointOnArc)` removes the
                 // question: the third point is the crest of the semicircle,
                 // goes through `PointInSketch` like all the others, and
                 // the arc stays determined by the GEOMETRY instead of by a
@@ -3304,7 +3270,7 @@ namespace Oce.Solid.Agent.Core
         /// thick the part is — which in general is not known.
         ///
         /// The recipe to recognize a cylindrical face of a certain
-        /// diameter is the one already in production in `OperazioniFori`:
+        /// diameter is the one already in production in `HoleOperations`:
         /// `IFace2.IGetSurface().IsCylinder()` and `CylinderParams[6] * 2000`.
         ///
         /// **-1 when it could not be read** (entry Z-C8): `walls_drilled: 0`
@@ -3344,7 +3310,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Volume in mm3 and center of gravity in mm of a group of bodies.
         ///
-        /// `IBody2.GetMassProperties(densita)` returns a vector in which the first
+        /// `IBody2.GetMassProperties(density)` returns a vector in which the first
         /// three numbers are the center of mass in METERS and the fourth is the volume
         /// in cubic meters. The center of gravity of several bodies is the average of their
         /// centers of gravity WEIGHTED BY VOLUME: taking the plain average would give a
@@ -3753,7 +3719,7 @@ namespace Oce.Solid.Agent.Core
             //
             // Unchanged can be said only of two READ volumes (entry Z-C8): with two
             // failed readings the zero from before and the zero from after were equal,
-            // and the note said «il volume no».
+            // and the note said «the volume does not».
             bool unchangedVolume = volumeBefore.HasValue && volumeAfter.HasValue &&
                                Math.Abs(volumeAfter.Value - volumeBefore.Value) < 0.01;
             if (!rebuilt)
@@ -3807,7 +3773,7 @@ namespace Oce.Solid.Agent.Core
             // thickness brought to 1. The chamfer does not fit, and SOLIDWORKS DOES NOT
             // FAIL: it rebuilds clean, no feature in error, and it
             // eats a millimeter of width. The same with the little bench
-            // (`prova0089 storia`): two 8 fillets on top of a plate, then
+            // (the historical probe of 0.89): two 8 fillets on top of a plate, then
             // width to 10 or thickness to 6 — succeeded, zero errors, a part that
             // is not what the fillets describe.
             //
@@ -3964,7 +3930,7 @@ namespace Oce.Solid.Agent.Core
                             //   D1@Schizzo1@Parte286.Part   as the state writes it
                             //
                             // The second was missing, and the error message
-                            // took it for granted («per esempio «D1@Schizzo1»»):
+                            // took it for granted («for example «D1@Sketch1»»):
                             // the message said the wrong thing.
                             //
                             // And it is not a convenience detail: the form with
@@ -4188,7 +4154,7 @@ namespace Oce.Solid.Agent.Core
         /// A new reference plane, parallel to one of the three base planes.
         ///
         /// BASE PLANES ONLY, AND THE REASON LIES IN THE SERVER'S VALIDATOR.
-        /// `valida()` ALWAYS imposes one of `face_uid` and `face_ref` as soon as
+        /// the validation function ALWAYS imposes one of `face_uid` and `face_ref` as soon as
         /// that property appears in an operation's schema. If a face were
         /// also declared here as an alternative reference, «top
         /// plane, 600 mm» alone would no longer be accepted: a face
@@ -5201,16 +5167,16 @@ namespace Oce.Solid.Agent.Core
                         "bodies: a closed shell without faces indicated would work on " +
                         "one chosen at random. Point to the faces to remove.");
                 // A BODY IS NOT AN IEntity, and this branch never
-                // knew it. `corpi[0] as IEntity` **always** returns null
-                // in the interop, so «fully_closed: true» answered «Non
-                // sono riuscito a selezionare il corpo solido» on ANY
+                // knew it. `bodies[0] as IEntity` **always** returns null
+                // in the interop, so «fully_closed: true» answered «I could not
+                // select the solid body» on ANY
                 // part — it was not an edge case, it was always broken.
                 //
                 // What hurts: the lesson was already written, in this
                 // same file, four thousand lines further up. The comment of
                 // `MoveBodies` tells it at length — measured inside
                 // SOLIDWORKS on 10 September 2026, with five tests that
-                // said «i corpi indicati non si sono lasciati selezionare»
+                // said «the bodies indicated could not be selected»
                 // — and there it is already repaired with `IBody2.Select2`. Not here.
                 //
                 // A lesson written and not applied is a lesson the
@@ -5408,7 +5374,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// WHY NOT THE LAST FEATURE OF THE TREE. On a sheet-metal part the tail
         /// of the tree is the flat pattern (the FlatPattern feature at the bottom
-        /// of the tree, OperazioniLamiera), and SOLIDWORKS inserts a new feature
+        /// of the tree, SheetMetalOperations), and SOLIDWORKS inserts a new feature
         /// before it. The last feature is then the flat pattern: create_axis
         /// refused an axis it had made and left it in the tree,
         /// plane_three_points reported the flat pattern as the plane it had
@@ -5659,7 +5625,7 @@ namespace Oce.Solid.Agent.Core
         /// request. AND IN BOTH CASES SOLIDWORKS STAYED SILENT:
         /// GetErrorCode2 gave 0, IsWarning false, SkippedItemArray null.
         /// Two instances fell outside the material, it built what it
-        /// could and answered «riuscito». Whoever asked for four holes got
+        /// could and answered «succeeded». Whoever asked for four holes got
         /// two, and nobody told them: it is exactly the defect
         /// that gives no error.
         ///
@@ -5790,8 +5756,8 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The chamfer or fillet that a new dimension has pushed out of measure,
-        /// said in words («lo smusso «Smusso1» si prende una faccia intera di
-        /// «Estrusione1» (6 -> 5 facce)»); null if there is none.
+        /// said in words («the chamfer «Smusso1» takes a whole face of
+        /// «Estrusione1» (6 -> 5 faces)»); null if there is none.
         ///
         /// Two conditions, both read: a feature that is not a
         /// cut (`Cut`, `ICE`, `HoleWzd`, and the revolve cuts) has FEWER
@@ -5966,7 +5932,7 @@ namespace Oce.Solid.Agent.Core
         ///
         /// INDEX 3 IS MEASURED, NOT REMEMBERED. `IBody2.GetVolume` does not
         /// exist (it is among the seven APIs that seemed right); the real
-        /// alternative is `GetMassProperties(densita)`, which returns a vector.
+        /// alternative is `GetMassProperties(density)`, which returns a vector.
         /// On 9 September 2026, measuring the guided holes, element 3 turned
         /// out to be the volume in cubic meters: an M8 hole on a 20 plate
         /// removed 726.3 mm3, that is pi*3.4^2*20 to a tenth of a cubic millimeter,
@@ -6412,7 +6378,7 @@ namespace Oce.Solid.Agent.Core
         /// THE DEFECT IT COMES FROM. On 11 September 2026, eight requests beyond the
         /// limits on a rectangular box: seven right refusals, zero
         /// silent failures — and seven orphan sketches in the part. Every refusal said
-        /// «puoi toglierlo con Ctrl+Z», which is honest and is not a repair:
+        /// «you can remove it with Ctrl+Z», which is honest and is not a repair:
         /// it is a task handed to the reader, and it multiplies by the number of
         /// attempts.
         ///
@@ -6556,9 +6522,9 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The names of what depends on this feature.
         ///
-        /// They serve to WRITE them in the refusal. «Non posso, ha dei figli» sends the
-        /// reader to look for them by hand; «non posso, ci stanno sopra Taglio1 e
-        /// Raccordo2» tells them what to remove first, or lets them realize they
+        /// They serve to WRITE them in the refusal. «I cannot, it has children» sends the
+        /// reader to look for them by hand; «I cannot, Taglio1 and
+        /// Raccordo2 sit on it» tells them what to remove first, or lets them realize they
         /// picked the wrong feature.
         /// </summary>
         private static List<string> ChildrenOf(IFeature f)
@@ -6896,10 +6862,10 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// A success that created NOTHING.
         ///
-        /// `Succeeded` writes in the log «creata feature X» and carries the new
+        /// `Succeeded` writes in the log «created feature X» and carries the new
         /// feature in the outcome, because the thirty-six operations there were before
         /// all created something. Removing does not — and an operation that says
-        /// «creata feature» while it deletes one leaves a false sentence
+        /// «created feature» while it deletes one leaves a false sentence
         /// in the register.
         ///
         /// **A new name instead of an extra parameter on `Succeeded`:**
@@ -7014,7 +6980,7 @@ namespace Oce.Solid.Agent.Core
         private IFeature Extrude(IModelDoc2 model, double thicknessMm, bool merge, bool symmetric = false)
         {
             // Symmetric = half on each side of the plane. It must be said in the summary
-            // because it changes where the part ends up: «100 simmetrica» is 50 on
+            // because it changes where the part ends up: «100 symmetric» is 50 on
             // one side and 50 on the other, and whoever reads «100» may understand
             // something quite different. swEndCondMidPlane = 6, verified in the enum.
             return model.FeatureManager.FeatureExtrusion3(
@@ -7087,9 +7053,9 @@ namespace Oce.Solid.Agent.Core
             // THREE NAMES AND NOTHING ELSE (Z-C21.10, finding N33). Here too a
             // final `: 1` sent ANY unknown name to the front plane: the same
             // fallback FindBasePlane dropped after the measure of 10
-            // September 2026. «Superiore» (accepted by the Forma ignoring
+            // September 2026. «Upper» (accepted by the Shape ignoring
             // case, and until 0.140.0 passed on untouched) built the box on
-            // the front plane with riuscita:true. An unknown name is now a
+            // the front plane with succeeded:true. An unknown name is now a
             // false, which every caller already turns into a refusal naming
             // the plane, exactly as for a Select2 that fails
             // (IFeature~Select2.html: «True if the feature was selected,
@@ -7113,7 +7079,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// How far an entity's reference point may have moved
         /// between the proposal and the execution. It must match
-        /// TOLLERANZA_PUNTO_MM of the server: they are the same check made twice,
+        /// the point tolerance of the server: they are the same check made twice,
         /// and two different tolerances would mean that one of the two
         /// sides accepts what the other refuses.
         /// </summary>
@@ -7136,7 +7102,7 @@ namespace Oce.Solid.Agent.Core
         /// document before every step. The plan instead is frozen at the
         /// moment of confirmation. If step 1 adds material, at step 2
         /// «F1» is another face: the feature succeeds, the rebuild is
-        /// clean, the outcome says «riuscito» and the part is wrong.
+        /// clean, the outcome says «succeeded» and the part is wrong.
         ///
         /// That is why the plan carries with it the SIGNATURE the face had
         /// when the model chose it, and here it is compared again. The comment at the
@@ -7290,7 +7256,7 @@ namespace Oce.Solid.Agent.Core
             if (howMany == 1)
             {
                 // WE SAY BY HOW MUCH, not only THAT. Up to 0.29.0 this
-                // road said «si era spostata: ritrovata dalla firma» and
+                // road said «it had moved: found again by the signature» and
                 // nothing more — a fact without a measure, and moreover only on
                 // stderr. The measured signature is already in hand (`refoundSignature`),
                 // and the sentence is written by the same function that uses the persist
@@ -7321,7 +7287,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// THE SECOND PROOF, before saying «ritrovata».
+        /// THE SECOND PROOF, before saying «found again».
         ///
         /// The finding by signature already existed and was useful: the uids are
         /// positional, and without it «cut four identical slots» could not be
@@ -7625,7 +7591,7 @@ namespace Oce.Solid.Agent.Core
         /// are a real ambiguity, and it is said.
         ///
         /// Without a signature in the plan everything stays as it was: the uid is used, or it
-        /// is refused with `sparito` if the state does not have it.
+        /// is refused with `vanished` if the state does not have it.
         /// </summary>
         private DocumentState.EntitySignature EdgeSignature(
             Dictionary<string, object> a, DocumentState docState, string uid,
@@ -7770,8 +7736,8 @@ namespace Oce.Solid.Agent.Core
                 if (deviation > PointToleranceMm)
                 {
                     // THE RIGHT WORD FOR THE RIGHT THING. The same comparison
-                    // serves faces, edges and bodies, and saying «non lavoro sulla
-                    // faccia sbagliata» of a body sends the reader looking for a face
+                    // serves faces, edges and bodies, and saying «I am not working on the
+                    // wrong face» of a body sends the reader looking for a face
                     // that has nothing to do with it.
                     // THE EXPLANATION IS ATTACHED AFTER THE VERDICT, and the verdict
                     // is already taken: above, on the millimeters. What follows is
@@ -8012,8 +7978,8 @@ namespace Oce.Solid.Agent.Core
             //
             // THE DEFECT THIS CLOSES, and it is the most mocking of all:
             // 0.26.0 built the finding again by persist ID and with it
-            // the sentence that says BY HOW MUCH the face moved — «si e'
-            // spostata di 60 mm, da [50, 0, 0] a [110, 0, 0]». Then it
+            // the sentence that says BY HOW MUCH the face moved — «it has
+            // moved by 60 mm, from [50, 0, 0] to [110, 0, 0]». Then it
             // handed it to `_log`, which in this bridge ends up on
             // `Console.Error`. And in an MCP server on stdio **stderr is not the
             // answer**: the model that wrote the plan and the person who
@@ -8105,7 +8071,7 @@ namespace Oce.Solid.Agent.Core
         {
             number = 0;
             // Never null: a null reason becomes `Failed(null)`, and the reader
-            // finds «Mi sono fermato dopo 1 operazioni: » with nothing after the
+            // finds «I stopped after 1 operations: » with nothing after the
             // colon. A failure without a written reason is a failure
             // that cannot be corrected.
             reason = $"The reference «{theField}» could not be resolved.";
@@ -8178,7 +8144,7 @@ namespace Oce.Solid.Agent.Core
         {
             // A failure without a written reason cannot be corrected.
             // It really happened: a path returned the reason as null, and whoever
-            // read found «Mi sono fermato dopo 1 operazioni: » with
+            // read found «I stopped after 1 operations: » with
             // nothing after the colon. Better a generic sentence than nothing.
             if (string.IsNullOrWhiteSpace(reason))
                 reason =

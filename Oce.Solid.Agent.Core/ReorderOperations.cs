@@ -10,9 +10,9 @@ namespace Oce.Solid.Agent.Core
     /// a different part from one put after, and noticing it and moving the entry is a
     /// weekly gesture.
     ///
-    /// Measured on 27/9/2026 (`prova0089 zf3`, 100x60x40 box, Ø10 through
+    /// Measured on 27/9/2026 (`probe0089 zf3`, 100x60x40 box, Ø10 through
     /// hole, shell 3 opening the top): `IModelDocExtension.ReorderFeature
-    /// (daSpostare, rispettoA, swMoveBefore=2 / swMoveAfter=3)` answers true and
+    /// (toMove, relativeTo, swMoveBefore=2 / swMoveAfter=3)` answers true and
     /// the volume changes — hole then shell 56485.7 mm³, shell before the hole
     /// 51952.38 — and put back as it was it returns 56485.7. An impossible move
     /// (the hole before the extrusion it sits on) answers FALSE and touches

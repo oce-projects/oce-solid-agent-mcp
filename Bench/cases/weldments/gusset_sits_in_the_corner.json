@@ -1,7 +1,7 @@
 {
   "name": "gusset_sits_in_the_corner",
   "family": "weldments",
-  "why": "ENTRY GP20. `gusset` was in the catalogue with `Provata = true` and **has never created a gusset**: it passed to `InsertGussetFeature3` a polygon with the two short sides at zero (ProfileD3 = ProfileD4 = 0) and no mark, and SOLIDWORKS returned null without saying why. The API guide (Remarks of InsertGussetFeature3, Insert_Gusset_Feature_Example_CSharp.htm) wants the two faces with mark 1 AND a valid profile. The probe of 28/9/2026 (Checks/Gusset/Program.cs), on the same T as this case: the old recipe null, even with mark 1; the 60/60 triangle thick 5 with marks 1/1 IS BORN, +9000 mm3, bodies from 2 to 3.",
+  "why": "ENTRY GP20. `gusset` was in the catalogue with `Tested = true` and **has never created a gusset**: it passed to `InsertGussetFeature3` a polygon with the two short sides at zero (ProfileD3 = ProfileD4 = 0) and no mark, and SOLIDWORKS returned null without saying why. The API guide (Remarks of InsertGussetFeature3, Insert_Gusset_Feature_Example_CSharp.htm) wants the two faces with mark 1 AND a valid profile. The probe of 28/9/2026 (Checks/Gusset/Program.cs), on the same T as this case: the old recipe null, even with mark 1; the 60/60 triangle thick 5 with marks 1/1 IS BORN, +9000 mm3, bodies from 2 to 3.",
 
   "defect_caught": "Three. The gusset that is not born (step 7 demands it, with the measured numbers). The answer that repeats the inputs instead of reading the feature back (finding C1-1 of the audit): thickness, profile, position and supporting faces come from IGussetFeatureData, and a «position» outside the list ended up in the centre in silence while the answer said the one asked for — step 4 demands it refused. And the gusset asked for between faces that do not make a corner: step 5 (faces that do not touch) and step 6 (the head of the short one resting on the long one, parallel faces) demand them refused BEFORE calling SOLIDWORKS, which on wrong faces returns null with no reason given.",
 
@@ -86,6 +86,6 @@
         { "what": "measurements.supporting_faces_area_mm2", "equal_to": [40800, 17680], "tolerance": 0.5,
           "tolerance_why": "the faces on which SOLIDWORKS says it rested the gusset (GetSupportingFaces), from the largest: 600 x 68 and 260 x 68, the areas of the selectors; half a square millimetre out of tens of thousands is rounding, a wrong face is wrong by thousands" },
         { "what": "measurements.new_body_box_mm", "equal_to": [340, -2.5, 40, 400, 2.5, 100], "tolerance": 0.01,
-          "tolerance_why": "computed by hand (see «i_numeri_attesi»), read with the extreme points of the new body: all planar faces, so the extreme points are exact and the hundredth is the rounding to two decimals of the answer" } ] }
+          "tolerance_why": "computed by hand (see «the_numbers»), read with the extreme points of the new body: all planar faces, so the extreme points are exact and the hundredth is the rounding to two decimals of the answer" } ] }
   ]
 }

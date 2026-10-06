@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"elicitation\":{}}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
 
                 // The plan is sent WITHOUT waiting for the answer: what
                 // must arrive first is the bridge's QUESTION.
@@ -50,7 +50,7 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"delete_feature\",\"arguments\":" +
-                    "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}");
+                    "{\"feature_uid\":\"Cut-Extrude1\"}}]}}}");
 
                 // The question must arrive before any answer.
                 Dictionary<string, object> question = null;
@@ -126,13 +126,13 @@ namespace Oce.Solid.Agent.ContractTests
                 Ask(q, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
-                    "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
+                    "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
 
                 var response = Obj(Ask(q, 31,
                     "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"build\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"delete_feature\",\"arguments\":" +
-                    "{\"feature_uid\":\"Taglio-Estrusione1\"}}]}}}"));
+                    "{\"feature_uid\":\"Cut-Extrude1\"}}]}}}"));
 
                 // Without SOLIDWORKS the plan stops right after, and that is fine: the
                 // thing to test is that it **has not stayed hung** waiting for

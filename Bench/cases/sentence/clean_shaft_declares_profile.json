@@ -2,7 +2,7 @@
   "name": "clean_shaft_declares_profile",
   "family": "sentence",
   "why": "THE SENTENCE IS WHAT THE MODEL READS. A stepped shaft made only of revolution has a profile that can be told: Ø30 for 40, Ø20 for 30, Ø34 for 20. If the description does not say it, the model does not know what part it is holding and the numbers of the state alone do not tell it.",
-  "_why_not_equal": "the expectation is on «contiene» and not on «uguale» because a sentence changes with every comma fixed: demanding it identical would mean rewriting the case at every improvement of the wording, and it would end with someone widening the expectation instead of looking at the part. What cannot change are the three diameters and the three lengths.",
+  "_why_not_equal": "the expectation is on «includes» and not on «equal_to» because a sentence changes with every comma fixed: demanding it identical would mean rewriting the case at every improvement of the wording, and it would end with someone widening the expectation instead of looking at the part. What cannot change are the three diameters and the three lengths.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",

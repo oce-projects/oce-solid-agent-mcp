@@ -25,7 +25,7 @@ namespace Oce.Solid.Agent.Core
     /// THE RECIPE, MEASURED ON 9 SEPTEMBER 2026 ON SOLIDWORKS 2021 SP5
     /// Calling HoleWizard5 and nothing else DOES NOT WORK, and does not fail: it builds
     /// a hole of 50.8 mm — two inches — with the right name in the tree
-    /// («Foro filettato M8»). Verified on the VOLUME REMOVED, not on the
+    /// («Threaded hole M8»). Verified on the VOLUME REMOVED, not on the
     /// faces, which deceive.
     ///
     /// What works, in this exact order:
@@ -34,7 +34,7 @@ namespace Oce.Solid.Agent.Core
     ///     (after the call the definition says ISO, M8, thread 8) but leaves
     ///     ThruTapDrillDiameter at zero, and that zero is what produces the hole
     ///     of two inches;
-    ///  2. IWizardHoleFeatureData2.ChangeStandard(norma, elemento, taglia)
+    ///  2. IWizardHoleFeatureData2.ChangeStandard(standard, item, size)
     ///     fills in the missing fields;
     ///  3. Type (swWzdHoleTypes_e) is written. It is the field that really commands:
     ///     with swTapThru (33) an M10 still came out at two inches, with

@@ -90,7 +90,7 @@ async function invoke(tool, args) {
   let data = null;
   const i = text.indexOf("{");
   if (i >= 0) { try { data = JSON.parse(text.slice(i)); } catch (e) {} }
-  return { testo: text, dati: data, immagini: images, errore: !!r.isError };
+  return { text: text, data: data, images: images, failed: !!r.isError };
 }
 
 let failed = 0;
@@ -114,7 +114,7 @@ function save(itemName, image) {
 (async function () {
   await send("initialize", {
     protocolVersion: "2024-11-05", capabilities: {},
-    clientInfo: { name: "prova_sezione", version: "1" },
+    clientInfo: { name: "probe_section", version: "1" },
   });
   warn("notifications/initialized");
   fs.mkdirSync(OUTPUT, { recursive: true });
@@ -128,29 +128,29 @@ function save(itemName, image) {
 
   await invoke("inspect_part");
   const done = await invoke("build", { steps: SHELL });
-  if (done.errore) { check("the shell", false, shorter(done.testo)); bridge.stdin.end(); return; }
+  if (done.failed) { check("the shell", false, shorter(done.text)); bridge.stdin.end(); return; }
   check("the shell builds", true,
-        "volume " + (done.dati || {}).volume_after_mm3);
+        "volume " + (done.data || {}).volume_after_mm3);
 
   // ── as it was before, to be able to compare it afterwards ──────────────
   const before = await invoke("inspect_part", { views: ["isometric"] });
-  if (!before.immagini.length) { check("the whole view", false, shorter(before.testo)); bridge.stdin.end(); return; }
-  const wholeFile = save("v4-guscio-intero", before.immagini[0]);
-  const stateBefore = before.dati || {};
+  if (!before.images.length) { check("the whole view", false, shorter(before.text)); bridge.stdin.end(); return; }
+  const wholeFile = save("v4-shell-whole", before.images[0]);
+  const stateBefore = before.data || {};
   check("the whole view comes out", true, path.basename(wholeFile));
 
   // ── the cutaway ────────────────────────────────────────────────────────
   const wasCut = await invoke("inspect_part", {
     section: { plane: "right", offset_mm: 0 },
   });
-  if (!wasCut.immagini.length) {
-    check("the section comes out", false, shorter(wasCut.testo));
+  if (!wasCut.images.length) {
+    check("the section comes out", false, shorter(wasCut.text));
   } else {
-    const sectionFile = save("v4-guscio-sezione", wasCut.immagini[0]);
+    const sectionFile = save("v4-shell-section", wasCut.images[0]);
     check("the section comes out", true, path.basename(sectionFile));
 
     // THE RED: a section that does not section gives the SAME image, and
-    // «la sezione esce» would pass all the same.
+    // «the section comes out» would pass all the same.
     const a = fs.readFileSync(wholeFile);
     const b = fs.readFileSync(sectionFile);
     check("the section is DIFFERENT from the whole view",
@@ -161,7 +161,7 @@ function save(itemName, image) {
 
   // ── and the part of whoever works is as before ─────────────────────────
   const after = await invoke("inspect_part");
-  const s = after.dati || {};
+  const s = after.data || {};
   check("the part did not change",
         s.volume_mm3 === stateBefore.volume_mm3 &&
         s.bodies_total === stateBefore.bodies_total &&
@@ -171,7 +171,7 @@ function save(itemName, image) {
 
   console.log("");
   console.log("The two images are in " + OUTPUT + ":");
-  console.log("  v4-guscio-intero.png    v4-guscio-sezione.png");
+  console.log("  v4-shell-whole.png    v4-shell-section.png");
   console.log("Looking at them is the other half of the criterion: from the section you must " +
               "READ the wall thickness.");
   console.log("");

@@ -16,8 +16,8 @@ namespace Oce.Solid.Agent.Core
     /// bare number, because it looks like an explanation** — and whoever reads builds
     /// a decision on it.
     ///
-    /// THE SENTENCES SAY THE THING, NOT THE VERDICT. «il raggio del raccordo non ci
-    /// sta» says what to look at; «errore nel raccordo» does not. It is the same rule
+    /// THE SENTENCES SAY THE THING, NOT THE VERDICT. «the radius of the fillet does not
+    /// fit» says what to look at; «error in the fillet» does not. It is the same rule
     /// as the refusal messages: the criterion is explained.
     /// </summary>
     public static class FeatureErrors

@@ -486,10 +486,10 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// How many dimensions of the view print a number that is NOT the one of the
         /// model (entry Z-C2), or null if it cannot be read. It finds them, and
-        /// puts at most ten in `dettagli` with the way.
+        /// puts at most ten in `details` with the way.
         ///
         /// «The dimension comes from the model, it cannot lie» holds as long as nobody
-        /// writes over the number. Measured on 25/9/2026 (`prova0089
+        /// writes over the number. Measured on 25/9/2026 (`probe0089
         /// testoquote`) on the three routes the interop offers:
         ///
         ///   just born                   GetOverride false, ShowDimensionValue true,

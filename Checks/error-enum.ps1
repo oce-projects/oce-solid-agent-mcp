@@ -7,7 +7,7 @@
 #
 #  WHY IT EXISTS
 #
-#  `swAddMateError_NoError` is 1, and `ErrorUknown` is 0. An `if (errore != 0)`
+#  `swAddMateError_NoError` is 1, and `ErrorUknown` is 0. An `if (error != 0)`
 #  on that API is exactly upside down: it declares a successful mate as
 #  failed, and gives no symptom -- the mate is there, the message says
 #  it is not.
@@ -66,20 +66,20 @@ foreach ($t in $asm.GetTypes()) {
         if ($n -notmatch $good) { continue }
         $lines += [pscustomobject]@{
             Enum   = $t.Name
-            Buono  = $n
-            Valore = [int][Enum]::Parse($t, $n)
+            Good  = $n
+            Value = [int][Enum]::Parse($t, $n)
         }
     }
 }
 
-$dangerous = $lines | Where-Object { $_.Valore -ne 0 } | Sort-Object Enum
+$dangerous = $lines | Where-Object { $_.Value -ne 0 } | Sort-Object Enum
 
 Write-Output ("error or status enums looked at: " + ($lines | Select-Object -ExpandProperty Enum -Unique).Count)
 Write-Output ("of which with 'no error' DIFFERENT from zero: " + $dangerous.Count)
 Write-Output ""
 
 if ($All) {
-    $lines | Sort-Object Valore, Enum | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
+    $lines | Sort-Object Value, Enum | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
 } else {
     $dangerous | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
 }

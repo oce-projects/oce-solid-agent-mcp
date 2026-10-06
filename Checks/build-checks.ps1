@@ -57,66 +57,66 @@ $library = Join-Path $root 'Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Cor
 
 # name ; what it needs next to it
 $tools = @(
-    @{ nome = 'GearTest';     sw = $false; lib = $true  },
-    @{ nome = 'OutlineTest';    sw = $false; lib = $true  },
-    @{ nome = 'PositionsTest'; sw = $false; lib = $true  },
-    @{ nome = 'CloseLeftovers'; sw = $true;  lib = $false },
-    @{ nome = 'NewPart';   sw = $true;  lib = $false },
-    @{ nome = 'Undo';      sw = $true;  lib = $false },
-    @{ nome = 'SketchOnSheet'; sw = $true; lib = $false },
-    @{ nome = 'SectionView'; sw = $true; lib = $false },
-    @{ nome = 'DrawingDimensions'; sw = $true; lib = $false },
-    @{ nome = 'Option'; sw = $true; lib = $false },
-    @{ nome = 'DimensionApis'; sw = $true; lib = $false },
-    @{ nome = 'RedTree'; sw = $true; lib = $false },
-    @{ nome = 'Select'; sw = $true; lib = $false },
-    @{ nome = 'RoleCoverage'; sw = $true; lib = $false },
-    @{ nome = 'ViewTest'; sw = $true; lib = $false },
-    @{ nome = 'FramingTest'; sw = $true; lib = $true; disegno = $true },
-    @{ nome = 'HoleOrFillet'; sw = $true; lib = $false },
-    @{ nome = 'BrokenBody'; sw = $true; lib = $false },
-    @{ nome = 'ChangeByHand'; sw = $true; lib = $false },
-    @{ nome = 'DetailView'; sw = $true; lib = $false },
+    @{ name = 'GearTest';     sw = $false; lib = $true  },
+    @{ name = 'OutlineTest';    sw = $false; lib = $true  },
+    @{ name = 'PositionsTest'; sw = $false; lib = $true  },
+    @{ name = 'CloseLeftovers'; sw = $true;  lib = $false },
+    @{ name = 'NewPart';   sw = $true;  lib = $false },
+    @{ name = 'Undo';      sw = $true;  lib = $false },
+    @{ name = 'SketchOnSheet'; sw = $true; lib = $false },
+    @{ name = 'SectionView'; sw = $true; lib = $false },
+    @{ name = 'DrawingDimensions'; sw = $true; lib = $false },
+    @{ name = 'Option'; sw = $true; lib = $false },
+    @{ name = 'DimensionApis'; sw = $true; lib = $false },
+    @{ name = 'RedTree'; sw = $true; lib = $false },
+    @{ name = 'Select'; sw = $true; lib = $false },
+    @{ name = 'RoleCoverage'; sw = $true; lib = $false },
+    @{ name = 'ViewTest'; sw = $true; lib = $false },
+    @{ name = 'FramingTest'; sw = $true; lib = $true; drawing = $true },
+    @{ name = 'HoleOrFillet'; sw = $true; lib = $false },
+    @{ name = 'BrokenBody'; sw = $true; lib = $false },
+    @{ name = 'ChangeByHand'; sw = $true; lib = $false },
+    @{ name = 'DetailView'; sw = $true; lib = $false },
     # The S3 bracket ALSO wants the Simulation interop: it is the only
     # probe that goes beyond sldworks+swconst.
-    @{ nome = 'Bracket'; sw = $true; lib = $false; sim = $true },
+    @{ name = 'Bracket'; sw = $true; lib = $false; sim = $true },
     # The minimum wall thickness (entry Z-H1) wants the Utilities interop,
     # which is called `gtswutilities` (the prefix is Geometric's, who wrote the
     # module). Same rule as Simulation: if it is missing, it is skipped, saying so.
-    @{ nome = 'Thickness'; sw = $true; lib = $false; util = $true },
+    @{ name = 'Thickness'; sw = $true; lib = $false; util = $true },
     # The flat pattern of sheet metal (entry GP18): the core only.
-    @{ nome = 'SheetMetal'; sw = $true; lib = $false },
+    @{ name = 'SheetMetal'; sw = $true; lib = $false },
     # DimXpert from the core (entry Z-H3): the `swdimxpert` interop lives in the same
     # api\redist as the core and is there on every installation, but it is only referenced
     # for whoever asks for it.
-    @{ nome = 'DimXpert'; sw = $true; lib = $false; dimx = $true },
+    @{ name = 'DimXpert'; sw = $true; lib = $false; dimx = $true },
     # A dimension in the drawing that loses its edge (entry Z-A2).
-    @{ nome = 'Orphan'; sw = $true; lib = $false },
+    @{ name = 'Orphan'; sw = $true; lib = $false },
     # Does the text of a drawing come out of the PDF as text? (entry GT3-bis)
-    @{ nome = 'PdfText'; sw = $true; lib = $false },
+    @{ name = 'PdfText'; sw = $true; lib = $false },
     # Does the guard against the modal trigger? (entry Z-C3)
-    @{ nome = 'Modal'; sw = $true; lib = $false },
+    @{ name = 'Modal'; sw = $true; lib = $false },
     # Does a hole dimensioned against the edge follow it? (entry E18, parts a and b)
-    @{ nome = 'FollowTheEdge'; sw = $true; lib = $false },
+    @{ name = 'FollowTheEdge'; sw = $true; lib = $false },
     # Is the edge flange born without a profile sketch? (entry GP18: no)
-    @{ nome = 'EdgeFlange'; sw = $true; lib = $false },
+    @{ name = 'EdgeFlange'; sw = $true; lib = $false },
     # The four features of the guide (28/9/2026): the measurements behind
     # `fillet_face` (GP7), `fill_pattern` (W1.1), `rib` (W1.2)
     # and `gusset` (GP20). Each carries at the top the outcome of that day.
-    @{ nome = 'FaceFillet'; sw = $true; lib = $false },
-    @{ nome = 'Fill'; sw = $true; lib = $false },
-    @{ nome = 'Rib'; sw = $true; lib = $false },
-    @{ nome = 'Gusset'; sw = $true; lib = $false },
-    @{ nome = 'ExtrusionType'; sw = $true; lib = $false },
-    @{ nome = 'RibWithdraw'; sw = $true; lib = $false },
+    @{ name = 'FaceFillet'; sw = $true; lib = $false },
+    @{ name = 'Fill'; sw = $true; lib = $false },
+    @{ name = 'Rib'; sw = $true; lib = $false },
+    @{ name = 'Gusset'; sw = $true; lib = $false },
+    @{ name = 'ExtrusionType'; sw = $true; lib = $false },
+    @{ name = 'RibWithdraw'; sw = $true; lib = $false },
     # The four defects of the live proof of 6/10/2026 (D9 prerequisites), measured
     # before they are fixed: the cut list folders, the contact test of the gusset,
     # the empty assembly, CloseDoc by title or by path.
-    @{ nome = 'D9Defects'; sw = $true; lib = $false }
+    @{ name = 'D9Defects'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {
-    $folder = Join-Path $PSScriptRoot $a.nome
+    $folder = Join-Path $PSScriptRoot $a.name
     $bin = Join-Path $folder 'bin'
     $source = Join-Path $folder 'Program.cs'
     if (-not (Test-Path $source)) { throw "missing $source" }
@@ -153,7 +153,7 @@ foreach ($a in $tools) {
     if ($a.sim) {
         $p = Join-Path $interop 'SolidWorks.Interop.cosworks.dll'
         if (-not (Test-Path $p)) {
-            Write-Warning "$($a.nome): missing $p -- Simulation is not installed here, skipping this probe"
+            Write-Warning "$($a.name): missing $p -- Simulation is not installed here, skipping this probe"
             continue
         }
         Copy-Item $p $bin -Force
@@ -165,7 +165,7 @@ foreach ($a in $tools) {
     if ($a.util) {
         $p = Join-Path $interop 'SolidWorks.Interop.gtswutilities.dll'
         if (-not (Test-Path $p)) {
-            Write-Warning "$($a.nome): missing $p -- Utilities is not installed here, skipping this probe"
+            Write-Warning "$($a.name): missing $p -- Utilities is not installed here, skipping this probe"
             continue
         }
         Copy-Item $p $bin -Force
@@ -179,15 +179,15 @@ foreach ($a in $tools) {
         $refObj += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.swdimxpert.dll')
     }
 
-    # `disegno = $true` adds System.Drawing: it is for whoever looks at the PIXELS of
+    # `drawing = $true` adds System.Drawing: it is for whoever looks at the PIXELS of
     # an image instead of the geometry. Roslyn does not reference it by itself, and
     # without it you get a CS0246 on `Bitmap` that does not say where it comes from.
-    if ($a.disegno) { $refObj += '-reference:System.Drawing.dll' }
+    if ($a.drawing) { $refObj += '-reference:System.Drawing.dll' }
 
-    $output = Join-Path $bin ($a.nome + '.exe')
+    $output = Join-Path $bin ($a.name + '.exe')
     & $csc -nologo -langversion:7.3 -target:exe "-out:$output" @refObj $source
-    if ($LASTEXITCODE -ne 0) { throw ($a.nome + ' does not compile') }
-    Write-Host ('  ' + $a.nome + '.exe')
+    if ($LASTEXITCODE -ne 0) { throw ($a.name + ' does not compile') }
+    Write-Host ('  ' + $a.name + '.exe')
 }
 
 Write-Host ''
