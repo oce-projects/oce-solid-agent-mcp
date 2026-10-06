@@ -24,7 +24,8 @@
 //
 //  The decision is made here, where it has a self-test; the closing itself is
 //  done by Checks/CloseLeftovers (`--list-json`, `--close-titles-file`), which
-//  discards unsaved changes: it never saves anything. A document that is still
+//  discards unsaved changes: it never saves anything, and closes a saved
+//  document by its path (the title is only how this script names it). A document that is still
 //  open after three passes is a failure the run reports (exit 1): the session
 //  that follows would not start from an empty SOLIDWORKS and would measure
 //  something else.

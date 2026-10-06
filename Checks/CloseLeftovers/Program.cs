@@ -211,28 +211,29 @@ namespace Checks.CloseLeftovers
             var titles = new List<string>();
             foreach (var line in System.IO.File.ReadAllLines(file, System.Text.Encoding.UTF8))
                 if (line.Trim().Length > 0) titles.Add(line.Trim());
-            int asked = 0;
-            foreach (var t in titles)
-            {
-                try { sw.CloseDoc(t); asked++; }
-                catch (Exception e) { Console.Error.WriteLine("not closed " + t + ": " + e.Message); }
-            }
-            // CloseDoc answers nothing. A saved document that did not go by its title may
-            // answer to its full path: ask once more that way, then count.
-            var byPath = new List<string>();
+            // A SAVED DOCUMENT IS CLOSED BY ITS PATH, the rule of the closing above (D9
+            // defect 4): handed a title that matches no open title whole, CloseDoc falls
+            // back to the base name and closes the first document of that base name,
+            // which may be one the run spares. The path of each listed title is read
+            // now, from the open documents; a title with no path (never saved) is
+            // closed by that title, matched whole.
+            var pathOf = new Dictionary<string, string>(StringComparer.Ordinal);
             var s = (IModelDoc2)sw.GetFirstDocument();
             while (s != null)
             {
                 string t = "", p = "";
                 try { t = s.GetTitle() ?? ""; } catch { }
                 try { p = s.GetPathName() ?? ""; } catch { }
-                if (p.Length > 0 && titles.Contains(t)) byPath.Add(p);
+                if (t.Length > 0 && !pathOf.ContainsKey(t)) pathOf[t] = p;
                 s = (IModelDoc2)s.GetNext();
             }
-            foreach (var p in byPath)
+            int asked = 0;
+            foreach (var t in titles)
             {
-                try { sw.CloseDoc(p); }
-                catch (Exception e) { Console.Error.WriteLine("not closed " + p + ": " + e.Message); }
+                string p;
+                if (!pathOf.TryGetValue(t, out p)) { Console.Error.WriteLine("not open: " + t); continue; }
+                try { sw.CloseDoc(p.Length > 0 ? p : t); asked++; }
+                catch (Exception e) { Console.Error.WriteLine("not closed " + t + ": " + e.Message); }
             }
             int remain = 0;
             var d = (IModelDoc2)sw.GetFirstDocument();

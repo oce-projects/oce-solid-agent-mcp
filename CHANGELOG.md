@@ -111,6 +111,15 @@ entries of both stay in this file.
    name the probe `Checks/D9Defects/` nor `build-stand.js` that `d9-defects` brought:
    the snapshot tool stops on a script the table does not name. Both are registered as
    skipped, with their reason (they drive SOLIDWORKS).
+7. **Review: the closing by path reaches the mode of the run too.** The merge kept the
+   path rule of `d9-defects` in the closing of the bench, but `--close-titles-file`
+   (the mode `session-documents.js` uses between two sessions, from `d9-fix`) still
+   handed `CloseDoc` the bare title first, and only then the path: the fallback
+   `d9-defects` measured (a title that matches nothing whole closes the first document
+   of that base name) could take a document the run spares. The mode now reads the
+   path of every listed title from the open documents and closes a saved document by
+   its path, a never-saved one by its title matched whole; a listed title that is not
+   open is said and skipped.
 
 **Proofs.** `build.ps1` green (bridge, probes, installer); `Tools/catalog.json`
 regenerated from the built library: byte for byte what the merge produced, and its diff
