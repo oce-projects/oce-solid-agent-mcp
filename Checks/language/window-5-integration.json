@@ -1,0 +1,512 @@
+{
+ "about": [
+  "What the integrator of window 5 (W3.1-bis.8) did by hand because the chunks of the translators could not: see integrationOf() in window-5-messages.js. Each entry says why.",
+  "forced_units: units the detector does not read as Italian (a lone word, a log tag, a plural suffix, a probe, a fixture sentence) that the window had still to translate. They are items of the window like any other: the check holds them to the same invariants (holes, placeholders, numbers) and to the tree before the window.",
+  "code_changes: the changes of code the window makes, by name. The tree before the window is read with them applied (the snippet must be there exactly once), and its units and token stream are then compared with the tree now; any other change of code is refused.",
+  "assertions: assertions whose satisfiers the Italian text does not describe. `producers` are the units that really held the old text (the pilot had already translated the message, and the Italian word was held by other literals by chance); `external` marks a value that the program reads from the drawing template of the workshop, which no literal of the sources holds."
+ ],
+ "code_changes": [
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "private const int Floor = 217;",
+   "after": "private const int Floor = 263;",
+   "why": "the floor of the refusals that say what to do is a ratchet that the contract asks to be raised by hand when the measure goes up: with all the messages in English the count is 263 of 937"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "private const int ShareFloorWithRemedy = 217;",
+   "after": "private const int ShareFloorWithRemedy = 263;",
+   "why": "the share floor (263 of 937, 28.1%) follows the count, as the contract asks: it was 217 of 937 after the pilot and 236 of 935 (25.2%) at W3.1-bis.2"
+  },
+  {
+   "file": "Tests/Zc2189WeldAssemblyContract.cs",
+   "before": "string alarm = expected[0];",
+   "after": "string alarm = \"WARNING\";",
+   "why": "the contract took the alarm word from the first words the case expects in the verdict. The case now asks for the sentence that explains the verdict («The parts occupy the same space»), because the bare word WARNING is held by 75 messages and the tool refuses an assertion that wide: the alarm that opens the verdict is fixed in the contract"
+  },
+  {
+   "file": "Tools/McpTools.cs",
+   "before": "{operazione, argomenti}",
+   "after": "{operation, arguments}",
+   "count": 3,
+   "why": "the hint of three refusals names the keys of a step with two Italian words, and the keys have been «operation» and «arguments» since window 2: the Italian hint was already wrong, and the tool refuses a placeholder that changes. The text now says what the keys are."
+  },
+  {
+   "file": "Checks/build-checks.ps1",
+   "before": "Write-Host 'Fatti. Le tre Prova* non aprono SOLIDWORKS; ChiudiScarti e NewPart si.'",
+   "after": "Write-Host 'Done. GearTest, OutlineTest and PositionsTest do not open SOLIDWORKS; the others (CloseLeftovers, NewPart...) do.'",
+   "why": "the message named the probes by the names they had before window 3: they are called GearTest, OutlineTest, PositionsTest and CloseLeftovers now. The tool refuses to change a code-like name inside a message, so the line is renamed here, by name, and the text is English"
+  }
+ ],
+ "forced_units": [
+  {
+   "file": "Bench/ClientPort.cs",
+   "units": [
+    "DocumentCycle:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/Expectations.cs",
+   "units": [
+    "HowItIsWritten:s1",
+    "ResembleInPart:s3"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/assemblies/rebuilt_cover_keeps_the_constraints_but_broken.json",
+   "units": [
+    "$.steps[1].expect[5].includes[0]",
+    "$.steps[1].expect[5].includes[1]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/bodies/default_combine.json",
+   "units": [
+    "$.steps[2].expect[2].includes[1]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/bodies/requested_combine.json",
+   "units": [
+    "$.steps[2].expect[2].does_not_include[0]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/document_properties/default_material.json",
+   "units": [
+    "$.steps[1].expect[1].includes[1]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/document_properties/new_configuration_activates_itself.json",
+   "units": [
+    "$.steps[1].expect[2].includes[0]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/document_properties/requested_material.json",
+   "units": [
+    "$.steps[1].expect[1].does_not_include[0]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/drawing/title_block_says_what_it_wants.json",
+   "units": [
+    "$.steps[5].expect[5].includes[0]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/measurement/distance_between_two_faces.json",
+   "units": [
+    "$.steps[1].expect[3].includes[0]",
+    "$.steps[1].expect[3].includes[1]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/measurement/mass_of_a_steel_cube.json",
+   "units": [
+    "$.steps[2].expect[9].includes[0]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/pairs/limit_hole_outside_the_material.json",
+   "units": [
+    "$.steps[1].must_fail.message_includes[1]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/sentence/clean_shaft_declares_profile.json",
+   "units": [
+    "$.steps[0].expect[2].includes[2]",
+    "$.steps[0].expect[2].includes[3]",
+    "$.steps[0].expect[2].includes[4]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/sentence/drilled_shaft_no_longer_declares_profile.json",
+   "units": [
+    "$.steps[0].expect[0].includes[0]",
+    "$.steps[0].expect[0].includes[1]",
+    "$.steps[1].expect[1].does_not_include[0]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/cases/slot/limit_slot_outside_the_part.json",
+   "units": [
+    "$.steps[1].must_fail.message_includes[1]"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/test_face_hole.js",
+   "units": [
+    "shorter:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/test_section.js",
+   "units": [
+    "shorter:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/test_shape.js",
+   "units": [
+    "shorter:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bench/test_undo.js",
+   "units": [
+    "shorter:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Bridge/Session.cs",
+   "units": [
+    "FindTheSolidWorksLibraries:s3"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Checks/CloseLeftovers/Program.cs",
+   "units": [
+    "Main:s16"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Checks/count-tested.js",
+   "units": [
+    "<file>:s38",
+    "<file>:s62",
+    "<file>:s65"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/AnchorOperations.cs",
+   "units": [
+    "AnchorHoles:s7",
+    "FeatureInError:s4",
+    "UnhealthyRelations:s2",
+    "UnhealthyRelations:s3",
+    "UnhealthyRelations:s4",
+    "UnhealthyRelations:s5",
+    "UnhealthyRelations:s6",
+    "UnhealthyRelations:s7",
+    "UnhealthyRelations:s8",
+    "UnhealthyRelations:s9",
+    "UnhealthyRelations:s10"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/AssemblyOperations.cs",
+   "units": [
+    "InsertComponent:s41"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/CenterMarkOperations.cs",
+   "units": [
+    "CenterMarks:s61",
+    "CenterMarks:s69"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/DrawingCutListOperations.cs",
+   "units": [
+    "DrawingCutList:s46",
+    "DrawingCutList:s61"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/EditExtrusionOperations.cs",
+   "units": [
+    "EditExtrusion:s51"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/ExportOperations.cs",
+   "units": [
+    "ExportExchange:s92"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/FillPatternOperations.cs",
+   "units": [
+    "RepeatFill:s27"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/FixComponentOperations.cs",
+   "units": [
+    "FixComponent:s33",
+    "FixComponent:s34",
+    "FixComponent:s35"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/HoleOperations.cs",
+   "units": [
+    "ReadHoleAnchors:s8"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/InterferenceOperations.cs",
+   "units": [
+    "InterferenceCheck:s42",
+    "InterferenceCheck:s45"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/MateOperations.cs",
+   "units": [
+    "Mate:s48",
+    "Mate:s69"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/PlanExecutor.cs",
+   "units": [
+    "TurnOnGuardian:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/References.cs",
+   "units": [
+    "Face:s6",
+    "Face:s7",
+    "Face:s8",
+    "Face:s9",
+    "Face:s10"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/ReorderOperations.cs",
+   "units": [
+    "ReorderFeature:s48"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/ReplaceOperations.cs",
+   "units": [
+    "ReplaceComponent:s46",
+    "ReplaceComponent:s62"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/SectionProfile.cs",
+   "units": [
+    "TestFrame:s10"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/ShapeToWords.cs",
+   "units": [
+    "Describe:s6",
+    "Describe:s17",
+    "Describe:s22",
+    "Describe:s23",
+    "TurnedProfile:s7",
+    "TurnedProfile:s9",
+    "Holes:s7",
+    "Holes:s8",
+    "Holes:s11",
+    "Holes:s12"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/SwOperations.cs",
+   "units": [
+    "SuppressFeature:s29",
+    "SuppressFeature:s30",
+    "SuppressFeature:s31",
+    "DeleteFeature:s8",
+    "DeleteFeature:s9",
+    "DeleteFeature:s10",
+    "DeleteFeature:s11",
+    "DeleteFeature:s12",
+    "DeleteFeature:s13",
+    "ReAnchored:s1",
+    "Failed:s2"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/TitleBlockOperations.cs",
+   "units": [
+    "TitleBlock:s41"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Shared/McpClient.cs",
+   "units": [
+    "Short:s1"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/ExpectationsTests.cs",
+   "units": [
+    "All:s114",
+    "All:s156",
+    "All:s162",
+    "All:s181",
+    "All:s182",
+    "All:s184",
+    "All:s187",
+    "All:s190",
+    "All:s192",
+    "All:s195",
+    "All:s242",
+    "All:s244"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/ImagesTests.cs",
+   "units": [
+    "All:s12"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/LeashTests.cs",
+   "units": [
+    "All:s10"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/Program.cs",
+   "units": [
+    "TheDimensionsRefusalStillSaysWhatIsNeeded:s13"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/ProgressTests.cs",
+   "units": [
+    "TheToken:s25"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/ProtocolTests.cs",
+   "units": [
+    "All:s35",
+    "All:s99",
+    "All:s125",
+    "All:s159",
+    "All:s169",
+    "All:s202"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/SentinelTests.cs",
+   "units": [
+    "All:s15"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  },
+  {
+   "file": "Tests/SessionTests.cs",
+   "units": [
+    "ThePartHasChanged:s26"
+   ],
+   "why": "a lone word, a log tag, a plural suffix, a probe or a fixture sentence that the detector does not read as Italian and that the chunks left behind; translated by the integrator with the messages it belongs to"
+  }
+ ],
+ "assertions": [
+  {
+   "file": "Bench/cases/bodies/default_combine.json",
+   "units": [
+    "$.steps[2].expect[2].includes[1]"
+   ],
+   "producers": [
+    "Oce.Solid.Agent.Core/BodyOperations.cs#CombineBodies:s34",
+    "Oce.Solid.Agent.Core/MaterialOperations.cs#ApplyMaterial:s26"
+   ],
+   "why": "the note of the assumption already said DEFAULT at the base (translated by the pilot) while the case still asked for the Italian word for default, held by other literals by chance: the producers are the two notes"
+  },
+  {
+   "file": "Bench/cases/bodies/requested_combine.json",
+   "units": [
+    "$.steps[2].expect[2].does_not_include[0]"
+   ],
+   "producers": [
+    "Oce.Solid.Agent.Core/BodyOperations.cs#CombineBodies:s34",
+    "Oce.Solid.Agent.Core/MaterialOperations.cs#ApplyMaterial:s26"
+   ],
+   "why": "the note of the assumption already said DEFAULT at the base (translated by the pilot) while the case still asked for the Italian word for default, held by other literals by chance: the producers are the two notes"
+  },
+  {
+   "file": "Bench/cases/document_properties/default_material.json",
+   "units": [
+    "$.steps[1].expect[1].includes[1]"
+   ],
+   "producers": [
+    "Oce.Solid.Agent.Core/BodyOperations.cs#CombineBodies:s34",
+    "Oce.Solid.Agent.Core/MaterialOperations.cs#ApplyMaterial:s26"
+   ],
+   "why": "the note of the assumption already said DEFAULT at the base (translated by the pilot) while the case still asked for the Italian word for default, held by other literals by chance: the producers are the two notes"
+  },
+  {
+   "file": "Bench/cases/document_properties/requested_material.json",
+   "units": [
+    "$.steps[1].expect[1].does_not_include[0]"
+   ],
+   "producers": [
+    "Oce.Solid.Agent.Core/BodyOperations.cs#CombineBodies:s34",
+    "Oce.Solid.Agent.Core/MaterialOperations.cs#ApplyMaterial:s26"
+   ],
+   "why": "the note of the assumption already said DEFAULT at the base (translated by the pilot) while the case still asked for the Italian word for default, held by other literals by chance: the producers are the two notes"
+  },
+  {
+   "file": "Bench/cases/drawing/title_block_says_what_it_wants.json",
+   "units": [
+    "$.steps[5].expect[0].includes[1]",
+    "$.steps[5].expect[4].includes[0]"
+   ],
+   "external": "the name of a property of the Italian drawing template of the workshop, read by the program from the drawing: no literal of the sources holds it"
+  }
+ ]
+}

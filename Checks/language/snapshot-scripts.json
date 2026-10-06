@@ -108,6 +108,12 @@
   { "script": "Checks/SectionView/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/Thickness/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/PdfText/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
-  { "script": "Checks/ExtrusionType/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" }
+  { "script": "Checks/ExtrusionType/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
+  { "script": "Checks/claude-json-watch.js", "skip": "it samples the .claude.json of the user profile for a number of seconds: a measurement of the machine, not a check of the tree" },
+  { "script": "Checks/language/window-3-identifiers.js", "skip": "without --check it is rename window 3 itself (--moves, --references, --identifiers move and rewrite the tree with git mv and Roslyn); --check needs --from, the tree before the window" },
+  { "script": "Checks/language/window-3-mentions.js", "skip": "a module of window-3-identifiers.js (the mentions of the old names in the notes): run alone it rewrites the notes it is given" },
+  { "script": "Checks/language/window-3-renamer.js", "skip": "a module of window-3-identifiers.js (the identifier step, through Roslyn): run alone it renames in the tree" },
+  { "script": "Checks/language/window-3-scripts.js", "skip": "a module of window-3-identifiers.js (the scripts batch): run alone it renames in the scripts of the tree" },
+  { "script": "Checks/language/window-4-comments.js", "skip": "without --self-test it is window 4 itself (it rewrites the comments of the tree); --check needs --rev, the tree before the window" }
  ]
 }

@@ -173,10 +173,38 @@ const PRODUCER_PROJECTS = ['Oce.Solid.Agent.Core/Oce.Solid.Agent.Core.csproj', '
 const CHECK_CALLS = ['Check'];
 // The few changes of code a window of messages is allowed to make, by name. Each is a number a contract asks to be
 // moved by hand when its measure moves (a ratchet), and says why; the check lists them and refuses any other.
-const ALLOWED_CODE_CHANGES = [
-  { file: 'Tests/RefusalsTests.cs', from: 'Int32:216', to: 'Int32:217', count: 2,
-    why: 'the floor of the refusals that say what to do (Floor, ShareFloorWithRemedy) is a ratchet: with the pilot translated the share went from 216 to 217 of 937, and the contract asks for the floor to follow' },
-];
+const ALLOWED_CODE_CHANGES = [];
+
+// THE INTEGRATION (Checks/language/window-5-integration.json). What the translators' chunks could not do and the integrator did
+// by hand, each with its reason, so that the check judges it like the rest:
+//   forced_units   units the detector does not read as Italian (a lone word, a log tag, a plural suffix, a probe) that the window
+//                  still has to translate: they are items of the window like any other (invariants, holes, numbers);
+//   code_changes   the few changes of code, by name: a snippet of the tree before the window (one occurrence) and what it becomes.
+//                  The tree before is read with them applied, so that its units and its token stream are compared with the tree
+//                  now; any other change of code is still refused. Each is a number or a line a contract asks to be moved by hand
+//                  (a ratchet, the alarm word of a verdict) and says why.
+function integrationOf(root) {
+  const file = path.join(root, 'Checks', 'language', 'window-5-integration.json');
+  let j = { forced_units: [], code_changes: [] };
+  try { j = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\ufeff/, '')); } catch (e) { /* none */ }
+  const forced = new Set();
+  for (const e of j.forced_units || []) for (const u of e.units) forced.add(e.file + '#' + u);
+  // assertions the satisfiers of the Italian text do not describe: the pilot had already translated the message (so the Italian
+  // word was held by other literals by chance), or the value is read from the drawing template and no literal of the sources holds it
+  const assertions = new Map();
+  for (const e of j.assertions || []) for (const u of e.units) assertions.set(e.file + '#' + u, e);
+  return { forced, code_changes: j.code_changes || [], assertions };
+}
+function applySnippets(text, rel, integ) {
+  let out = text;
+  for (const c of integ.code_changes) {
+    if (c.file !== rel) continue;
+    const n = out.split(c.before).length - 1;
+    if (n !== (c.count || 1)) cannot('window-5-integration.json: «' + c.before.slice(0, 50) + '» is in ' + rel + ' ' + n + ' times at the base, it must be ' + (c.count || 'exactly once'));
+    out = out.split(c.before).join(c.after);
+  }
+  return out;
+}
 
 // ── reading and writing a file as the detector reads it ─────────────────────
 function decodeSource(raw, rel) {
@@ -660,7 +688,15 @@ function buildModel(root, rev, opts) {
   let read;
   if (rev) {
     const blobs = readBlobs(root, rev, rels.concat(['Bench/case-keys.json', 'Checks/language/consumed-strings.json'].concat(PRODUCER_PROJECTS)));
-    read = (rel) => (blobs.has(rel) ? blobs.get(rel) : readerOf(root, rev)(rel));
+    const plain = (rel) => (blobs.has(rel) ? blobs.get(rel) : readerOf(root, rev)(rel));
+    const integ = integrationOf(root);
+    const touched = new Set(integ.code_changes.map(c => c.file));
+    read = (rel) => {
+      const raw = plain(rel);
+      if (!raw || !touched.has(rel) || opts.plainBase) return raw;
+      const d = decodeSource(raw, rel);
+      return Buffer.concat([d.bom ? Buffer.from([0xef, 0xbb, 0xbf]) : Buffer.alloc(0), Buffer.from(applySnippets(d.text, rel, integ), 'utf8')]);
+    };
   } else read = readerOf(root, null);
   const files = analyzeFiles(root, rels, read, cfg, { noItalian: opts.noItalian });
   for (const f of files.values()) f.byId = new Map(f.units.map(u => [u.id, u]));
@@ -712,9 +748,10 @@ function collectItems(model) {
   const items = new Map();   // key -> item
   const deferred = new Map();
   const unsupported = new Map();
+  const forced = integrationOf(model.root).forced;
   for (const f of model.files.values()) {
     for (const u of f.units) {
-      if (!u.italian) continue;
+      if (!u.italian && !forced.has(keyOf(f.rel, u.id))) continue;
       const d = describeUnit(u);
       const item = Object.assign({ key: keyOf(f.rel, u.id), file: f.rel, lang: f.lang, unit: u.id, line: u.line, endLine: u.endLine,
         kind: u.kind, cls: classOf(u.kind), ctx: u.ctx, to: u.to, words: u.words, assertionRef: u.assertion || null,
@@ -1251,10 +1288,23 @@ function jsonDiff(a, b, p, allowed, out) {
   if (a && typeof a === 'object') {
     const ka = Object.keys(a), kb = Object.keys(b);
     if (!sameList(ka, kb)) { out.push((p || '$') + ' (keys)'); return; }
-    for (const k of ka) jsonDiff(a[k], b[k], Array.isArray(a) ? p + '[' + k + ']' : (p ? p + '.' + k : '$.' + k), allowed, out);
+    for (const k of ka) jsonDiff(a[k], b[k], Array.isArray(a) ? (p || '$') + '[' + k + ']' : (p ? p + '.' + k : '$.' + k), allowed, out);
     return;
   }
   if (a !== b && !allowed.has(p)) out.push(p);
+}
+
+// true when `text` is wholly a name or phrase that an Italian SOLIDWORKS writes: a solidworks-localized exception of exceptions.json
+// (a pattern that covers the whole text, for the file the text is in)
+function localizedByThePlatform(root, rel, text) {
+  let list;
+  try { list = JSON.parse(fs.readFileSync(path.join(root, 'Checks', 'language', 'exceptions.json'), 'utf8').replace(/^\ufeff/, '')); } catch (e) { return false; }
+  return list.some(e => {
+    if (e.class !== 'solidworks-localized' || !e.pattern) return false;
+    if (e.file && !new RegExp(e.file).test(rel)) return false;
+    const m = new RegExp('^(?:' + e.pattern + ')$', 'i').exec(text);
+    return !!m;
+  });
 }
 
 // list: [{ id, chunk, translated }] applied together. Returns { problems, files, warnings, wrote }
@@ -1360,7 +1410,8 @@ function applyRun(root, list, opts) {
     }
     if (item.assertion.kind === 'not_contains') {
       // the substring of a not_contains is in at least one producer after the run
-      const any = live.some(s => { const parts = textNow(keyOf(s.file, s.unit)); return parts && satisfies(parts, v, 'contains'); });
+      const howNc = item.assertion.how === 'template' || item.assertion.how === 'holes' ? item.assertion.how : 'contains';
+      const any = live.some(s => { const parts = textNow(keyOf(s.file, s.unit)); return parts && satisfies(parts, v, howNc); });
       if (live.length && !any) fail(where, 'a not_contains whose new text «' + v + '» is in no producer would assert nothing');
     }
     for (const eu of item.echoes || []) {
@@ -1383,6 +1434,9 @@ function applyRun(root, list, opts) {
     seenProbe.add(key);
     const v = t.parts[0], where = whereOf(chunk, item), pb = item.probe;
     if (!v || !v.trim()) { fail(where, 'the new text of a probe is empty'); continue; }
+    // a probe that READS the text an Italian SOLIDWORKS writes (the class solidworks-localized of exceptions.json) is not a probe of a
+    // message of the program: its words are not produced here, so no message can hold them, and they stay as they are
+    if (v === item.parts[0] && localizedByThePlatform(root, item.file, v)) continue;
     const holding = pb.producers.filter(pr => holdsNow(pr, v, pb.how, pb.nocase));
     if (!holding.length) { fail(where, 'the program looks for «' + v + '» (it looked for «' + item.parts[0] + '»), and none of the ' + pb.producers.length + ' units that held the old text will hold it: translate the messages first, or in the same run'); continue; }
     if (pb.home === 'narrow') {
@@ -1683,13 +1737,39 @@ function checkAll(root, rev, opts) {
   const nowProducers = now.producerUnits.map(u => ({ id: u.file + '#' + u.id, parts: SCAN.snapshotParts(u) }));
   const nowIndex = SNAP.unitIndex(nowProducers);
   const stats = { total: 0, unchanged: 0, translated: 0, strict: 0, wide: 0, free: 0, catalogue_pending: 0, not_contains: 0 };
+  const extra = { echo: 0, external: 0 };   // counted apart: the line of --self-test that prints `stats` does not move
+  // An assertion on a value that the case ITSELF gave the program (an argument it passes, a name it writes) is satisfied by the
+  // program echoing it back, not by a literal of the sources: an unknown value that the case asks the program to refuse and name.
+  // It cannot point at nothing, and it is not a message the translation moves.
+  const echoCache = new Map();
+  const caseStrings = (rel) => {
+    if (!echoCache.has(rel)) {
+      const set = new Set();
+      const file = now.files.get(rel);
+      try {
+        const walk = (o, inArgs) => {
+          if (Array.isArray(o)) { o.forEach(x => walk(x, inArgs)); return; }
+          if (o && typeof o === 'object') { for (const k of Object.keys(o)) walk(o[k], inArgs || k === 'arguments'); return; }
+          if (inArgs && typeof o === 'string') set.add(o.trim().toLowerCase());
+        };
+        walk(JSON.parse(file.text.replace(/^\ufeff/, '')), false);
+      } catch (e) { /* not a case */ }
+      echoCache.set(rel, set);
+    }
+    return echoCache.get(rel);
+  };
   const red = [];
+  const integ = integrationOf(root);
   for (const a of base.assertions) {
     stats.total++;
+    const declared = integ.assertions.get(a.file + '#' + a.unit);
+    if (declared && declared.external) { extra.external++; continue; }
+    if (declared) a.satisfiers = declared.producers.slice();
     const nu = nowUnits.get(keyOf(a.file, a.unit));
     if (!nu) { red.push({ a, msg: 'the assertion is gone from the case' }); continue; }
     const v = nu.leaves[0].cooked;
     if (v === a.value) stats.unchanged++; else stats.translated++;
+    if (v === a.value && v.length >= 5 && a.kind !== 'not_contains' && caseStrings(a.file).has(v.trim().toLowerCase())) { extra.echo++; continue; }
     const live = a.satisfiers.filter(k => !inCatalogue(k.slice(0, k.indexOf('#'))));
     const cat = a.satisfiers.filter(k => inCatalogue(k.slice(0, k.indexOf('#'))));
     const how = (k) => howOf(a, k);
@@ -1736,6 +1816,8 @@ function checkAll(root, rev, opts) {
     // over the whole tree the guard is the wide one (a unit that held the old text holds the current one): which of
     // its units a program reads is not known here. Inside a run the narrow probes are held to every unit (--apply).
     if (holding.length) continue;
+    // text an Italian SOLIDWORKS writes and the program only reads: no message of the program produces it
+    if (v === pb.value && localizedByThePlatform(root, pb.file, v)) continue;
     pstats.red++;
     const lost = pb.producers.filter(p => !holding.includes(p)).map(p => p.key);
     rowOf(pb.file).problems.push('probe ' + pb.unit + ' (line ' + nu.line + ', ' + pb.how + (pb.neg ? ', NEGATIVE: a guard that would stay green for ever' : '') + '): «' + v + '» ' +
@@ -1750,7 +1832,7 @@ function checkAll(root, rev, opts) {
     for (const u of f.units) if (u.italian) w += u.words;
     if (w) { left[f.lang === 'json' ? 'json_values' : 'strings'] += w; left.files++; }
   }
-  return { rows, notes, stats, left, rev, touched: touched.length, red: red.filter(r => !r.wider).length, wider: red.filter(r => r.wider).length };
+  return { rows, notes, stats, extra, left, rev, touched: touched.length, red: red.filter(r => !r.wider).length, wider: red.filter(r => r.wider).length };
 }
 
 function runCheck(root, rev, opts) {
@@ -1768,7 +1850,7 @@ function runCheck(root, rev, opts) {
   }
   for (const n of r.notes.slice(0, 20)) console.log('  note: ' + n);
   const s = r.stats;
-  console.log('assertions: ' + s.total + ' (' + s.unchanged + ' unchanged, ' + s.translated + ' translated); strict ' + s.strict + ', wide ' + s.wide + ', without producer ' + s.free + ', with a catalogue literal still to follow in .9: ' + s.catalogue_pending + '; not_contains ' + s.not_contains + '; ' + r.red + ' pointing at nothing, ' + r.wider + ' wider than the text they replace');
+  console.log('assertions: ' + s.total + ' (' + s.unchanged + ' unchanged, ' + s.translated + ' translated); strict ' + s.strict + ', wide ' + s.wide + ', without producer ' + s.free + ', with a catalogue literal still to follow in .9: ' + s.catalogue_pending + '; not_contains ' + s.not_contains + '; echoes of the arguments of the case ' + r.extra.echo + ', values read from the drawing template ' + r.extra.external + '; ' + r.red + ' pointing at nothing, ' + r.wider + ' wider than the text they replace');
   if (s.probes) console.log('probes (programs that look for the text of a message): ' + s.probes.total + ' (narrow ' + s.probes.narrow + ', wide ' + s.probes.wide + ', negative ' + s.probes.negative + ', translated ' + s.probes.translated + '); ' + s.probes.red + ' broken');
   console.log('files touched: ' + r.touched + ', with a difference outside the texts or a broken invariant: ' + bad);
   console.log('Italian left outside the catalogue: strings ' + r.left.strings + ' words, json_values ' + r.left.json_values + ' words in ' + r.left.files + ' files');
@@ -2117,6 +2199,32 @@ function selfTest() {
       finally { fs.writeFileSync(full, keep); }
     }
     say(checkAll(root, 'HEAD', {}).rows.every(r => r.problems.length === 0), 'check: green again once the mutated copies are put back');
+    // the integration (window-5-integration.json): what the integrator did by hand is read, and held to its rules
+    {
+      const d = fs.mkdtempSync(path.join(os.tmpdir(), 'window5-integration-'));
+      try {
+        fs.mkdirSync(path.join(d, 'Checks', 'language'), { recursive: true });
+        fs.writeFileSync(path.join(d, 'Checks', 'language', 'exceptions.json'),
+          JSON.stringify([{ class: 'solidworks-localized', file: '^Bridge/A\\.cs$', pattern: 'THRU', applies_to: ['detector'], reason: 'a fixture' }]));
+        fs.writeFileSync(path.join(d, 'Checks', 'language', 'window-5-integration.json'), JSON.stringify({
+          forced_units: [{ file: 'Bridge/A.cs', units: ['Open:s1'] }],
+          code_changes: [{ file: 'Tests/T.cs', before: 'int Floor = 1;', after: 'int Floor = 2;' }],
+          assertions: [{ file: 'Bench/cases/a/b.json', units: ['$.x'], external: 'a fixture' }],
+        }));
+        const integ = integrationOf(d);
+        say(localizedByThePlatform(d, 'Bridge/A.cs', 'THRU') && !localizedByThePlatform(d, 'Bridge/A.cs', 'THRU and more') && !localizedByThePlatform(d, 'Bridge/B.cs', 'THRU'),
+          'integration: a text an Italian SOLIDWORKS writes is exempt only whole, and only in the file the exception names');
+        say(integ.forced.has('Bridge/A.cs#Open:s1') && !integ.forced.has('Bridge/A.cs#Open:s2') && integ.assertions.has('Bench/cases/a/b.json#$.x'),
+          'integration: the forced units and the declared assertions are read, and only those');
+        say(applySnippets('x int Floor = 1; y', 'Tests/T.cs', integ) === 'x int Floor = 2; y' && applySnippets('x int Floor = 1; y', 'Tests/U.cs', integ) === 'x int Floor = 1; y',
+          'integration: a code change is applied to the tree before the window, in its file only');
+        let refused = false;
+        try { applySnippets('int Floor = 1; int Floor = 1;', 'Tests/T.cs', integ); } catch (e) { refused = e instanceof Stop; }
+        let refusedAbsent = false;
+        try { applySnippets('nothing here', 'Tests/T.cs', integ); } catch (e) { refusedAbsent = e instanceof Stop; }
+        say(refused && refusedAbsent, 'integration: a snippet that is in its file twice, or not at all, is refused (a stale change cannot pass in silence)');
+      } finally { fs.rmSync(d, { recursive: true, force: true }); }
+    }
     void gitq;
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
