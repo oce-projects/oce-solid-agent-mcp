@@ -74,7 +74,7 @@ if ([string]::IsNullOrWhiteSpace($Library)) {
 
 function Die($code, $message) {
     Write-Output ""
-    Write-Output ("BANCO NON LANCIATO: " + $message)
+    Write-Output ("BENCH NOT STARTED: " + $message)
     exit $code
 }
 
@@ -89,7 +89,7 @@ if (-not $SkipCompilation) {
     )
     foreach ($p in $places) { if (Test-Path $p) { $msbuild = $p; break } }
     if ($msbuild -eq $null) {
-        Die 2 "non trovo MSBuild. Lancia con -SkipCompilation se hai gia' i binari."
+        Die 2 "cannot find MSBuild. Run with -SkipCompilation if you already have the binaries."
     }
 
     foreach ($project in @("Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj",
@@ -99,21 +99,21 @@ if (-not $SkipCompilation) {
         & $msbuild $full /p:Configuration=Release /v:m /nologo | Out-Null
         # THE EXIT CODE, NOT THE TEXT. It is the check that entry F2
         # asked for by name.
-        if ($LASTEXITCODE -ne 0) { Die 2 ("compilazione fallita: " + $project) }
+        if ($LASTEXITCODE -ne 0) { Die 2 ("build failed: " + $project) }
     }
 }
 
 if (-not (Test-Path $Library)) {
-    Die 2 ("non trovo la libreria: " + $Library)
+    Die 2 ("cannot find the library: " + $Library)
 }
 
 # --- 2. can SOLIDWORKS be attached to? -------------------------------------
 
 try {
     $sw = [Runtime.InteropServices.Marshal]::GetActiveObject("SldWorks.Application")
-    if ($sw -eq $null) { throw "nessuna istanza" }
+    if ($sw -eq $null) { throw "no instance" }
 } catch {
-    Die 2 "SOLIDWORKS non e' agganciabile. Aprilo (una sessione sola) e rilancia."
+    Die 2 "SOLIDWORKS cannot be attached to. Open it (a single session) and run again."
 }
 
 # --- 3. away with the documents left open ----------------------------------
@@ -131,7 +131,7 @@ if (Test-Path $close) {
     $countLine = @($cleanup | Where-Object { "$_" -match ':\s*(\d+)\s*$' }) | Select-Object -Last 1
     if ($countLine -and ("$countLine" -match ':\s*(\d+)\s*$')) { $openAfterCleanup = [int]$Matches[1] }
 } else {
-    Write-Output "ChiudiScarti non c'e': i documenti aperti restano, e lo stato li elenca."
+    Write-Output "ChiudiScarti is missing: the open documents stay open, and the state lists them."
 }
 
 # --- 3b. a fresh SOLIDWORKS for a full run (entry Z-C24) ---------------------
@@ -184,7 +184,7 @@ if (-not [string]::IsNullOrWhiteSpace($Group)) { $arguments += @("--gruppo", $Gr
 if (-not [string]::IsNullOrWhiteSpace($Family)) { $arguments += @("--famiglia", $Family) }
 
 $executable = Join-Path $Bench "bin\Oce.Solid.Agent.Bench.exe"
-if (-not (Test-Path $executable)) { Die 2 ("non trovo " + $executable) }
+if (-not (Test-Path $executable)) { Die 2 ("cannot find " + $executable) }
 
 $start = Get-Date
 # The live output goes to a LOCAL file and is copied next to the bench at the
@@ -236,8 +236,8 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
 $written = 0
 if (Test-Path $output) { $written = (Get-Item $output).Length }
 if ($written -lt 100) {
-    Die 2 ("il banco non ha scritto niente (uscita " + $code + "). " +
-             "Lancia l'eseguibile a mano per vedere l'eccezione: " + $executable)
+    Die 2 ("the bench wrote nothing (exit code " + $code + "). " +
+             "Run the executable by hand to see the exception: " + $executable)
 }
 
 # --- 5. the report ----------------------------------------------------------
@@ -247,8 +247,8 @@ $lines = Get-Content $output
 # THE SUMMARY IS TAKEN FROM THE LINE THE BENCH WRITES, it is not recalculated:
 # two counts of the same number, made in two places, sooner or later diverge and
 # then nobody knows which one is the true one.
-$fine = ($lines | Where-Object { $_ -match "^(GIRO PARZIALE|[0-9]+ prove,)" } | Select-Object -Last 1)
-if ($fine -eq $null) { $fine = "(il banco non ha scritto il riepilogo)" }
+$fine = ($lines | Where-Object { $_ -match "^(PARTIAL RUN|[0-9]+ prove,)" } | Select-Object -Last 1)
+if ($fine -eq $null) { $fine = "(the bench did not write the summary)" }
 # [string] AND IT IS NOT ENOUGH THAT IT BE A STRING. Get-Content returns lines
 # with PowerShell's notes on them (PSPath, PSDrive, the provider...), and
 # ConvertTo-Json follows them all: the first .json that came out of here weighed 498 kB
@@ -272,31 +272,31 @@ $errors  = @($list | Where-Object { $_ -match "^  !!   " })
 
 function Take($regex) {
     $r = ($lines | Where-Object { $_ -match $regex } | Select-Object -First 1)
-    if ($r -eq $null) { return "(non dichiarato)" }
+    if ($r -eq $null) { return "(not declared)" }
     return ([regex]::Match($r, $regex)).Groups[1].Value
 }
 
 $sw_ver  = Take "^SolidWorks (.+)$"
-$lib_ver = Take "^libreria ([0-9.]+)"
+$lib_ver = Take "^library ([0-9.]+)"
 # TWO NUMBERS, with their name (entry F15): the ones executable from the library and the ones
 # served in the catalog. The «catalog» field of the JSON stays, with the same value
 # as before (the executable ones), for whoever was reading it.
-$executables = Take "^eseguibili: ([0-9]+) operazioni"
-$inCatalog  = Take "^eseguibili: [0-9]+ operazioni \(a catalogo: ([0-9]+)\)"
+$executables = Take "^runnable: ([0-9]+) operations"
+$inCatalog  = Take "^runnable: [0-9]+ operations \(in catalog: ([0-9]+)\)"
 # EXPECTATIONS VERIFIED N OUT OF M: if the two numbers diverge, something is measuring
 # nothing. The bench writes it, it is not recalculated here.
-$expectations = ($lines | Where-Object { $_ -match "^attese verificate " } | Select-Object -Last 1)
+$expectations = ($lines | Where-Object { $_ -match "^expectations verified " } | Select-Object -Last 1)
 $expectations = [string]$expectations
-if ([string]::IsNullOrWhiteSpace($expectations)) { $expectations = "attese verificate: (non dichiarate)" }
+if ([string]::IsNullOrWhiteSpace($expectations)) { $expectations = "expectations verified: (not declared)" }
 
 # THE GREEN CASES, BY NAME (entry Z-C6). The bench writes them on a single line; here
 # they become a list (`green_cases`) in `last.json`, which the contract suite crosses with the
 # catalog: every operation served must have a green case in the last run.
 # [string] for the same reason as $fine: no PowerShell notes in the JSON.
-$greenLine = [string]($lines | Where-Object { $_ -match "^casi verdi: " } | Select-Object -Last 1)
+$greenLine = [string]($lines | Where-Object { $_ -match "^green cases: " } | Select-Object -Last 1)
 $greenCases = @()
 if (-not [string]::IsNullOrWhiteSpace($greenLine)) {
-    $greenCases = @($greenLine.Substring("casi verdi: ".Length).Split(
+    $greenCases = @($greenLine.Substring("green cases: ".Length).Split(
         [char[]]@(' '), [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { [string]$_ })
 }
 
@@ -305,7 +305,7 @@ if (-not [string]::IsNullOrWhiteSpace($greenLine)) {
 $aliasLine = [string]($lines | Where-Object { $_ -match "^alias uses: " } | Select-Object -Last 1)
 $aliasUses = $(if ([string]::IsNullOrWhiteSpace($aliasLine)) { $null } else { $aliasLine.Substring("alias uses: ".Length) })
 
-$commit = "(non in un repository)"
+$commit = "(not in a repository)"
 try {
     Push-Location $Root
     $c = & git rev-parse --short HEAD 2>$null
@@ -331,41 +331,41 @@ while (Test-Path (Join-Path $folder ($itemName + ".md"))) {
 }
 
 $md = New-Object System.Collections.Generic.List[string]
-$md.Add("# Giro di banco - " + $timestamp.ToString("yyyy-MM-dd HH:mm"))
+$md.Add("# Bench run - " + $timestamp.ToString("yyyy-MM-dd HH:mm"))
 $md.Add("")
 $md.Add("| | |")
 $md.Add("|---|---|")
 $md.Add("| SOLIDWORKS | " + $sw_ver + " |")
-$md.Add("| libreria | " + $lib_ver + " |")
-$md.Add("| operazioni | " + $executables + " eseguibili, " + $inCatalog + " a catalogo |")
+$md.Add("| library | " + $lib_ver + " |")
+$md.Add("| operations | " + $executables + " runnable, " + $inCatalog + " in catalog |")
 $md.Add("| commit | " + $commit + " |")
-$md.Add("| durata | " + [int]$duration.TotalSeconds + " s |")
-if (-not [string]::IsNullOrWhiteSpace($Group)) { $md.Add("| gruppo | " + $Group + " |") }
-if (-not [string]::IsNullOrWhiteSpace($Family)) { $md.Add("| famiglia | " + $Family + " |") }
+$md.Add("| duration | " + [int]$duration.TotalSeconds + " s |")
+if (-not [string]::IsNullOrWhiteSpace($Group)) { $md.Add("| group | " + $Group + " |") }
+if (-not [string]::IsNullOrWhiteSpace($Family)) { $md.Add("| family | " + $Family + " |") }
 $md.Add("")
 $md.Add("**" + $fine + "**")
 $md.Add("")
 $md.Add("| | |")
 $md.Add("|---|---|")
-$md.Add("| passate | " + $passed.Count + " |")
-$md.Add("| fallite | " + $failed.Count + " |")
-$md.Add("| saltate | " + $skipped.Count + " |")
-$md.Add("| errori di banco | " + $errors.Count + " |")
-$md.Add("| uscita | " + $code + " |")
+$md.Add("| passed | " + $passed.Count + " |")
+$md.Add("| failed | " + $failed.Count + " |")
+$md.Add("| skipped | " + $skipped.Count + " |")
+$md.Add("| bench errors | " + $errors.Count + " |")
+$md.Add("| exit code | " + $code + " |")
 $md.Add("")
 $md.Add("**" + $expectations + "**")
 $md.Add("")
-$md.Add("> Se i due numeri divergono, qualcosa sta misurando il nulla: un caso")
-$md.Add("> che legge un campo che non esiste piu'. Un errore di banco non e'")
-$md.Add("> una prova rossa - vuol dire che la prova NON E' STATA FATTA - e")
-$md.Add("> porta il giro a uscita 2.")
+$md.Add("> If the two numbers diverge, something is measuring nothing: a case")
+$md.Add("> that reads a field that no longer exists. A bench error is not")
+$md.Add("> a red check - it means the check WAS NOT DONE - and")
+$md.Add("> makes the run exit with code 2.")
 $md.Add("")
 
 if ($failed.Count -gt 0) {
-    $md.Add("## Le rosse")
+    $md.Add("## The red ones")
     $md.Add("")
-    $md.Add("Il dettaglio a destra e' quello che la prova ha scritto: dove c'e'")
-    $md.Add("un numero, l'atteso e il misurato stanno li'.")
+    $md.Add("The detail on the right is what the check wrote: where there is")
+    $md.Add("a number, the expected and the measured values are there.")
     $md.Add("")
     # SINGLE QUOTES: the backtick is PowerShell's escape character, and
     # three backticks inside a double-quoted string are a syntax error.
@@ -376,9 +376,9 @@ if ($failed.Count -gt 0) {
 }
 
 if ($errors.Count -gt 0) {
-    $md.Add("## Gli errori di banco")
+    $md.Add("## Bench errors")
     $md.Add("")
-    $md.Add("Non sono prove rosse: sono prove che NON SONO STATE FATTE.")
+    $md.Add("They are not red checks: they are checks that WERE NOT DONE.")
     $md.Add("")
     $md.Add('```')
     foreach ($r in $errors) { $md.Add($r.TrimEnd()) }
@@ -387,7 +387,7 @@ if ($errors.Count -gt 0) {
 }
 
 if ($skipped.Count -gt 0) {
-    $md.Add("## Le saltate")
+    $md.Add("## The skipped ones")
     $md.Add("")
     $md.Add('```')
     foreach ($r in $skipped) { $md.Add($r.TrimEnd()) }

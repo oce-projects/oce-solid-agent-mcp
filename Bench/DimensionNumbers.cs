@@ -26,18 +26,18 @@ namespace Oce.Solid.Agent.Bench
         private static void TestDimensionNumbers()
         {
             Console.WriteLine();
-            Console.WriteLine("=== numeri: il numero stampato e' quello del modello? (Z-C2) ===");
+            Console.WriteLine("=== numbers: is the printed number the model's? (Z-C2) ===");
             IModelDoc2 part = null, drawing = null;
             string file = Path.Combine(Expectations.Work, "numeri_banco.sldprt");
             try
             {
                 part = NewPart();
                 if (Extrusion(part, 0, 0, 0.120, 0.080, 0.010) == null)
-                { BenchError("numeri", "la piastra non e' venuta"); return; }
+                { BenchError("numeri", "the plate did not come out"); return; }
                 try { if (File.Exists(file)) File.Delete(file); } catch { }
                 int e = 0, w = 0;
                 part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref e, ref w);
-                if (!File.Exists(file)) { BenchError("numeri", "il pezzo non si salva (e=" + e + ")"); return; }
+                if (!File.Exists(file)) { BenchError("numeri", "the part cannot be saved (e=" + e + ")"); return; }
 
                 string error;
                 Run(part, "create_drawing", new Dictionary<string, object> { ["paper_size"] = "A3" },
@@ -52,7 +52,7 @@ namespace Oce.Solid.Agent.Bench
                 var before = ReadState(drawing);
                 object zero = before.ContainsKey("dimensions_with_number_not_from_model_total")
                     ? before["dimensions_with_number_not_from_model_total"] : "(manca)";
-                Check("numeri: sulla tavola appena quotata nessuna quota stampa un numero non del modello",
+                Check("numbers: on the freshly dimensioned drawing no dimension prints a number that is not the model's",
                       Convert.ToString(zero) == "0" && !before.ContainsKey("warning_numbers"),
                       "dimensions_with_number_not_from_model_total " + Convert.ToString(zero));
 
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Bench
                     while (q != null && quote.Count < 3) { quote.Add(q); q = q.GetNext5() as IDisplayDimension; }
                     v = v.GetNextView() as IView;
                 }
-                if (quote.Count < 3) { BenchError("numeri", "sulla tavola ci sono " + quote.Count + " quote, ne servono tre"); return; }
+                if (quote.Count < 3) { BenchError("numeri", "the drawing has " + quote.Count + " dimensions, three are needed"); return; }
 
                 // THE OVERWRITTEN NUMBER MATCHES THE MODEL, on purpose: it is the case
                 // that the entry feared most — a comparison of values does not see it.
@@ -87,15 +87,15 @@ namespace Oce.Solid.Agent.Bench
                     {
                         var entry = o as Dictionary<string, object>;
                         string come = entry != null && entry.ContainsKey("how") ? Convert.ToString(entry["how"]) : "";
-                        if (come.StartsWith("numero sovrascritto", StringComparison.Ordinal)) overwritten++;
+                        if (come.StartsWith("overwritten number", StringComparison.Ordinal)) overwritten++;
                         else if (come.Contains("«99»")) withText++;
-                        else if (come.StartsWith("valore spento", StringComparison.Ordinal)) off++;
+                        else if (come.StartsWith("value turned off", StringComparison.Ordinal)) off++;
                     }
-                Check("numeri: falsificate tre quote (sovrascritta col suo stesso valore, testo, spenta), lo stato ne dice tre e avvisa",
+                Check("numbers: three dimensions falsified (overwritten with its own value, text, turned off), the state reports three and warns",
                       Convert.ToString(three) == "3" && overwritten == 1 && withText == 1 && off == 1 &&
                       after.ContainsKey("warning_numbers"),
-                      "totale " + Convert.ToString(three) + ": sovrascritte " + overwritten + ", col testo " + withText +
-                      ", spente " + off + ", avviso " + (after.ContainsKey("warning_numbers") ? "si'" : "no"));
+                      "total " + Convert.ToString(three) + ": overwritten " + overwritten + ", with text " + withText +
+                      ", turned off " + off + ", warning " + (after.ContainsKey("warning_numbers") ? "yes" : "no"));
             }
             catch (Exception ex) { BenchError("numeri", Why(ex)); }
             finally

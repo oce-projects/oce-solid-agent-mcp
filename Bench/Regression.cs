@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Bench
         internal static void RegressionRun()
         {
             Console.WriteLine();
-            Console.WriteLine("=== la regressione sui riferimenti (F8) ===");
+            Console.WriteLine("=== the regression on references (F8) ===");
 
             var folder = RegressionFolder();
             if (folder == null) return;
@@ -74,7 +74,7 @@ namespace Oce.Solid.Agent.Bench
                                 .OrderBy(x => Path.GetFileName(x), StringComparer.Ordinal).ToList();
             if (file.Count == 0)
             {
-                BenchError("regressione: c'e' almeno un caso", "cartella vuota: " + folder);
+                BenchError("regression: there is at least one case", "empty folder: " + folder);
                 return;
             }
 
@@ -110,10 +110,10 @@ namespace Oce.Solid.Agent.Bench
 
             // THE THREE NUMBERS, and they add up to the number of cases. They are written as
             // bench outcomes so that the report takes them from there.
-            Check("regressione: reggono", true, holds + " su " + outcomes.Count);
-            Check("regressione: si staccano e lo dicono", true, noisy + " su " + outcomes.Count);
-            Check("regressione: SI STACCANO IN SILENZIO", true, silent + " su " + outcomes.Count);
-            Check("regressione: i tre numeri sommano ai casi",
+            Check("regression: they hold", true, holds + " su " + outcomes.Count);
+            Check("regression: they come loose and say so", true, noisy + " su " + outcomes.Count);
+            Check("regression: THEY COME LOOSE IN SILENCE", true, silent + " su " + outcomes.Count);
+            Check("regression: the three numbers add up to the cases",
                   holds + noisy + silent == outcomes.Count,
                   holds + " + " + noisy + " + " + silent + " = " + outcomes.Count);
         }
@@ -135,10 +135,10 @@ namespace Oce.Solid.Agent.Bench
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var c = Path.Combine(bench.FullName, "cases", "regression");
-                if (!Directory.Exists(c)) { BenchError("regressione: la cartella c'e'", c); return null; }
+                if (!Directory.Exists(c)) { BenchError("regression: the folder exists", c); return null; }
                 return c;
             }
-            catch (Exception ex) { BenchError("regressione: trovo la cartella", Why(ex)); return null; }
+            catch (Exception ex) { BenchError("regression: find the folder", Why(ex)); return null; }
         }
 
         // ==================================================================
@@ -157,8 +157,8 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                BenchError(itemName, "JSON illeggibile: " + Why(ex));
-                outside.Why = "JSON illeggibile"; return outside;
+                BenchError(itemName, "unreadable JSON: " + Why(ex));
+                outside.Why = "unreadable JSON"; return outside;
             }
 
             // An unknown key is a case written wrong (W3.1-bis.2, item 4).
@@ -174,15 +174,15 @@ namespace Oce.Solid.Agent.Bench
             {
                 // WITHOUT THE INTENT THERE IS NO RIGHT ANSWER, and a case that does not
                 // declare it is not a case: it is a bench error.
-                BenchError(itemName, "«intent» dev'essere «ancorato_a_assoluto» oppure " +
-                                    "«ancorato_a_bordo»: senza, non esiste risposta giusta");
-                outside.Why = "intento non dichiarato"; return outside;
+                BenchError(itemName, "«intent» must be «ancorato_a_assoluto» or " +
+                                    "«ancorato_a_bordo»: without it, there is no right answer");
+                outside.Why = "intent not declared"; return outside;
             }
             if (Text(testCase, "intent_why") == null)
             {
-                BenchError(itemName, "manca «intent_why»: l'intento senza il motivo " +
-                                    "si copia dal caso accanto");
-                outside.Why = "perche_intento assente"; return outside;
+                BenchError(itemName, "«intent_why» is missing: an intent without the reason " +
+                                    "gets copied from the case next to it");
+                outside.Why = "perche_intento missing"; return outside;
             }
 
             IModelDoc2 doc = null;
@@ -195,7 +195,7 @@ namespace Oce.Solid.Agent.Bench
                 foreach (var p in Items(testCase, "build") ?? new List<object>())
                 {
                     var planStep = p as Dictionary<string, object>;
-                    if (planStep == null) { BenchError(itemName, "un passo non e' un oggetto"); outside.Why = "passo storto"; return outside; }
+                    if (planStep == null) { BenchError(itemName, "a step is not an object"); outside.Why = "malformed step"; return outside; }
                     var arguments = Resolve(
                         planStep.ContainsKey("arguments") ? planStep["arguments"] : null, docState)
                         as Dictionary<string, object> ?? new Dictionary<string, object>();
@@ -207,8 +207,8 @@ namespace Oce.Solid.Agent.Bench
                         // THE STARTING PART MUST COME OUT. If it does not, one is not
                         // measuring the modification: one is measuring a badly
                         // written case.
-                        BenchError(itemName, "la costruzione e' fallita: " + Short(error));
-                        outside.Why = "costruzione fallita"; return outside;
+                        BenchError(itemName, "the build failed: " + Short(error));
+                        outside.Why = "build failed"; return outside;
                     }
                 }
 
@@ -232,7 +232,7 @@ namespace Oce.Solid.Agent.Bench
                     try { before[which] = Measure(which, c => FromDocument(c, here0, docState), docState, null); }
                     catch (CouldNotMeasure ex)
                     {
-                        BenchError(itemName, "«" + which + "» non si misura prima della modifica: " + ex.Message);
+                        BenchError(itemName, "«" + which + "» cannot be measured before the change: " + ex.Message);
                         outside.Why = ex.Message; return outside;
                     }
                 }
@@ -242,7 +242,7 @@ namespace Oce.Solid.Agent.Bench
                                as Dictionary<string, object>;
                 if (change == null)
                 {
-                    BenchError(itemName, "manca «modify»"); outside.Why = "modifica assente"; return outside;
+                    BenchError(itemName, "«modify» is missing"); outside.Why = "modification missing"; return outside;
                 }
                 var itsItems = Resolve(change, docState) as Dictionary<string, object>;
                 string modError;
@@ -260,15 +260,15 @@ namespace Oce.Solid.Agent.Bench
                 if (done == null)
                 {
                     outside.Come = Outcome.DetachesAndSaysSo;
-                    outside.Why = "la modifica e' stata rifiutata: " + Short(modError);
+                    outside.Why = "the modification was refused: " + Short(modError);
                     return outside;
                 }
                 if (!rebuilt || inError > 0)
                 {
                     outside.Come = Outcome.DetachesAndSaysSo;
                     outside.Why = !rebuilt
-                        ? "la ricostruzione non e' andata"
-                        : inError + " lavorazioni in errore";
+                        ? "the rebuild did not succeed"
+                        : inError + " features in error";
                     return outside;
                 }
 
@@ -293,8 +293,8 @@ namespace Oce.Solid.Agent.Bench
                         object era;
                         if (!before.TryGetValue(Text(expectation, "what") ?? "", out era) || era == null)
                         {
-                            BenchError(itemName, "«same_as_before» ma la misura di prima non c'e'");
-                            outside.Why = "come_prima senza la misura di prima"; return outside;
+                            BenchError(itemName, "«same_as_before» but the earlier measurement is not there");
+                            outside.Why = "come_prima without the earlier measurement"; return outside;
                         }
                         expectation["equal_to"] = era;
                     }
@@ -313,7 +313,7 @@ namespace Oce.Solid.Agent.Bench
                 if (broken.Count == 0)
                 {
                     outside.Come = Outcome.Holds;
-                    outside.Why = "ricostruita pulita, la geometria e' dove l'intento dice";
+                    outside.Why = "rebuilt clean, the geometry is where the intent says";
                 }
                 else
                 {
@@ -356,39 +356,39 @@ namespace Oce.Solid.Agent.Bench
 
                 var t = new List<string>
                 {
-                    "# La regressione sui riferimenti (F8)",
+                    "# The regression on references (F8)",
                     "",
-                    "Ogni caso costruisce un pezzo, cambia **una sola quota a monte**, e",
-                    "guarda dove e' finita la geometria a valle. Il risultato e' una di TRE",
-                    "cose, non due.",
+                    "Each case builds a part, changes **a single upstream dimension**, and",
+                    "looks at where the downstream geometry ended up. The result is one of THREE",
+                    "things, not two.",
                     "",
-                    "| | casi su " + outcomes.Count + " | |",
+                    "| | cases out of " + outcomes.Count + " | |",
                     "|---|---|---|",
-                    "| **reggono** | " + holds + " | ricostruzione pulita, geometria dove l'intento dice |",
-                    "| **si staccano e lo dicono** | " + noisy + " | il progettista lo vede |",
-                    "| **SI STACCANO IN SILENZIO** | " + silent + " | ricostruzione a posto, nessun errore, e la geometria e' altrove |",
+                    "| **hold** | " + holds + " | clean rebuild, geometry where the intent says |",
+                    "| **come loose and say so** | " + noisy + " | the designer sees it |",
+                    "| **COME LOOSE IN SILENCE** | " + silent + " | rebuild fine, no error, and the geometry is elsewhere |",
                     "",
-                    "> La terza riga si scrive **anche quando vale zero**: un conteggio che",
-                    "> sparisce quando e' zero e' un conteggio che nessuno controlla.",
+                    "> The third row is written **even when it is zero**: a count that",
+                    "> disappears when it is zero is a count that nobody checks.",
                     "",
-                    "Senza `anchor` `x_mm: 80` e' assoluto per costruzione. Con `anchor`",
-                    "(voce E18: fori, tasche, asole, rialzi e fori guidati) il profilo segue",
-                    "lo spigolo. Un caso `ancorato_a_bordo` che resta in silenzio e' un intento",
-                    "che il sistema non sa ancora esprimere: la misura di cio' che manca.",
+                    "Without `anchor`, `x_mm: 80` is absolute by construction. With `anchor`",
+                    "(entry E18: holes, pockets, slots, bosses and hole-wizard holes) the profile follows",
+                    "the edge. An `ancorato_a_bordo` case that stays silent is an intent",
+                    "that the system cannot yet express: the measure of what is missing.",
                     "",
-                    "| caso | intento | esito | |",
+                    "| case | intent | outcome | |",
                     "|---|---|---|---|",
                 };
                 foreach (var e in outcomes)
                     t.Add("| `" + e.Name + "` | " + e.Intent + " | " +
                           (e.Come == Outcome.Holds ? "regge"
-                           : e.Come == Outcome.DetachesAndSaysSo ? "lo dice" : "**silenzio**") +
+                           : e.Come == Outcome.DetachesAndSaysSo ? "says so" : "**silence**") +
                           " | " + (e.Why ?? "").Replace("|", "/") + " |");
 
                 t.Add("");
-                t.Add("Per intento:");
+                t.Add("By intent:");
                 t.Add("");
-                t.Add("| intento | casi | reggono |");
+                t.Add("| intent | cases | hold |");
                 t.Add("|---|---|---|");
                 foreach (var g in outcomes.GroupBy(e => e.Intent))
                     t.Add("| " + g.Key + " | " + g.Count() + " | " +
@@ -400,7 +400,7 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                Console.WriteLine("non ho potuto scrivere regressione.md: " + ex.Message);
+                Console.WriteLine("could not write regressione.md: " + ex.Message);
             }
         }
     }

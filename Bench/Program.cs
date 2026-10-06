@@ -191,9 +191,9 @@ namespace Oce.Solid.Agent.Bench
                         try { return Assembly.LoadFrom(file); } catch { }
                     }
                 }
-                Console.WriteLine("non trovo " + itemName + ": indica dove e' installato " +
-                                  "SOLIDWORKS nella variabile SW_INSTALL_PATH (la radice, " +
-                                  "quella che finisce con \\SOLIDWORKS).");
+                Console.WriteLine("cannot find " + itemName + ": say where " +
+                                  "SOLIDWORKS is installed, in the variable SW_INSTALL_PATH (the root, " +
+                                  "the one that ends with \\SOLIDWORKS).");
                 return null;
             };
             return Startup(lineArguments);
@@ -221,16 +221,16 @@ namespace Oce.Solid.Agent.Bench
             if (string.IsNullOrWhiteSpace(WeldmentProfiles))
             {
                 Console.WriteLine();
-                Console.WriteLine("PROFILI_SALDATURA non e' impostata, e il banco non puo' girare.");
+                Console.WriteLine("PROFILI_SALDATURA is not set, and the bench cannot run.");
                 Console.WriteLine();
-                Console.WriteLine("  Le prove sulle saldature aprono i file `.SLDLFP` veri della");
-                Console.WriteLine("  libreria normata: un profilo inventato non misura niente, e");
-                Console.WriteLine("  non c'e' un percorso predefinito perche' ogni officina tiene");
-                Console.WriteLine("  la propria libreria dove vuole.");
+                Console.WriteLine("  The weldment checks open the real `.SLDLFP` files of the");
+                Console.WriteLine("  standard library: an invented profile measures nothing, and");
+                Console.WriteLine("  there is no default path because every workshop keeps");
+                Console.WriteLine("  its own library where it wants.");
                 Console.WriteLine();
                 Console.WriteLine("      setx PROFILI_SALDATURA \"<la cartella dei .SLDLFP>\"");
                 Console.WriteLine();
-                Console.WriteLine("  Poi riapri il terminale: `setx` non tocca quello aperto.");
+                Console.WriteLine("  Then reopen the terminal: `setx` does not touch the one already open.");
                 return 2;   // bench error, not a red check
             }
 
@@ -318,7 +318,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (whereG + 1 >= arguments.Count)
                 {
-                    Console.WriteLine("«--gruppo» vuole un nome. " + WhatTheyAreCalled());
+                    Console.WriteLine("«--gruppo» needs a name. " + WhatTheyAreCalled());
                     return 2;
                 }
                 chosen = new List<string>(
@@ -343,7 +343,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (whereF + 1 >= arguments.Count)
                 {
-                    Console.WriteLine("«--famiglia» vuole un nome: " + string.Join(", ", Families));
+                    Console.WriteLine("«--famiglia» needs a name: " + string.Join(", ", Families));
                     return 2;
                 }
                 _familiesOnly = new List<string>(
@@ -353,9 +353,9 @@ namespace Oce.Solid.Agent.Bench
                 var unknownOnes = _familiesOnly.Where(n => !Families.Contains(n)).ToList();
                 if (unknownOnes.Count > 0)
                 {
-                    Console.WriteLine("non conosco la famiglia " +
+                    Console.WriteLine("I do not know the family " +
                                       string.Join(", ", unknownOnes.Select(n => "«" + n + "»")) +
-                                      ". Le famiglie sono: " + string.Join(", ", Families));
+                                      ". The families are: " + string.Join(", ", Families));
                     return 2;
                 }
                 if (chosen == null) chosen = new List<string> { "casi" };
@@ -373,7 +373,7 @@ namespace Oce.Solid.Agent.Bench
                 var unknown = chosen.Where(n => !known.Contains(n)).ToList();
                 if (unknown.Count > 0)
                 {
-                    Console.WriteLine("non conosco " +
+                    Console.WriteLine("I do not know " +
                                       string.Join(", ", unknown.Select(n => "«" + n + "»")) +
                                       ". " + WhatTheyAreCalled());
                     return 2;
@@ -382,13 +382,13 @@ namespace Oce.Solid.Agent.Bench
 
             if (!File.Exists(_library))
             {
-                Console.WriteLine("non trovo la libreria: " + _library);
+                Console.WriteLine("cannot find the library: " + _library);
                 Console.WriteLine("indicala con  --libreria <percorso di Oce.Solid.Agent.Core.dll>");
                 return 1;
             }
 
             try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (Exception ex) { Console.WriteLine("non agganciabile: " + ex.Message); return 1; }
+            catch (Exception ex) { Console.WriteLine("cannot attach: " + ex.Message); return 1; }
 
             // THE BYTES ARE READ AND LOADED FROM THOSE.
             // `Assembly.LoadFrom` on a network path (S:) answers
@@ -433,12 +433,12 @@ namespace Oce.Solid.Agent.Bench
             catch (Exception ex)
             {
                 Console.WriteLine();
-                Console.WriteLine("LA LIBRERIA NON ESPONE I TIPI CHE IL BANCO CERCA.");
+                Console.WriteLine("THE LIBRARY DOES NOT EXPOSE THE TYPES THE BENCH LOOKS FOR.");
                 Console.WriteLine("  libreria: " + _addin.GetName().Version + "  (" + _library + ")");
                 Console.WriteLine("  cercavo:  " + NS + "SwOperations");
                 Console.WriteLine("  " + ex.GetType().Name + ": " + ex.Message);
                 Console.WriteLine();
-                Console.WriteLine("Non e' un giro rosso: e' una libreria che il banco non sa leggere.");
+                Console.WriteLine("It is not a red run: it is a library the bench cannot read.");
                 Console.WriteLine("The historical comparison starts at library 0.150.1 (rename window 3, decision D11): before it " +
                                   "the library had Italian names, and before 0.52.0 the operations lived in «OpenPDM.SwAddin».");
                 return 2;
@@ -474,7 +474,7 @@ namespace Oce.Solid.Agent.Bench
                         if (ReflectionLog.Global.Field(o.GetType(), "Tested")?.GetValue(o) as bool? == true) inCatalog++;
                 }
                 if (names != null)
-                    Console.WriteLine("eseguibili: " + names.Length + " operazioni (a catalogo: " +
+                    Console.WriteLine("runnable: " + names.Length + " operations (in catalog: " +
                                       (inCatalog < 0 ? "?" : inCatalog.ToString()) + ")");
             }
             catch { }
@@ -508,9 +508,9 @@ namespace Oce.Solid.Agent.Bench
             // return does not look at which subset was chosen.
             TurnOnGuardian();
             Log("SolidWorks " + _sw.RevisionNumber() +
-                   ", libreria " + _addin.GetName().Version +
-                   (_slow ? ", con --lento" : "") +
-                   (chosen == null ? "" : ", SOLO i gruppi " + string.Join(", ", chosen)));
+                   ", library " + _addin.GetName().Version +
+                   (_slow ? ", with --lento" : "") +
+                   (chosen == null ? "" : ", ONLY the groups " + string.Join(", ", chosen)));
 
             // ── `--muta` IS A RUN OF ITS OWN ─────────────────────────────
             //
@@ -527,14 +527,14 @@ namespace Oce.Solid.Agent.Bench
                 foreach (var r in _outcomes) Console.WriteLine(r);
                 Console.WriteLine();
                 var mutateOnly = _mutate
-                    ? "MUTAZIONI — " + (_outcomes.Count - _skipped - _benchErrors) +
-                      " casi, " + _failed + " ciechi" +
-                      (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "")
-                    : "REGRESSIONE — " + (_outcomes.Count - _skipped - _benchErrors) +
-                      " righe, " + _failed + " fallite" +
-                      (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "");
+                    ? "MUTATIONS — " + (_outcomes.Count - _skipped - _benchErrors) +
+                      " cases, " + _failed + " blind" +
+                      (_benchErrors > 0 ? ", " + _benchErrors + " BENCH ERRORS" : "")
+                    : "REGRESSION — " + (_outcomes.Count - _skipped - _benchErrors) +
+                      " rows, " + _failed + " failed" +
+                      (_benchErrors > 0 ? ", " + _benchErrors + " BENCH ERRORS" : "");
                 Console.WriteLine(mutateOnly);
-                Console.WriteLine("attese verificate " + _verifiedExpectations + " su " + _expectations);
+                Console.WriteLine("expectations verified " + _verifiedExpectations + " of " + _expectations);
                 // No identity test here: it would count as one more case in
                 // the line above. The ledger still says how many are unresolved.
                 WriteTheTestLedger(_mutate ? "mutations" : "regression");
@@ -556,7 +556,7 @@ namespace Oce.Solid.Agent.Bench
                 }
                 if (theGroup.SlowOnly && !_slow)
                 {
-                    Skipped(theGroup.What, theGroup.WhyItWeighs ?? "si lancia con --lento");
+                    Skipped(theGroup.What, theGroup.WhyItWeighs ?? "run it with --lento");
                     continue;
                 }
                 // FROM HERE ON THE CHECKS BELONG TO THIS GROUP (entry K2).
@@ -599,7 +599,7 @@ namespace Oce.Solid.Agent.Bench
                         if (!ReferenceEquals(g, theGroup) &&
                             !notLaunched.Contains(g.Name) &&
                             Array.IndexOf(groupsDone.ToArray(), g.Name) < 0)
-                            Skipped(g.What, "SOLIDWORKS se n'e' andato prima di questo gruppo");
+                            Skipped(g.What, "SOLIDWORKS went away before this group");
 
                     stoppedBySentinel = true;
                     break;
@@ -622,10 +622,10 @@ namespace Oce.Solid.Agent.Bench
             // having limited themselves to one group.
             if (notLaunched.Count > 0)
             {
-                Console.WriteLine("NON LANCIATI — " + notLaunched.Count + " gruppi su " +
+                Console.WriteLine("NOT LAUNCHED — " + notLaunched.Count + " groups out of " +
                                   Groups().Count + ": " + string.Join(", ", notLaunched));
-                Console.WriteLine("il giro intero si lancia senza «--gruppo», " +
-                                  "ed e' quello che vale prima di committare.");
+                Console.WriteLine("the whole run is launched without «--gruppo», " +
+                                  "and that is the one that counts before committing.");
             }
 
             // THE SKIPPED ARE COUNTED SEPARATELY AND SAID. «88 prove, 0 fallite»
@@ -646,19 +646,19 @@ namespace Oce.Solid.Agent.Bench
 
             var summary =
                 (notLaunched.Count > 0
-                    ? "GIRO PARZIALE (solo " + string.Join(", ", chosen) + ", " +
-                      notLaunched.Count + " gruppi non lanciati) — "
+                    ? "PARTIAL RUN (only " + string.Join(", ", chosen) + ", " +
+                      notLaunched.Count + " groups not launched) — "
                     : "") +
                 (_outcomes.Count - _skipped - _benchErrors) + " prove, " + _failed + " fallite" +
-                (_skipped > 0 ? ", " + _skipped + " SALTATE (--lento le lancia)" : "") +
-                (_benchErrors > 0 ? ", " + _benchErrors + " ERRORI DI BANCO" : "");
+                (_skipped > 0 ? ", " + _skipped + " SKIPPED (--lento runs them)" : "") +
+                (_benchErrors > 0 ? ", " + _benchErrors + " BENCH ERRORS" : "");
             Console.WriteLine(summary);
 
             // EXPECTATIONS VERIFIED N OUT OF M. It is ALWAYS written, even when the two
             // numbers match: it is the number that says whether the suite is
             // measuring, and a number that appears only when things go wrong
             // is looked at by nobody until it is too late.
-            var count = "attese verificate " + _verifiedExpectations + " su " + _expectations;
+            var count = "expectations verified " + _verifiedExpectations + " of " + _expectations;
             Console.WriteLine(count);
 
             // ── AND HOW MANY CHECKS HAVE NO EXPECTATION AT ALL (entry K3) ────────
@@ -673,8 +673,8 @@ namespace Oce.Solid.Agent.Bench
             // bench's service lines end up in it, which do not test the product
             // but themselves. The point is to be able to look at them one by one
             // instead of believing them all equivalent to a measured expectation.
-            Console.WriteLine("prove con un'attesa dichiarata: " + _withExpectation +
-                              " — senza: " + _withoutExpectation.Count);
+            Console.WriteLine("checks with a declared expectation: " + _withExpectation +
+                              " — without: " + _withoutExpectation.Count);
 
             // Entry K2-bis. It sits next to the total like the count per group,
             // because it is the same question: of that big number, how much
@@ -685,8 +685,8 @@ namespace Oce.Solid.Agent.Bench
             // hand-written numbers with. The count is now a measurement —
             // `OpenDocuments()` asks SOLIDWORKS how many documents there are
             // during each check — and no longer needs excuses.
-            Console.WriteLine("prove con un documento CAD aperto: " + _withDocument +
-                              " — senza: " + _withoutDocument);
+            Console.WriteLine("checks with a CAD document open: " + _withDocument +
+                              " — without: " + _withoutDocument);
             WriteWithoutWaiting();
             WriteCountPerGroup();
             WriteTheTestLedger(notLaunched.Count > 0 || _familiesOnly != null ? "partial" : "full");
@@ -706,12 +706,12 @@ namespace Oce.Solid.Agent.Bench
                 Console.WriteLine(new string('!', 76));
                 if (stoppedBySentinel)
                     Console.WriteLine(
-                        "IL GIRO E' STATO INTERROTTO A META': un gruppo non e' " +
-                        "riuscito nemmeno a prepararsi, e i seguenti non sono " +
-                        "stati provati.");
+                        "THE RUN WAS INTERRUPTED HALFWAY: a group could not " +
+                        "even get ready, and the following ones were not " +
+                        "tried.");
                 Console.WriteLine(Sentinel.Report());
-                Console.WriteLine("GIRO NON VALIDO: i " + _skipped +
-                                  " casi saltati non sono ne' verdi ne' rossi.");
+                Console.WriteLine("INVALID RUN: the " + _skipped +
+                                  " skipped cases are neither green nor red.");
                 Console.WriteLine(new string('!', 76));
                 return 4;
             }
@@ -762,14 +762,14 @@ namespace Oce.Solid.Agent.Bench
                 new Group { Name = "materiale", What = "apply_material",            Actions = one(Material) },
                 new Group { Name = "stato",     What = "DocumentState",               Actions = one(State) },
                 new Group { Name = "viste",     What = "PartView (V1)",           Actions = one(TestSnapshot) },
-                new Group { Name = "tetto",     What = "il tetto sulle lavorazioni (E12)",
+                new Group { Name = "tetto",     What = "the ceiling on features (E12)",
                              Actions = one(TestFeatureCap), SlowOnly = true,
-                             WhyItWeighs = "85 lavorazioni, circa mezz'ora: si lancia con --lento" },
+                             WhyItWeighs = "85 features, about half an hour: run with --lento" },
 
                 // Those that were inside `NuoveOperazioni()`.
-                new Group { Name = "scatto",       What = "scatta la vista",        Actions = one(CaptureView) },
-                new Group { Name = "quanto-vede",  What = "quanto vede il modello", Actions = one(HowMuchTheModelSees) },
-                new Group { Name = "facce",        What = "le facce della piastra", Actions = one(PrintPlateFaces) },
+                new Group { Name = "scatto",       What = "take the view shot",        Actions = one(CaptureView) },
+                new Group { Name = "quanto-vede",  What = "what the model sees", Actions = one(HowMuchTheModelSees) },
+                new Group { Name = "facce",        What = "the faces of the plate", Actions = one(PrintPlateFaces) },
                 new Group { Name = "sposta-corpi", What = "move_bodies",           Actions = one(TestMoveBodies) },
                 // «slot» is no longer there: it became fifteen files in
                 // `cases/slot/`, and it is launched with `--gruppo casi` (entry F11).
@@ -789,27 +789,27 @@ namespace Oce.Solid.Agent.Bench
                 // re-attaches with SelectByID2("AXIS"), which is a COM
                 // call and not a catalog operation. All the rest of the
                 // family is in `cases/axis/`.
-                new Group { Name = "crea-asse",    What = "l'asse si ritrova per nome", Actions = one(TestCreateAxis) },
+                new Group { Name = "crea-asse",    What = "the axis is found again by name", Actions = one(TestCreateAxis) },
                 // THE DIMENSION WITHOUT AN EDGE (entry Z-A2): the red that a declared
                 // case does not know how to build, because after `create_drawing` it does not
                 // go back to the part to suppress.
-                new Group { Name = "orfane",       What = "la quota che resta senza spigolo (Z-A2)", Actions = one(TestOrphanDimensions) },
+                new Group { Name = "orfane",       What = "the dimension left without an edge (Z-A2)", Actions = one(TestOrphanDimensions) },
                 // THE PRINTED NUMBER (entry Z-C2): no catalog operation
                 // overwrites a dimension, so the falsification is done here.
-                new Group { Name = "numeri",       What = "il numero stampato e' quello del modello (Z-C2)", Actions = one(TestDimensionNumbers) },
+                new Group { Name = "numeri",       What = "the printed number is the model's (Z-C2)", Actions = one(TestDimensionNumbers) },
                 // THE CLIENT'S DOOR (entry F14): it does not call the library,
                 // it talks to the bridge over stdio as an MCP client would.
                 new Group { Name = "porta-del-cliente",
-                             What = "i casi che passano dal ponte (F14)",
+                             What = "the cases that go through the bridge (F14)",
                              Actions = one(TheClientPort) },
                 // «ripeti», «mirror» and «togliere» are no longer there: they
                 // became `cases/patterns/`, `cases/mirror/` and
                 // `cases/removal/`, and they are launched with `--gruppo casi`.
                 // «shape» is no longer there: it became `cases/sentence/`, since
                 // the expectations know how to ask «includes» and «does_not_include».
-                new Group { Name = "dove-stava",   What = "dove stava, e il grep vuoto (E10)",
+                new Group { Name = "dove-stava",   What = "where it was, and the empty grep (E10)",
                              Actions = new Action[] { TestWhereItWas, TestThatTheFractionDoesNotDecide } },
-                new Group { Name = "casi",         What = "i casi dichiarati, che sono file (F3)",
+                new Group { Name = "casi",         What = "the declared cases, which are files (F3)",
                              Actions = new Action[]
                              {
                                  TestThatSelectorRefuses,
@@ -818,13 +818,13 @@ namespace Oce.Solid.Agent.Bench
                                  // expectations, which before running them is zero.
                                  TestThatAnAbsentFieldIsNotAZero,
                              } },
-                new Group { Name = "il-null-ha-un-nome", What = "il banco dice dove non e' riuscito (F12)",
+                new Group { Name = "il-null-ha-un-nome", What = "the bench says where it failed (F12)",
                              Actions = one(TestThatNullHasAName) },
                 // The capability that opens the whole G-A section: without it, no
                 // assembly operation could have a case.
-                new Group { Name = "assieme-di-prova", What = "il banco sa preparare un assieme (GA0)",
+                new Group { Name = "assieme-di-prova", What = "the bench can prepare an assembly (GA0)",
                              Actions = one(TestTheTestAssembly) },
-                new Group { Name = "tabella",      What = "la tabella dei gruppi copre tutto (F13)",
+                new Group { Name = "tabella",      What = "the table of groups covers everything (F13)",
                              Actions = one(TestThatTheTableCoversEverything) },
             };
         }
@@ -869,7 +869,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestThatTheTableCoversEverything()
         {
             Console.WriteLine();
-            Console.WriteLine("=== la tabella dei gruppi copre tutto (F13) ===");
+            Console.WriteLine("=== the table of groups covers everything (F13) ===");
 
             var families = typeof(Program)
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
@@ -880,14 +880,14 @@ namespace Oce.Solid.Agent.Bench
 
             // THE SIEVE FINDS ITSELF, or it does not work.
             bool seesMe = families.Any(m => m.Name == "TestThatTheTableCoversEverything");
-            Check("F13 ROSSO: il setaccio vede le famiglie di prove", seesMe,
-                  families.Count + " metodi «Test…()»" +
-                  (seesMe ? ", compreso questo" : ", e questo NON c'e': la riflessione non lo elenca"));
+            Check("F13 RED: the sieve sees the families of checks", seesMe,
+                  families.Count + " «Test…()» methods" +
+                  (seesMe ? ", this one included" : ", and this one is NOT there: the reflection does not list it"));
 
             var groups = Groups();
             var inGroups = new HashSet<MethodInfo>(groups.SelectMany(g => g.Actions).Select(a => a.Method));
             var outside = families.Where(m => !inGroups.Contains(m)).Select(m => m.Name).ToList();
-            Check("F13: nessuna famiglia di prove fuori dalla tabella",
+            Check("F13: no family of checks outside the table",
                   outside.Count == 0,
                   outside.Count == 0 ? groups.Count + " gruppi" : string.Join(", ", outside));
 
@@ -895,7 +895,7 @@ namespace Oce.Solid.Agent.Bench
             // the count of the not-launched would say one thing and the run another.
             var doubled = groups.GroupBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
                               .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-            Check("F13: i nomi dei gruppi sono tutti diversi",
+            Check("F13: the group names are all different",
                   doubled.Count == 0,
                   doubled.Count == 0 ? "" : string.Join(", ", doubled));
         }
@@ -907,10 +907,10 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         private static string WhatTheyAreCalled()
         {
-            return "I gruppi sono: " +
+            return "The groups are: " +
                    string.Join(", ", Groups().Select(g => g.Name)) +
-                   ". Senza «--gruppo» si lanciano tutti, ed e' quello che vale " +
-                   "prima di committare.";
+                   ". Without «--gruppo» all are run, and that is what counts " +
+                   "before committing.";
         }
 
         /// <summary>
@@ -994,7 +994,7 @@ namespace Oce.Solid.Agent.Bench
             // The count per group is written next to the total. The total
             // stays — it serves to see whether the suite grows — but it stops being
             // the only number that is read.
-            var key = _groupInProgress ?? "(fuori gruppo)";
+            var key = _groupInProgress ?? "(no group)";
             int howMany;
             _perGroup.TryGetValue(key, out howMany);
             _perGroup[key] = howMany + 1;
@@ -1124,13 +1124,13 @@ namespace Oce.Solid.Agent.Bench
             int sum = 0;
             foreach (var v in _perGroup.Values) sum += v;
             int total = _withExpectation + _withoutExpectation.Count;
-            Check("il conto per gruppo fa il totale", sum == total,
+            Check("the count per group adds up to the total", sum == total,
                   sum == total
                       ? sum + " prove in " + _perGroup.Count + " gruppi"
-                      : "la somma per gruppo e' " + sum + ", le prove sono " + total +
-                        ": " + Math.Abs(total - sum) + " non sono attribuite a nessun " +
-                        "gruppo, e una ripartizione che non fa il totale si legge come " +
-                        "una ripartizione completa");
+                      : "the sum per group is " + sum + ", the checks are " + total +
+                        ": " + Math.Abs(total - sum) + " are not attributed to any " +
+                        "group, and a breakdown that does not add up to the total reads as " +
+                        "a complete breakdown");
         }
 
         /// <summary>The lines «group: how many», in order of quantity.</summary>
@@ -1143,7 +1143,7 @@ namespace Oce.Solid.Agent.Bench
                 : string.CompareOrdinal(a.Key, b.Key));
             var parts = new List<string>();
             foreach (var r in lines) parts.Add(r.Key + " " + r.Value);
-            Console.WriteLine("per gruppo: " + string.Join(", ", parts));
+            Console.WriteLine("per group: " + string.Join(", ", parts));
         }
 
         private static void WriteWithoutWaiting()
@@ -1159,16 +1159,16 @@ namespace Oce.Solid.Agent.Bench
                                         "report", "senza-attesa.txt");
                 var lines = new List<string>
                 {
-                    "# Le prove che passano senza un'attesa DICHIARATA (voce K3).",
+                    "# The checks that pass without a DECLARED expectation (entry K3).",
                     "#",
-                    "# Non e' un elenco di colpevoli: molte confrontano nel codice invece",
-                    "# che in un file di caso, e alcune sono fra le piu' severe della suite.",
-                    "# Altre pero' chiamano, non esplodono, e finiscono verdi — e una prova",
-                    "# che passa senza asserzione non dimostra un comportamento: dimostra",
-                    "# che non e' esplosa.",
+                    "# It is not a list of culprits: many compare in the code instead",
+                    "# of in a case file, and some are among the strictest in the suite.",
+                    "# Others, however, call, do not blow up, and end up green — and a check",
+                    "# that passes without an assertion does not prove a behavior: it proves",
+                    "# that it did not blow up.",
                     "#",
-                    "# " + _withoutExpectation.Count + " righe, su " + (_withExpectation + _withoutExpectation.Count) +
-                    " prove in tutto. Il giro e' del " + DateTime.Now.ToString("s") + ".",
+                    "# " + _withoutExpectation.Count + " rows, out of " + (_withExpectation + _withoutExpectation.Count) +
+                    " checks in all. The run is from " + DateTime.Now.ToString("s") + ".",
                     "",
                 };
                 lines.AddRange(_withoutExpectation);
@@ -1177,7 +1177,7 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                Console.WriteLine("   (l'elenco non si e' potuto scrivere: " + ex.Message + ")");
+                Console.WriteLine("   (the list could not be written: " + ex.Message + ")");
             }
         }
 
@@ -1259,21 +1259,21 @@ namespace Oce.Solid.Agent.Bench
                 // written it. Now that word appears in one place only of
                 // the whole file, and the most naive check one can make
                 // is the right one.
-                _log.WriteLine("# il giro in corso, riga per riga. " +
-                                  "Il numero fra parentesi e' quanti secondi " +
-                                  "sono passati dall'avvio.");
-                _log.WriteLine("# l'ultima riga di un giro arrivato in fondo " +
-                                  "porta il riepilogo; se non c'e', il giro si e' " +
-                                  "fermato prima.");
-                _log.WriteLine("# se il tempo dell'ultima riga non cresce fra " +
-                                  "due letture, e' piantato.");
+                _log.WriteLine("# the current run, line by line. " +
+                                  "The number in parentheses is how many seconds " +
+                                  "have passed since the start.");
+                _log.WriteLine("# the last line of a run that reached the end " +
+                                  "carries the summary; if it is not there, the run " +
+                                  "stopped earlier.");
+                _log.WriteLine("# if the time of the last line does not grow between " +
+                                  "two readings, it is stuck.");
             }
             catch (Exception ex)
             {
                 _log = null;
-                Console.WriteLine("(niente diario" +
+                Console.WriteLine("(no journal" +
                                   (filePath == null ? "" : " in " + filePath) +
-                                  ": " + ex.Message + ". Le prove vanno avanti.)");
+                                  ": " + ex.Message + ". The checks go on.)");
             }
         }
 
@@ -1351,8 +1351,8 @@ namespace Oce.Solid.Agent.Bench
                 using (var s = new StreamWriter(file, true))
                 {
                     if (newItem)
-                        s.WriteLine("# una riga per giro di banco. Serve a contare le prove " +
-                                    "che falliscono a caso: «quante volte e' successo a quella?».");
+                        s.WriteLine("# one line per bench run. It is used to count the checks " +
+                                    "that fail at random: «how many times did it happen to that one?».");
                     s.WriteLine(line);
                 }
             }
@@ -1404,7 +1404,7 @@ namespace Oce.Solid.Agent.Bench
             if (_quiet) { _quietRed = true; return; }
 
             _benchErrors++;
-            var line = "  !!   " + InColumn(itemName) + "ERRORE DI BANCO: " + what;
+            var line = "  !!   " + InColumn(itemName) + "BENCH ERROR: " + what;
             _outcomes.Add(line);
             Console.WriteLine(line);
             Log(line);
@@ -1625,7 +1625,7 @@ namespace Oce.Solid.Agent.Bench
                 var d = (IModelDoc2)_sw.GetFirstDocument();
                 while (d != null)
                 {
-                    names.Add(d.GetTitle() ?? "(senza titolo)");
+                    names.Add(d.GetTitle() ?? "(untitled)");
                     d = (IModelDoc2)d.GetNext();
                 }
             }
@@ -1634,7 +1634,7 @@ namespace Oce.Solid.Agent.Bench
                 // THE RUN IS NOT STOPPED FOR A CHECK THAT COULD NOT
                 // LOOK. It is said, and one goes on: the 16 KB check
                 // stays there to catch the worst case.
-                Console.WriteLine("non ho potuto contare i documenti aperti: " + ex.Message);
+                Console.WriteLine("could not count the open documents: " + ex.Message);
                 return true;
             }
 
@@ -1643,19 +1643,19 @@ namespace Oce.Solid.Agent.Bench
             if (!closeItYourself)
             {
                 Console.WriteLine();
-                Console.WriteLine("SOLIDWORKS ha gia' " + names.Count +
-                                  (names.Count == 1 ? " documento aperto" : " documenti aperti") + ":");
+                Console.WriteLine("SOLIDWORKS already has " + names.Count +
+                                  (names.Count == 1 ? " open document" : " open documents") + ":");
                 foreach (var n in names.Take(20)) Console.WriteLine("    " + n);
-                if (names.Count > 20) Console.WriteLine("    ... e altri " + (names.Count - 20));
+                if (names.Count > 20) Console.WriteLine("    ... and another " + (names.Count - 20));
                 Console.WriteLine();
-                Console.WriteLine("Il giro NON parte. Lo stato di un documento elenca i documenti");
-                Console.WriteLine("aperti, quindi questi farebbero fallire «state: sotto i 16 KB»");
-                Console.WriteLine("dopo un'ora di prove, senza che niente sia cambiato nel codice.");
+                Console.WriteLine("The run does NOT start. A document's state lists the documents");
+                Console.WriteLine("that are open, so these would make «state: under 16 KB» fail");
+                Console.WriteLine("after an hour of checks, with nothing changed in the code.");
                 Console.WriteLine();
                 Console.WriteLine("  .\\Bench\\bin\\Oce.Solid.Agent.Bench.exe --chiudi-gli-scarti");
                 Console.WriteLine();
-                Console.WriteLine("li chiude e parte. CloseDoc SCARTA le modifiche non salvate:");
-                Console.WriteLine("guarda l'elenco qui sopra prima di chiederlo.");
+                Console.WriteLine("closes them and starts. CloseDoc DISCARDS unsaved changes:");
+                Console.WriteLine("look at the list above before asking for it.");
                 return false;
             }
 
@@ -1680,12 +1680,12 @@ namespace Oce.Solid.Agent.Bench
             }
             catch { }
 
-            Console.WriteLine("scrivania: chiusi " + closed + " documenti su " + names.Count +
-                              ", ne restano " + remain);
+            Console.WriteLine("desk: closed " + closed + " documents out of " + names.Count +
+                              ", left over: " + remain);
             if (remain > 0)
             {
-                Console.WriteLine("Non e' partito lo stesso: quelli che restano farebbero fallire");
-                Console.WriteLine("«state: sotto i 16 KB». Chiudili a mano e rilancia.");
+                Console.WriteLine("It did not start all the same: those that remain would make");
+                Console.WriteLine("«state: under 16 KB» fail. Close them by hand and run again.");
                 return false;
             }
             return true;
@@ -1719,8 +1719,8 @@ namespace Oce.Solid.Agent.Bench
                 bool ok = r != null &&
                           Math.Abs(r[0] - (double)testCase[4]) < 0.01 &&
                           Math.Abs(r[1] - (double)testCase[5]) < 0.01;
-                Check("sporgenza " + testCase[1] + " su assi " + testCase[2] + "," + testCase[3], ok,
-                      r == null ? "null" : string.Format("misurato {0:0.##}/{1:0.##}, atteso {2:0.##}/{3:0.##}",
+                Check("overhang " + testCase[1] + " on axes " + testCase[2] + "," + testCase[3], ok,
+                      r == null ? "null" : string.Format("measured {0:0.##}/{1:0.##}, expected {2:0.##}/{3:0.##}",
                           r[0], r[1], testCase[4], testCase[5]));
             }
         }
@@ -1740,7 +1740,7 @@ namespace Oce.Solid.Agent.Bench
 
             var list = all.Invoke(null, new object[] { _sw, (Action<string>)(s => { }) })
                 as System.Collections.IList;
-            Check("legge gli archivi di materiali", list != null && list.Count > 100,
+            Check("reads the material archives", list != null && list.Count > 100,
                   (list == null ? "null" : list.Count + " materiali"));
 
             foreach (var testCase in new[]
@@ -1751,7 +1751,7 @@ namespace Oce.Solid.Agent.Bench
                 new[] { "S275JR", "1.0044 (S275JR)" },
                 new[] { "S235", null },              // ambiguous: it must refuse
                 new[] { "6082", null },              // does not exist: it must refuse
-                new[] { "acciaio inventato", null },
+                new[] { "invented steel", null },
             })
             {
                 var arguments = new object[] { _sw, testCase[0], "", (Action<string>)(s => { }), null };
@@ -1763,7 +1763,7 @@ namespace Oce.Solid.Agent.Bench
 
                 bool ok = testCase[1] == null ? (found == null && !string.IsNullOrEmpty(why))
                                           : (itemName == testCase[1]);
-                Check("materiale «" + testCase[0] + "»", ok,
+                Check("material «" + testCase[0] + "»", ok,
                       found == null ? ("rifiutato: " + (why ?? "").Substring(0, Math.Min(70, (why ?? "").Length)))
                                       : ("-> " + itemName));
             }
@@ -1776,12 +1776,12 @@ namespace Oce.Solid.Agent.Bench
         {
             Console.WriteLine();
             Console.WriteLine("=== rectangular_frame (add-in) ===");
-            Frame("quadro 80x80x5, 1000x800, frontale", SQUARE_TUBE, "80X80X5", 1000, 800, "front", true);
-            Frame("quadro 40x40x3, 1000x800, superiore", SQUARE_TUBE, "40x40x3", 1000, 800, "top", true);
-            Frame("rettangolare 80x50x5, 1200x600, frontale", RECT, "80X50X5", 1200, 600, "front", true);
-            Frame("quadro 80x80x5, 600x400, angolo sull'origine", SQUARE_TUBE, "80X80X5", 600, 400, "front", false);
+            Frame("square 80x80x5, 1000x800, front", SQUARE_TUBE, "80X80X5", 1000, 800, "front", true);
+            Frame("square 40x40x3, 1000x800, top", SQUARE_TUBE, "40x40x3", 1000, 800, "top", true);
+            Frame("rectangular 80x50x5, 1200x600, front", RECT, "80X50X5", 1200, 600, "front", true);
+            Frame("square 80x80x5, 600x400, corner on the origin", SQUARE_TUBE, "80X80X5", 600, 400, "front", false);
             // and one that MUST fail: section bigger than the frame
-            Frame("quadro 80x80x5, 60x60 (deve fallire)", SQUARE_TUBE, "80X80X5", 60, 60, "front", true, mustFail: true);
+            Frame("square 80x80x5, 60x60 (must fail)", SQUARE_TUBE, "80X80X5", 60, 60, "front", true, mustFail: true);
         }
 
         private static void Frame(string itemName, string profile, string config,
@@ -1817,13 +1817,13 @@ namespace Oce.Solid.Agent.Bench
                 if (mustFail)
                 {
                     Check(itemName, measurements == null && !string.IsNullOrEmpty(error),
-                          measurements == null ? ("rifiutato: " + Short(error)) : "NON ha rifiutato");
+                          measurements == null ? ("refused: " + Short(error)) : "did NOT refuse");
                     return;
                 }
                 if (measurements == null) { Check(itemName, false, "fallito: " + Short(error)); return; }
 
                 string boundingBox = measurements.ContainsKey("bounding_box_outer_mm")
-                    ? Convert.ToString(measurements["bounding_box_outer_mm"]) : "(non verificato)";
+                    ? Convert.ToString(measurements["bounding_box_outer_mm"]) : "(not verified)";
                 bool verified = measurements.ContainsKey("bounding_box_checked") &&
                                   Convert.ToBoolean(measurements["bounding_box_checked"]);
                 // and it is checked here too, independently
@@ -1834,7 +1834,7 @@ namespace Oce.Solid.Agent.Bench
                 gv = box[3 + v] - box[v];
                 bool ok = verified && Math.Abs(gu - L) < 0.5 && Math.Abs(gv - W) < 0.5;
                 Check(itemName, ok, string.Format(
-                    "add-in dice {0}, misurato {1:0.##}x{2:0.##}, sporgenza {3}, barre {4}",
+                    "add-in says {0}, measured {1:0.##}x{2:0.##}, overhang {3}, bars {4}",
                     boundingBox, gu, gv,
                     measurements.ContainsKey("overhang_profile_mm") ? measurements["overhang_profile_mm"] : "?",
                     measurements.ContainsKey("bars") ? measurements["bars"] : "?"));
@@ -1850,18 +1850,18 @@ namespace Oce.Solid.Agent.Bench
         {
             Console.WriteLine();
             Console.WriteLine("=== hole_wizard (add-in) ===");
-            Hole("quattro M10 passanti", "clearance", "M10", true, 0,
+            Hole("four M10 through-all", "clearance", "M10", true, 0,
                  new[] { new[] { -70.0, -40.0 }, new[] { 70.0, -40.0 },
                          new[] { 70.0, 40.0 }, new[] { -70.0, 40.0 } }, 11.0);
-            Hole("un M8 filettato passante", "threaded", "M8", true, 0,
+            Hole("one threaded M8 through-all", "threaded", "M8", true, 0,
                  new[] { new[] { 0.0, 0.0 } }, 6.8);
-            Hole("un M12 filettato cieco 12", "threaded", "M12", false, 12,
+            Hole("one blind threaded M12, 12 deep", "threaded", "M12", false, 12,
                  new[] { new[] { 30.0, 20.0 } }, 10.2);
             Hole("due lamati M8", "counterbore", "M8", true, 0,
                  new[] { new[] { -50.0, 0.0 }, new[] { 50.0, 0.0 } }, 9.0);
-            Hole("taglia inventata (deve fallire)", "threaded", "M7", true, 0,
+            Hole("invented size (must fail)", "threaded", "M7", true, 0,
                  new[] { new[] { 0.0, 0.0 } }, 0, mustFail: true);
-            Hole("due fori nello stesso punto (deve fallire)", "clearance", "M8", true, 0,
+            Hole("two holes at the same point (must fail)", "clearance", "M8", true, 0,
                  new[] { new[] { 10.0, 0.0 }, new[] { 10.0, 0.0 } }, 0, mustFail: true);
         }
 
@@ -1876,7 +1876,7 @@ namespace Oce.Solid.Agent.Bench
                 Plate(doc, 200, 120, 20);
                 var docState = ReadState(doc);
                 string uid = TopFace(docState);
-                if (uid == null) { Check(itemName, false, "nessuna faccia in cima nello stato"); return; }
+                if (uid == null) { Check(itemName, false, "no face on top in the state"); return; }
 
                 var arguments = new Dictionary<string, object>
                 {
@@ -1896,7 +1896,7 @@ namespace Oce.Solid.Agent.Bench
                 if (mustFail)
                 {
                     Check(itemName, measurements == null && !string.IsNullOrEmpty(error),
-                          measurements == null ? ("rifiutato: " + Short(error)) : "NON ha rifiutato");
+                          measurements == null ? ("refused: " + Short(error)) : "did NOT refuse");
                     return;
                 }
                 if (measurements == null) { Check(itemName, false, "fallito: " + Short(error)); return; }
@@ -1916,12 +1916,12 @@ namespace Oce.Solid.Agent.Bench
                 string why = measurements.ContainsKey("positions_not_checked")
                     ? Convert.ToString(measurements["positions_not_checked"]) : null;
                 bool ok = verified && Math.Abs(d - expectedDiameter) < 0.05;
-                Check(itemName, ok, string.Format("diametro {0:0.##} (atteso {1:0.##}), fori {2}, {3}",
+                Check(itemName, ok, string.Format("diameter {0:0.##} (expected {1:0.##}), holes {2}, {3}",
                     d, expectedDiameter,
                     measurements.ContainsKey("holes") ? measurements["holes"] : "?",
                     verified
-                        ? "posizioni verificate"
-                        : "POSIZIONI NON VERIFICATE" + (why == null ? "" : ": " + Short(why))));
+                        ? "positions verified"
+                        : "POSITIONS NOT VERIFIED" + (why == null ? "" : ": " + Short(why))));
             }
             catch (Exception ex) { Check(itemName, false, Why(ex)); }
             finally { Close(doc); }
@@ -1953,12 +1953,12 @@ namespace Oce.Solid.Agent.Bench
                     bool mustFail = (bool)testCase[2];
                     if (mustFail)
                     {
-                        Check("materiale «" + testCase[0] + "»",
+                        Check("material «" + testCase[0] + "»",
                               measurements == null && !string.IsNullOrEmpty(error),
-                              measurements == null ? ("rifiutato: " + Short(error)) : "NON ha rifiutato");
+                              measurements == null ? ("refused: " + Short(error)) : "did NOT refuse");
                         continue;
                     }
-                    if (measurements == null) { Check("materiale «" + testCase[0] + "»", false, Short(error)); continue; }
+                    if (measurements == null) { Check("material «" + testCase[0] + "»", false, Short(error)); continue; }
 
                     // and it is re-read from the document, not from the outcome
                     string db;
@@ -1967,11 +1967,11 @@ namespace Oce.Solid.Agent.Bench
                     // and now is the mass there too?
                     var docState = ReadState(doc);
                     bool hasMass = docState.ContainsKey("mass_kg");
-                    Check("materiale «" + testCase[0] + "»", ok && hasMass,
-                          "sul documento: «" + read + "»" +
-                          (hasMass ? ", massa " + docState["mass_kg"] + " kg" : ", MASSA ASSENTE"));
+                    Check("material «" + testCase[0] + "»", ok && hasMass,
+                          "on the document: «" + read + "»" +
+                          (hasMass ? ", mass " + docState["mass_kg"] + " kg" : ", MASS MISSING"));
                 }
-                catch (Exception ex) { Check("materiale «" + testCase[0] + "»", false, Why(ex)); }
+                catch (Exception ex) { Check("material «" + testCase[0] + "»", false, Why(ex)); }
                 finally { Close(doc); }
             }
         }
@@ -1988,11 +1988,11 @@ namespace Oce.Solid.Agent.Bench
             {
                 doc = NewPart();
                 var docState = ReadState(doc);
-                Check("documento vuoto: materiale null esplicito",
+                Check("empty document: explicit null material",
                       docState.ContainsKey("material") && docState["material"] == null);
-                Check("documento vuoto: nessun corpo",
+                Check("empty document: no body",
                       docState.ContainsKey("solid_body") && !Convert.ToBoolean(docState["solid_body"]));
-                Check("documento vuoto: nessuna massa (manca il materiale)",
+                Check("empty document: no mass (the material is missing)",
                       !docState.ContainsKey("mass_kg"));
 
                 // a real frame
@@ -2014,41 +2014,41 @@ namespace Oce.Solid.Agent.Bench
                 };
                 string error;
                 var measurements = Run(doc, "rectangular_frame", arguments, out error);
-                if (measurements == null) { Check("telaio per lo stato", false, Short(error)); return; }
+                if (measurements == null) { Check("frame for the state", false, Short(error)); return; }
 
                 docState = ReadState(doc);
                 var bodies = docState.ContainsKey("bodies") ? docState["bodies"] as System.Collections.IList : null;
-                Check("telaio: quattro corpi nello stato", bodies != null && bodies.Count == 4,
+                Check("frame: four bodies in the state", bodies != null && bodies.Count == 4,
                       bodies == null ? "assenti" : bodies.Count + " corpi");
                 if (bodies != null && bodies.Count > 0)
                 {
                     var c0 = bodies[0] as Dictionary<string, object>;
-                    Check("corpo: ha uid, ingombro, centro e chi lo ha fatto",
+                    Check("body: it has uid, bounding box, center and who made it",
                           c0.ContainsKey("uid") && c0.ContainsKey("bounding_box_mm") &&
                           c0.ContainsKey("center_mm") && c0.ContainsKey("created_by"),
                           Line(c0));
                 }
                 var ing = docState.ContainsKey("bounding_box_mm") ? docState["bounding_box_mm"] as double[] : null;
-                Check("pezzo: ingombro 1000x800x80",
+                Check("part: bounding box 1000x800x80",
                       ing != null && Math.Abs(ing[0] - 1000) < 0.5 &&
                       Math.Abs(ing[1] - 800) < 0.5 && Math.Abs(ing[2] - 80) < 0.5,
                       ing == null ? "assente" : string.Join("x", ing.Select(x => x.ToString("0.##"))));
-                Check("pezzo: nessuna massa senza materiale", !docState.ContainsKey("mass_kg"));
+                Check("part: no mass without material", !docState.ContainsKey("mass_kg"));
 
                 var feature = docState["feature"] as System.Collections.IList;
                 var names = feature.Cast<Dictionary<string, object>>()
                     .Select(f => Convert.ToString(f["kind"])).ToList();
-                Check("feature: solo quelle che contano",
+                Check("feature: only those that count",
                       names.Contains("WeldMemberFeat") &&
                       !names.Contains("HistoryFolder") && !names.Contains("SolidBodyFolder"),
                       string.Join(", ", names));
 
                 int nFaces = (docState["faces"] as System.Collections.IList).Count;
-                Check("facce: tetto sul totale, non per corpo", nFaces <= 60,
+                Check("faces: ceiling on the total, not per body", nFaces <= 60,
                       nFaces + " facce" +
                       (docState.ContainsKey("faces_total") ? " su " + docState["faces_total"] : ""));
                 var f0 = (docState["faces"] as System.Collections.IList)[0] as Dictionary<string, object>;
-                Check("faccia: dice a quale corpo appartiene", f0.ContainsKey("body"), Line(f0));
+                Check("face: says which body it belongs to", f0.ContainsKey("body"), Line(f0));
 
                 // THE CEILING IS OURS, NOT SOLIDWORKS'S NOR THE MODEL'S.
                 //
@@ -2129,14 +2129,14 @@ namespace Oce.Solid.Agent.Bench
                 int margin = Cap - characters;
                 int percent = (int)Math.Round(margin * 100.0 / Cap);
 
-                Check("stato: sotto i 16 KB con almeno il 15% di margine",
+                Check("state: under 16 KB with at least 15% margin",
                       characters <= threshold,
-                      characters + " caratteri, margine " + margin + " (" + percent +
+                      characters + " characters, margin " + margin + " (" + percent +
                       "%), " + open +
-                      (open == 1 ? " documento aperto" : " documenti aperti") +
-                      (open > 1 ? " (piu' di uno gonfia la misura: vedi qui sopra)" : ""));
+                      (open == 1 ? " open document" : " open documents") +
+                      (open > 1 ? " (more than one inflates the measure: see above)" : ""));
             }
-            catch (Exception ex) { Check("stato del documento", false, Why(ex)); }
+            catch (Exception ex) { Check("document state", false, Why(ex)); }
             finally { Close(doc); }
         }
 
@@ -2196,14 +2196,14 @@ namespace Oce.Solid.Agent.Bench
             var t = _addin.GetType(NS + "PartView", false);
             if (t == null)
             {
-                Check("fotografia: la classe c'e'", false,
-                      "PartView non e' nella libreria caricata");
+                Check("photograph: the class exists", false,
+                      "PartView is not in the loaded library");
                 return;
             }
             var fire = t.GetMethod("Fire", BindingFlags.Public | BindingFlags.Static);
             if (fire == null)
             {
-                Check("fotografia: Fire c'e'", false, "il metodo non esiste");
+                Check("photograph: Fire exists", false, "the method does not exist");
                 return;
             }
 
@@ -2223,7 +2223,7 @@ namespace Oce.Solid.Agent.Bench
                     ["thickness_mm"] = 20.0,
                     ["centered"] = true,
                 }, out error);
-                if (measurements == null) { Check("fotografia: il blocco", false, Short(error)); return; }
+                if (measurements == null) { Check("photograph: the block", false, Short(error)); return; }
 
                 var view = doc.ActiveView as IModelView;
 
@@ -2250,43 +2250,43 @@ namespace Oce.Solid.Agent.Bench
                 var png = fire.Invoke(null, p) as byte[];
                 string reason = p[4] as string;
 
-                Check("fotografia: l'isometrica esce", png != null && png.Length > 0,
+                Check("photograph: the isometric comes out", png != null && png.Length > 0,
                       png == null ? Short(reason) : png.Length + " byte");
 
                 // THE PNG SIGNATURE: 89 50 4E 47. A BMP begins with «BM».
                 bool isPng = png != null && png.Length > 8 &&
                               png[0] == 0x89 && png[1] == 0x50 &&
                               png[2] == 0x4E && png[3] == 0x47;
-                Check("fotografia: e' un PNG, non il BMP di SOLIDWORKS", isPng,
+                Check("photograph: it is a PNG, not the BMP of SOLIDWORKS", isPng,
                       png == null || png.Length < 2
-                          ? "niente da guardare"
-                          : "primi byte " + png[0].ToString("X2") + " " + png[1].ToString("X2"));
+                          ? "nothing to look at"
+                          : "first bytes " + png[0].ToString("X2") + " " + png[1].ToString("X2"));
 
                 // 800x600 uncompressed would be 1.4 MB: if the PNG gets
                 // close to that, the conversion compressed nothing.
                 if (png != null)
-                    Check("fotografia: pesa molto meno del BMP", png.Length < 800 * 600,
-                          png.Length + " byte contro " + (800 * 600 * 3) + " del BMP crudo");
+                    Check("photograph: it weighs much less than the BMP", png.Length < 800 * 600,
+                          png.Length + " bytes against " + (800 * 600 * 3) + " of the raw BMP");
 
                 double[] after = Orientation(view);
-                Check("fotografia: l'orientamento di chi lavora e' tornato com'era",
+                Check("photograph: the orientation of the person working came back as it was",
                       SameOrientation(before, after),
-                      before == null ? "non leggibile" : "16 numeri confrontati");
+                      before == null ? "unreadable" : "16 numbers compared");
 
                 // ── THE RED CASE ─────────────────────────────────────────
                 var q = new object[] { doc, "assonometrica-della-nonna", 800, 600, null };
                 var nothing = fire.Invoke(null, q) as byte[];
                 string why = q[4] as string;
-                Check("fotografia: una vista inventata e' rifiutata, coi nomi veri",
+                Check("photograph: an invented view is refused, with the real names",
                       nothing == null && why != null &&
                       why.IndexOf("isometric", StringComparison.OrdinalIgnoreCase) >= 0,
                       nothing != null
-                          ? "ha scattato lo stesso"
+                          ? "it took the shot all the same"
                           : Short(why));
 
                 // ── NO GARBAGE IN THE TEMP FOLDER ────────────────────────
                 int temporaryAfter = TemporaryFiles(model);
-                Check("fotografia: nessun file lasciato nella temporanea",
+                Check("photograph: no file left in the temp folder",
                       temporaryAfter <= temporaryBefore,
                       temporaryBefore + " prima, " + temporaryAfter + " dopo");
             }
@@ -2340,7 +2340,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestFeatureCap()
         {
             Console.WriteLine();
-            Console.WriteLine("=== il tetto sulle lavorazioni (E12) ===");
+            Console.WriteLine("=== the ceiling on features (E12) ===");
 
             const int HowMany = 85;      // the ceiling is 80: five must stay out
             const int Cap = 80;
@@ -2357,7 +2357,7 @@ namespace Oce.Solid.Agent.Bench
                     ["thickness_mm"] = 8.0,
                     ["centered"] = true,
                 }, out error);
-                if (measurements == null) { Check("tetto: la barra", false, Short(error)); return; }
+                if (measurements == null) { Check("ceiling: the bar", false, Short(error)); return; }
 
                 // The cuts, one per run. The top face is found again from the
                 // state every time: it is what whoever draws would do, and no
@@ -2381,7 +2381,7 @@ namespace Oce.Solid.Agent.Bench
                     if (m == null) break;
                     done++;
                 }
-                Check("tetto: " + HowMany + " lavorazioni costruite", done == HowMany,
+                Check("ceiling: " + HowMany + " features built", done == HowMany,
                       done + " su " + HowMany + (done < HowMany ? " -- " + Short(error) : ""));
                 if (done < HowMany) return;
 
@@ -2397,10 +2397,10 @@ namespace Oce.Solid.Agent.Bench
                     ? Convert.ToInt32(final["feature_not_listed"]) : 0;
                 bool truncated = final.ContainsKey("truncated") &&
                                 Convert.ToBoolean(final["truncated"]);
-                Check("tetto: dichiarato",
+                Check("ceiling: declared",
                       totali == HowMany + 1 && outside == HowMany + 1 - Cap && truncated,
-                      "elencate " + inList + ", totali " + totali + ", fuori " + outside +
-                      ", troncato " + truncated);
+                      "listed " + inList + ", total " + totali + ", outside " + outside +
+                      ", truncated " + truncated);
 
                 // 2. AND THE ONE THAT COUNTS: THE LAST ONE IS THERE.
                 //
@@ -2418,9 +2418,9 @@ namespace Oce.Solid.Agent.Bench
                     if (u != null && u.ContainsKey("uid")) last = Convert.ToString(u["uid"]);
                     if (p != null && p.ContainsKey("uid")) before = Convert.ToString(p["uid"]);
                 }
-                Check("tetto: nell'elenco c'e' l'ULTIMA creata, non la prima",
+                Check("ceiling: the LAST one created is in the list, not the first",
                       last != null && last.EndsWith(HowMany.ToString()),
-                      "prima elencata: " + (before ?? "?") + ", ultima: " + (last ?? "?"));
+                      "first listed: " + (before ?? "?") + ", last: " + (last ?? "?"));
 
                 // 3. AND THE EXTRUSION, which is the OLDEST, is no longer there.
                 bool cAreTheOldOnes = false;
@@ -2432,11 +2432,11 @@ namespace Oce.Solid.Agent.Bench
                             Convert.ToString(d["uid"]).StartsWith("Estrusione"))
                         { cAreTheOldOnes = true; break; }
                     }
-                Check("tetto: la piu' vecchia e' stata scartata", !cAreTheOldOnes,
-                      cAreTheOldOnes ? "l'estrusione c'e' ancora: si tengono le prime"
-                                     : "l'estrusione non c'e' piu', come deve");
+                Check("ceiling: the oldest was discarded", !cAreTheOldOnes,
+                      cAreTheOldOnes ? "the extrusion is still there: the first ones are kept"
+                                     : "the extrusion is no longer there, as it should be");
             }
-            catch (Exception ex) { Check("tetto sulle lavorazioni", false, Why(ex)); }
+            catch (Exception ex) { Check("ceiling on features", false, Why(ex)); }
             finally { Close(doc); }
         }
 
@@ -2671,7 +2671,7 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         private static string Why(Exception ex)
         {
-            if (ex == null) return "(nessuna eccezione)";
+            if (ex == null) return "(no exception)";
             while (ex is TargetInvocationException && ex.InnerException != null)
                 ex = ex.InnerException;
 
@@ -2687,7 +2687,7 @@ namespace Oce.Solid.Agent.Bench
 
         private static string Short(string s)
         {
-            if (string.IsNullOrEmpty(s)) return "(nessun motivo)";
+            if (string.IsNullOrEmpty(s)) return "(no reason)";
             s = s.Replace("\r", " ").Replace("\n", " ");
             return s.Length > 110 ? s.Substring(0, 110) + "..." : s;
         }
@@ -2783,7 +2783,7 @@ namespace Oce.Solid.Agent.Bench
                     var copy = Path.Combine(folder, Path.GetFileName(its));
                     File.Copy(its, copy, true);
                     arrival = copy;
-                    Console.WriteLine("  modello copiato in locale: " +
+                    Console.WriteLine("  model copied locally: " +
                                       Path.GetFileName(its) + " -> " + folder);
                 }
             }
@@ -2810,8 +2810,8 @@ namespace Oce.Solid.Agent.Bench
 
                 if (old != null)
                 {
-                    Console.WriteLine("  non ho potuto rinfrescare il modello (" +
-                                      ex.Message + "): uso la copia locale del " +
+                    Console.WriteLine("  I could not refresh the model (" +
+                                      ex.Message + "): I use the local copy of the " +
                                       File.GetLastWriteTime(old)
                                           .ToString("d/M/yyyy HH:mm"));
                     arrival = old;
@@ -2820,8 +2820,8 @@ namespace Oce.Solid.Agent.Bench
                 {
                     // ONE DOES NOT KEEP QUIET. A run that reads from the network and does not say so
                     // is a run that tomorrow will hang without explanations.
-                    Console.WriteLine("  NON ho potuto copiare il modello in locale (" +
-                                      ex.Message + "): uso quello di rete, " + its);
+                    Console.WriteLine("  I could NOT copy the model locally (" +
+                                      ex.Message + "): I use the network one, " + its);
                     arrival = its;
                 }
             }
@@ -2890,8 +2890,8 @@ namespace Oce.Solid.Agent.Bench
                     Console.WriteLine();
                     Console.WriteLine(new string('!', 76));
                     Console.WriteLine(report);
-                    Console.WriteLine("GIRO NON VALIDO: si e' fermato qui, e " +
-                                      "quello che viene dopo non e' stato provato.");
+                    Console.WriteLine("INVALID RUN: it stopped here, and " +
+                                      "what comes after was not tried.");
                     Console.WriteLine(new string('!', 76));
                     Console.Out.Flush();
                     Log(report);
@@ -2919,7 +2919,7 @@ namespace Oce.Solid.Agent.Bench
             // THIS IS WHERE IT HUNG ON 23/9/2026, not inside an
             // operation: `NewDocument` reading the template from a
             // network share. The leash serves above all here.
-            Leash.Begin("NewDocument (il modello di documento)", DateTime.Now);
+            Leash.Begin("NewDocument (the document template)", DateTime.Now);
             IModelDoc2 born;
             try
             {
@@ -2937,7 +2937,7 @@ namespace Oce.Solid.Agent.Bench
             // One or two in a row: it may still be the part, not the
             // program. The message stays the one of F12.
             // IT DOES NOT RETURN NULL: if SOLIDWORKS does not open the document, it SAYS so.
-            return OrSayIt(born, "la parte nuova su cui provare");
+            return OrSayIt(born, "the new part to try on");
         }
 
         /// <summary>
@@ -2967,10 +2967,10 @@ namespace Oce.Solid.Agent.Bench
         {
             if (what != null) return what;
             throw new Shared.PreparationFailed(
-                "SOLIDWORKS non ha prodotto " + which + " (ha risposto null). " +
-                "Non e' la prova a essere fallita: e' il banco che non e' " +
-                "riuscito a preparare il pezzo. Guarda quanti documenti sono " +
-                "rimasti aperti, e rilancia.");
+                "SOLIDWORKS did not produce " + which + " (it answered null). " +
+                "It is not the check that failed: it is the bench that could not " +
+                "prepare the part. Look at how many documents were " +
+                "left open, and run again.");
         }
 
         /// <summary>
@@ -2983,15 +2983,15 @@ namespace Oce.Solid.Agent.Bench
         private static List<IFeature> ReferencePlanes(IModelDoc2 doc)
         {
             var tree = OrSayIt(doc.FeatureManager.GetFeatures(false) as object[],
-                                     "l'albero delle feature del documento");
+                                     "the document's feature tree");
             var planes = tree
                 .Select(o => o as IFeature)
                 .Where(f => { try { return f.GetTypeName2() == "RefPlane"; } catch { return false; } })
                 .ToList();
             if (planes.Count == 0)
                 throw new InvalidOperationException(
-                    "il documento non ha nessun piano di riferimento: il modello " +
-                    "di parte predefinito non e' quello che il banco si aspetta.");
+                    "the document has no reference plane: the default part " +
+                    "template is not what the bench expects.");
             return planes;
         }
 

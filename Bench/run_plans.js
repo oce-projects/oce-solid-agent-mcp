@@ -36,7 +36,7 @@ const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 const cliArgs = process.argv.slice(2);
 const cleanFlag = cliArgs.includes("--pulisci");
 const planes = cliArgs.filter(a => a !== "--pulisci");
-if (!planes.length) { console.error("dammi i piani"); process.exit(2); }
+if (!planes.length) { console.error("give me the plans"); process.exit(2); }
 
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -77,8 +77,8 @@ function resolvePlaceholder(text) {
 // finds out now with a sentence, instead of in ten minutes with an error.
 const PROFILES = process.env.PROFILI_SALDATURA;
 if (!PROFILES) {
-  console.error("PROFILI_SALDATURA non e' impostata: non so dove sia la libreria");
-  console.error("dei profili normati, e non c'e' un percorso predefinito.");
+  console.error("PROFILI_SALDATURA is not set: I do not know where the library");
+  console.error("of standard profiles is, and there is no default path.");
   console.error('    setx PROFILI_SALDATURA "<la cartella dei .SLDLFP>"');
   process.exit(2);
 }
@@ -103,8 +103,8 @@ function prepareFolder() {
       // know WHY those five will fail, instead of reading a message
       // that blames the path.
       console.error(
-        "  [banco] manca il profilo «" + origin + "» in " + PROFILES + "\n" +
-        "          i casi del telaio falliranno. Scavalca con PROFILI_SALDATURA.");
+        "  [bench] the profile «" + origin + "» is missing in " + PROFILES + "\n" +
+        "          the frame cases will fail. Override it with PROFILI_SALDATURA.");
       continue;
     }
     fs.copyFileSync(da, a);
@@ -166,7 +166,7 @@ function aRun(list, onThis) {
     });
     const alarm = setTimeout(() => { try { p.kill(); } catch (e) { } }, 30 * 60 * 1000);
     p.on("exit", c => {
-      console.log("\nponte chiuso: " + c);
+      console.log("\nbridge closed: " + c);
       resolve(initialState);
     });
     requests.forEach(r => p.stdin.write(JSON.stringify(r) + "\n"));
@@ -195,7 +195,7 @@ async function main() {
     // Who was there before. An empty run, only to read the state.
     const docState = await aRun([], null);
     toSpare = openTitles(docState);
-    console.log("documenti gia' aperti, che non tocchiamo: " +
+    console.log("documents already open, which we do not touch: " +
                 (toSpare.length ? toSpare.join(", ") : "none"));
   }
 
@@ -226,17 +226,17 @@ async function main() {
 
   if (times.length > 1) {
     console.log("");
-    console.log("=== I tempi, in ordine di esecuzione");
+    console.log("=== The timings, in order of execution");
     times.forEach((t, i) =>
       console.log("  " + String(i + 1).padStart(3) + ". " +
                   t.piano.padEnd(28) + t.secondi.toFixed(1) + " s"));
     const first = times.slice(0, 3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, times.length);
     const last = times.slice(-3).reduce((a, t) => a + t.secondi, 0) / Math.min(3, times.length);
-    console.log("  primi tre: " + first.toFixed(1) + " s di media" +
-                "   ultimi tre: " + last.toFixed(1) + " s");
+    console.log("  first three: " + first.toFixed(1) + " s on average" +
+                "   last three: " + last.toFixed(1) + " s");
     console.log(last > first * 1.3
-      ? "  -> IL BANCO RALLENTA SE STESSO: i tempi crescono."
-      : "  -> i tempi non crescono.");
+      ? "  -> THE BENCH IS SLOWING ITSELF DOWN: the times are growing."
+      : "  -> the times are not growing.");
   }
 
   if (cleanFlag) cleanUp(toSpare, true);
@@ -252,7 +252,7 @@ function cleanUp(toSpare, tellIt) {
   // remain. The rest is the list, and in a report of fifty cases it
   // would be noise.
   output.split(/\r?\n/)
-    .filter(r => /^chiusi:|^documenti aperti adesso:/.test(r))
+    .filter(r => /^closed:|^open documents now:/.test(r))
     .forEach(r => console.log("  " + r));
 }
 

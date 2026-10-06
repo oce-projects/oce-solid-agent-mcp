@@ -27,7 +27,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestOrphanDimensions()
         {
             Console.WriteLine();
-            Console.WriteLine("=== orfane: la quota che resta senza spigolo (Z-A2) ===");
+            Console.WriteLine("=== orphans: the dimension left without an edge (Z-A2) ===");
             IModelDoc2 part = null, drawing = null;
             string file = Path.Combine(Expectations.Work, "orfane_banco.sldprt");
             bool asked = true, off = false;
@@ -37,14 +37,14 @@ namespace Oce.Solid.Agent.Bench
                 // Two extrusions from the TOP plane, taken by position and not
                 // by name: the name changes with the language of the installation.
                 if (Extrusion(part, 0, 0, 0.100, 0.060, 0.010) == null)
-                { BenchError("orfane", "la piastra non e' venuta"); return; }
+                { BenchError("orfane", "the plate did not come out"); return; }
                 var block = Extrusion(part, 0.040, 0.020, 0.060, 0.040, 0.020);
-                if (block == null) { BenchError("orfane", "il blocco non e' venuto"); return; }
+                if (block == null) { BenchError("orfane", "the block did not come out"); return; }
 
                 try { if (File.Exists(file)) File.Delete(file); } catch { }
                 int e = 0, w = 0;
                 part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref e, ref w);
-                if (!File.Exists(file)) { BenchError("orfane", "il pezzo non si salva (e=" + e + ")"); return; }
+                if (!File.Exists(file)) { BenchError("orfane", "the part cannot be saved (e=" + e + ")"); return; }
 
                 string error;
                 Run(part, "create_drawing", new Dictionary<string, object> { ["paper_size"] = "A3" },
@@ -71,14 +71,14 @@ namespace Oce.Solid.Agent.Bench
                         Math.Abs(Math.Abs(b[0] - a[0]) - 0.020) < 1e-6 && Math.Abs(b[2] - a[2]) < 1e-6)
                         index = i;
                 }
-                if (index < 0) { BenchError("orfane", "fra gli spigoli visibili non trovo quello alto del blocco"); return; }
+                if (index < 0) { BenchError("orfane", "among the visible edges I cannot find the top one of the block"); return; }
 
                 var dimension = Run(drawing, "drawing_dimension",
                     new Dictionary<string, object> { ["edges"] = new object[] { index } }, out error);
                 if (dimension == null) { BenchError("orfane", "drawing_dimension: " + error); return; }
 
                 var before = ReadState(drawing);
-                Check("orfane: la quota appena messa sullo spigolo del blocco NON e' orfana",
+                Check("orphans: the dimension just put on the block's edge is NOT an orphan",
                       Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(manca)") == "0",
                       "dimensions_orphan_total " + Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(manca)"));
 
@@ -90,10 +90,10 @@ namespace Oce.Solid.Agent.Bench
                 drawing.ForceRebuild3(false);
                 var after = ReadState(drawing);
                 object orf = after.ContainsKey("dimensions_orphan_total") ? after["dimensions_orphan_total"] : "(manca)";
-                Check("orfane: soppresso il blocco, lo stato dice UNA quota orfana, e lo avvisa",
+                Check("orphans: with the block suppressed, the state says ONE orphan dimension, and warns about it",
                       suppressed && Convert.ToString(orf) == "1" && after.ContainsKey("warning_dimensions"),
-                      "soppresso " + suppressed + ", dimensions_orphan_total " + Convert.ToString(orf) +
-                      ", avviso " + (after.ContainsKey("warning_dimensions") ? "si'" : "no"));
+                      "suppressed " + suppressed + ", dimensions_orphan_total " + Convert.ToString(orf) +
+                      ", warning " + (after.ContainsKey("warning_dimensions") ? "yes" : "no"));
             }
             catch (Exception ex) { BenchError("orfane", Why(ex)); }
             finally

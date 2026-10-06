@@ -177,7 +177,7 @@ function check(itemName, ok, detail) {
 }
 
 function shorter(s) {
-  if (!s) return "(niente)";
+  if (!s) return "(nothing)";
   const one = s.replace(/[\r\n]+/g, " ");
   return one.length > 150 ? one.slice(0, 150) + "..." : one;
 }
@@ -191,7 +191,7 @@ function stepsError(data) {
 
 async function plane(itemName, steps) {
   const r = spawnSync(NEW, [], { encoding: "utf8" });
-  if (r.status !== 0) { check(itemName, false, "parte nuova non creata"); return null; }
+  if (r.status !== 0) { check(itemName, false, "new part not created"); return null; }
   await invoke("inspect_part");
   return await invoke("build", { steps: steps });
 }
@@ -204,38 +204,38 @@ async function plane(itemName, steps) {
   warn("notifications/initialized");
 
   console.log("");
-  console.log("=== hole_face: un foro si', un raccordo no (E14) ===");
+  console.log("=== hole_face: a hole yes, a fillet no (E14) ===");
   console.log("");
 
   // ── RED 1 ──────────────────────────────────────────────────────────────
-  const a = await plane("ROSSO 1", FILLET_IS_NOT_HOLE);
+  const a = await plane("RED 1", FILLET_IS_NOT_HOLE);
   if (a) {
     const why = stepsError(a.dati);
-    check("ROSSO: «la parete del foro» di un RACCORDO e' rifiutata",
-          a.errore && /convess/i.test(why),
-          a.errore ? shorter(why) : "NON ha rifiutato: ha preso la faccia del raccordo");
+    check("RED: «the hole wall» of a FILLET is refused",
+          a.errore && /convex/i.test(why),
+          a.errore ? shorter(why) : "did NOT refuse: it took the fillet's face");
   }
 
   // ── GREEN ──────────────────────────────────────────────────────────────
   const b = await plane("VERDE", THE_HOLE_IS_PICKED);
   if (b) {
-    check("un foro vero, uno solo, si prende",
+    check("a real hole, only one, is taken",
           !b.errore,
           b.errore ? shorter(stepsError(b.dati)) :
                      "volume " + (b.dati || {}).volume_after_mm3);
   }
 
   // ── RED 2 ──────────────────────────────────────────────────────────────
-  const c = await plane("ROSSO 2", MULTIPLE_WALLS);
+  const c = await plane("RED 2", MULTIPLE_WALLS);
   if (c) {
     const why = stepsError(c.dati);
-    check("ROSSO: piu' pareti di foro, «la» parete non esiste",
-          c.errore && /pareti di foro/i.test(why),
-          c.errore ? shorter(why) : "NON ha rifiutato: ne ha scelta una a caso");
+    check("RED: several hole walls, «the» wall does not exist",
+          c.errore && /hole walls/i.test(why),
+          c.errore ? shorter(why) : "did NOT refuse: it chose one at random");
   }
 
   console.log("");
-  console.log(failed === 0 ? "Tutto torna." : failed + " prove fallite.");
+  console.log(failed === 0 ? "Everything adds up." : failed + " checks failed.");
   bridge.stdin.end();
   process.exitCode = failed === 0 ? 0 : 1;
 })();

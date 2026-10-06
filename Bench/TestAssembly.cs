@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestTheTestAssembly()
         {
             Console.WriteLine();
-            Console.WriteLine("=== il banco sa preparare un assieme (GA0) ===");
+            Console.WriteLine("=== the bench can prepare an assembly (GA0) ===");
 
             var testCase = new Dictionary<string, object>
             {
@@ -113,22 +113,22 @@ namespace Oce.Solid.Agent.Bench
 
                 var ass = p.Document as IAssemblyDoc;
                 int howMany = ass == null ? -1 : HowManyComponents(ass);
-                Check("l'assieme nasce con due componenti", howMany == 2,
+                Check("the assembly is born with two components", howMany == 2,
                       howMany + " componenti");
 
                 int thereAre = 0;
                 foreach (var f in file) if (File.Exists(f)) thereAre++;
-                Check("i file dei componenti ci sono, mentre servono",
+                Check("the component files are there, while they are needed",
                       thereAre == file.Count, thereAre + " su " + file.Count);
             }
             finally { ThrowAwayPreparation(p); }
 
             int remained = 0;
             foreach (var f in file) if (File.Exists(f)) remained++;
-            Check("dopo, in «lavoro» non resta niente", remained == 0,
+            Check("afterwards, nothing is left in «lavoro»", remained == 0,
                   remained == 0
                       ? file.Count + " file cancellati"
-                      : remained + " file rimasti: il giro dopo li troverebbe gia' li'");
+                      : remained + " files left: the next run would already find them there");
         }
 
         /// <summary>A component: a plate, with its position.</summary>
@@ -224,8 +224,8 @@ namespace Oce.Solid.Agent.Bench
             var components = Items(assemblyDoc, "components");
             if (components == null || components.Count == 0)
             {
-                BenchError(itemName, "«assembly» non porta nessun componente: un " +
-                                    "assieme vuoto non prova niente");
+                BenchError(itemName, "«assembly» carries no component: an " +
+                                    "empty assembly proves nothing");
                 return null;
             }
 
@@ -302,7 +302,7 @@ namespace Oce.Solid.Agent.Bench
                 var c = components[i] as Dictionary<string, object>;
                 if (c == null)
                 {
-                    BenchError(itemName, "il componente " + (i + 1) + " non e' un oggetto");
+                    BenchError(itemName, "component " + (i + 1) + " is not an object");
                     return null;
                 }
                 string ownName = Text(c, "name") ?? ("comp" + (i + 1));
@@ -320,7 +320,7 @@ namespace Oce.Solid.Agent.Bench
                                           FileName(itemName) + "_" + FileName(ownName), children, filePath, outside))
                         return null;
                 }
-                else if (!BuildAndSave(itemName + " · componente «" + ownName + "»", c, filePath))
+                else if (!BuildAndSave(itemName + " · component «" + ownName + "»", c, filePath))
                     return null;
 
                 Register(outside, filePath);
@@ -335,7 +335,7 @@ namespace Oce.Solid.Agent.Bench
             try { doc = NewAssembly(); }
             catch (Exception ex)
             {
-                BenchError(itemName, "l'assieme nuovo su cui provare: " + Why(ex));
+                BenchError(itemName, "the new assembly to test on: " + Why(ex));
                 ThrowAwayFiles(outside);
                 return null;
             }
@@ -344,8 +344,8 @@ namespace Oce.Solid.Agent.Bench
             var ass = doc as IAssemblyDoc;
             if (ass == null)
             {
-                BenchError(itemName, "il documento nuovo non e' un IAssemblyDoc: " +
-                                    "il modello di assieme predefinito non e' un assieme");
+                BenchError(itemName, "the new document is not an IAssemblyDoc: " +
+                                    "the default assembly template is not an assembly");
                 return null;
             }
 
@@ -379,9 +379,9 @@ namespace Oce.Solid.Agent.Bench
                 }
                 if (inserted == null)
                 {
-                    BenchError(itemName, "AddComponent5 ha risposto null su «" +
-                                        Path.GetFileName(paths[i]) + "»: il componente " +
-                                        "non e' entrato, e nessuno lo direbbe piu' avanti");
+                    BenchError(itemName, "AddComponent5 answered null on «" +
+                                        Path.GetFileName(paths[i]) + "»: the component " +
+                                        "did not get in, and nobody would notice later");
                     return null;
                 }
             }
@@ -398,8 +398,8 @@ namespace Oce.Solid.Agent.Bench
             int howMany = HowManyComponents(ass);
             if (howMany != paths.Count)
             {
-                BenchError(itemName, "ho inserito " + paths.Count + " componenti e " +
-                                    "l'assieme ne ha " + howMany);
+                BenchError(itemName, "I inserted " + paths.Count + " components and " +
+                                    "the assembly has " + howMany);
                 return null;
             }
 
@@ -979,8 +979,8 @@ namespace Oce.Solid.Agent.Bench
             }
             catch { remain = -1; }
             if (remain > 0)
-                Console.WriteLine("       | smontaggio: restano " + remain +
-                                  " documenti aperti");
+                Console.WriteLine("       | teardown: " + remain +
+                                  " documents remain open");
 
             ThrowAwayFiles(p);
         }
@@ -1009,8 +1009,8 @@ namespace Oce.Solid.Agent.Bench
             var steps = Items(component, "steps");
             if (steps == null || steps.Count == 0)
             {
-                BenchError(label, "manca «steps»: un componente senza " +
-                                         "lavorazioni sarebbe un documento vuoto");
+                BenchError(label, "«steps» is missing: a component without " +
+                                         "features would be an empty document");
                 return false;
             }
 
@@ -1024,13 +1024,13 @@ namespace Oce.Solid.Agent.Bench
                     var planStep = steps[i] as Dictionary<string, object>;
                     if (planStep == null)
                     {
-                        BenchError(label, "il passo " + (i + 1) + " non e' un oggetto");
+                        BenchError(label, "step " + (i + 1) + " is not an object");
                         return false;
                     }
                     string operation = Text(planStep, "operation");
                     if (operation == null)
                     {
-                        BenchError(label, "al passo " + (i + 1) + " manca «operation»");
+                        BenchError(label, "step " + (i + 1) + " is missing «operation»");
                         return false;
                     }
                     object rawItems;
@@ -1047,8 +1047,8 @@ namespace Oce.Solid.Agent.Bench
                         // never existed: calling it «failed» would make one look
                         // for the defect in the assembly operation, which was not
                         // even called.
-                        BenchError(label, "il passo " + (i + 1) + " («" + operation +
-                                                 "») e' stato rifiutato: " + Expectations.Short(error));
+                        BenchError(label, "step " + (i + 1) + " («" + operation +
+                                                 "») was refused: " + Expectations.Short(error));
                         return false;
                     }
                     docState = ReadState(doc);
@@ -1061,8 +1061,8 @@ namespace Oce.Solid.Agent.Bench
                 // done; the only proof that the file is there is that it is there.
                 if (!File.Exists(filePath))
                 {
-                    BenchError(label, "salvato senza errori (e=" + e + ", w=" + w +
-                                             ") ma «" + filePath + "» non c'e'");
+                    BenchError(label, "saved without errors (e=" + e + ", w=" + w +
+                                             ") but «" + filePath + "» is not there");
                     return false;
                 }
                 return true;
@@ -1265,7 +1265,7 @@ namespace Oce.Solid.Agent.Bench
                 throw new Shared.PreparationFailed(Program.Sentinel.Report());
 
             return OrSayIt(born,
-                               "l'assieme nuovo su cui provare");
+                               "the new assembly to test on");
         }
 
         private static bool Open(string filePath, string itemName)
@@ -1282,16 +1282,16 @@ namespace Oce.Solid.Agent.Bench
                     (int)swOpenDocOptions_e.swOpenDocOptions_Silent, "", ref e, ref w);
                 if (d == null)
                 {
-                    BenchError(itemName, "non riesco a riaprire «" +
+                    BenchError(itemName, "cannot reopen «" +
                                         Path.GetFileName(filePath) + "» (e=" + e + ", w=" + w +
-                                        "): AddComponent5 vuole un documento gia' aperto");
+                                        "): AddComponent5 needs a document that is already open");
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                BenchError(itemName, "riaprendo «" + Path.GetFileName(filePath) + "»: " + Why(ex));
+                BenchError(itemName, "reopening «" + Path.GetFileName(filePath) + "»: " + Why(ex));
                 return false;
             }
         }

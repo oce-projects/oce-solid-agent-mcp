@@ -132,7 +132,7 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>A long text, shortened to fit on one outcome line.</summary>
         internal static string Short(string s)
         {
-            if (string.IsNullOrEmpty(s)) return "(nessun motivo)";
+            if (string.IsNullOrEmpty(s)) return "(no reason)";
             s = s.Replace("\r", " ").Replace("\n", " ");
             return s.Length > 110 ? s.Substring(0, 110) + "..." : s;
         }
@@ -147,7 +147,7 @@ namespace Oce.Solid.Agent.Bench
         {
             detail = "";
             string what = Text(expectation, "what");
-            if (what == null) throw new CouldNotMeasure("un'attesa senza «what»");
+            if (what == null) throw new CouldNotMeasure("an expectation without «what»");
 
             // ── WHEN THE MEASUREMENT IS A SENTENCE ────────────────────────
             //
@@ -164,12 +164,12 @@ namespace Oce.Solid.Agent.Bench
             if (includes || doesNotContain)
             {
                 if (expectation.ContainsKey("equal_to"))
-                    throw new CouldNotMeasure("«" + what + "» ha «equal_to» insieme a " +
-                                        "«includes»/«does_not_include»: decidi quale dei due");
+                    throw new CouldNotMeasure("«" + what + "» has «equal_to» together with " +
+                                        "«includes»/«does_not_include»: decide which of the two");
                 return Sentence(what, expectation, fromDocument, docState, measurements, out detail);
             }
 
-            if (!expectation.ContainsKey("equal_to")) throw new CouldNotMeasure("«" + what + "» senza «equal_to»");
+            if (!expectation.ContainsKey("equal_to")) throw new CouldNotMeasure("«" + what + "» without «equal_to»");
 
             double tolerance = 0;
             if (expectation.ContainsKey("tolerance") && expectation["tolerance"] != null)
@@ -179,9 +179,9 @@ namespace Oce.Solid.Agent.Bench
                 // tolerance without a reason is the place where one day somebody
                 // will widen the number instead of looking at the part.
                 if (Math.Abs(tolerance) > 1e-12 && Text(expectation, "tolerance_why") == null)
-                    throw new CouldNotMeasure("«" + what + "» ha tolleranza " +
+                    throw new CouldNotMeasure("«" + what + "» has tolerance " +
                                         tolerance.ToString(CultureInfo.InvariantCulture) +
-                                        " e non dice «tolerance_why»");
+                                        " and does not say «tolerance_why»");
             }
 
             object measured = Measure(what, fromDocument, docState, measurements);
@@ -206,14 +206,14 @@ namespace Oce.Solid.Agent.Bench
                     var measuredList = measured as System.Collections.IEnumerable;
                     if (measuredList == null || measured is string)
                     {
-                        detail = what + " non e' un elenco: " + WhatWas(measured);
+                        detail = what + " is not a list: " + WhatWas(measured);
                         return false;
                     }
                     var q = new List<string>();
                     foreach (var x in expectedList) q.Add(HowItIsWritten(x));
                     var r = new List<string>();
                     foreach (var x in measuredList) r.Add(HowItIsWritten(x));
-                    detail = what + " [" + string.Join(", ", r) + "] (atteso [" +
+                    detail = what + " [" + string.Join(", ", r) + "] (expected [" +
                                 string.Join(", ", q) + "])";
                     if (q.Count != r.Count) return false;
                     for (int i = 0; i < q.Count; i++)
@@ -224,7 +224,7 @@ namespace Oce.Solid.Agent.Bench
                 var measuredValues = Numbers(measured as System.Collections.IEnumerable);
                 if (measuredValues == null)
                 {
-                    detail = what + " non e' un elenco di numeri: " + WhatWas(measured);
+                    detail = what + " is not a list of numbers: " + WhatWas(measured);
                     return false;
                 }
                 detail = what + " " + Set(measuredValues) + " (atteso " + Set(expectedValues) +
@@ -246,11 +246,11 @@ namespace Oce.Solid.Agent.Bench
                     !double.TryParse(Convert.ToString(measured, CultureInfo.InvariantCulture),
                                      NumberStyles.Any, CultureInfo.InvariantCulture, out measuredNumber))
                 {
-                    detail = what + " non e' un numero: " + WhatWas(measured);
+                    detail = what + " is not a number: " + WhatWas(measured);
                     return false;
                 }
                 detail = string.Format(CultureInfo.InvariantCulture,
-                    "{0} {1:0.###} (atteso {2:0.###}{3})", what, measuredNumber, expectedNumber,
+                    "{0} {1:0.###} (expected {2:0.###}{3})", what, measuredNumber, expectedNumber,
                     tolerance > 0 ? " ±" + tolerance.ToString(CultureInfo.InvariantCulture) : "");
                 return Math.Abs(measuredNumber - expectedNumber) <= tolerance;
             }
@@ -258,7 +258,7 @@ namespace Oce.Solid.Agent.Bench
             // Everything else is compared as text: «material», a boolean.
             string a = Convert.ToString(expected, CultureInfo.InvariantCulture);
             string m = Convert.ToString(measured, CultureInfo.InvariantCulture);
-            detail = what + " «" + m + "» (atteso «" + a + "»)";
+            detail = what + " «" + m + "» (expected «" + a + "»)";
             return string.Equals(a, m, StringComparison.Ordinal);
         }
 
@@ -282,7 +282,7 @@ namespace Oce.Solid.Agent.Bench
             object measured = Measure(what, fromDocument, docState, measurements);
             if (measured == null)
             {
-                detail = what + " non c'e': una frase assente non e' una frase vuota";
+                detail = what + " is missing: an absent phrase is not an empty phrase";
                 return false;
             }
 
@@ -323,9 +323,9 @@ namespace Oce.Solid.Agent.Bench
                 return true;
             }
             detail = what +
-                (areMissing.Count > 0 ? " non dice " + string.Join(", ", areMissing) : "") +
+                (areMissing.Count > 0 ? " does not say " + string.Join(", ", areMissing) : "") +
                 (areMissing.Count > 0 && tooMuch.Count > 0 ? ", e" : "") +
-                (tooMuch.Count > 0 ? " dice ancora " + string.Join(", ", tooMuch) : "") +
+                (tooMuch.Count > 0 ? " still says " + string.Join(", ", tooMuch) : "") +
                 ": " + Short(sentence);
             return false;
         }
@@ -406,8 +406,8 @@ namespace Oce.Solid.Agent.Bench
             foreach (var x in list)
                 outside.Add(Convert.ToString(x, CultureInfo.InvariantCulture));
             if (outside.Count == 0)
-                throw new CouldNotMeasure("«" + theField + "» e' un elenco vuoto: " +
-                                    "non chiede niente, e passerebbe sempre");
+                throw new CouldNotMeasure("«" + theField + "» is an empty list: " +
+                                    "it asks for nothing, and would always pass");
             return outside;
         }
 
@@ -435,7 +435,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (fromDocument == null)
                     throw new CouldNotMeasure(
-                        "«" + what + "» si misura sul documento, e qui non ce n'e' uno");
+                        "«" + what + "» is measured on the document, and there is none here");
                 return fromDocument(what);
             }
             if (what.StartsWith("state.", StringComparison.Ordinal))
@@ -461,7 +461,7 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         internal static string HowItIsWritten(object v)
         {
-            if (v == null) return "(niente)";
+            if (v == null) return "(nothing)";
             if (v is string) return (string)v;
 
             var dictionary = v as Dictionary<string, object>;
@@ -523,20 +523,20 @@ namespace Oce.Solid.Agent.Bench
             }
 
             if (different == 0)
-            { why = "e' identica al rifiuto: non e' una gemella, e' una copia"; return false; }
+            { why = "is identical to the refusal: it is not a twin, it is a copy"; return false; }
 
             if (equal == 0 && keys.Count > 1)
             {
-                why = "non ha nemmeno un argomento in comune col rifiuto: " +
-                         "sono due operazioni che non si parlano";
+                why = "does not even have one argument in common with the refusal: " +
+                         "they are two operations that do not talk to each other";
                 return false;
             }
 
-            why = "stessa operazione, differisce per " + different +
-                     (different == 1 ? " argomento (" : " argomenti (") +
+            why = "same operation, differs by " + different +
+                     (different == 1 ? " argument (" : " arguments (") +
                      string.Join(", ", whichOnes) + ")";
             if (equal == 0)
-                why += ", che e' l'unico che questa operazione prende";
+                why += ", which is the only one this operation takes";
             return true;
         }
 
@@ -578,21 +578,21 @@ namespace Oce.Solid.Agent.Bench
         {
             if (string.IsNullOrWhiteSpace(declaration))
             {
-                why = "«" + DifferenceInPartField + "» e' vuoto: deve dire cosa cambia nel pezzo " +
-                         "fra il rifiuto e la gemella";
+                why = "«" + DifferenceInPartField + "» is empty: it must say what changes in the part " +
+                         "between the refusal and the twin";
                 return false;
             }
 
             string onArguments;
             if (Resemble(mine, itsItems, out onArguments))
             {
-                why = "dichiara che la differenza e' il pezzo, ma gli argomenti differiscono gia' (" +
-                         onArguments + "): la regola normale basta, togli «" + DifferenceInPartField + "»";
+                why = "declares that the difference is the part, but the arguments already differ (" +
+                         onArguments + "): the normal rule is enough, remove «" + DifferenceInPartField + "»";
                 return false;
             }
-            if (onArguments.IndexOf("copia", StringComparison.Ordinal) < 0)
+            if (onArguments.IndexOf("copy", StringComparison.Ordinal) < 0)
             {
-                why = "dichiara che la differenza e' il pezzo, ma gli argomenti non sono gli stessi: " +
+                why = "declares that the difference is the part, but the arguments are not the same: " +
                          onArguments;
                 return false;
             }
@@ -607,12 +607,12 @@ namespace Oce.Solid.Agent.Bench
             }
             if (firstDifferent < 0)
             {
-                why = "stessi argomenti E stesso pezzo (i " + myOwn.Count + " passi prima sono uguali): " +
-                         "non e' una gemella, e' una copia";
+                why = "same arguments AND same part (the " + myOwn.Count + " steps before are equal): " +
+                         "it is not a twin, it is a copy";
                 return false;
             }
 
-            why = "stessi argomenti, pezzo diverso dal passo " + (firstDifferent + 1) + " (" +
+            why = "same arguments, part different from step " + (firstDifferent + 1) + " (" +
                      declaration.Trim() + ")";
             return true;
         }
@@ -650,8 +650,8 @@ namespace Oce.Solid.Agent.Bench
                 var map = here as Dictionary<string, object>;
                 if (map == null)
                     throw new CouldNotMeasure(
-                        "campo assente: " + fullName + "; «" + key +
-                        "» andrebbe cercato dentro qualcosa che non e' un oggetto");
+                        "missing field: " + fullName + "; «" + key +
+                        "» would have to be looked for inside something that is not an object");
 
                 // THE KEY THAT IS NOT THERE AND A NULL VALUE ARE NOT THE SAME
                 // THING, and it is the whole of entry F4. `material: null` means
@@ -660,7 +660,7 @@ namespace Oce.Solid.Agent.Bench
                 // and a `null` compared with a `null` would pass.
                 if (!map.ContainsKey(key))
                     throw new CouldNotMeasure(
-                        "campo assente: " + fullName + "; ci sono: " +
+                        "missing field: " + fullName + "; there are: " +
                         string.Join(", ", map.Keys.OrderBy(k => k, StringComparer.Ordinal)));
                 here = map[key];
 
@@ -669,11 +669,11 @@ namespace Oce.Solid.Agent.Bench
                     var itemList = here as System.Collections.IList;
                     if (itemList == null)
                         throw new CouldNotMeasure(
-                            "campo assente: " + fullName + "; «" + key + "» non e' un elenco");
+                            "missing field: " + fullName + "; «" + key + "» is not a list");
                     if (index >= itemList.Count)
                         throw new CouldNotMeasure(
-                            "campo assente: " + fullName + "; «" + key + "» ha " +
-                            itemList.Count + " voci e il caso chiede la numero " + index);
+                            "missing field: " + fullName + "; «" + key + "» has " +
+                            itemList.Count + " entries and the case asks for number " + index);
                     here = itemList[index];
                 }
             }
@@ -714,9 +714,9 @@ namespace Oce.Solid.Agent.Bench
                 // thing it is: a missing precondition. It is said.
                 if (Profiles == null)
                     throw new CouldNotMeasure(
-                        "Questo caso nomina {PROFILI}, ma PROFILI_SALDATURA non e' " +
-                        "impostata e non c'e' un percorso predefinito. La libreria " +
-                        "dei profili e' di chi lavora, non del repository: dille dov'e'.");
+                        "This case names {PROFILI}, but PROFILI_SALDATURA is not " +
+                        "set and there is no default path. The profile library " +
+                        "belongs to the person working, not to the repository: set the variable to its folder.");
                 return text.Replace("{PROFILI}", Profiles);
             }
             // `{LAVORO}`: where a case can write a file without dirtying
@@ -733,8 +733,8 @@ namespace Oce.Solid.Agent.Bench
                 var sw = SolidWorksFolder;
                 if (sw == null)
                     throw new CouldNotMeasure(
-                        "Questo caso nomina {SOLIDWORKS}, ma non trovo la cartella di " +
-                        "installazione di SOLIDWORKS: dilla con SW_INSTALL_PATH.");
+                        "This case names {SOLIDWORKS}, but I cannot find the SOLIDWORKS " +
+                        "installation folder: give it with SW_INSTALL_PATH.");
                 return text.Replace("{SOLIDWORKS}", sw);
             }
             return raw;
@@ -767,7 +767,7 @@ namespace Oce.Solid.Agent.Bench
             if (SelectorAlias != null) expression = SelectorAlias(expression, DeprecatedSelectors);
             int opens = expression.IndexOf('(');
             if (opens < 0 || !expression.EndsWith(")", StringComparison.Ordinal))
-                throw new CouldNotMeasure("selettore storto: «" + expression + "»");
+                throw new CouldNotMeasure("malformed selector: «" + expression + "»");
             string typ = expression.Substring(1, opens - 1);
             var conditions = Conditions(expression.Substring(opens + 1, expression.Length - opens - 2));
 
@@ -791,7 +791,7 @@ namespace Oce.Solid.Agent.Bench
                 // copes with them: it opens at the FIRST and closes at the LAST.
                 case "body":   return OnlyOne(expression, "bodies", docState, conditions, "uid", Nth(expression, conditions));
                 default:
-                    throw new CouldNotMeasure("selettore sconosciuto «@" + typ + "»: ci sono " +
+                    throw new CouldNotMeasure("unknown selector «@" + typ + "»: there are " +
                                         "@face, @edge, @feature, @dimension, @body");
             }
         }
@@ -816,7 +816,7 @@ namespace Oce.Solid.Agent.Bench
                 if (t.Length == 0) continue;
                 bool circa = t.Contains("~=");
                 int equal = circa ? t.IndexOf("~=", StringComparison.Ordinal) : t.IndexOf('=');
-                if (equal < 0) throw new CouldNotMeasure("condizione senza «=»: «" + t + "»");
+                if (equal < 0) throw new CouldNotMeasure("condition without «=»: «" + t + "»");
                 outside.Add(new Condition
                 {
                     Field = t.Substring(0, equal).Trim(),
@@ -877,7 +877,7 @@ namespace Oce.Solid.Agent.Bench
             var entries = (docState != null && docState.ContainsKey(family)
                 ? docState[family] : null) as System.Collections.IList;
             if (entries == null)
-                throw new CouldNotMeasure("lo stato non ha «" + family + "»: " + expression);
+                throw new CouldNotMeasure("the state has no «" + family + "»: " + expression);
 
             var foundOnes = new List<Dictionary<string, object>>();
             foreach (var v in entries)
@@ -912,8 +912,8 @@ namespace Oce.Solid.Agent.Bench
             if (nth.HasValue)
             {
                 if (nth.Value < 1 || nth.Value > foundOnes.Count)
-                    throw new CouldNotMeasure(expression + ": ne ho trovate " + foundOnes.Count +
-                                        ", e il caso chiede la numero " + nth.Value);
+                    throw new CouldNotMeasure(expression + ": I found " + foundOnes.Count +
+                                        ", and the case asks for number " + nth.Value);
                 return Convert.ToString(foundOnes[nth.Value - 1][fieldToReturn]);
             }
 
@@ -922,11 +922,11 @@ namespace Oce.Solid.Agent.Bench
             // on a face different from the one the file name promises, and
             // that perhaps returns the same volume.
             if (foundOnes.Count == 0)
-                throw new CouldNotMeasure(expression + ": non l'ho trovata");
+                throw new CouldNotMeasure(expression + ": I did not find it");
             if (foundOnes.Count > 1)
-                throw new CouldNotMeasure(expression + ": ne ho trovate " + foundOnes.Count +
-                                    ". Sceglierne una sarebbe indovinare: aggiungi una " +
-                                    "condizione, oppure «n=» se l'ordine lo decidi tu");
+                throw new CouldNotMeasure(expression + ": I found " + foundOnes.Count +
+                                    ". Picking one would be guessing: add a " +
+                                    "condition, or «n=» if you decide the order yourself");
             return Convert.ToString(foundOnes[0][fieldToReturn]);
         }
 
@@ -944,7 +944,7 @@ namespace Oce.Solid.Agent.Bench
             if (n == null) return null;
             int k;
             if (!int.TryParse(n.Value, out k))
-                throw new CouldNotMeasure(expression + ": «n» non e' un numero");
+                throw new CouldNotMeasure(expression + ": «n» is not a number");
             return k;
         }
 
@@ -975,15 +975,15 @@ namespace Oce.Solid.Agent.Bench
             {
                 bool a;
                 if (!bool.TryParse(angularText, out a))
-                    throw new CouldNotMeasure(expression + ": «angular» e' true o false");
+                    throw new CouldNotMeasure(expression + ": «angular» is true or false");
                 angular = a;
             }
             if (call == null && angular == null)
-                throw new CouldNotMeasure(expression + ": serve «name» (oppure «angular»)");
+                throw new CouldNotMeasure(expression + ": «name» (or «angular») is needed");
 
             var feature = (docState != null && docState.ContainsKey("feature")
                 ? docState["feature"] : null) as System.Collections.IList;
-            if (feature == null) throw new CouldNotMeasure("lo stato non ha «feature»: " + expression);
+            if (feature == null) throw new CouldNotMeasure("the state has no «feature»: " + expression);
 
             var foundOnes = new List<string>();
             foreach (var f in feature)
@@ -1009,9 +1009,9 @@ namespace Oce.Solid.Agent.Bench
                 }
             }
 
-            if (foundOnes.Count == 0) throw new CouldNotMeasure(expression + ": non l'ho trovata");
+            if (foundOnes.Count == 0) throw new CouldNotMeasure(expression + ": I did not find it");
             if (foundOnes.Count > 1)
-                throw new CouldNotMeasure(expression + ": ne ho trovate " + foundOnes.Count +
+                throw new CouldNotMeasure(expression + ": I found " + foundOnes.Count +
                                     " (" + string.Join(", ", foundOnes) + ")");
             return foundOnes[0];
         }
@@ -1073,7 +1073,7 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         internal static string WhatWas(object x)
         {
-            if (x == null) return "(non c'e')";
+            if (x == null) return "(not there)";
             return Short(Convert.ToString(x, CultureInfo.InvariantCulture));
         }
 

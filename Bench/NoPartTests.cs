@@ -54,22 +54,22 @@ namespace Oce.Solid.Agent.Bench
         private static void TestThatNullHasAName()
         {
             Console.WriteLine();
-            Console.WriteLine("=== quando il banco non riesce a preparare il pezzo (F12) ===");
+            Console.WriteLine("=== when the bench cannot prepare the part (F12) ===");
 
             // ── THE RED: the null raises, and the message names the step ──
             string said = null;
             string told = null;
             try
             {
-                OrSayIt<IModelDoc2>(null, "la parte nuova su cui provare");
+                OrSayIt<IModelDoc2>(null, "the new part to try on");
             }
             catch (Exception ex)
             {
                 said = ex.Message;
                 told = Why(ex);
             }
-            Check("F12 ROSSO: un null alza, e dice QUALE passo",
-                  said != null && said.Contains("la parte nuova su cui provare"),
+            Check("F12 RED: a null raises, and says WHICH step",
+                  said != null && said.Contains("the new part to try on"),
                   Short(said));
 
             // `Why` truncates at 110 characters: one looks at the beginning, which is where
@@ -79,16 +79,16 @@ namespace Oce.Solid.Agent.Bench
             // not call red a check that did not take place. It remains an
             // `InvalidOperationException`, so whoever catches it that way
             // keeps catching it.
-            Check("F12: il racconto dell'eccezione porta tipo e passo",
+            Check("F12: the exception's account carries type and step",
                   told != null &&
                   told.StartsWith("PreparationFailed:", StringComparison.Ordinal) &&
-                  told.Contains("la parte nuova"),
+                  told.Contains("the new part"),
                   Short(told));
 
             // ── THE GREEN: what is there passes, and the same object comes back ──
             var something = new object();
-            Check("F12: quello che c'e' passa, e torna com'era",
-                  ReferenceEquals(OrSayIt(something, "un oggetto qualunque"), something),
+            Check("F12: what is there passes, and comes back as it was",
+                  ReferenceEquals(OrSayIt(something, "any object"), something),
                   "");
         }
 
@@ -107,14 +107,14 @@ namespace Oce.Solid.Agent.Bench
         private static void TestWhereItWas()
         {
             Console.WriteLine();
-            Console.WriteLine("=== dove stava, in frazione dell'ingombro (E10) ===");
+            Console.WriteLine("=== where it was, as a fraction of the bounding box (E10) ===");
 
             var typ = _addin.GetType("Oce.Solid.Agent.Core.Sentences", false);
-            if (typ == null) { Check("E10: la classe c'e'", false, "Sentences assente"); return; }
+            if (typ == null) { Check("E10: the class exists", false, "Sentences missing"); return; }
             var method = typ.GetMethod("WhereItWasAndWhereItIs");
             if (method == null)
             {
-                Check("E10: il metodo c'e'", false, "WhereItWasAndWhereItIs assente");
+                Check("E10: the method exists", false, "WhereItWasAndWhereItIs missing");
                 return;
             }
 
@@ -132,9 +132,9 @@ namespace Oce.Solid.Agent.Bench
                 new[] { 50.0, 0.0, 0.0 }, new[] { 110.0, 0.0, 0.0 },
                 new[] { -50.0, -30.0, 0.0, 50.0, 30.0, 20.0 },
                 new[] { -50.0, -30.0, 0.0, 110.0, 30.0, 20.0 });
-            Check("E10: al 100% del lato X, e ci sta ancora",
-                  testCase != null && testCase.Contains("100%") && testCase.Contains("ci sta ancora") &&
-                  testCase.Contains("da 100 a 160"),
+            Check("E10: at 100% of side X, and it is still there",
+                  testCase != null && testCase.Contains("100%") && testCase.Contains("is still there") &&
+                  testCase.Contains("from 100 to 160"),
                   Short(testCase));
 
             // ── THE RED: a face that moved WITH RESPECT TO the part ──
@@ -149,9 +149,9 @@ namespace Oce.Solid.Agent.Bench
                 new[] { 20.0, 0.0, 0.0 }, new[] { 20.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
                 new[] { 0.0, 0.0, 0.0, 300.0, 60.0, 20.0 });
-            Check("E10 ROSSO: il foro fermo a 20 mm non si e' mosso, e si tace",
+            Check("E10 RED: the hole standing still at 20 mm did not move, and it keeps quiet",
                   string.IsNullOrEmpty(moved),
-                  moved == null ? "(niente, giusto)" : Short(moved));
+                  moved == null ? "(nothing, correct)" : Short(moved));
 
             // The same part that grows, but the face that moves by HALF
             // instead of staying where it was in proportion: the sentence must say
@@ -160,13 +160,13 @@ namespace Oce.Solid.Agent.Bench
                 new[] { 100.0, 0.0, 0.0 }, new[] { 150.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
                 new[] { 0.0, 0.0, 0.0, 300.0, 60.0, 20.0 });
-            Check("E10 ROSSO: frazioni diverse, «ci sta ancora» non si dice",
+            Check("E10 RED: different fractions, «is still there» is not said",
                   different != null && different.Contains("100%") && different.Contains("50%") &&
-                  !different.Contains("ci sta ancora"),
+                  !different.Contains("is still there"),
                   Short(different));
 
             // Without the box nothing is invented.
-            Check("E10: senza la scatola, nessuna frase",
+            Check("E10: without the box, no sentence",
                   string.IsNullOrEmpty(di(
                       new[] { 50.0, 0.0, 0.0 }, new[] { 110.0, 0.0, 0.0 }, null, null)),
                   "");
@@ -197,7 +197,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestThatTheFractionDoesNotDecide()
         {
             Console.WriteLine();
-            Console.WriteLine("=== la frazione non decide: il grep che deve tornare vuoto (E10) ===");
+            Console.WriteLine("=== the fraction does not decide: the grep that must come back empty (E10) ===");
 
             string root;
             try
@@ -208,7 +208,7 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                Check("E10: trovo la radice del repo", false, Why(ex));
+                Check("E10: find the repo root", false, Why(ex));
                 return;
             }
 
@@ -216,28 +216,28 @@ namespace Oce.Solid.Agent.Bench
             string sentences = Path.Combine(root, "Oce.Solid.Agent.Core", "Sentences.cs");
             if (!File.Exists(operations) || !File.Exists(sentences))
             {
-                Skipped("E10: il grep che deve tornare vuoto",
-                        "i sorgenti non sono accanto all'eseguibile");
+                Skipped("E10: the grep that must come back empty",
+                        "the sources are not next to the executable");
                 return;
             }
 
             // DOES THE SIEVE WORK? In `Sentences.cs` those words are there.
             string sentencesText = File.ReadAllText(sentences);
-            Check("E10 ROSSO: il setaccio trova le parole dove ci sono",
+            Check("E10 RED: the sieve finds the words where they are",
                   Pick(sentencesText, 0, sentencesText.Length),
                   "Sentences.cs");
 
             string text = File.ReadAllText(operations);
 
             int a = text.IndexOf("private static bool SignatureMatches(", StringComparison.Ordinal);
-            Check("E10: SignatureMatches non parla di frazioni",
+            Check("E10: SignatureMatches does not talk about fractions",
                   a >= 0 && !Pick(text, a, MethodEnd(text, a)),
-                  a < 0 ? "SignatureMatches non trovata" : "");
+                  a < 0 ? "SignatureMatches not found" : "");
 
             int b = text.IndexOf("IFace2 foundAgain = null;", StringComparison.Ordinal);
-            Check("E10: il ciclo di ritrovamento non parla di frazioni",
+            Check("E10: the finding loop does not talk about fractions",
                   b >= 0 && !Pick(text, b, MethodEnd(text, b)),
-                  b < 0 ? "il ciclo non trovato" : "");
+                  b < 0 ? "the loop not found" : "");
         }
 
         /// <summary>The forbidden words, in a piece of source.</summary>
@@ -245,7 +245,7 @@ namespace Oce.Solid.Agent.Bench
         {
             if (da < 0 || a <= da || a > text.Length) return false;
             string part = text.Substring(da, a - da);
-            return part.IndexOf("frazione", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            return part.IndexOf("fraction", StringComparison.OrdinalIgnoreCase) >= 0 ||
                    part.IndexOf("proporzional", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 

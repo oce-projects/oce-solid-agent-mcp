@@ -96,7 +96,7 @@ function check(itemName, ok, detail) {
 }
 
 function shorter(s) {
-  if (!s) return "(niente)";
+  if (!s) return "(nothing)";
   const one = s.replace(/[\r\n]+/g, " ");
   return one.length > 130 ? one.slice(0, 130) + "..." : one;
 }
@@ -121,28 +121,28 @@ function sameBoundingBox(a, b) {
 async function testOne(number, itemName) {
   const planFile = path.join(PLANS, number + ".json");
   if (!fs.existsSync(planFile)) {
-    check("pezzo " + number, false, "manca il piano " + planFile);
+    check("part " + number, false, "missing plan: " + planFile);
     return;
   }
   const trueFile = path.join(VIEWS, itemName + "-stato.json");
   if (!fs.existsSync(trueFile)) {
     check("pezzo " + number, false,
-          "manca lo stato vero: lancia prima `node collect_views.js`");
+          "the real state is missing: run `node collect_views.js` first");
     return;
   }
   const real = JSON.parse(fs.readFileSync(trueFile, "utf8"));
   let steps;
   try { steps = JSON.parse(fs.readFileSync(planFile, "utf8")); }
-  catch (e) { check("pezzo " + number, false, "il piano non e' JSON: " + e.message); return; }
-  if (!Array.isArray(steps)) { check("pezzo " + number, false, "il piano non e' un elenco"); return; }
+  catch (e) { check("part " + number, false, "the plan is not JSON: " + e.message); return; }
+  if (!Array.isArray(steps)) { check("part " + number, false, "the plan is not a list"); return; }
 
   const r = spawnSync(NEW, [], { encoding: "utf8" });
-  if (r.status !== 0) { check("pezzo " + number, false, "parte nuova non creata"); return; }
+  if (r.status !== 0) { check("part " + number, false, "new part not created"); return; }
 
   await invoke("inspect_part");
   const done = await invoke("build", { steps: steps });
   if (done.errore) {
-    check("pezzo " + number, false, "il piano non passa: " + shorter(done.testo));
+    check("part " + number, false, "the plan does not pass: " + shorter(done.testo));
     return;
   }
 
@@ -159,8 +159,8 @@ async function testOne(number, itemName) {
   check("pezzo " + number + " " + itemName.slice(2), okVolume && okBoundingBox,
         "volume " + (rebuiltVolume == null ? "?" : Math.round(rebuiltVolume * 10) / 10) +
         " contro " + trueVolume + " (" + deviation + ")" +
-        (okBoundingBox ? "" : ", INGOMBRO diverso: " + JSON.stringify(rebuilt.bounding_box_mm) +
-                            " contro " + JSON.stringify(real.bounding_box_mm)));
+        (okBoundingBox ? "" : ", different BOUNDING BOX: " + JSON.stringify(rebuilt.bounding_box_mm) +
+                            " against " + JSON.stringify(real.bounding_box_mm)));
 }
 
 (async function () {
@@ -171,20 +171,20 @@ async function testOne(number, itemName) {
   warn("notifications/initialized");
 
   console.log("");
-  console.log("=== la frase basta a ridisegnare il pezzo? (V3) ===");
+  console.log("=== is the sentence enough to redraw the part? (V3) ===");
   console.log("");
 
   for (let i = 0; i < SHAPES.length; i++) {
     try { await testOne(String(i + 1), SHAPES[i]); }
-    catch (e) { check("pezzo " + (i + 1), false, "si e' rotto: " + (e && e.message)); }
+    catch (e) { check("part " + (i + 1), false, "it broke: " + (e && e.message)); }
   }
 
   console.log("");
   console.log(failed === 0
-    ? "Tutti e cinque ridisegnati dalla sola frase."
-    : failed + " pezzi su " + SHAPES.length + " NON si ridisegnano dalla sola frase.");
-  console.log("Il numero va nel README accanto a quello di V2: sono due modi di " +
-              "dire la stessa cosa, e costano ordini di grandezza diversi.");
+    ? "All five redrawn from the sentence alone."
+    : failed + " parts out of " + SHAPES.length + " do NOT redraw from the sentence alone.");
+  console.log("The number goes in the README next to the one of V2: they are two ways of " +
+              "saying the same thing, and they cost different orders of magnitude.");
   bridge.stdin.end();
   process.exitCode = 0;   // it is a MEASUREMENT, not a check: it does not make a run fail
 })();

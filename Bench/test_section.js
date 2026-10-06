@@ -100,7 +100,7 @@ function check(itemName, ok, detail) {
 }
 
 function shorter(s) {
-  if (!s) return "(niente)";
+  if (!s) return "(nothing)";
   const one = s.replace(/[\r\n]+/g, " ");
   return one.length > 120 ? one.slice(0, 120) + "..." : one;
 }
@@ -120,62 +120,62 @@ function save(itemName, image) {
   fs.mkdirSync(OUTPUT, { recursive: true });
 
   console.log("");
-  console.log("=== lo spaccato mostra la parete? (V4) ===");
+  console.log("=== does the cutaway show the wall? (V4) ===");
   console.log("");
 
   const r = spawnSync(NEW, [], { encoding: "utf8" });
-  if (r.status !== 0) { check("una parte pulita", false, "NewPart non risponde"); return; }
+  if (r.status !== 0) { check("a clean part", false, "NewPart does not answer"); return; }
 
   await invoke("inspect_part");
   const done = await invoke("build", { steps: SHELL });
-  if (done.errore) { check("il guscio", false, shorter(done.testo)); bridge.stdin.end(); return; }
-  check("il guscio si costruisce", true,
+  if (done.errore) { check("the shell", false, shorter(done.testo)); bridge.stdin.end(); return; }
+  check("the shell builds", true,
         "volume " + (done.dati || {}).volume_after_mm3);
 
   // ── as it was before, to be able to compare it afterwards ──────────────
   const before = await invoke("inspect_part", { views: ["isometric"] });
-  if (!before.immagini.length) { check("la vista intera", false, shorter(before.testo)); bridge.stdin.end(); return; }
+  if (!before.immagini.length) { check("the whole view", false, shorter(before.testo)); bridge.stdin.end(); return; }
   const wholeFile = save("v4-guscio-intero", before.immagini[0]);
   const stateBefore = before.dati || {};
-  check("la vista intera esce", true, path.basename(wholeFile));
+  check("the whole view comes out", true, path.basename(wholeFile));
 
   // ── the cutaway ────────────────────────────────────────────────────────
   const wasCut = await invoke("inspect_part", {
     section: { plane: "right", offset_mm: 0 },
   });
   if (!wasCut.immagini.length) {
-    check("la sezione esce", false, shorter(wasCut.testo));
+    check("the section comes out", false, shorter(wasCut.testo));
   } else {
     const sectionFile = save("v4-guscio-sezione", wasCut.immagini[0]);
-    check("la sezione esce", true, path.basename(sectionFile));
+    check("the section comes out", true, path.basename(sectionFile));
 
     // THE RED: a section that does not section gives the SAME image, and
     // «la sezione esce» would pass all the same.
     const a = fs.readFileSync(wholeFile);
     const b = fs.readFileSync(sectionFile);
-    check("la sezione e' DIVERSA dalla vista intera",
+    check("the section is DIFFERENT from the whole view",
           !a.equals(b),
-          a.equals(b) ? "identiche: non ha sezionato niente"
-                      : a.length + " byte contro " + b.length);
+          a.equals(b) ? "identical: it sectioned nothing"
+                      : a.length + " bytes against " + b.length);
   }
 
   // ── and the part of whoever works is as before ─────────────────────────
   const after = await invoke("inspect_part");
   const s = after.dati || {};
-  check("il pezzo non e' cambiato",
+  check("the part did not change",
         s.volume_mm3 === stateBefore.volume_mm3 &&
         s.bodies_total === stateBefore.bodies_total &&
         (s.feature || []).length === (stateBefore.feature || []).length,
-        "volume " + s.volume_mm3 + ", corpi " + s.bodies_total +
-        ", lavorazioni " + (s.feature || []).length);
+        "volume " + s.volume_mm3 + ", bodies " + s.bodies_total +
+        ", features " + (s.feature || []).length);
 
   console.log("");
-  console.log("Le due immagini sono in " + OUTPUT + ":");
+  console.log("The two images are in " + OUTPUT + ":");
   console.log("  v4-guscio-intero.png    v4-guscio-sezione.png");
-  console.log("Guardarle e' l'altra meta' del criterio: dalla sezione si deve " +
-              "LEGGERE lo spessore della parete.");
+  console.log("Looking at them is the other half of the criterion: from the section you must " +
+              "READ the wall thickness.");
   console.log("");
-  console.log(failed === 0 ? "Tutto torna." : failed + " prove fallite.");
+  console.log(failed === 0 ? "Everything adds up." : failed + " checks failed.");
   bridge.stdin.end();
   process.exitCode = failed === 0 ? 0 : 1;
 })();

@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 26872,
+  "strings": 23633,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 739,
+  "protocol": 731,
   "paths": 0,
   "transition": 2188
  },
@@ -24,51 +24,35 @@
    "comments": 5
   },
   "Bench/ClientPort.cs": {
-   "comments": 5,
-   "strings": 274
+   "comments": 5
   },
   "Bench/DeclaredCases.cs": {
-   "comments": 49,
-   "strings": 518
-  },
-  "Bench/DimensionNumbers.cs": {
-   "strings": 55
+   "comments": 49
   },
   "Bench/Expectations.cs": {
-   "strings": 275,
    "comments": 26
   },
   "Bench/NewOperationsTests.cs": {
-   "comments": 11,
-   "strings": 158
+   "comments": 11
   },
   "Bench/NoPartTests.cs": {
-   "comments": 16,
-   "strings": 139
-  },
-  "Bench/Orphans.cs": {
-   "strings": 50
+   "comments": 16
   },
   "Bench/Program.cs": {
    "comments": 77,
-   "strings": 871
+   "strings": 1
   },
   "Bench/README.md": {
    "markdown": 4215
   },
   "Bench/Regression.cs": {
-   "strings": 221,
    "comments": 1
   },
-  "Bench/Session.cs": {
-   "strings": 14
-  },
   "Bench/TestAssembly.cs": {
-   "strings": 129
+   "strings": 1
   },
   "Bench/bench.ps1": {
-   "comments": 2,
-   "strings": 160
+   "comments": 2
   },
   "Bench/cases/E2-the-two-cases.md": {
    "markdown": 615
@@ -928,14 +912,8 @@
   "Bench/cases/weldments/weld_bead_goes_between_touching_faces.json": {
    "json_values": 282
   },
-  "Bench/collect_views.js": {
-   "strings": 21
-  },
   "Bench/inspect.js": {
    "comments": 1
-  },
-  "Bench/measure_accumulation.js": {
-   "strings": 34
   },
   "Bench/pending-cases/README.md": {
    "markdown": 475
@@ -947,7 +925,6 @@
    "json_values": 6
   },
   "Bench/run_plans.js": {
-   "strings": 47,
    "comments": 7
   },
   "Bench/tasks/README.md": {
@@ -963,18 +940,10 @@
    "transition": 10
   },
   "Bench/test_face_hole.js": {
-   "comments": 6,
-   "strings": 61
+   "comments": 6
   },
   "Bench/test_section.js": {
-   "strings": 63,
    "comments": 3
-  },
-  "Bench/test_shape.js": {
-   "strings": 63
-  },
-  "Bench/test_undo.js": {
-   "strings": 88
   },
   "Bridge/Session.cs": {
    "comments": 1
@@ -3458,7 +3427,6 @@
    "chiudi-gli-scarti",
    "chiusi",
    "chiuso",
-   "ciechi",
    "cilindro",
    "cinquanta",
    "cinque",
@@ -3534,13 +3502,11 @@
    "dove-stava",
    "duecento",
    "eccezione",
-   "elencate",
    "elenco",
    "elle",
    "entro",
    "errore",
    "errori",
-   "eseguibili",
    "esempio",
    "esiste",
    "esito",
@@ -3586,7 +3552,6 @@
    "fortissimo",
    "fotogrammi",
    "frase",
-   "frazione",
    "fresa_a_candela",
    "frontale",
    "fuori",
@@ -3744,7 +3709,6 @@
    "predefinito",
    "prima",
    "prima-di-oce-solid-agent",
-   "primo",
    "problemi",
    "prodotto",
    "profili",
@@ -3884,7 +3848,6 @@
    "spessore",
    "spigoli",
    "spigolo",
-   "sporgenza",
    "sposta",
    "sposta-corpi",
    "squadrate",
@@ -3926,7 +3889,6 @@
    "togliere",
    "tolto",
    "tondo",
-   "totale",
    "traccia",
    "trave",
    "tre",
@@ -3972,7 +3934,6 @@
    "voce",
    "voci",
    "volta",
-   "volte",
    "vuole",
    "vuoto",
    "x_qualunque",

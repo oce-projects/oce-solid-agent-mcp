@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.Bench
         private static int Session(string folder, string toOpen = null)
         {
             Directory.CreateDirectory(folder);
-            Console.WriteLine("=== sessione: " + folder + " ===");
+            Console.WriteLine("=== session: " + folder + " ===");
 
             IModelDoc2 doc = null;
             try
@@ -48,7 +48,7 @@ namespace Oce.Solid.Agent.Bench
                     doc = OpenDocument(toOpen);
                     if (doc == null)
                     {
-                        Console.WriteLine("non riesco ad aprire " + toOpen);
+                        Console.WriteLine("cannot open " + toOpen);
                         return 1;
                     }
                     Console.WriteLine("  ripreso: " + toOpen);
@@ -77,7 +77,7 @@ namespace Oce.Solid.Agent.Bench
                 // The starting state. Whoever plans starts from here,
                 // exactly as the real add-in would.
                 WriteState(folder, 0, Active() ?? doc, new List<object>());
-                Console.WriteLine("  stato_0 scritto (documento vuoto)");
+                Console.WriteLine("  stato_0 written (empty document)");
 
                 for (int k = 1; k <= 40; k++)
                 {
@@ -95,12 +95,12 @@ namespace Oce.Solid.Agent.Bench
                     {
                         if (DateTime.UtcNow > expiry)
                         {
-                            Console.WriteLine("  nessun passo_" + k + " entro mezz'ora: chiudo");
+                            Console.WriteLine("  no passo_" + k + " within half an hour: closing");
                             return 0;
                         }
                         Thread.Sleep(500);
                     }
-                    if (File.Exists(fine)) { Console.WriteLine("  fine richiesta"); return 0; }
+                    if (File.Exists(fine)) { Console.WriteLine("  end of request"); return 0; }
 
                     // The file may still be being written when we see it.
                     Thread.Sleep(300);
@@ -177,13 +177,13 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                Console.WriteLine("sessione interrotta: " + ex.Message);
+                Console.WriteLine("session interrupted: " + ex.Message);
                 return 1;
             }
             finally
             {
                 // The part is NOT closed: whoever is looking wants to see it.
-                Console.WriteLine("=== il documento resta aperto ===");
+                Console.WriteLine("=== the document stays open ===");
             }
         }
 

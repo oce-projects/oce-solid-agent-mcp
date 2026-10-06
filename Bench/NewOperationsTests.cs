@@ -198,15 +198,15 @@ namespace Oce.Solid.Agent.Bench
                                 new System.IO.FileInfo(file).Length / 1024 + " KB");
                         }
                     }
-                    catch (Exception ex) { Console.WriteLine("    " + view.Item1 + " non riuscita: " + ex.Message); }
+                    catch (Exception ex) { Console.WriteLine("    " + view.Item1 + " failed: " + ex.Message); }
                 }
                 Console.WriteLine();
-                Console.WriteLine("=== scatto della vista ===");
+                Console.WriteLine("=== view shot ===");
                 Console.WriteLine("    cartella: " + folder);
-                Check("scatta la vista del pezzo", done > 0,
-                      done + " viste su " + views.Length + " salvate in " + folder);
+                Check("take the part's view shot", done > 0,
+                      done + " of " + views.Length + " views saved in " + folder);
             }
-            catch (Exception ex) { Check("scatta la vista del pezzo", false, Why(ex)); }
+            catch (Exception ex) { Check("take the part's view shot", false, Why(ex)); }
             finally { Close(doc); }
         }
 
@@ -250,8 +250,8 @@ namespace Oce.Solid.Agent.Bench
                 string json = Json(docState);
 
                 Console.WriteLine();
-                Console.WriteLine("=== quanto vede il modello (piastra + 4 fori M8) ===");
-                Console.WriteLine("  lo stato pesa " + json.Length + " caratteri");
+                Console.WriteLine("=== how much the model sees (plate + 4 M8 holes) ===");
+                Console.WriteLine("  the state weighs " + json.Length + " characters");
                 foreach (var key in docState.Keys.OrderBy(k => k))
                 {
                     var v = docState[key];
@@ -265,7 +265,7 @@ namespace Oce.Solid.Agent.Bench
                 // says «take that hole to M10» is pointing at a feature, and
                 // the model of that feature must know at least WHAT HOLE IT IS.
                 Console.WriteLine();
-                Console.WriteLine("  --- cosa dice lo stato di ogni lavorazione ---");
+                Console.WriteLine("  --- what the state says about each feature ---");
                 var feature = docState["feature"] as System.Collections.IList;
                 if (feature != null)
                     foreach (var f in feature)
@@ -277,7 +277,7 @@ namespace Oce.Solid.Agent.Bench
                     }
 
                 Console.WriteLine();
-                Console.WriteLine("  --- una faccia, per esteso ---");
+                Console.WriteLine("  --- one face, in full ---");
                 var faces = docState["faces"] as System.Collections.IList;
                 if (faces != null && faces.Count > 0)
                 {
@@ -286,11 +286,11 @@ namespace Oce.Solid.Agent.Bench
                         foreach (var k in d.Keys)
                             Console.WriteLine("    " + k + " = " + Describe(d[k]));
                 }
-                Check("censimento di cosa vede il modello", true,
+                Check("census of what the model sees", true,
                       json.Length + " caratteri, " + (feature == null ? 0 : feature.Count) +
                       " lavorazioni, " + (faces == null ? 0 : faces.Count) + " facce");
             }
-            catch (Exception ex) { Check("censimento di cosa vede il modello", false, Why(ex)); }
+            catch (Exception ex) { Check("census of what the model sees", false, Why(ex)); }
             finally { Close(doc); }
         }
 
@@ -321,10 +321,10 @@ namespace Oce.Solid.Agent.Bench
                 CenteredPlate(doc, 200, 120, 20);
                 var docState = ReadState(doc);
                 Console.WriteLine();
-                Console.WriteLine("=== che facce ha la piastra di prova 200x120x20 ===");
+                Console.WriteLine("=== what faces the 200x120x20 test plate has ===");
                 var faces = docState["faces"] as System.Collections.IList;
-                Console.WriteLine("  corpi solidi: " + CountBodies(doc) +
-                                  ", facce nello stato: " + (faces == null ? 0 : faces.Count));
+                Console.WriteLine("  solid bodies: " + CountBodies(doc) +
+                                  ", faces in the state: " + (faces == null ? 0 : faces.Count));
                 if (faces != null)
                     foreach (Dictionary<string, object> f in faces)
                     {
@@ -341,7 +341,7 @@ namespace Oce.Solid.Agent.Bench
                                 : Convert.ToString(n)));
                     }
             }
-            catch (Exception ex) { Console.WriteLine("  diagnostica fallita: " + ex.Message); }
+            catch (Exception ex) { Console.WriteLine("  diagnostic failed: " + ex.Message); }
             finally { Close(doc); }
         }
 
@@ -367,7 +367,7 @@ namespace Oce.Solid.Agent.Bench
             // Two equal plates, apart: 100x100x10 = 100,000 mm3 each.
             // Moving ONE of them by 50 mm in Z, the center of mass of the whole part
             // moves by half: 25 mm. It is an equality, not an estimate.
-            Move("sposta una piastra di 50 in Z", 0, 0, 50, false, 0,
+            Move("move a plate by 50 in Z", 0, 0, 50, false, 0,
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: 25);
             // NOTE for whoever passes by: on 15/9/2026 this 200000 was
             // set to 199000 on purpose, to see `bench.ps1` exit 1 and
@@ -379,31 +379,31 @@ namespace Oce.Solid.Agent.Bench
             // `bench.ps1` was seen to stop BEFORE launching and exit 2:
             // it is the defect that entry F2 named by name — a script that
             // exits 0 because the build failed and nobody looked.
-            Move("sposta di 600 in Z", 0, 0, 600, false, 0,
+            Move("move by 600 in Z", 0, 0, 600, false, 0,
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: 300);
-            Move("sposta all'indietro, -120 in Z", 0, 0, -120, false, 0,
+            Move("move backwards, -120 in Z", 0, 0, -120, false, 0,
                    expectedBodies: 2, volumeExpected: 200000, centerMoveZ: -60);
 
             // Copy: the originals stay, and one more appears.
             // Three bodies of 100,000, and the copy is at +600.
             // baricentroZ = (100000*0 + 100000*0 + 100000*600) / 300000 = 200.
-            Move("copia una piastra a +600 in Z (il castello)", 0, 0, 600, true, 1,
+            Move("copy a plate at +600 in Z (the castle)", 0, 0, 600, true, 1,
                    expectedBodies: 3, volumeExpected: 300000, centerMoveZ: 200);
             // Two copies: +600 and +1200.
             // baricentroZ = (0 + 0 + 600 + 1200) / 4 = 450.
-            Move("due copie, a +600 e +1200", 0, 0, 600, true, 2,
+            Move("two copies, at +600 and +1200", 0, 0, 600, true, 2,
                    expectedBodies: 4, volumeExpected: 400000, centerMoveZ: 450);
 
             // Null displacement: the add-in must refuse it by itself, without
             // waiting for the server's validator.
-            Move("spostamento nullo (deve fallire)", 0, 0, 0, false, 0,
+            Move("zero move (must fail)", 0, 0, 0, false, 0,
                    expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
                    mustFail: true);
-            Move("copia con spostamento nullo (deve fallire)", 0, 0, 0, true, 1,
+            Move("copy with zero move (must fail)", 0, 0, 0, true, 1,
                    expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
                    mustFail: true);
             // A body that is not there.
-            Move("corpo inesistente (deve fallire)", 0, 0, 50, false, 0,
+            Move("nonexistent body (must fail)", 0, 0, 50, false, 0,
                    expectedBodies: 0, volumeExpected: 0, centerMoveZ: 0,
                    mustFail: true, fakeUid: "C99");
         }
@@ -423,13 +423,13 @@ namespace Oce.Solid.Agent.Bench
                 PlateWhere(doc, 100, 100, 10, 200, 0, bottoms: false);
                 if (CountBodies(doc) != 2)
                 {
-                    Check(itemName, false, "il pezzo di partenza ha " + CountBodies(doc) + " corpi invece di 2");
+                    Check(itemName, false, "the starting part has " + CountBodies(doc) + " bodies instead of 2");
                     return;
                 }
 
                 var docState = ReadState(doc);
                 var uid = BodiesUid(docState);
-                if (uid.Count < 2) { Check(itemName, false, "lo stato elenca " + uid.Count + " corpi"); return; }
+                if (uid.Count < 2) { Check(itemName, false, "the state lists " + uid.Count + " bodies"); return; }
 
                 double centerBefore = DocumentCenterZ(doc);
                 var arguments = new Dictionary<string, object>
@@ -451,7 +451,7 @@ namespace Oce.Solid.Agent.Bench
                 if (mustFail)
                 {
                     Check(itemName, measurements == null && !string.IsNullOrEmpty(error),
-                          measurements == null ? "rifiutato: " + Short(error) : "NON ha rifiutato");
+                          measurements == null ? "refused: " + Short(error) : "did NOT refuse");
                     return;
                 }
                 if (measurements == null) { Check(itemName, false, "fallita: " + Short(error)); return; }
@@ -465,8 +465,8 @@ namespace Oce.Solid.Agent.Bench
                           && Math.Abs(volume - volumeExpected) < Math.Max(2, volumeExpected * 0.005)
                           && Math.Abs(moved - centerMoveZ) < 0.05;
                 Check(itemName, ok, string.Format(
-                    "{0} corpi (attesi {1}), volume {2:0.#} (atteso {3:0.#}), " +
-                    "baricentro Z spostato di {4:0.###} mm (atteso {5:0.###})",
+                    "{0} bodies (expected {1}), volume {2:0.#} (expected {3:0.#}), " +
+                    "center of mass Z moved by {4:0.###} mm (expected {5:0.###})",
                     bodies, expectedBodies, volume, volumeExpected, moved, centerMoveZ));
             }
             catch (Exception ex) { Check(itemName, false, Why(ex)); }
@@ -616,7 +616,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestCreateAxis()
         {
             Console.WriteLine();
-            Console.WriteLine("=== create_axis: l'asse si ritrova per nome? (add-in) ===");
+            Console.WriteLine("=== create_axis: is the axis found again by name? (add-in) ===");
             IModelDoc2 doc = null;
             try
             {
@@ -624,7 +624,7 @@ namespace Oce.Solid.Agent.Bench
                 CenteredPlate(doc, 120, 120, 15);
                 var docState = ReadState(doc);
                 string planarFace = FaceWithNormal(docState, "front");
-                if (planarFace == null) { Check("create_axis: faccia di partenza", false, "assente"); return; }
+                if (planarFace == null) { Check("create_axis: starting face", false, "absent"); return; }
 
                 string error, holeName;
                 var hole = RunWithName(doc, "hole_wizard", new Dictionary<string, object>
@@ -638,15 +638,15 @@ namespace Oce.Solid.Agent.Bench
                         new Dictionary<string, object> { ["x_mm"] = 0.0, ["y_mm"] = 0.0 },
                     },
                 }, out error, out holeName, docState);
-                if (hole == null) { Check("create_axis: foro di prova", false, Short(error)); return; }
+                if (hole == null) { Check("create_axis: test hole", false, Short(error)); return; }
 
                 docState = ReadState(doc);
                 string cylindrical = FaceNotPlanar(docState);
                 if (cylindrical == null)
                 {
-                    Check("create_axis: la parete del foro compare nello stato", false,
-                          "nessuna faccia con «planar: false»: il modello non avrebbe " +
-                          "niente da passare a create_axis");
+                    Check("create_axis: the hole wall shows up in the state", false,
+                          "no face with «planar: false»: the model would have " +
+                          "nothing to pass to create_axis");
                     return;
                 }
 
@@ -655,15 +655,15 @@ namespace Oce.Solid.Agent.Bench
                 {
                     ["face_uid"] = cylindrical,
                 }, out error, out axisName, docState);
-                if (measurements == null) { Check("create_axis: l'asse per il gancio", false, Short(error)); return; }
+                if (measurements == null) { Check("create_axis: the axis for the hook", false, Short(error)); return; }
                 string axis = measurements.ContainsKey("axis") ? Convert.ToString(measurements["axis"]) : "";
                 if (string.IsNullOrEmpty(axis))
                 {
                     // IT IS NOT THE RED OF THIS CHECK: without the name there is
                     // nothing to attach to, and saying so is better than attaching
                     // the empty string and calling it a failure of the hook.
-                    Check("create_axis: l'operazione dice come si chiama l'asse", false,
-                          "le misure non hanno «axis»");
+                    Check("create_axis: the operation says what the axis is called", false,
+                          "the measurements have no «axis»");
                     return;
                 }
 
@@ -679,8 +679,8 @@ namespace Oce.Solid.Agent.Bench
                     attached = doc.Extension.SelectByID2(axis, "AXIS", 0, 0, 0, false, 1, null, 0);
                 }
                 catch { }
-                Check("create_axis: l'asse si aggancia con SelectByID2(\"AXIS\")", attached,
-                      attached ? "asse «" + axis + "»" : "la ripetizione non lo trovera' mai");
+                Check("create_axis: the axis can be picked with SelectByID2(\"AXIS\")", attached,
+                      attached ? "axis «" + axis + "»" : "the pattern will never find it");
             }
             catch (Exception ex) { Check("create_axis", false, Why(ex)); }
             finally { Close(doc); }

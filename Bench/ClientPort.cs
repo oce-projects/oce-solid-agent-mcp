@@ -51,8 +51,8 @@ namespace Oce.Solid.Agent.Bench
             var executable = TheBridge();
             if (executable == null)
             {
-                BenchError("la porta del cliente",
-                              "non trovo bin\\oce-solid-agent-mcp.exe — si produce con .\\build.ps1");
+                BenchError("the client port",
+                              "cannot find bin\\oce-solid-agent-mcp.exe — build it with .\\build.ps1");
                 return;
             }
 
@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.Bench
                 p = Mcp.Open(executable);
                 if (p == null)
                 {
-                    BenchError("la porta del cliente", "il ponte non e' partito");
+                    BenchError("the client port", "the bridge did not start");
                     return;
                 }
 
@@ -79,8 +79,8 @@ namespace Oce.Solid.Agent.Bench
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"banco\",\"version\":\"1\"}}}");
-                Check("porta: initialize risponde", r != null,
-                      r != null ? "" : "niente entro " + (Mcp.TimeoutMs / 1000) + "s. Righe viste: " +
+                Check("port: initialize answers", r != null,
+                      r != null ? "" : "nothing within " + (Mcp.TimeoutMs / 1000) + "s. Lines seen: " +
                                        string.Join(" | ", p.Views.ToArray()));
                 if (r == null) return;
 
@@ -90,7 +90,7 @@ namespace Oce.Solid.Agent.Bench
                 // proof that the bridge and the bench are looking at the same
                 // SOLIDWORKS session, and it is the premise of everything else.
                 var text = ResponseText(Mcp.Ask(p, 2, Call(2, "inspect_part", "{}")));
-                Check("porta: inspect_part nomina il documento del banco",
+                Check("port: inspect_part names the bench document",
                       text.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0,
                       docTitle + " — " + Short(text));
 
@@ -106,16 +106,16 @@ namespace Oce.Solid.Agent.Bench
                     "{\"length_mm\":120,\"width_mm\":80,\"thickness_mm\":10}}]}")));
                 double volumeAfter = TestVolume(doc);
 
-                Check("porta: il piano riesce", done.IndexOf("\"succeeded\":true",
+                Check("port: the plan succeeds", done.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) >= 0 ||
                       done.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(done));
 
                 // 120 x 80 x 10 = 96,000 mm3, and the part started empty.
-                Check("porta: e il pezzo e' cambiato davvero, misurato dal banco",
+                Check("port: and the part really changed, as measured by the bench",
                       Math.Abs(volumeAfter - volumeBefore - 96000) < 1,
                       volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") +
-                      " mm3 (atteso +96000)");
+                      " mm3 (expected +96000)");
 
                 // ── 3. RED BY CONSTRUCTION: an assembly operation on a part ──
                 var refusal = ResponseText(Mcp.Ask(p, 4, Call(4, "build",
@@ -131,7 +131,7 @@ namespace Oce.Solid.Agent.Bench
                                      StringComparison.OrdinalIgnoreCase) >= 0 ||
                                  refusal.IndexOf("\"succeeded\": false",
                                      StringComparison.OrdinalIgnoreCase) >= 0;
-                Check("porta: un'operazione di assieme su una PARTE e' rifiutata",
+                Check("port: an assembly operation on a PART is refused",
                       refused, Short(refusal));
 
                 // AND IT MUST NOT HAVE SUCCEEDED. It looks like the same thing said
@@ -140,7 +140,7 @@ namespace Oce.Solid.Agent.Bench
                 // and then the line above would be red for the right
                 // reason but the wrong cause. This one says that the
                 // word «true» next to «succeeded» is not there.
-                Check("porta: e non e' riuscita per sbaglio",
+                Check("port: and it did not succeed by mistake",
                       refusal.IndexOf("\"succeeded\":true",
                           StringComparison.OrdinalIgnoreCase) < 0 &&
                       refusal.IndexOf("\"succeeded\": true",
@@ -157,9 +157,9 @@ namespace Oce.Solid.Agent.Bench
                 // fixed sentence about document types, and accepting it would mean
                 // promoting the very answer that this line exists
                 // to reject.
-                Check("porta: e il rifiuto dice su cosa sta lavorando",
+                Check("port: and the refusal says what it is working on",
                       refusal.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0,
-                      "cerco «" + docTitle + "» in: " + Short(refusal));
+                      "looking for «" + docTitle + "» in: " + Short(refusal));
 
                 // ── THE TRAP: zero lines read while expecting zero lines ──
                 //
@@ -170,9 +170,9 @@ namespace Oce.Solid.Agent.Bench
                 // is alive.
                 Mcp.Write(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
                 var afterTheNotification = Mcp.Ask(p, 5, Call(5, "inspect_part", "{}"));
-                Check("porta: il ponte e' ancora vivo dopo una notifica",
+                Check("port: the bridge is still alive after a notification",
                       afterTheNotification != null,
-                      afterTheNotification != null ? "" : "niente risposta alla domanda dopo la notifica");
+                      afterTheNotification != null ? "" : "no answer to the question after the notification");
 
                 TheModal(p, doc);
                 DocumentCycle(p, docTitle, ref newTitle, ref saved);
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                BenchError("la porta del cliente", Why(ex));
+                BenchError("the client port", Why(ex));
             }
             finally
             {
@@ -222,13 +222,13 @@ namespace Oce.Solid.Agent.Bench
         {
             Func<string> front = () =>
             {
-                try { var d = _sw.IActiveDoc2; return d == null ? "(niente)" : d.GetTitle(); }
-                catch { return "(non leggibile)"; }
+                try { var d = _sw.IActiveDoc2; return d == null ? "(nothing)" : d.GetTitle(); }
+                catch { return "(unreadable)"; }
             };
 
             // ── list: the bench's document is there, and it is in front ────
             var list = ResponseText(Mcp.Ask(p, 6, Call(6, "document", "{\"action\":\"list\"}")));
-            Check("documento: «list» nomina il documento del banco",
+            Check("document: «list» names the bench document",
                   list.IndexOf(docTitle, StringComparison.OrdinalIgnoreCase) >= 0, Short(list));
 
             // ── new: an empty part, in front, and the bench verifies it ────
@@ -236,14 +236,14 @@ namespace Oce.Solid.Agent.Bench
                 "{\"action\":\"create\",\"variant\":\"part\"}"))));
             newTitle = Convert.ToString(Mcp.Inside(newItem, "document_title"));
             var active = _sw.IActiveDoc2;
-            Check("documento: «create» crea una parte e la porta davanti, riletto dalla COM",
+            Check("document: «create» creates a part and brings it to the front, read back from the COM",
                   !string.IsNullOrEmpty(newTitle) && active != null &&
                   active.GetTitle() == newTitle &&
                   active.GetType() == (int)SolidWorks.Interop.swconst.swDocumentTypes_e.swDocPART,
-                  "risposta «" + newTitle + "», davanti «" + front() + "»");
-            Check("documento: e la parte nuova e' vuota",
+                  "answer «" + newTitle + "», front «" + front() + "»");
+            Check("document: and the new part is empty",
                   active != null && TestVolume(active) < 0.001,
-                  active == null ? "(niente davanti)" : TestVolume(active).ToString("0.###") + " mm3");
+                  active == null ? "(nothing in front)" : TestVolume(active).ToString("0.###") + " mm3");
 
             // ── RED BY CONSTRUCTION: build right after, without looking ─
             //
@@ -253,24 +253,24 @@ namespace Oce.Solid.Agent.Bench
             var immediately = ResponseText(Mcp.Ask(p, 8, Call(8, "build",
                 "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                 "{\"length_mm\":10,\"width_mm\":10,\"thickness_mm\":10}}]}")));
-            Check("documento: dopo un cambio di documento «build» pretende di guardare prima",
-                  immediately.IndexOf("non ho ancora guardato", StringComparison.OrdinalIgnoreCase) >= 0 &&
+            Check("document: after a document change «build» insists on looking first",
+                  immediately.IndexOf("not looked at any part yet", StringComparison.OrdinalIgnoreCase) >= 0 &&
                   (active == null || TestVolume(active) < 0.001),
                   Short(immediately));
 
             // ── activate: back to the bench's document ───────────────────
             var returns = ResponseText(Mcp.Ask(p, 9, Call(9, "document",
                 "{\"action\":\"activate\",\"path\":\"" + docTitle + "\"}")));
-            Check("documento: «activate» riporta davanti il documento del banco",
-                  front() == docTitle, "davanti «" + front() + "» — " + Short(returns));
+            Check("document: «activate» brings the bench document back to the front",
+                  front() == docTitle, "front «" + front() + "» — " + Short(returns));
 
             // ── RED: a file that does not exist changes nothing ───────────
             var nonexistent = Path.Combine(Expectations.Work, "non-esiste-" + Guid.NewGuid().ToString("N") + ".sldprt");
             var no = ResponseText(Mcp.Ask(p, 10, Call(10, "document",
                 "{\"action\":\"open\",\"path\":\"" + nonexistent.Replace("\\", "\\\\") + "\"}")));
-            Check("documento: «open» su un file che non esiste rifiuta, e davanti resta quello di prima",
+            Check("document: «open» on a file that does not exist refuses, and what was in front stays in front",
                   no.IndexOf("does not exist", StringComparison.OrdinalIgnoreCase) >= 0 && front() == docTitle,
-                  "davanti «" + front() + "» — " + Short(no));
+                  "front «" + front() + "» — " + Short(no));
 
             // ── open a real file: the new part is saved, closed, reopened
             //    from the bridge, and the path must be the one asked for ─
@@ -285,8 +285,8 @@ namespace Oce.Solid.Agent.Bench
             if (toSave != null) toSave.Extension.SaveAs(saved, 0, 1, null, ref e, ref w);
             if (toSave == null || !File.Exists(saved))
             {
-                BenchError("documento: apri", "non sono riuscito a salvare «" + saved + "» (e=" + e + ", w=" + w +
-                              (toSave == null ? ", nessun documento in mano" : "") + ")");
+                BenchError("document: open", "could not save «" + saved + "» (e=" + e + ", w=" + w +
+                              (toSave == null ? ", no document in hand" : "") + ")");
                 return;
             }
             _sw.CloseDoc(toSave.GetTitle());
@@ -296,11 +296,11 @@ namespace Oce.Solid.Agent.Bench
                 "{\"action\":\"open\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
             var openPath = Convert.ToString(Mcp.Inside(open, "path"));
             var att = _sw.IActiveDoc2;
-            Check("documento: «open» apre il file chiesto e lo porta davanti, riletto dalla COM",
+            Check("document: «open» opens the requested file and brings it to the front, read back from the COM",
                   string.Equals(openPath, saved, StringComparison.OrdinalIgnoreCase) &&
                   att != null && string.Equals(att.GetPathName(), saved, StringComparison.OrdinalIgnoreCase),
-                  "risposta «" + openPath + "», davanti «" + (att == null ? "(niente)" : att.GetPathName()) + "»");
-            Check("documento: e un file scrivibile non e' dichiarato in sola lettura",
+                  "answer «" + openPath + "», front «" + (att == null ? "(nothing)" : att.GetPathName()) + "»");
+            Check("document: and a writable file is not declared read-only",
                   Convert.ToString(Mcp.Inside(open, "read_only")).Equals("False", StringComparison.OrdinalIgnoreCase),
                   Convert.ToString(Mcp.Inside(open, "read_only")));
 
@@ -315,7 +315,7 @@ namespace Oce.Solid.Agent.Bench
             File.SetAttributes(saved, FileAttributes.ReadOnly);
             var readOnlyMode = Mcp.Obj(ResponseText(Mcp.Ask(p, 12, Call(12, "document",
                 "{\"action\":\"open\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
-            Check("documento: un file in sola lettura si apre e il ponte LO DICE",
+            Check("document: a read-only file opens and the bridge SAYS SO",
                   Convert.ToString(Mcp.Inside(readOnlyMode, "read_only")).Equals("True", StringComparison.OrdinalIgnoreCase) &&
                   Mcp.Inside(readOnlyMode, "warning") != null,
                   Short(Convert.ToString(Mcp.Inside(readOnlyMode, "warning")) + " | read_only=" +
@@ -338,9 +338,9 @@ namespace Oce.Solid.Agent.Bench
             };
             var dirty = ResponseText(Mcp.Ask(p, 13, Call(13, "document",
                 "{\"action\":\"close\",\"path\":\"" + docTitle + "\"}")));
-            Check("documento: «close» su un documento con modifiche non salvate rifiuta, e resta aperto",
+            Check("document: «close» on a document with unsaved changes refuses, and it stays open",
                   dirty.IndexOf("unsaved changes", StringComparison.OrdinalIgnoreCase) >= 0 && open2(docTitle),
-                  "ancora aperto " + open2(docTitle) + " — " + Short(dirty));
+                  "still open " + open2(docTitle) + " — " + Short(dirty));
 
             // ── and the TWIN: a document just opened, without modifications ──
             // The title carries the extension or not depending on how Windows shows
@@ -349,10 +349,10 @@ namespace Oce.Solid.Agent.Bench
             var closed = Mcp.Obj(ResponseText(Mcp.Ask(p, 14, Call(14, "document",
                 "{\"action\":\"close\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
             bool disappeared = _sw.GetOpenDocumentByName(saved) == null;
-            Check("documento: «close» su un documento senza modifiche lo chiude, riletto dalla COM",
+            Check("document: «close» on a document with no changes closes it, read back from the COM",
                   disappeared && Convert.ToString(Mcp.Inside(closed, "closed"))
                                  .StartsWith(shank, StringComparison.OrdinalIgnoreCase),
-                  "sparito dalla COM " + disappeared + " — chiuso «" + Convert.ToString(Mcp.Inside(closed, "closed")) + "»");
+                  "gone from the COM " + disappeared + " — closed «" + Convert.ToString(Mcp.Inside(closed, "closed")) + "»");
         }
 
         /// <summary>
@@ -772,7 +772,7 @@ namespace Oce.Solid.Agent.Bench
             if (frameBorder != IntPtr.Zero) GetWindowThreadProcessId(frameBorder, out pid);
             if (pid == 0)
             {
-                BenchError("il modale", "non leggo la finestra principale di SOLIDWORKS");
+                BenchError("the modal", "cannot read the main window of SOLIDWORKS");
                 return;
             }
 
@@ -781,7 +781,7 @@ namespace Oce.Solid.Agent.Bench
                 try
                 {
                     var its = (ISldWorks)System.Runtime.InteropServices.Marshal.GetActiveObject("SldWorks.Application");
-                    its.SendMsgToUser2("Banco, voce Z-C3: questa finestra si chiude da sola.",
+                    its.SendMsgToUser2("Bench, entry Z-C3: this window closes by itself.",
                         (int)SolidWorks.Interop.swconst.swMessageBoxIcon_e.swMbInformation,
                         (int)SolidWorks.Interop.swconst.swMessageBoxBtn_e.swMbOk);
                 }
@@ -800,7 +800,7 @@ namespace Oce.Solid.Agent.Bench
             }
             if (dialog == IntPtr.Zero)
             {
-                BenchError("il modale", "la finestra di messaggio non si e' vista entro 8 s: la guardia non si puo' provare");
+                BenchError("the modal", "the message window did not show up within 8 s: the guard cannot be tested");
                 return;
             }
 
@@ -822,10 +822,10 @@ namespace Oce.Solid.Agent.Bench
             }
             volumeAfter = TestVolume(doc);
 
-            Check("modale: con una finestra modale aperta il piano e' rifiutato con la frase della guardia",
-                  withModal.IndexOf("finestra aperta che aspetta una risposta", StringComparison.OrdinalIgnoreCase) >= 0,
+            Check("modal: with a modal window open the plan is refused with the guard's sentence",
+                  withModal.IndexOf("window open that is waiting for an answer", StringComparison.OrdinalIgnoreCase) >= 0,
                   Short(withModal));
-            Check("modale: e il pezzo non e' cambiato",
+            Check("modal: and the part did not change",
                   Math.Abs(volumeAfter - volumeBefore) < 0.01,
                   volumeBefore.ToString("0.#") + " -> " + volumeAfter.ToString("0.#") + " mm3");
 
@@ -835,11 +835,11 @@ namespace Oce.Solid.Agent.Bench
             bool enabled = IsWindowEnabled(frameBorder);
             var without = ResponseText(Mcp.Ask(p, 31, Call(31, "build",
                 "{\"steps\":[{\"operation\":\"mass_properties\",\"arguments\":{}}]}")));
-            Check("modale: chiuso il modale, lo stesso ponte torna a lavorare",
-                  enabled && without.IndexOf("finestra aperta", StringComparison.OrdinalIgnoreCase) < 0 &&
+            Check("modal: once the modal is closed, the same bridge works again",
+                  enabled && without.IndexOf("window open", StringComparison.OrdinalIgnoreCase) < 0 &&
                   (without.IndexOf("\"succeeded\":true", StringComparison.OrdinalIgnoreCase) >= 0 ||
                    without.IndexOf("\"succeeded\": true", StringComparison.OrdinalIgnoreCase) >= 0),
-                  "finestra abilitata " + enabled + " — " + Short(without));
+                  "window enabled " + enabled + " — " + Short(without));
         }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -904,7 +904,7 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         private static string ResponseText(string line)
         {
-            if (line == null) return "(nessuna risposta)";
+            if (line == null) return "(no answer)";
             var o = Mcp.Obj(line);
             var result = Mcp.Inside(o, "result") as Dictionary<string, object>;
             var content = Mcp.Inside(result, "content") as object[];

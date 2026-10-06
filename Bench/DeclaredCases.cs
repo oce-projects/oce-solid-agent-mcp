@@ -133,7 +133,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestDeclaredCases()
         {
             Console.WriteLine();
-            Console.WriteLine("=== i casi dichiarati, che sono file (F3) ===");
+            Console.WriteLine("=== the declared cases, which are files (F3) ===");
 
             string casesRoot;
             try
@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                BenchError("casi dichiarati: trovo la cartella", Why(ex));
+                BenchError("declared cases: find the folder", Why(ex));
                 return;
             }
 
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.Bench
                 var folder = Path.Combine(casesRoot, family);
                 if (!Directory.Exists(folder))
                 {
-                    BenchError("casi dichiarati: la cartella «" + family + "» c'e'", folder);
+                    BenchError("declared cases: the folder «" + family + "» exists", folder);
                     return;
                 }
                 file.AddRange(Directory.GetFiles(folder, "*.json"));
@@ -163,7 +163,7 @@ namespace Oce.Solid.Agent.Bench
             file = file.OrderBy(x => Path.GetFileName(x), StringComparer.Ordinal).ToList();
             if (file.Count == 0)
             {
-                BenchError("casi dichiarati: ce n'e' almeno uno", "nessun file in " + casesRoot);
+                BenchError("declared cases: there is at least one", "no file in " + casesRoot);
                 return;
             }
             if (!LoadCaseKeys()) return;
@@ -223,10 +223,10 @@ namespace Oce.Solid.Agent.Bench
                     scope.Outcome = green ? "green" : scope.HasBenchErrors ? "bench_error" : "red";
                 }
             }
-            Check("i piani a mano si riconoscono e si saltano", true,
+            Check("hand-written plans are recognised and skipped", true,
                   planes.Count == 0
-                      ? "nessuno: tutti i file sono casi dichiarati"
-                      : planes.Count + " saltati (sono array, non casi): " +
+                      ? "none: all the files are declared cases"
+                      : planes.Count + " skipped (arrays, not cases): " +
                         string.Join(", ", planes.Take(4)) + (planes.Count > 4 ? " ..." : ""));
 
             LookAtTwins(toCheck, howItWent, whereItIs);
@@ -242,7 +242,7 @@ namespace Oce.Solid.Agent.Bench
             //
             // It comes out BEFORE the ==== line, and does not start with a space: it is not
             // an outcome line, and must not be counted as one.
-            Console.WriteLine("casi verdi: " + string.Join(" ",
+            Console.WriteLine("green cases: " + string.Join(" ",
                 howItWent.Where(kv => kv.Value).Select(kv => kv.Key)
                            .OrderBy(k => k, StringComparer.Ordinal)));
 
@@ -291,12 +291,12 @@ namespace Oce.Solid.Agent.Bench
             Dictionary<string, string> whereItIs)
         {
             Console.WriteLine();
-            Console.WriteLine("=== le gemelle: un rifiuto non sta mai da solo (F5) ===");
+            Console.WriteLine("=== the twins: a refusal is never alone (F5) ===");
 
             if (pairs.Count == 0)
             {
-                Check("gemelle: ce n'e' almeno una da controllare", false,
-                      "nessun caso con «must_fail»");
+                Check("twins: there is at least one to check", false,
+                      "no case with «must_fail»");
                 return;
             }
 
@@ -307,7 +307,7 @@ namespace Oce.Solid.Agent.Bench
                 bool wentWell;
                 if (!howItWent.TryGetValue(c.Twin, out wentWell))
                 {
-                    BenchError(c.Label, "la gemella «" + c.Twin + "» non e' fra i casi eseguiti");
+                    BenchError(c.Label, "the twin «" + c.Twin + "» is not among the cases run");
                     continue;
                 }
                 if (!wentWell)
@@ -315,19 +315,19 @@ namespace Oce.Solid.Agent.Bench
                     // A RED TWIN IS A PAIR THAT PROVES NOTHING: the
                     // refusal is left without its counterpart, and nobody knows any more
                     // whether the guard works or refuses everything.
-                    BenchError(c.Label, "la gemella «" + c.Twin + "» non e' verde in questo giro");
+                    BenchError(c.Label, "the twin «" + c.Twin + "» is not green in this run");
                     continue;
                 }
 
                 string why;
                 if (!Resemble(c, whereItIs, out why))
                 {
-                    BenchError(c.Label, "gemella finta: " + why);
+                    BenchError(c.Label, "fake twin: " + why);
                     continue;
                 }
 
                 green++;
-                Check("gemella di «" + c.Case + "»", true, c.Twin + " — " + why);
+                Check("twin of «" + c.Case + "»", true, c.Twin + " — " + why);
             }
 
             Check("gemelle " + green + "/" + pairs.Count + " verdi",
@@ -358,7 +358,7 @@ namespace Oce.Solid.Agent.Bench
             why = "";
             string filePath;
             if (!whereItIs.TryGetValue(c.Twin, out filePath))
-            { why = "non trovo il file della gemella"; return false; }
+            { why = "cannot find the twin's file"; return false; }
 
             Dictionary<string, object> twin;
             try
@@ -366,10 +366,10 @@ namespace Oce.Solid.Agent.Bench
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 twin = s.DeserializeObject(File.ReadAllText(filePath)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { why = "JSON della gemella illeggibile: " + ex.Message; return false; }
+            catch (Exception ex) { why = "the twin's JSON is unreadable: " + ex.Message; return false; }
 
             var steps = Items(twin, "steps");
-            if (steps == null) { why = "la gemella non ha passi"; return false; }
+            if (steps == null) { why = "the twin has no steps"; return false; }
 
             Dictionary<string, object> itsItems = null;
             int whereItsOwn = -1;
@@ -386,7 +386,7 @@ namespace Oce.Solid.Agent.Bench
             }
             if (itsItems == null)
             {
-                why = "la gemella non ha nessun passo «" + c.Operation + "» che riesce";
+                why = "the twin has no step «" + c.Operation + "» that succeeds";
                 return false;
             }
 
@@ -420,7 +420,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestThatSelectorRefuses()
         {
             Console.WriteLine();
-            Console.WriteLine("=== i selettori dei casi: rifiutano invece di indovinare (F3) ===");
+            Console.WriteLine("=== the case selectors: they refuse instead of guessing (F3) ===");
 
             Func<string, string, Dictionary<string, object>> face =
                 (uid, facing) => new Dictionary<string, object>
@@ -431,12 +431,12 @@ namespace Oce.Solid.Agent.Bench
             {
                 ["faces"] = new List<object> { face("F1", "front"), face("F2", "back") },
             };
-            Check("F3: una faccia sola, si prende",
+            Check("F3: a single face, it is taken",
                   Test(() => Select("@face(normal=front)", onlyOne)) == "F1", "");
 
             // ── ZERO: it is refused ────────────────────────────────────────
-            Check("F3 ROSSO: nessuna faccia «up», si rifiuta",
-                  Why(() => Select("@face(normal=up)", onlyOne)).Contains("non l'ho trovata"),
+            Check("F3 RED: no face «up», it refuses",
+                  Why(() => Select("@face(normal=up)", onlyOne)).Contains("I did not find it"),
                   Why(() => Select("@face(normal=up)", onlyOne)));
 
             // ── TWO: it is refused, the first is NOT taken ─────────────────
@@ -449,8 +449,8 @@ namespace Oce.Solid.Agent.Bench
             {
                 ["faces"] = new List<object> { face("F1", "front"), face("F7", "front") },
             };
-            Check("F3 ROSSO: due facce «front», si rifiuta invece di indovinare",
-                  Why(() => Select("@face(normal=front)", twoEqual)).Contains("ne ho trovate 2"),
+            Check("F3 RED: two faces «front», it refuses instead of guessing",
+                  Why(() => Select("@face(normal=front)", twoEqual)).Contains("I found 2"),
                   Why(() => Select("@face(normal=front)", twoEqual)));
 
             // ── THE EDGE, by axis and length ───────────────────────────────
@@ -463,10 +463,10 @@ namespace Oce.Solid.Agent.Bench
                     new Dictionary<string, object> { ["uid"] = "E3", ["along"] = "X", ["length_mm"] = 100.0 },
                 },
             };
-            Check("F3: lo spigolo si sceglie per asse e lunghezza",
+            Check("F3: the edge is chosen by axis and length",
                   Test(() => Select("@edge(axis=Z,length~=100)", edges)) == "E2", "");
-            Check("F3 ROSSO: senza la lunghezza, due spigoli su Z sono ambigui",
-                  Why(() => Select("@edge(axis=Z)", edges)).Contains("ne ho trovate 2"),
+            Check("F3 RED: without the length, two edges on Z are ambiguous",
+                  Why(() => Select("@edge(axis=Z)", edges)).Contains("I found 2"),
                   "");
 
             // ── THE NTH FEATURE: the order is decided by whoever writes the case ──
@@ -479,10 +479,10 @@ namespace Oce.Solid.Agent.Bench
                     new Dictionary<string, object> { ["uid"] = "Estrusione1", ["kind"] = "Extrusion" },
                 },
             };
-            Check("F3: @feature(n=2) prende la seconda",
+            Check("F3: @feature(n=2) takes the second",
                   Test(() => Select("@feature(kind=HoleWzd,n=2)", feature)) == "Foro2", "");
-            Check("F3 ROSSO: @feature(n=3) su due, si rifiuta",
-                  Why(() => Select("@feature(kind=HoleWzd,n=3)", feature)).Contains("ne ho trovate 2"),
+            Check("F3 RED: @feature(n=3) out of two, it refuses",
+                  Why(() => Select("@feature(kind=HoleWzd,n=3)", feature)).Contains("I found 2"),
                   "");
 
             // ── THE DIMENSION: the document title is put in by the bench ────
@@ -505,7 +505,7 @@ namespace Oce.Solid.Agent.Bench
                     },
                 },
             };
-            Check("F3: @dimension torna il nome col documento di ADESSO",
+            Check("F3: @dimension returns the name with the document of NOW",
                   Test(() => Select("@dimension(feature=Schizzo1,name=D1)", conQuote))
                       == "D1@Schizzo1@Parte99.Part", "");
 
@@ -523,11 +523,11 @@ namespace Oce.Solid.Agent.Bench
                     new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBO 80X80X5(1)" },
                 },
             };
-            Check("F3: @body(name=...) prende il corpo per nome, parentesi comprese",
+            Check("F3: @body(name=...) takes the body by name, parentheses included",
                   Test(() => Select("@body(name=TUBO 80X80X5(2))", bodies)) == "C1",
                   Test(() => Select("@body(name=TUBO 80X80X5(2))", bodies)));
-            Check("F3 ROSSO: @body con un nome che non c'e', si rifiuta",
-                  Why(() => Select("@body(name=TUBO 80X80X5(3))", bodies)).Contains("non l'ho trovata"),
+            Check("F3 RED: @body with a name that does not exist, it refuses",
+                  Why(() => Select("@body(name=TUBO 80X80X5(3))", bodies)).Contains("I did not find it"),
                   "");
 
             // ── A TOLERANCE WITHOUT THE WHY IS A BROKEN CASE ────────────────
@@ -540,7 +540,7 @@ namespace Oce.Solid.Agent.Bench
             };
             string said;
             string reason = Why(() => { string d; Matches(withoutWhy, null, null, null, out d); return d; });
-            Check("F3 ROSSO: tolleranza senza «tolerance_why»",
+            Check("F3 RED: tolerance without «tolerance_why»",
                   reason.Contains("tolerance_why"), Short(reason));
 
             // And with the why, the same expectation is evaluated (here it fails on the
@@ -548,13 +548,13 @@ namespace Oce.Solid.Agent.Bench
             var withWhy = new Dictionary<string, object>
             {
                 ["what"] = "measurements.x", ["equal_to"] = 100.0, ["tolerance"] = 5.0,
-                ["tolerance_why"] = "si misura con un righello",
+                ["tolerance_why"] = "measured with a ruler",
             };
             var fakeMeasurements = new Dictionary<string, object> { ["x"] = 102.0 };
             bool evaluated = false;
             try { evaluated = Matches(withWhy, null, null, fakeMeasurements, out said); }
             catch (Exception ex) { said = ex.Message; }
-            Check("F3: col perche', la tolleranza si applica", evaluated, Short(said));
+            Check("F3: with the why, the tolerance applies", evaluated, Short(said));
         }
 
         // ==================================================================
@@ -577,7 +577,7 @@ namespace Oce.Solid.Agent.Bench
         private static void TestThatAnAbsentFieldIsNotAZero()
         {
             Console.WriteLine();
-            Console.WriteLine("=== un campo che non c'e' non e' uno zero (F4) ===");
+            Console.WriteLine("=== a field that does not exist is not a zero (F4) ===");
 
             // The measurements that `apply_material` really reports. There is no
             // «material_removed_mm3»: that operation removes nothing.
@@ -596,9 +596,9 @@ namespace Oce.Solid.Agent.Bench
                          null, null, measurements, out d);
                 return d;
             });
-            Check("F4 ROSSO: campo assente, e dice quali c'erano",
-                  said.Contains("campo assente: measurements.material_removed_mm3") &&
-                  said.Contains("ci sono: class_name, library, material"),
+            Check("F4 RED: missing field, and it says which ones there were",
+                  said.Contains("missing field: measurements.material_removed_mm3") &&
+                  said.Contains("there are: class_name, library, material"),
                   Short(said));
 
             // ── AND A DECLARED NULL IS NOT A MISSING FIELD ─────────────────
@@ -617,14 +617,14 @@ namespace Oce.Solid.Agent.Bench
                               null, stateWithoutMaterial, null, out d2);
             }
             catch (Exception ex) { d2 = ex.Message; }
-            Check("F4: «material: null» si misura, non e' un campo assente", ok, Short(d2));
+            Check("F4: «material: null» is measured, it is not a missing field", ok, Short(d2));
 
             // ── THE COUNT OF THE EXPECTATIONS ──────────────────────────────
             //
             // Attempted and verified: if they diverge, something is measuring
             // nothing. Here we only look that the count is there and is not stuck at
             // zero — the true number is written by the run's summary.
-            Check("F4: le attese si contano", _expectations > 0 && _verifiedExpectations > 0,
+            Check("F4: the expectations are counted", _expectations > 0 && _verifiedExpectations > 0,
                   _verifiedExpectations + " su " + _expectations);
         }
 
@@ -637,7 +637,7 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>The exception message, or «non ha rifiutato».</summary>
         private static string Why(Func<string> f)
         {
-            try { f(); return "NON HA RIFIUTATO"; }
+            try { f(); return "DID NOT REFUSE"; }
             catch (Exception ex) { return ex.Message; }
         }
 
@@ -684,7 +684,7 @@ namespace Oce.Solid.Agent.Bench
         private static void MutationsRun()
         {
             Console.WriteLine();
-            Console.WriteLine("=== --muta: ogni caso deve poter diventare rosso (F6) ===");
+            Console.WriteLine("=== --muta: every case must be able to turn red (F6) ===");
 
             var file = CasesFile();
             if (file == null) return;
@@ -703,7 +703,7 @@ namespace Oce.Solid.Agent.Bench
                     var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                     testCase = s.DeserializeObject(File.ReadAllText(filePath)) as Dictionary<string, object>;
                 }
-                catch (Exception ex) { BenchError(itemName, "JSON illeggibile: " + Why(ex)); continue; }
+                catch (Exception ex) { BenchError(itemName, "unreadable JSON: " + Why(ex)); continue; }
                 // The same refusal as the normal run: a mutation of a case the
                 // bench would not run proves nothing (W3.1-bis.2, item 4).
                 var unknown = testCase == null ? null : _caseKeys.Unknown(testCase, _caseKeys.DeclaredRoot);
@@ -713,9 +713,9 @@ namespace Oce.Solid.Agent.Bench
                 if (mutations.Count == 0)
                 {
                     blindOnes++;
-                    lines.Add("| `" + itemName + "` | 0 | 0 | **NESSUNA MUTAZIONE POSSIBILE**: " +
-                              "nessun argomento numerico o booleano in un passo con attese |");
-                    Check("muta: " + itemName, false, "nessuna mutazione possibile");
+                    lines.Add("| `" + itemName + "` | 0 | 0 | **NO MUTATION POSSIBLE**: " +
+                              "no numeric or boolean argument in a step with expectations |");
+                    Check("mutate: " + itemName, false, "no mutation possible");
                     continue;
                 }
 
@@ -731,10 +731,10 @@ namespace Oce.Solid.Agent.Bench
                 bool blind = red == 0;
                 if (blind) blindOnes++;
                 lines.Add("| `" + itemName + "` | " + mutations.Count + " | " + red + " | " +
-                          (blind ? "**CIECO**: le attese non vincolano gli argomenti"
+                          (blind ? "**BLIND**: the expectations do not constrain the arguments"
                                  : (survived.Count == 0
-                                        ? "tutte rosse"
-                                        : "verdi lo stesso: " + string.Join(", ", survived))) +
+                                        ? "all red"
+                                        : "still green: " + string.Join(", ", survived))) +
                           " |");
 
                 // A CASE WITH SOME SURVIVING MUTATION IS NOT RED: it is
@@ -742,11 +742,11 @@ namespace Oce.Solid.Agent.Bench
                 // report line says so by name. Only the BLIND one is red.
                 Check("muta: " + itemName, !blind,
                       mutations.Count + " mutazioni, " + red + " rosse" +
-                      (survived.Count > 0 ? " — verdi: " + string.Join(", ", survived) : ""));
+                      (survived.Count > 0 ? " — still green: " + string.Join(", ", survived) : ""));
             }
 
             WriteMutations(lines, blindOnes);
-            Check("muta: casi ciechi", blindOnes == 0, blindOnes + " ciechi");
+            Check("mutate: blind cases", blindOnes == 0, blindOnes + " blind");
         }
 
         private sealed class Mutation
@@ -838,7 +838,7 @@ namespace Oce.Solid.Agent.Bench
             string descriptionText;
             if (!itsItems.TryGetValue(key, out descriptionText) || descriptionText == null) return false;
 
-            const string prefix = "solo se ";
+            const string prefix = "only if ";
             if (!descriptionText.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return false;
             string rest = descriptionText.Substring(prefix.Length).Trim();
             bool denied = rest.StartsWith("non ", StringComparison.OrdinalIgnoreCase);
@@ -961,29 +961,29 @@ namespace Oce.Solid.Agent.Bench
 
                 var text = new List<string>
                 {
-                    "# Mutazioni — ogni caso deve poter diventare rosso (F6)",
+                    "# Mutations — every case must be able to turn red (F6)",
                     "",
-                    "Un argomento alla volta moltiplicato per 1,5 (i booleani invertiti),",
-                    "il caso rieseguito, e si PRETENDE che diventi rosso. Un caso che resta",
-                    "verde sotto ogni perturbazione e' **cieco**: le sue attese non vincolano",
-                    "i suoi argomenti.",
+                    "One argument at a time multiplied by 1.5 (booleans inverted),",
+                    "the case run again, and it is EXPECTED to turn red. A case that stays",
+                    "green under every perturbation is **blind**: its expectations do not constrain",
+                    "its arguments.",
                     "",
-                    "Le mutazioni su argomenti che l'operazione ignora — `depth_mm` su un",
-                    "taglio passante — sono saltate leggendo il catalogo, non indovinate.",
+                    "Mutations on arguments the operation ignores — `depth_mm` on a",
+                    "through-all cut — are skipped by reading the catalog, not guessed.",
                     "",
-                    "| caso | mutazioni | rosse | |",
+                    "| case | mutations | red | |",
                     "|---|---|---|---|",
                 };
                 text.AddRange(lines);
                 text.Add("");
                 text.Add(blindOnes == 0
-                    ? "**Nessun caso cieco.**"
-                    : "**" + blindOnes + " casi ciechi.** Un caso cieco e' verde e non prova niente.");
+                    ? "**No blind case.**"
+                    : "**" + blindOnes + " blind cases.** A blind case is green and proves nothing.");
                 File.WriteAllText(file, string.Join("\r\n", text) + "\r\n",
                                   new System.Text.UTF8Encoding(false));
                 Console.WriteLine("mutazioni: " + file);
             }
-            catch (Exception ex) { Console.WriteLine("non ho potuto scrivere mutazioni.md: " + ex.Message); }
+            catch (Exception ex) { Console.WriteLine("could not write mutazioni.md: " + ex.Message); }
         }
 
         /// <summary>
@@ -1143,9 +1143,9 @@ namespace Oce.Solid.Agent.Bench
             Func<IModelDoc2, Dictionary<string, object>, object> measure;
             if (!DocumentMeasurements.TryGetValue(what, out measure))
                 throw new CouldNotMeasure(
-                    "non so misurare «" + what + "»: i nomi sono " +
+                    "cannot measure «" + what + "»: the names are " +
                     string.Join(", ", DocumentMeasurements.Keys.ToArray()) +
-                    ", stato.… e misure.…");
+                    ", state.… and measurements.…");
             return measure(doc, docState);
         }
 
@@ -1253,14 +1253,14 @@ namespace Oce.Solid.Agent.Bench
                     var folder = Path.Combine(casesRoot, family);
                     if (!Directory.Exists(folder))
                     {
-                        BenchError("casi: la cartella «" + family + "» c'e'", folder);
+                        BenchError("cases: the folder «" + family + "» exists", folder);
                         return null;
                     }
                     file.AddRange(Directory.GetFiles(folder, "*.json"));
                 }
                 return file.OrderBy(x => Path.GetFileName(x), StringComparer.Ordinal).ToList();
             }
-            catch (Exception ex) { BenchError("casi: trovo la cartella", Why(ex)); return null; }
+            catch (Exception ex) { BenchError("cases: find the folder", Why(ex)); return null; }
         }
 
         // ==================================================================
@@ -1298,8 +1298,8 @@ namespace Oce.Solid.Agent.Bench
             // A BADLY WRITTEN CASE IS A BENCH ERROR, NOT A RED CHECK
             // (entry F4): «a check failed» says that something was
             // measured, and here nothing was measured.
-            catch (Exception ex) { BenchError(itemName, "JSON illeggibile: " + Why(ex)); return false; }
-            if (testCase == null) { BenchError(itemName, "il file non e' un oggetto JSON"); return false; }
+            catch (Exception ex) { BenchError(itemName, "unreadable JSON: " + Why(ex)); return false; }
+            if (testCase == null) { BenchError(itemName, "the file is not a JSON object"); return false; }
 
             // AN UNKNOWN KEY IS A CASE WRITTEN WRONG (W3.1-bis.2, item 4): the
             // reader would skip it in silence, and whatever it asked for would
@@ -1311,17 +1311,17 @@ namespace Oce.Solid.Agent.Bench
             // file name: two different names for the same thing make one look
             // in the wrong place when a check turns red.
             string declared = Text(testCase, "name");
-            if (declared == null) { BenchError(itemName, "manca «name»"); return false; }
+            if (declared == null) { BenchError(itemName, "«name» is missing"); return false; }
             if (declared != itemName)
             {
-                BenchError(itemName, "il file si chiama «" + itemName + "» e dentro dice «" +
+                BenchError(itemName, "the file is called «" + itemName + "» and inside says «" +
                                     declared + "»");
                 return false;
             }
             if (Text(testCase, "why") == null)
             {
-                BenchError(itemName, "manca «why»: un caso senza il dubbio che scioglie " +
-                                    "non si sa piu' perche' esiste");
+                BenchError(itemName, "«why» is missing: a case without the doubt it settles, " +
+                                    "no one can tell why it exists any more");
                 return false;
             }
 
@@ -1443,18 +1443,18 @@ namespace Oce.Solid.Agent.Bench
             Version threshold, now;
             if (!Version.TryParse(before, out threshold))
             {
-                BenchError(itemName, "«red_before» non e' una versione: «" + before + "»");
+                BenchError(itemName, "«red_before» is not a version: «" + before + "»");
                 return false;
             }
             now = _addin.GetName().Version;
             if (now >= threshold) return green;   // repaired library: the true outcome counts
 
             // Library older than the repair: the case MUST be red.
-            Check(itemName + " · rossa prima della " + before, !green,
+            Check(itemName + " · red before " + before, !green,
                   green
-                      ? "su " + now + " e' passata, e non doveva: questa prova non " +
-                        "custodisce il difetto che dice di custodire"
-                      : "su " + now + " e' rossa, come deve");
+                      ? "on " + now + " it passed, and it should not have: this check does not " +
+                        "guard the defect it says it guards"
+                      : "on " + now + " it is red, as it should be");
             return !green;
         }
 
@@ -1473,7 +1473,7 @@ namespace Oce.Solid.Agent.Bench
             Preparation toClean = null)
         {
             var steps = Items(testCase, "steps");
-            if (steps == null || steps.Count == 0) { BenchError(itemName, "manca «steps»"); return false; }
+            if (steps == null || steps.Count == 0) { BenchError(itemName, "«steps» is missing"); return false; }
 
             {
                 // THE DOCUMENT CAN CHANGE MID-CASE (entry GT0).
@@ -1499,8 +1499,8 @@ namespace Oce.Solid.Agent.Bench
                 {
                     statesBefore.Add(docState);
                     var planStep = steps[i] as Dictionary<string, object>;
-                    if (planStep == null) { BenchError(itemName, "il passo " + (i + 1) + " non e' un oggetto"); return false; }
-                    string label = itemName + " · passo " + (i + 1);
+                    if (planStep == null) { BenchError(itemName, "step " + (i + 1) + " is not an object"); return false; }
+                    string label = itemName + " · step " + (i + 1);
 
                     // THE UIDs READ BEFORE, AS THE BRIDGE DOES (entry E19).
                     //
@@ -1522,15 +1522,15 @@ namespace Oce.Solid.Agent.Bench
                                           NumberStyles.Integer, CultureInfo.InvariantCulture, out k) ||
                             k < 1 || k > i + 1)
                         {
-                            BenchError(label, "«uid_from_step» dev'essere il numero di un passo " +
-                                          "fino a questo (1.." + (i + 1) + "), non «" + fromStep + "»");
+                            BenchError(label, "«uid_from_step» must be the number of a step " +
+                                          "up to this one (1.." + (i + 1) + "), not «" + fromStep + "»");
                             return false;
                         }
                         uidState = statesBefore[k - 1];
                     }
 
                     string operation = Text(planStep, "operation");
-                    if (operation == null) { BenchError(label, "manca «operation»"); return false; }
+                    if (operation == null) { BenchError(label, "«operation» is missing"); return false; }
 
                     object rawArg;
                     planStep.TryGetValue("arguments", out rawArg);
@@ -1631,8 +1631,8 @@ namespace Oce.Solid.Agent.Bench
                         // thing that makes a red case unreadable three steps
                         // further on: one reads «la vista non c'e'» and goes
                         // to look for the defect in the wrong operation.
-                        Console.WriteLine("       | da qui si lavora su «" +
-                                          (whatItIsCalled ?? "(senza titolo)") + "»");
+                        Console.WriteLine("       | from here on it works on «" +
+                                          (whatItIsCalled ?? "(untitled)") + "»");
 
                         // AND IT IS MARKED TO CLOSE IT AFTERWARDS.
                         //
@@ -1698,7 +1698,7 @@ namespace Oce.Solid.Agent.Bench
                         // green check that proves nothing. It is said, and it is said that the
                         // case is badly written, not that the part is wrong.
                         BenchError(label,
-                              "nessuna attesa: un passo che non misura niente non e' una prova");
+                              "no expectation: a step that measures nothing is not a check");
                         return false;
                     }
 
@@ -1708,7 +1708,7 @@ namespace Oce.Solid.Agent.Bench
                         Ledger.ExpectationAttempted();
                         var expectation = a as Dictionary<string, object>;
                         if (expectation == null)
-                        { BenchError(label, "un'attesa non e' un oggetto"); return false; }
+                        { BenchError(label, "an expectation is not an object"); return false; }
                         string detail;
                         bool ok;
                         // THE THREE MEASUREMENTS OF THE DOCUMENT are handed over by whoever has the
@@ -1759,16 +1759,16 @@ namespace Oce.Solid.Agent.Bench
             for (int i = 0; i < uid.Count; i++)
             {
                 var e = entity[i] as IEntity;
-                if (e == null) { why = "«" + uid[i] + "» non e' un'entita' che so selezionare"; return false; }
-                if (!e.Select4(true, null)) { why = "Select4 ha risposto no su «" + uid[i] + "»"; return false; }
+                if (e == null) { why = "«" + uid[i] + "» is not an entity I can select"; return false; }
+                if (!e.Select4(true, null)) { why = "Select4 answered no on «" + uid[i] + "»"; return false; }
             }
             int howMany = ((ISelectionMgr)doc.SelectionManager).GetSelectedObjectCount2(-1);
             if (howMany != uid.Count)
             {
-                why = "chiesto di selezionare " + uid.Count + " entita', selezionate " + howMany;
+                why = "asked to select " + uid.Count + " entities, selected " + howMany;
                 return false;
             }
-            Console.WriteLine("       | prima del passo restano selezionate: " + string.Join(", ", uid));
+            Console.WriteLine("       | before the step these remain selected: " + string.Join(", ", uid));
             return true;
         }
 
@@ -1853,12 +1853,12 @@ namespace Oce.Solid.Agent.Bench
                 var body = entity[i] as IBody2;
                 var face = entity[i] as IFace2;
                 if (body == null && face != null) body = face.GetBody() as IBody2;
-                if (body == null) { why = "«" + uid[i] + "» non e' ne' un corpo ne' una faccia"; return false; }
+                if (body == null) { why = "«" + uid[i] + "» is neither a body nor a face"; return false; }
                 body.HideBody(true);
-                if (body.Visible) { why = "«" + uid[i] + "» e' ancora visibile dopo HideBody(true)"; return false; }
+                if (body.Visible) { why = "«" + uid[i] + "» is still visible after HideBody(true)"; return false; }
             }
             try { doc.GraphicsRedraw2(); } catch { }
-            Console.WriteLine("       | prima del passo restano nascosti: " + string.Join(", ", uid));
+            Console.WriteLine("       | before the step these remain hidden: " + string.Join(", ", uid));
             return true;
         }
 
@@ -1880,20 +1880,20 @@ namespace Oce.Solid.Agent.Bench
             var list = resolved as System.Collections.IList;
             if (list != null) { foreach (var u in list) uid.Add(Convert.ToString(u)); }
             else if (resolved != null) uid.Add(Convert.ToString(resolved));
-            if (uid.Count == 0) { why = "l'elenco e' vuoto"; return false; }
+            if (uid.Count == 0) { why = "the list is empty"; return false; }
 
             object objectState;
             try { objectState = ReadObjectState(doc); }
-            catch (Exception ex) { why = "non leggo lo stato: " + Why(ex); return false; }
+            catch (Exception ex) { why = "cannot read the state: " + Why(ex); return false; }
             var signatures = ReflectionLog.Global.Property(_tState, "Signatures",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.GetValue(objectState) as System.Collections.IDictionary;
-            if (signatures == null) { why = "lo stato della libreria non ha «Signatures»"; return false; }
+            if (signatures == null) { why = "the library's state has no «Signatures»"; return false; }
             foreach (var u in uid)
             {
                 var signature = signatures.Contains(u) ? signatures[u] : null;
                 var e = signature == null ? null : ReflectionLog.Global.Field(signature.GetType(), "Entity")?.GetValue(signature);
-                if (e == null) { why = "nello stato non c'e' «" + u + "»"; return false; }
+                if (e == null) { why = "the state has no «" + u + "»"; return false; }
                 entity.Add(e);
             }
             return true;
@@ -1915,7 +1915,7 @@ namespace Oce.Solid.Agent.Bench
         {
             if (measurements != null)
             {
-                Check(label, false, "doveva fallire e invece e' riuscito");
+                Check(label, false, "it should have failed but it succeeded");
                 return false;
             }
 
@@ -1923,8 +1923,8 @@ namespace Oce.Solid.Agent.Bench
             if (parts == null || parts.Count == 0)
             {
                 BenchError(label,
-                      "«must_fail» senza «message_includes»: qualunque errore " +
-                      "andrebbe bene, anche quello sbagliato");
+                      "«must_fail» without «message_includes»: any error " +
+                      "would do, even the wrong one");
                 return false;
             }
             foreach (var p in parts)
@@ -1932,7 +1932,7 @@ namespace Oce.Solid.Agent.Bench
                 string lookFor = Convert.ToString(p);
                 if ((error ?? "").IndexOf(lookFor, StringComparison.OrdinalIgnoreCase) < 0)
                 {
-                    Check(label, false, "ha rifiutato ma non dice «" + lookFor + "»: " + Short(error));
+                    Check(label, false, "it refused but does not say «" + lookFor + "»: " + Short(error));
                     return false;
                 }
             }
@@ -1943,7 +1943,7 @@ namespace Oce.Solid.Agent.Bench
                 if (Math.Abs(now - volumeBefore) > 0.001)
                 {
                     Check(label, false, string.Format(CultureInfo.InvariantCulture,
-                        "ha rifiutato ma il volume e' cambiato: {0:0.###} -> {1:0.###}",
+                        "it refused but the volume changed: {0:0.###} -> {1:0.###}",
                         volumeBefore, now));
                     return false;
                 }
@@ -1953,8 +1953,8 @@ namespace Oce.Solid.Agent.Bench
                 int now = HowManyFeatures(docState);
                 if (now > featureBefore)
                 {
-                    Check(label, false, "ha rifiutato ma ha lasciato " +
-                                            (now - featureBefore) + " lavorazioni in piu'");
+                    Check(label, false, "it refused but left " +
+                                            (now - featureBefore) + " extra features");
                     return false;
                 }
             }
@@ -1969,10 +1969,10 @@ namespace Oce.Solid.Agent.Bench
             if (twin == null)
             {
                 BenchError(label,
-                    "caso non ammesso: un «must_fail» deve nominare in «twin» " +
-                    "il caso che RIESCE con argomenti quasi uguali. Senza, questo " +
-                    "rifiuto non distingue un controllo che funziona da uno che " +
-                    "rifiuta tutto.");
+                    "case not allowed: a «must_fail» must name in «twin» " +
+                    "the case that SUCCEEDS with almost the same arguments. Without it, this " +
+                    "refusal does not tell a check that works from one that " +
+                    "refuses everything.");
                 return false;
             }
             // Without the path — that is under `--muta`, where the case comes from
@@ -1985,7 +1985,7 @@ namespace Oce.Solid.Agent.Bench
                 // «gemella mancante» is one of the three bench errors that
                 // entry F2 named by name, together with «caso non ammesso» and
                 // «campo assente».
-                BenchError(label, "la gemella «" + twin + "» non esiste");
+                BenchError(label, "the twin «" + twin + "» does not exist");
                 return false;
             }
 

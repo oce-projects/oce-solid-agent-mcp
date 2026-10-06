@@ -44,7 +44,7 @@ const planes = data.length
       .sort()
       .map(f => path.join(__dirname, "cases", "views", f));
 
-if (!planes.length) { console.error("nessun piano da raccogliere"); process.exit(2); }
+if (!planes.length) { console.error("no plan to collect"); process.exit(2); }
 fs.mkdirSync(OUTPUT, { recursive: true });
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ function saveImages(itemName, whichOnes, images) {
 async function collect(planPath) {
   const itemName = nameOf(planPath);
   const raw = JSON.parse(fs.readFileSync(planPath, "utf8"));
-  const truth = (raw.find(p => p._truth) || {})._truth || "(non dichiarata)";
+  const truth = (raw.find(p => p._truth) || {})._truth || "(not declared)";
 
   // The plan that is sent does not carry the fields that start with `_`: they are notes
   // for whoever reads the file, and `build` would refuse arguments that the schema
@@ -130,17 +130,17 @@ async function collect(planPath) {
   console.log("=== " + itemName + " ===");
 
   const r = spawnSync(NEW, [], { encoding: "utf8" });
-  if (r.status !== 0) { console.log("  NO  parte nuova non creata"); return false; }
+  if (r.status !== 0) { console.log("  NO  new part not created"); return false; }
 
   await invoke("inspect_part");
   const done = await invoke("build", { steps: steps });
   if (done.errore) {
-    console.log("  NO  il piano non e' passato: " +
+    console.log("  NO  the plan did not pass: " +
                 done.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
   const volume = (done.dati || {}).volume_after_mm3;
-  console.log("  ok  costruito, volume " + volume + " mm3");
+  console.log("  ok  built, volume " + volume + " mm3");
 
   // ── the state, without images: it is what the model receives TODAY ──
   const stateOnly = await invoke("inspect_part");
@@ -148,9 +148,9 @@ async function collect(planPath) {
   fs.writeFileSync(path.join(OUTPUT, itemName + "-stato.json"),
                    JSON.stringify(docState, null, 1));
   const characters = fs.statSync(path.join(OUTPUT, itemName + "-stato.json")).size;
-  console.log("  ok  stato: " + characters + " caratteri, " +
-              ((docState.faces || []).length) + " facce, " +
-              ((docState.feature || []).length) + " lavorazioni");
+  console.log("  ok  state: " + characters + " characters, " +
+              ((docState.faces || []).length) + " faces, " +
+              ((docState.feature || []).length) + " features");
 
   // ── the images ──
   const one = await invoke("inspect_part", { views: FIRST_ROUND });
@@ -158,14 +158,14 @@ async function collect(planPath) {
   const written = saveImages(itemName, FIRST_ROUND, one.immagini)
     .concat(saveImages(itemName, SECOND_ROUND, three.immagini));
   if (!written.length) {
-    console.log("  NO  nessuna immagine: " +
+    console.log("  NO  no image: " +
                 one.testo.replace(/[\r\n]+/g, " ").slice(0, 200));
     return false;
   }
   console.log("  ok  " + written.join(", "));
 
   fs.writeFileSync(path.join(OUTPUT, itemName + "-verita.txt"),
-                   truth + "\nvolume misurato: " + volume + " mm3\n");
+                   truth + "\nmeasured volume: " + volume + " mm3\n");
   return true;
 }
 
@@ -183,7 +183,7 @@ async function collect(planPath) {
   }
 
   console.log("");
-  console.log(fine + " forme su " + planes.length + " raccolte in " + OUTPUT);
+  console.log(fine + " shapes out of " + planes.length + " collected in " + OUTPUT);
   bridge.stdin.end();
   process.exitCode = fine === planes.length ? 0 : 1;
 })();
