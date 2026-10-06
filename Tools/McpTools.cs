@@ -604,7 +604,7 @@ namespace Oce.Solid.Agent.Tools
         private Dictionary<string, object> Document(Dictionary<string, object> arguments)
         {
             if (!_session.Attached)
-                return Protocol.Content("Il ponte non e' agganciato a SolidWorks.", true);
+                return Protocol.Content("The bridge is not attached to SolidWorks.", true);
 
             string action = TextOf(arguments, "action");
             string error;
@@ -622,7 +622,7 @@ namespace Oce.Solid.Agent.Tools
                         ["loaded_inside_assembly"] = hidden,
                     };
                     if (list.Count == 0)
-                        outside["note"] = "Nessun documento aperto: comincia con «create» o «open».";
+                        outside["note"] = "No document is open: start with «create» or «open».";
                     return Protocol.ContentWithData(Protocol.InJson(outside), outside);
                 }
                 case "create":
@@ -645,14 +645,14 @@ namespace Oce.Solid.Agent.Tools
                     _signatureSeen = null;
                     _seenSignatures = null;
                     closed["next_step"] = closed["in_front_now"] == null
-                        ? "Non c'e' piu' nessun documento aperto: «create» o «open» per continuare."
-                        : "Davanti adesso c'e' «" + Convert.ToString(closed["in_front_now"]) + "». " +
-                          "Prima di disegnare, «inspect_part».";
+                        ? "There is no open document any more: use «create» or «open» to continue."
+                        : "In front now is «" + Convert.ToString(closed["in_front_now"]) + "». " +
+                          "Before drawing, call «inspect_part».";
                     return Protocol.ContentWithData(Protocol.InJson(closed), closed);
                 }
                 default:
                     return Protocol.Content(
-                        "«action» vale «create», «open», «list», «activate» o «close». Ho ricevuto «" +
+                        "«action» must be «create», «open», «list», «activate» or «close». I received «" +
                         (action ?? "") + "».", true);
             }
             if (card == null) return Protocol.Content(error, true);
@@ -666,9 +666,9 @@ namespace Oce.Solid.Agent.Tools
             _seenSignatures = null;
 
             card["next_step"] =
-                "Davanti adesso c'e' «" + Convert.ToString(card["document_title"]) + "». " +
-                "Prima di disegnare, «inspect_part»: quello che avevi guardato " +
-                "prima non vale piu'.";
+                "In front now is «" + Convert.ToString(card["document_title"]) + "». " +
+                "Before drawing, call «inspect_part»: what you looked at " +
+                "before is no longer valid.";
             return Protocol.ContentWithData(Protocol.InJson(card), card);
         }
 
@@ -775,11 +775,11 @@ namespace Oce.Solid.Agent.Tools
                     // run. It is the same rule as the refusals of the
                     // operations — the criterion, not the verdict.
                     return Protocol.Content(
-                        "Non conosco lo strumento «" + itemName + "». Ci sono " +
-                        "questi: " + string.Join(", ", ToolNames) + ". " +
-                        "Le sessanta OPERAZIONI di disegno non sono strumenti: " +
-                        "si chiedono a «build» (o a «measure», se leggono e " +
-                        "basta) e si elencano con «list_operations».", true);
+                        "I do not know the tool «" + itemName + "». The tools are " +
+                        "these: " + string.Join(", ", ToolNames) + ". " +
+                        "The sixty drawing OPERATIONS are not tools: " +
+                        "they are asked of «build» (or of «measure», if they only read " +
+                        "and change nothing) and are listed with «list_operations».", true);
             }
         }
 
@@ -928,11 +928,11 @@ namespace Oce.Solid.Agent.Tools
                 var now = _session.Identity(_session.ActiveDocument());
                 if (!Session.SameDocument(_seen, now))
                 {
-                    missed.Add(which + ": davanti adesso c'e' «" +
-                                ReadableName(now) + "», non «" +
-                                ReadableName(_seen) + "». Non fotografo " +
-                                "un pezzo diverso da quello che ho appena " +
-                                "misurato.");
+                    missed.Add(which + ": in front now is «" +
+                                ReadableName(now) + "», not «" +
+                                ReadableName(_seen) + "». I do not photograph " +
+                                "a part different from the one I just " +
+                                "measured.");
                     continue;
                 }
 
@@ -945,7 +945,7 @@ namespace Oce.Solid.Agent.Tools
                 }
                 else
                 {
-                    missed.Add(which + ": " + (why ?? "non so perche'"));
+                    missed.Add(which + ": " + (why ?? "I do not know why"));
                 }
             }
 
@@ -958,8 +958,8 @@ namespace Oce.Solid.Agent.Tools
                 var nowSec = _session.Identity(_session.ActiveDocument());
                 if (!Session.SameDocument(_seen, nowSec))
                 {
-                    missed.Add("sezione: davanti adesso c'e' «" +
-                                ReadableName(nowSec) + "», non «" +
+                    missed.Add("cutaway: in front now is «" +
+                                ReadableName(nowSec) + "», not «" +
                                 ReadableName(_seen) + "».");
                 }
                 else
@@ -994,13 +994,13 @@ namespace Oce.Solid.Agent.Tools
                     if (png != null && png.Length > 0)
                     {
                         images.Add(new KeyValuePair<string, byte[]>("image/png", png));
-                        succeeded.Add("sezione sul piano " + plane +
+                        succeeded.Add("cutaway on plane " + plane +
                                      (Math.Abs(offset) > 1e-9
                                          ? " a " + offset.ToString("0.##",
                                              System.Globalization.CultureInfo.InvariantCulture) + " mm"
                                          : ""));
                     }
-                    else missed.Add("sezione: " + (why ?? "non so perche'"));
+                    else missed.Add("cutaway: " + (why ?? "I do not know why"));
                 }
             }
 
@@ -1012,9 +1012,9 @@ namespace Oce.Solid.Agent.Tools
                 // the isometric and the second the front one is the difference between
                 // a view and a riddle.
                 text.Append(succeeded.Count == 1
-                    ? "Qui sotto la vista " + succeeded[0] + " del pezzo."
-                    : "Qui sotto " + succeeded.Count + " viste del pezzo, in " +
-                      "quest'ordine: " + string.Join(", ", succeeded) + ".");
+                    ? "Below is the " + succeeded[0] + " view of the part."
+                    : "Below are " + succeeded.Count + " views of the part, in " +
+                      "this order: " + string.Join(", ", succeeded) + ".");
                 // ── A NUMBER READ FROM AN IMAGE IS NOT AUTHORITATIVE ───────
                 //
                 // The caption already said where the measures are. It did not
@@ -1033,19 +1033,19 @@ namespace Oce.Solid.Agent.Tools
                 // **Saying "the measures are in the state" is not enough** — it must be
                 // said that those of the image are WRONG, and how to get
                 // the true one (entry Z-C10).
-                text.Append(" Le fotografie mostrano la FORMA. **I numeri " +
-                             "letti da un'immagine non sono autorevoli**: su " +
-                             "queste stesse viste un diametro di 90 e' stato " +
-                             "letto 79, e una parete di 12,5 e' stata letta 6 " +
-                             "— in isometrica gli spessori sono scorciati e " +
-                             "sembrano piu' grossi. Prima di usare una misura " +
-                             "in un passo, prendila dallo stato qui di seguito " +
-                             "oppure chiedila con «measure_between», " +
-                             "«minimum_distance» o «body_bounding_box». Nello stato " +
-                             "stanno anche gli identificativi.\n\n");
+                text.Append(" The photographs show the SHAPE. **Numbers " +
+                             "read from an image are not authoritative**: on " +
+                             "these same views a diameter of 90 was " +
+                             "read as 79, and a wall of 12.5 was read as 6 " +
+                             "— in isometric the thicknesses are foreshortened and " +
+                             "look bigger. Before using a measurement " +
+                             "in a step, take it from the state below " +
+                             "or ask for it with «measure_between», " +
+                             "«minimum_distance» or «body_bounding_box». The state " +
+                             "also holds the identifiers.\n\n");
             }
             if (missed.Count > 0)
-                text.Append("Viste non riuscite — " +
+                text.Append("Views that failed — " +
                              string.Join("; ", missed) + "\n\n");
 
             text.Append(Protocol.InJson(docState));
@@ -1346,14 +1346,14 @@ namespace Oce.Solid.Agent.Tools
                 if (string.Equals(textA, textB, StringComparison.Ordinal)) continue;
 
                 if (key == "volume_mm3")
-                    called.Add("il volume e' passato da " + (textA ?? "(nessuno)") +
-                              " a " + (textB ?? "(nessuno)") + " mm3");
+                    called.Add("the volume went from " + (textA ?? "(none)") +
+                              " to " + (textB ?? "(none)") + " mm3");
                 else if (key == "features")
-                    called.Add("le lavorazioni sono passate da " + (textA ?? "(nessuna)") +
-                              " a " + (textB ?? "(nessuna)"));
+                    called.Add("the features went from " + (textA ?? "(none)") +
+                              " to " + (textB ?? "(none)"));
                 else
-                    called.Add("il file e' stato riscritto (" + (textA ?? "(mai)") +
-                              " -> " + (textB ?? "(mai)") + ")");
+                    called.Add("the file was rewritten (" + (textA ?? "(never)") +
+                              " -> " + (textB ?? "(never)") + ")");
             }
 
             return called.Count == 0 ? null : string.Join("; ", called);
@@ -1365,7 +1365,7 @@ namespace Oce.Solid.Agent.Tools
             var p = Convert.ToString(identity.TryGetValue("path", out var x) ? x : "");
             if (!string.IsNullOrWhiteSpace(p)) return p;
             var t = Convert.ToString(identity.TryGetValue("document_title", out var y) ? y : "");
-            return string.IsNullOrWhiteSpace(t) ? "(senza nome)" : t;
+            return string.IsNullOrWhiteSpace(t) ? "(no name)" : t;
         }
 
         private Dictionary<string, object> ListOperations(
@@ -1393,10 +1393,10 @@ namespace Oce.Solid.Agent.Tools
                 var similar = _catalog.Similar(itemName);
                 _registry.OperationThatDoesNotExist(itemName, similar);
                 return Protocol.Content(
-                    "Non c'e' nessuna operazione che si chiama «" + itemName + "»." +
+                    "There is no operation called «" + itemName + "»." +
                     (similar.Count > 0
-                        ? " Forse cercavi: " + string.Join(", ", similar) + "."
-                        : " Chiedi «list_operations» per vedere quali ci sono."),
+                        ? " Did you mean: " + string.Join(", ", similar) + "."
+                        : " Ask «list_operations» to see which ones exist."),
                     true);
             }
             return Protocol.ContentWithData(Protocol.InJson(descriptionText), descriptionText);
@@ -1420,8 +1420,8 @@ namespace Oce.Solid.Agent.Tools
         /// document for a plate that is not there.
         /// </summary>
         private const string NothingTouched =
-            " Il piano non e' stato eseguito per niente: il documento e' rimasto " +
-            "com'era. Correggi questo passo e rimanda il piano intero.";
+            " The plan was not run at all: the document is left " +
+            "as it was. Fix this step and send the whole plan again.";
 
         /// <summary>
         /// `measure` — `build` without the permission to touch.
@@ -1498,8 +1498,8 @@ namespace Oce.Solid.Agent.Tools
             var steps = Take(arguments, "steps") as object[];
             if (steps == null || steps.Length == 0)
                 return Protocol.Content(
-                    "Non c'e' niente da misurare: «steps» deve essere un elenco " +
-                    "di {operazione, argomenti}.", true);
+                    "There is nothing to measure: «steps» must be a list " +
+                    "of {operation, arguments}.", true);
 
             // A GATE THAT KNOWS NOTHING MUST CLOSE, NOT OPEN.
             //
@@ -1515,12 +1515,12 @@ namespace Oce.Solid.Agent.Tools
             // wrong, and the symptom is that everything works.
             if (_catalog.LoadingError != null)
                 return Protocol.Content(
-                    "Non posso misurare: il catalogo non si e' caricato (" +
-                    _catalog.LoadingError + "). Senza catalogo non so " +
-                    "quali operazioni leggono e quali toccano il pezzo, e " +
-                    "«measure» non esegue niente di cui non sappia rispondere. " +
-                    "Con «build» lo stesso piano parte, ma il tuo client sa " +
-                    "che quello puo' modificare.", true);
+                    "I cannot measure: the catalog did not load (" +
+                    _catalog.LoadingError + "). Without the catalog I do not know " +
+                    "which operations only read and which touch the part, and " +
+                    "«measure» runs nothing it cannot vouch for. " +
+                    "With «build» the same plan runs, but your client knows " +
+                    "that one can modify the part.", true);
 
             var outOfPlace = new List<string>();
             for (int i = 0; i < steps.Length; i++)
@@ -1536,20 +1536,20 @@ namespace Oce.Solid.Agent.Tools
                 // two different messages depending on the tool.
                 if (family == null) continue;
                 if (!string.Equals(family, ReadOnlyFamily, StringComparison.OrdinalIgnoreCase))
-                    outOfPlace.Add("il passo " + (i + 1) + ", «" + itemName +
-                                   "» (famiglia «" + family + "»)");
+                    outOfPlace.Add("step " + (i + 1) + ", «" + itemName +
+                                   "» (family «" + family + "»)");
             }
 
             if (outOfPlace.Count > 0)
                 return Protocol.Content(
-                    "«measure» legge e basta, e " +
-                    (outOfPlace.Count == 1 ? "questo passo tocca" : "questi passi toccano") +
-                    " il pezzo: " + string.Join("; ", outOfPlace) + ". " +
-                    "Non ho eseguito niente — nemmeno le misure che venivano " +
-                    "prima, perche' meta' piano e' un risultato che non si sa " +
-                    "leggere. Per fare queste operazioni usa «build», che il " +
-                    "tuo client sa essere distruttivo. Per sapere cosa sa " +
-                    "leggere «measure»: «list_operations» con famiglia «" +
+                    "«measure» only reads, and " +
+                    (outOfPlace.Count == 1 ? "this step touches" : "these steps touch") +
+                    " the part: " + string.Join("; ", outOfPlace) + ". " +
+                    "I ran nothing — not even the measures that came " +
+                    "before, because half a plan is a result that cannot be " +
+                    "read. To do these operations use «build», which your " +
+                    "client knows to be destructive. To find out what " +
+                    "«measure» can read: «list_operations» with family «" +
                     ReadOnlyFamily + "».", true);
 
             // WITHOUT the guard on repetition: measuring the same
@@ -1601,8 +1601,8 @@ namespace Oce.Solid.Agent.Tools
             var steps = Take(arguments, "steps") as object[];
             if (steps == null || steps.Length == 0)
                 return Protocol.Content(
-                    "Il piano e' vuoto: «steps» deve essere un elenco di " +
-                    "{operazione, argomenti}.", true);
+                    "The plan is empty: «steps» must be a list of " +
+                    "{operation, arguments}.", true);
 
             var trouble = new List<string>();
 
@@ -1615,20 +1615,20 @@ namespace Oce.Solid.Agent.Tools
             {
                 var planStep = steps[i] as Dictionary<string, object>;
                 string location = "passo " + (i + 1);
-                _wire.Step(i + 1, "controllo il " + location + " di " + steps.Length);
-                if (planStep == null) { trouble.Add(location + ": non e' un oggetto"); continue; }
+                _wire.Step(i + 1, "checking " + location + " of " + steps.Length);
+                if (planStep == null) { trouble.Add(location + ": is not an object"); continue; }
 
                 var itemName = Text(planStep, "operation");
                 if (string.IsNullOrWhiteSpace(itemName))
-                { trouble.Add(location + ": manca «operation»"); continue; }
+                { trouble.Add(location + ": «operation» is missing"); continue; }
 
                 if (!_catalog.Knows(itemName))
                 {
                     var similar = _catalog.Similar(itemName);
                     _registry.OperationThatDoesNotExist(itemName, similar);
-                    trouble.Add(location + ": «" + itemName + "» non esiste" +
+                    trouble.Add(location + ": «" + itemName + "» does not exist" +
                              (similar != null && similar.Count > 0
-                                 ? ". Forse: " + string.Join(", ", similar)
+                                 ? ". Did you mean: " + string.Join(", ", similar)
                                  : ""));
                     continue;
                 }
@@ -1656,7 +1656,7 @@ namespace Oce.Solid.Agent.Tools
                                 : null;
                         if (data.ContainsKey(theField)) continue;
                         if (twin != null && data.ContainsKey(twin)) continue;
-                        trouble.Add(location + " («" + itemName + "»): manca «" + theField + "»");
+                        trouble.Add(location + " («" + itemName + "»): «" + theField + "» is missing");
                     }
 
                 if (property != null)
@@ -1667,8 +1667,8 @@ namespace Oce.Solid.Agent.Tools
                         // ignored in silence, and the part comes out different from
                         // how it was asked for, without any error.
                         trouble.Add(location + " («" + itemName + "»): «" + theField +
-                                 "» non e' un argomento di questa operazione, " +
-                                 "e verrebbe IGNORATO");
+                                 "» is not an argument of this operation, " +
+                                 "and would be IGNORED");
                     }
 
                 // The references to a previous step: `{step: N, kind: ...}`.
@@ -1682,34 +1682,34 @@ namespace Oce.Solid.Agent.Tools
                     if (n == null || !int.TryParse(Convert.ToString(n), out which)) continue;
                     if (which >= 1 && which <= i) continue;
                     trouble.Add(location + " («" + itemName + "»): «" + pair.Key +
-                             "» rimanda al passo " + which + ", che " +
-                             (which > i ? "non e' ancora stato fatto" : "non esiste"));
+                             "» refers to step " + which + ", which " +
+                             (which > i ? "has not been done yet" : "does not exist"));
                 }
             }
 
             var text = new StringBuilder();
             text.Append(trouble.Count == 0
-                ? "PROVA A VUOTO: il piano regge, per quello che si puo' " +
-                  "sapere senza guardare il documento.\n\n"
-                : "PROVA A VUOTO: " + trouble.Count + " cose da sistemare.\n\n");
+                ? "DRY RUN: the plan holds, as far as it can be " +
+                  "known without looking at the document.\n\n"
+                : "DRY RUN: " + trouble.Count + " things to fix.\n\n");
             foreach (var g in trouble) text.Append("  - " + g + "\n");
             if (trouble.Count > 0) text.Append("\n");
 
             // WHAT WAS NOT LOOKED AT. This part is ALWAYS there, even
             // when the plan holds -- especially when it holds.
-            text.Append("Controllati: i nomi delle operazioni, gli argomenti " +
-                         "obbligatori, quelli sconosciuti (che verrebbero " +
-                         "ignorati in silenzio) e i rimandi a passi " +
-                         "precedenti.\n\n");
-            text.Append("NON controllati, e per questi serve leggere il " +
-                         "documento: che gli «uid» siano ancora validi, che il " +
-                         "documento sia del tipo giusto per queste operazioni, " +
-                         "che le facce e gli spigoli nominati esistano ancora, " +
-                         "e se la geometria che chiedi sia possibile. " +
+            text.Append("Checked: the operation names, the required " +
+                         "arguments, the unknown ones (which would be " +
+                         "silently ignored) and the references to " +
+                         "earlier steps.\n\n");
+            text.Append("NOT checked, and for these the document has to be read: " +
+                         "whether the «uid» values are still valid, whether the " +
+                         "document is of the right type for these operations, " +
+                         "whether the faces and edges named still exist, " +
+                         "and whether the geometry you ask for is possible. " +
                          (_session.Attached
-                             ? "SOLIDWORKS e' agganciato: «build» senza «dry_run» " +
-                               "li controlla tutti prima di toccare qualunque cosa."
-                             : "SOLIDWORKS NON e' agganciato adesso.") + "\n");
+                             ? "SOLIDWORKS is attached: «build» without «dry_run» " +
+                               "checks all of them before touching anything."
+                             : "SOLIDWORKS is NOT attached now.") + "\n");
 
             return Protocol.Content(text.ToString(), trouble.Count > 0);
         }
@@ -1767,8 +1767,8 @@ namespace Oce.Solid.Agent.Tools
             var steps = Take(arguments, "steps") as object[];
             if (steps == null || steps.Length == 0)
                 return Protocol.Content(
-                    "Il piano e' vuoto: «steps» deve essere un elenco di " +
-                    "{operazione, argomenti}.", true);
+                    "The plan is empty: «steps» must be a list of " +
+                    "{operation, arguments}.", true);
 
             // ── WE ASK BEFORE TOUCHING ANYTHING (entry W2.5) ──
             //
@@ -1800,19 +1800,19 @@ namespace Oce.Solid.Agent.Tools
                 if (toConfirm.Count > 0)
                 {
                     var question =
-                        "Questo piano contiene " +
-                        (toConfirm.Count == 1 ? "un'operazione che NON si annulla"
-                                                 : "operazioni che NON si annullano") +
+                        "This plan contains " +
+                        (toConfirm.Count == 1 ? "an operation that CANNOT be undone"
+                                                 : "operations that CANNOT be undone") +
                         ": " + string.Join(", ", toConfirm) +
-                        ". Quello che toglie non si rimette con nessuna " +
-                        "operazione del catalogo. Vuoi che proceda?";
+                        ". What it removes cannot be put back with any " +
+                        "operation of the catalog. Do you want me to proceed?";
 
                     if (Oce.Solid.Agent.Mcp.Elicitation.ClientCanAsk)
                     {
                         if (!Oce.Solid.Agent.Mcp.Elicitation.Confirm(Console.Out, Console.In, question))
                             return Protocol.Content(
-                                "Fermato: la conferma non e' arrivata, e non ho " +
-                                "toccato niente. " + question, true);
+                                "Stopped: the confirmation did not arrive, and I " +
+                                "touched nothing. " + question, true);
                     }
                     else
                     {
@@ -1820,16 +1820,16 @@ namespace Oce.Solid.Agent.Tools
                         // in silence would be the way a defence
                         // disappears without anyone noticing.
                         Protocol.Note(
-                            "[ponte] " + string.Join(", ", toConfirm) +
-                            ": non ho potuto chiedere conferma all'utente — " +
-                            "questo client non dichiara «elicitation». Vado " +
-                            "avanti come prima.");
+                            "[bridge] " + string.Join(", ", toConfirm) +
+                            ": I could not ask the user for confirmation — " +
+                            "this client does not declare «elicitation». I am going " +
+                            "ahead as before.");
                     }
                 }
             }
 
             if (!_session.Attached)
-                return Protocol.Content("Il ponte non e' agganciato a SolidWorks.", true);
+                return Protocol.Content("The bridge is not attached to SolidWorks.", true);
 
             // WITHOUT ANCHOR: this reading serves to know on WHICH document one is
             // working, how much volume there was and how many features were already in
@@ -1883,22 +1883,22 @@ namespace Oce.Solid.Agent.Tools
             {
                 if (_seen == null)
                     return Protocol.Content(
-                        "Non ho ancora guardato nessun pezzo, quindi non so su quale " +
-                        "documento vuoi che disegni: adesso davanti c'e' «" +
-                        ReadableName(now) + "». Chiama prima «inspect_part» — " +
-                        "serve comunque, perche' gli identificativi delle facce " +
-                        "nascono li'.", true);
+                        "I have not looked at any part yet, so I do not know which " +
+                        "document you want me to draw on: in front now is «" +
+                        ReadableName(now) + "». Call «inspect_part» first — " +
+                        "it is needed anyway, because the face identifiers " +
+                        "are born there.", true);
 
                 if (!Bridge.Session.SameDocument(_seen, now))
                     return Protocol.Content(
-                        "Mi fermo: il documento e' cambiato. Avevi guardato «" +
-                        ReadableName(_seen) + "», adesso davanti c'e' «" +
-                        ReadableName(now) + "». Disegnare qui vorrebbe dire " +
-                        "scrivere nel pezzo sbagliato, e gli identificativi del tuo " +
-                        "piano non valgono su questo.\n\n" +
-                        "Se e' cambiato per una ragione che conosci, rileggilo con " +
-                        "«inspect_part». Se sai gia' che vuoi lavorare proprio su " +
-                        "quello che c'e' adesso, ripeti passando «document»: \"" +
+                        "I am stopping: the document changed. You had looked at «" +
+                        ReadableName(_seen) + "», now in front is «" +
+                        ReadableName(now) + "». Drawing here would mean " +
+                        "writing into the wrong part, and the identifiers of your " +
+                        "plan are not valid on this one.\n\n" +
+                        "If it changed for a reason you know, read it again with " +
+                        "«inspect_part». If you already know you want to work on exactly " +
+                        "what is there now, call again passing «document»: \"" +
                         ReadableName(now) + "\".", true);
             }
             // ── THE SAME DOCUMENT, WITH SOMETHING ELSE INSIDE (entry X2) ──
@@ -1920,15 +1920,15 @@ namespace Oce.Solid.Agent.Tools
                 var changed = WhatChanged(_signatureSeen, LightSignature(before));
                 if (changed != null)
                     return Protocol.Content(
-                        "Mi fermo: il pezzo e' cambiato da quando l'hai guardato — " +
+                        "I am stopping: the part has changed since you looked at it — " +
                         changed + ".\n\n" +
-                        "Il documento e' giusto, il contenuto no. Gli identificativi " +
-                        "delle facce («F1», «F2», ...) sono POSIZIONALI: nascono da una " +
-                        "lettura e valgono per quella. Su una geometria cambiata «F1» " +
-                        "puo' indicare un'altra faccia, e l'operazione riuscirebbe nel " +
-                        "posto sbagliato senza dare nessun errore.\n\n" +
-                        "Rileggi con «inspect_part» e rifa' il piano sugli " +
-                        "identificativi nuovi.", true);
+                        "The document is right, the content is not. The face identifiers " +
+                        "(«F1», «F2», ...) are POSITIONAL: they are born from a " +
+                        "reading and hold for that reading. On a changed geometry «F1» " +
+                        "may point to another face, and the operation would succeed in the " +
+                        "wrong place without giving any error.\n\n" +
+                        "Read again with «inspect_part» and redo the plan on the " +
+                        "new identifiers.", true);
             }
 
             // THE SIGNATURES HOLD ONLY ON THE DOCUMENT THAT PRODUCED THEM.
@@ -1992,16 +1992,16 @@ namespace Oce.Solid.Agent.Tools
                 _summaryAfterPlan == StateSummary(before))
             {
                 return Protocol.Content(
-                    "Questo piano l'ho gia' eseguito, e il documento e' ancora " +
-                    "esattamente come l'ho lasciato. Non lo rifaccio: «build» " +
-                    "non e' ripetibile — rieseguirlo non rimette il pezzo com'era, " +
-                    "farebbe un SECONDO foro.\n\n" +
-                    "Se la risposta di prima non ti e' arrivata, chiama " +
-                    "«inspect_part»: lo stato di adesso e' il risultato di " +
-                    "quel piano.\n\n" +
-                    "Se invece vuoi davvero rifarlo, cambia qualcosa nel piano " +
-                    "oppure usa «undo» e poi rilancialo: cosi' e' una scelta, " +
-                    "non un rinvio.", true);
+                    "I have already run this plan, and the document is still " +
+                    "exactly as I left it. I will not redo it: «build» " +
+                    "is not repeatable — running it again does not put the part back as it was, " +
+                    "it would make a SECOND hole.\n\n" +
+                    "If the earlier answer never reached you, call " +
+                    "«inspect_part»: the current state is the result of " +
+                    "that plan.\n\n" +
+                    "If you really do want to redo it, change something in the plan " +
+                    "or use «undo» and then run it again: that way it is a choice, " +
+                    "not a replay.", true);
             }
 
             // THE PLAN IS CHECKED IN FULL BEFORE TOUCHING THE DOCUMENT.
@@ -2036,7 +2036,7 @@ namespace Oce.Solid.Agent.Tools
                 order++;
 
                 var itemName = Text(planStep, "operation");
-                _wire.Step(order, "controllo il passo " + order + " di " +
+                _wire.Step(order, "checking step " + order + " of " +
                                     steps.Length + ": " + itemName);
                 var itsItems = Take(planStep, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
@@ -2055,9 +2055,9 @@ namespace Oce.Solid.Agent.Tools
                         ["operation"] = itemName,
                         ["succeeded"] = false,
                         ["error"] =
-                            "Non esiste nessuna operazione «" + itemName + "»." +
+                            "The operation «" + itemName + "» does not exist." +
                             (similar.Count > 0
-                                ? " Forse cercavi: " + string.Join(", ", similar) + "."
+                                ? " Did you mean: " + string.Join(", ", similar) + "."
                                 : "") + NothingTouched,
                     });
                     everythingFine = false;
@@ -2382,16 +2382,16 @@ namespace Oce.Solid.Agent.Tools
                 result["features_in_error_before"] = errorsBefore;
                 result["note_errors"] =
                     errorsAfter > errorsBefore
-                        ? "Il pezzo ha " + errorsAfter + " lavorazioni in errore, e prima " +
-                          "ne aveva " + errorsBefore + ": questo piano ne ha rotte " +
-                          (errorsAfter - errorsBefore) + ". Guarda «state_after» per sapere quali."
+                        ? "The part has " + errorsAfter + " features in error, and before it " +
+                          "had " + errorsBefore + ": this plan broke " +
+                          (errorsAfter - errorsBefore) + ". Look at «state_after» to see which."
                         : errorsAfter < errorsBefore
-                            ? "Le lavorazioni in errore sono passate da " + errorsBefore +
-                              " a " + errorsAfter + ": questo piano ne ha riparate " +
+                            ? "The features in error went from " + errorsBefore +
+                              " to " + errorsAfter + ": this plan repaired " +
                               (errorsBefore - errorsAfter) + "."
-                            : "Il pezzo aveva gia' " + errorsBefore + " lavorazioni in errore " +
-                              "prima di questo piano, e ne ha ancora " + errorsAfter + ": " +
-                              "non le ha rotte questo piano.";
+                            : "The part already had " + errorsBefore + " features in error " +
+                              "before this plan, and still has " + errorsAfter + ": " +
+                              "this plan did not break them.";
             }
 
             // ── THE MEMORY FOR «undo» (entry R1) ──────────────────────
@@ -2715,7 +2715,7 @@ namespace Oce.Solid.Agent.Tools
             }
             if (undoEntryOnPlanDocument == true)
             {
-                reason = what + " put its own undo entry («Ponte MCP»: FinishRecordingUndoObject answered true) on " +
+                reason = what + " put its own undo entry («MCP bridge»: FinishRecordingUndoObject answered true) on " +
                          "top of the undo stack of" + on + ", above the plan I remember.";
                 return MemoryCover;
             }
@@ -2857,16 +2857,16 @@ namespace Oce.Solid.Agent.Tools
         private Dictionary<string, object> Undo()
         {
             if (!_session.Attached)
-                return Protocol.Content("Il ponte non e' agganciato a SolidWorks.", true);
+                return Protocol.Content("The bridge is not attached to SolidWorks.", true);
 
             var memory = _lastPlan;
             if (memory == null)
                 return Protocol.Content(
-                    "Non ho nessun piano da ritirare: «undo» disfa l'ultimo " +
-                    "«build» di questa conversazione, e qui non ne ho ancora " +
-                    "eseguito nessuno che abbia costruito qualcosa.\n\n" +
-                    "Non premo annulla alla cieca: toglierei qualcosa che non ho " +
-                    "fatto io, e non saprei nemmeno dire cosa." +
+                    "I have no plan to withdraw: «undo» reverses the last " +
+                    "«build» of this conversation, and here I have not yet " +
+                    "run any that built something.\n\n" +
+                    "I do not press undo blindly: I would remove something I did not " +
+                    "do myself, and I could not even say what." +
                     (_noMemoryBecause != null ? "\n\n" + _noMemoryBecause : "") +
                     "\n\n" + NoMemoryRemedy, true);
 
@@ -2889,37 +2889,37 @@ namespace Oce.Solid.Agent.Tools
                 : Bridge.Session.SameDocument(memory.Document, identityNow);
             if (!samePart)
                 return Protocol.Content(
-                    "Mi fermo: il documento e' cambiato. Il piano l'avevo eseguito " +
-                    "su «" + ReadableName(memory.Document) + "», adesso davanti " +
-                    "c'e' «" + ReadableName(identityNow) + "». Annullare qui " +
-                    "toglierebbe l'ultima cosa fatta su un pezzo che non c'entra.\n\n" +
+                    "I am stopping: the document changed. I had run the plan " +
+                    "on «" + ReadableName(memory.Document) + "», now in front " +
+                    "is «" + ReadableName(identityNow) + "». Undoing here " +
+                    "would remove the last thing done on a part that has nothing to do with it.\n\n" +
                     (Bridge.Session.SameDocument(memory.Document, identityNow)
                         ? "It has the same name, but it is not the same open document (it was closed and opened " +
                           "again, or it is another copy): its undo stack does not hold my plan.\n\n"
                         : "") +
-                    "Porta davanti il pezzo giusto e richiamami.", true);
+                    "Bring the right part to the front and call me again.", true);
 
             var now = PartSnapshot.Of(stateBefore);
             var after = memory.After;
             if (now.Volume == null || after == null || after.Volume == null)
                 return Protocol.Content(
-                    "Mi fermo: non riesco a misurare il volume del pezzo, e senza non so " +
-                    "dirti se dopo il piano l'ha cambiato qualcun altro. Un passo indietro " +
-                    "alla cieca potrebbe disfare il lavoro di chi sta davanti allo schermo: " +
-                    "se vuoi comunque tornare indietro, e' un gesto da fare a mano.", true);
+                    "I am stopping: I cannot measure the volume of the part, and without it I cannot " +
+                    "tell you whether someone else changed it after the plan. A step back " +
+                    "blindly could undo the work of whoever is in front of the screen: " +
+                    "if you still want to go back, do it by hand.", true);
 
             if (Math.Abs(now.Volume.Value - after.Volume.Value) > VolumeDeviationMm3 ||
                 now.Count != after.Count)
                 return Protocol.Content(
-                    "Mi fermo: dopo il piano il pezzo e' cambiato, e non l'ho " +
-                    "cambiato io.\n\n" +
+                    "I am stopping: after the plan the part changed, and I did not " +
+                    "change it.\n\n" +
                     Comparison("volume", after.Volume.Value, now.Volume.Value, "mm³") +
                     Comparison("features", after.Count, now.Count, "") +
-                    "\nUn passo indietro adesso non disferebbe il mio piano: " +
-                    "disferebbe l'ultima cosa fatta, che e' di qualcun altro. " +
-                    "Se vuoi comunque tornare indietro, e' un gesto che deve fare " +
-                    "chi sta davanti allo schermo, perche' solo lui sa cosa sta " +
-                    "buttando via.", true);
+                    "\nGoing back one step now would not undo my plan: " +
+                    "it would undo the last thing done, which is someone else's. " +
+                    "If you still want to go back, it is something that has to be done by " +
+                    "whoever is in front of the screen, because only they know what is " +
+                    "being thrown away.", true);
 
             // THE NAMES AND THE ORDER TOO (review F1, F14): a reorder or a
             // rename done after the plan leaves volume and count as they were,
@@ -2936,10 +2936,10 @@ namespace Oce.Solid.Agent.Tools
             var stateAfter = _session.State(out var stateError);
             if (stateAfter == null)
                 return Protocol.Content(
-                    "Ho premuto annulla e poi non sono riuscito a rileggere il " +
-                    "documento: " + stateError + "\n\n" +
-                    "Non posso dirti se ha funzionato. Guarda il pezzo prima di " +
-                    "fare altro.", true);
+                    "I pressed undo and then could not read the " +
+                    "document back: " + stateError + "\n\n" +
+                    "I cannot tell you whether it worked. Look at the part before " +
+                    "doing anything else.", true);
 
             var back = PartSnapshot.Of(stateAfter);
             var before = memory.Before;
@@ -2953,9 +2953,9 @@ namespace Oce.Solid.Agent.Tools
                     "The last «undo» pressed undo and then could not read the volume: what is on " +
                     "top of the undo stack now is not known.";
                 return Protocol.Content(
-                    "Ho premuto annulla, ma poi non riesco a misurare il volume del pezzo: " +
-                    "non posso dirti se e' tornato com'era. Non ho fatto altro. Guarda il " +
-                    "pezzo prima di andare avanti.", true);
+                    "I pressed undo, but then I cannot measure the volume of the part: " +
+                    "I cannot tell you whether it came back as it was. I did nothing else. Look at the " +
+                    "part before going on.", true);
             }
             // BACK AS IT WAS BEFORE THE PLAN: volume, count, names and order
             // (review F1), not only the two numbers.
@@ -3079,9 +3079,9 @@ namespace Oce.Solid.Agent.Tools
                 ["features_after"] = back.Count,
                 ["checked_by_reading"] = checkedByReading,
                 ["note"] =
-                    "Il piano e' stato ritirato tutto intero e il pezzo e' " +
-                    "tornato com'era. Gli identificativi di «state_after» sono " +
-                    "quelli validi adesso: quelli di prima non valgono piu'.",
+                    "The plan was withdrawn whole and the part went " +
+                    "back to how it was. The identifiers in «state_after» are " +
+                    "the valid ones now: the earlier ones are no longer valid.",
                 ["state_after"] = stateAfter,
             };
             if (!checkedByReading)
@@ -3315,9 +3315,9 @@ namespace Oce.Solid.Agent.Tools
         private static string Comparison(string what, double expected, double found, string units)
         {
             if (Math.Abs(expected - found) <= VolumeDeviationMm3) return "";
-            return "  " + what + ": era " + Number(expected) +
-                   (units.Length > 0 ? " " + units : "") + " quando ho finito, " +
-                   "adesso e' " + Number(found) +
+            return "  " + what + ": was " + Number(expected) +
+                   (units.Length > 0 ? " " + units : "") + " when I finished, " +
+                   "now it is " + Number(found) +
                    (units.Length > 0 ? " " + units : "") + "\n";
         }
 
@@ -3421,20 +3421,20 @@ namespace Oce.Solid.Agent.Tools
                     // document the list is empty, and that is precisely the case in
                     // which the reader must understand that they must change path.
                     string whatIsThere = existing.Count == 0
-                        ? "Nel pezzo che ho guardato non c'era nessun identificativo: " +
-                          "era vuoto."
-                        : "Quelli che c'erano sono: " + List(existing) + ".";
+                        ? "In the part I looked at there was no identifier at all: " +
+                          "it was empty."
+                        : "The identifiers that existed are: " + List(existing) + ".";
 
                     return
-                        "«" + theField + "» cita «" + uid + "», che nel pezzo che ho " +
-                        "guardato non c'era. " + whatIsThere + "\n\n" +
-                        "Gli identificativi nascono da «inspect_part» e valgono per " +
-                        "QUELLA lettura. Se la geometria la crea un passo precedente di " +
-                        "questo stesso piano, non ha ancora nessun identificativo e va " +
-                        "nominata con il riferimento al passo — per esempio " +
+                        "«" + theField + "» cites «" + uid + "», which was not in the part I " +
+                        "looked at. " + whatIsThere + "\n\n" +
+                        "Identifiers are born from «inspect_part» and hold for " +
+                        "THAT reading. If the geometry is created by an earlier step of " +
+                        "this same plan, it has no identifier yet and must be " +
+                        "named with the reference to the step — for example " +
                         "\"" + theField.Replace("_uid", "_ref") + "\": {\"step\": 1, " +
-                        "\"kind\": \"top_face\"}. Se invece c'era gia', " +
-                        "rileggi il pezzo e copia l'identificativo da li'.";
+                        "\"kind\": \"top_face\"}. If instead it was already there, " +
+                        "read the part again and copy the identifier from there.";
                 }
             }
             return null;
@@ -3564,7 +3564,7 @@ namespace Oce.Solid.Agent.Tools
             sortedItems.Sort(StringComparer.Ordinal);
             if (sortedItems.Count <= 12) return string.Join(", ", sortedItems);
             return string.Join(", ", sortedItems.Take(12)) +
-                   " e altri " + (sortedItems.Count - 12);
+                   " and another " + (sortedItems.Count - 12);
         }
 
         /// <summary>

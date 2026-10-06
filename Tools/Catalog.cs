@@ -56,8 +56,8 @@ namespace Oce.Solid.Agent.Tools
             if (!File.Exists(FilePath))
             {
                 LoadingError =
-                    "Non trovo il catalogo in «" + FilePath + "». Senza, il ponte " +
-                    "sa eseguire ma non sa dire cosa si puo' chiedere.";
+                    "I cannot find the catalog in «" + FilePath + "». Without it, the bridge " +
+                    "can run operations but cannot say what can be asked for.";
                 return;
             }
 
@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.Tools
             }
             catch (Exception ex)
             {
-                LoadingError = "Il catalogo non si legge: " + ex.Message;
+                LoadingError = "The catalog cannot be read: " + ex.Message;
             }
         }
 
@@ -167,8 +167,8 @@ namespace Oce.Solid.Agent.Tools
                 ["total"] = _operations.Count,
                 ["families"] = perFamily,
                 ["how_to_use_it"] =
-                    "Chiedi «describe_operation» per avere lo schema completo " +
-                    "di quella che ti serve, poi «build».",
+                    "Ask «describe_operation» for the full schema " +
+                    "of the one you need, then «build».",
             };
         }
 

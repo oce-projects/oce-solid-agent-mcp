@@ -170,7 +170,7 @@ namespace Oce.Solid.Agent.Tools
 
             if (FilePath == null)
             {
-                WhyItWasSilent = "non c'e' nessun file su cui scrivere";
+                WhyItWasSilent = "there is no file to write to";
                 return;
             }
             if (string.IsNullOrWhiteSpace(itemName))
@@ -179,7 +179,7 @@ namespace Oce.Solid.Agent.Tools
                 // «manca «operation»», and it is a form problem of the plan, not
                 // something somebody wanted and was not there. Recording it
                 // would fill the file with lines that teach nothing.
-                WhyItWasSilent = "nome vuoto: non e' una domanda";
+                WhyItWasSilent = "empty name: it is not a question";
                 return;
             }
 

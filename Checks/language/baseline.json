@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 52082,
+  "strings": 51096,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 835,
+  "protocol": 829,
   "paths": 0,
   "transition": 2192
  },
@@ -1625,15 +1625,13 @@
    "comments": 1
   },
   "Tools/Catalog.cs": {
-   "strings": 26,
    "comments": 1
   },
   "Tools/McpTools.cs": {
-   "strings": 1674,
+   "strings": 726,
    "comments": 35
   },
   "Tools/QuestionRegistry.cs": {
-   "strings": 12,
    "comments": 1
   },
   "Tools/api_knowledge.json": {
@@ -3852,7 +3850,6 @@
    "lontano",
    "lunghezza",
    "lunghezza_mm",
-   "mai",
    "manca",
    "marca",
    "marcata",
@@ -3870,7 +3867,6 @@
    "mio",
    "misti",
    "misura",
-   "misurato",
    "misure",
    "misureTot",
    "modelli",
@@ -3909,7 +3905,6 @@
    "opposto",
    "oppure",
    "opzione",
-   "ordine",
    "orfana",
    "orfana-sonda",
    "orfane_banco",
@@ -3947,7 +3942,6 @@
    "porta_documento",
    "positiva",
    "posizione",
-   "precedenti",
    "precondizione",
    "predefinito",
    "prima",
@@ -3989,9 +3983,7 @@
    "quaranta",
    "quattordici",
    "quattro",
-   "quest",
    "questa_non_esiste",
-   "questi",
    "qui",
    "quindici",
    "quota",
