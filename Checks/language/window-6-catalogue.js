@@ -52,6 +52,11 @@
 //     out as a paragraph that begins exactly «I REFUSE IF », as many as there
 //     were, so the declaration of a limit keeps one shape across the catalogue
 //     (and Tests/RefusalKeywordsContract.cs holds it there).
+//   - THE PROTOCOL AND THE PLATFORM: a value the operation takes as it is (a case of the bench passes it, or protocol_values of
+//     the integration declares it from the code) stays named; a literal an Italian SOLIDWORKS writes (solidworks-localized)
+//     never changes.
+//   - THE BLIND SPOTS (--check): a description the detector reads as English but that carries Italian function words is
+//     listed; one not declared in forced_units is red, and with --zero any is.
 //   - THE CATALOGUE PROOF (--catalog-proof): Tools/catalog.json now against the
 //     one at the tree before the window: the same operations in the same
 //     order, the same families, the same keys, every schema the same tree
@@ -296,6 +301,12 @@ function context() {
     try {
       const j = JSON.parse(fs.readFileSync(path.join(CTX.root, 'Checks', 'language', PROFILE.integration), 'utf8').replace(/^\ufeff/, ''));
       for (const o of j.overrides || []) CTX.overrides.set(o.file + '#' + o.unit, o);
+      // the values the code of an operation takes as they are, declared by the integrator (a case of the bench passes only some of
+      // them); Italian, so written in ROT13 there like the Italian of this file
+      for (const p of j.protocol_values || []) {
+        if (!CTX.values.has(p.operation)) CTX.values.set(p.operation, new Set());
+        for (const v of p.values_rot13 || []) CTX.values.get(p.operation).add(rot13(v));
+      }
     } catch (e) { /* no integration file */ }
   }
   return CTX;
@@ -318,7 +329,7 @@ function protocolProblems(oldText, newText, opName, flags, values) {
   const set = opName && values.get(opName);
   if (set) {
     const lost = [...set].filter(v => wordIn(oldText, v) && !wordIn(newText, v) && !(flags.protocol_ok || []).includes(v));
-    if (lost.length) out.push('the value' + (lost.length > 1 ? 's ' : ' ') + lost.slice(0, 6).map(v => '«' + v + '»').join(', ') + ' of ' + opName + ' (a case of the bench passes it in the arguments, so the operation takes it as it is) is named in the original and not in the translation ("protocol_ok": [...] if it was prose)');
+    if (lost.length) out.push('the value' + (lost.length > 1 ? 's ' : ' ') + lost.slice(0, 6).map(v => '«' + v + '»').join(', ') + ' of ' + opName + ' (a case of the bench passes it in the arguments, or protocol_values of the integration declares it: the operation takes it as it is) is named in the original and not in the translation ("protocol_ok": [...] if it was prose)');
   }
   return out;
 }
@@ -333,6 +344,40 @@ function extraProblems(item, newParts) {
   if (!t.keywords_ok) out.push(...refusalProblems(oldText, newText));
   const op = item.file === OPERATIONS ? (ctx.ops.find(o => o.start <= item.line && item.line <= o.end) || {}).name : null;
   out.push(...protocolProblems(oldText, newText, op, t, ctx.values));
+  // a literal that is text an Italian SOLIDWORKS writes (the class solidworks-localized of exceptions.json: the word for «through» in the
+  // suffix of a hole callout) is read from the platform, not written by the program: it never changes, even when a message of ours holds the new
+  // words (window 5 lets a probe go only when it is unchanged, and «through» in a description would satisfy a translated one)
+  if (newText !== oldText && localizedByThePlatform(ctx.root, item.file, oldText)) out.push('«' + oldText + '» is text that an Italian SOLIDWORKS writes and the program reads (solidworks-localized in exceptions.json): it stays as it is');
+  return out;
+}
+
+// the same reading as window-5-messages.js (not exported there): the whole text is one of the patterns of the class, for that file
+function localizedByThePlatform(root, rel, text) {
+  let list;
+  try { list = JSON.parse(fs.readFileSync(path.join(root, 'Checks', 'language', 'exceptions.json'), 'utf8').replace(/^﻿/, '')); } catch (e) { return false; }
+  return list.some(e => e.class === 'solidworks-localized' && e.pattern && (!e.file || new RegExp(e.file).test(rel)) && new RegExp('^(?:' + e.pattern + ')$', 'i').test(text));
+}
+
+// ── THE BLIND SPOTS OF THE DETECTOR ─────────────────────────────────────────
+// The units of a window are the ones the detector reads as Italian, and a short description it does not («true» and two Italian
+// infinitives with a clitic, an adverb and a preposition before a name) would stay Italian with --zero green. This second reader
+// lists the texts of the descriptions (not the lexicons of the tests, Italian on purpose until .11) that the detector passes and that
+// carry an Italian function word or an Italian ending English does not have; --check prints them, --zero is red on any. A unit it
+// finds is declared in forced_units of the integration and translated with its family. The words are in ROT13 (the language gate).
+const BLIND = new RegExp('(?<![A-Za-zÀ-ÿ_])(?:' + rot13('qv|qry|qryyn|qrv|qryyr|vy|yb|tyv|han|hab|pur|pba|fhy|fhyyn|qny|qnyyn|fbab|dhnaqb|napur|bccher|ireb|snyfb|fbyb (?:pba|fr|cre)') +
+  '|[a-z]{3,}(?:' + rot13('neyb|neyn|neyv|reyb|reyn|veyb|veyn|mvbar|mvbav') + '))(?![A-Za-zÀ-ÿ_])');
+const BLIND_SCOPE = [/^Oce\.Solid\.Agent\.Core\/Catalog\//, /^Oce\.Solid\.Agent\.Catalog\//, /^Mcp\/Risorse\.cs$/, /^Tools\/McpTools\.cs$/];
+function blindSpots(model) {
+  const out = [];
+  for (const f of model.files.values()) {
+    if (!BLIND_SCOPE.some(re => re.test(f.rel))) continue;
+    for (const u of f.units) {
+      if (u.italian) continue;
+      const text = SCAN.snapshotParts(u).filter(p => p !== null).join(' ');
+      const m = BLIND.exec(text);
+      if (m) out.push({ file: f.rel, unit: u.id, line: u.line, word: m[0], text: text.slice(0, 60) });
+    }
+  }
   return out;
 }
 
@@ -633,6 +678,15 @@ function runCheck(root, rev, opts) {
   }
   console.log('declarations of a limit in the catalogue served: ' + k.declarations + ', ' + k.keyword + ' with «' + KEYWORD.trim() + '», ' + (k.declarations - k.keyword) + ' still in another form' + (opts.zero && k.declarations - k.keyword ? ' (' + k.other.slice(0, 3).join(' | ') + ')' : ''));
   if (opts.zero && k.declarations !== k.keyword) code = 1;
+  {
+    const forced = new Set();
+    try { for (const e of JSON.parse(fs.readFileSync(path.join(root, 'Checks', 'language', PROFILE.integration), 'utf8').replace(/^﻿/, '')).forced_units || []) for (const u of e.units) forced.add(e.file + '#' + u); } catch (e) { /* none */ }
+    const blind = blindSpots(W5.buildModel(root, null));
+    const undeclared = blind.filter(b => !forced.has(b.file + '#' + b.unit));
+    console.log('texts the detector reads as English and that carry Italian words (blind spots): ' + blind.length + ', ' + undeclared.length + ' not in forced_units' +
+      (blind.length ? ' (' + blind.slice(0, 4).map(b => b.file.split('/').pop() + '#' + b.unit + ' «' + b.word + '»').join(' | ') + ')' : ''));
+    if (undeclared.length || (opts.zero && blind.length)) code = 1;
+  }
   const rc = runCatalogProof(root, rev, { exporter: opts.exporter, examples: opts.examples });
   return code || rc;
 }
@@ -649,7 +703,7 @@ function runSurvey(root) {
   return 0;
 }
 
-Object.assign(module.exports, { opIndex, atomOf, distribute, refusalProblems, lengthProblems, protocolProblems, operationValues, setRoot, runRatchet, declarationsOf, catalogProof, keywordCount, runExtract, runApply, runCheck, runCatalogProof, runSurvey, PROFILE, SCOPE, inScope, KEYWORD });
+Object.assign(module.exports, { blindSpots, localizedByThePlatform, opIndex, atomOf, distribute, refusalProblems, lengthProblems, protocolProblems, operationValues, setRoot, runRatchet, declarationsOf, catalogProof, keywordCount, runExtract, runApply, runCheck, runCatalogProof, runSurvey, PROFILE, SCOPE, inScope, KEYWORD });
 
 // ── --self-test ─────────────────────────────────────────────────────────────
 // Fixtures need Italian text, and this file is judged by the language gate: the Italian of the fixtures is written in ROT13.
@@ -807,6 +861,36 @@ function selfTest() {
       const fake = { files: new Map([[OPERATIONS, { text: bigText, units: ops2.map(unitAt) }]]) };
       const atoms = ops2.map(o => atomOf({ file: OPERATIONS, line: o.start + 4 }, fake));
       say(atoms.join(' ') === 'ops/big.1 ops/big.2 ops/big.3 ops/small', 'atoms: a family over ' + PART_WORDS + ' words is cut by operation (' + atoms.join(' ') + '), a small one stays whole');
+    }
+    // 4c. what the integrator declares, and what the platform writes (the review of the pilot)
+    {
+      const integFile = path.join(root, 'Checks', 'language', PROFILE.integration);
+      const excFile = path.join(root, 'Checks', 'language', 'exceptions.json');
+      fs.mkdirSync(path.dirname(integFile), { recursive: true });
+      const perpendicular = IT('crecraqvpbynir');
+      fs.writeFileSync(integFile, JSON.stringify({ protocol_values: [{ operation: 'one', values_rot13: [rot13(perpendicular)] }] }));
+      const through = IT('CNFFNAGR');
+      fs.writeFileSync(excFile, JSON.stringify([{ class: 'solidworks-localized', file: '^Bridge/A\\.cs$', pattern: through }]));
+      setRoot(null); setRoot(root);
+      const lineOfOne = opIndex(text)[0].start + 2;
+      const opItem = (old) => ({ file: OPERATIONS, unit: 'All:s9', line: lineOfOne, parts: [old], tr: {} });
+      const was = perpendicular + IT(' b cnenyyryb, n fprygn');
+      say(extraProblems(opItem(was), ['perpendicular or parallel, as you choose']).some(p => /named in the original/.test(p)) &&
+          extraProblems(opItem(was), [perpendicular + ' (perpendicular) or parallel, as you choose']).length === 0,
+          'protocol: a value declared in protocol_values (the code takes it, no case passes it) is held like a value of the bench');
+      const probe = (old) => ({ file: 'Bridge/A.cs', unit: 'Go:s1', line: 6, parts: [old], tr: {} });
+      say(extraProblems(probe(through), ['THROUGH']).some(p => /SOLIDWORKS writes/.test(p)) && extraProblems(probe(through), [through]).length === 0 &&
+          extraProblems({ file: 'Bridge/B.cs', unit: 'Go:s1', line: 6, parts: [through], tr: {} }, ['THROUGH']).every(p => !/SOLIDWORKS writes/.test(p)),
+          'platform: a literal that an Italian SOLIDWORKS writes (solidworks-localized, for its file) is refused when it changes, and only there');
+      fs.unlinkSync(integFile); fs.unlinkSync(excFile);
+      setRoot(null); setRoot(root);
+      // the blind spots: a short description the detector passes, with an Italian clitic infinitive or «solo con»
+      const unit = (id, s) => ({ id, line: 1, italian: false, leaves: [{ k: 't', cooked: s }] });
+      const fake = { files: new Map([
+        [OPERATIONS, { rel: OPERATIONS, units: [unit('All:s1', IT('gehr cre svffneyb, snyfr cre yvorenneyb.')), unit('All:s2', IT('fbyb pba nkvf2_hvq')), unit('All:s3', 'true to fix it, false to free it.'), unit('All:s4', 'the plane per side, solo or come back')] }],
+        ['Tests/LimitsTests.cs', { rel: 'Tests/LimitsTests.cs', units: [unit('Telltales:s1', IT('b bccher'))] }]]) };
+      const b = blindSpots(fake).map(x => x.unit);
+      say(b.join(',') === 'All:s1,All:s2', 'blind spots: the Italian the detector passes in a description is listed (' + b.join(',') + '), English is not, the lexicons of the tests are not read');
     }
     // 5. the apply: the good translation, and the refusals
     // the English of every Italian text of the fixture, by the Italian text: from the two catalogues, not typed again

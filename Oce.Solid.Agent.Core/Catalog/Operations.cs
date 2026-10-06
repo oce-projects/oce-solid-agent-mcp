@@ -4634,9 +4634,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Description =
                         "Mirrors a component on a plane of the assembly (front, top, right). YOU MUST CHOOSE "
                         + "HOW, because they are three different parts:\n- «instance»: the same file, "
-                        + "mirrored. Right for a symmetrical part.\n- «opposite_linked»: a new file that FOLLOWS "
+                        + "mirrored. Correct for a symmetrical part.\n- «opposite_linked»: a new file that FOLLOWS "
                         + "the original. Change the right one and the left one changes too.\n- "
-                        + "«opposite_unlinked»: an INDEPENDENT new file. Fix the right one and the left one stays as it "
+                        + "«opposite_unlinked»: an INDEPENDENT new file. Correct the right one and the left one stays as it "
                         + "was, and nothing tells you.\n\nAfterwards I verify it: the centre of the new part "
                         + "against the mirror of the centre of the original, and for the opposites the "
                         + "feature tree of the new file (linked or not). The new file takes the name "
@@ -4701,8 +4701,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "stays still only because of that is not assembled. After changing "
                         + "it I read it back, and I tell you how many mates it has: a free component "
                         + "with zero mates is resting, it moves."
-                        + "\n\nI REFUSE IF you do not give me «grounded» (true or false: they are two opposite things, no "
-                        + "direction is assumed) or if the component is not there (I tell you "
+                        + "\n\nI REFUSE IF you do not give me «grounded» (true or false: they are two opposite things, there "
+                        + "is no default) or if the component is not there (I tell you "
                         + "which ones there are)."
                         + "\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly "
                         + "(«top_level»: false in the state) is refused, and the refusal names the "
@@ -4718,7 +4718,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "the identifier of the component, from the state: «C1», «C2», ..."),
                             "grounded", O(
                                 "type", "boolean",
-                                "description", "true per fissarlo, false per liberarlo.")),
+                                "description", "true to fix it, false to free it.")),
                         "required", A("component", "grounded")),
                 },
                 new OperationSpec
@@ -4745,7 +4745,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "remove those constraints and put them back with «mate»."
                         + "\n\nTHE NEW FILE MUST ALREADY BE OPEN in SOLIDWORKS, "
                         + "as for «insert_component»: copy the path from «documents_open».\n\n"
-                        + "If you give it the same file that is already there, I refuse: "
+                        + "I REFUSE IF you give the component the file it already has: "
                         + "it would succeed and change nothing, and you would believe "
                         + "you had changed the part."
                         + "\n\nTHE CONFIGURATION IS CHECKED, NOT YET CHOSEN. A «configuration» the new "

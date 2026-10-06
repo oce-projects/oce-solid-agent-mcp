@@ -1,6 +1,16 @@
 {
- "about": "What the integrator of window 6 (W3.1-bis.9, the descriptions of the catalogue) did by hand, each with its reason, so that window-6-catalogue.js --check holds it like the rest. forced_units: units the gate does not read as Italian that the window still changes (the English paragraphs of the descriptions that declare a limit in another form than the keyword); code_changes: the few changes of code, as a snippet of the tree before the window and what it becomes; overrides: a translation accepted with a flag the translator gave (length_ok, keywords_ok, quoted_ok, protocol_ok), by file and unit; examples: operations whose example changes (a name of the SOLIDWORKS tree, D12).",
- "forced_units": [],
+ "about": "What the integrator of window 6 (W3.1-bis.9, the descriptions of the catalogue) did by hand, each with its reason, so that window-6-catalogue.js --check holds it like the rest. forced_units: units the gate does not read as Italian that the window still changes (the English paragraphs of the descriptions that declare a limit in another form than the keyword); code_changes: the few changes of code, as a snippet of the tree before the window and what it becomes; overrides: a translation accepted with a flag the translator gave (length_ok, keywords_ok, quoted_ok, protocol_ok), by file and unit; examples: operations whose example changes (a name of the SOLIDWORKS tree, D12). protocol_values: by operation, the values its code takes as they are (read from the code, not from a case of the bench) that a description must keep naming, written in ROT13 (values_rot13: they are Italian, and this file is judged by the language gate); the protocol guard of --apply holds them like the values a case passes.",
+ "forced_units": [
+  {
+   "file": "Oce.Solid.Agent.Core/Catalog/Operations.cs",
+   "units": [
+    "All:s3185",
+    "All:s982",
+    "All:s987"
+   ],
+   "why": "descriptions of arguments in Italian that the detector reads as English (lone Italian infinitives with a clitic, «solo con»): fix_component.grounded (translated in the review of the pilot) and the two arguments of the second direction of linear_pattern (they go with the features family). Found by the reader of the blind spots of --check, which lists the catalogue texts the detector passes and that carry Italian function words"
+  }
+ ],
  "code_changes": [
   {
    "file": "Tests/Program.cs",
@@ -9,6 +19,27 @@
    "why": "the new contract of the refusal keyword (Tests/RefusalKeywordsContract.cs) is a group of the run like the others; the file is new, and this is the one line that runs it"
   }
  ],
- "overrides": [],
- "examples": []
+ "overrides": [
+  {
+   "file": "Oce.Solid.Agent.Core/Catalog/Operations.cs",
+   "unit": "All:s3193",
+   "keywords_ok": true,
+   "why": "replace_component: the Italian paragraph declared the limit in the middle of the sentence («if you give it the same file ... I refuse»); the review of the pilot writes it with the one keyword, so the declarations of the unit go from 0 to 1"
+  }
+ ],
+ "examples": [],
+ "protocol_values": [
+  {
+   "operation": "mate",
+   "values_rot13": [
+    "pbvapvqragr",
+    "cnenyyryb",
+    "crecraqvpbyner",
+    "qvfgnamn",
+    "nyyvarngb",
+    "bccbfgb"
+   ],
+   "why": "MateOperations.cs takes «variant» and «alignment» only as these words (the switch on the variant, the comparison for the opposite alignment); the bench passes four of the six, and a translator that rendered the other two in English would teach the model a value the operation refuses. They leave when the values are renamed (D1/.5) or an exception class is signed (.11)"
+  }
+ ]
 }
