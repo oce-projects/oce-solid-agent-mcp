@@ -32,7 +32,7 @@
       "what": "the last line of a bench run, partial or whole, that bench.ps1 copies into the report",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "6c57e12fbf2e",
+        "sha1": "79d695e4e282",
         "kind": "regex",
         "line_hint": 195
       },
@@ -112,7 +112,7 @@
       "what": "the header line with the version of the library the bench loaded, read into the report",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "4153ea8c1995",
+        "sha1": "9b9eaa059e3e",
         "kind": "regex",
         "via": "Take",
         "nocase": true,
@@ -127,7 +127,7 @@
       "what": "the header line with the number of operations the library can run, read into the report",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "73f09abd1223",
+        "sha1": "36f9bec6c3f2",
         "kind": "regex",
         "via": "Take",
         "nocase": true,
@@ -142,7 +142,7 @@
       "what": "the same header line, for the number of operations in the catalogue",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "b7654f289074",
+        "sha1": "83b1d6d785e8",
         "kind": "regex",
         "via": "Take",
         "nocase": true,
@@ -157,7 +157,7 @@
       "what": "the line with the expectations checked out of the declared ones, copied into the report",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "ae61de3b6420",
+        "sha1": "fb8cb0467dfe",
         "kind": "regex",
         "line_hint": 233
       },
@@ -170,7 +170,7 @@
       "what": "the line that lists the green cases by name, turned into a list in the report",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "7a1b7f67b02e",
+        "sha1": "6e52b1c28f7a",
         "kind": "regex",
         "line_hint": 241
       },
@@ -183,7 +183,7 @@
       "what": "the report must not come from a partial bench run; the contract looks for the partial-run words and stays green forever if they are translated only on one side",
       "consumer": {
         "file": "Tests/BenchTests.cs",
-        "sha1": "32d3d8721cb6",
+        "sha1": "47d6da50214b",
         "kind": "literal",
         "line_hint": 79
       },
@@ -222,7 +222,7 @@
       "what": "the two lines of the probe that closes the leftover documents, which the plan runner prints",
       "consumer": {
         "file": "Bench/run_plans.js",
-        "sha1": "99171c283ece",
+        "sha1": "d4e4a5793688",
         "kind": "regex",
         "line_hint": 255
       },
@@ -327,7 +327,7 @@
       "what": "the same probe says nothing changed; x2 requires its ABSENCE, so a translation on one side only would keep it green forever",
       "consumer": {
         "file": "Checks/test-x2.js",
-        "sha1": "b5a89f2856e6",
+        "sha1": "148a02805b68",
         "kind": "literal",
         "line_hint": 177
       },
@@ -340,7 +340,7 @@
       "what": "the bridge's refusal after a change made by hand names the volume",
       "consumer": {
         "file": "Checks/test-x2.js",
-        "sha1": "e5841f964242",
+        "sha1": "a37282e134f9",
         "kind": "literal",
         "line_hint": 186
       },
@@ -353,7 +353,7 @@
       "what": "the same refusal names the feature count",
       "consumer": {
         "file": "Checks/test-x2.js",
-        "sha1": "0ad9fc6c7397",
+        "sha1": "a37282e134f9",
         "kind": "literal",
         "line_hint": 186
       },
@@ -379,7 +379,7 @@
       "what": "the undo tool refuses when no plan was run in this conversation",
       "consumer": {
         "file": "Bench/test_undo.js",
-        "sha1": "a106e7188a56",
+        "sha1": "c632cac52b2c",
         "kind": "regex",
         "line_hint": 152
       },
@@ -392,7 +392,7 @@
       "what": "the undo tool refuses when another document is in front",
       "consumer": {
         "file": "Bench/test_undo.js",
-        "sha1": "57d020835142",
+        "sha1": "a21a024801ba",
         "kind": "regex",
         "line_hint": 223
       },
@@ -405,7 +405,7 @@
       "what": "the hole-wall selector refuses a convex face (a fillet) and says why",
       "consumer": {
         "file": "Bench/test_face_hole.js",
-        "sha1": "fa79c42afa7e",
+        "sha1": "bee0c1a4bc75",
         "kind": "regex",
         "line_hint": 215
       },
@@ -418,7 +418,7 @@
       "what": "the hole-wall selector refuses when there is more than one hole wall",
       "consumer": {
         "file": "Bench/test_face_hole.js",
-        "sha1": "f79c5700161d",
+        "sha1": "a75ec82509e1",
         "kind": "regex",
         "line_hint": 233
       },
@@ -431,7 +431,7 @@
       "what": "after a change of document the bridge refuses to draw until the part is inspected",
       "consumer": {
         "file": "Bench/ClientPort.cs",
-        "sha1": "cce8d6e8f12f",
+        "sha1": "bd347a2ea3ac",
         "kind": "literal",
         "line_hint": 256
       },
@@ -470,7 +470,7 @@
       "what": "the plan is refused while SOLIDWORKS shows a modal window",
       "consumer": {
         "file": "Bench/ClientPort.cs",
-        "sha1": "2a39e91f9847",
+        "sha1": "79180a733948",
         "kind": "literal",
         "line_hint": 433
       },
@@ -483,7 +483,7 @@
       "what": "once the modal window is closed the refusal must be gone; the bench requires its ABSENCE, so a one-sided translation keeps it green",
       "consumer": {
         "file": "Bench/ClientPort.cs",
-        "sha1": "33e1dfd2a8a6",
+        "sha1": "48eca54ea9d3",
         "kind": "literal",
         "line_hint": 446
       },
@@ -496,7 +496,7 @@
       "what": "the drawing state says how a dimension number was overwritten; the bench counts these lines",
       "consumer": {
         "file": "Bench/DimensionNumbers.cs",
-        "sha1": "a0d26e91b160",
+        "sha1": "f2eae4ac0d5c",
         "kind": "literal",
         "line_hint": 90
       },
@@ -509,7 +509,7 @@
       "what": "the drawing state says a dimension value is hidden; the bench counts these lines",
       "consumer": {
         "file": "Bench/DimensionNumbers.cs",
-        "sha1": "0cd02b6d3c28",
+        "sha1": "427486ac8d31",
         "kind": "literal",
         "line_hint": 92
       },
