@@ -32,6 +32,126 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0
+
+**One branch, from the tip of `w31bis-10b` (33451b7: windows .7 to .10-bis on main
+11d7fc2), that carries the three lines of work that were built apart, so that one
+bench run measures all of them.** No version moves: the highest of each wins
+(bridge 0.128.0 and library 0.151.0 of `d9-defects`, over 0.127.3 and 0.150.2), and the
+entries of both stay in this file.
+
+1. **`d9-defects` merged** (f181391, from 3e1fc1d). Conflicts, all read on both sides:
+   the two version files and the comments of `AssemblyInfo.cs` (both histories stay,
+   0.150.2 and then 0.151.0), the two CHANGELOG entries (both kept, this one above), the
+   line of the bench README that counts the cases of `assemblies` (23, with the new one)
+   and names `{PROFILES}`, and `Checks/CloseLeftovers/Program.cs`: the closing by path
+   of `d9-defects` (a saved document is closed by its path, a never-saved one by its
+   title) with the English options of .10-bis (`--close`, `--spare`) and the English
+   text of the comments. What the merge cannot see, and was fixed by reading the new
+   files against .10-bis: the three cases and the probe `Checks/D9Defects` still named
+   `{LAVORO}`, `{PROFILI}`, `PROFILI_SALDATURA`, `--chiudi` and `--risparmia`; they are
+   `{WORK}`, `{PROFILES}`, `OCE_WELDMENT_PROFILES`, `--close` and `--spare` now.
+   `Tools/catalog.json` merged by itself and was regenerated from the built library:
+   identical, and its diff against .10-bis is the `cut_list` description only.
+2. **`d9-fix` taken, not merged** (8d4e511, from main 11d7fc2): the autonomous run closes
+   every document between two sessions (`Bench/tasks/session-documents.js`, the new
+   modes `--list-json` and `--close-titles-file` of `CloseLeftovers`, next to the
+   path-closing of item 1) and builds the part tasks 09 to 15 start from
+   (`Bench/tasks/prerequisite.js`, `Bench/tasks/prerequisites/*.json`), with the reader
+   of the protocol of before in `prerequisite.js` and in `score-autonomous.js`. It
+   comes as ONE commit with the four commits of the branch named in its message
+   (6bc6f24, 0604b79, 2a6a7f2, 8d4e511) and not as a merge, because the language gate
+   judges every commit of the range against its own parent and 0604b79 introduces
+   Italian names that 2a6a7f2 removes two commits later: no merge can make that commit
+   pass, and the gate must hold on this branch. The branch `d9-fix` itself is not
+   touched. The only textual conflicts were `CloseLeftovers/Program.cs` (the new modes
+   and the English options) and the count of `Tests/README.md` (828 checks: 825 plus
+   the three self-tests of the branch).
+3. **The plans and the runner move to the protocol of .10-bis.** Plans 08 and 09:
+   `variant` is `coincident` or `distance`, `alignment` is `aligned` or `opposite`
+   (the plans carried the Italian words of before the rename, and the bridge of today
+   refuses them: since .10-bis an alignment it does not know is refused, it is no longer
+   taken for «aligned»). Plan 07 and `prerequisite.js`: `{PROFILES}` and
+   `OCE_WELDMENT_PROFILES`. The comments of the runner: `--close` and `--spare`.
+   **The bridge of before the rename** (9384b2c) takes the Italian words, and the name
+   map has no row for them (the catalogue describes the values in prose, and the map
+   renames keys and enum values only): a plan translated by the map alone reached that
+   bridge with «distance» where it wants its own word. `prerequisite.js` now holds an
+   explicit table, `MATE_VALUES_BEFORE` (coincident, parallel, perpendicular, distance;
+   aligned, opposite, each with the word of before), applied when a plan is translated
+   for that bridge; a value that is not in the table stops the translation. `--check`
+   reads what neither the enum check nor the dry run of the bridge could see: a mate
+   value of before on the bridge of today, and a placeholder nobody fills (`{PROFILI}`
+   would have reached the bridge as a path). The self-test reads `MateOperations.cs` to
+   prove that the table of today is the one the bridge takes, and each new check was
+   seen red first. `--check` resolves a relative `--bridge` path (the bridge runs in its
+   own folder, and a relative path did not find it there).
+4. **`Bench/tasks` in English.** `README.md` was Italian for its first half (about 440
+   words) and described the tasks as JSON files that no longer exist: it is translated
+   and says what a task is now (a Markdown file whose first blockquote the runner hands
+   to the model and whose table `How it is measured` the scorer reads). The Italian
+   originals of the task texts stay in `note-interne/lingua/compiti-it`, outside the
+   repository, and `run-autonomous.ps1 -Language it -TasksDir` takes them from there.
+   **`l_bracket.json` and `one_meter_frame.json` are removed, not translated:** they
+   were the first form, in Italian, of tasks 01 and 06; nothing reads them (the runner
+   and the scorer read `NN_*.md` only, no check and no contract names them), and the
+   words and the numbers of both are in `01_l_bracket.md` and `06_welded_frame.md`,
+   which carry the same text, the same table and the same «what this measurement does
+   not see». They stay in the history. The stale statements of the README are corrected
+   where the work of this branch made them false (the library defects of the stand and
+   the first insert are fixed in 0.151.0; `CloseLeftovers` closes by path).
+5. **The case `cut_list_in_the_drawing`, red since window .8 (a7108a5).** It asked
+   `columns_visible` for «quantity column», and the drawing template of the workshop,
+   which is Italian, prints its own header: the window translated the literal in the
+   assertion, but the text is written by SOLIDWORKS, not by the repository. The literal
+   the template really prints is back («QUANTITA», next to «LUNGHEZZA»), and it is listed
+   among the candidates for the exceptions of .11 (class `solidworks-localized`, in the
+   «Kept on purpose» paragraph of the entry of .10-bis above).
+6. **The script table of the snapshot** (`Checks/language/snapshot-scripts.json`) did not
+   name the probe `Checks/D9Defects/` nor `build-stand.js` that `d9-defects` brought:
+   the snapshot tool stops on a script the table does not name. Both are registered as
+   skipped, with their reason (they drive SOLIDWORKS).
+
+**Proofs.** `build.ps1` green (bridge, probes, installer); `Tools/catalog.json`
+regenerated from the built library: byte for byte what the merge produced, and its diff
+against .10-bis is the description of `cut_list`, nothing else. Contract suite: 828
+checks, 3 red, the three being the freshness of `Bench/report/last.json` (the last full
+run is of library 0.150.1; this branch runs families, not the full bench, and does not
+rewrite that record: the owner's full run does). `Checks/test-installer.js`: 65 pass,
+0 fail. `prerequisite.js --self-test`, `session-documents.js --self-test`,
+`score-autonomous.js --self-test`, `snapshot.js --self-test`: all held.
+`prerequisite.js --check` on the six plans: against the bridge of today with its dry run
+(`bin/oce-solid-agent-mcp.exe`), and against the bridge of before
+(`d9-before/bin/oce-solid-agent-mcp.exe` and its catalogue, the plans translated with
+the table), every plan holds. On SOLIDWORKS 29.5, one family at a time, no full bench:
+**`cut_list_in_the_drawing` green** (12 of 12 checks); `weldments` 164 tests, 0
+failed (118 of 118 expectations, with the two new cases of `d9-defects`); `assemblies`
+229, 0 failed; `drawing` 492, 0 failed (436 of 436). The first pass of `drawing` gave
+488 and two reds, both centre marks (`center_marks_on_the_holes` step 8,
+`drawing_is_a_second_document` step 7: 0 marks), on a SOLIDWORKS that had been open for
+sixteen hours and 22,000 handles, the degradation entry Z-C24 describes; after a restart
+(the only documents open were the residue of a killed run) the same family is green, so
+they are the session and not this branch. Plans `08_box_and_lid` and
+`09_bracket_pair` built on SOLIDWORKS on both bridges (the bridge of before through the
+table of mate words), every expectation of their tasks held. **`07_tube_stand` still
+does not build**: with `cut_list`, `gusset` and the first insert fixed it now goes
+through step 9 and stops at step 10, the first gusset, on defect (3) of the list that
+`d9-defects` left on purpose (the state lists the 60 largest faces of 177); the plan
+and the README say so, and the runner keeps refusing tasks 11 and 15 on both sides.
+Nothing in SOLIDWORKS was left open (the desk was read empty at the end). This machine
+has no `PROFILI_SALDATURA` nor `OCE_WELDMENT_PROFILES` set: the runs above set the
+second for their own process only.
+
+**The language gate on this branch.** Three commits carry a trailer.
+`Language-Gate-Config-Change`: one exception of class `transition` for
+`Bench/tasks/prerequisite.js` (the six mate words of before and the two refused values
+its self-test names, as the one `score-autonomous.js` already has; it goes with the
+bridge of before in .11). `Language-Baseline-Raise`: the `transition` of that file, 0 to
+11 words, and the case of item 5 (the one literal, in two places of the case). Gate
+against 33451b7 held, every commit judged against its own parent.
+
+---
+
 ## Unreleased — D9 defects: the cut list counts every body, the gusset at the end of a bar, the empty assembly (branch `d9-defects`) · bridge 0.128.0 · library 0.151.0
 
 **Four defects found on 6/10/2026 by the live proof of the D9 prerequisites
@@ -265,7 +385,9 @@ words Italian SOLIDWORKS itself writes and the code reads — «PASSANTE», «Cr
 sui fori», «Vista in sezione», «Foglio» followed by a number, the reserved equation word
 «spessore», the standard-view fragments («anterior», «posterior», «superior»,
 «inferior», «destra», «sinistr», «isometri», «trimetri», «Isometrica»), the cut-list
-properties «LUNGHEZZA», «ANGOLO1», «ANGOLO2», «DESCRIZIONE», the feature names
+properties «LUNGHEZZA», «ANGOLO1», «ANGOLO2», «DESCRIZIONE», the header «QUANTITA»
+that the workshop drawing template prints for the quantity column (case
+`cut_list_in_the_drawing`; added by integration-1, see its entry), the feature names
 «Specchiato» and «Saldatura» (class `solidworks-localized`); the title-block properties
 of the workshop template «Numero disegno» (and its one-word form in the catalogue example), «Cliente», «Descrizione»,
 «Materiale», «TRATTAMENTO» (class `solidworks-localized` until a new English drawing

@@ -79,6 +79,8 @@
   { "script": "Checks/DimensionApis/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/ChangeByHand/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/CloseLeftovers/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
+  { "script": "Checks/D9Defects/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
+  { "script": "Checks/D9Defects/build-stand.js", "skip": "builds the tube stand of task 07 in SOLIDWORKS through the bridge (needs SOLIDWORKS and OCE_WELDMENT_PROFILES) to measure the defects of the D9 prerequisites: a tool, not a check of the tree" },
   { "script": "Checks/RoleCoverage/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/BrokenBody/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/DetailView/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },

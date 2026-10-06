@@ -4,11 +4,11 @@
  "totals": {
   "comments": 1723,
   "strings": 390,
-  "markdown": 415,
+  "markdown": 418,
   "json_values": 72,
-  "identifiers": 1602,
+  "identifiers": 1604,
   "json_keys": 0,
-  "protocol": 441,
+  "protocol": 442,
   "paths": 0,
   "transition": 2199
  },
@@ -131,7 +131,7 @@
    "comments": 1
   },
   "CHANGELOG.md": {
-   "markdown": 404
+   "markdown": 407
   },
   "Checks/EdgeFlange/Program.cs": {
    "strings": 3,
@@ -731,6 +731,7 @@
    "OperazioniVerifica",
    "Opzione",
    "Orfana",
+   "PROFILI",
    "PROFILI_SALDATURA",
    "PROVA123",
    "PROVE",
@@ -1088,6 +1089,7 @@
    "comeSiMisura",
    "come_si_misura",
    "compiti",
+   "compiti-it",
    "completamente",
    "componente",
    "componenti",
@@ -2152,6 +2154,7 @@
    "Programma",
    "Prove",
    "ProveCatalogo",
+   "QUANTITA",
    "RAGGIUNGIBILE",
    "Rifiuta",
    "Riga",
