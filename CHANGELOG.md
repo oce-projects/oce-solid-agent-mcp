@@ -175,6 +175,15 @@ unsigned entries — «0 outside every entry» — and with the 40 signed (tried
   reads every tracked file but the two `.png`, and the contract injects Italian in each of
   the eight categories; both CI workflows run the gate without `continue-on-error`.
 
+**Condition 8, the sample.** `node Checks/language/sample-lines.js --rev ff83e28 --seed 20261006
+--count 100` (new: every non-blank line of the tracked text files of the commit has the same
+chance; same commit and seed, same lines). 778 files, 168,772 lines. Judged by a model other
+than the translator: 97 English (code, JSON, English prose, language-neutral data), 3 Italian
+covered by entries that wait for the signature (`CHANGELOG.md:1523`, old option names in the
+history table, `changelog-history`; `Checks/language/lexicon.json:884` and `:1678`,
+`detector-lexicon`), 0 Italian outside the exceptions. No line is doubtful. The reading that
+went with the review (outside the sample) is what found the Italian translated above.
+
 ---
 
 ## Unreleased — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0

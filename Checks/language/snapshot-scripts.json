@@ -51,6 +51,7 @@
   { "script": "Checks/language/measure.js", "run": true },
   { "script": "Checks/language/measure.js", "run": true, "args": ["--summary"] },
   { "script": "Checks/language/see-it-fail.js", "run": true, "args": ["--check"] },
+  { "script": "Checks/language/sample-lines.js", "run": true, "varies_with": ["head"] },
   { "script": "Checks/language/see-it-fail.js", "skip": "without --check it edits the detector, the lexicon and the CI step in the working tree, one mutation at a time, and runs the contract suite once per mutation (about a minute each)" },
   { "script": "Checks/language/ci-proof.ps1", "skip": "pushes throw-away branches to GitHub (with --no-verify) and runs the CI on them: an action outside this machine" },
   { "script": "Checks/language/snapshot.js", "run": true, "args": ["--self-test"] },
