@@ -163,7 +163,35 @@ const CATALOGUE_SCOPE = [
   /^Oce\.Solid\.Agent\.Core\/Catalog\//, /^Oce\.Solid\.Agent\.Catalog\//, /^Tools\/catalog\.json$/, /^Tools\/api_knowledge\.json$/,
   /^Mcp\/Risorse\.cs$/, // the titles and descriptions of the MCP resources (.9)
 ];
-const inCatalogue = (rel) => CATALOGUE_SCOPE.some(re => re.test(rel));
+// THE PROFILE says which window this tool is running for. Window 5 (the default) translates the messages and leaves the catalogue to
+// .9; window 6 (window-6-catalogue.js) sets another one: it translates the catalogue, and the files outside it only follow. A profile:
+//   name, deferredLabel   how the window is called in the output
+//   deferred(rel)         a file whose Italian is NOT this window's: its units are not items, its literals do not count as live
+//                         satisfiers of an assertion, and the Italian left in it is not counted
+//   notProducer(rel)      a file that is neither a probe nor a producer of messages (window 5 never links a program to a literal
+//                         of the catalogue; window 6 does)
+//   notAssertionProducer(rel)   a file whose literals no case of the bench asserts (the bench calls the library, never the bridge: the
+//                         descriptions of the catalogue are not output of any step); default: none
+//   probesOfItemsOnly     a probe follows only the messages that are items of this window (window 6: a program that looks for a
+//                         text no description holds is none of its business)
+//   integration           the file of the integration by hand, under Checks/language
+//   generated             files a tool writes (a list of regular expressions): the per-file check leaves them to the profile's own proof
+//   atomOf(item, model)   the part of a file that is translated as one (a family of operations); the default is the file
+//   perAtom, maxWords     each atom is a chunk of its own (small ones are joined up to maxWords)
+//   nameChunk(chunk)      the id of a chunk
+//   extraProblems(item, parts)   what else a translation of this window has to keep (a list of problems)
+const PROFILES = {
+  messages: {
+    name: 'window 5', deferredLabel: 'the catalogue (.9)', outsideLabel: 'the catalogue', pendingLabel: 'a catalogue literal still to follow in .9',
+    deferred: (rel) => CATALOGUE_SCOPE.some(re => re.test(rel)),
+    notProducer: (rel) => CATALOGUE_SCOPE.some(re => re.test(rel)),
+    notAssertionProducer: () => false, probesOfItemsOnly: false, integration: 'window-5-integration.json', generated: [], atomOf: null, perAtom: false, maxWords: null, nameChunk: null, extraProblems: null,
+  },
+};
+let PROFILE = PROFILES.messages;
+function setProfile(p) { PROFILE = Object.assign({}, PROFILES.messages, p); }
+const inCatalogue = (rel) => PROFILE.deferred(rel);
+const notProducer = (rel) => PROFILE.notProducer(rel);
 const SKIP_TREES = [/^Checks\/language\//, /^Bench\/report\//, /^Bench\/data\//, /^Bench\/tasks\//];
 // The assertion keys of a case, by context of Bench/case-keys.json (snapshot.js)
 const ASSERTION_KEYS = { must_fail: { message_includes: 'message_contains' },
@@ -184,7 +212,7 @@ const ALLOWED_CODE_CHANGES = [];
 //                  now; any other change of code is still refused. Each is a number or a line a contract asks to be moved by hand
 //                  (a ratchet, the alarm word of a verdict) and says why.
 function integrationOf(root) {
-  const file = path.join(root, 'Checks', 'language', 'window-5-integration.json');
+  const file = path.join(root, 'Checks', 'language', PROFILE.integration);
   let j = { forced_units: [], code_changes: [] };
   try { j = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\ufeff/, '')); } catch (e) { /* none */ }
   const forced = new Set();
@@ -200,7 +228,7 @@ function applySnippets(text, rel, integ) {
   for (const c of integ.code_changes) {
     if (c.file !== rel) continue;
     const n = out.split(c.before).length - 1;
-    if (n !== (c.count || 1)) cannot('window-5-integration.json: «' + c.before.slice(0, 50) + '» is in ' + rel + ' ' + n + ' times at the base, it must be ' + (c.count || 'exactly once'));
+    if (n !== (c.count || 1)) cannot(PROFILE.integration + ': «' + c.before.slice(0, 50) + '» is in ' + rel + ' ' + n + ' times at the base, it must be ' + (c.count || 'exactly once'));
     out = out.split(c.before).join(c.after);
   }
   return out;
@@ -504,7 +532,7 @@ const NOT_PROBES = [
     why: 'they read the owner’s notes (TODO.md, outside the repository, Italian by decision), not the output of a program' },
 ];
 function probeShape(f, u) {
-  if (f.lang === 'json' || inCatalogue(f.rel)) return null;
+  if (f.lang === 'json' || notProducer(f.rel)) return null;
   if (NOT_PROBES.some(x => x.file.test(f.rel))) return null;
   if (u.leaves.length !== 1 || u.leaves[0].k !== 't') return null;
   const l = u.leaves[0];
@@ -569,7 +597,7 @@ function probesOf(model) {
   const siteKeys = new Set(sites.map(s => s.key));
   const code = [];
   for (const f of model.files.values()) {
-    if (f.lang === 'json' || inCatalogue(f.rel)) continue;
+    if (f.lang === 'json' || notProducer(f.rel)) continue;
     for (const u of f.units) {
       const k = keyOf(f.rel, u.id);
       if (siteKeys.has(k)) continue;
@@ -705,7 +733,7 @@ function buildModel(root, rev, opts) {
   const assertions = assertionsOf(ck, cases);
   const prodRels = producerFiles(root, read);
   const producerUnits = [];
-  for (const r of prodRels) { const f = files.get(r); if (f) producerUnits.push(...f.units); }
+  for (const r of prodRels) { const f = files.get(r); if (f && !PROFILE.notAssertionProducer(r)) producerUnits.push(...f.units); }
   linkAssertions(assertions, producerUnits);
   for (const a of assertions) {
     const f = files.get(a.file);
@@ -756,7 +784,7 @@ function collectItems(model) {
       const item = Object.assign({ key: keyOf(f.rel, u.id), file: f.rel, lang: f.lang, unit: u.id, line: u.line, endLine: u.endLine,
         kind: u.kind, cls: classOf(u.kind), ctx: u.ctx, to: u.to, words: u.words, assertionRef: u.assertion || null,
         satisfies: [], consumedBy: [], consumer: null, unsupported: d.fixed.length === d.parts.length }, d);
-      if (inCatalogue(f.rel)) { deferred.set(item.key, item); item.deferred = 'catalogue (.9)'; continue; }
+      if (inCatalogue(f.rel)) { deferred.set(item.key, item); item.deferred = PROFILE.deferredLabel; continue; }
       if (item.unsupported) { unsupported.set(item.key, item); continue; }
       items.set(item.key, item);
     }
@@ -827,7 +855,7 @@ function collectItems(model) {
     if (!it) {
       // a consumer the gate does not read as Italian still follows the producers that are translated
       const f = model.files.get(c.entry.consumer.file);
-      if (!produced.length || inCatalogue(c.entry.consumer.file)) continue;
+      if (!produced.length || notProducer(c.entry.consumer.file)) continue;
       const d = describeUnit(c.unit);
       it = Object.assign({ key: ck, file: f.rel, lang: f.lang, unit: c.unit.id, line: c.unit.line, endLine: c.unit.endLine, kind: c.unit.kind, cls: classOf(c.unit.kind),
         ctx: c.unit.ctx, to: c.unit.to, words: 0, assertionRef: null, satisfies: [], consumedBy: [], consumer: null, unsupported: false, follows: true }, d);
@@ -874,6 +902,7 @@ function collectItems(model) {
   const probes = new Map();
   for (const pr of model.probes || []) {
     if (inventoryUnits.has(pr.key)) continue;   // an entry of the inventory: coupled above
+    if (PROFILE.probesOfItemsOnly && !pr.producers.some(q => items.has(q.key))) continue;
     probes.set(pr.key, pr);
     const words = pr.how === 'regex' || pr.how === 'like' ? pr.value.replace(/\\[A-Za-z]/g, ' ').replace(/[^\p{L}' ]+/gu, ' ') : pr.value;
     pr.italian = DET.proseVerdict(words, model.cfg).italian;
@@ -923,8 +952,10 @@ class UF {
 //    of their own, with the weak guard (at least one satisfier).
 function planChunks(model, coll, opts) {
   opts = opts || {};
-  const max = opts.max || MAX_WORDS;
+  const max = opts.max || PROFILE.maxWords || MAX_WORDS;
   const items = coll.items;
+  // the part of a file that is translated as one: the file, or what the profile says (a family of operations)
+  const atomKey = (i) => { i.atom = PROFILE.atomOf ? PROFILE.atomOf(i, model) : i.file; return i.atom; };
   const uf = new UF();
   for (const it of items.values()) uf.add(it.key);
   for (const [a, b] of coll.links || []) if (items.has(a) && items.has(b)) uf.union(a, b);   // a literal inside the holes or the arguments of a message goes with it
@@ -948,15 +979,15 @@ function planChunks(model, coll, opts) {
   const fileUF = new UF();
   for (const list of comps.values()) {
     const srcs = list.filter(i => i.lang !== 'json' && !linkedKeys.has(i.key));
-    for (const i of srcs) fileUF.add(i.file);
-    for (const i of srcs.slice(1)) fileUF.union(srcs[0].file, i.file);
+    for (const i of srcs) fileUF.add(atomKey(i));
+    for (const i of srcs.slice(1)) fileUF.union(atomKey(srcs[0]), atomKey(i));
   }
   const folderAtoms = new Map();
-  const addToFolder = (file, it) => {
+  const addToFolder = (file, atom, it) => {
     const folder = folderOf(file);
     if (!folderAtoms.has(folder)) folderAtoms.set(folder, new Map());
     const m = folderAtoms.get(folder);
-    const r = fileUF.find(file);
+    const r = fileUF.find(atom);
     if (!m.has(r)) m.set(r, { files: new Set(), items: [] });
     const a = m.get(r);
     a.files.add(file); a.items.push(it);
@@ -966,11 +997,11 @@ function planChunks(model, coll, opts) {
   for (const it of items.values()) {
     if (linkedKeys.has(it.key)) continue;
     if (it.probe && it.probe.home === 'wide') { wide.push(it); continue; }   // like a wide assertion: last, once its messages are
-    if (it.lang !== 'json') { addToFolder(it.file, it); continue; }
+    if (it.lang !== 'json') { addToFolder(it.file, atomKey(it), it); continue; }
     if (it.cls === 'assertion') {
       if (it.home === 'cluster') {
         const s = it.satisfiers.find(x => x.italian && !x.catalogue);
-        addToFolder(s.file, it);
+        addToFolder(s.file, atomKey(items.get(s.key)), it);
         continue;
       }
       if (it.home === 'wide') { wide.push(it); continue; }
@@ -981,9 +1012,11 @@ function planChunks(model, coll, opts) {
     caseGroups.get(fam).push(it);
   }
   const chunks = [];
+  const max0 = max;
   const wordsOf = (list) => list.reduce((n, i) => n + i.words, 0);
   const ordered = (list) => list.slice().sort((x, y) => x.file.localeCompare(y.file) || x.line - y.line);
-  const pack = (name, folderLabel, atoms, tag) => {
+  const pack = (name, folderLabel, atoms, tag, maxOverride) => {
+    const max = maxOverride || max0;
     const groups = [];
     let cur = [], w = 0;
     for (const a of atoms) {
@@ -1001,7 +1034,7 @@ function planChunks(model, coll, opts) {
   };
   for (const [folder, m] of [...folderAtoms.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const list = [...m.values()].map(a => ({ files: [...a.files].sort(), items: ordered(a.items) }));
-    list.sort((a, b) => a.files[0].localeCompare(b.files[0]));
+    list.sort((a, b) => a.files[0].localeCompare(b.files[0]) || a.items[0].line - b.items[0].line);
     pack(slugOf(folder), folder, list);
   }
   // --pilot Bridge,Installer: the linked clusters that touch those folders are a chunk of their own
@@ -1016,10 +1049,11 @@ function planChunks(model, coll, opts) {
   const famList = [...caseGroups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([fam, l]) => ({ files: [...new Set(l.map(i => i.file))].sort(), items: ordered(l) }));
   pack('cases', 'Bench/cases', famList);
   if (wide.length) pack('assertions-wide', 'Bench/cases', [{ files: [...new Set(wide.map(i => i.file))].sort(), items: ordered(wide) }], 'wide');
+  if (PROFILE.nameChunk) for (const c of chunks) c.id = PROFILE.nameChunk(c, chunks);
   return chunks;
 }
 
-Object.assign(module.exports, { buildModel, collectItems, planChunks, consumersOf, describeUnit, keyOf, readerOf, folderOf, slugOf, listFiles, analyzeFiles, detector, inCatalogue, git, readBlobs, decodeSource, readSource, writeSource, cannot, Stop });
+Object.assign(module.exports, { buildModel, collectItems, planChunks, consumersOf, describeUnit, keyOf, readerOf, folderOf, slugOf, listFiles, analyzeFiles, detector, inCatalogue, setProfile, git, readBlobs, decodeSource, readSource, writeSource, cannot, Stop });
 
 // ── --extract ───────────────────────────────────────────────────────────────
 // the units other than the item itself, in the same JSON file, that hold its text
@@ -1101,7 +1135,7 @@ function outsideTool(model) {
 function runExtract(root, dir, opts) {
   const base = git(root, ['rev-parse', 'HEAD']).toString('utf8').trim();
   const dirty = git(root, ['status', '--porcelain', '--untracked-files=no']).toString('utf8').trim();
-  if (dirty) console.log('window 5: the working tree has uncommitted changes; the chunks are cut from the files on disk, the base recorded is ' + base);
+  if (dirty) console.log(PROFILE.name + ': the working tree has uncommitted changes; the chunks are cut from the files on disk, the base recorded is ' + base);
   const model = buildModel(root, null);
   const coll = collectItems(model);
   const chunks = planChunks(model, coll, { max: opts.max, pilot: opts.pilot });
@@ -1147,7 +1181,7 @@ function runExtract(root, dir, opts) {
   fs.writeFileSync(path.join(dir, 'plan.json'), JSON.stringify(plan, null, 1) + '\n');
   console.log('extracted ' + plan.totals.chunks + ' chunks, ' + plan.totals.items + ' items, ' + plan.totals.words + ' Italian words (base ' + base.slice(0, 7) + ') into ' + dir);
   for (const c of plan.chunks) console.log('  ' + c.id.padEnd(26) + c.folder.padEnd(16) + String(c.words).padStart(6) + ' words ' + String(c.items).padStart(5) + ' items ' + String(c.assertions).padStart(4) + ' assertions ' + String(c.files).padStart(4) + ' files' + (c.requires.length ? '  requires ' + c.requires.join(',') : ''));
-  console.log('deferred to the catalogue (.9): ' + plan.deferred.catalogue_words + ' words in ' + deferredFiles.size + ' files, ' + deferredAssertions.length + ' assertions');
+  console.log('deferred to ' + PROFILE.deferredLabel + ': ' + plan.deferred.catalogue_words + ' words in ' + deferredFiles.size + ' files, ' + deferredAssertions.length + ' assertions');
   if (unsupported.length) console.log('UNSUPPORTED units (only fixed text): ' + unsupported.length);
   if (unmapped.length) console.log('UNMAPPED: ' + unmapped.length + ' hit lines no unit explains');
   if (plan.outside_tool.length) console.log('OUTSIDE THE TOOL (YAML, shell, XML, other JSON): ' + plan.outside_tool.length + ' files, ' + plan.outside_tool.reduce((n, o) => n + o.words, 0) + ' words');
@@ -1250,6 +1284,7 @@ function problemsOfTranslation(item, tr) {
   if ((item.class === 'regex' || (item.class === 'consumer' && item.consumer && item.consumer.kind === 'regex')) && regexSkeleton(item.parts.join('')) !== regexSkeleton(newParts.join(''))) {
     out.push('the skeleton of the regular expression changed (only letters may): ' + JSON.stringify(regexSkeleton(item.parts.join(''))) + ' before, ' + JSON.stringify(regexSkeleton(newParts.join(''))) + ' after');
   }
+  if (PROFILE.extraProblems) out.push(...PROFILE.extraProblems(item, newParts));
   if (item.class === 'data' && !tr.data_ok) out.push('a value that the case writes into the program is data: it changes only with "data_ok": true, and every echo of it with it');
   return out;
 }
@@ -1665,6 +1700,7 @@ function checkAll(root, rev, opts) {
   // 1. per file: the same units, the same text outside them, the invariants of every translated unit
   for (const x of touched) {
     if (SKIP_TREES.some(re => re.test(x.now))) continue;   // the gate's own files: the inventory is compared below
+    if (PROFILE.generated.some(re => re.test(x.now))) continue;   // a file a tool writes: the profile proves it its own way
     const row = rowOf(x.now);
     const b = base.files.get(x.was), n = now.files.get(x.now);
     if (!b) { row.note = 'new since ' + rev; continue; }
@@ -1685,6 +1721,7 @@ function checkAll(root, rev, opts) {
       if (!mayChange.has(keyOf(x.was, u.id))) row.problems.push(u.id + ' (line ' + v.line + '): a text that was not Italian changed');
       if (ol.length !== nl.length) { row.problems.push(u.id + ': the number of parts changed'); return; }
       for (const p of invariantProblems(ol, nl)) row.problems.push(u.id + ' (line ' + v.line + '): ' + p);
+      if (PROFILE.extraProblems) for (const p of PROFILE.extraProblems({ file: x.now, unit: u.id, line: u.line, parts: ol, tr: null }, nl)) row.problems.push(u.id + ' (line ' + v.line + '): ' + p);
       if (u.kind === 'regex' && regexSkeleton(ol.join('')) !== regexSkeleton(nl.join(''))) row.problems.push(u.id + ': the skeleton of the regular expression changed');
     });
     if (n.lang === 'json') {
@@ -1837,7 +1874,7 @@ function checkAll(root, rev, opts) {
 
 function runCheck(root, rev, opts) {
   const r = checkAll(root, rev, opts);
-  console.log('window 5 check against ' + rev + ':');
+  console.log(PROFILE.name + ' check against ' + rev + ':');
   let bad = 0;
   for (const row of r.rows) {
     if (row.problems.length) {
@@ -1850,10 +1887,10 @@ function runCheck(root, rev, opts) {
   }
   for (const n of r.notes.slice(0, 20)) console.log('  note: ' + n);
   const s = r.stats;
-  console.log('assertions: ' + s.total + ' (' + s.unchanged + ' unchanged, ' + s.translated + ' translated); strict ' + s.strict + ', wide ' + s.wide + ', without producer ' + s.free + ', with a catalogue literal still to follow in .9: ' + s.catalogue_pending + '; not_contains ' + s.not_contains + '; echoes of the arguments of the case ' + r.extra.echo + ', values read from the drawing template ' + r.extra.external + '; ' + r.red + ' pointing at nothing, ' + r.wider + ' wider than the text they replace');
+  console.log('assertions: ' + s.total + ' (' + s.unchanged + ' unchanged, ' + s.translated + ' translated); strict ' + s.strict + ', wide ' + s.wide + ', without producer ' + s.free + ', with ' + PROFILE.pendingLabel + ': ' + s.catalogue_pending + '; not_contains ' + s.not_contains + '; echoes of the arguments of the case ' + r.extra.echo + ', values read from the drawing template ' + r.extra.external + '; ' + r.red + ' pointing at nothing, ' + r.wider + ' wider than the text they replace');
   if (s.probes) console.log('probes (programs that look for the text of a message): ' + s.probes.total + ' (narrow ' + s.probes.narrow + ', wide ' + s.probes.wide + ', negative ' + s.probes.negative + ', translated ' + s.probes.translated + '); ' + s.probes.red + ' broken');
   console.log('files touched: ' + r.touched + ', with a difference outside the texts or a broken invariant: ' + bad);
-  console.log('Italian left outside the catalogue: strings ' + r.left.strings + ' words, json_values ' + r.left.json_values + ' words in ' + r.left.files + ' files');
+  console.log('Italian left outside ' + PROFILE.outsideLabel + ': strings ' + r.left.strings + ' words, json_values ' + r.left.json_values + ' words in ' + r.left.files + ' files');
   const cons = checkConsumed(root);
   if (r.touched === 0) { console.log('check: NOTHING TO COMPARE. Name the revision before the change (--rev).'); return 1; }
   if (bad || cons) return 1;

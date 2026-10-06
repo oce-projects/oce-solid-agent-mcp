@@ -70,6 +70,8 @@
   { "script": "Checks/language/window-2-surface.js", "skip": "without --check it is rename window 2 itself: it rewrites the catalogue, the cases and the sources of the tree (and the proofs extract two trees into a temporary folder and run the window there)" },
   { "script": "Checks/language/window-5-messages.js", "run": true, "args": ["--self-test"] },
   { "script": "Checks/language/window-5-messages.js", "skip": "without --self-test it is window 5 itself (--extract, --apply write the sources and the cases of the tree) or a check against a revision (--check needs --rev, the tree before the window)" },
+  { "script": "Checks/language/window-6-catalogue.js", "run": true, "args": ["--self-test"] },
+  { "script": "Checks/language/window-6-catalogue.js", "skip": "without --self-test it is window 6 itself (--extract, --apply and --ratchet write the sources and the data of the tree) or a check against a revision (--check, --catalog-proof need --rev, the tree before the window)" },
   { "script": "Checks/language/window-5-scan.js", "skip": "a module of window-5-messages.js, which reads the string literals of a file by its parser: run alone it only prints the units of a file it is given" },
   { "script": "Checks/language/update-names-in-notes.js", "run": true, "args": ["--self-test"] },
   { "script": "Checks/language/update-names-in-notes.js", "skip": "without --self-test it rewrites the notes it is given (the TODO, the memories, the RAG): files outside the repository, named by the owner at the merge" },
