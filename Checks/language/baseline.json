@@ -3,7 +3,7 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 52160,
+  "strings": 52082,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
@@ -1507,12 +1507,6 @@
   },
   "README.md": {
    "markdown": 2524
-  },
-  "Shared/Leash.cs": {
-   "strings": 44
-  },
-  "Shared/SolidWorksSentinel.cs": {
-   "strings": 34
   },
   "Tests/AliasLayerContract.cs": {
    "transition": 4

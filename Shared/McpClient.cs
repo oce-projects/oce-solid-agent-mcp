@@ -225,7 +225,7 @@ namespace Shared
 
         internal static string Short(string s)
         {
-            if (string.IsNullOrEmpty(s)) return "(niente)";
+            if (string.IsNullOrEmpty(s)) return "(nothing)";
             s = s.Replace("\r", " ").Replace("\n", " ");
             return s.Length > 90 ? s.Substring(0, 90) + "..." : s;
         }

@@ -92,8 +92,8 @@ namespace Shared
             if (threshold < 1)
                 throw new ArgumentOutOfRangeException(
                     "threshold",
-                    "una sentinella che scatta dopo zero fallimenti scatta prima "
-                    + "di guardare: la soglia e' almeno 1.");
+                    "a sentinel that trips after zero failures trips before "
+                    + "looking: the threshold is at least 1.");
             _threshold = threshold;
         }
 
@@ -139,10 +139,10 @@ namespace Shared
         internal string Report()
         {
             int howMany = HasGone ? _whenItFires : _inARow;
-            return "SOLIDWORKS NON PRODUCE PIU' DOCUMENTI: " + howMany
-                 + " tentativi di fila andati a vuoto (la soglia e' " + _threshold
-                 + "). Le prove che seguono non sono rosse — NON SONO STATE "
-                 + "FATTE. Chiudi SOLIDWORKS, riaprilo e rilancia il giro.";
+            return "SOLIDWORKS NO LONGER PRODUCES DOCUMENTS: " + howMany
+                 + " attempts in a row came to nothing (the threshold is " + _threshold
+                 + "). The checks that follow are not red — THEY WERE NOT DONE. "
+                 + "Close SOLIDWORKS, reopen it and restart the run.";
         }
     }
 }

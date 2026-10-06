@@ -60,8 +60,8 @@ namespace Shared
             if (expiryMs < 1000)
                 throw new ArgumentOutOfRangeException(
                     "expiryMs",
-                    "sotto il secondo non e' un guinzaglio, e' un cronometro: "
-                    + "qualunque prova vera lo farebbe scattare.");
+                    "below a second it is not a leash, it is a stopwatch: "
+                    + "any real check would trip it.");
             ExpiryMs = expiryMs;
         }
 
@@ -92,11 +92,11 @@ namespace Shared
                 if (_what == null) return null;
                 var howMuch = now - _da;
                 if (howMuch.TotalMilliseconds < ExpiryMs) return null;
-                return "LA CHIAMATA NON TORNA: «" + _what + "» e' partita "
-                     + ((int)howMuch.TotalSeconds) + " secondi fa e non ha "
-                     + "ancora risposto (la soglia e' " + (ExpiryMs / 1000)
-                     + "). Non si puo' annullare una chiamata COM piantata: "
-                     + "quello che si puo' fare e' dire QUALE era, e fermarsi.";
+                return "THE CALL DOES NOT COME BACK: «" + _what + "» started "
+                     + ((int)howMuch.TotalSeconds) + " seconds ago and has not "
+                     + "answered yet (the threshold is " + (ExpiryMs / 1000)
+                     + "). A hung COM call cannot be cancelled: "
+                     + "what can be done is to say WHICH one it was, and stop.";
             }
         }
 

@@ -160,7 +160,7 @@ namespace Oce.Solid.Agent.Bridge
                     try { return Assembly.LoadFrom(file); }
                     catch (Exception ex)
                     {
-                        Mcp.Protocol.Note("[ponte] " + file + ": " + ex.Message);
+                        Mcp.Protocol.Note("[bridge] " + file + ": " + ex.Message);
                     }
                 }
                 Mcp.Protocol.Note(
