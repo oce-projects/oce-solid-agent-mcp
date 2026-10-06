@@ -4,10 +4,10 @@
  "totals": {
   "comments": 1723,
   "strings": 390,
-  "markdown": 852,
-  "json_values": 583,
-  "identifiers": 1603,
-  "json_keys": 10,
+  "markdown": 415,
+  "json_values": 72,
+  "identifiers": 1602,
+  "json_keys": 0,
   "protocol": 441,
   "paths": 0,
   "transition": 2199
@@ -113,13 +113,7 @@
    "comments": 7
   },
   "Bench/tasks/README.md": {
-   "markdown": 438
-  },
-  "Bench/tasks/l_bracket.json": {
-   "json_values": 215
-  },
-  "Bench/tasks/one_meter_frame.json": {
-   "json_values": 296
+   "markdown": 1
   },
   "Bench/tasks/prerequisite.js": {
    "transition": 11
@@ -1124,7 +1118,6 @@
    "coppie",
    "cordone_saldatura",
    "corpi",
-   "corpi_in_distinta",
    "corpi_rif",
    "corpi_tagliati",
    "corpi_totali",
@@ -2102,18 +2095,7 @@
    "zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api",
    "zz_ter_i_materiali_dei_due_workflow"
   ],
-  "json_keys": [
-   "come_si_misura",
-   "compito",
-   "cosa",
-   "cosa_NON_dice_apposta",
-   "cosa_questa_misura_NON_vede",
-   "perche",
-   "perche_dice_altezza_totale",
-   "perche_questo_compito",
-   "tolleranza",
-   "uguale"
-  ],
+  "json_keys": [],
   "protocol": [
    "ALZA",
    "ANGOLO1",

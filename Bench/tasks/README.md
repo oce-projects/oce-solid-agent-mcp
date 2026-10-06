@@ -1,79 +1,97 @@
-# `tasks/` — quello che si chiede al MODELLO, non alla libreria
+# `tasks/` — what is asked of the MODEL, not of the library
 
-> **Questa cartella non e' un banco.** E' l'INGRESSO del banco della voce
-> Z-G9, che oggi non esiste. Qui ci sono i compiti e **come si misurano**; il
-> giro che li esegue va ancora scritto.
+> **This folder is not a bench.** It is the INPUT of the bench of entry Z-G9,
+> which does not exist yet. Here are the tasks and **how they are measured**;
+> the autonomous run below executes them, but the Z-G9 bench itself is still to
+> be written.
 
-## Perche' esiste, e perche' prima del codice
+## Why it exists, and why before the code
 
-Il banco di `Bench/cases/` esegue piani **gia' scritti da una persona**: misura
-la libreria, e lo fa bene. Ma non risponde alla domanda che conta davvero —
-*il modello, da solo, riesce a fare il pezzo?*
+The bench of `Bench/cases/` executes plans **already written by a person**: it
+measures the library, and it does that well. But it does not answer the question
+that really matters — *can the model, on its own, make the part?*
 
-Finche' quel giro non esiste, «il modello disegna meglio» resta un'opinione con
-una tabella intorno.
+As long as that run does not exist, «the model draws better» stays an opinion
+with a table around it.
 
-E la parte difficile di quel giro **non e' eseguirlo**: e' decidere cosa
-significa «giusto». Un banco in cui il pezzo si guarda e si dice «si', mi
-sembra buono» non e' un banco: e' una demo. Per questo i compiti nascono qui,
-con la loro misura accanto, **prima** di chi li esegue.
+And the hard part of that run **is not executing it**: it is deciding what
+«right» means. A bench where the part is looked at and someone says «yes, it
+seems good» is not a bench: it is a demo. That is why the tasks are born here,
+with their measure beside them, **before** whoever executes them.
 
-## Com'e' fatto un compito
+## What a task is made of
 
-Un file JSON con due parti che non si toccano:
-
-```
-compito         cosa si chiede, in italiano d'officina, come lo direbbe
-                qualcuno al banco. NIENTE nomi di operazioni, niente
-                argomenti, niente numeri che non direbbe un umano.
-
-come_si_misura  le attese, nella stessa forma dei casi di `Bench/cases/`:
-                `cosa`, `uguale`/`contiene`, `perche`. Si valutano sul pezzo
-                FINITO, non sui passi: al modello non si dice come arrivarci.
-```
-
-**Il compito non nomina le operazioni, e non e' una dimenticanza.** Se il
-compito dicesse «usa `extrude_rectangle` poi `cylindrical_cut`», si starebbe
-misurando l'obbedienza, non la capacita' di scegliere. La scelta delle
-operazioni **e' cio' che si misura**.
-
-## Come si misura, e cosa vuol dire «giusto»
-
-Tre esiti, e vanno tenuti separati:
+A Markdown file `NN_name.md`. Two parts do not touch each other, and they are the
+two the run reads:
 
 ```
-GIUSTO      tutte le attese reggono
-SBAGLIATO   il pezzo esce, e almeno un'attesa non regge
-NON FATTO   il piano e' stato rifiutato, o e' fallito a meta'
+the task        (the first blockquote, under "The task") what is asked, in
+                a workshop's words, as somebody at the bench would say it.
+                NO operation names, no arguments, no numbers that a human
+                would not say. The Italian originals of the words are kept
+                outside the repository (the run on the Italian version takes
+                their folder with -TasksDir).
+
+how it is       (the table under "How it is measured") the expectations, in
+measured        the same form as the cases of `Bench/cases/`: what is read,
+                the expected value, the tolerance, and WHY. They are evaluated
+                on the FINISHED part, not on the steps: the model is not told
+                how to get there.
 ```
 
-**«Sbagliato» e «non fatto» non si sommano.** Un piano rifiutato e' il ponte
-che ha funzionato: ha detto di no invece di produrre un pezzo storto. Un pezzo
-sbagliato e' il caso peggiore — nessuno se ne accorge finche' non arriva in
-officina. Sommarli darebbe un numero che nasconde la differenza fra la difesa
-che regge e la difesa che manca.
+The rest of the file (why this task, what it deliberately does not say, what the
+measure does not see) is for the person who reads the result.
 
-Il numero della voce Z-G9 e' **quanti escono GIUSTI al primo colpo**, e il
-primo colpo conta: si misura senza rilanciare, senza aggiustare il compito,
-senza dire al modello cosa ha sbagliato. Un numero ottenuto al terzo tentativo
-descrive un modello che non esiste.
+**The task does not name the operations, and it is not an oversight.** If the
+task said «use `extrude_rectangle` then `cylindrical_cut`», obedience would be
+measured, not the ability to choose. Choosing the operations **is what is
+measured**.
 
-## Le tolleranze, e perche' ce ne sono
+## How it is measured, and what «right» means
 
-Un volume calcolato a mano e uno misurato da SOLIDWORKS divergono per i
-raccordi che nessuno ha chiesto e per l'arrotondamento. Dove un'attesa ha una
-tolleranza, **la tolleranza porta il suo perche'**, come nei casi: una
-tolleranza senza motivo e' un'attesa che si allarga finche' non passa.
+Three outcomes, and they must be kept apart:
 
-## Cosa NON e' in questa cartella
+```
+RIGHT       every expectation holds
+WRONG       the part comes out, and at least one expectation does not hold
+NOT DONE    the plan was refused, or failed halfway
+```
 
-- **Non c'e' il giro che li esegue.** Va scritto, ed e' la voce Z-G9.
-- **Non c'e' un punteggio.** Il numero esiste solo dopo che il giro e' girato;
-  scriverlo adesso sarebbe inventarlo.
-- **Non ci sono compiti che nessuno farebbe.** Ogni compito qui e' una cosa che
-  in questa officina si e' fatta davvero o si farebbe: una staffa, un telaio,
-  una piastra forata, un coperchio. *Un banco costruito su pezzi inventati
-  misura quanto il modello sa fare pezzi inventati.*
+**«Wrong» and «not done» are not added up.** A refused plan is the bridge having
+worked: it said no instead of producing a crooked part. A wrong part is the worst
+case — nobody notices until it reaches the shop. Adding them would give a number
+that hides the difference between the defence that holds and the defence that is
+missing.
+
+The number of entry Z-G9 is **how many come out RIGHT at the first try**, and the
+first try is the one that counts: it is measured without running again, without
+adjusting the task, without telling the model what it got wrong. A number
+obtained at the third attempt describes a model that does not exist.
+
+## Tolerances, and why there are any
+
+A volume calculated by hand and one measured by SOLIDWORKS diverge because of the
+fillets nobody asked for and because of rounding. Where an expectation has a
+tolerance, **the tolerance carries its why**, as in the cases: a tolerance with
+no reason is an expectation that widens until it passes.
+
+## What is NOT in this folder
+
+- **The Z-G9 bench is not here.** It is still to be written. The autonomous run of
+  D9 (below) executes the tasks and scores them, once, for the comparison of the
+  rename; it is not that bench.
+- **There is no score kept here.** The number exists only after the run has run
+  (its reports go to `Bench/report/autonomous/`); writing it now would be
+  inventing it.
+- **There are no tasks that nobody would do.** Every task here is something that
+  in this shop has really been made or would be: a bracket, a frame, a drilled
+  plate, a lid. *A bench built on invented parts measures how well the model
+  makes invented parts.*
+- **The first form of tasks 01 and 06** (`l_bracket.json` and `one_meter_frame.json`,
+  JSON with the keys «compito» and «come_si_misura») is gone: it was the Italian
+  original of those two tasks, nothing read it (the run reads `NN_*.md`), and
+  their words and numbers are in `01_l_bracket.md` and `06_welded_frame.md`. It is
+  in the history of the repository (`git log --follow Bench/tasks/l_bracket.json`).
 
 ## The autonomous run of D9 (W3.1-bis.5)
 
@@ -222,11 +240,22 @@ the plans and the runner:
   scorer did not see it as Italian: its keys (documents open, count of the
   components) are now marks of that protocol, read from the map.
 
-**The stand (`07_tube_stand`, tasks 11 and 15) does not build on the bridge of
-today**, on either bridge, and the runner refuses those sessions (on both sides,
-so the comparison is not tilted; the two tasks are not measured). Three defects
-of the library, each enough alone, are written in the plan's `_status` with what
-the probes measured: `cut_list` counts only the structural members (never the
+**After the move to the protocol of .10-bis** (integration-1, 6/10 evening) the plans
+`08_box_and_lid` and `09_bracket_pair` were built again on SOLIDWORKS on both
+bridges, every expectation of their tasks checked: on the bridge of today with the
+English mate values, on the bridge of before through the table
+`MATE_VALUES_BEFORE` of `prerequisite.js`.
+
+**The stand (`07_tube_stand`, tasks 11 and 15) still does not build**, on either
+bridge, and the runner refuses those sessions (on both sides, so the comparison is
+not tilted; the two tasks are not measured). **State after the integration (bridge
+0.128.0, library 0.151.0):** of the three defects below, `cut_list` and `gusset`
+are fixed, and so is the first insert into an empty assembly; the third (the list
+of the 60 largest faces) is not, and the live build of 6/10 evening goes through
+steps 1 to 9 and stops at step 10, the first gusset: «not found (the state lists
+only the 60 largest faces of 177)». The bridge of before keeps all of them. The
+text below is the state of the morning. Three defects of the library, each enough
+alone, are written in the plan's `_status` with what the probes measured: `cut_list` counts only the structural members (never the
 17 bodies and 6 rows of task 07, which no model can reach either); `gusset`
 refuses the faces of a foot at the END of the segment of the bar it rests on and
 accepts them at its START; the 60 largest faces leave out the walls of the third
@@ -236,10 +265,14 @@ for the plan to come (one cap per foot through `trim_members` and `end_cap`
 
 **Still to know about the tools around the run:**
 
-- the first `insert_component` into an empty assembly is refused by BOTH bridges
-  although the component comes in (it counts -1 before): the preparer accepts it
-  on the state of the assembly and says so in its record;
-- `CloseLeftovers --chiudi <folder>` closes by TITLE: with a `base.SLDPRT` open in
-  another folder, the `base.SLDPRT` of the folder stays open (seen on 6/10, five
-  of them), and `CloseDoc` by title could close the other one. The runner's
-  `--close-titles-file` asks by title first too; a path closes the right one.
+- the first `insert_component` into an empty assembly was refused by BOTH bridges
+  although the component came in (it counted -1 before). The bridge of today
+  (0.128.0, library 0.151.0) no longer refuses it; the bridge of before still does,
+  so the preparer still accepts it on the state of the assembly and says so in its
+  record;
+- `CloseLeftovers --close <folder>` closed by TITLE, and a name that matches no title
+  whole falls back to the base name and closes the first document of that name.
+  Since bridge 0.128.0 it closes a saved document by its PATH and a never-saved one
+  by its title (the harm of the old way was not reproduced with the titles this
+  machine gives: the fix is the defence). The runner's `--close-titles-file` asks
+  by title first, and by path for what stays open.
