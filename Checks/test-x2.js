@@ -85,7 +85,7 @@ function openBridge() {
         const id = body.id;
         const tempo = setTimeout(() => {
           expectedValues.delete(id);
-          refuse(new Error('niente risposta alla ' + id + ' entro ' +
+          refuse(new Error('no answer to the ' + id + ' within ' +
                             (waitMs || 120000) + ' ms'));
         }, waitMs || 120000);
         const take = (o) => { clearTimeout(tempo); resolve(o); };
@@ -148,7 +148,7 @@ if (process.argv.includes('--self-test')) selfTest();
 
 async function main() {
   if (!fs.existsSync(BRIDGE)) {
-    console.log('non trovo ' + BRIDGE + " - si produce con .\\build.ps1");
+    console.log('cannot find ' + BRIDGE + " - build it with .\\build.ps1");
     process.exit(1);
   }
 
@@ -158,7 +158,7 @@ async function main() {
   try { execFileSync(CLOSE, ['--chiudi', WORK], { stdio: 'ignore' }); } catch (e) {}
   try { if (fs.existsSync(PART)) fs.unlinkSync(PART); } catch (e) {}
   try { execFileSync(NEW, { stdio: 'ignore' }); }
-  catch (e) { console.log('NewPart non e\' partito: ' + e.message); process.exit(1); }
+  catch (e) { console.log('NewPart did not start: ' + e.message); process.exit(1); }
 
   const bridge = openBridge();
   try {
@@ -168,7 +168,7 @@ async function main() {
                 clientInfo: { name: 'prova-x2', version: '1' } },
     }, 120000);
 
-    console.log('=== 1. guarda -> disegna -> disegna, senza falsi positivi');
+    console.log('=== 1. inspect -> build -> build, without false positives');
 
     let r = read(await bridge.chiedi(call('inspect_part', {})));
     ok('inspect_part risponde', !r.male, r.male ? r.testo.slice(0, 110) : '');
@@ -177,7 +177,7 @@ async function main() {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 120, width_mm: 80, thickness_mm: 10 } }],
     }), 180000));
-    ok('il primo disegna passa', !r.male, r.male ? r.testo.slice(0, 160) : '');
+    ok('the first build passes', !r.male, r.male ? r.testo.slice(0, 160) : '');
 
     // THE LINE THAT COUNTS. The first `build` changed the volume: if the signature
     // had not been updated, this second one would stop accusing a
@@ -187,14 +187,14 @@ async function main() {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 30, width_mm: 30, thickness_mm: 5 } }],
     }), 180000));
-    ok('il secondo disegna passa (nessun falso positivo)', !r.male,
+    ok('the second build passes (no false positive)', !r.male,
        r.male ? r.testo.split('\n')[0].slice(0, 160) : '');
 
     console.log('');
-    console.log('=== 2. qualcuno cambia il pezzo da fuori, e il disegna dopo si ferma');
+    console.log('=== 2. someone changes the part from outside, and the next build stops');
 
     r = read(await bridge.chiedi(call('inspect_part', {})));
-    ok('inspect_part prende la firma', !r.male, r.male ? r.testo.slice(0, 110) : '');
+    ok('inspect_part takes the signature', !r.male, r.male ? r.testo.slice(0, 110) : '');
 
     // THE EXTERNAL MODIFICATION. Another process, which the bridge does not know,
     // extrudes a small block in the active document.
@@ -204,39 +204,39 @@ async function main() {
     } catch (e) {
       saidByChange = "(esploso) " + (e.stdout || e.message || "").toString().trim();
     }
-    ok('qualcuno ha cambiato il pezzo da fuori',
+    ok('someone changed the part from outside',
        saidByChange.indexOf('volume:') >= 0 &&
-       saidByChange.indexOf("NON E' CAMBIATO") < 0,
+       saidByChange.indexOf("NOTHING CHANGED") < 0,
        saidByChange.split('\n').pop());
 
     r = read(await bridge.chiedi(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 20, width_mm: 20, thickness_mm: 5 } }],
     }), 180000));
-    ok('il disegna dopo si ferma', r.male, r.testo.split('\n')[0].slice(0, 100));
-    ok('e dice CHE COSA e\' cambiato',
-       r.testo.indexOf('il volume') >= 0 || r.testo.indexOf('lavorazioni') >= 0,
+    ok('the next build stops', r.male, r.testo.split('\n')[0].slice(0, 100));
+    ok('and says WHAT changed',
+       r.testo.indexOf('the volume') >= 0 || r.testo.indexOf('features') >= 0,
        r.testo.split('\n')[0].slice(0, 130));
-    ok('e dice cosa fare', r.testo.indexOf('inspect_part') >= 0, '');
+    ok('and says what to do', r.testo.indexOf('inspect_part') >= 0, '');
 
     // AND AFTER READING AGAIN, WE START OVER. A refusal that cannot be left is not
     // a defence, it is a wall: entry X2 asks to stop WITH THE CRITERION, and
     // the criterion says what to do to carry on.
     r = read(await bridge.chiedi(call('inspect_part', {})));
-    ok('si rilegge', !r.male, '');
+    ok('it reads again', !r.male, '');
     r = read(await bridge.chiedi(call('build', {
       steps: [{ operation: 'extrude_rectangle',
                 arguments: { length_mm: 20, width_mm: 20, thickness_mm: 5 } }],
     }), 180000));
-    ok('e dopo aver riletto si riparte', !r.male,
+    ok('and after reading again it goes on', !r.male,
        r.male ? r.testo.split('\n')[0].slice(0, 130) : '');
   } finally {
     bridge.chiudi();
   }
 
   console.log('');
-  console.log(trouble === 0 ? 'A posto.' : trouble + ' da sistemare.');
+  console.log(trouble === 0 ? 'All good.' : trouble + ' to fix.');
   process.exit(trouble === 0 ? 0 : 1);
 }
 
-main().catch((e) => { console.log('sonda esplosa: ' + e.message); process.exit(1); });
+main().catch((e) => { console.log('probe blew up: ' + e.message); process.exit(1); });

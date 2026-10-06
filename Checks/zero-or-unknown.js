@@ -111,8 +111,8 @@ function sources(dir, inside) {
 
 // The two forms, and the why of each is in the header.
 const SHAPES = [
-  { nome: 'catch che torna un numero', re: /catch\s*\{\s*return\s+0(\.0)?\s*;/ },
-  { nome: 'un «non c\'e\'» che diventa un conteggio', re: /==\s*null\s*\?\s*0\s*:/ },
+  { nome: 'catch that returns a number', re: /catch\s*\{\s*return\s+0(\.0)?\s*;/ },
+  { nome: 'a «not there» that becomes a count', re: /==\s*null\s*\?\s*0\s*:/ },
 ];
 
 // The input conversions: an argument is being read, not the CAD.
@@ -138,7 +138,7 @@ function look(lines, fileName) {
     const r = lines[i];
     let shape = SHAPES.find(f => f.re.test(r));
     if (!shape && MUTE_CATCH.test(r) && muteCounter(lines, i))
-      shape = { nome: 'un catch muto che lascia il conteggio dov\'era' };
+      shape = { nome: 'a mute catch that leaves the count where it was' };
     if (!shape) continue;
     if (INPUT.test(r)) continue;
 
@@ -169,22 +169,22 @@ function benchRun(list, whatItIsCalled) {
 
   console.log('');
   console.log(whatItIsCalled + ':');
-  console.log('  punti che rispondono zero su una strada di errore: ' + takenOnes.length);
-  console.log('  di cui DICHIARATI (zero e zero sono la stessa cosa li\'): ' + called.length);
+  console.log('  points that answer zero on an error path: ' + takenOnes.length);
+  console.log('  of which DECLARED (zero and zero are the same thing there): ' + called.length);
   if (all) for (const d of called) console.log('    ok  ' + d.dove + '  ' + d.riga);
 
   if (bareOnes.length === 0) {
-    console.log('  Nessun punto scambia «zero» per «non lo so» senza dirlo.');
+    console.log('  No point mistakes «zero» for «I do not know» without saying so.');
     return 0;
   }
-  console.log('  DA GUARDARE: ' + bareOnes.length);
+  console.log('  TO LOOK AT: ' + bareOnes.length);
   for (const n of bareOnes) console.log('    !  ' + n.dove + '  ' + n.riga);
   return bareOnes.length;
 }
 
 // ── the check, before everything else ────────────────────────────────────────
 if (process.argv.includes('--provami')) {
-  console.log('=== PROVA DEL CONTROLLO: lo stesso punto, nudo e dichiarato ===');
+  console.log('=== TEST OF THE CHECK: the same point, bare and declared ===');
   const bare = [
     'private static double VolumeMm3(IModelDoc2 modello)',
     '{',
@@ -196,9 +196,9 @@ if (process.argv.includes('--provami')) {
   // marker and the point. It is the case on which this probe went wrong the
   // first time, and it is the one that must stay green.
   const said = ['/// <summary>',
-    '/// ZERO-E-ZERO: qui zero e "non lo so" coincidono davvero, perche\'',
-    '/// `GetMates` torna null quando sono zero -- misurato il 17/9/2026.'];
-  for (let k = 0; k < 20; k++) said.push('/// ' + k + ' riga di spiegazione.');
+    '/// ZERO-E-ZERO: here zero and "I do not know" really coincide, because',
+    '/// `GetMates` returns null when they are zero -- measured on 17/9/2026.'];
+  for (let k = 0; k < 20; k++) said.push('/// ' + k + ' line of explanation.');
   said.push('/// </summary>',
     'private static int Quanti(IComponent2 c)',
     '{',
@@ -222,18 +222,18 @@ if (process.argv.includes('--provami')) {
     '}',
   ].join('\n');
 
-  const a = benchRun([{ nome: 'FINTO-nudo', testo: bare }], 'il punto NUDO');
-  const b = benchRun([{ nome: 'FINTO-detto', testo: saidText }], 'lo stesso punto DICHIARATO, a venti righe di distanza');
-  const c = benchRun([{ nome: 'FINTO-ingresso', testo: inputOnly }], 'una conversione di INGRESSO');
-  const e = benchRun([{ nome: 'FINTO-muto', testo: mute }], 'il catch MUTO (la terza forma)');
+  const a = benchRun([{ nome: 'FAKE-bare', testo: bare }], 'the BARE point');
+  const b = benchRun([{ nome: 'FAKE-declared', testo: saidText }], 'the same point DECLARED, twenty lines away');
+  const c = benchRun([{ nome: 'FAKE-input', testo: inputOnly }], 'an INPUT conversion');
+  const e = benchRun([{ nome: 'FAKE-mute', testo: mute }], 'the MUTE catch (the third form)');
   console.log('');
   if (a === 1 && b === 0 && c === 0 && e === 1) {
-    console.log('IL CONTROLLO prende il punto nudo, TACE su quello dichiarato,');
-    console.log('e non confonde una conversione di argomento con una lettura. Provato.');
+    console.log('THE CHECK catches the bare point, STAYS SILENT on the declared one,');
+    console.log('and does not confuse an argument conversion with a reading. Proven.');
   } else {
-    console.log('IL CONTROLLO NON SI COMPORTA COME DICE: nudo=' + a +
-                ' (atteso 1), dichiarato=' + b + ' (atteso 0), ingresso=' + c + ' (atteso 0)' +
-                ', muto=' + e + ' (atteso 1)');
+    console.log('THE CHECK DOES NOT BEHAVE AS IT SAYS: bare=' + a +
+                ' (expected 1), declared=' + b + ' (expected 0), input=' + c + ' (expected 0)' +
+                ', mute=' + e + ' (expected 1)');
     process.exitCode = 1;
   }
   console.log('');
@@ -241,15 +241,15 @@ if (process.argv.includes('--provami')) {
 
 const files = [];
 for (const c of FOLDERS) sources(c, files);
-console.log('sorgenti guardati: ' + files.length);
-const discovered = benchRun(files, 'nel repository');
+console.log('sources looked at: ' + files.length);
+const discovered = benchRun(files, 'in the repository');
 if (discovered > 0) process.exitCode = 1;
 
 console.log('');
-console.log('Zero non e\' «non lo so»: zero e\' un\'AFFERMAZIONE — «questo pezzo ha');
-console.log('zero corpi», «da questo foro sono stati tolti zero mm3». Chi legge non');
-console.log('ha modo di accorgersi che la lettura e\' fallita.');
+console.log('Zero is not «I do not know»: zero is a CLAIM — «this part has');
+console.log('zero bodies», «zero mm3 were removed from this hole». Whoever reads has');
+console.log('no way of noticing that the reading failed.');
 console.log('');
-console.log('Si ripara con -1 (o null) per «non lo so», oppure col marcatore');
-console.log('ZERO-E-ZERO: e la ragione accanto quando lo zero e\' vero. Esce 1 se');
-console.log('ne resta uno senza: dal 25/9/2026 e\' nel gancio pre-push (voce Z-C8).');
+console.log('It is repaired with -1 (or null) for «I do not know», or with the marker');
+console.log('ZERO-E-ZERO: and the reason next to it when the zero is true. It exits 1 if');
+console.log('one is left without: since 25/9/2026 it is in the pre-push hook (entry Z-C8).');

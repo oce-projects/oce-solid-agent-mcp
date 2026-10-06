@@ -46,7 +46,7 @@ $Where = Join-Path $env:TEMP ("libreria-di-allora\" + $Version)
 
 function Die($message) {
     Write-Output ""
-    Write-Output ("NON CI SONO RIUSCITO: " + $message)
+    Write-Output ("COULD NOT DO IT: " + $message)
     exit 1
 }
 
@@ -71,8 +71,8 @@ foreach ($c in $history) {
     }
 }
 if ($commit -eq $null) {
-    Die ("nessun commit dichiara AssemblyVersion " + $Version + ".0. " +
-           "Le versioni si leggono con:  git log --format='%h %s' -- Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs")
+    Die ("no commit declares AssemblyVersion " + $Version + ".0. " +
+           "Versions can be read with:  git log --format='%h %s' -- Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs")
 }
 Write-Output ("versione " + $Version + " -> commit " + $commit.Substring(0, 7))
 
@@ -82,7 +82,7 @@ git -C $Root worktree prune
 # `2>&1` because «Preparing worktree» git writes to stderr even when it
 # succeeds, and letting it through fills a command that went well with red.
 git -C $Root worktree add --detach $Where $commit 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Die "git worktree non e' riuscito" }
+if ($LASTEXITCODE -ne 0) { Die "git worktree failed" }
 
 # --- we compile -------------------------------------------------------------
 $msbuild = $null
@@ -91,22 +91,22 @@ foreach ($p in @(
     "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe")) {
     if (Test-Path $p) { $msbuild = $p; break }
 }
-if ($msbuild -eq $null) { Die "non trovo MSBuild" }
+if ($msbuild -eq $null) { Die "cannot find MSBuild" }
 
 & $msbuild (Join-Path $Where "Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj") `
     /p:Configuration=Release /v:m /nologo | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    Die ("la libreria di allora non compila. Non e' un giro rosso: e' una " +
-           "versione che oggi non si ricostruisce, e va detto invece di girarci intorno.")
+    Die ("the library of that time does not compile. It is not a red run: it is a " +
+           "version that cannot be rebuilt today, and that has to be said rather than worked around.")
 }
 
 $dll = Join-Path $Where "Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll"
-if (-not (Test-Path $dll)) { Die ("compilata, ma non trovo " + $dll) }
+if (-not (Test-Path $dll)) { Die ("compiled, but cannot find " + $dll) }
 
 Write-Output ""
 Write-Output $dll
 Write-Output ""
-Write-Output "si usa cosi':"
+Write-Output "use it like this:"
 Write-Output ("  .\Bench\bench.ps1 -Library """ + $dll + """ -Group casi -SkipCompilation")
 Write-Output ""
-Write-Output ("e si toglie cosi':  .\Checks\library-of-the-time.ps1 " + $Version + " -Clean")
+Write-Output ("and remove it like this:  .\Checks\library-of-the-time.ps1 " + $Version + " -Clean")

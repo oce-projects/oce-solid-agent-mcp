@@ -27,7 +27,7 @@ namespace Checks.DimensionApis
         private static int Main(string[] arguments)
         {
             string word = arguments.Length > 0 ? arguments[0] : "annotation";
-            Console.WriteLine("Cerco «" + word + "» nei metodi dell'interop.");
+            Console.WriteLine("Looking for «" + word + "» in the methods of the interop.");
             Console.WriteLine();
 
             // THE CONSTANTS, not only the methods. A system option that is not
@@ -59,7 +59,7 @@ namespace Checks.DimensionApis
             foreach (var itemName in types)
             {
                 var t = assembly.GetType("SolidWorks.Interop.sldworks." + itemName);
-                if (t == null) { Console.WriteLine(itemName + ": non c'e'"); continue; }
+                if (t == null) { Console.WriteLine(itemName + ": not there"); continue; }
 
                 var methods = t.GetMethods()
                     .Where(m => m.Name.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0)

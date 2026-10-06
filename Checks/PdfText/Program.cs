@@ -54,13 +54,13 @@ internal static class Program
     {
         bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         Console.WriteLine();
-        Console.WriteLine("TESTO NEL PDF — il testo della tavola esce come testo? (voce GT3-bis)");
+        Console.WriteLine("TEXT IN THE PDF — does the text of the drawing come out as text? (entry GT3-bis)");
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
+        Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
         string pdf = Path.Combine(Path.GetTempPath(), "testo-nel-pdf-sonda.pdf");
         IModelDoc2 doc = null;
@@ -69,14 +69,14 @@ internal static class Program
             string drawingMod = sw.GetUserPreferenceStringValue(
                 (int)swUserPreferenceStringValue_e.swDefaultTemplateDrawing);
             doc = (IModelDoc2)sw.NewDocument(drawingMod, (int)swDwgPaperSizes_e.swDwgPaperA3size, 0.42, 0.297);
-            if (doc == null) { Console.WriteLine("  NewDocument(tavola) -> null"); return 4; }
+            if (doc == null) { Console.WriteLine("  NewDocument(drawing) -> null"); return 4; }
 
             var cpm = doc.Extension.get_CustomPropertyManager("");
             int propOutcome = cpm.Add3("Descrizione", (int)swCustomInfoType_e.swCustomInfoText, Property,
                 (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
             string read, resolved; bool fromCache;
             cpm.Get5("Descrizione", false, out read, out resolved, out fromCache);
-            Says("proprieta' Descrizione: Add3 -> " + propOutcome + ", riletta «" + resolved + "»");
+            Says("property Descrizione: Add3 -> " + propOutcome + ", read back «" + resolved + "»");
 
             var n1 = doc.InsertNote(Inscription) as INote;
             if (n1 != null) (n1.GetAnnotation() as IAnnotation)?.SetPosition2(0.05, 0.25, 0);
@@ -84,22 +84,22 @@ internal static class Program
             if (n2 != null) (n2.GetAnnotation() as IAnnotation)?.SetPosition2(0.05, 0.22, 0);
             doc.ClearSelection2(true);
             doc.EditRebuild3();
-            Says("note: «" + (n1 == null ? "(non nata)" : n1.GetText()) + "», «" +
-                 (n2 == null ? "(non nata)" : n2.GetText()) + "»");
-            if (n1 == null || n2 == null) { Console.WriteLine("  una nota non e' nata"); return 4; }
+            Says("note: «" + (n1 == null ? "(not created)" : n1.GetText()) + "», «" +
+                 (n2 == null ? "(not created)" : n2.GetText()) + "»");
+            if (n1 == null || n2 == null) { Console.WriteLine("  a note was not created"); return 4; }
 
             // ── THE PDF, as export_pdf writes it ───────────────────────
             var data = sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData) as IExportPdfData;
-            if (data == null) { Console.WriteLine("  niente opzioni PDF"); return 4; }
+            if (data == null) { Console.WriteLine("  no PDF options"); return 4; }
             data.ViewPdfAfterSaving = false;
             data.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             try { if (File.Exists(pdf)) File.Delete(pdf); } catch { }
             int err = 0, avv = 0;
             bool ok = doc.Extension.SaveAs(pdf, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
                 (int)swSaveAsOptions_e.swSaveAsOptions_Silent, data, ref err, ref avv);
-            if (!ok || !File.Exists(pdf)) { Console.WriteLine("  PDF non scritto, codice " + err); return 4; }
+            if (!ok || !File.Exists(pdf)) { Console.WriteLine("  PDF not written, code " + err); return 4; }
             byte[] rawItems = File.ReadAllBytes(pdf);
-            Says("PDF scritto: " + rawItems.Length + " byte");
+            Says("PDF written: " + rawItems.Length + " bytes");
 
             // ── LE TRE LETTURE ──────────────────────────────────────────
             string rawText = Encoding.GetEncoding(28591).GetString(rawItems);
@@ -111,12 +111,12 @@ internal static class Program
             string decoded = DecodeWithCMap(inside);
 
             Console.WriteLine();
-            Console.WriteLine("      flussi compressi " + flows + ", decompressi " + decompressed +
-                              ", blocchi di testo (BT) " + textBlocks + ", /ToUnicode " + toUnicode);
-            Console.WriteLine("      pdftotext: " + (extracted == null ? "unavailable" : extracted.Length + " caratteri estratti"));
-            Console.WriteLine("      decodificato con le CMap: " + decoded.Length + " caratteri");
+            Console.WriteLine("      compressed streams " + flows + ", decompressed " + decompressed +
+                              ", text blocks (BT) " + textBlocks + ", /ToUnicode " + toUnicode);
+            Console.WriteLine("      pdftotext: " + (extracted == null ? "unavailable" : extracted.Length + " characters extracted"));
+            Console.WriteLine("      decoded with the CMaps: " + decoded.Length + " characters");
             Console.WriteLine();
-            Console.WriteLine("      cerca          grezzo  flussi  cmap    pdftotext");
+            Console.WriteLine("      search         raw     streams cmap    pdftotext");
             var outcomes = new Dictionary<string, bool[]>();
             foreach (var s in new[] { Inscription, Property, Absent })
             {
@@ -135,44 +135,44 @@ internal static class Program
 
             if (outcomes[Absent][3])
             {
-                Console.WriteLine("IL ROSSO DELLA DECODIFICA NON REGGE: " + Absent + " esce dalle CMap. Il decodificatore inventa.");
+                Console.WriteLine("THE DECODING RED DOES NOT HOLD: " + Absent + " comes out of the CMaps. The decoder makes things up.");
                 return 7;
             }
             if (outcomes[Inscription][3] && outcomes[Property][3] && extracted != null && outcomes[Inscription][2])
             {
-                Console.WriteLine("REGGE SENZA ATTREZZI: le CMap /ToUnicode, lette qui, danno lo stesso testo di pdftotext.");
-                Console.WriteLine("Il caso di banco di GT3-bis si scrive con questo decodificatore, senza dipendere da Git.");
+                Console.WriteLine("HOLDS WITHOUT TOOLS: the /ToUnicode CMaps, read here, give the same text as pdftotext.");
+                Console.WriteLine("The bench case of GT3-bis is written with this decoder, without depending on Git.");
                 return 0;
             }
 
             if (outcomes[Absent][0] || outcomes[Absent][1] || outcomes[Absent][2])
             {
-                Console.WriteLine("IL ROSSO NON REGGE: " + Absent + " si trova, e nella tavola non c'e'. La ricerca e' cieca.");
+                Console.WriteLine("THE RED DOES NOT HOLD: " + Absent + " is found, and it is not in the drawing. The search is blind.");
                 return 7;
             }
             bool trueText = extracted != null && outcomes[Inscription][2] && outcomes[Property][2];
             bool withoutTools = outcomes[Inscription][1] && outcomes[Property][1];
             if (trueText && withoutTools)
             {
-                Console.WriteLine("REGGE, tutte e due le meta': il PDF porta il testo come testo (pdftotext lo estrae),");
-                Console.WriteLine("e lo si trova anche solo decomprimendo i flussi — un caso di banco non ha bisogno di attrezzi.");
+                Console.WriteLine("HOLDS, both halves: the PDF carries the text as text (pdftotext extracts it),");
+                Console.WriteLine("and it is found even just by decompressing the streams — a bench case needs no tools.");
                 return 0;
             }
             if (trueText)
             {
-                Console.WriteLine("IL TESTO C'E' (pdftotext lo estrae), ma NON in chiaro nei flussi: i glifi sono codificati");
-                Console.WriteLine("(" + toUnicode + " tabelle /ToUnicode). Il caso di banco deve decodificarle, o dipendere da pdftotext.");
+                Console.WriteLine("THE TEXT IS THERE (pdftotext extracts it), but NOT in the clear in the streams: the glyphs are encoded");
+                Console.WriteLine("(" + toUnicode + " /ToUnicode tables). The bench case must decode them, or depend on pdftotext.");
                 return 3;
             }
             if (extracted == null)
             {
                 Console.WriteLine(withoutTools
-                    ? "Nei flussi il testo c'e'; pdftotext manca per la seconda meta'."
-                    : "Nei flussi non si trova, e pdftotext manca: la sonda non puo' decidere.");
+                    ? "The text is in the streams; pdftotext is missing for the second half."
+                    : "It is not found in the streams, and pdftotext is missing: the probe cannot decide.");
                 return withoutTools ? 0 : 8;
             }
-            Console.WriteLine("IL TESTO NON ESCE COME TESTO: nemmeno pdftotext lo trova. " +
-                              (textBlocks == 0 ? "Zero blocchi BT: l'esportatore disegna contorni." : "Ci sono " + textBlocks + " blocchi BT, ma non questo testo."));
+            Console.WriteLine("THE TEXT DOES NOT COME OUT AS TEXT: not even pdftotext finds it. " +
+                              (textBlocks == 0 ? "Zero BT blocks: the exporter draws outlines." : "There are " + textBlocks + " BT blocks, but not this text."));
             return 6;
         }
         catch (Exception ex)
@@ -188,7 +188,7 @@ internal static class Program
             {
                 try { sw.CloseDoc(doc.GetTitle()); } catch { }
                 try { if (File.Exists(pdf)) File.Delete(pdf); } catch { }
-                Says("tavola chiusa senza salvare, PDF tolto");
+                Says("drawing closed without saving, PDF removed");
             }
         }
     }

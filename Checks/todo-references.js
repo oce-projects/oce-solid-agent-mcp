@@ -79,17 +79,17 @@ for (let i = 0; i < lines.length; i++) {
   }
 }
 
-console.log('nomi di voce definiti:  ' + exist.size);
-console.log('rimandi verificati:     ' + ok);
+console.log('entry names defined:       ' + exist.size);
+console.log('cross-references checked:  ' + ok);
 console.log('');
 if (brokenOnes.size === 0) {
-  console.log('Tutti i rimandi del TODO puntano a una voce che esiste.');
+  console.log('All the cross-references of the TODO point to an entry that exists.');
 } else {
-  console.log('RIMANDI A VOCI CHE NON ESISTONO: ' + brokenOnes.size);
+  console.log('CROSS-REFERENCES TO ENTRIES THAT DO NOT EXIST: ' + brokenOnes.size);
   for (const [itemName, line] of brokenOnes) console.log('  !  ' + itemName + '   (riga ' + line + ')');
   console.log('');
-  console.log('Puo\' essere una voce rinominata, una mai scritta, o una sigla che');
-  console.log('assomiglia a un nome. E\' una cosa da guardare, non una colpa.');
+  console.log('It may be a renamed entry, one never written, or an acronym that');
+  console.log('looks like a name. It is something to look at, not a fault.');
   // EXITS 1: see the twin `todo-paths.js`.
   process.exitCode = 1;
 }

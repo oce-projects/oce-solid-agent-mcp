@@ -172,48 +172,48 @@ stopIfMissing();
 
 function howItIsTested(op) {
   const quotationMarks = '"' + op + '"';
-  if (fromCases.has(op)) return { come: 'caso dichiarato', dettaglio: fromCases.get(op).slice(0, 3).join(', ') };
+  if (fromCases.has(op)) return { come: 'declared case', dettaglio: fromCases.get(op).slice(0, 3).join(', ') };
   if (fromRegression.has(op))
-    return { come: 'solo regressione', dettaglio: 'gira solo con -Regression: ' + fromRegression.get(op).slice(0, 3).join(', ') };
-  if (textCs.indexOf(quotationMarks) >= 0) return { come: 'C# del banco', dettaglio: '' };
+    return { come: 'regression only', dettaglio: 'runs only with -Regression: ' + fromRegression.get(op).slice(0, 3).join(', ') };
+  if (textCs.indexOf(quotationMarks) >= 0) return { come: 'bench C#', dettaglio: '' };
   if (plansText.indexOf(quotationMarks) >= 0)
-    return { come: 'solo piano a mano', dettaglio: 'non gira in nessun giro, non asserisce niente' };
-  return { come: 'NIENTE', dettaglio: 'a catalogo, e nessun giro la tocca' };
+    return { come: 'hand-written plan only', dettaglio: 'does not run in any run, asserts nothing' };
+  return { come: 'NOTHING', dettaglio: 'in the catalog, and no run touches it' };
 }
 
-const perMode = { 'caso dichiarato': [], 'solo regressione': [], 'C# del banco': [], 'solo piano a mano': [], 'NIENTE': [] };
+const perMode = { 'declared case': [], 'regression only': [], 'bench C#': [], 'hand-written plan only': [], 'NOTHING': [] };
 for (const op of operations) perMode[howItIsTested(op).come].push(op);
 
 if (!soloOrfane) {
-  console.log('catalogo: ' + CATALOG);
-  console.log('operazioni a catalogo (Provata = true): ' + operations.length);
-  console.log('casi dichiarati: ' + howManyCases);
+  console.log('catalog: ' + CATALOG);
+  console.log('operations in the catalog (Tested = true): ' + operations.length);
+  console.log('declared cases: ' + howManyCases);
   console.log('');
-  for (const mode of ['caso dichiarato', 'solo regressione', 'C# del banco', 'solo piano a mano', 'NIENTE']) {
+  for (const mode of ['declared case', 'regression only', 'bench C#', 'hand-written plan only', 'NOTHING']) {
     console.log(String(perMode[mode].length).padStart(4) + '  ' + mode);
   }
   console.log('');
-  if (perMode['solo regressione'].length > 0) {
-    console.log('SOLO IN REGRESSIONE — girano solo con -Regression, non in un giro normale:');
-    for (const o of perMode['solo regressione']) console.log('    ' + o);
+  if (perMode['regression only'].length > 0) {
+    console.log('ONLY IN REGRESSION — they run only with -Regression, not in a normal run:');
+    for (const o of perMode['regression only']) console.log('    ' + o);
     console.log('');
   }
-  console.log('(La guardia vera e\' il controllo di contratto «ogni operazione a catalogo ha un');
-  console.log(' caso VERDE nell\'ultimo giro», che legge i casi verdi da Bench\\report\\last.json.)');
+  console.log('(The real guard is the contract check «every operation in the catalog has a');
+  console.log(' GREEN case in the last run», which reads the green cases from Bench\\report\\last.json.)');
   console.log('');
-  if (perMode['solo piano a mano'].length > 0) {
-    console.log('SOLO UN PIANO A MANO — un appunto di come si e\' misurato, non una prova:');
-    for (const o of perMode['solo piano a mano']) console.log('    ' + o);
+  if (perMode['hand-written plan only'].length > 0) {
+    console.log('ONLY A HAND-WRITTEN PLAN — a note of how it was measured, not a check:');
+    for (const o of perMode['hand-written plan only']) console.log('    ' + o);
     console.log('');
   }
 }
 
-if (perMode['NIENTE'].length === 0) {
-  console.log('Nessuna operazione orfana: ogni voce del catalogo ha qualcosa che la esercita.');
+if (perMode['NOTHING'].length === 0) {
+  console.log('No orphan operation: every entry in the catalog has something that exercises it.');
 } else {
-  console.log('ORFANE — a catalogo, e nessun giro le tocca:');
-  for (const o of perMode['NIENTE']) console.log('    ' + o);
+  console.log('ORPHANS — in the catalog, and no run touches them:');
+  for (const o of perMode['NOTHING']) console.log('    ' + o);
   console.log('');
-  console.log('Per ognuna: o un caso dichiarato in Bench\\cases\\, oppure Provata = false,');
-  console.log('che la toglie dal catalogo come gia\' succede a center_marks.');
+  console.log('For each one: either a declared case in Bench\\cases\\, or Tested = false,');
+  console.log('which takes it out of the catalog as already happens to center_marks.');
 }

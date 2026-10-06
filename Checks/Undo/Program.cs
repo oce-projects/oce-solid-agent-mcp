@@ -30,17 +30,17 @@ namespace Checks.Undo
             int howMany = 1;
             if (arguments.Length > 0 && !int.TryParse(arguments[0], out howMany))
             {
-                Console.Error.WriteLine("L'argomento e' quante volte annullare.");
+                Console.Error.WriteLine("The argument is how many times to undo.");
                 return 2;
             }
 
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
+            if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
 
             Console.WriteLine("documento: " + doc.GetTitle());
             Console.WriteLine(Line("prima", Volume(doc)));
@@ -69,7 +69,7 @@ namespace Checks.Undo
         private static string Line(string timestamp, double? volume)
         {
             return volume == null
-                ? "volume " + timestamp + ": nessun corpo solido"
+                ? "volume " + timestamp + ": no solid body"
                 : string.Format(CultureInfo.InvariantCulture,
                     "volume {0}: {1:0.#} mm3", timestamp, volume);
         }

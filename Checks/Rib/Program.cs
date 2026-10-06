@@ -83,19 +83,19 @@ internal static class Program
     {
         bool keep = Array.IndexOf(args, "--keep") >= 0;
         try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
         Console.WriteLine("PROBE RIB (W1.2) — SOLIDWORKS " + _sw.RevisionNumber());
 
         var cases = new List<Case>
         {
-            new Case { Name = "L0 L, normale allo schizzo (come le sonde storiche)", Shape = Shape.LBracket, NormToSketch = true,  FlipMaterial = false, ThicknessM = 0.006, Expected = "niente" },
-            new Case { Name = "L1 L, parallela, materiale dritto",                   Shape = Shape.LBracket, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.006, Expected = "+2700" },
-            new Case { Name = "L2 L, parallela, materiale girato",                   Shape = Shape.LBracket, NormToSketch = false, FlipMaterial = true,  ThicknessM = 0.006, Expected = "+2700" },
-            new Case { Name = "L3 L, parallela, schizzo lasciato APERTO",            Shape = Shape.LBracket, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.006, Expected = "+2700", LeaveOpen = true },
-            new Case { Name = "S1 scatola svuotata, parallela, materiale dritto",    Shape = Shape.ShelledBox, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.002, Expected = "+720" },
-            new Case { Name = "S2 scatola svuotata, parallela, materiale girato",    Shape = Shape.ShelledBox, NormToSketch = false, FlipMaterial = true,  ThicknessM = 0.002, Expected = "+720" },
-            new Case { Name = "P1 piastra senza pareti, parallela, materiale dritto", Shape = Shape.Plate, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.002, Expected = "?" },
-            new Case { Name = "P2 piastra senza pareti, parallela, materiale girato", Shape = Shape.Plate, NormToSketch = false, FlipMaterial = true,  ThicknessM = 0.002, Expected = "?" },
+            new Case { Name = "L0 L, normal to the sketch (like the historical probes)", Shape = Shape.LBracket, NormToSketch = true,  FlipMaterial = false, ThicknessM = 0.006, Expected = "nothing" },
+            new Case { Name = "L1 L, parallel, material straight",                   Shape = Shape.LBracket, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.006, Expected = "+2700" },
+            new Case { Name = "L2 L, parallel, material flipped",                   Shape = Shape.LBracket, NormToSketch = false, FlipMaterial = true,  ThicknessM = 0.006, Expected = "+2700" },
+            new Case { Name = "L3 L, parallel, sketch left OPEN",            Shape = Shape.LBracket, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.006, Expected = "+2700", LeaveOpen = true },
+            new Case { Name = "S1 hollowed box, parallel, material straight",    Shape = Shape.ShelledBox, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.002, Expected = "+720" },
+            new Case { Name = "S2 hollowed box, parallel, material flipped",    Shape = Shape.ShelledBox, NormToSketch = false, FlipMaterial = true,  ThicknessM = 0.002, Expected = "+720" },
+            new Case { Name = "P1 plate without walls, parallel, material straight", Shape = Shape.Plate, NormToSketch = false, FlipMaterial = false, ThicknessM = 0.002, Expected = "?" },
+            new Case { Name = "P2 plate without walls, parallel, material flipped", Shape = Shape.Plate, NormToSketch = false, FlipMaterial = true,  ThicknessM = 0.002, Expected = "?" },
         };
 
         foreach (var c in cases)
@@ -106,7 +106,7 @@ internal static class Program
         }
         int born = cases.FindAll(x => x.Born).Count;
         Console.WriteLine();
-        Console.WriteLine("RIEPILOGO: " + born + "/" + cases.Count + " casi hanno fatto nascere una «Rib».");
+        Console.WriteLine("SUMMARY: " + born + "/" + cases.Count + " cases brought a «Rib» into being.");
         return born > 0 ? 0 : 5;
     }
 
@@ -129,10 +129,10 @@ internal static class Program
             int bodies0 = Bodies(doc);
 
             doc.ClearSelection2(true);
-            if (!sketchPlane.Select2(false, 0)) { c.Outcome = "piano di schizzo non selezionato"; return; }
+            if (!sketchPlane.Select2(false, 0)) { c.Outcome = "sketch plane not selected"; return; }
             doc.SketchManager.InsertSketch(true);
             var sk = doc.SketchManager.ActiveSketch as ISketch;
-            if (sk == null) { c.Outcome = "schizzo non aperto"; return; }
+            if (sk == null) { c.Outcome = "sketch not open"; return; }
             var mu = (IMathUtility)_sw.GetMathUtility();
             var tr = sk.ModelToSketchTransform;
             Func<double[], double[]> toSk = p => ((IMathPoint)((IMathPoint)mu.CreatePoint(p)).MultiplyTransform(tr)).ArrayData as double[];
@@ -140,9 +140,9 @@ internal static class Program
             doc.SketchManager.AddToDB = true;
             var line = doc.SketchManager.CreateLine(pa[0], pa[1], 0, pb[0], pb[1], 0);
             doc.SketchManager.AddToDB = false;
-            if (line == null) { c.Outcome = "linea non creata"; return; }
+            if (line == null) { c.Outcome = "line not created"; return; }
 
-            string sel = "schizzo aperto, nessuna selezione";
+            string sel = "sketch open, no selection";
             if (!c.LeaveOpen)
             {
                 doc.SketchManager.InsertSketch(true);
@@ -150,7 +150,7 @@ internal static class Program
                 doc.ClearSelection2(true);
                 // exactly as the guide's example: by name and type, mark 0
                 bool ok = doc.Extension.SelectByID2(name, "SKETCH", 0, 0, 0, false, 0, null, 0);
-                sel = "«" + name + "» selezionato " + ok;
+                sel = "«" + name + "» selected " + ok;
             }
 
             string raised = "";
@@ -177,9 +177,9 @@ internal static class Program
             c.Born = rib != null;
             string err = "";
             if (rib != null) { bool warn; int code = rib.GetErrorCode2(out warn); if (code != 0) err = " errore " + code + (warn ? " (avviso)" : ""); }
-            c.Outcome = sel + raised + ", Rib " + (rib == null ? "nessuna" : "«" + rib.Name + "»" + err) +
+            c.Outcome = sel + raised + ", Rib " + (rib == null ? "none" : "«" + rib.Name + "»" + err) +
                         ", volume " + Fmt(v0) + " -> " + Fmt(v1) + " (" + (v1 - v0).ToString("+0.#;-0.#;0", CultureInfo.InvariantCulture) + ")" +
-                        ", corpi " + bodies0 + " -> " + Bodies(doc);
+                        ", bodies " + bodies0 + " -> " + Bodies(doc);
         }
         finally
         {
@@ -195,7 +195,7 @@ internal static class Program
         if (shape == Shape.LBracket)
         {
             // Same L as SbloccoProva2.Elle: front plane (XY), horizontal wall y 0..10, vertical wall x 0..10, 50 deep in Z.
-            if (!SelectBasePlane(doc, 1)) return "piano frontale non selezionato";
+            if (!SelectBasePlane(doc, 1)) return "front plane not selected";
             sm.InsertSketch(true);
             sm.CreateLine(0, 0, 0, 0.060, 0, 0);
             sm.CreateLine(0.060, 0, 0, 0.060, 0.010, 0);
@@ -203,37 +203,37 @@ internal static class Program
             sm.CreateLine(0.010, 0.010, 0, 0.010, 0.060, 0);
             sm.CreateLine(0.010, 0.060, 0, 0, 0.060, 0);
             sm.CreateLine(0, 0.060, 0, 0, 0, 0);
-            if (!Extrude(doc, 0.050)) return "estruso della L -> null";
+            if (!Extrude(doc, 0.050)) return "extrusion of the L -> null";
             // plane at mid depth, z = 25
-            if (!SelectBasePlane(doc, 1)) return "piano frontale non selezionato (2)";
+            if (!SelectBasePlane(doc, 1)) return "front plane not selected (2)";
             doc.CreatePlaneAtOffset3(0.025, false, true);
             sketchPlane = LastFeature(doc, "RefPlane");
-            if (sketchPlane == null) return "piano a meta' profondita' non creato";
+            if (sketchPlane == null) return "mid-depth plane not created";
             a = new[] { 0.010, 0.040, 0.025 }; b = new[] { 0.040, 0.010, 0.025 };
             return null;
         }
 
         // Box and plate: rectangle on the Top plane (XZ), extruded along +Y.
         double height = shape == Shape.Plate ? 0.002 : 0.020;
-        if (!SelectBasePlane(doc, 2)) return "piano superiore non selezionato";
+        if (!SelectBasePlane(doc, 2)) return "top plane not selected";
         sm.InsertSketch(true);
         sm.CreateCornerRectangle(-0.020, -0.020, 0, 0.020, 0.020, 0);
         if (!Extrude(doc, height)) return "estruso -> null";
         double[] box = Box(doc);
-        if (Math.Abs((box[4] - box[1]) - height) > 1e-6) return "l'estruso non e' cresciuto lungo Y come previsto (ingombro Y " + ((box[4] - box[1]) * 1000) + " mm)";
+        if (Math.Abs((box[4] - box[1]) - height) > 1e-6) return "the extrusion did not grow along Y as expected (Y bounding box " + ((box[4] - box[1]) * 1000) + " mm)";
         double yTop = box[4];
         if (shape == Shape.ShelledBox)
         {
             var top = HorizontalFaceAt(doc, yTop);
-            if (top == null) return "faccia alta non trovata";
+            if (top == null) return "top face not found";
             doc.ClearSelection2(true);
             ((IEntity)top).Select4(false, null);
             doc.InsertFeatureShell(0.002, false);
-            if (Volume(doc) > 0.9 * 40 * 40 * 20) return "lo shell non e' avvenuto (volume " + Fmt(Volume(doc)) + ")";
+            if (Volume(doc) > 0.9 * 40 * 40 * 20) return "the shell did not happen (volume " + Fmt(Volume(doc)) + ")";
         }
-        if (!SelectBasePlane(doc, 3)) return "piano destro non selezionato";
+        if (!SelectBasePlane(doc, 3)) return "right plane not selected";
         sketchPlane = SelectedFeature(doc);
-        if (sketchPlane == null) return "piano destro non letto";
+        if (sketchPlane == null) return "right plane not read";
         double y = box[1] + (shape == Shape.Plate ? 0.012 : 0.012);   // 10 mm above the floor (floor top at y = 2)
         a = new[] { 0.0, y, -0.015 }; b = new[] { 0.0, y, 0.015 };
         return null;

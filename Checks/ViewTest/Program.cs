@@ -44,7 +44,7 @@ namespace Checks.ViewTest
             try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("SOLIDWORKS non agganciabile: " + ex.Message);
+                Console.Error.WriteLine("SOLIDWORKS cannot be attached to: " + ex.Message);
                 return 2;
             }
 
@@ -54,7 +54,7 @@ namespace Checks.ViewTest
                 string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { Console.Error.WriteLine("parte non creata"); return 2; }
+                if (doc == null) { Console.Error.WriteLine("part not created"); return 2; }
 
                 // A PART IS NEEDED. On an empty document `ViewZoomtofit2` has
                 // nothing to frame, and half a check would prove nothing.
@@ -65,19 +65,19 @@ namespace Checks.ViewTest
                 doc.GraphicsRedraw2();
 
                 var view = doc.ActiveView as IModelView;
-                if (view == null) { Console.Error.WriteLine("nessuna vista attiva"); return 2; }
+                if (view == null) { Console.Error.WriteLine("no active view"); return 2; }
 
                 Console.WriteLine();
-                Console.WriteLine("=== come si rimette a posto la vista ===");
+                Console.WriteLine("=== how to put the view back ===");
                 Console.WriteLine();
 
                 // ── does it make sense to compare? ───────────────────────
                 double[] a = Numbers(view);
                 Turn(doc, swStandardViews_e.swFrontView);
                 double[] b = Numbers(view);
-                Check("ShowNamedView2 cambia davvero i sedici numeri",
+                Check("ShowNamedView2 really changes the sixteen numbers",
                       a != null && !Equal(a, b),
-                      a == null ? "non leggibili" : "");
+                      a == null ? "not readable" : "");
 
                 // ── 1. riassegnare Transform ─────────────────────────────
                 Test(doc, view, "riassegnare Transform", restore =>
@@ -87,7 +87,7 @@ namespace Checks.ViewTest
                 });
 
                 // ── 2. Transform COPIED (IInverse twice) ─────────────────
-                Test(doc, view, "Transform copiato con IInverse x2", restore =>
+                Test(doc, view, "Transform copied with IInverse x2", restore =>
                 {
                     var alive = view.Transform as IMathTransform;
                     var rov = alive == null ? null : alive.IInverse() as IMathTransform;
@@ -102,7 +102,7 @@ namespace Checks.ViewTest
                 });
 
                 // ── 4. the triplet, by reference ─────────────────────────
-                Test(doc, view, "terna Orientation3/Translation3/Scale2 (riferimento)", restore =>
+                Test(doc, view, "triplet Orientation3/Translation3/Scale2 (reference)", restore =>
                 {
                     var o = view.Orientation3;
                     var t = view.Translation3;
@@ -116,7 +116,7 @@ namespace Checks.ViewTest
                 });
 
                 // ── 5. the triplet, COPIED ───────────────────────────────
-                Test(doc, view, "terna COPIATA (IInverse x2 + IScale 1.0)", restore =>
+                Test(doc, view, "COPIED triplet (IInverse x2 + IScale 1.0)", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
@@ -137,7 +137,7 @@ namespace Checks.ViewTest
                 // the writes would go to something disconnected while the
                 // reads would keep working. `ActiveView` is re-read
                 // before writing and we look at whether anything changes.
-                Test(doc, view, "terna copiata, su ActiveView riletta", restore =>
+                Test(doc, view, "triplet copied, re-read on ActiveView", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
@@ -162,7 +162,7 @@ namespace Checks.ViewTest
                 // that is the translation, by 4.77. Putting the scale
                 // last puts back a translation that holds for the scale
                 // of before. Here the opposite order is tried.
-                Test(doc, view, "terna copiata, in ordine O -> S -> T", restore =>
+                Test(doc, view, "triplet copied, in order O -> S -> T", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
@@ -182,7 +182,7 @@ namespace Checks.ViewTest
                 // If every write carries along a recalculation of the others,
                 // a second round on the same values converges. If it does not
                 // converge, it is not an ordering problem.
-                Test(doc, view, "terna copiata, applicata due volte", restore =>
+                Test(doc, view, "triplet copied, applied twice", restore =>
                 {
                     var o = view.Orientation3 as IMathTransform;
                     var rov = o == null ? null : o.IInverse() as IMathTransform;
@@ -206,7 +206,7 @@ namespace Checks.ViewTest
                 // that reason it is not a solution: the orientation of whoever works
                 // almost never has a name. But if it is the only one that comes back, it says that the
                 // problem lies in the writes and not in the reads.
-                Test(doc, view, "ShowNamedView2 sulla vista di partenza", restore =>
+                Test(doc, view, "ShowNamedView2 on the starting view", restore =>
                 {
                     restore(() =>
                     {
@@ -221,13 +221,13 @@ namespace Checks.ViewTest
 
                 Console.WriteLine();
                 Console.WriteLine(_failed == 0
-                    ? "Tutte le strade funzionano."
-                    : _failed + " strade su 9 non rimettono la vista.");
+                    ? "All the ways work."
+                    : _failed + " ways out of 9 do not put the view back.");
                 return 0;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("la prova si e' rotta: " + ex.GetType().Name +
+                Console.Error.WriteLine("the check broke: " + ex.GetType().Name +
                                         ": " + ex.Message);
                 return 2;
             }
@@ -267,7 +267,7 @@ namespace Checks.ViewTest
 
             double[] final = Numbers(view);
             Check(itemName, Equal(start, final),
-                  start == null ? "numeri non leggibili" : Deviation(start, final));
+                  start == null ? "numbers not readable" : Deviation(start, final));
         }
 
         private static void Turn(IModelDoc2 doc, swStandardViews_e which)
@@ -307,7 +307,7 @@ namespace Checks.ViewTest
                 if (d > worse) { worse = d; location = i; }
             }
             if (worse <= 1e-9) return "";
-            return "scarto massimo " + worse.ToString("0.####") + " sul numero " + location;
+            return "maximum deviation " + worse.ToString("0.####") + " on number " + location;
         }
 
         private static void Check(string itemName, bool ok, string detail)

@@ -38,7 +38,7 @@ internal static class Program
     {
         bool keep = Array.IndexOf(args, "--keep") >= 0;
         try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
         Console.WriteLine("PROBE IsBossFeature — SOLIDWORKS " + _sw.RevisionNumber());
         string tpl = _sw.GetUserPreferenceStringValue((int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
         var doc = _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
@@ -47,19 +47,19 @@ internal static class Program
         {
             var sm = doc.SketchManager;
             // base plate
-            if (!SelectBasePlane(doc, 2)) { Console.WriteLine("piano superiore non selezionato"); return 4; }
+            if (!SelectBasePlane(doc, 2)) { Console.WriteLine("top plane not selected"); return 4; }
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0, 0, 0, 0.060, 0.040, 0);
             var basePlate = Extrude(doc, 0.010);
             Console.WriteLine("base: " + (basePlate == null ? "null" : basePlate.Name) + ", volume " + Fmt(Volume(doc)));
             // second boss on the same plane
-            if (!SelectBasePlane(doc, 2)) { Console.WriteLine("piano superiore non selezionato (2)"); return 4; }
+            if (!SelectBasePlane(doc, 2)) { Console.WriteLine("top plane not selected (2)"); return 4; }
             sm.InsertSketch(true);
             sm.CreateCenterRectangle(0.030, 0, 0, 0.040, 0.010, 0);
             var boss = Extrude(doc, 0.020);
             Console.WriteLine("rialzo: " + (boss == null ? "null" : boss.Name) + ", volume " + Fmt(Volume(doc)));
             // cut through all, both directions
-            if (!SelectBasePlane(doc, 2)) { Console.WriteLine("piano superiore non selezionato (3)"); return 4; }
+            if (!SelectBasePlane(doc, 2)) { Console.WriteLine("top plane not selected (3)"); return 4; }
             sm.InsertSketch(true);
             sm.CreateCircleByRadius(-0.030, 0, 0, 0.004);
             sm.InsertSketch(true);
@@ -91,7 +91,7 @@ internal static class Program
                 }
                 catch (Exception ex) { b1 = "ALZA " + ex.Message; }
                 Console.WriteLine("  «" + f.Name + "» GetTypeName2=" + t2 + " GetTypeName=" + t1 +
-                                  " IsBossFeature=" + b0 + " | dopo AccessSelections=" + b1);
+                                  " IsBossFeature=" + b0 + " | after AccessSelections=" + b1);
             }
         }
         finally

@@ -41,9 +41,9 @@ if ($env:SW_INSTALL_PATH) {
 
 $dll = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $dll) {
-    Write-Output "non trovo SolidWorks.Interop.swconst.dll. Cercato in:"
+    Write-Output "cannot find SolidWorks.Interop.swconst.dll. Looked in:"
     $candidates | ForEach-Object { Write-Output ("  " + $_) }
-    Write-Output "Indicala con la variabile d'ambiente SW_INSTALL_PATH."
+    Write-Output "Point to it with the environment variable SW_INSTALL_PATH."
     exit 2
 }
 
@@ -74,8 +74,8 @@ foreach ($t in $asm.GetTypes()) {
 
 $dangerous = $lines | Where-Object { $_.Valore -ne 0 } | Sort-Object Enum
 
-Write-Output ("enum di errore o stato guardati: " + ($lines | Select-Object -ExpandProperty Enum -Unique).Count)
-Write-Output ("di cui con 'niente errore' DIVERSO da zero: " + $dangerous.Count)
+Write-Output ("error or status enums looked at: " + ($lines | Select-Object -ExpandProperty Enum -Unique).Count)
+Write-Output ("of which with 'no error' DIFFERENT from zero: " + $dangerous.Count)
 Write-Output ""
 
 if ($All) {
@@ -84,5 +84,5 @@ if ($All) {
     $dangerous | Format-Table -AutoSize | Out-String -Width 120 | Write-Output
 }
 
-Write-Output "Su questi, `if (errore != 0)` e' ROVESCIATO."
-Write-Output "Si confronta col membro che ha il nome, mai con una cifra."
+Write-Output "On these, if (error != 0) is REVERSED."
+Write-Output "Compare with the member that has the name, never with a number."

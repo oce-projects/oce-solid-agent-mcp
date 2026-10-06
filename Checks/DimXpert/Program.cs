@@ -39,14 +39,14 @@ internal static class Program
     {
         bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         Console.WriteLine();
-        Console.WriteLine("DIMXPERT — dal nucleo, senza add-in? (voce Z-H3)");
-        Console.WriteLine("  piastra 100 x 60 x 10 con un foro passante da 20");
+        Console.WriteLine("DIMXPERT — from the core, without the add-in? (entry Z-H3)");
+        Console.WriteLine("  plate 100 x 60 x 10 with a 20 through hole");
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
+        Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
         IModelDoc2 doc = null;
         try
@@ -58,7 +58,7 @@ internal static class Program
 
             doc.ClearSelection2(true);
             if (!SelectBasePlane(doc, 2))
-            { Console.WriteLine("  non trovo «Piano superiore»"); return 4; }
+            { Console.WriteLine("  cannot find «Piano superiore»"); return 4; }
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateCornerRectangle(0, 0, 0, 0.100, 0.060, 0);
             doc.SketchManager.CreateCircleByRadius(0.050, 0.030, 0, 0.010);
@@ -67,27 +67,27 @@ internal static class Program
                 true, false, false, 0, 0, 0.010, 0.0,
                 false, false, false, false, 0, 0, false, false, false, false,
                 true, true, true, 0, 0, false);
-            if (f == null) { Console.WriteLine("  l'estrusione non e' venuta"); return 4; }
+            if (f == null) { Console.WriteLine("  the extrusion did not come out"); return 4; }
             double vol = doc.Extension.CreateMassProperty().Volume * 1e9;
             double expected = 100 * 60 * 10 - Math.PI * 10 * 10 * 10;
-            Says("piastra col foro: volume " + vol.ToString("0.0") + " mm^3 (atteso " + expected.ToString("0.0") + ")");
+            Says("plate with hole: volume " + vol.ToString("0.0") + " mm^3 (expected " + expected.ToString("0.0") + ")");
 
             // ── THE DIMXPERT MANAGER, FROM THE CORE ──────────────────────
             string config = doc.ConfigurationManager.ActiveConfiguration.Name;
             var handler = doc.Extension.get_DimXpertManager(config, true) as IDimXpertManager;
             if (handler == null)
             {
-                Console.WriteLine("  get_DimXpertManager -> null: dal nucleo NON si arriva.");
+                Console.WriteLine("  get_DimXpertManager -> null: it CANNOT be reached from the core.");
                 return 5;
             }
-            Says("DimXpertManager dal nucleo: schema «" + handler.SchemaName + "»");
+            Says("DimXpertManager from the core: schema «" + handler.SchemaName + "»");
 
             var partDoc = handler.DimXpertPart as IDimXpertPart;
             if (partDoc == null) { Console.WriteLine("  DimXpertPart -> null"); return 5; }
 
             int annBefore = partDoc.GetAnnotationCount();
             int loadBefore = partDoc.GetFeatureCount();
-            Says("prima dello schema: " + loadBefore + " caratteristiche, " + annBefore + " annotazioni");
+            Says("before the schema: " + loadBefore + " features, " + annBefore + " annotations");
 
             // MEASURED on the evening of 24/9: with the default options and nothing
             // selected, `AutoDimensionScheme` answers False and does nothing.
@@ -134,7 +134,7 @@ internal static class Program
                     var c = o as IDimXpertFeature;
                     if (c == null) continue;
                     string typ = c.Type.ToString();
-                    Console.WriteLine("      caratteristica «" + c.Name + "»: " + typ);
+                    Console.WriteLine("      feature «" + c.Name + "»: " + typ);
                     if (typ.IndexOf("Hole", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         typ.IndexOf("Cylinder", StringComparison.OrdinalIgnoreCase) >= 0) aHole = true;
                 }
@@ -148,36 +148,36 @@ internal static class Program
                 {
                     var a = o as IDimXpertAnnotation;
                     if (a == null) continue;
-                    Console.WriteLine("      annotazione «" + a.Name + "»: " + a.Type);
+                    Console.WriteLine("      annotation «" + a.Name + "»: " + a.Type);
                     int ap = a.Name.LastIndexOf('('), ch = a.Name.LastIndexOf(')');
                     double v;
                     if (ap > 0 && ch > ap && double.TryParse(a.Name.Substring(ap + 1, ch - ap - 1),
                             System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out v))
                         expectedValues.RemoveAll(x => Math.Abs(x - v) < 1e-6);
                 }
-            Console.WriteLine("      valori attesi non trovati: " + (expectedValues.Count == 0 ? "nessuno" : string.Join(", ", expectedValues)));
+            Console.WriteLine("      expected values not found: " + (expectedValues.Count == 0 ? "none" : string.Join(", ", expectedValues)));
 
             Console.WriteLine();
             if (expectedValues.Count > 0)
             {
-                Console.WriteLine("LO SCHEMA HA QUOTATO, MA NON TUTTO: mancano " + string.Join(", ", expectedValues) + ".");
+                Console.WriteLine("THE SCHEMA DIMENSIONED, BUT NOT EVERYTHING: missing " + string.Join(", ", expectedValues) + ".");
                 return 8;
             }
             if (annAfter <= annBefore)
             {
-                Console.WriteLine("LO SCHEMA NON HA AGGIUNTO NIENTE: " + annBefore + " -> " + annAfter +
-                                  " annotazioni. DimXpert dal nucleo risponde ma non quota.");
+                Console.WriteLine("THE SCHEMA ADDED NOTHING: " + annBefore + " -> " + annAfter +
+                                  " annotations. DimXpert from the core responds but does not dimension.");
                 return 6;
             }
             if (!aHole)
             {
-                Console.WriteLine("Lo schema ha aggiunto annotazioni ma fra le caratteristiche non c'e' il foro:");
-                Console.WriteLine("si e' quotato qualcosa, non si sa cosa.");
+                Console.WriteLine("The schema added annotations but the hole is not among the features:");
+                Console.WriteLine("something was dimensioned, we do not know what.");
                 return 7;
             }
-            Console.WriteLine("REGGE: dal nucleo, senza add-in, uno schema DimXpert riconosce il foro e aggiunge");
-            Console.WriteLine(annAfter + " annotazioni dove prima ce n'erano " + annBefore + ", coi valori giusti — e");
-            Console.WriteLine("AutoDimensionScheme ha risposto " + done + ". Z-H3 non aspetta nessuna spunta.");
+            Console.WriteLine("HOLDS: from the core, without the add-in, a DimXpert schema recognizes the hole and adds");
+            Console.WriteLine(annAfter + " annotations where before there were " + annBefore + ", with the right values — and");
+            Console.WriteLine("AutoDimensionScheme answered " + done + ". Z-H3 does not wait for any checkbox.");
             return 0;
         }
         catch (Exception ex)
@@ -191,7 +191,7 @@ internal static class Program
         {
             if (doc != null && !keep)
             {
-                try { sw.CloseDoc(doc.GetTitle()); Says("pezzo chiuso senza salvare"); } catch { }
+                try { sw.CloseDoc(doc.GetTitle()); Says("part closed without saving"); } catch { }
             }
         }
     }

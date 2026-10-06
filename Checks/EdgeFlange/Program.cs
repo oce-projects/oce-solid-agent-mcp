@@ -42,11 +42,11 @@ internal static class Program
         foreach (var arg in arguments)
             if (arg.StartsWith("--alta=")) high = double.Parse(arg.Substring(7), System.Globalization.CultureInfo.InvariantCulture) / 1000.0;
         Console.WriteLine();
-        Console.WriteLine("FLANGIA A SPIGOLO — prima di scriverla (voce GP18)");
+        Console.WriteLine("EDGE FLANGE — before writing it (entry GP18)");
         Console.WriteLine();
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
 
         IModelDoc2 doc = null;
         try
@@ -68,7 +68,7 @@ internal static class Program
                 (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0, 0, 0.5, true, false, false, false);
             doc.EditRebuild3();
             double s0 = FlatPattern(doc);
-            Says("flangia base: " + (base0 != null) + ", sviluppo " + s0.ToString("0.###") + " mm (atteso 80,712)");
+            Says("base flange: " + (base0 != null) + ", flat pattern " + s0.ToString("0.###") + " mm (expected 80,712)");
 
             // The edge at the end of the 50 side: the L goes from x -2 to 50, the
             // outer edge at the end sits at x = 50, along Z, on the face
@@ -86,8 +86,8 @@ internal static class Program
                     Math.Abs(a[1]) < 1e-6 && Math.Abs(b[1]) < 1e-6 && Math.Abs(Math.Abs(b[2] - a[2]) - 0.040) < 1e-6)
                 { chosen = e; break; }
             }
-            if (chosen == null) { Console.WriteLine("  non trovo lo spigolo in fondo al lato da 50"); return 4; }
-            Says("spigolo trovato: x 50, y 0, lungo Z per 40");
+            if (chosen == null) { Console.WriteLine("  cannot find the edge at the end of the 50 side"); return 4; }
+            Says("edge found: x 50, y 0, along Z for 40");
 
             // THREE ATTEMPTS, because the first run gave null with the sketches
             // null and does not say why.
@@ -124,13 +124,13 @@ internal static class Program
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
                 }
                 catch (Exception ex) { Console.WriteLine("      tentativo " + t + " alza: " + ex.Message); }
-                Console.WriteLine("      tentativo " + t + " (" + (t == 1 ? "niente selezionato, schizzi null"
-                    : t == 2 ? "spigolo selezionato, schizzi null" : t == 3 ? "spigolo selezionato, schizzi [null]"
-                    : t == 4 ? "InsertSheetMetalEdgeFlange, la vecchia"
-                    : t == 5 ? "spigolo selezionato, schizzi null, LUNGA 20"
-                    : t == 6 ? "spigolo selezionato, schizzi [null], LUNGA 20"
-                    : t == 7 ? "Edge[], schizzi null, LUNGA 20"
-                    : "Edge[], Feature[]{null}, LUNGA 20") + "): " + (flange == null ? "null" : flange.Name));
+                Console.WriteLine("      attempt " + t + " (" + (t == 1 ? "nothing selected, sketches null"
+                    : t == 2 ? "edge selected, sketches null" : t == 3 ? "edge selected, sketches [null]"
+                    : t == 4 ? "InsertSheetMetalEdgeFlange, the old one"
+                    : t == 5 ? "edge selected, sketches null, LONG 20"
+                    : t == 6 ? "edge selected, sketches [null], LONG 20"
+                    : t == 7 ? "Edge[], sketches null, LONG 20"
+                    : "Edge[], Feature[]{null}, LONG 20") + "): " + (flange == null ? "null" : flange.Name));
             }
             // ATTEMPT 9: the PROFILE SKETCH, as the TODO says. A plane
             // perpendicular to the edge at its start vertex (marks 0 and
@@ -149,8 +149,8 @@ internal static class Program
                 var plane = doc.FeatureManager.InsertRefPlane(
                     (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Perpendicular, 0,
                     (int)swRefPlaneReferenceConstraints_e.swRefPlaneReferenceConstraint_Coincident, 0, 0, 0) as IFeature;
-                Console.WriteLine("      tentativo 9: selezione " + sel0 + "/" + sel1 + ", piano " + (plane == null ? "NON NATO" : plane.Name) +
-                                  ", vertice " + (p0 == null ? "?" : string.Join(" ", Array.ConvertAll(p0, x => (x * 1000).ToString("0.#")))));
+                Console.WriteLine("      attempt 9: selection " + sel0 + "/" + sel1 + ", plane " + (plane == null ? "NOT CREATED" : plane.Name) +
+                                  ", vertex " + (p0 == null ? "?" : string.Join(" ", Array.ConvertAll(p0, x => (x * 1000).ToString("0.#")))));
                 if (plane != null && p0 != null)
                 {
                     doc.ClearSelection2(true);
@@ -170,7 +170,7 @@ internal static class Program
                     IFeature sketch = null;
                     var fs = doc.FirstFeature() as IFeature;
                     while (fs != null) { if (fs.GetTypeName2() == "ProfileFeature") sketch = fs; fs = fs.GetNextFeature() as IFeature; }
-                    Console.WriteLine("      tentativo 9: linea " + (line != null) + ", schizzo " + (sketch == null ? "?" : sketch.Name));
+                    Console.WriteLine("      attempt 9: line " + (line != null) + ", sketch " + (sketch == null ? "?" : sketch.Name));
                     doc.ClearSelection2(true);
                     (chosen as IEntity).Select4(false, null);
                     try
@@ -181,8 +181,8 @@ internal static class Program
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
                     }
-                    catch (Exception ex) { Console.WriteLine("      tentativo 9 alza: " + ex.Message); }
-                    Console.WriteLine("      tentativo 9 (Edge[], Feature[]{schizzo di profilo}, LUNGA 20): " + (flange == null ? "null" : flange.Name));
+                    catch (Exception ex) { Console.WriteLine("      attempt 9 raises: " + ex.Message); }
+                    Console.WriteLine("      attempt 9 (Edge[], Feature[]{schizzo di profilo}, LONG 20): " + (flange == null ? "null" : flange.Name));
                 }
             }
 
@@ -199,7 +199,7 @@ internal static class Program
                 bool face = doc.Extension.SelectByID2("", "FACE", 0.050, -0.001, 0.020, false, 0, null, 0);
                 doc.SketchManager.InsertSketch(true);
                 var sk = doc.SketchManager.ActiveSketch as ISketch;
-                Console.WriteLine("      tentativo 10: faccia di testa " + face + ", schizzo " + (sk != null));
+                Console.WriteLine("      attempt 10: end face " + face + ", sketch " + (sk != null));
                 if (sk != null)
                 {
                     var mu = (IMathUtility)sw.GetMathUtility();
@@ -215,8 +215,8 @@ internal static class Program
                     IFeature sketch = null;
                     var fs = doc.FirstFeature() as IFeature;
                     while (fs != null) { if (fs.GetTypeName2() == "ProfileFeature") sketch = fs; fs = fs.GetNextFeature() as IFeature; }
-                    Console.WriteLine("      tentativo 10: rettangolo " + (rect == null ? "null" : rect.Length + " linee") +
-                                      ", schizzo " + (sketch == null ? "?" : sketch.Name));
+                    Console.WriteLine("      attempt 10: rectangle " + (rect == null ? "null" : rect.Length + " lines") +
+                                      ", sketch " + (sketch == null ? "?" : sketch.Name));
                     doc.ClearSelection2(true);
                     try
                     {
@@ -226,8 +226,8 @@ internal static class Program
                             (int)swSheetMetalReliefTypes_e.swSheetMetalReliefRectangular, 0.5, 0, 0,
                             (int)swFlangeDimTypes_e.swFlangeDimTypeOuterVirtualSharp, null) as IFeature;
                     }
-                    catch (Exception ex) { Console.WriteLine("      tentativo 10 alza: " + ex.Message); }
-                    Console.WriteLine("      tentativo 10 (rettangolo sulla testa): " + (flange == null ? "null" : flange.Name));
+                    catch (Exception ex) { Console.WriteLine("      attempt 10 raises: " + ex.Message); }
+                    Console.WriteLine("      attempt 10 (rectangle on the end): " + (flange == null ? "null" : flange.Name));
                 }
             }
 
@@ -251,12 +251,12 @@ internal static class Program
             var bodiesAfter = ((IPartDoc)doc).GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
             var mass = bodiesAfter == null ? null : (bodiesAfter[0] as IBody2).GetMassProperties(1) as double[];
             double volume = mass == null ? -1 : mass[3] * 1e9;
-            Console.WriteLine("      volume adesso " + volume.ToString("0.##") + " mm3 (la L sola: 80,712 x 2 x 40 = 6457)");
-            if (flange == null) { Console.WriteLine("  nessuno dei tentativi fa nascere la flangia"); return 5; }
+            Console.WriteLine("      volume now " + volume.ToString("0.##") + " mm3 (the L alone: 80,712 x 2 x 40 = 6457)");
+            if (flange == null) { Console.WriteLine("  none of the attempts brings the flange into being"); return 5; }
             var data = flange.GetDefinition() as IEdgeFlangeFeatureData;
             double s1 = FlatPattern(doc);
-            Says("flangia a spigolo nata: «" + flange.Name + "», lunghezza " + (data.OffsetDistance * 1000).ToString("0.###") +
-                 " mm, tipo quota " + data.OffsetDimType + ", sviluppo " + s1.ToString("0.###"));
+            Says("edge flange created: «" + flange.Name + "», length " + (data.OffsetDistance * 1000).ToString("0.###") +
+                 " mm, dimension type " + data.OffsetDimType + ", flat pattern " + s1.ToString("0.###"));
 
             data.AccessSelections(doc, null);
             data.OffsetDistance = 0.025;
@@ -264,8 +264,8 @@ internal static class Program
             doc.EditRebuild3();
             double s2 = FlatPattern(doc);
             var data2 = flange.GetDefinition() as IEdgeFlangeFeatureData;
-            Says("OffsetDistance -> 25: ModifyDefinition " + mod + ", riletta " + (data2.OffsetDistance * 1000).ToString("0.###") +
-                 " mm, sviluppo " + s2.ToString("0.###") + " (cresciuto di " + (s2 - s0).ToString("0.###") + ")");
+            Says("OffsetDistance -> 25: ModifyDefinition " + mod + ", read back " + (data2.OffsetDistance * 1000).ToString("0.###") +
+                 " mm, flat pattern " + s2.ToString("0.###") + " (grew by " + (s2 - s0).ToString("0.###") + ")");
 
             // THE COUNT, measured on 26/9/2026 (attempt 10). The length that the
             // flange declares (OffsetDistance, at the outer virtual sharp) is
@@ -277,9 +277,9 @@ internal static class Program
             double ba = Math.PI / 2 * (2 + 0.5 * 2);
             double lo = high * 1000 + 2;
             Console.WriteLine();
-            Console.WriteLine("  lunghezza attesa allo spigolo virtuale esterno: " + lo.ToString("0.###") + " mm (profilo + T)");
-            Console.WriteLine("  sviluppo atteso: +" + (lo - 2 - 2 + ba - 2 - 2).ToString("0.###") + " mm");
-            Console.WriteLine("  misurato:        +" + (s1 - s0).ToString("0.###") + " mm");
+            Console.WriteLine("  expected length at the outer virtual edge: " + lo.ToString("0.###") + " mm (profile + T)");
+            Console.WriteLine("  expected flat pattern: +" + (lo - 2 - 2 + ba - 2 - 2).ToString("0.###") + " mm");
+            Console.WriteLine("  measured:        +" + (s1 - s0).ToString("0.###") + " mm");
             return 0;
         }
         catch (Exception ex)

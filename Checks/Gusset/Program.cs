@@ -203,22 +203,22 @@ internal static class Program
         _keep = Array.IndexOf(arguments, "--tieni") >= 0;
 
         Console.WriteLine();
-        Console.WriteLine("PROBE FAZZOLETTO — voce GP20 (il fazzoletto di saldatura non nasce)");
-        Console.WriteLine("  T di due tubolari 80x80x5 (lunga 600 mm + corta 300 mm, tagliata)");
-        Console.WriteLine("  una T fresca per ciascuna variante, chiusa senza salvare a fine giro");
+        Console.WriteLine("PROBE GUSSET — entry GP20 (the weldment gusset is not created)");
+        Console.WriteLine("  T of two 80x80x5 tubes (long 600 mm + short 300 mm, trimmed)");
+        Console.WriteLine("  a fresh T for each variant, closed without saving at the end of the run");
         Console.WriteLine();
 
         string profilesFolder = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
         if (string.IsNullOrWhiteSpace(profilesFolder))
         {
-            Console.WriteLine("PROFILI_SALDATURA non e' impostata: non so dove sta " + ProfileFileName + ".");
-            Console.WriteLine("Impostala (la cartella coi .SLDLFP) e rilancia.");
+            Console.WriteLine("PROFILI_SALDATURA is not set: I do not know where to find " + ProfileFileName + ".");
+            Console.WriteLine("Set it (the folder with the .SLDLFP files) and run again.");
             return 2;
         }
         string profilePath = Path.Combine(profilesFolder, ProfileFileName);
         if (!File.Exists(profilePath))
         {
-            Console.WriteLine("Non trovo il profilo: " + profilePath);
+            Console.WriteLine("Cannot find the profile: " + profilePath);
             return 2;
         }
 
@@ -226,17 +226,17 @@ internal static class Program
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex)
         {
-            Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message);
-            Console.WriteLine("Aprilo e rilancia. (Se il banco sta girando, aspetta che finisca: usa gia' SOLIDWORKS.)");
+            Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message);
+            Console.WriteLine("Open it and run again. (If the bench is running, wait for it to finish: it already uses SOLIDWORKS.)");
             return 2;
         }
-        Console.WriteLine("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Console.WriteLine("attached to SOLIDWORKS " + sw.RevisionNumber());
 
         var varianti = new List<Ricetta>
         {
             new Ricetta
             {
-                Title = "0 — CONTROLLO: la ricetta esatta spedita nel ponte (WeldmentOperations.cs)",
+                Title = "0 — CONTROL: the exact recipe shipped in the bridge (WeldmentOperations.cs)",
                 Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -247,12 +247,12 @@ internal static class Program
                 Mark = 0,
                 FailureExpected = true,
                 WhyItFailsOrMaybe =
-                    "profilo degenere: BIsProfile=true (poligono) con D3=0 e D4=0 (BUseLenDim=true) e' un " +
-                    "poligono a lato zero — la stessa forma spedita nel ponte, mai cambiata in 16 varianti.",
+                    "degenerate profile: BIsProfile=true (polygon) with D3=0 and D4=0 (BUseLenDim=true) is a " +
+                    "polygon with zero side — the same shape shipped in the bridge, never changed in 16 variants.",
             },
             new Ricetta
             {
-                Title = "1 — RICETTA DELLA GUIDA (Insert_Gusset_Feature_Example_CSharp.htm): triangolo, marca 1/1",
+                Title = "1 — RECIPE FROM THE GUIDE (Insert_Gusset_Feature_Example_CSharp.htm): triangle, mark 1/1",
                 Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -263,12 +263,12 @@ internal static class Program
                 Mark = 1,
                 FailureExpected = false,
                 WhyItFailsOrMaybe =
-                    "ricetta letta parola per parola dalla pagina d'esempio (stessi valori, lati 60 mm invece di " +
-                    "25/25 mm per pesare quanto la voce GP20 chiede: 60x60/2x5 = 9000 mm3 a lati pieni).",
+                    "recipe read word for word from the example page (same values, 60 mm sides instead of " +
+                    "25/25 mm to weigh as much as entry GP20 asks: 60x60/2x5 = 9000 mm3 with full sides).",
             },
             new Ricetta
             {
-                Title = "2 — IPOTESI 'basta un profilo non degenere': poligono con D3/D4 reali",
+                Title = "2 — HYPOTHESIS 'a non-degenerate profile is enough': polygon with real D3/D4",
                 Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -279,12 +279,12 @@ internal static class Program
                 Mark = 1,
                 FailureExpected = false,
                 WhyItFailsOrMaybe =
-                    "stessa forma POLIGONALE che il ponte intendeva (BIsProfile=true), ma con D3 e D4 " +
-                    "diversi da zero: isola 'il profilo era degenere' da 'serviva il triangolo'.",
+                    "the same POLYGONAL shape the bridge intended (BIsProfile=true), but with D3 and D4 " +
+                    "different from zero: it isolates 'the profile was degenerate' from 'the triangle was needed'.",
             },
             new Ricetta
             {
-                Title = "3 — IPOTESI 'bastava la marca': ricetta del ponte (profilo degenere incluso) con marca 1/1",
+                Title = "3 — HYPOTHESIS 'the mark was enough': the bridge's recipe (degenerate profile included) with mark 1/1",
                 Call = "InsertGussetFeature3",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -295,13 +295,13 @@ internal static class Program
                 Mark = 1,
                 FailureExpected = false,
                 WhyItFailsOrMaybe =
-                    "identica alla variante 0, sola differenza la marca 1 su entrambe le facce invece di " +
-                    "nessuna: se fallisce come la 0, la marca da sola non e' la causa (il TODO gia' la dava " +
-                    "provata, ma non necessariamente con QUESTI stessi parametri messi insieme).",
+                    "identical to variant 0, the only difference being mark 1 on both faces instead of " +
+                    "none: if it fails like 0, the mark alone is not the cause (the TODO already gave it " +
+                    "as proven, but not necessarily with THESE same parameters put together).",
             },
             new Ricetta
             {
-                Title = "4 — IPOTESI 'e' l'array, non la selezione': stessa ricetta della 1, via InsertGussetFeature2",
+                Title = "4 — HYPOTHESIS 'it is the array, not the selection': same recipe as 1, via InsertGussetFeature2",
                 Call = "InsertGussetFeature2",
                 Depth = 0.005,
                 DirType = (short)swGussetThicknessType_e.swGussetThicknessBothSides,
@@ -312,8 +312,8 @@ internal static class Program
                 Mark = 0,
                 FailureExpected = false,
                 WhyItFailsOrMaybe =
-                    "stessi parametri della variante 1 ma le facce passate come Face2[] esplicito, senza " +
-                    "nessuna selezione/marca: la pagina di InsertGussetFeature2 non la richiede.",
+                    "same parameters as variant 1 but the faces passed as an explicit Face2[], with " +
+                    "no selection/mark: the InsertGussetFeature2 page does not require it.",
             },
         };
 
@@ -332,9 +332,9 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("══════════════════════════════════════════════════════════════════");
         if (failedInExpectations == 0)
-            Console.WriteLine("Tutte le varianti si sono comportate come previsto (compreso il controllo).");
+            Console.WriteLine("All variants behaved as expected (the control included).");
         else
-            Console.WriteLine(failedInExpectations + " variante/i non si sono comportate come previsto: guarda sopra.");
+            Console.WriteLine(failedInExpectations + " variants did not behave as expected: look above.");
         return failedInExpectations == 0 ? 0 : 1;
     }
 
@@ -365,10 +365,10 @@ internal static class Program
 
             IBody2 longBody, shortBody;
             if (!ClassifyBodies(doc, out longBody, out shortBody)) return false;
-            Says("due corpi, classificati lungo/corto per ingombro in X");
+            Says("two bodies, classified long/short by bounding box in X");
 
             if (!Cut(doc, shortBody, longBody)) return false;
-            Says("corta tagliata dalla lunga (InsertWeldmentTrimFeature2, EndCond=Trim)");
+            Says("the short one trimmed by the long one (InsertWeldmentTrimFeature2, EndCond=Trim)");
 
             // After the trim the references to the bodies stay valid (same Body2),
             // but I fish them out again anyway: more faithful to "what the bridge would do".
@@ -377,12 +377,12 @@ internal static class Program
             IFace2 tallLongFace, shortSideFace;
             if (!FindTwoFaces(longBody, shortBody, out tallLongFace, out shortSideFace))
             {
-                Console.WriteLine("    NON TROVO le due facce attese (alta della lunga / laterale della corta).");
-                Console.WriteLine("    La T di prova non e' venuta come previsto: nessun verdetto sul fazzoletto qui.");
+                Console.WriteLine("    CANNOT FIND the two expected faces (top of the long one / side of the short one).");
+                Console.WriteLine("    The test T did not come out as expected: no verdict on the gusset here.");
                 return false;
             }
-            Says("trovate le due facce: alta della lunga (" + FormattaArea(tallLongFace) +
-                 ") e laterale della corta (" + FormattaArea(shortSideFace) + ")");
+            Says("found the two faces: top of the long one (" + FormattaArea(tallLongFace) +
+                 ") and side of the short one (" + FormattaArea(shortSideFace) + ")");
 
             double? volumeBefore = VolumeMm3(doc);
             int bodiesBefore = CountBodies(doc);
@@ -407,8 +407,8 @@ internal static class Program
                 else
                 {
                     doc.ClearSelection2(true);
-                    if (!SelectFace(doc, tallLongFace, r.Mark)) { callError = "selezione della faccia alta non riuscita"; }
-                    else if (!SelectFace(doc, shortSideFace, r.Mark)) { callError = "selezione della faccia laterale non riuscita"; }
+                    if (!SelectFace(doc, tallLongFace, r.Mark)) { callError = "selection of the top face failed"; }
+                    else if (!SelectFace(doc, shortSideFace, r.Mark)) { callError = "selection of the side face failed"; }
                     else
                     {
                         feature = doc.FeatureManager.InsertGussetFeature3(
@@ -436,26 +436,26 @@ internal static class Program
             double? delta = (volumeBefore.HasValue && volumeAfter.HasValue) ? volumeAfter.Value - volumeBefore.Value : (double?)null;
 
             Console.WriteLine();
-            Console.WriteLine("    RISULTATO — " + r.Call + (r.Call == "InsertGussetFeature3" ? " (marca " + r.Mark + ")" : " (Face2[])"));
-            Console.WriteLine("      feature creata:  " + (born ? "SI'" : "NO") + (callError != null ? "   [eccezione: " + callError + "]" : ""));
-            Console.WriteLine("      tipo feature:    " + typ);
+            Console.WriteLine("    RESULT — " + r.Call + (r.Call == "InsertGussetFeature3" ? " (mark " + r.Mark + ")" : " (Face2[])"));
+            Console.WriteLine("      feature created:  " + (born ? "YES" : "NO") + (callError != null ? "   [exception: " + callError + "]" : ""));
+            Console.WriteLine("      feature type:    " + typ);
             Console.WriteLine("      corpi:           " + bodiesBefore + " -> " + bodiesAfter);
-            Console.WriteLine("      feature albero:  " + featureBefore + " -> " + featureAfter);
+            Console.WriteLine("      tree features:   " + featureBefore + " -> " + featureAfter);
             Console.WriteLine("      volume mm3:      " +
                 (volumeBefore.HasValue ? volumeBefore.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") + " -> " +
                 (volumeAfter.HasValue ? volumeAfter.Value.ToString("0.##", CultureInfo.InvariantCulture) : "?") +
                 (delta.HasValue ? "   (delta " + delta.Value.ToString("+0.##;-0.##", CultureInfo.InvariantCulture) + ")" : ""));
             if (born && delta.HasValue)
-                Console.WriteLine("      attesa GP20:     ~9000 mm3 (60x60/2 x 5, meno lo smusso se c'e')");
+                Console.WriteLine("      expected GP20:     ~9000 mm3 (60x60/2 x 5, minus the chamfer if there is one)");
 
             bool asExpected = r.FailureExpected ? !born : born;
-            Console.WriteLine("      VERDETTO:        " + (asExpected ? "come previsto" : "DIVERSO DAL PREVISTO — guarda qui sopra"));
+            Console.WriteLine("      VERDETTO:        " + (asExpected ? "come previsto" : "DIFFERENT FROM EXPECTED — look above"));
 
             return asExpected;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("    ERRORE non gestito in questa variante: " + ex.Message);
+            Console.WriteLine("    unhandled ERROR in this variant: " + ex.Message);
             return false;
         }
         finally
@@ -497,7 +497,7 @@ internal static class Program
             (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
         if (string.IsNullOrWhiteSpace(model) || !File.Exists(model))
         {
-            Console.WriteLine("    non c'e' un modello di parte predefinito.");
+            Console.WriteLine("    there is no default part template.");
             return null;
         }
         var doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
@@ -505,16 +505,16 @@ internal static class Program
 
         if (!AddMember(doc, profilePath, 0, 0, 0, LongX1, 0, 0))
         {
-            Console.WriteLine("    la barra lunga non e' nata.");
+            Console.WriteLine("    the long bar was not created.");
             return null;
         }
         if (!AddMember(doc, profilePath, CortaX, 0, CortaZ0, CortaX, 0, CortaZ1))
         {
-            Console.WriteLine("    la barra corta non e' nata.");
+            Console.WriteLine("    the short bar was not created.");
             return null;
         }
         doc.ViewZoomtofit2();
-        Says("T fresca: lunga 600 mm (X) + corta 300 mm (Z), profilo " + Configuration);
+        Says("fresh T: long 600 mm (X) + short 300 mm (Z), profile " + Configuration);
         return doc;
     }
 
@@ -568,7 +568,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("    il taglio non e' riuscito: " + ex.Message);
+            Console.WriteLine("    the trim did not succeed: " + ex.Message);
             return false;
         }
     }
@@ -581,7 +581,7 @@ internal static class Program
         var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
         if (bodies == null || bodies.Length != 2)
         {
-            Console.WriteLine("    mi aspettavo 2 corpi solidi, ne trovo " + (bodies == null ? 0 : bodies.Length) + ".");
+            Console.WriteLine("    I expected 2 solid bodies, I find " + (bodies == null ? 0 : bodies.Length) + ".");
             return false;
         }
         var a = bodies[0] as IBody2;
@@ -590,7 +590,7 @@ internal static class Program
         var boxB = b.GetBodyBox() as double[];
         if (boxA == null || boxB == null || boxA.Length < 6 || boxB.Length < 6)
         {
-            Console.WriteLine("    non riesco a leggere l'ingombro di uno dei due corpi.");
+            Console.WriteLine("    cannot read the bounding box of one of the two bodies.");
             return false;
         }
         double extensionXA = boxA[3] - boxA[0];

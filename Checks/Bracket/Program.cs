@@ -78,21 +78,21 @@ internal static class Program
 
         double expected = ExpectedSigma();
         Console.WriteLine();
-        Console.WriteLine("MENSOLA — la misura che dimensiona la sezione S (voce S3)");
-        Console.WriteLine("  trave " + LengthMm + " x " + WidthMm + " x " + HeightMm +
-                          " mm, incastrata, " + ForceN + " N in punta");
-        Console.WriteLine("  sigma = M*c/I = " + expected.ToString("0.0") + " MPa   <- calcolata a mano");
+        Console.WriteLine("BRACKET — the measurement that sizes section S (entry S3)");
+        Console.WriteLine("  beam " + LengthMm + " x " + WidthMm + " x " + HeightMm +
+                          " mm, fixed at one end, " + ForceN + " N at the tip");
+        Console.WriteLine("  sigma = M*c/I = " + expected.ToString("0.0") + " MPa   <- computed by hand");
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex)
         {
-            Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message);
+            Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message);
             Console.WriteLine("Aprilo e rilancia.");
             return 2;
         }
-        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
         // ── THE ADD-IN, BEFORE ANYTHING ELSE ─────────────────────────────
         //
@@ -103,10 +103,10 @@ internal static class Program
         if (addin == null)
         {
             Console.WriteLine();
-            Console.WriteLine("SIMULATION NON E' CARICATO.");
-            Console.WriteLine("  Non vuol dire che non c'e': vuol dire che la sua casella nella");
-            Console.WriteLine("  finestra Strumenti > Aggiunte non e' spuntata in questa sessione.");
-            Console.WriteLine("  Spuntala (anche la colonna «Avvio», se lo vuoi sempre) e rilancia.");
+            Console.WriteLine("SIMULATION IS NOT LOADED.");
+            Console.WriteLine("  That does not mean it is not there: it means its checkbox in the");
+            Console.WriteLine("  Tools > Add-Ins window is not ticked in this session.");
+            Console.WriteLine("  Tick it (the «Start Up» column too, if you want it always) and run again.");
             return 3;
         }
         Says("Simulation caricato");
@@ -151,19 +151,19 @@ internal static class Program
             // to ask the part what it is wearing.
             var partDoc = doc as IPartDoc;
             string archive = ArchiveDin();
-            if (archive == null) { Console.WriteLine("  non trovo l'archivio DIN"); return 5; }
+            if (archive == null) { Console.WriteLine("  cannot find the DIN archive"); return 5; }
             partDoc.SetMaterialPropertyName2("", archive, MaterialName);
 
             string db2;
             string put = partDoc.GetMaterialPropertyName2("", out db2);
             if (string.IsNullOrEmpty(put))
             {
-                Console.WriteLine("  il materiale NON si e' attaccato: rileggendo trovo il vuoto.");
+                Console.WriteLine("  the material did NOT stick: reading it back I find nothing.");
                 Console.WriteLine("    archivio: " + archive);
                 Console.WriteLine("    nome:     " + MaterialName);
                 return 5;
             }
-            Says("materiale «" + put + "» (riletto, non assunto)");
+            Says("material «" + put + "» (read back, not assumed)");
 
             // ── THE REAL TYPES, NOT CALLS BY NAME ────────────────────────
             //
@@ -177,26 +177,26 @@ internal static class Program
             var callout = addin as CwAddincallback;
             if (callout == null)
             {
-                Console.WriteLine("  l'add-in non e' un CwAddincallback: " + addin.GetType().FullName);
+                Console.WriteLine("  the add-in is not a CwAddincallback: " + addin.GetType().FullName);
                 return 5;
             }
             CosmosWorks cw = callout.CosmosWorks;
-            if (cw == null) { Console.WriteLine("  .CosmosWorks e' null"); return 5; }
+            if (cw == null) { Console.WriteLine("  .CosmosWorks is null"); return 5; }
             CWModelDoc active = cw.ActiveDoc;
-            if (active == null) { Console.WriteLine("  .ActiveDoc e' null: Simulation non vede il pezzo"); return 5; }
+            if (active == null) { Console.WriteLine("  .ActiveDoc is null: Simulation does not see the part"); return 5; }
             CWStudyManager handler = active.StudyManager;
-            if (handler == null) { Console.WriteLine("  .StudyManager e' null"); return 5; }
-            Says("Simulation vede il documento");
+            if (handler == null) { Console.WriteLine("  .StudyManager is null"); return 5; }
+            Says("Simulation sees the document");
 
             // ── 1. LO STUDIO ─────────────────────────────────────────────
             int errStudio;
             CWStudy studio = handler.CreateNewStudy3("mensola-s3", StaticStudy, 0, out errStudio);
             if (studio == null)
             {
-                Console.WriteLine("  CreateNewStudy3 -> null, errore " + errStudio);
+                Console.WriteLine("  CreateNewStudy3 -> null, error " + errStudio);
                 return 5;
             }
-            Says("studio statico creato (errore " + errStudio + ")");
+            Says("static study created (error " + errStudio + ")");
 
             // ── 2. THE MATERIAL, WHICH LIVES ON THE BODY ─────────────────
             //
@@ -215,27 +215,27 @@ internal static class Program
             // which is the shape the whole SOLIDWORKS API uses for «a
             // set of entities».
             CWLoadsAndRestraintsManager loadsHandler = studio.LoadsAndRestraintsManager;
-            if (loadsHandler == null) { Console.WriteLine("  LoadsAndRestraintsManager e' null"); return 5; }
+            if (loadsHandler == null) { Console.WriteLine("  LoadsAndRestraintsManager is null"); return 5; }
 
             IFace2 fixedFace, loadFace;
             if (!TwoFacesAtTip(doc, out fixedFace, out loadFace)) return 4;
-            Says("trovate le due facce di testa");
+            Says("found the two end faces");
 
             int errV;
             CWRestraint constraint = loadsHandler.AddRestraint(
                 FixedGeometry, new object[] { fixedFace }, null, out errV);
-            Console.WriteLine("      AddRestraint -> " + (constraint == null ? "null" : "oggetto") +
-                              ", errore " + errV);
+            Console.WriteLine("      AddRestraint -> " + (constraint == null ? "null" : "object") +
+                              ", error " + errV);
             if (constraint == null)
             {
                 Console.WriteLine();
-                Console.WriteLine("  IL FORMATO DI DispArray NON E' UN object[] DI IFace2.");
-                Console.WriteLine("  E' l'incognita che questa sonda doveva togliere, e non l'ha tolta.");
-                Console.WriteLine("  Prossima ipotesi da provare: selezionare la faccia nel modello e");
-                Console.WriteLine("  passare null, oppure un array di Dispatch presi da SelectionMgr.");
+                Console.WriteLine("  THE FORMAT OF DispArray IS NOT AN object[] OF IFace2.");
+                Console.WriteLine("  It is the unknown this probe was meant to remove, and it did not remove it.");
+                Console.WriteLine("  Next idea to try: select the face in the model and");
+                Console.WriteLine("  pass null, or an array of Dispatch taken from SelectionMgr.");
                 return 6;
             }
-            Says("incastro applicato");
+            Says("fixed support applied");
 
             // The force: direction -Y, at the tip.
             // ── THE FORCE NEEDS A DIRECTION, THE FIXED SUPPORT DOES NOT ──
@@ -254,14 +254,14 @@ internal static class Program
             // *the worst way to be wrong, because it does not look like
             // an error.*
             object planeRef = ReferencePlane(doc, 2);
-            if (planeRef == null) { Console.WriteLine("  non trovo il piano di riferimento"); return 6; }
+            if (planeRef == null) { Console.WriteLine("  cannot find the reference plane"); return 6; }
 
             int errF;
             CWForce force = loadsHandler.AddForce(
                 ForceOrMoment, new object[] { loadFace }, planeRef, out errF);
-            Console.WriteLine("      AddForce -> " + (force == null ? "null" : "oggetto") +
-                              ", errore " + errF);
-            if (force == null) { Console.WriteLine("  AddForce non ha accettato nemmeno col piano."); return 6; }
+            Console.WriteLine("      AddForce -> " + (force == null ? "null" : "object") +
+                              ", error " + errF);
+            if (force == null) { Console.WriteLine("  AddForce did not accept it even with the plane."); return 6; }
 
             // THE VALUE IS SET AFTERWARDS, on the returned object: `AddForce` with
             // four arguments has no place to put it. Established by
@@ -272,10 +272,10 @@ internal static class Program
             //                    X      Y     Z        values
             force.SetForceComponentValues2(false, true, false, 0.0, ForceN, 0.0);
             int forceOutcome = force.ForceEndEdit();
-            Says("carico di " + ForceN + " N lungo Y (esito " + forceOutcome + ")");
+            Says("load of " + ForceN + " N along Y (outcome " + forceOutcome + ")");
             if (forceOutcome != 0)
             {
-                Console.WriteLine("  ForceEndEdit non e' tornato 0: il carico non e' stato accettato.");
+                Console.WriteLine("  ForceEndEdit did not return 0: the load was not accepted.");
                 return 6;
             }
 
@@ -300,7 +300,7 @@ internal static class Program
             double last = double.NaN;
 
             Console.WriteLine();
-            Console.WriteLine("  lato mesh    sigma max    scarto da " + expected.ToString("0.0") + " MPa");
+            Console.WriteLine("  mesh side    max sigma    deviation from " + expected.ToString("0.0") + " MPa");
             Console.WriteLine("  ---------    ---------    -------------------");
 
             foreach (double side in sides)
@@ -308,13 +308,13 @@ internal static class Program
                 int eMesh = studio.CreateMesh(Millimeters, side, side / 20.0);
                 if (eMesh != 0)
                 {
-                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    mesh fallita (esito " + eMesh + ")");
+                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    mesh failed (outcome " + eMesh + ")");
                     continue;
                 }
                 int runCode = studio.RunAnalysis();
                 if (runCode != 0)
                 {
-                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    giro fallito (esito " + runCode + ")");
+                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    run failed (outcome " + runCode + ")");
                     continue;
                 }
 
@@ -324,7 +324,7 @@ internal static class Program
                 double sigma = TrueMaximum(read);
                 if (double.IsNaN(sigma))
                 {
-                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    non si legge (errore " + errS + ")");
+                    Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    cannot be read (error " + errS + ")");
                     continue;
                 }
                 last = sigma;
@@ -338,27 +338,27 @@ internal static class Program
             if (double.IsNaN(last))
             {
                 Console.WriteLine();
-                Console.WriteLine("Nessuna mesh e' arrivata in fondo: non c'e' un numero da giudicare.");
+                Console.WriteLine("No mesh got to the end: there is no number to judge.");
                 return 7;
             }
 
             double deviation = Math.Abs(last - expected) / expected * 100.0;
             Console.WriteLine();
-            Console.WriteLine("  a mano:            " + expected.ToString("0.0") + " MPa");
-            Console.WriteLine("  l'API, mesh fitta: " + last.ToString("0.0") + " MPa");
+            Console.WriteLine("  by hand:            " + expected.ToString("0.0") + " MPa");
+            Console.WriteLine("  the API, fine mesh: " + last.ToString("0.0") + " MPa");
             Console.WriteLine("  scarto:            " + deviation.ToString("0.0") + " %");
             Console.WriteLine();
             if (deviation <= 10.0)
             {
-                Console.WriteLine("ENTRO IL 10%. La catena regge e la sezione S si puo' preventivare.");
-                Console.WriteLine("E la colonna degli scarti dice ANCHE come ci si arriva: e' quella");
-                Console.WriteLine("che rende il numero una misura invece di una coincidenza.");
+                Console.WriteLine("WITHIN 10%. The chain holds and section S can be estimated.");
+                Console.WriteLine("And the deviation column says HOW we get there too: it is the one");
+                Console.WriteLine("that makes the number a measurement instead of a coincidence.");
                 return 0;
             }
-            Console.WriteLine("FUORI DAL 10%. La voce S3 dice che qui la famiglia NON si costruisce");
-            Console.WriteLine("finche' non si sa perche'. Guarda la colonna degli scarti: se scende");
-            Console.WriteLine("verso zero, serve solo una mesh piu' fitta. Se si ferma altrove, il");
-            Console.WriteLine("problema non e' la mesh ed e' molto piu' interessante.");
+            Console.WriteLine("OUTSIDE 10%. Entry S3 says the family is NOT built here");
+            Console.WriteLine("until we know why. Look at the deviation column: if it goes down");
+            Console.WriteLine("toward zero, only a finer mesh is needed. If it stops elsewhere, the");
+            Console.WriteLine("problem is not the mesh and it is far more interesting.");
             return 1;
         }
         finally
@@ -462,9 +462,9 @@ internal static class Program
             true, false, false, 0, 0, HeightMm / 1000.0, 0.0,
             false, false, false, false, 0, 0, false, false, false, false,
             true, true, true, 0, 0, false);
-        if (f == null) { Console.WriteLine("  l'estrusione non e' venuta"); return null; }
+        if (f == null) { Console.WriteLine("  the extrusion did not come out"); return null; }
         doc.ViewZoomtofit2();
-        Says("trave creata: " + LengthMm + " x " + WidthMm + " x " + HeightMm + " mm");
+        Says("beam created: " + LengthMm + " x " + WidthMm + " x " + HeightMm + " mm");
         return doc;
     }
 
@@ -480,7 +480,7 @@ internal static class Program
         fixture = null; forceLoad = null;
         var partDoc = doc as IPartDoc;
         var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
-        if (bodies == null || bodies.Length == 0) { Console.WriteLine("  nessun corpo solido"); return false; }
+        if (bodies == null || bodies.Length == 0) { Console.WriteLine("  no solid body"); return false; }
 
         double L = LengthMm / 1000.0;
         var face = (bodies[0] as IBody2).GetFirstFace() as IFace2;
@@ -497,7 +497,7 @@ internal static class Program
         }
         if (fixture == null || forceLoad == null)
         {
-            Console.WriteLine("  non trovo le due facce di testa (x=0 e x=" + L + ")");
+            Console.WriteLine("  cannot find the two end faces (x=0 and x=" + L + ")");
             return false;
         }
         return true;
@@ -535,7 +535,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine("      ." + itemName + "(...) alza: " + Root(ex).Message);
+            Console.WriteLine("      ." + itemName + "(...) raises: " + Root(ex).Message);
             return null;
         }
     }

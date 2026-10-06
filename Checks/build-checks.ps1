@@ -38,7 +38,7 @@ $csc = @(
     'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe',
     'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe'
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $csc) { throw "Roslyn (csc.exe dei Build Tools) non trovato." }
+if (-not $csc) { throw "Roslyn (csc.exe of the Build Tools) not found." }
 
 $swRoots = @($SwInstallPath, $env:SW_INSTALL_PATH) |
     Where-Object { $_ } |
@@ -115,13 +115,13 @@ foreach ($a in $tools) {
     $folder = Join-Path $PSScriptRoot $a.nome
     $bin = Join-Path $folder 'bin'
     $source = Join-Path $folder 'Program.cs'
-    if (-not (Test-Path $source)) { throw "manca $source" }
+    if (-not (Test-Path $source)) { throw "missing $source" }
     New-Item -ItemType Directory -Force -Path $bin | Out-Null
 
     $refObj = @()
     if ($a.lib) {
         if (-not (Test-Path $library)) {
-            throw "manca $library : costruisci prima la libreria (.\build.ps1)"
+            throw "missing $library : build the library first (.\build.ps1)"
         }
         # The DLL is COPIED next to the executable, not just referenced:
         # without the copy the exe starts and dies with FileNotFoundException at first
@@ -132,7 +132,7 @@ foreach ($a in $tools) {
     if ($a.sw) {
         foreach ($d in @('SolidWorks.Interop.sldworks.dll', 'SolidWorks.Interop.swconst.dll')) {
             $p = Join-Path $interop $d
-            if (-not (Test-Path $p)) { throw "manca $p" }
+            if (-not (Test-Path $p)) { throw "missing $p" }
             Copy-Item $p $bin -Force
             $refObj += '-reference:' + (Join-Path $bin $d)
         }
@@ -149,7 +149,7 @@ foreach ($a in $tools) {
     if ($a.sim) {
         $p = Join-Path $interop 'SolidWorks.Interop.cosworks.dll'
         if (-not (Test-Path $p)) {
-            Write-Warning "$($a.nome): manca $p -- Simulation non e' installato qui, salto questa sonda"
+            Write-Warning "$($a.nome): missing $p -- Simulation is not installed here, skipping this probe"
             continue
         }
         Copy-Item $p $bin -Force
@@ -161,7 +161,7 @@ foreach ($a in $tools) {
     if ($a.util) {
         $p = Join-Path $interop 'SolidWorks.Interop.gtswutilities.dll'
         if (-not (Test-Path $p)) {
-            Write-Warning "$($a.nome): manca $p -- Utilities non e' installato qui, salto questa sonda"
+            Write-Warning "$($a.nome): missing $p -- Utilities is not installed here, skipping this probe"
             continue
         }
         Copy-Item $p $bin -Force
@@ -170,7 +170,7 @@ foreach ($a in $tools) {
 
     if ($a.dimx) {
         $p = Join-Path $interop 'SolidWorks.Interop.swdimxpert.dll'
-        if (-not (Test-Path $p)) { throw "manca $p" }
+        if (-not (Test-Path $p)) { throw "missing $p" }
         Copy-Item $p $bin -Force
         $refObj += '-reference:' + (Join-Path $bin 'SolidWorks.Interop.swdimxpert.dll')
     }
@@ -182,9 +182,9 @@ foreach ($a in $tools) {
 
     $output = Join-Path $bin ($a.nome + '.exe')
     & $csc -nologo -langversion:7.3 -target:exe "-out:$output" @refObj $source
-    if ($LASTEXITCODE -ne 0) { throw ($a.nome + ' non compila') }
+    if ($LASTEXITCODE -ne 0) { throw ($a.nome + ' does not compile') }
     Write-Host ('  ' + $a.nome + '.exe')
 }
 
 Write-Host ''
-Write-Host 'Fatti. Le tre Prova* non aprono SOLIDWORKS; ChiudiScarti e NewPart si.'
+Write-Host 'Done. GearTest, OutlineTest and PositionsTest do not open SOLIDWORKS; the others (CloseLeftovers, NewPart...) do.'

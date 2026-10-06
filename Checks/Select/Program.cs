@@ -44,25 +44,25 @@ namespace Checks.Select
 
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
+            if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
             if (!append) doc.ClearSelection2(true);
-            if (what == "niente")
+            if (what == "nothing")
             {
                 doc.ClearSelection2(true);
-                Console.WriteLine("selezione svuotata");
+                Console.WriteLine("selection emptied");
                 return 0;
             }
 
             var partDoc = doc as IPartDoc;
-            if (partDoc == null) { Console.Error.WriteLine("Non e' una parte."); return 2; }
+            if (partDoc == null) { Console.Error.WriteLine("It is not a part."); return 2; }
             var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
             if (bodies == null || bodies.Length == 0)
             {
-                Console.Error.WriteLine("Il pezzo non ha corpi solidi.");
+                Console.Error.WriteLine("The part has no solid bodies.");
                 return 1;
             }
 
@@ -96,8 +96,8 @@ namespace Checks.Select
             }
 
             var selection = (ISelectionMgr)doc.SelectionManager;
-            Console.WriteLine("selezionato: " + taken +
-                ", oggetti selezionati: " + selection.GetSelectedObjectCount2(-1));
+            Console.WriteLine("selected: " + taken +
+                ", selected objects: " + selection.GetSelectedObjectCount2(-1));
             return taken ? 0 : 1;
         }
     }

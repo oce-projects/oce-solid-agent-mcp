@@ -61,12 +61,12 @@ internal static class Program
         bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         if (Array.IndexOf(arguments, "--b=convertiti") >= 0) _variant = "convertiti";
         Console.WriteLine();
-        Console.WriteLine("SEGUI IL BORDO — un foro quotato contro lo spigolo lo segue? (voce E18, variante B: " + _variant + ")");
+        Console.WriteLine("FOLLOW THE EDGE — does a hole dimensioned against the edge follow it? (entry E18, variant B: " + _variant + ")");
         Console.WriteLine();
 
         try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Says("agganciato a SOLIDWORKS " + _sw.RevisionNumber());
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
+        Says("attached to SOLIDWORKS " + _sw.RevisionNumber());
         _mu = (IMathUtility)_sw.GetMathUtility();
 
         bool asked = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
@@ -80,7 +80,7 @@ internal static class Program
             // ── THE PLATE, with its two dimensions ──────────────────────
             _doc.ClearSelection2(true);
             if (!SelectBasePlane(_doc, 1))
-            { Console.WriteLine("  non trovo «Piano frontale»"); return 4; }
+            { Console.WriteLine("  cannot find «Piano frontale»"); return 4; }
             _doc.SketchManager.InsertSketch(true);
             var sides = _doc.SketchManager.CreateCornerRectangle(-0.100, -0.060, 0, 0.100, 0.060, 0) as object[];
             ISketchSegment up = null, right = null;
@@ -92,27 +92,27 @@ internal static class Program
                 if (Math.Abs(a.Y - 0.060) < 1e-9 && Math.Abs(b.Y - 0.060) < 1e-9) up = (ISketchSegment)l;
                 if (Math.Abs(a.X - 0.100) < 1e-9 && Math.Abs(b.X - 0.100) < 1e-9) right = (ISketchSegment)l;
             }
-            if (up == null || right == null) { Console.WriteLine("  non ritrovo i lati del rettangolo"); return 4; }
+            if (up == null || right == null) { Console.WriteLine("  cannot find the sides of the rectangle again"); return 4; }
             _doc.ClearSelection2(true); up.Select4(false, null);
             var qLen = (_doc.AddDimension2(0, 0.090, 0) as IDisplayDimension)?.GetDimension2(0);
             _doc.ClearSelection2(true); right.Select4(false, null);
             var qAlt = (_doc.AddDimension2(0.130, 0, 0) as IDisplayDimension)?.GetDimension2(0);
             _doc.ClearSelection2(true);
             _doc.SketchManager.InsertSketch(true);
-            if (qLen == null || qAlt == null) { Console.WriteLine("  le quote del rettangolo non sono nate"); return 4; }
+            if (qLen == null || qAlt == null) { Console.WriteLine("  the rectangle's dimensions were not created"); return 4; }
             var plate = _doc.FeatureManager.FeatureExtrusion3(
                 true, false, false, 0, 0, 0.020, 0.0,
                 false, false, false, false, 0, 0, false, false, false, false,
                 true, true, true, 0, 0, false) as IFeature;
-            if (plate == null) { Console.WriteLine("  la piastra non e' venuta"); return 4; }
+            if (plate == null) { Console.WriteLine("  the plate did not come out"); return 4; }
             var box = BoundingBox();
-            Says("piastra: ingombro " + Box(box) + ", quote " + Mm(qLen.SystemValue) + " e " + Mm(qAlt.SystemValue));
+            Says("plate: bounding box " + Box(box) + ", dimensions " + Mm(qLen.SystemValue) + " and " + Mm(qAlt.SystemValue));
             double zFront = Math.Abs(box[2]) > Math.Abs(box[5]) ? box[2] : box[5];
 
             // ── THE SKETCH ON THE FRONT FACE ─────────────────────────
             _doc.ClearSelection2(true);
             if (!_doc.Extension.SelectByID2("", "FACE", 0.03, 0.01, zFront, false, 0, null, 0))
-            { Console.WriteLine("  non seleziono la faccia davanti a Z " + Mm(zFront)); return 4; }
+            { Console.WriteLine("  I do not select the face in front of Z " + Mm(zFront)); return 4; }
             _doc.SketchManager.InsertSketch(true);
             var sketch = _doc.SketchManager.ActiveSketch;
             var tr = sketch.ModelToSketchTransform;
@@ -133,16 +133,16 @@ internal static class Program
             var pA = (ISketchPoint)((ISketchArc)cA).GetCenterPoint2();
             var qA1 = DimensionToEdge(pA, -0.100, 0.0, zFront, -0.115, -0.045, zFront);
             var qA2 = DimensionToEdge(pA, 0.0, -0.060, zFront, -0.085, -0.075, zFront);
-            Says("A (Ø6): quote allo spigolo " + (qA1 == null ? "NON NATA" : Mm(qA1.SystemValue)) + " (sinistro), " +
-                 (qA2 == null ? "NON NATA" : Mm(qA2.SystemValue)) + " (basso)");
+            Says("A (Ø6): dimensions at the edge " + (qA1 == null ? "NOT CREATED" : Mm(qA1.SystemValue)) + " (left), " +
+                 (qA2 == null ? "NOT CREATED" : Mm(qA2.SystemValue)) + " (bottom)");
 
             // D: top right, at 20 from the right edge and from the top one
             var cD = Circle(tr, 0.080, 0.040, zFront, 0.004);
             var pD = (ISketchPoint)((ISketchArc)cD).GetCenterPoint2();
             var qD1 = DimensionToEdge(pD, 0.100, 0.0, zFront, 0.115, 0.045, zFront);
             var qD2 = DimensionToEdge(pD, 0.0, 0.060, zFront, 0.085, 0.075, zFront);
-            Says("D (Ø8): quote allo spigolo " + (qD1 == null ? "NON NATA" : Mm(qD1.SystemValue)) + " (destro), " +
-                 (qD2 == null ? "NON NATA" : Mm(qD2.SystemValue)) + " (alto)");
+            Says("D (Ø8): dimensions at the edge " + (qD1 == null ? "NOT CREATED" : Mm(qD1.SystemValue)) + " (right), " +
+                 (qD2 == null ? "NOT CREATED" : Mm(qD2.SystemValue)) + " (top)");
 
             // B: in the centre. Two variants, one per run (--b=bordi | --b=convertiti).
             var cB = Circle(tr, 0.0, 0.0, zFront, 0.005);
@@ -161,8 +161,8 @@ internal static class Program
                 var ls = line as ISketchLine;
                 bool r1 = sx != null && RelationBetweenSketches((ISketchPoint)ls.GetStartPoint2(), sx, "sgATMIDDLE");
                 bool r2 = dx != null && RelationBetweenSketches((ISketchPoint)ls.GetEndPoint2(), dx, "sgATMIDDLE");
-                Says("B (Ø10), variante convertiti: fianchi convertiti " + (sx != null) + "/" + (dx != null) +
-                     ", estremi della mezzeria a meta' " + r1 + "/" + r2);
+                Says("B (Ø10), converted variant: converted flanks " + (sx != null) + "/" + (dx != null) +
+                     ", ends of the midline at halfway " + r1 + "/" + r2);
             }
             else
             {
@@ -171,58 +171,58 @@ internal static class Program
                 var ls = line as ISketchLine;
                 bool rB1 = Relation((ISketchPoint)ls.GetStartPoint2(), -0.100, 0.0, zFront, "sgATMIDDLE");
                 bool rB2 = Relation((ISketchPoint)ls.GetEndPoint2(), 0.100, 0.0, zFront, "sgATMIDDLE");
-                Says("B (Ø10), variante bordi: estremi della mezzeria a meta' degli spigoli del modello " + rB1 + "/" + rB2);
+                Says("B (Ø10), edges variant: ends of the midline at halfway along the model's edges " + rB1 + "/" + rB2);
             }
             RelationBetweenSketches(pB, line, "sgATMIDDLE");
 
             // C: the twin, at absolute coordinates
             Circle(tr, -0.040, 0.030, zFront, 0.006);
-            Says("C (Ø12): a (-40, 30), senza relazioni");
+            Says("C (Ø12): at (-40, 30), without relations");
 
             _doc.SketchManager.InsertSketch(true);
             var cut = _doc.FeatureManager.FeatureCut4(
                 true, false, false, (int)swEndConditions_e.swEndCondThroughAll, 0, 0, 0,
                 false, false, false, false, 0, 0, false, false, false, false,
                 false, true, true, true, true, false, 0, 0, false, false) as IFeature;
-            if (cut == null) { Console.WriteLine("  il taglio non e' venuto"); return 4; }
+            if (cut == null) { Console.WriteLine("  the cut did not come out"); return 4; }
             _doc.EditRebuild3();
 
             _cutSketch = (cut.GetFirstSubFeature() as IFeature)?.GetSpecificFeature2() as ISketch;
             int mistakes = 0;
             var beforeC = Hole(Holes(), 0.006);
-            mistakes += Verify("dopo il taglio", beforeC);
+            mistakes += Verify("after the cut", beforeC);
 
             // ── THE PLATE CHANGES ────────────────────────────────────────
             qLen.SetSystemValue3(0.260, (int)swSetValueInConfiguration_e.swSetValue_InAllConfigurations, null);
             _doc.EditRebuild3();
-            int s1 = Verify("lunghezza 200 -> 260", beforeC);
+            int s1 = Verify("length 200 -> 260", beforeC);
             if (s1 > 0)
             {
                 // Does a FULL rebuild solve the references that the normal
                 // one leaves broken? If so, it is an ordering problem.
                 _doc.ForceRebuild3(false);
-                s1 = Verify("lunghezza 200 -> 260, dopo ForceRebuild3", beforeC);
+                s1 = Verify("length 200 -> 260, after ForceRebuild3", beforeC);
             }
             mistakes += s1;
 
             qAlt.SetSystemValue3(0.180, (int)swSetValueInConfiguration_e.swSetValue_InAllConfigurations, null);
             _doc.EditRebuild3();
-            int s2 = Verify("altezza 120 -> 180", beforeC);
+            int s2 = Verify("height 120 -> 180", beforeC);
             if (s2 > 0)
             {
                 _doc.ForceRebuild3(false);
-                s2 = Verify("altezza 120 -> 180, dopo ForceRebuild3", beforeC);
+                s2 = Verify("height 120 -> 180, after ForceRebuild3", beforeC);
             }
             mistakes += s2;
 
             Console.WriteLine();
             if (mistakes == 0)
             {
-                Console.WriteLine("REGGE: A segue l'angolo, B resta al centro, C resta dov'era, e nessuna lavorazione");
-                Console.WriteLine("e' in errore. I due meccanismi di E18 (a) e (b) si costruiscono da API.");
+                Console.WriteLine("HOLDS: A follows the corner, B stays at the center, C stays where it was, and no feature");
+                Console.WriteLine("is in error. The two mechanisms of E18 (a) and (b) can be built from the API.");
                 return 0;
             }
-            Console.WriteLine(mistakes + " misure fuori posto: guarda sopra quale meccanismo non regge.");
+            Console.WriteLine(mistakes + " measurements out of place: look above for which mechanism does not hold.");
             return 6;
         }
         catch (Exception ex)
@@ -237,7 +237,7 @@ internal static class Program
             try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, asked); } catch { }
             if (_doc != null && !keep)
             {
-                try { _sw.CloseDoc(_doc.GetTitle()); Says("pezzo chiuso senza salvare"); } catch { }
+                try { _sw.CloseDoc(_doc.GetTitle()); Says("part closed without saving"); } catch { }
             }
         }
     }
@@ -251,7 +251,7 @@ internal static class Program
         int errors = 0;
         try { errors = _doc.Extension.GetWhatsWrongCount(); } catch { }
         Console.WriteLine();
-        Console.WriteLine("      " + timestamp + ": ingombro " + Box(box) + ", fori " + holes.Count + ", cose che non vanno " + errors);
+        Console.WriteLine("      " + timestamp + ": bounding box " + Box(box) + ", holes " + holes.Count + ", things wrong " + errors);
         if (errors > 0)
         {
             // WHICH feature, and with what code: the first run only said «1».
@@ -261,8 +261,8 @@ internal static class Program
                 _doc.Extension.GetWhatsWrong(out feats, out codes, out warnings);
                 var f = feats as object[]; var c = codes as int[]; var w = warnings as bool[];
                 for (int i = 0; f != null && i < f.Length; i++)
-                    Console.WriteLine("        «" + ((IFeature)f[i]).Name + "» codice " + (c != null ? c[i].ToString() : "?") +
-                                      (w != null && w[i] ? " (avviso)" : " (ERRORE)"));
+                    Console.WriteLine("        «" + ((IFeature)f[i]).Name + "» code " + (c != null ? c[i].ToString() : "?") +
+                                      (w != null && w[i] ? " (warning)" : " (ERROR)"));
             }
             catch (Exception ex) { Console.WriteLine("        GetWhatsWrong: " + ex.Message); }
         }
@@ -272,9 +272,9 @@ internal static class Program
             var rm = _cutSketch?.RelationManager;
             if (rm != null)
             {
-                Console.WriteLine("        relazioni dello schizzo del taglio: tutte " + rm.GetRelationsCount(0) +
-                                  ", esterne " + rm.GetRelationsCount(3) + ", penzolanti " + rm.GetRelationsCount(1) +
-                                  ", rotte " + rm.GetRelationsCount(6) + ", sovravincolanti " + rm.GetRelationsCount(2));
+                Console.WriteLine("        relations of the cut sketch: all " + rm.GetRelationsCount(0) +
+                                  ", external " + rm.GetRelationsCount(3) + ", dangling " + rm.GetRelationsCount(1) +
+                                  ", broken " + rm.GetRelationsCount(6) + ", over-constraining " + rm.GetRelationsCount(2));
                 if (_listRelations)
                 {
                     _listRelations = false;
@@ -282,9 +282,9 @@ internal static class Program
                     {
                         var r = (ISketchRelation)o;
                         var types = r.GetEntitiesType() as int[];
-                        Console.WriteLine("          tipo " + r.GetRelationType() + " su " + r.GetEntitiesCount() +
-                                          " entita' (" + (types == null ? "-" : string.Join(",", types)) + ")" +
-                                          (r.GetDisplayDimension() != null ? " [quota]" : ""));
+                        Console.WriteLine("          type " + r.GetRelationType() + " on " + r.GetEntitiesCount() +
+                                          " entities (" + (types == null ? "-" : string.Join(",", types)) + ")" +
+                                          (r.GetDisplayDimension() != null ? " [dimension]" : ""));
                     }
                 }
             }
@@ -294,10 +294,10 @@ internal static class Program
         double xmin = Math.Min(box[0], box[3]), ymin = Math.Min(box[1], box[4]);
         double xmax = Math.Max(box[0], box[3]), ymax = Math.Max(box[1], box[4]);
         double xc = (box[0] + box[3]) / 2, yc = (box[1] + box[4]) / 2;
-        mistakes += Line("A (Ø6)  a 20 dal basso-sinistra", Hole(holes, 0.003), xmin + 0.020, ymin + 0.020);
-        mistakes += Line("D (Ø8)  a 20 dall'alto-destra  ", Hole(holes, 0.004), xmax - 0.020, ymax - 0.020);
-        mistakes += Line("B (Ø10) al centro              ", Hole(holes, 0.005), xc, yc);
-        if (cBefore != null) mistakes += Line("C (Ø12) dov'era                ", Hole(holes, 0.006), cBefore[0], cBefore[1]);
+        mistakes += Line("A (Ø6)  at 20 from bottom-left ", Hole(holes, 0.003), xmin + 0.020, ymin + 0.020);
+        mistakes += Line("D (Ø8)  at 20 from top-right   ", Hole(holes, 0.004), xmax - 0.020, ymax - 0.020);
+        mistakes += Line("B (Ø10) at the center          ", Hole(holes, 0.005), xc, yc);
+        if (cBefore != null) mistakes += Line("C (Ø12) where it was           ", Hole(holes, 0.006), cBefore[0], cBefore[1]);
         return mistakes;
     }
 
@@ -308,11 +308,11 @@ internal static class Program
 
     private static int Line(string itemName, double[] f, double x, double y)
     {
-        if (f == null) { Console.WriteLine("      NO  " + itemName + ": il foro non c'e'"); return 1; }
+        if (f == null) { Console.WriteLine("      NO  " + itemName + ": the hole is not there"); return 1; }
         double d = Math.Sqrt(Math.Pow(f[0] - x, 2) + Math.Pow(f[1] - y, 2));
         bool ok = d < 0.00005;
-        Console.WriteLine("      " + (ok ? "ok  " : "NO  ") + itemName + " (" + Mm(f[0]) + ", " + Mm(f[1]) + ")  atteso (" +
-                          Mm(x) + ", " + Mm(y) + ")" + (ok ? "" : "  scarto " + Mm(d)));
+        Console.WriteLine("      " + (ok ? "ok  " : "NO  ") + itemName + " (" + Mm(f[0]) + ", " + Mm(f[1]) + ")  expected (" +
+                          Mm(x) + ", " + Mm(y) + ")" + (ok ? "" : "  deviation " + Mm(d)));
         return ok ? 0 : 1;
     }
 

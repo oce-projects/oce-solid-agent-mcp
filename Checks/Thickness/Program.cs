@@ -79,22 +79,22 @@ internal static class Program
         bool loadFlag = Array.IndexOf(arguments, "--carica") >= 0;
 
         Console.WriteLine();
-        Console.WriteLine("SPESSORE — la misura che dimensiona Z-H1 (SOLIDWORKS Utilities)");
-        Console.WriteLine("  piastra " + LengthMm + " x " + WidthMm + " x " + PlateMm +
-                          " mm, e su meta' un blocco alto " + BlockMm + " mm");
-        Console.WriteLine("  spessore minimo = " + PlateMm.ToString("0.0") + " mm   <- si sa senza calcolatore");
+        Console.WriteLine("THICKNESS — the measurement that sizes Z-H1 (SOLIDWORKS Utilities)");
+        Console.WriteLine("  plate " + LengthMm + " x " + WidthMm + " x " + PlateMm +
+                          " mm, and on half of it a block " + BlockMm + " mm high");
+        Console.WriteLine("  minimum thickness = " + PlateMm.ToString("0.0") + " mm   <- known without a calculator");
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
         catch (Exception ex)
         {
-            Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message);
+            Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message);
             return 2;
         }
         // The positive control on the attachment: if RevisionNumber does not answer,
         // a null further down would say nothing (it happened in S3).
-        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
         // ── THE ADD-IN ───────────────────────────────────────────────────
         object addin = sw.GetAddInObject(ClsidUtilities);
@@ -113,9 +113,9 @@ internal static class Program
         if (addin == null)
         {
             Console.WriteLine();
-            Console.WriteLine("UTILITIES NON E' CARICATO in questa sessione.");
-            Console.WriteLine("  Non vuol dire che non c'e' (K20 lo trova registrato). Spunta");
-            Console.WriteLine("  'SOLIDWORKS Utilities' in Strumenti > Componenti aggiuntivi, oppure");
+            Console.WriteLine("UTILITIES IS NOT LOADED in this session.");
+            Console.WriteLine("  That does not mean it is not there (K20 finds it registered). Tick");
+            Console.WriteLine("  'SOLIDWORKS Utilities' in Tools > Add-Ins, or else");
             Console.WriteLine("  rilancia con --carica.");
             return 3;
         }
@@ -124,8 +124,8 @@ internal static class Program
         var utility = addin as IUtilities;
         if (utility == null)
         {
-            Console.WriteLine("  l'oggetto dell'add-in non e' un IUtilities: la catena accertata per");
-            Console.WriteLine("  riflessione non e' quella che gira.");
+            Console.WriteLine("  the add-in's object is not an IUtilities: the chain established by");
+            Console.WriteLine("  reflection is not the one that runs.");
             return 5;
         }
 
@@ -136,13 +136,13 @@ internal static class Program
             if (doc == null) return 4;
 
             IBody2 body = FirstBody(doc);
-            if (body == null) { Console.WriteLine("  nessun corpo solido"); return 4; }
+            if (body == null) { Console.WriteLine("  no solid body"); return 4; }
 
             // The volume, so that the part is what one believes before
             // measuring its thickness: 100x60x2 + 50x60x8 = 12000 + 24000 mm^3.
             double[] mass = doc.Extension.GetMassProperties2(1, out int massState, false) as double[];
             double volMm3 = mass == null ? double.NaN : mass[3] * 1e9;
-            Says("volume " + volMm3.ToString("0") + " mm^3 (atteso 36000)");
+            Says("volume " + volMm3.ToString("0") + " mm^3 (expected 36000)");
 
             // ── TWO THRESHOLDS, AND IN TWO UNITS ─────────────────────────
             //
@@ -151,7 +151,7 @@ internal static class Program
             // faces and a minimum around 2; the wrong one either refuses or
             // answers something recognisable as absurd.
             Console.WriteLine();
-            Console.WriteLine("  soglia       risposta  minimo      massimo     facce critiche");
+            Console.WriteLine("  threshold    answer    minimum     maximum     critical faces");
             Console.WriteLine("  ----------   --------  ----------  ----------  --------------");
 
             // --esplora: a scan of thresholds, to know how
@@ -196,34 +196,34 @@ internal static class Program
 
             if (above == null || above.BenchRun != 0 || above.Critical <= 0 || !Near(above.Minimum * Meters, PlateMm, 0.2))
             {
-                Console.WriteLine("SOGLIA SOPRA IL MINIMO: nessun minimo vicino a " + PlateMm + " mm con facce critiche.");
-                Console.WriteLine("  NON si costruisce l'operazione finche' non si sa perche'.");
+                Console.WriteLine("THRESHOLD ABOVE THE MINIMUM: no minimum near " + PlateMm + " mm with critical faces.");
+                Console.WriteLine("  The operation is NOT built until we know why.");
                 return 6;
             }
-            Console.WriteLine("  a mano:  " + PlateMm.ToString("0.00") + " mm");
-            Console.WriteLine("  l'API:   " + (above.Minimum * Meters).ToString("0.00") + " mm   (risponde in metri)");
+            Console.WriteLine("  by hand:  " + PlateMm.ToString("0.00") + " mm");
+            Console.WriteLine("  the API:  " + (above.Minimum * Meters).ToString("0.00") + " mm   (it answers in meters)");
 
             const int NothingBelowThreshold = 12009;   // gtWarningTckThinAnalRangeBelowMaxThick
             if (below == null || below.BenchRun != NothingBelowThreshold)
             {
                 Console.WriteLine();
-                Console.WriteLine("L'ALTRO VERSO NON TORNA: con la soglia sotto lo spessore minimo l'API");
-                Console.WriteLine("doveva dire 12009 (niente sotto la soglia). Ha detto " +
-                                  (below == null ? "niente" : below.BenchRun.ToString()) + ".");
+                Console.WriteLine("THE OTHER WAY DOES NOT ADD UP: with the threshold below the minimum thickness the API");
+                Console.WriteLine("should have said 12009 (nothing under the threshold). It said " +
+                                  (below == null ? "nothing" : below.BenchRun.ToString()) + ".");
                 return 7;
             }
             if (up == null || up.BenchRun != 0 || up.Critical < above.Critical)
             {
                 Console.WriteLine();
-                Console.WriteLine("LA SOGLIA PIU' ALTA HA MENO FACCE CRITICHE DI QUELLA BASSA: le facce sotto");
-                Console.WriteLine("una soglia devono crescere con la soglia, non calare.");
+                Console.WriteLine("THE HIGHER THRESHOLD HAS FEWER CRITICAL FACES THAN THE LOW ONE: the faces below");
+                Console.WriteLine("a threshold must grow with the threshold, not shrink.");
                 return 7;
             }
 
             Console.WriteLine();
-            Console.WriteLine("REGGE NEI DUE VERSI: sopra il minimo trova le facce sottili e il minimo giusto;");
-            Console.WriteLine("sotto il minimo dice che non c'e' niente (12009); piu' alta la soglia, piu'");
-            Console.WriteLine("facce (" + above.Critical + " -> " + up.Critical + "). La voce Z-H1 si puo' costruire.");
+            Console.WriteLine("HOLDS BOTH WAYS: above the minimum it finds the thin faces and the right minimum;");
+            Console.WriteLine("below the minimum it says there is nothing (12009); the higher the threshold, the more");
+            Console.WriteLine("faces (" + above.Critical + " -> " + up.Critical + "). Entry Z-H1 can be built.");
             return 0;
         }
         catch (Exception ex)
@@ -236,7 +236,7 @@ internal static class Program
         {
             if (doc != null && !keep)
             {
-                try { sw.CloseDoc(doc.GetTitle()); Says("pezzo chiuso senza salvare"); } catch { }
+                try { sw.CloseDoc(doc.GetTitle()); Says("part closed without saving"); } catch { }
             }
         }
     }
@@ -255,7 +255,7 @@ internal static class Program
         var t = u.GetToolInterface(ThicknessTool, out err) as IThicknessAnalysis;
         if (t == null)
         {
-            Console.WriteLine("  " + label.PadRight(12) + " GetToolInterface -> null, errore " + err);
+            Console.WriteLine("  " + label.PadRight(12) + " GetToolInterface -> null, error " + err);
             return null;
         }
         try
@@ -269,7 +269,7 @@ internal static class Program
                 // «below the threshold there is nothing». It is returned, and whoever
                 // calls decides.
                 Console.WriteLine("  " + label.PadRight(12) + " " + benchRun.ToString().PadLeft(8) +
-                                  "  (Init " + init + ", corpo " + bodyOk + ")");
+                                  "  (Init " + init + ", body " + bodyOk + ")");
                 return new Outcome { BenchRun = benchRun };
             }
             int e1, e2, e3;
@@ -311,7 +311,7 @@ internal static class Program
         if (!Extrusion(doc, LengthMm / 2.0, 0, LengthMm, WidthMm, BlockMm, true)) return null;
 
         doc.ViewZoomtofit2();
-        Says("pezzo creato: piastra da " + PlateMm + " mm, blocco da " + BlockMm + " mm su meta'");
+        Says("part created: plate of " + PlateMm + " mm, block of " + BlockMm + " mm on half");
         return doc;
     }
 
@@ -335,7 +335,7 @@ internal static class Program
             true, false, false, 0, 0, heightMm / 1000.0, 0.0,
             false, false, false, false, 0, 0, false, false, false, false,
             merge, true, true, 0, 0, false);
-        if (f == null) { Console.WriteLine("  l'estrusione da " + heightMm + " mm non e' venuta"); return false; }
+        if (f == null) { Console.WriteLine("  the extrusion of " + heightMm + " mm did not come out"); return false; }
         return true;
     }
 
@@ -344,7 +344,7 @@ internal static class Program
         var partDoc = doc as IPartDoc;
         var bodies = partDoc == null ? null : partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
         if (bodies == null || bodies.Length == 0) return null;
-        if (bodies.Length > 1) Console.WriteLine("      attenzione: " + bodies.Length + " corpi, si analizza il primo");
+        if (bodies.Length > 1) Console.WriteLine("      warning: " + bodies.Length + " bodies, the first is analyzed");
         return bodies[0] as IBody2;
     }
 

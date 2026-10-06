@@ -71,7 +71,7 @@ function Find($itemName) {
                     $f.DirectoryName.Replace($root, "<radice>"))
         }
     } catch { }
-    return "NON TROVATO sotto la radice"
+    return "NOT FOUND under the root"
 }
 
 # The coclasses of an interop: they are the classes that can be created with `new`.
@@ -110,7 +110,7 @@ function Recorded($guid) {
                     $v = $k.GetValue("")
                     $k.Close()
                     if ($v) { return $v }
-                    return "(chiave senza valore)"
+                    return "(key without value)"
                 }
             }
         }
@@ -129,27 +129,27 @@ function List($dll) {
     $reg = 0
     foreach ($c in $cc) {
         $location = Recorded $c.Guid
-        if ($location) { Line ("  " + $c.Nome) "REGISTRATO -> $location"; $reg++ }
+        if ($location) { Line ("  " + $c.Nome) "REGISTERED -> $location"; $reg++ }
     }
-    Line "coclass nell'interop" ("" + $cc.Count + ", di cui registrate: " + $reg)
+    Line "coclasses in the interop" ("" + $cc.Count + ", of which registered: " + $reg)
     if ($reg -eq 0 -and $cc.Count -gt 0) {
         # THIS LINE SAID «il modulo e' sul disco ma non si puo' creare», and it
         # was a blind conclusion: on 24/9/2026 Simulation ran (entry S3)
         # and the coclasses of ITS interop turn out 0 registered out of 80, as here.
         # The coclasses of the interop are not the add-in. The add-in is resolved further
         # down, from its ProgID, with a positive control (entry K20).
-        Write-Output "    nessuna coclass dell'interop e' registrata. NON vuol dire che il"
-        Write-Output "    modulo non si carichi: vedi la risoluzione dell'add-in in fondo."
+        Write-Output "    no coclass of the interop is registered. It does NOT mean the"
+        Write-Output "    module does not load: see the add-in resolution at the bottom."
     }
 }
 
 Write-Output ""
-Write-Output "radice: $root"
+Write-Output "root: $root"
 Write-Output ""
 
 # ── Z-H1: SOLIDWORKS Utilities -----------------------------------------------
 Write-Output "=== Z-H1  SOLIDWORKS Utilities (IThicknessAnalysis) ==="
-Line "cartella sldutils" $(if (Test-Path (Join-Path $root "sldutils")) {
+Line "sldutils folder" $(if (Test-Path (Join-Path $root "sldutils")) {
     "SI'  " + (Get-ChildItem (Join-Path $root "sldutils") -File | Measure-Object).Count + " file" } else { "NO" })
 Line "ThickChkswu.dll" (Find "ThickChkswu.dll")
 Line "interop gtswutilities" (FileC (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll"))
@@ -157,12 +157,12 @@ List (Join-Path $redist "SolidWorks.Interop.gtswutilities.dll")
 Write-Output ""
 
 # ── Z-H2: Document Manager ---------------------------------------------------
-Write-Output "=== Z-H2  Document Manager (serve una CHIAVE, non una spunta) ==="
+Write-Output "=== Z-H2  Document Manager (needs a KEY, not a tick) ==="
 Line "swdocumentmgr.dll" (Find "swdocumentmgr.dll")
 Line "interop swdocumentmgr" (FileC (Join-Path $redist "SolidWorks.Interop.swdocumentmgr.dll"))
 List (Join-Path $redist "SolidWorks.Interop.swdocumentmgr.dll")
-Write-Output "  NOTA: GetApplication vuole una chiave rilasciata da Dassault."
-Write-Output "        Finche' non e' in mano, non si scrive una riga attorno (W2.14)."
+Write-Output "  NOTE: GetApplication needs a key issued by Dassault."
+Write-Output "        Until we have it, not a line is written around it (W2.14)."
 Write-Output ""
 
 # ── Z-H3: DimXpert ------------------------------------------------------------
@@ -181,20 +181,20 @@ if (Test-Path $k) {
     $p = Get-ItemProperty $k
     foreach ($n in ($p.PSObject.Properties | Where-Object { $_.Name -notlike 'PS*' })) {
         if ($n.Name -match 'cw|cos|Simulation') {
-            Line ("add-in " + $n.Name) $(if ($n.Value -eq 0) { "0 = NON attivo all'avvio" } else { $n.Value })
+            Line ("add-in " + $n.Name) $(if ($n.Value -eq 0) { "0 = NOT active at startup" } else { $n.Value })
         }
     }
-} else { Line "AddInsStartup" "la chiave non c'e'" }
+} else { Line "AddInsStartup" "the key is not there" }
 Write-Output ""
 
 # ── Z-H5: Toolbox --------------------------------------------------------------
 Write-Output "=== Z-H5  Toolbox ==="
-Line "cartella Toolbox" $(if (Test-Path "C:\SOLIDWORKS Data") { "SI'  C:\SOLIDWORKS Data" } else { "non in C:\SOLIDWORKS Data" })
+Line "Toolbox folder" $(if (Test-Path "C:\SOLIDWORKS Data") { "YES  C:\SOLIDWORKS Data" } else { "not in C:\SOLIDWORKS Data" })
 Line "interop toolboxconfigure" (FileC (Join-Path $redist "SolidWorks.Interop.sldtoolboxconfigureaddin.dll"))
 Write-Output ""
 
 # -- S4: Routing ----------------------------------------------------------------
-Write-Output "=== S4  Routing (serve a questa officina?) ==="
+Write-Output "=== S4  Routing (does this workshop need it?) ==="
 Line "interop SWRoutingLib" (FileC (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll"))
 List (Join-Path $redist "SolidWorks.Interop.SWRoutingLib.dll")
 Write-Output ""
@@ -286,8 +286,8 @@ function Startup($guid) {
     if ($null -eq $v) { $s = $k.OpenSubKey($guid); if ($s) { $v = $s.GetValue(""); $s.Close() } }
     $k.Close()
     if ($null -eq $v) { return "" }
-    if ("$v" -eq "1") { return "parte da solo" }
-    return "va acceso a mano"
+    if ("$v" -eq "1") { return "starts by itself" }
+    return "must be turned on by hand"
 }
 
 # The modules, by ProgID. They are added here, not guessed.
@@ -298,20 +298,20 @@ $modules = @(
     @{ nome = "Analysis Tools";      progId = "AnalysisTools.AnalysisAddin" }
 )
 
-Write-Output "=== GLI ADD-IN, RISOLTI (ProgID -> CLSID -> file) ==="
+Write-Output "=== THE ADD-INS, RESOLVED (ProgID -> CLSID -> file) ==="
 $blindOnes = 0
 foreach ($m in $modules) {
     $g = $m.guid
     if (-not $g -and $m.progId) { $g = ProgIdClsid $m.progId }
     if (-not $g) {
-        Line $m.nome "ProgID NON registrato"
+        Line $m.nome "ProgID NOT registered"
         if ($m.positivo) { $blindOnes++ }
         continue
     }
     $f = ServerFile $g
-    $outcome = if (-not $f) { "CLSID senza server" }
+    $outcome = if (-not $f) { "CLSID without server" }
              elseif (Test-Path $f) { "RAGGIUNGIBILE" }
-             else { "server dichiarato, FILE ASSENTE" }
+             else { "server declared, FILE MISSING" }
     $a = Startup $g
     Line $m.nome ($outcome + $(if ($a) { " - $a" } else { "" }))
     if ($f) { Write-Output ("      -> " + $f.Replace($root, "<radice>")) }
@@ -321,17 +321,17 @@ Write-Output ""
 
 # The three add-in keys, for completeness: they say who is listed, not who
 # gets loaded.
-Write-Output "=== LE TRE CHIAVI DI ADD-IN (chi e' elencato, NON chi si carica) ==="
+Write-Output "=== THE THREE ADD-IN KEYS (who is listed, NOT who loads) ==="
 foreach ($c in @(
     @{ n = "HKLM AddIns";                 r = $regHKLM; p = "SOFTWARE\SolidWorks\AddIns" },
     @{ n = "HKLM SOLIDWORKS 2021\AddIns"; r = $regHKLM; p = "SOFTWARE\SolidWorks\SOLIDWORKS 2021\AddIns" })) {
     $k = $c.r.OpenSubKey($c.p)
-    if (-not $k) { Line $c.n "la chiave non c'e'"; continue }
+    if (-not $k) { Line $c.n "the key is not there"; continue }
     foreach ($g in $k.GetSubKeyNames()) {
         $s = $k.OpenSubKey($g); $t = ""
         if ($s) { $t = "" + $s.GetValue("Title"); $s.Close() }
         $f = ServerFile $g
-        $outcome = if ($f -and (Test-Path $f)) { "ok" } elseif ($f) { "file assente" } else { "senza server" }
+        $outcome = if ($f -and (Test-Path $f)) { "ok" } elseif ($f) { "file missing" } else { "without server" }
         Line ("  " + $t) ($c.n + ": " + $outcome)
     }
     $k.Close()
@@ -339,13 +339,13 @@ foreach ($c in @(
 Write-Output ""
 
 if ($blindOnes -gt 0) {
-    Write-Output "XX  CRITERIO CIECO: $blindOnes controlli positivi non risultano raggiungibili."
-    Write-Output "    Simulation e l'add-in .NET DEVONO risolversi: se non lo fanno, e' la"
-    Write-Output "    sonda a sbagliare, e ogni 'non raggiungibile' qui sopra non vale niente."
+    Write-Output "XX  BLIND CRITERION: $blindOnes positive checks do not turn out to be reachable."
+    Write-Output "    Simulation and the .NET add-in MUST resolve: if they do not, the probe is"
+    Write-Output "    wrong, and every 'not reachable' above is worth nothing."
     exit 1
 }
-Write-Output "Controlli positivi: raggiungibili. Il criterio vede quello che deve vedere."
+Write-Output "Positive checks: reachable. The criterion sees what it must see."
 Write-Output ""
-Write-Output "E NEMMENO 'RAGGIUNGIBILE' BASTA: dice che il file c'e' e che Windows sa"
-Write-Output "crearlo. Se parte davvero lo dice solo SOLIDWORKS, con GetAddInObject --"
-Write-Output "o una spunta in Strumenti -> Componenti aggiuntivi."
+Write-Output "AND NOT EVEN 'REACHABLE' IS ENOUGH: it says the file is there and that Windows knows how"
+Write-Output "to create it. Whether it really starts only SOLIDWORKS says, with GetAddInObject --"
+Write-Output "or a tick in Tools -> Add-Ins."

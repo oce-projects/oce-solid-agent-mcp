@@ -37,15 +37,15 @@ namespace Checks.SketchOnSheet
         {
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
+            if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
             if (doc.GetType() != (int)swDocumentTypes_e.swDocDRAWING)
             {
                 Console.Error.WriteLine(
-                    "Il documento attivo e' «" + doc.GetTitle() + "», che non e' una tavola.");
+                    "The active document is «" + doc.GetTitle() + "», which is not a drawing.");
                 return 2;
             }
             var drawing = (IDrawingDoc)doc;
@@ -56,18 +56,18 @@ namespace Checks.SketchOnSheet
             var property = sheet.GetProperties2() as double[];
             if (property != null && property.Length >= 7)
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "misura foglio: {0:0.###} x {1:0.###} m", property[5], property[6]));
+                    "sheet size: {0:0.###} x {1:0.###} m", property[5], property[6]));
 
             // 1. HOW MANY ENTITIES THE SHEET SKETCH ALREADY HAS.
             // The starting number is needed: «I have one» means nothing if
             // one does not know how many there were before.
             int before = SheetSegments(sheet);
-            Console.WriteLine("segmenti nello schizzo del foglio, prima: " + Show(before));
+            Console.WriteLine("segments in the sheet sketch, before: " + Show(before));
 
             // 2. WE ENTER THE CONTEXT OF THE SHEET.
             Console.WriteLine("EditSheet()...");
             try { drawing.EditSheet(); }
-            catch (Exception e) { Console.WriteLine("  EditSheet ha sollevato: " + e.Message); }
+            catch (Exception e) { Console.WriteLine("  EditSheet raised: " + e.Message); }
 
             // 3. WE DRAW. The coordinates are in METRES and in the system of the
             //    sheet: 0.05 m are 50 mm from the bottom left border.
@@ -77,27 +77,27 @@ namespace Checks.SketchOnSheet
             {
                 segment = sketches.CreateLine(0.05, 0.05, 0.0, 0.15, 0.05, 0.0) as ISketchSegment;
             }
-            catch (Exception e) { Console.WriteLine("  CreateLine ha sollevato: " + e.Message); }
+            catch (Exception e) { Console.WriteLine("  CreateLine raised: " + e.Message); }
             // WARNING: `ISketchSegment.GetType()` is NOT that of Object.
             // The interop hides it with a method of its own that returns the SEGMENT
             // TYPE as an integer (0 = line, 1 = arc, 3 = spline). Writing
             // `.Name` after it does not compile, and it is a good thing: if it compiled one
             // would read a class name in place of a line.
-            Console.WriteLine("CreateLine ha risposto: " +
-                (segment == null ? "null" : "segmento di tipo " + segment.GetType() +
-                 (segment.GetType() == 0 ? " (linea)" : "")));
+            Console.WriteLine("CreateLine answered: " +
+                (segment == null ? "null" : "segment of type " + segment.GetType() +
+                 (segment.GetType() == 0 ? " (line)" : "")));
 
             int after = SheetSegments(sheet);
-            Console.WriteLine("segmenti nello schizzo del foglio, dopo:  " + Show(after));
+            Console.WriteLine("segments in the sheet sketch, after:  " + Show(after));
             if (before >= 0 && after >= 0)
                 Console.WriteLine(after > before
-                    ? "  -> il segmento E' FINITO nello schizzo del foglio"
-                    : "  -> NON e' finito nello schizzo del foglio: sta da un'altra parte");
+                    ? "  -> the segment ENDED UP in the sheet sketch"
+                    : "  -> it did NOT end up in the sheet sketch: it is somewhere else");
 
             if (segment == null)
             {
                 Console.WriteLine();
-                Console.WriteLine("Senza segmento non si puo' provare la selezione.");
+                Console.WriteLine("Without a segment the selection cannot be tested.");
                 return 1;
             }
 
@@ -105,11 +105,11 @@ namespace Checks.SketchOnSheet
             // The question is not academic: to take back a line that was not
             // just drawn one must know in which sketch to look for it.
             var active = sketches.ActiveSketch as ISketch;
-            Console.WriteLine("schizzo attivo: " + (active == null ? "nessuno" : Name(active)));
+            Console.WriteLine("active sketch: " + (active == null ? "none" : Name(active)));
             if (active != null)
             {
                 var inside = active.GetSketchSegments() as object[];
-                Console.WriteLine("  segmenti dello schizzo attivo: " +
+                Console.WriteLine("  segments of the active sketch: " +
                     (inside == null ? "-" : inside.Length.ToString()));
             }
 
@@ -123,16 +123,16 @@ namespace Checks.SketchOnSheet
                 {
                     var its = view.GetSketch() as ISketch;
                     var segm = its == null ? null : its.GetSketchSegments() as object[];
-                    Console.WriteLine("  vista " + n + ": «" + view.GetName2() + "»" +
-                        ", tipo " + view.Type +
-                        ", segmenti nel suo schizzo: " +
+                    Console.WriteLine("  view " + n + ": «" + view.GetName2() + "»" +
+                        ", type " + view.Type +
+                        ", segments in its sketch: " +
                         (segm == null ? "-" : segm.Length.ToString()));
                     view = view.GetNextView() as IView;
                     n++;
                     if (n > 20) break;
                 }
             }
-            catch (Exception e) { Console.WriteLine("  giro delle viste: " + e.Message); }
+            catch (Exception e) { Console.WriteLine("  view loop: " + e.Message); }
 
             // 4. THE REAL QUESTION: CAN IT BE TAKEN BACK WITHOUT GOING THROUGH A NAME?
             // `CreateSectionViewAt5` wants the line selected, and a name
@@ -141,14 +141,14 @@ namespace Checks.SketchOnSheet
             doc.ClearSelection2(true);
             bool taken = false;
             try { taken = segment.Select4(false, null); }
-            catch (Exception e) { Console.WriteLine("  Select4 ha sollevato: " + e.Message); }
+            catch (Exception e) { Console.WriteLine("  Select4 raised: " + e.Message); }
             Console.WriteLine("Select4(false, null): " + taken);
-            Console.WriteLine("oggetti selezionati: " +
+            Console.WriteLine("selected objects: " +
                 selection.GetSelectedObjectCount2(-1));
             if (selection.GetSelectedObjectCount2(-1) > 0)
             {
                 int typ = selection.GetSelectedObjectType3(1, -1);
-                Console.WriteLine("tipo selezionato: " + typ + "  (" + TypeNameOf(typ) + ")");
+                Console.WriteLine("selected type: " + typ + "  (" + TypeNameOf(typ) + ")");
                 Console.WriteLine("marca: " + selection.GetSelectedObjectMark(1));
             }
 
@@ -162,9 +162,9 @@ namespace Checks.SketchOnSheet
                 data.Mark = 1;
                 withMark = segment.Select4(false, data);
             }
-            catch (Exception e) { Console.WriteLine("  Select4 con marca ha sollevato: " + e.Message); }
-            Console.WriteLine("Select4 con Mark=1: " + withMark +
-                ", marca riletta: " +
+            catch (Exception e) { Console.WriteLine("  Select4 with mark raised: " + e.Message); }
+            Console.WriteLine("Select4 with Mark=1: " + withMark +
+                ", mark read back: " +
                 (selection.GetSelectedObjectCount2(-1) > 0
                     ? selection.GetSelectedObjectMark(1).ToString()
                     : "-"));
@@ -174,12 +174,12 @@ namespace Checks.SketchOnSheet
             try
             {
                 var entity = segment as IEntity;
-                Console.WriteLine("il segmento e' anche IEntity: " + (entity != null));
+                Console.WriteLine("the segment is also an IEntity: " + (entity != null));
             }
             catch { }
 
             Console.WriteLine();
-            Console.WriteLine("Lo schizzo resta aperto: guardalo, poi annulla se non lo vuoi.");
+            Console.WriteLine("The sketch stays open: look at it, then undo if you do not want it.");
             return 0;
         }
 
@@ -206,14 +206,14 @@ namespace Checks.SketchOnSheet
             try
             {
                 var f = sketch as IFeature;
-                return f == null ? "(senza nome)" : f.Name;
+                return f == null ? "(no name)" : f.Name;
             }
-            catch { return "(nome illeggibile)"; }
+            catch { return "(unreadable name)"; }
         }
 
         private static string Show(int n)
         {
-            return n < 0 ? "- (non contati)" : n.ToString();
+            return n < 0 ? "- (not counted)" : n.ToString();
         }
 
         private static string TypeNameOf(int typ)

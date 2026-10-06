@@ -48,7 +48,7 @@ namespace Checks.ChangeByHand
                                  System.Globalization.CultureInfo.InvariantCulture,
                                  out side))
             {
-                Console.WriteLine("il lato si scrive in millimetri, per esempio 25");
+                Console.WriteLine("the side is written in millimeters, for example 25");
                 return 1;
             }
 
@@ -56,19 +56,19 @@ namespace Checks.ChangeByHand
             try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
             catch (Exception ex)
             {
-                Console.WriteLine("non mi aggancio a SOLIDWORKS: " + ex.Message);
+                Console.WriteLine("I am not attaching to SOLIDWORKS: " + ex.Message);
                 return 1;
             }
 
             var doc = (IModelDoc2)sw.ActiveDoc;
             if (doc == null)
             {
-                Console.WriteLine("nessun documento attivo: non c'e' niente da cambiare.");
+                Console.WriteLine("no active document: there is nothing to change.");
                 return 1;
             }
             if (doc.GetType() != (int)swDocumentTypes_e.swDocPART)
             {
-                Console.WriteLine("il documento attivo non e' una parte.");
+                Console.WriteLine("the active document is not a part.");
                 return 1;
             }
 
@@ -98,7 +98,7 @@ namespace Checks.ChangeByHand
 
             if (plane == null)
             {
-                Console.WriteLine("il documento non ha piani di riferimento.");
+                Console.WriteLine("the document has no reference planes.");
                 return 1;
             }
 
@@ -122,7 +122,7 @@ namespace Checks.ChangeByHand
             }
             catch (Exception ex)
             {
-                Console.WriteLine("l'estrusione e' esplosa: " + ex.Message);
+                Console.WriteLine("the extrusion blew up: " + ex.Message);
                 return 1;
             }
 
@@ -131,7 +131,7 @@ namespace Checks.ChangeByHand
 
             if (Math.Abs(after - before) < 1e-6)
             {
-                Console.WriteLine("NON E' CAMBIATO NIENTE: la sonda non ha fatto il suo mestiere.");
+                Console.WriteLine("NOTHING CHANGED: the probe did not do its job.");
                 return 1;
             }
             return 0;

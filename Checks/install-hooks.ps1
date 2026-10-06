@@ -18,10 +18,10 @@ $root = Split-Path -Parent $here
 $hooks = Join-Path $here 'hooks'
 
 if (-not (Test-Path (Join-Path $root '.git'))) {
-    Write-Host "Qui non c'e' un repository git: niente da accendere." -ForegroundColor Yellow
+    Write-Host "There is no git repository here: nothing to turn on." -ForegroundColor Yellow
     exit 1
 }
-if (-not (Test-Path $hooks)) { throw "non trovo $hooks" }
+if (-not (Test-Path $hooks)) { throw "cannot find $hooks" }
 
 # The path is written RELATIVE to the root and with forward slashes: git
 # resolves it with respect to the root of the working tree, and an absolute path of this
@@ -31,7 +31,7 @@ $relative = 'Checks/hooks'
 Push-Location $root
 try {
     & git config core.hooksPath $relative
-    if ($LASTEXITCODE -ne 0) { throw "git config ha risposto $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "git config answered $LASTEXITCODE" }
     $read = (& git config core.hooksPath)
 }
 finally { Pop-Location }
@@ -42,5 +42,5 @@ Get-ChildItem $hooks -File | ForEach-Object {
     Write-Host ("    " + $_.Name) -ForegroundColor DarkGray
 }
 Write-Host ""
-Write-Host "  Da adesso `git push` lancia check-publishability.ps1 e si" -ForegroundColor White
-Write-Host "  ferma se quello esce 1. Per saltarlo una volta: git push --no-verify" -ForegroundColor DarkGray
+Write-Host "  From now on git push runs check-publishability.ps1 and" -ForegroundColor White
+Write-Host "  stops if it exits 1. To skip it once: git push --no-verify" -ForegroundColor DarkGray

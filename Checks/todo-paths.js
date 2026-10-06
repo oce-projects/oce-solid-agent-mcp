@@ -179,35 +179,35 @@ for (const [p, docState] of citations) {
   if (docState === 'x') historical.push(p);      // closed entry: it is a name from back then
   else if (inRenameEntry.has(p) && !outsideRenameEntry.has(p) && nameOfAfter(p)) renamedBefore.push(p);
   else if (announced.has(p)) toDo.push(p);   // open entry that says «(da creare)»
-  else missingItems.push(p + (docState === null ? '   (fuori da una voce)' : ''));
+  else missingItems.push(p + (docState === null ? '   (outside an entry)' : ''));
 }
 
-console.log('percorsi citati:  ' + citations.size);
-console.log('che esistono:     ' + ok);
-console.log('in voci CHIUSE, e non si toccano: ' + historical.length);
-console.log('altrove o transitori:             ' + otherRepo.length);
-console.log('annunciati «(da creare)»:         ' + toDo.length);
+console.log('cited paths:      ' + citations.size);
+console.log('that exist:       ' + ok);
+console.log('in CLOSED entries, and not touched: ' + historical.length);
+console.log('elsewhere or transient:           ' + otherRepo.length);
+console.log('announced «(da creare)»:          ' + toDo.length);
 console.log('names of before, in the entry W3.1-bis: ' + renamedBefore.length);
 console.log('');
 if (missingItems.length === 0) {
-  console.log('Nessuna voce aperta manda a un file che non c\'e\'.');
+  console.log('No open entry points to a file that is not there.');
 } else {
-  console.log('VOCI APERTE che mandano a un file inesistente: ' + missingItems.length);
+  console.log('OPEN ENTRIES that point to a nonexistent file: ' + missingItems.length);
   for (const p of missingItems) console.log('  !  ' + p);
   console.log('');
-  console.log('Puo\' essere un file rinominato, uno mai scritto, o una cartella');
-  console.log('non ancora nell\'elenco BASI. E\' una cosa da guardare, non una colpa.');
+  console.log('It may be a renamed file, one never written, or a folder');
+  console.log('not yet in the BASI list. It is something to look at, not a fault.');
   // EXITS 1, because the pre-push hook reads it. A probe that prints and
   // then exits 0 is a probe that no hook can use.
   process.exitCode = 1;
 }
 if (all && toDo.length) {
   console.log('');
-  console.log('file annunciati dalle voci aperte, da creare:');
+  console.log('files announced by the open entries, to be created:');
   for (const p of toDo) console.log('  +  ' + p);
 }
 if (all && historical.length) {
   console.log('');
-  console.log('nomi di allora, dentro voci chiuse:');
+  console.log('names of then, inside closed entries:');
   for (const p of historical) console.log('  ~  ' + p);
 }

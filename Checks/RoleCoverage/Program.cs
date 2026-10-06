@@ -59,22 +59,22 @@ namespace Checks.RoleCoverage
         {
             ISldWorks sw;
             try { sw = Marshal.GetActiveObject("SldWorks.Application") as ISldWorks; }
-            catch { Console.Error.WriteLine("SolidWorks non e' aperto."); return 0; }
-            if (sw == null) { Console.Error.WriteLine("SolidWorks non risponde."); return 0; }
+            catch { Console.Error.WriteLine("SolidWorks is not open."); return 0; }
+            if (sw == null) { Console.Error.WriteLine("SolidWorks does not respond."); return 0; }
 
             var doc = sw.ActiveDoc as IModelDoc2;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento aperto."); return 0; }
+            if (doc == null) { Console.Error.WriteLine("No open document."); return 0; }
             if (doc.GetType() != (int)swDocumentTypes_e.swDocPART)
             {
-                Console.Error.WriteLine("Il documento attivo non e' una parte.");
+                Console.Error.WriteLine("The active document is not a part.");
                 return 0;
             }
 
-            Console.WriteLine("Copertura dei ruoli su: " + doc.GetTitle());
+            Console.WriteLine("Role coverage on: " + doc.GetTitle());
             Console.WriteLine();
 
             var faces = AllFaces(doc);
-            Console.WriteLine("  facce totali: " + faces.Count);
+            Console.WriteLine("  total faces: " + faces.Count);
 
             // ── which feature each face belongs to ──────────────────────────
             var perFeature = new Dictionary<int, List<IFace2>>();
@@ -100,8 +100,8 @@ namespace Checks.RoleCoverage
                 perFeature[id].Add(f);
             }
 
-            Console.WriteLine("  senza lavorazione leggibile: " + withoutFeature);
-            Console.WriteLine("  lavorazioni con facce: " + perFeature.Count);
+            Console.WriteLine("  without a readable feature: " + withoutFeature);
+            Console.WriteLine("  features with faces: " + perFeature.Count);
             Console.WriteLine();
 
             // ── the role of each face, feature by feature ───────────────────
@@ -150,19 +150,19 @@ namespace Checks.RoleCoverage
                 if (cylindrical.Count > 1) ambiguous += cylindrical.Count;
 
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "  {0,-34} {1,2} facce, {2} con ruolo{3}",
+                    "  {0,-34} {1,2} faces, {2} with role{3}",
                     Short(featureName[entry.Key], 34), its.Count, howManyHere,
-                    dir == null ? "   [direzione non leggibile]" : ""));
+                    dir == null ? "   [direction not readable]" : ""));
             }
 
             // ── the number that entry E7 asks for ──────────────────────────
             Console.WriteLine();
-            Console.WriteLine("=== Il numero");
+            Console.WriteLine("=== The number");
             int total = faces.Count;
-            Console.WriteLine("  con ruolo univoco:            " + Line(unique, total));
-            Console.WriteLine("  ambigue (piu' cilindriche):   " + Line(ambiguous, total));
-            Console.WriteLine("  senza ruolo (geometria):      " + Line(withoutRole, total));
-            Console.WriteLine("  senza ruolo (manca direzione):" + Line(withoutDirection, total));
+            Console.WriteLine("  with unique role:             " + Line(unique, total));
+            Console.WriteLine("  ambiguous (several cylindrical):" + Line(ambiguous, total));
+            Console.WriteLine("  without role (geometry):      " + Line(withoutRole, total));
+            Console.WriteLine("  without role (no direction):  " + Line(withoutDirection, total));
             Console.WriteLine();
             foreach (var r in roleCount.OrderByDescending(x => x.Value))
                 Console.WriteLine("      " + r.Key.PadRight(20) + r.Value);
@@ -170,8 +170,8 @@ namespace Checks.RoleCoverage
             Console.WriteLine();
             double dimension = total > 0 ? unique * 100.0 / total : 0;
             Console.WriteLine(dimension >= 50
-                ? "  Sopra meta': per questo pezzo la strada del ruolo regge."
-                : "  SOTTO META': per questo pezzo il ruolo e' un complemento, non la strada.");
+                ? "  Above half: for this part the role path holds."
+                : "  BELOW HALF: for this part the role is a complement, not the path.");
 
             return 0;
         }

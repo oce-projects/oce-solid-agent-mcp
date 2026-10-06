@@ -55,13 +55,13 @@ function Fine($m) { Write-Host "  [ok] $m" -ForegroundColor Green }
 function Note($m) { Write-Host "       $m" -ForegroundColor DarkGray }
 
 Write-Host ""
-Write-Host "=== Il catalogo contro l'esecutore" -ForegroundColor Cyan
+Write-Host "=== The catalog against the executor" -ForegroundColor Cyan
 
 # --- 1. the catalogue --------------------------------------------------------
 if (-not (Test-Path -LiteralPath $Catalog)) {
-    Write-Host "  [X] non trovo il catalogo: $Catalog" -ForegroundColor Red
+    Write-Host "  [X] cannot find the catalog: $Catalog" -ForegroundColor Red
     Write-Host ""
-    Write-Host "1 problema: il catalogo non c'e'. Compila con build.ps1." -ForegroundColor Red
+    Write-Host "1 problem: the catalog is not there. Build with build.ps1." -ForegroundColor Red
     exit 1
 }
 $cat = Get-Content -LiteralPath $Catalog -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -127,16 +127,16 @@ $operations = @($cat.operations)
 $catalogNames = @($operations | ForEach-Object { $_.name } | Sort-Object -Unique)
 
 if ($catalogNames.Count -lt 20) {
-    Write-Host ("  [X] il catalogo ha solo " + $catalogNames.Count + " operazioni: " +
-                "non l'ho letto bene, e confrontare due insiemi vuoti direbbe " +
-                "che va tutto bene.") -ForegroundColor Red
+    Write-Host ("  [X] the catalog has only " + $catalogNames.Count + " operations: " +
+                "I did not read it properly, and comparing two empty sets would say " +
+                "that all is well.") -ForegroundColor Red
     exit 1
 }
 Fine ("catalogo: " + $catalogNames.Count + " operazioni")
 
 # --- 2. what the executor DECLARES it can do --------------------------------
 if (-not (Test-Path -LiteralPath $Library)) {
-    Write-Host "  [X] non trovo la libreria: $Library" -ForegroundColor Red
+    Write-Host "  [X] cannot find the library: $Library" -ForegroundColor Red
     exit 1
 }
 # THE INTEROP OF SOLIDWORKS, found where it is installed (30/9/2026). The
@@ -174,17 +174,17 @@ public static class CatalogueCheckInterop
 $asm = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($Library))
 $typ = $asm.GetType("Oce.Solid.Agent.Core.SwOperations")
 if (-not $typ) {
-    Write-Host "  [X] nella libreria non c'e' Oce.Solid.Agent.Core.SwOperations" -ForegroundColor Red
+    Write-Host "  [X] Oce.Solid.Agent.Core.SwOperations is not in the library" -ForegroundColor Red
     exit 1
 }
 $theField = $typ.GetField("ExecutableNames")
 if (-not $theField) {
-    Write-Host ("  [X] SwOperations non espone ExecutableNames: senza, questo " +
-                "controllo dovrebbe indovinare.") -ForegroundColor Red
+    Write-Host ("  [X] SwOperations does not expose ExecutableNames: without it, this " +
+                "check would have to guess.") -ForegroundColor Red
     exit 1
 }
 $declared = @($theField.GetValue($null) | Sort-Object -Unique)
-Fine ("l'esecutore dichiara: " + $declared.Count + " operazioni")
+Fine ("the executor declares: " + $declared.Count + " operations")
 
 # --- 3. what is REALLY in the switch, read from the source -------------------
 # A second road to the same fact: if the two diverge, one of the two is
@@ -223,18 +223,18 @@ if (Test-Path -LiteralPath $Source) {
                      ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
 }
 if ($fromSource.Count -lt 20) {
-    Male ("dal sorgente ho letto solo " + $fromSource.Count + " 'case': la " +
-          "lettura non ha funzionato, e un controllo che non ha guardato non " +
-          "puo' dire che va tutto bene.")
+    Male ("from the source I read only " + $fromSource.Count + " 'case' labels: the " +
+          "reading did not work, and a check that did not look cannot " +
+          "say that all is well.")
 } else {
     $declaredOnly = @($declared | Where-Object { $_ -notin $fromSource })
     $sourceOnly = @($fromSource | Where-Object { $_ -notin $declared })
     if ($declaredOnly.Count -or $sourceOnly.Count) {
-        Male "ExecutableNames e i 'case' del sorgente non combaciano"
-        $declaredOnly | ForEach-Object { Note "dichiarato ma non nello switch: $_" }
-        $sourceOnly   | ForEach-Object { Note "nello switch ma non dichiarato: $_" }
+        Male "ExecutableNames and the 'case' labels of the source do not match"
+        $declaredOnly | ForEach-Object { Note "declared but not in the switch: $_" }
+        $sourceOnly   | ForEach-Object { Note "in the switch but not declared: $_" }
     } else {
-        Fine ("l'elenco dichiarato combacia con i " + $fromSource.Count + " 'case' del sorgente")
+        Fine ("the declared list matches the " + $fromSource.Count + " 'case' labels of the source")
     }
 }
 
@@ -243,29 +243,29 @@ $declaredNotRunnable = @($catalogNames | Where-Object { $_ -notin $declared })
 $undeclaredExecutables = @($declared | Where-Object { $_ -notin $catalogNames })
 
 if ($declaredNotRunnable.Count) {
-    Male ("il catalogo dichiara " + $declaredNotRunnable.Count +
-          " operazioni che l'esecutore NON sa eseguire")
+    Male ("the catalog declares " + $declaredNotRunnable.Count +
+          " operations that the executor does NOT know how to run")
     foreach ($n in $declaredNotRunnable) {
         $op = $operations | Where-Object { $_.name -eq $n } | Select-Object -First 1
-        Note ("$n   (famiglia: " + $op.family + ")")
+        Note ("$n   (family: " + $op.family + ")")
     }
-    Note "Il modello puo' chiederle, e si prende 'operazione sconosciuta'."
+    Note "The model can ask for them, and gets 'unknown operation'."
 } else {
-    Fine "ogni operazione del catalogo e' eseguibile"
+    Fine "every operation in the catalog is executable"
 }
 
 if ($undeclaredExecutables.Count) {
     # It is NOT an error: an operation that exists but is not declared is
     # simply invisible to the model, which is the intended behaviour for
     # what has not been tested yet.
-    Fine ("eseguibili ma non dichiarate: " + $undeclaredExecutables.Count +
-          " (invisibili al modello, ed e' voluto)")
+    Fine ("executable but not declared: " + $undeclaredExecutables.Count +
+          " (invisible to the model, and that is intended)")
     $undeclaredExecutables | ForEach-Object { Note $_ }
 }
 
 # --- 5. the shape of every entry ---------------------------------------------
 Write-Host ""
-Write-Host "=== La forma del catalogo" -ForegroundColor Cyan
+Write-Host "=== The shape of the catalog" -ForegroundColor Cyan
 
 $mandatoryFields = @("name", "family", "summary", "details", "schema")
 $withoutField = 0
@@ -273,12 +273,12 @@ foreach ($op in $operations) {
     foreach ($c in $mandatoryFields) {
         $v = $op.$c
         if ($null -eq $v -or ($v -is [string] -and [string]::IsNullOrWhiteSpace($v))) {
-            Male ("'" + $op.name + "' non ha '" + $c + "'")
+            Male ("'" + $op.name + "' has no '" + $c + "'")
             $withoutField++
         }
     }
 }
-if ($withoutField -eq 0) { Fine "ogni operazione ha nome, famiglia, sommario, descrizione, schema" }
+if ($withoutField -eq 0) { Fine "every operation has name, family, summary, description, schema" }
 
 # --- 6. the families ---------------------------------------------------------
 # It is the defect already repaired once in esporta_catalogo.py: a family
@@ -288,20 +288,20 @@ $usedFamilies = @($operations | ForEach-Object { $_.family } | Sort-Object -Uniq
 $empty = @($familiesDeclared | Where-Object { $_ -notin $usedFamilies })
 $notDeclared = @($usedFamilies | Where-Object { $_ -notin $familiesDeclared })
 if ($empty.Count) {
-    Male ("famiglie dichiarate e VUOTE: " + ($empty -join ", "))
-    Note "Al modello arrivano come una porta che non apre su niente."
+    Male ("families declared and EMPTY: " + ($empty -join ", "))
+    Note "To the model they look like a door that opens onto nothing."
 }
 if ($notDeclared.Count) {
-    Male ("famiglie usate ma non dichiarate: " + ($notDeclared -join ", "))
+    Male ("families used but not declared: " + ($notDeclared -join ", "))
 }
 if (-not $empty.Count -and -not $notDeclared.Count) {
-    Fine ("le " + $usedFamilies.Count + " famiglie tornano")
+    Fine ("the " + $usedFamilies.Count + " families add up")
 }
 
 # --- 7. what must NOT appear in the texts ------------------------------------
 # C2 of the audit stops being a grep to run by hand and becomes a check.
 Write-Host ""
-Write-Host "=== Cosa non deve uscire dal catalogo" -ForegroundColor Cyan
+Write-Host "=== What must not come out of the catalog" -ForegroundColor Cyan
 # WE SEARCH THE DECODED TEXT, NOT THE RAW FILE.
 #
 # The first draft read the JSON as text and searched for «O:\» without distinguishing
@@ -337,16 +337,16 @@ foreach ($v in $forbidden) {
     if ($text.IndexOf($v, $mode) -ge 0) { $foundItems += $v }
 }
 if ($foundItems.Count) {
-    Male ("nel catalogo compaiono: " + ($foundItems -join ", "))
-    Note "Il catalogo lo legge chi usa il ponte: qui dentro non ci va casa nostra."
+    Male ("these appear in the catalog: " + ($foundItems -join ", "))
+    Note "The catalog is read by whoever uses the bridge: our own internals do not belong in it."
 } else {
-    Fine "nessun percorso interno, nome di prodotto o indirizzo"
+    Fine "no internal path, product name or address"
 }
 
 # --- outcome -----------------------------------------------------------------
 Write-Host ""
 if ($problems.Count -eq 0) {
-    Write-Host "Tutto torna." -ForegroundColor Green
+    Write-Host "Everything adds up." -ForegroundColor Green
     exit 0
 }
 Write-Host ($problems.Count.ToString() + " problemi.") -ForegroundColor Red

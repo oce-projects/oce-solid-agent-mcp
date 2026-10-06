@@ -32,7 +32,7 @@ namespace Checks.NewPart
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException)
             {
-                Console.Error.WriteLine("SOLIDWORKS non e' aperto.");
+                Console.Error.WriteLine("SOLIDWORKS is not open.");
                 return 2;
             }
             var sw = (ISldWorks)raw;
@@ -40,7 +40,7 @@ namespace Checks.NewPart
             string model = Preferred(sw) ?? SearchedOnDisk();
             if (model == null)
             {
-                Console.Error.WriteLine("Nessun modello di parte (.prtdot) trovato.");
+                Console.Error.WriteLine("No part template (.prtdot) found.");
                 return 1;
             }
             Console.WriteLine("modello: " + model);
@@ -48,10 +48,10 @@ namespace Checks.NewPart
             var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
             if (doc == null)
             {
-                Console.Error.WriteLine("NewDocument ha dato null.");
+                Console.Error.WriteLine("NewDocument returned null.");
                 return 1;
             }
-            Console.WriteLine("nuova parte: " + doc.GetTitle());
+            Console.WriteLine("new part: " + doc.GetTitle());
             return 0;
         }
 

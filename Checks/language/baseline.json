@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 23633,
+  "strings": 18511,
   "markdown": 11388,
   "json_values": 54633,
-  "identifiers": 1713,
+  "identifiers": 1705,
   "json_keys": 14,
-  "protocol": 731,
+  "protocol": 697,
   "paths": 0,
   "transition": 2188
  },
@@ -954,164 +954,76 @@
   "CHANGELOG.md": {
    "markdown": 361
   },
-  "Checks/Bracket/Program.cs": {
-   "strings": 232
-  },
-  "Checks/BrokenBody/Program.cs": {
-   "strings": 165
-  },
-  "Checks/ChangeByHand/Program.cs": {
-   "strings": 44
-  },
-  "Checks/CloseLeftovers/Program.cs": {
-   "strings": 21
-  },
-  "Checks/DetailView/Program.cs": {
-   "strings": 85
-  },
-  "Checks/DimXpert/Program.cs": {
-   "strings": 83
-  },
-  "Checks/DimensionApis/Program.cs": {
-   "strings": 7
-  },
-  "Checks/DrawingDimensions/Program.cs": {
-   "strings": 69
-  },
   "Checks/EdgeFlange/Program.cs": {
-   "strings": 98,
+   "strings": 3,
    "comments": 3
   },
-  "Checks/ExtrusionType/Program.cs": {
-   "strings": 14
-  },
   "Checks/FaceFillet/Program.cs": {
-   "comments": 30,
-   "strings": 54
+   "comments": 30
   },
   "Checks/Fill/Program.cs": {
-   "comments": 73,
-   "strings": 51
-  },
-  "Checks/FollowTheEdge/Program.cs": {
-   "strings": 139
-  },
-  "Checks/FramingTest/Program.cs": {
-   "strings": 97
+   "comments": 73
   },
   "Checks/GearTest/Program.cs": {
-   "comments": 8,
-   "strings": 72
+   "comments": 8
   },
   "Checks/Gusset/Program.cs": {
    "comments": 265,
-   "strings": 257
-  },
-  "Checks/HoleOrFillet/Program.cs": {
-   "strings": 35
+   "strings": 1
   },
   "Checks/Modal/Program.cs": {
-   "comments": 3,
-   "strings": 78
-  },
-  "Checks/NewPart/Program.cs": {
-   "strings": 12
-  },
-  "Checks/Option/Program.cs": {
-   "strings": 31
-  },
-  "Checks/Orphan/Program.cs": {
-   "strings": 189
+   "comments": 3
   },
   "Checks/OutlineTest/Program.cs": {
-   "strings": 161,
    "comments": 4
   },
   "Checks/PdfText/Program.cs": {
    "comments": 1,
-   "strings": 166
-  },
-  "Checks/PositionsTest/Program.cs": {
-   "comments": 8,
-   "strings": 133
-  },
-  "Checks/RedTree/Program.cs": {
-   "strings": 24
-  },
-  "Checks/Rib/Program.cs": {
-   "comments": 70,
-   "strings": 91
-  },
-  "Checks/RibWithdraw/Program.cs": {
-   "comments": 9,
    "strings": 1
   },
-  "Checks/RoleCoverage/Program.cs": {
-   "strings": 64
+  "Checks/PositionsTest/Program.cs": {
+   "comments": 8
+  },
+  "Checks/Rib/Program.cs": {
+   "comments": 70
+  },
+  "Checks/RibWithdraw/Program.cs": {
+   "comments": 9
   },
   "Checks/SectionView/Program.cs": {
-   "strings": 91,
    "comments": 3
   },
   "Checks/Select/Program.cs": {
-   "comments": 4,
-   "strings": 18
+   "comments": 4
   },
   "Checks/SheetMetal/Program.cs": {
-   "strings": 145,
    "comments": 2
   },
-  "Checks/SketchOnSheet/Program.cs": {
-   "strings": 111
-  },
   "Checks/Thickness/Program.cs": {
-   "comments": 2,
-   "strings": 169
-  },
-  "Checks/Undo/Program.cs": {
-   "strings": 15
-  },
-  "Checks/ViewTest/Program.cs": {
-   "strings": 51
-  },
-  "Checks/build-checks.ps1": {
-   "strings": 33
+   "comments": 2
   },
   "Checks/check-catalog.ps1": {
-   "comments": 11,
-   "strings": 173
+   "comments": 11
   },
   "Checks/check-documents-without-file.ps1": {
-   "strings": 56,
    "comments": 7
   },
   "Checks/check-publishability.ps1": {
-   "comments": 10,
-   "strings": 168
-  },
-  "Checks/check-workflow.ps1": {
-   "strings": 36
+   "comments": 10
   },
   "Checks/cleanup-history.js": {
    "comments": 2
   },
   "Checks/count-tested.js": {
-   "comments": 8,
-   "strings": 104
+   "comments": 8
   },
   "Checks/count-todo.js": {
    "comments": 50,
-   "strings": 90
-  },
-  "Checks/error-enum.ps1": {
-   "strings": 29
+   "strings": 1
   },
   "Checks/hooks/pre-push": {
    "comments": 1,
    "strings": 81
-  },
-  "Checks/install-hooks.ps1": {
-   "strings": 18
   },
   "Checks/language/name-map.tsv": {
    "transition": 2165,
@@ -1134,52 +1046,31 @@
   },
   "Checks/library-of-the-time.ps1": {
    "comments": 1,
-   "strings": 43
+   "strings": 1
   },
   "Checks/prepare-release.ps1": {
-   "strings": 88
-  },
-  "Checks/questions-without-answer.js": {
-   "strings": 125
-  },
-  "Checks/rename-product.js": {
-   "strings": 27
-  },
-  "Checks/signatures-api.ps1": {
-   "strings": 200
+   "strings": 2
   },
   "Checks/solidworks-modules.ps1": {
-   "strings": 133,
-   "comments": 13
-  },
-  "Checks/test-installer.js": {
-   "strings": 167
+   "comments": 13,
+   "strings": 1
   },
   "Checks/test-x2.js": {
-   "comments": 4,
-   "strings": 70
-  },
-  "Checks/todo-lines.js": {
-   "strings": 137
+   "comments": 4
   },
   "Checks/todo-paths.js": {
    "comments": 4,
-   "strings": 59
+   "strings": 3
   },
   "Checks/todo-references.js": {
-   "comments": 17,
-   "strings": 34
-  },
-  "Checks/todo-signatures.ps1": {
-   "strings": 112
+   "comments": 17
   },
   "Checks/where-is-the-todo.js": {
-   "comments": 1,
-   "strings": 17
+   "comments": 1
   },
   "Checks/zero-or-unknown.js": {
    "comments": 6,
-   "strings": 145
+   "strings": 2
   },
   "INSTALL-FOR-AI.md": {
    "markdown": 5
@@ -1723,7 +1614,6 @@
    "OperazioniVerifica",
    "Opzione",
    "Orfana",
-   "PIU",
    "PONTE",
    "PROFILI",
    "PROFILI_SALDATURA",
@@ -1794,7 +1684,6 @@
    "ProveSenzaIlPezzo",
    "ProveSessione",
    "PuntoNelloSchizzo",
-   "Puo",
    "PuoNominarli",
    "QUADRO_COPIA",
    "QuotaFraDue",
@@ -2014,7 +1903,6 @@
    "bonifica",
    "bonifica-storia",
    "bordi_non_quotati",
-   "bordo",
    "c2_cerchio_senza_diametro",
    "c2_cerchio_zero",
    "c2_tubo_dal_catalogo",
@@ -2210,7 +2098,6 @@
    "definito",
    "delle",
    "densita",
-   "dentro",
    "descrivi_operazione",
    "descrizione",
    "destra",
@@ -2384,7 +2271,6 @@
    "frase",
    "frontale",
    "fronte",
-   "fuori",
    "ganci",
    "gemella",
    "gemelle",
@@ -2719,7 +2605,6 @@
    "nUNA",
    "nUna",
    "nVa",
-   "nell",
    "nervatura",
    "nervatura_nell_angolo_della_l",
    "nervatura_nella_scatola_svuotata",
@@ -2802,7 +2687,6 @@
    "piega",
    "piega_da_schizzo",
    "pieno",
-   "piu",
    "piu_meno",
    "planarita",
    "poligonale",
@@ -2838,7 +2722,6 @@
    "profilo_sezione",
    "profilo_superficie",
    "profondita_mm",
-   "programma",
    "proprieta",
    "proprieta_di_massa",
    "proprietario",
@@ -3248,12 +3131,7 @@
    "Esiste",
    "Esito",
    "FERMATO",
-   "FERMO",
    "FINTO",
-   "FINTO-detto",
-   "FINTO-ingresso",
-   "FINTO-muto",
-   "FINTO-nudo",
    "FINTO-rotto",
    "FINTO-sano",
    "Famiglia",
@@ -3271,7 +3149,6 @@
    "Materiale",
    "Metti",
    "NATA",
-   "NIENTE",
    "Nome",
    "Non-Esiste",
    "NonEsiste",
@@ -3301,7 +3178,6 @@
    "QUANTITA",
    "RAGGIUNGIBILE",
    "REGGE",
-   "RIEPILOGO",
    "RISCONTRO_CATALOGO",
    "RISCONTRO_DISEGNO",
    "RISCONTRO_RADICE",
@@ -3313,7 +3189,6 @@
    "Riscontro",
    "Riscontro-prove",
    "SALTATA",
-   "SCRITTE",
    "SILENZIO",
    "SPARITO",
    "Scrivi",
@@ -3371,7 +3246,6 @@
    "annullare",
    "api_sw_array_tipizzati",
    "api_sw_che_aprono_finestre",
-   "applicazione",
    "appoggiato",
    "apri",
    "apri_la_tavola",
@@ -3390,7 +3264,6 @@
    "assonometrica",
    "assonometrica-della-nonna",
    "attaccato_allo_spigolo",
-   "attenzione",
    "attesa",
    "atteso",
    "ausiliaria",
@@ -3400,7 +3273,6 @@
    "banco",
    "banco-modelli",
    "baricentro",
-   "basso",
    "bene",
    "bloccato",
    "blocchi",
@@ -3425,7 +3297,6 @@
    "chilogrammi",
    "chiudi",
    "chiudi-gli-scarti",
-   "chiusi",
    "chiuso",
    "cilindro",
    "cinquanta",
@@ -3475,16 +3346,13 @@
    "descrizione",
    "destinazione",
    "destra",
-   "destro",
    "dettaglio",
-   "detto",
    "di_taglio",
    "diagonale",
    "diciannove",
    "diciassette",
    "diciotto",
    "dieci",
-   "difetto",
    "dimmela",
    "dimmi",
    "disegna",
@@ -3504,9 +3372,7 @@
    "eccezione",
    "elenco",
    "elle",
-   "entro",
    "errore",
-   "errori",
    "esempio",
    "esiste",
    "esito",
@@ -3585,7 +3451,6 @@
    "ingombro",
    "ingombro_mm",
    "ingranaggio",
-   "ingresso",
    "inserting_is_not_mating_coperchio",
    "installato",
    "installato4",
@@ -3610,8 +3475,6 @@
    "libreria-di-allora",
    "limite",
    "limiti",
-   "linea",
-   "linee",
    "lingua",
    "lontanissimo",
    "lontano",
@@ -3641,12 +3504,10 @@
    "modulo",
    "muta",
    "mutazioni",
-   "muto",
    "nato",
    "nel",
    "nessuna",
    "nessuno",
-   "niente",
    "nome",
    "non-esiste",
    "non_esiste",
@@ -3657,14 +3518,12 @@
    "note-interne",
    "novanta",
    "nove",
-   "nudo",
    "numeri",
    "numeri_banco",
    "obliquo",
    "occorrenze",
    "oce-vista",
    "offerti",
-   "oggetto",
    "operazione",
    "operazioni",
    "opposto",
@@ -3695,7 +3554,6 @@
    "pezzo",
    "piani",
    "piano",
-   "piastra",
    "piastra_",
    "piega_lamiera",
    "pippo",
@@ -3789,12 +3647,10 @@
    "rivoluzione",
    "rosse",
    "rotto",
-   "rumore",
    "saldatura_in_tavola",
    "saldature",
    "salvalo",
    "sano",
-   "sbaglia",
    "sbord",
    "scadenzaMs",
    "scarti",
@@ -3814,8 +3670,6 @@
    "sedici",
    "segmenti",
    "sei",
-   "selezionati",
-   "selezionato",
    "selezione",
    "selezioni",
    "senza",
@@ -3833,7 +3687,6 @@
    "silenzioso",
    "simili",
    "simmetrico",
-   "sinistro",
    "smusso",
    "solidworks_documento_attivo",
    "sommario",
@@ -3875,7 +3728,6 @@
    "telaio",
    "telaio_da_un_metro",
    "tentativo",
-   "tenuti",
    "tenuto",
    "testa",
    "testo",
@@ -3890,12 +3742,10 @@
    "tolto",
    "tondo",
    "traccia",
-   "trave",
    "tre",
    "tredici",
    "trenta",
    "triangolo",
-   "trovate",
    "trovati",
    "trovato",
    "tubo",
@@ -3938,7 +3788,6 @@
    "vuoto",
    "x_qualunque",
    "z_c21_2_faccia_selezionata",
-   "zona",
    "zz_la_sezione_u_come_il_ponte_arriva_a_tutta_l_api",
    "zz_ter_i_materiali_dei_due_workflow"
   ],

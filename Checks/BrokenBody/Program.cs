@@ -52,7 +52,7 @@ namespace Checks.BrokenBody
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException)
             {
-                Console.Error.WriteLine("SOLIDWORKS non e' aperto.");
+                Console.Error.WriteLine("SOLIDWORKS is not open.");
                 return 2;
             }
             var sw = (ISldWorks)raw;
@@ -60,35 +60,35 @@ namespace Checks.BrokenBody
             string model = Preferred(sw) ?? SearchedOnDisk();
             if (model == null)
             {
-                Console.Error.WriteLine("Nessun modello di parte (.prtdot) trovato.");
+                Console.Error.WriteLine("No part template (.prtdot) found.");
                 return 2;
             }
 
             var doc = (IModelDoc2)sw.NewDocument(model, 0, 0, 0);
             if (doc == null)
             {
-                Console.Error.WriteLine("NewDocument ha dato null.");
+                Console.Error.WriteLine("NewDocument returned null.");
                 return 2;
             }
-            Console.WriteLine("pezzo di prova: " + doc.GetTitle());
+            Console.WriteLine("test part: " + doc.GetTitle());
 
             // ── 1. THE HEALTHY ONE: a 100 x 100 x 20 box ──────────────────
             if (!Extrude(doc, -0.05, -0.05, 0.05, 0.05, 0.02, false))
             {
-                Console.Error.WriteLine("non sono riuscito a estrudere il corpo sano.");
+                Console.Error.WriteLine("could not extrude the healthy body.");
                 return 2;
             }
             var healthy = Solids(doc);
-            Tell("il sano: 100 x 100 x 20 estruso", healthy);
+            Tell("the healthy one: 100 x 100 x 20 extruded", healthy);
             Console.WriteLine();
-            Expect("il solido sano: Check() dice 1, non 0", One(healthy[0], c => c.Check()) == 1,
+            Expect("the healthy solid: Check() says 1, not 0", One(healthy[0], c => c.Check()) == 1,
                      "Check() = " + One(healthy[0], c => c.Check()));
-            Expect("il solido sano: Check2() dice 0, non 1", One(healthy[0], c => c.Check2()) == 0,
+            Expect("the healthy solid: Check2() says 0, not 1", One(healthy[0], c => c.Check2()) == 0,
                      "Check2() = " + One(healthy[0], c => c.Check2()));
-            Expect("il solido sano: nessun difetto in Check3", Defects(healthy[0]) == 0,
+            Expect("the healthy solid: no defect in Check3", Defects(healthy[0]) == 0,
                      "Check3.Count = " + Defects(healthy[0]));
-            Expect("il solido sano: nessuna fessura", Gaps(healthy[0]) == 0,
-                     "fessure = " + Gaps(healthy[0]));
+            Expect("the healthy solid: no gap", Gaps(healthy[0]) == 0,
+                     "gaps = " + Gaps(healthy[0]));
 
             // ── 2. TWO BODIES TOUCHING ALONG AN EDGE ──────────────────────
             //
@@ -96,9 +96,9 @@ namespace Checks.BrokenBody
             // exactly where the first ends, offset: the two touch
             // along an edge and do not fuse, because `Merge` is false.
             if (!Extrude(doc, 0.05, 0.05, 0.15, 0.15, 0.02, true))
-                Console.WriteLine("(il secondo blocco non e' venuto: il caso 2 salta)");
+                Console.WriteLine("(the second block did not come out: case 2 is skipped)");
             else
-                Tell("due blocchi che si toccano per uno spigolo", Solids(doc));
+                Tell("two blocks that touch along an edge", Solids(doc));
 
             // ── 3. A SHEET BODY, WHICH IS NOT A SOLID ─────────────────────
             //
@@ -111,11 +111,11 @@ namespace Checks.BrokenBody
                 // IT IS NOT A SKIPPED CHECK, IT IS THE TOOL THAT DID NOT DO ITS
                 // JOB: without the sheet nothing is measured of what
                 // it exists for, and calling it green would be the worst lie.
-                Console.Error.WriteLine("la superficie non e' venuta: senza il corpo di foglio " +
-                                        "questo attrezzo non misura niente.");
+                Console.Error.WriteLine("the surface did not come out: without the sheet body " +
+                                        "this tool measures nothing.");
                 return 2;
             }
-            Tell("un corpo di foglio (superficie piana)", new[] { sheet });
+            Tell("a sheet body (flat surface)", new[] { sheet });
             Console.WriteLine();
 
             // ── THE RED THAT THIS TOOL EXISTS TO KEEP ─────────────────────
@@ -123,19 +123,19 @@ namespace Checks.BrokenBody
             // An OPEN body passes three checks out of four. If one day
             // `Check3` learned to see it, these three lines would turn
             // red — and that is exactly when the operation must be rewritten.
-            Expect("il foglio e' un corpo di foglio, non un solido",
+            Expect("the sheet is a sheet body, not a solid",
                      TypeName(sheet) == "foglio", "tipo " + TypeName(sheet));
-            Expect("il foglio: Check() lo dichiara sano lo stesso", One(sheet, c => c.Check()) == 1,
+            Expect("the sheet: Check() declares it healthy all the same", One(sheet, c => c.Check()) == 1,
                      "Check() = " + One(sheet, c => c.Check()));
-            Expect("il foglio: Check2() lo dichiara sano lo stesso", One(sheet, c => c.Check2()) == 0,
+            Expect("the sheet: Check2() declares it healthy all the same", One(sheet, c => c.Check2()) == 0,
                      "Check2() = " + One(sheet, c => c.Check2()));
-            Expect("il foglio: Check3 non trova NIENTE su un corpo aperto", Defects(sheet) == 0,
+            Expect("the sheet: Check3 finds NOTHING on an open body", Defects(sheet) == 0,
                      "Check3.Count = " + Defects(sheet));
-            Expect("SOLO Diagnose() vede la fessura", Gaps(sheet) >= 1,
-                     "fessure = " + Gaps(sheet));
+            Expect("ONLY Diagnose() sees the gap", Gaps(sheet) >= 1,
+                     "gaps = " + Gaps(sheet));
 
             Console.WriteLine();
-            Console.WriteLine("Il pezzo resta aperto: guardalo, poi chiudilo senza salvare.");
+            Console.WriteLine("The part stays open: look at it, then close it without saving.");
             return _broken == 0 ? 0 : 1;
         }
 
@@ -205,20 +205,20 @@ namespace Checks.BrokenBody
                         for (int k = 0; k < n; k++)
                         {
                             int code = f.get_ErrorCode(k);
-                            Console.WriteLine("      difetto " + k + ": codice " + code +
+                            Console.WriteLine("      defect " + k + ": code " + code +
                                               " (" + CodeName(code) + ")");
                         }
                     }
                 }
-                catch (Exception ex) { Console.WriteLine("    Check3           ERRORE " + ex.Message); }
+                catch (Exception ex) { Console.WriteLine("    Check3           ERROR " + ex.Message); }
 
                 try
                 {
                     var d = c.Diagnose() as IDiagnoseResult;
                     if (d == null) Console.WriteLine("    Diagnose()       null");
-                    else Console.WriteLine("    Diagnose fessure " + d.GetGapsCount());
+                    else Console.WriteLine("    Diagnose gaps " + d.GetGapsCount());
                 }
-                catch (Exception ex) { Console.WriteLine("    Diagnose()       ERRORE " + ex.Message); }
+                catch (Exception ex) { Console.WriteLine("    Diagnose()       ERROR " + ex.Message); }
             }
         }
 
@@ -281,7 +281,7 @@ namespace Checks.BrokenBody
                     return ((swFaultEntityErrorCode_e)code).ToString();
             }
             catch { }
-            return "NON E' UN VALORE DI swFaultEntityErrorCode_e";
+            return "IS NOT A VALUE OF swFaultEntityErrorCode_e";
         }
 
         private static IBody2[] Solids(IModelDoc2 doc)
@@ -303,7 +303,7 @@ namespace Checks.BrokenBody
                 doc.ClearSelection2(true);
                 if (!SelectFrontPlane(doc))
                 {
-                    Console.WriteLine("  il piano frontale non si e' lasciato selezionare: " +
+                    Console.WriteLine("  the front plane would not let itself be selected: " +
                                       PlaneNames(doc));
                     return false;
                 }
@@ -314,7 +314,7 @@ namespace Checks.BrokenBody
                 sm.InsertSketch(false);
                 if (!SelectLastSketch(doc))
                 {
-                    Console.WriteLine("  lo schizzo appena fatto non si e' lasciato selezionare");
+                    Console.WriteLine("  the sketch just made would not let itself be selected");
                     return false;
                 }
 
@@ -336,7 +336,7 @@ namespace Checks.BrokenBody
             }
             catch (Exception ex)
             {
-                Console.WriteLine("estrusione fallita: " + ex.Message);
+                Console.WriteLine("extrusion failed: " + ex.Message);
                 return false;
             }
         }
@@ -353,7 +353,7 @@ namespace Checks.BrokenBody
                 sm.InsertSketch(false);
                 if (!SelectLastSketch(doc))
                 {
-                    Console.WriteLine("  lo schizzo della superficie non si e' lasciato selezionare");
+                    Console.WriteLine("  the surface sketch would not let itself be selected");
                     return null;
                 }
                 // IT LIVES ON `IModelDoc2` AND RETURNS A BOOLEAN, not on the
@@ -369,7 +369,7 @@ namespace Checks.BrokenBody
             }
             catch (Exception ex)
             {
-                Console.WriteLine("superficie fallita: " + ex.Message);
+                Console.WriteLine("surface failed: " + ex.Message);
                 return null;
             }
         }
@@ -449,9 +449,9 @@ namespace Checks.BrokenBody
                     try { if (f.GetTypeName2() == "RefPlane") names.Add("«" + f.Name + "»"); } catch { }
                     f = f.IGetNextFeature();
                 }
-                return names.Count == 0 ? "l'albero non ha piani" : string.Join(", ", names);
+                return names.Count == 0 ? "the tree has no planes" : string.Join(", ", names);
             }
-            catch (Exception ex) { return "non ho potuto leggere l'albero: " + ex.Message; }
+            catch (Exception ex) { return "could not read the tree: " + ex.Message; }
         }
 
         private static string Preferred(ISldWorks sw)

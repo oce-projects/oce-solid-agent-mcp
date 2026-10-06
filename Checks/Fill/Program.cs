@@ -80,17 +80,17 @@ internal static class Program
     {
         bool keep = Array.IndexOf(args, "--keep") >= 0;
         try { _sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
         Console.WriteLine("PROBE FILL (W1.1) — SOLIDWORKS " + _sw.RevisionNumber());
 
         var attempts = new List<KeyValuePair<string, Func<Model, IFeature>>>
         {
-            new KeyValuePair<string, Func<Model, IFeature>>("A  ricetta ufficiale: 4 + 1 + 16384 PRIMA di CreateDefinition", m => Fill(m, true, true, false, false)),
-            new KeyValuePair<string, Func<Model, IFeature>>("A2 come A, senza direzione",                                   m => Fill(m, false, true, false, false)),
-            new KeyValuePair<string, Func<Model, IFeature>>("C  stesse selezioni, ma DOPO CreateDefinition",                m => Fill(m, true, false, false, false)),
-            new KeyValuePair<string, Func<Model, IFeature>>("D  faccia del foro con marca 5 (FACES)",                        m => Fill(m, true, true, true, false)),
-            new KeyValuePair<string, Func<Model, IFeature>>("B  controllo: via storica, proprieta' scritte, niente selezione", m => Fill(m, false, false, false, true)),
-            new KeyValuePair<string, Func<Model, IFeature>>("T  tabella: seme marca 4, PointArray piatto",                   Table),
+            new KeyValuePair<string, Func<Model, IFeature>>("A  official recipe: 4 + 1 + 16384 BEFORE CreateDefinition", m => Fill(m, true, true, false, false)),
+            new KeyValuePair<string, Func<Model, IFeature>>("A2 like A, without direction",                                   m => Fill(m, false, true, false, false)),
+            new KeyValuePair<string, Func<Model, IFeature>>("C  same selections, but AFTER CreateDefinition",                m => Fill(m, true, false, false, false)),
+            new KeyValuePair<string, Func<Model, IFeature>>("D  hole face with mark 5 (FACES)",                        m => Fill(m, true, true, true, false)),
+            new KeyValuePair<string, Func<Model, IFeature>>("B  control: the historical way, properties written, no selection", m => Fill(m, false, false, false, true)),
+            new KeyValuePair<string, Func<Model, IFeature>>("T  table: seed mark 4, flat PointArray",                   Table),
         };
 
         int born = 0;
@@ -100,7 +100,7 @@ internal static class Program
             try
             {
                 model = BuildPlate();
-                if (model.Seed == null) outcome = "modello non costruito";
+                if (model.Seed == null) outcome = "model not built";
                 else
                 {
                     double v0 = Volume(model.Doc); int b0 = Bodies(model.Doc); var before = FeatureKeys(model.Doc);
@@ -111,8 +111,8 @@ internal static class Program
                     bool isNew = f != null && !before.Contains(f.Name + "|" + f.GetTypeName2());
                     if (isNew) born++;
                     outcome = (f == null ? "CreateFeature NULL" : "«" + f.Name + "» [" + f.GetTypeName2() + "]") + raised +
-                              ", volume " + Fmt(v0) + " -> " + Fmt(v1) + " (fori in piu' " + ((v0 - v1) / 603.19).ToString("0.##", CultureInfo.InvariantCulture) + ")" +
-                              ", corpi " + b0 + " -> " + Bodies(model.Doc) + ", feature in errore " + InError(model.Doc);
+                              ", volume " + Fmt(v0) + " -> " + Fmt(v1) + " (extra holes " + ((v0 - v1) / 603.19).ToString("0.##", CultureInfo.InvariantCulture) + ")" +
+                              ", bodies " + b0 + " -> " + Bodies(model.Doc) + ", features in error " + InError(model.Doc);
                 }
             }
             catch (Exception ex) { outcome = "ECCEZIONE " + ex.Message; }
@@ -120,7 +120,7 @@ internal static class Program
             Console.WriteLine("  " + at.Key + "  ->  " + outcome);
         }
         Console.WriteLine();
-        Console.WriteLine("RIEPILOGO: " + born + "/" + attempts.Count + " tentativi hanno creato una feature.");
+        Console.WriteLine("SUMMARY: " + born + "/" + attempts.Count + " attempts created a feature.");
         return born > 0 ? 0 : 5;
     }
 
@@ -157,11 +157,11 @@ internal static class Program
         bool ok;
         if (faceAsObject) ok = ((IEntity)m.Bore).Select4(false, Mark(selMgr, 5));
         else ok = doc.Extension.SelectByID2(m.Seed.Name, "BODYFEATURE", 0, 0, 0, false, 4, null, 0);
-        if (!ok) return "oggetto da ripetere non selezionato";
-        if (withDirection && !((IEntity)m.EdgeAlongX).Select4(true, Mark(selMgr, 1))) return "spigolo di direzione non selezionato";
-        if (!((IEntity)m.Top).Select4(true, Mark(selMgr, 16384))) return "faccia di contorno non selezionata";
-        Console.WriteLine("      selezionati " + selMgr.GetSelectedObjectCount2(-1) +
-                          " (marca 4: " + selMgr.GetSelectedObjectCount2(4) + ", 5: " + selMgr.GetSelectedObjectCount2(5) +
+        if (!ok) return "object to repeat not selected";
+        if (withDirection && !((IEntity)m.EdgeAlongX).Select4(true, Mark(selMgr, 1))) return "direction edge not selected";
+        if (!((IEntity)m.Top).Select4(true, Mark(selMgr, 16384))) return "boundary face not selected";
+        Console.WriteLine("      selected " + selMgr.GetSelectedObjectCount2(-1) +
+                          " (mark 4: " + selMgr.GetSelectedObjectCount2(4) + ", 5: " + selMgr.GetSelectedObjectCount2(5) +
                           ", 1: " + selMgr.GetSelectedObjectCount2(1) + ", 16384: " + selMgr.GetSelectedObjectCount2(16384) + ")");
         return null;
     }
@@ -197,7 +197,7 @@ internal static class Program
     {
         var doc = m.Doc;
         doc.ClearSelection2(true);
-        if (!doc.Extension.SelectByID2(m.Seed.Name, "BODYFEATURE", 0, 0, 0, true, 4, null, 0)) { Console.WriteLine("      seme non selezionato"); return null; }
+        if (!doc.Extension.SelectByID2(m.Seed.Name, "BODYFEATURE", 0, 0, 0, true, 4, null, 0)) { Console.WriteLine("      seed not selected"); return null; }
         // two instances, 3 numbers per point; +20 and +40 mm along X stay inside the plate whether read as absolute or as offsets
         var points = new double[] { 0.020, 0, 0, 0.040, 0, 0 };
         var data = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmTablePattern) as ITablePatternFeatureData;

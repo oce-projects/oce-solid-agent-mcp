@@ -154,7 +154,7 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     private static void Ricetta_SelectByID2()
     {
-        Run("5. RICETTA GUIDA con SelectByID2 per coordinate (marche 2/4)",
+        Run("5. RECIPE FROM THE GUIDE with SelectByID2 by coordinates (marks 2/4)",
             (doc, up, side) =>
             {
                 var data = (SimpleFilletFeatureData2)doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
@@ -177,7 +177,7 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     private static void Check_OriginalBug()
     {
-        Run("0. CONTROLLO (bug originale: FeatureFillet3 + Ftyp=Face + marche 1/2)",
+        Run("0. CONTROL (original bug: FeatureFillet3 + Ftyp=Face + marks 1/2)",
             (doc, up, side) =>
             {
                 var handler = (ISelectionMgr)doc.SelectionManager;
@@ -207,14 +207,14 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     private static void Ricetta_Guida()
     {
-        Run("1. RICETTA GUIDA (CreateDefinition+Initialize(swFaceFillet)+marche 2/4+profilo)",
+        Run("1. RECIPE FROM THE GUIDE (CreateDefinition+Initialize(swFaceFillet)+marks 2/4+profile)",
             (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
                 var data = (SimpleFilletFeatureData2)dataObj;
                 if (!data.Initialize((int)swSimpleFilletType_e.swFaceFillet))
                 {
-                    Console.WriteLine("   Initialize(swFaceFillet) ha risposto false.");
+                    Console.WriteLine("   Initialize(swFaceFillet) answered false.");
                     return null;
                 }
 
@@ -238,7 +238,7 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     private static void Variant_H2_WrongMarks()
     {
-        Run("2. VARIANTE H2 (API nuova, marche SBAGLIATE 1/2)",
+        Run("2. VARIANT H2 (new API, WRONG marks 1/2)",
             (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
@@ -267,7 +267,7 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     private static void Variant_H3_WithoutProfile()
     {
-        Run("3. VARIANTE H3 (API e marche corrette, SENZA ConicTypeForCrossSectionProfile)",
+        Run("3. VARIANT H3 (API and marks correct, WITHOUT ConicTypeForCrossSectionProfile)",
             (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
@@ -297,7 +297,7 @@ internal static class FaceFilletProbe
     // ------------------------------------------------------------------
     private static void Bonus_SetFacesTipizzato()
     {
-        Run("4. BONUS (SetFaces esplicito, Face2[] tipizzato, senza selezione)",
+        Run("4. BONUS (explicit SetFaces, typed Face2[], no selection)",
             (doc, up, side) =>
             {
                 var dataObj = doc.FeatureManager.CreateDefinition((int)swFeatureNameID_e.swFmFillet);
@@ -340,8 +340,8 @@ internal static class FaceFilletProbe
             double vBefore = Volume(partDoc);
             int bodiesBefore = CountBodies(partDoc);
             if (bodiesBefore != 1)
-                Console.WriteLine("5. VARIANTE H4 : ATTENZIONE, " + bodiesBefore +
-                                   " corpi invece di 1 — il secondo estruso non si e' fuso col cubo.");
+                Console.WriteLine("5. VARIANT H4 : WARNING, " + bodiesBefore +
+                                   " bodies instead of 1 — the second extrusion did not merge with the cube.");
 
             var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
             var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
@@ -356,8 +356,8 @@ internal static class FaceFilletProbe
                                   .ToList();
             if (candidate.Count < 2)
             {
-                Console.WriteLine("5. VARIANTE H4 (facce non adiacenti, gradino) : niente facce candidate " +
-                                   "(trovate " + candidate.Count + " facce a normale +X; atteso 2)");
+                Console.WriteLine("5. VARIANT H4 (non-adjacent faces, step) : no candidate faces " +
+                                   "(found " + candidate.Count + " faces with +X normal; expected 2)");
                 return;
             }
             var top = candidate[0];
@@ -379,20 +379,20 @@ internal static class FaceFilletProbe
 
             IFeature f = null;
             try { f = doc.FeatureManager.CreateFeature(data) as IFeature; }
-            catch (Exception ex) { Console.WriteLine("5. VARIANTE H4 (facce non adiacenti, gradino) : eccezione " + ex.Message); return; }
+            catch (Exception ex) { Console.WriteLine("5. VARIANT H4 (non-adjacent faces, step) : exception " + ex.Message); return; }
 
             try { doc.EditRebuild3(); } catch { }
             double removed = vBefore - Volume(partDoc);
             int bodiesAfter = CountBodies(partDoc);
-            Console.WriteLine("5. VARIANTE H4 (facce non adiacenti, gradino) : " +
+            Console.WriteLine("5. VARIANT H4 (non-adjacent faces, step) : " +
                 (f == null ? "NULL" : "«" + f.Name + "» (" + f.GetTypeName2() + ")") +
                 "   volume " + vBefore.ToString("0.#") + " -> " + Volume(partDoc).ToString("0.#") +
-                " mm3 (tolti " + removed.ToString("0.#") + ")" +
-                "   corpi " + bodiesBefore + " -> " + bodiesAfter);
+                " mm3 (removed " + removed.ToString("0.#") + ")" +
+                "   bodies " + bodiesBefore + " -> " + bodiesAfter);
         }
         catch (Exception ex)
         {
-            Console.WriteLine("5. VARIANTE H4 (facce non adiacenti, gradino) : " + ex.Message);
+            Console.WriteLine("5. VARIANT H4 (non-adjacent faces, step) : " + ex.Message);
         }
         finally
         {
@@ -423,7 +423,7 @@ internal static class FaceFilletProbe
             var side = faces.FirstOrDefault(x => Normal(x)[0] > 0.9);
             if (up == null || side == null)
             {
-                Console.WriteLine(label + " : niente facce");
+                Console.WriteLine(label + " : no faces");
                 return;
             }
 
@@ -431,7 +431,7 @@ internal static class FaceFilletProbe
 
             IFeature f = null;
             try { f = build(doc, up, side); }
-            catch (Exception ex) { Console.WriteLine(label + " : eccezione " + ex.Message); return; }
+            catch (Exception ex) { Console.WriteLine(label + " : exception " + ex.Message); return; }
 
             try { doc.EditRebuild3(); } catch { }
             double vAfter = Volume(partDoc);
@@ -444,8 +444,8 @@ internal static class FaceFilletProbe
             Console.WriteLine(label + " : " +
                 (f == null ? "NULL" : "«" + f.Name + "»" + typ) +
                 "   volume " + vBefore.ToString("0.#") + " -> " + vAfter.ToString("0.#") +
-                " mm3 (tolti " + removed.ToString("0.#") + ", atteso 214,6)" +
-                "   corpi " + bodiesBefore + " -> " + bodiesAfter);
+                " mm3 (removed " + removed.ToString("0.#") + ", expected 214,6)" +
+                "   bodies " + bodiesBefore + " -> " + bodiesAfter);
         }
         catch (Exception ex)
         {
@@ -552,7 +552,7 @@ internal static class FaceFilletProbe
         var body = (partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[])[0] as IBody2;
         var faces = (body.GetFaces() as object[]).Cast<IFace2>().ToList();
         var top = faces.FirstOrDefault(x => Normal(x)[1] > 0.9);
-        if (top == null) throw new Exception("CubeWithStep: non trovo la faccia di normale +Y.");
+        if (top == null) throw new Exception("CubeWithStep: cannot find the face with normal +Y.");
 
         doc.ClearSelection2(true);
         (top as IEntity).Select4(true, null);

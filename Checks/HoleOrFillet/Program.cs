@@ -51,7 +51,7 @@ namespace Checks.HoleOrFillet
             try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("SOLIDWORKS non agganciabile: " + ex.Message);
+                Console.Error.WriteLine("SOLIDWORKS cannot be attached to: " + ex.Message);
                 return 2;
             }
 
@@ -61,21 +61,21 @@ namespace Checks.HoleOrFillet
                 string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { Console.Error.WriteLine("parte non creata"); return 2; }
+                if (doc == null) { Console.Error.WriteLine("part not created"); return 2; }
 
                 Plate(doc, 0.100, 0.060, 0.020);
                 Hole(doc);
                 Fillet(doc);
 
                 Console.WriteLine();
-                Console.WriteLine("=== una faccia cilindrica e' un foro o un raccordo? ===");
+                Console.WriteLine("=== is a cylindrical face a hole or a fillet? ===");
                 Console.WriteLine();
                 Console.WriteLine("  {0,-6} {1,-10} {2,-12} {3,-10} {4}",
                                   "uid", "diameter", "FaceInSurf", "area", "da");
 
                 var partDoc = doc as IPartDoc;
                 var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
-                if (bodies == null || bodies.Length == 0) { Console.Error.WriteLine("nessun corpo"); return 2; }
+                if (bodies == null || bodies.Length == 0) { Console.Error.WriteLine("no body"); return 2; }
 
                 int n = 0, concave = 0, convex = 0;
                 var body = bodies[0] as IBody2;
@@ -106,18 +106,18 @@ namespace Checks.HoleOrFillet
                 }
 
                 Console.WriteLine();
-                Console.WriteLine("  facce cilindriche: " + n +
-                                  "   con FaceInSurfaceSense=true: " + concave +
+                Console.WriteLine("  cylindrical faces: " + n +
+                                  "   with FaceInSurfaceSense=true: " + concave +
                                   "   =false: " + convex);
                 Console.WriteLine();
                 Console.WriteLine(n >= 2 && concave >= 1 && convex >= 1
-                    ? "I DUE CASI RISPONDONO DIVERSO: il criterio esiste."
-                    : "ATTENZIONE: i due casi NON si separano con questo valore.");
+                    ? "THE TWO CASES ANSWER DIFFERENTLY: the criterion exists."
+                    : "WARNING: the two cases are NOT separated by this value.");
                 return 0;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("la prova si e' rotta: " + ex.GetType().Name +
+                Console.Error.WriteLine("the check broke: " + ex.GetType().Name +
                                         ": " + ex.Message);
                 return 2;
             }
@@ -183,7 +183,7 @@ namespace Checks.HoleOrFillet
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("(raccordo non riuscito: " + ex.Message + ")");
+                Console.Error.WriteLine("(fillet failed: " + ex.Message + ")");
             }
         }
     }

@@ -68,14 +68,14 @@ namespace Checks.FramingTest
                 : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Oce.Solid.Agent.Core.dll");
             if (!File.Exists(libraryPath))
             {
-                Console.Error.WriteLine("non trovo la libreria: " + libraryPath);
+                Console.Error.WriteLine("cannot find the library: " + libraryPath);
                 return 2;
             }
             _library = Assembly.Load(File.ReadAllBytes(libraryPath));
             _view = _library.GetType("Oce.Solid.Agent.Core.PartView", false);
             if (_view == null)
             {
-                Console.Error.WriteLine("PartView non c'e' in " + libraryPath);
+                Console.Error.WriteLine("PartView is not in " + libraryPath);
                 return 2;
             }
 
@@ -83,12 +83,12 @@ namespace Checks.FramingTest
             try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("SOLIDWORKS non agganciabile: " + ex.Message);
+                Console.Error.WriteLine("SOLIDWORKS cannot be attached to: " + ex.Message);
                 return 2;
             }
 
             Console.WriteLine();
-            Console.WriteLine("=== il pezzo ci sta dentro al fotogramma? ===");
+            Console.WriteLine("=== does the part fit inside the frame? ===");
             Console.WriteLine("libreria " + _library.GetName().Version);
             Console.WriteLine();
 
@@ -113,28 +113,28 @@ namespace Checks.FramingTest
             //   the plate is wide and flat     -> the right is a strip;
             //   the shaft is long and narrow   -> the front is a line.
             // A cubic part would say nothing: it always fits.
-            Test(sw, "staffa a L 120x60x58", doc =>
+            Test(sw, "L bracket 120x60x58", doc =>
             {
                 Block(doc, 0.120, 0.060, 0.008);
             });
-            Test(sw, "piastra 200x120x15", doc =>
+            Test(sw, "plate 200x120x15", doc =>
             {
                 Block(doc, 0.200, 0.120, 0.015);
             });
-            Test(sw, "barra 300x20x20", doc =>
+            Test(sw, "bar 300x20x20", doc =>
             {
                 Block(doc, 0.300, 0.020, 0.020);
             });
 
             Console.WriteLine();
             Console.WriteLine(_failed == 0
-                ? "Nessuna vista tagliata."
-                : _failed + " VISTE TAGLIATE.");
+                ? "No view cut off."
+                : _failed + " VIEWS CUT OFF.");
             if (_thinOnes > 0)
-                Console.WriteLine(_thinOnes + " viste riempiono meno del " +
+                Console.WriteLine(_thinOnes + " views fill less than " +
                                   (MinimumFill * 100).ToString("0") +
-                                  "%: pixel pagati che non mostrano niente. " +
-                                  "Non e' un difetto, e' un costo.");
+                                  "%: paid pixels that show nothing. " +
+                                  "It is not a defect, it is a cost.");
             return _failed == 0 ? 0 : 1;
         }
 
@@ -149,7 +149,7 @@ namespace Checks.FramingTest
                 string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { Check(itemName, false, "parte non creata"); return; }
+                if (doc == null) { Check(itemName, false, "part not created"); return; }
                 build(doc);
 
                 Console.WriteLine("  " + itemName);
@@ -158,7 +158,7 @@ namespace Checks.FramingTest
                     byte[] png = Fire(doc, which);
                     if (png == null || png.Length == 0)
                     {
-                        Check("    " + which, false, "niente immagine");
+                        Check("    " + which, false, "no image");
                         continue;
                     }
                     int beforeTheFailed = _failed;
@@ -222,7 +222,7 @@ namespace Checks.FramingTest
 
             if (maxX < 0)
             {
-                Check("    " + which, false, "nessun pixel di pezzo: fotogramma vuoto");
+                Check("    " + which, false, "no pixel of part: empty frame");
                 return;
             }
 
@@ -235,7 +235,7 @@ namespace Checks.FramingTest
             double fill = Math.Max(fillX, fillY);
 
             string detail = string.Format(
-                "scatola x {0}-{1} y {2}-{3}, riempie {4:0}% x {5:0}%",
+                "box x {0}-{1} y {2}-{3}, fills {4:0}% x {5:0}%",
                 minX, maxX, minY, maxY, fillX * 100, fillY * 100);
 
             // ── THE TWO CRITERIA ARE NOT OF THE SAME KIND ─────────────────
@@ -257,9 +257,9 @@ namespace Checks.FramingTest
             if (fill < MinimumFill)
             {
                 _thinOnes++;
-                Console.WriteLine("         (magra: riempie " +
-                                  (fill * 100).ToString("0") + "%, sotto il " +
-                                  (MinimumFill * 100).ToString("0") + "% che vorremmo)");
+                Console.WriteLine("         (thin: fills " +
+                                  (fill * 100).ToString("0") + "%, below the " +
+                                  (MinimumFill * 100).ToString("0") + "% we would like)");
             }
         }
 
@@ -316,10 +316,10 @@ namespace Checks.FramingTest
                 string model = sw.GetUserPreferenceStringValue(
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { Check("il righello ci vede bene", false, "parte non creata"); return; }
+                if (doc == null) { Check("the ruler sees well", false, "part not created"); return; }
 
                 byte[] png = Fire(doc, "isometric");
-                if (png == null) { Check("il righello ci vede bene", false, "niente immagine"); return; }
+                if (png == null) { Check("the ruler sees well", false, "no image"); return; }
 
                 int howMany = 0;
                 using (var inside = new MemoryStream(png))
@@ -328,15 +328,15 @@ namespace Checks.FramingTest
                         for (int x = 0; x < image.Width; x++)
                             if (IsPart(image.GetPixel(x, y))) howMany++;
 
-                Check("il righello ci vede bene", howMany == 0,
+                Check("the ruler sees well", howMany == 0,
                       howMany == 0
-                          ? "su un documento vuoto non vede nessun pezzo"
-                          : howMany + " pixel di «part» su un documento VUOTO: la soglia mente");
+                          ? "on an empty document it sees no part"
+                          : howMany + " pixels of «part» on an EMPTY document: the threshold lies");
                 if (howMany != 0) Deposit("righello", "vuoto", png);
             }
             catch (Exception ex)
             {
-                Check("il righello ci vede bene", false, ex.GetType().Name + ": " + ex.Message);
+                Check("the ruler sees well", false, ex.GetType().Name + ": " + ex.Message);
             }
             finally
             {
@@ -354,19 +354,19 @@ namespace Checks.FramingTest
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
                 var view = doc == null ? null : doc.ActiveView as IModelView;
-                if (view == null) { Console.WriteLine("  (area grafica non leggibile)"); return; }
+                if (view == null) { Console.WriteLine("  (graphics area not readable)"); return; }
 
                 double w = view.FrameWidth, h = view.FrameHeight;
                 double viewAspect = h > 0 ? w / h : 0;
                 double requestedAspect = 1024.0 / 768.0;
                 Console.WriteLine(string.Format(
-                    "  area grafica {0:0} x {1:0}  ->  {2:0.###}   chiesto 1024x768 -> {3:0.###}",
+                    "  graphics area {0:0} x {1:0}  ->  {2:0.###}   asked 1024x768 -> {3:0.###}",
                     w, h, viewAspect, requestedAspect));
                 Console.WriteLine(string.Format(
-                    "  scala della vista: {0:0.#####}   rapporto fra i due aspetti: {1:0.###}",
+                    "  view scale: {0:0.#####}   ratio between the two aspects: {1:0.###}",
                     view.Scale2, viewAspect > 0 ? viewAspect / requestedAspect : 0));
             }
-            catch (Exception ex) { Console.WriteLine("  (aspetto non leggibile: " + ex.Message + ")"); }
+            catch (Exception ex) { Console.WriteLine("  (aspect not readable: " + ex.Message + ")"); }
             finally { if (doc != null) { try { sw.CloseDoc(doc.GetTitle()); } catch { } } }
         }
 

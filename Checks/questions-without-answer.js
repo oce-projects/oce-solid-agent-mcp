@@ -56,8 +56,8 @@ function location() {
 const file = location();
 
 if (file === null) {
-  console.log('RISCONTRO_REGISTRO e\' impostata a stringa vuota: il ponte non');
-  console.log('registra niente, e non c\'e' + '\' niente da leggere.');
+  console.log('RISCONTRO_REGISTRO is set to an empty string: the bridge does not');
+  console.log('record anything, and there is nothing to read' + '.');
   process.exit(0);
 }
 
@@ -65,12 +65,12 @@ console.log('registro: ' + file);
 console.log('');
 
 if (!fs.existsSync(file)) {
-  console.log('Il file non c\'e\' ancora.');
+  console.log('The file is not there yet.');
   console.log('');
-  console.log('Vuol dire una di due cose, e si distinguono guardando se il ponte');
-  console.log('e\' mai stato usato da qui: o nessuno ha chiesto niente che non');
-  console.log('esistesse, oppure il ponte non riesce a scrivere dove crede (e in');
-  console.log('quel caso tace apposta -- e\' la regola 2 del registro).');
+  console.log('That means one of two things, and they are told apart by looking whether the bridge');
+  console.log('has ever been used from here: either nobody asked for anything that');
+  console.log('did not exist, or the bridge cannot write where it thinks (and in');
+  console.log('that case it stays silent on purpose -- it is rule 2 of the log).');
   process.exit(0);
 }
 
@@ -128,13 +128,13 @@ for (const v of entries) {
 const all = [...counts.values()].sort((a, b) => b.quante - a.quante ||
                                                  a.name.localeCompare(b.name));
 
-console.log('domande registrate:        ' + entries.length);
-console.log('nomi distinti:             ' + all.length);
-if (unreadable) console.log('righe illeggibili:         ' + unreadable);
+console.log('questions recorded:        ' + entries.length);
+console.log('distinct names:            ' + all.length);
+if (unreadable) console.log('unreadable lines:          ' + unreadable);
 console.log('');
 
 if (all.length === 0) {
-  console.log('Nessuno ha chiesto niente che non ci fosse.');
+  console.log('Nobody asked for anything that was not there.');
   process.exit(0);
 }
 
@@ -152,17 +152,17 @@ function print(docTitle, list, queue) {
   console.log('');
 }
 
-print('DA COSTRUIRE — nessun nome vicino nel catalogo:',
+print('TO BUILD — no near name in the catalog:',
        all.filter(c => c.vicini.size === 0),
-       'Il catalogo non aveva niente da proporre: chi ha chiesto voleva una ' +
-       'cosa che non c\'e\'.');
+       'The catalog had nothing to suggest: whoever asked wanted something ' +
+       'that does not exist.');
 
-print('FORSE SOLO UN SINONIMO — il catalogo aveva qualcosa di vicino:',
+print('MAYBE JUST A SYNONYM — the catalog had something close:',
        all.filter(c => c.vicini.size > 0),
-       'Se il nome vicino e\' davvero la stessa cosa, costa una riga di ' +
-       'sinonimo invece di un\'operazione nuova.');
+       'If the near name really is the same thing, it costs one line of ' +
+       'synonym instead of a new operation.');
 
-console.log('Un nome chiesto da PIU\' modelli diversi vale piu\' dello stesso');
-console.log('nome chiesto dieci volte da uno solo, e questo file non lo');
-console.log('distingue: non scrive chi ha chiesto, e non deve. Lo si distingue');
-console.log('guardando le date -- sessioni diverse, giorni diversi.');
+console.log('A name asked for by MORE than one model is worth more than the same');
+console.log('name asked ten times by a single one, and this file does not');
+console.log('tell them apart: it does not write who asked, and it must not. They are told apart');
+console.log('by looking at the dates -- different sessions, different days.');

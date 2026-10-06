@@ -53,7 +53,7 @@ $trouble = 0
 function Male($line) { Write-Host "  XX $line"; $script:trouble++ }
 function Fine($line) { Write-Host "  ok $line" }
 
-Write-Host "=== Dentro questo repository"
+Write-Host "=== Inside this repository"
 
 foreach ($itemName in $names) {
     # Where it is DEFINED: once only, in the library.
@@ -61,9 +61,9 @@ foreach ($itemName in $names) {
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
         Select-String -SimpleMatch "public bool $itemName")
     if ($defs.Count -eq 1) {
-        Fine "$itemName definita una volta sola: $($defs[0].Filename)"
+        Fine "$itemName defined once only: $($defs[0].Filename)"
     } else {
-        Male "$($defs.Count) definizioni di $itemName, attesa una"
+        Male "$($defs.Count) definitions of $itemName, one expected"
     }
 
     # Where it is TURNED ON: the bridge only. We search for the ASSIGNMENT and not the bare
@@ -72,22 +72,22 @@ foreach ($itemName in $names) {
         Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
         Select-String -Pattern "$itemName\s*=\s*true")
     if ($activations.Count -eq 0) {
-        Male "nessuno accende ${itemName}: o la riga e' sparita, o questo controllo non guarda piu' dove serve"
+        Male "nobody turns on ${itemName}: either the line is gone, or this check no longer looks where it should"
     } elseif ($activations.Count -gt 1) {
-        Male "$itemName acceso in $($activations.Count) posti:"
+        Male "$itemName turned on in $($activations.Count) places:"
         foreach ($a in $activations) { Write-Host "       $($a.Path):$($a.LineNumber)" }
     } else {
         $location = $activations[0].Path
         if ($location -like '*\Bridge\Session.cs') {
-            Fine "$itemName acceso solo in Bridge\Session.cs"
+            Fine "$itemName turned on only in Bridge\Session.cs"
         } else {
-            Male "$itemName acceso in $location, che non e' Bridge\Session.cs"
+            Male "$itemName turned on in $location, which is not Bridge\Session.cs"
         }
     }
 }
 
 Write-Host ""
-Write-Host "=== Dentro l'add-in"
+Write-Host "=== Inside the add-in"
 
 # The add-in lives in another repository. The path is given with RISCONTRO_ADDIN.
 #
@@ -104,25 +104,25 @@ $addin = $env:RISCONTRO_ADDIN
 # parametro Path perche' e' null», which is a non-terminating error. The script
 # would carry on down the wrong branch after printing it.
 if (-not $addin -or -not (Test-Path $addin)) {
-    if ($addin) { Write-Host "  -- sorgenti dell'add-in non raggiungibili da qui ($addin)." }
-    else        { Write-Host "  -- RISCONTRO_ADDIN non e' impostata." }
-    Write-Host "     QUESTA META' NON E' STATA CONTROLLATA."
-    Write-Host "     Indica dove sono con RISCONTRO_ADDIN per controllarla."
+    if ($addin) { Write-Host "  -- add-in sources not reachable from here ($addin)." }
+    else        { Write-Host "  -- RISCONTRO_ADDIN is not set." }
+    Write-Host "     THIS HALF WAS NOT CHECKED."
+    Write-Host "     Say where they are with RISCONTRO_ADDIN to check it."
 } else {
     foreach ($itemName in $names) {
         $foundOnes = @(Get-ChildItem -Path $addin -Filter *.cs -Recurse -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -notmatch '\\(bin|obj|esterni)\\' } |
             Select-String -SimpleMatch $itemName)
         if ($foundOnes.Count -eq 0) {
-            Fine "l'add-in non nomina $itemName"
+            Fine "the add-in does not name $itemName"
         } else {
-            Male "l'add-in nomina $itemName in $($foundOnes.Count) punti:"
+            Male "the add-in names $itemName in $($foundOnes.Count) places:"
             foreach ($t in $foundOnes) { Write-Host "       $($t.Path):$($t.LineNumber)" }
         }
     }
 }
 
 Write-Host ""
-if ($trouble -eq 0) { Write-Host 'Tutto torna.'; exit 0 }
-Write-Host "$trouble problemi."
+if ($trouble -eq 0) { Write-Host 'Everything adds up.'; exit 0 }
+Write-Host "$trouble problems."
 exit 1

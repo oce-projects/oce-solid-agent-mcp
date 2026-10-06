@@ -31,13 +31,13 @@ namespace Checks.DrawingDimensions
         {
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             _doc = (IModelDoc2)sw.ActiveDoc;
             if (_doc == null || _doc.GetType() != (int)swDocumentTypes_e.swDocDRAWING)
             {
-                Console.Error.WriteLine("Serve una tavola attiva.");
+                Console.Error.WriteLine("An active drawing is needed.");
                 return 2;
             }
             _drawing = (IDrawingDoc)_doc;
@@ -52,16 +52,16 @@ namespace Checks.DrawingDimensions
                 var dim = v.GetDisplayDimensions() as object[];
                 object referred = null;
                 try { referred = v.ReferencedDocument; } catch { }
-                Console.WriteLine("  vista «" + v.GetName2() + "» tipo " + v.Type +
-                    ", modello: «" + (v.GetReferencedModelName() ?? "") + "»" +
-                    ", RISOLTA: " + (referred != null) +
-                    ", annotazioni " + (ann == null ? 0 : ann.Length) +
-                    ", quote " + (dim == null ? 0 : dim.Length));
+                Console.WriteLine("  view «" + v.GetName2() + "» type " + v.Type +
+                    ", model: «" + (v.GetReferencedModelName() ?? "") + "»" +
+                    ", RESOLVED: " + (referred != null) +
+                    ", annotations " + (ann == null ? 0 : ann.Length) +
+                    ", dimensions " + (dim == null ? 0 : dim.Length));
                 if (v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
                     viewNames.Add(v.GetName2());
                 v = v.GetNextView() as IView;
             }
-            Console.WriteLine("quote in tavola, prima: " + Quote());
+            Console.WriteLine("dimensions on the drawing, before: " + Quote());
 
             // 2. ARE THE DIMENSIONS OF THE PART MARKED FOR THE DRAWING?
             // It is the question that decides whether the problem is in the drawing or in the
@@ -74,7 +74,7 @@ namespace Checks.DrawingDimensions
                 if (!string.IsNullOrEmpty(n)) modelPath = n;
                 before = before.GetNextView() as IView;
             }
-            Console.WriteLine("modello referenziato: " + (modelPath ?? "-"));
+            Console.WriteLine("referenced model: " + (modelPath ?? "-"));
             if (modelPath != null) LookAtPartDimensions(sw, modelPath);
 
             // 3. I TENTATIVI.
@@ -86,23 +86,23 @@ namespace Checks.DrawingDimensions
             int notMarked = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
             int generic = (int)swInsertAnnotation_e.swInsertDimensions;
 
-            Test("v3 marcate, tutte le viste", () => V3(fromModel, marked, true, false));
-            Test("v3 non marcate, tutte le viste", () => V3(fromModel, notMarked, true, false));
-            Test("v3 generico, tutte le viste", () => V3(fromModel, generic, true, false));
-            Test("v3 marcate|non marcate|generico", () => V3(fromModel, marked | notMarked | generic, true, false));
-            Test("v3 generico, posizione dallo schizzo", () => V3(fromModel, generic, true, true));
+            Test("v3 marked, all the views", () => V3(fromModel, marked, true, false));
+            Test("v3 not marked, all the views", () => V3(fromModel, notMarked, true, false));
+            Test("v3 generic, all the views", () => V3(fromModel, generic, true, false));
+            Test("v3 marked|not marked|generic", () => V3(fromModel, marked | notMarked | generic, true, false));
+            Test("v3 generic, position from the sketch", () => V3(fromModel, generic, true, true));
 
             // The same ones, but with a view ACTIVATED first. It is the main
             // hypothesis: the API says «all the views» but might
             // still want a view context.
             foreach (var itemName in viewNames)
             {
-                Test("v3 generico dopo ActivateView(«" + itemName + "»)", () =>
+                Test("v3 generic after ActivateView(«" + itemName + "»)", () =>
                 {
                     _drawing.ActivateView(itemName);
                     return V3(fromModel, generic, true, false);
                 });
-                Test("v3 generico su QUELLA vista sola", () =>
+                Test("v3 generic on THAT view only", () =>
                 {
                     _drawing.ActivateView(itemName);
                     return V3(fromModel, generic, false, false);
@@ -114,7 +114,7 @@ namespace Checks.DrawingDimensions
             // is what the API sees as a selection.
             foreach (var itemName in viewNames)
             {
-                Test("v3 generico con la vista «" + itemName + "» SELEZIONATA", () =>
+                Test("v3 generic with the view «" + itemName + "» SELECTED", () =>
                 {
                     _doc.ClearSelection2(true);
                     _doc.Extension.SelectByID2(
@@ -154,7 +154,7 @@ namespace Checks.DrawingDimensions
                 _drawing.InsertModelAnnotations2(fromModel, true, 0, true, false, false);
                 return -1;
             });
-            Test("v2 AllTypes generico", () =>
+            Test("v2 AllTypes generic", () =>
             {
                 _drawing.InsertModelAnnotations2(fromModel, true, generic, true, false, false);
                 return -1;
@@ -166,7 +166,7 @@ namespace Checks.DrawingDimensions
             });
 
             Console.WriteLine();
-            Console.WriteLine("quote in tavola, alla fine: " + Quote());
+            Console.WriteLine("dimensions on the drawing, at the end: " + Quote());
             // WE RECOUNT IN ANOTHER WAY. If «zero dimensions» came from a wrong
             // count instead of a missed insertion, the number of
             // ANNOTATIONS would say so: they are two different roads to the same
@@ -174,8 +174,8 @@ namespace Checks.DrawingDimensions
             var u = _drawing.GetFirstView() as IView;
             while (u != null)
             {
-                Console.WriteLine("  vista «" + u.GetName2() + "»: annotazioni " +
-                    u.GetAnnotationCount() + ", quote " +
+                Console.WriteLine("  view «" + u.GetName2() + "»: annotations " +
+                    u.GetAnnotationCount() + ", dimensions " +
                     ((u.GetDisplayDimensions() as object[]) == null
                         ? 0 : ((object[])u.GetDisplayDimensions()).Length));
                 u = u.GetNextView() as IView;
@@ -197,14 +197,14 @@ namespace Checks.DrawingDimensions
             try { returnedItems = that(); }
             catch (Exception e)
             {
-                Console.WriteLine("  XX " + what + " -> ha sollevato: " + e.Message);
+                Console.WriteLine("  XX " + what + " -> raised: " + e.Message);
                 return;
             }
             int after = Quote();
             string outcome = after > before ? "  ok " : "  -- ";
-            Console.WriteLine(outcome + what + " -> restituite " +
+            Console.WriteLine(outcome + what + " -> returned " +
                 (returnedItems < 0 ? "?" : returnedItems.ToString()) +
-                ", quote in tavola " + before + " -> " + after);
+                ", dimensions on the drawing " + before + " -> " + after);
         }
 
         /// <summary>How many dimensions the views of the drawing have in all.</summary>
@@ -239,7 +239,7 @@ namespace Checks.DrawingDimensions
             catch { }
             if (part == null)
             {
-                Console.WriteLine("  (il pezzo non risulta aperto: non posso guardarne le quote)");
+                Console.WriteLine("  (the part does not appear to be open: I cannot look at its dimensions)");
                 return;
             }
 
@@ -272,8 +272,8 @@ namespace Checks.DrawingDimensions
                     f = f.GetNextFeature() as IFeature;
                 }
             }
-            catch (Exception e) { Console.WriteLine("  giro delle quote: " + e.Message); }
-            Console.WriteLine("  quote del pezzo: " + totali + ", di cui marcate per il disegno: " + marked);
+            catch (Exception e) { Console.WriteLine("  dimension loop: " + e.Message); }
+            Console.WriteLine("  part dimensions: " + totali + ", of which marked for the drawing: " + marked);
         }
     }
 }

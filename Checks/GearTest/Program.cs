@@ -52,7 +52,7 @@ namespace Checks.GearTest
 
         private static int Main()
         {
-            Console.WriteLine("La ruota dentata, contro le formule ISO");
+            Console.WriteLine("The gear, against the ISO formulas");
             Console.WriteLine();
 
             // Different gears: the classic case, the coarse module, the undercut
@@ -84,18 +84,18 @@ namespace Checks.GearTest
             // 32.15 degrees of pressure angle: the tooth becomes so wide
             // at the base that no space is left between one tooth and the next. At 35 degrees
             // with 60 teeth 0.14 mm are missing.
-            Refused(60, 1.0, 35.0, "si toccherebbero alla base");
+            Refused(60, 1.0, 35.0, "they would touch at the base");
             // Below the undercut limit.
-            Refused(16, 2.0, 20.0, "intaglio del piede");
+            Refused(16, 2.0, 20.0, "root notch");
             // THE POINTED TOOTH. At 20 degrees it is never reached: the undercut
             // limit (17 teeth) triggers first, and asking for z=5 m=4 one gets
             // refused by THAT — the case seemed to test the tip and did not
             // test it. At 45 degrees the undercut limit drops to 4 teeth and the
             // road opens.
-            Refused(5, 4.0, 45.0, "si chiuderebbe a punta");
+            Refused(5, 4.0, 45.0, "it would close to a point");
 
             Console.WriteLine();
-            if (trouble == 0) { Console.WriteLine("Tutto torna."); return 0; }
+            if (trouble == 0) { Console.WriteLine("Everything adds up."); return 0; }
             Console.WriteLine(trouble + " scostamenti.");
             return 1;
         }
@@ -103,7 +103,7 @@ namespace Checks.GearTest
         private static void Gear(int z, double m, double alphaDeg)
         {
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "z={0}  m={1}  alfa={2} gradi", z, m, alphaDeg));
+                "z={0}  m={1}  alpha={2} degrees", z, m, alphaDeg));
 
             string reason;
             var contours = SpurGear.Contours(
@@ -111,7 +111,7 @@ namespace Checks.GearTest
             if (contours == null) { Male("rifiutata: " + reason); return; }
 
             var points = FirstContourPoints(contours);
-            if (points.Count < z * 4) { Male("solo " + points.Count + " punti: il contorno non e' quello che credo"); return; }
+            if (points.Count < z * 4) { Male("only " + points.Count + " points: the outline is not what I think"); return; }
 
             double r = m * z / 2.0;
             double planStep = Math.PI * m;
@@ -125,8 +125,8 @@ namespace Checks.GearTest
                 if (radius < rMin) rMin = radius;
                 if (radius > rMax) rMax = radius;
             }
-            Compare("raggio di testa", rMax, r + m, 0.001);
-            Compare("raggio di fondo", rMin, r - 1.25 * m, 0.001);
+            Compare("tip radius", rMax, r + m, 0.001);
+            Compare("root radius", rMin, r - 1.25 * m, 0.001);
 
             // 1b. THE CONTOUR NEVER GOES BACK.
             //
@@ -149,10 +149,10 @@ namespace Checks.GearTest
             double back = BiggerStepBack(points);
             if (back > noise)
                 Male(string.Format(CultureInfo.InvariantCulture,
-                    "il contorno torna indietro di {0:0.000000} rad: si taglia da solo",
+                    "the outline goes back by {0:0.000000} rad: it cuts itself",
                     back));
             else
-                Console.WriteLine("  ok  il contorno gira sempre nello stesso verso");
+                Console.WriteLine("  ok  the outline always turns the same way");
 
             // 2. THE CROSSINGS OF THE PITCH CIRCLE. The contour turns, and every
             //    tooth crosses it twice: once going up, once going down.
@@ -163,8 +163,8 @@ namespace Checks.GearTest
             if (upCrossings.Count != z || downCrossings.Count != z)
             {
                 Male(string.Format(CultureInfo.InvariantCulture,
-                    "attraversamenti della primitiva: {0} salite e {1} discese, " +
-                    "attesi {2} e {2}", upCrossings.Count, downCrossings.Count, z));
+                    "crossings of the pitch circle: {0} up and {1} down, " +
+                    "expected {2} and {2}", upCrossings.Count, downCrossings.Count, z));
                 return;
             }
 
@@ -182,10 +182,10 @@ namespace Checks.GearTest
                 if (cavity < vMin) vMin = cavity;
                 if (cavity > vMax) vMax = cavity;
             }
-            Compare("spessore minimo sulla primitiva", sMin, planStep / 2, 0.002);
-            Compare("spessore massimo sulla primitiva", sMax, planStep / 2, 0.002);
-            Compare("vano minimo sulla primitiva", vMin, planStep / 2, 0.002);
-            Compare("vano massimo sulla primitiva", vMax, planStep / 2, 0.002);
+            Compare("minimum thickness on the pitch circle", sMin, planStep / 2, 0.002);
+            Compare("maximum thickness on the pitch circle", sMax, planStep / 2, 0.002);
+            Compare("minimum space on the pitch circle", vMin, planStep / 2, 0.002);
+            Compare("maximum space on the pitch circle", vMax, planStep / 2, 0.002);
             Console.WriteLine();
         }
 
@@ -229,12 +229,12 @@ namespace Checks.GearTest
             var contours = SpurGear.Contours(
                 z, m, alphaDeg, 0, false, PointsPerSide, out reason);
             string head = string.Format(CultureInfo.InvariantCulture,
-                "z={0}  m={1}  alfa={2} gradi  (deve rifiutare)", z, m, alphaDeg);
+                "z={0}  m={1}  alpha={2} degrees  (must refuse)", z, m, alphaDeg);
             Console.WriteLine(head);
-            if (contours != null) { Male("accettata invece"); Console.WriteLine(); return; }
+            if (contours != null) { Male("accepted instead"); Console.WriteLine(); return; }
             if (fragment.Length > 0 && reason.IndexOf(fragment, StringComparison.Ordinal) < 0)
             {
-                Male("rifiutata per un altro motivo: " + reason);
+                Male("refused for another reason: " + reason);
                 Console.WriteLine();
                 return;
             }
@@ -322,7 +322,7 @@ namespace Checks.GearTest
         {
             double deviation = Math.Abs(had - expected);
             string line = string.Format(CultureInfo.InvariantCulture,
-                "{0,-34} {1,10:0.#####}  atteso {2,10:0.#####}  scarto {3:0.000000}",
+                "{0,-34} {1,10:0.#####}  expected {2,10:0.#####}  deviation {3:0.000000}",
                 what, had, expected, deviation);
             if (double.IsNaN(had) || deviation > within) Male(line);
             else Console.WriteLine("  ok  " + line);

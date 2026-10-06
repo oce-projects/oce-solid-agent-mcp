@@ -79,7 +79,7 @@ function outcome(testCase, passes, detail) {
 }
 
 if (!fs.existsSync(INSTALL)) {
-  console.error("non trovo " + INSTALL + " — compila prima con build.ps1");
+  console.error("cannot find " + INSTALL + " — build first with build.ps1");
   process.exit(2);
 }
 console.log("installatore: " + INSTALL);
@@ -88,7 +88,7 @@ console.log("banco:        " + BENCH);
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // ── CASE 6 — the other servers stay ──────────────────────────────────────
-console.log("\n=== CASO 6 - con due server MCP gia' presenti");
+console.log("\n=== CASE 6 - with two MCP servers already present");
 const cfg = path.join(BENCH, "claude_desktop_config.json");
 fs.copyFileSync(MODEL, cfg);
 const before = JSON.parse(fs.readFileSync(cfg, "utf8"));
@@ -101,45 +101,45 @@ outcome("6. exit code 0: installed and the client wired (H19 B1)", r6.uscita ===
 
 let after = null;
 try { after = JSON.parse(fs.readFileSync(cfg, "utf8")); } catch (e) { }
-outcome("6. il config resta JSON valido", !!after, after ? null : "non si rilegge");
+outcome("6. the config stays valid JSON", !!after, after ? null : "cannot be read back");
 
 if (after) {
   for (const itemName of ["filesystem", "github"]) {
     const d = (after.mcpServers || {})[itemName];
-    outcome("6. '" + itemName + "' e' ancora identico",
+    outcome("6. '" + itemName + "' is still identical",
       !!d && equal(before.mcpServers[itemName], d),
       d ? null : "SPARITO");
   }
-  outcome("6. e' comparso 'solidworks'", !!(after.mcpServers || {}).solidworks, null);
-  outcome("6. non e' comparso nient'altro",
+  outcome("6. 'solidworks' appeared", !!(after.mcpServers || {}).solidworks, null);
+  outcome("6. nothing else appeared",
     Object.keys(after.mcpServers || {}).sort().join(",") === "filesystem,github,solidworks",
     Object.keys(after.mcpServers || {}).sort().join(", "));
-  outcome("6. le impostazioni del client fuori da mcpServers sono intatte",
+  outcome("6. the client's settings outside mcpServers are intact",
     equal(before.altreImpostazioniDelClient, after.altreImpostazioniDelClient), null);
 }
 
 // ── CASE 2 — installing over a previous one ──────────────────────────────
-console.log("\n=== CASO 2 - installazione sopra una precedente");
+console.log("\n=== CASE 2 - installation over a previous one");
 const r2 = install(["--silenzioso", "--cartella", folder, "--config", cfg]);
 let after2 = null;
 try { after2 = JSON.parse(fs.readFileSync(cfg, "utf8")); } catch (e) { }
 
-outcome("2. la seconda installazione non fallisce", r2.uscita === 0,
+outcome("2. the second installation does not fail", r2.uscita === 0,
   r2.uscita === 0 ? null : "uscita " + r2.uscita + "\n" + r2.testo.slice(-400));
-outcome("2. la voce 'solidworks' e' aggiornata, non duplicata",
+outcome("2. the 'solidworks' entry is updated, not duplicated",
   !!after2 && Object.keys(after2.mcpServers || {}).sort().join(",") === "filesystem,github,solidworks",
-  after2 ? Object.keys(after2.mcpServers || {}).sort().join(", ") : "config illeggibile");
+  after2 ? Object.keys(after2.mcpServers || {}).sort().join(", ") : "config unreadable");
 
 const bak = fs.readdirSync(BENCH).filter(f => /\.bak$/i.test(f));
-outcome("2. c'e' una copia di sicurezza del config", bak.length > 0, bak.join("\n"));
+outcome("2. there is a backup copy of the config", bak.length > 0, bak.join("\n"));
 
 // H15: whoever reinstalls knows whether it is updating or putting back the same one. The
 // expected version is read from VERSION.txt, not written here: it would change at
 // every release and the case would turn red for the wrong reason.
 const version = fs.readFileSync(path.join(ROOT, "VERSION.txt"), "utf8").trim();
-outcome("2. dice che reinstalla la stessa versione, e quale",
+outcome("2. it says it is reinstalling the same version, and which one",
   r2.testo.includes("reinstalling " + version),
-  (r2.testo.match(/^.*(installing|updating).*$/mi) || ["nessuna riga di versione"])[0].trim());
+  (r2.testo.match(/^.*(installing|updating).*$/mi) || ["no version line"])[0].trim());
 
 // H15: the backup copies are pruned. Before, they were never removed: ten
 // installations, ten .bak in %APPDATA%. The name carries the seconds, so between
@@ -151,7 +151,7 @@ for (let i = 0; i < 4; i++) {
   install(["--silenzioso", "--cartella", folder, "--config", cfg]);
 }
 const bakAfter = fs.readdirSync(BENCH).filter(f => /\.prima-di-oce-solid-agent-.*\.bak$/i.test(f));
-outcome("2. dopo sei installazioni le copie di sicurezza sono al piu' tre",
+outcome("2. after six installations the backups are at most three",
   bakAfter.length > 0 && bakAfter.length <= 3, bakAfter.length + " copie: " + bakAfter.join(", "));
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -558,7 +558,7 @@ if (ATTACH || swRuns) {
 // opens the file exclusively and holds it; the installer must stop WITHOUT
 // having touched it — no `.parziale` left next to it, no new copy —
 // and say so with a word that makes clear what to do.
-console.log("\n=== CASO 4 (meta') - il config bloccato da un altro processo");
+console.log("\n=== CASE 4 (half) - the config locked by another process");
 const cfg4 = path.join(BENCH, "bloccato.json");
 fs.copyFileSync(MODEL, cfg4);
 const byte4 = fs.readFileSync(cfg4);
@@ -569,7 +569,7 @@ const keep = require("child_process").spawn("powershell", ["-NoProfile", "-Comma
   { stdio: "ignore" });
 for (let i = 0; i < 100 && !fs.existsSync(signal); i++) wait(100);
 if (!fs.existsSync(signal)) {
-  outcome("4. il file si riesce a bloccare per la prova", false, "il PowerShell figlio non ha segnalato");
+  outcome("4. the file can be locked for the test", false, "the child PowerShell did not signal");
 } else {
   const bakBefore4 = fs.readdirSync(BENCH).filter(f => f.startsWith("bloccato.json.")).length;
   const r4 = install(["--silenzioso", "--cartella", path.join(BENCH, "installato4"), "--config", cfg4]);
@@ -578,18 +578,18 @@ if (!fs.existsSync(signal)) {
   const remains = fs.readdirSync(BENCH).filter(f => f.startsWith("bloccato.json."));
   outcome("4. exit code 3: files installed, the client not wired (H19 B1)", r4.uscita === 3,
     "exit " + r4.uscita);
-  outcome("4. dice che il file e' bloccato", /locked/i.test(r4.testo),
+  outcome("4. it says the file is locked", /locked/i.test(r4.testo),
     (r4.testo.match(/^.*locked.*$/mi) || [r4.testo.slice(-300)])[0].trim());
-  outcome("4. il config e' rimasto identico, byte per byte",
+  outcome("4. the config stayed identical, byte for byte",
     Buffer.compare(byte4, fs.readFileSync(cfg4)) === 0, null);
-  outcome("4. non resta un .parziale e non nasce una copia",
-    remains.length === bakBefore4, remains.join(", ") || "niente accanto");
+  outcome("4. no .parziale is left and no copy is born",
+    remains.length === bakBefore4, remains.join(", ") || "nothing next to it");
 }
 
 // ── CASE 3 — uninstallation ──────────────────────────────────────────────
-console.log("\n=== CASO 3 - disinstallazione");
+console.log("\n=== CASE 3 - uninstall");
 const extraneous = path.join(folder, "un-mio-log.txt");
-fs.writeFileSync(extraneous, "roba messa da chi usa il programma\n");
+fs.writeFileSync(extraneous, "stuff put there by whoever uses the program\n");
 // H19 A5: uninstall now removes the client entry too; --config keeps this
 // run on the temporary file, away from the real clients of whoever runs it.
 const r3 = install(["--disinstalla", "--cartella", folder, "--config", cfg]);
@@ -599,33 +599,33 @@ outcome("3. exit 0, and the entry is gone from the client config (H19 A5)",
   "exit " + r3.uscita + ", servers " + Object.keys((after3 || {}).mcpServers || {}).join(", "));
 
 const remain = fs.existsSync(folder) ? fs.readdirSync(folder) : null;
-outcome("3. la cartella NON viene cancellata se dentro resta roba d'altri",
+outcome("3. the folder is NOT deleted if other people's stuff is left inside",
   remain !== null && remain.includes("un-mio-log.txt"),
-  remain === null ? "cartella cancellata con dentro un file di chi usa il programma"
+  remain === null ? "folder deleted with a file of the user inside"
                    : "resta: " + remain.join(", "));
-outcome("3. il ponte e' sparito",
+outcome("3. the bridge is gone",
   remain !== null && !remain.includes("oce-solid-agent-mcp.exe"),
   remain === null ? "n/d" : remain.join(", "));
 // H15: installation and uninstallation read the same list. What
 // remains must be ONLY the stuff of whoever uses the program.
-outcome("3. non resta nessun file dell'installazione",
+outcome("3. no file of the installation is left",
   remain !== null && remain.length === 1 && remain[0] === "un-mio-log.txt",
   remain === null ? "n/d" : "resta: " + remain.join(", "));
 
 // ── summary ──────────────────────────────────────────────────────────────
 const failed = outcomes.filter(e => !e.passa);
-console.log("\n=== RIEPILOGO");
+console.log("\n=== SUMMARY");
 console.log("  " + (outcomes.length - failed.length) + " PASS, " + failed.length + " FAIL");
-console.log("\n  NON eseguite da questo comando, e vanno fatte a mano:");
-console.log("    1. installazione su macchina pulita  (VM con SOLIDWORKS, senza il ponte)");
-console.log("    4. client aperto durante l'installazione  (Claude Desktop vero: qui c'e' solo la meta'");
-console.log("       del file bloccato da un altro processo; se il client lo riscrive uscendo, non si sa)");
-console.log("    5. SOLIDWORKS assente  (macchina senza SOLIDWORKS)");
+console.log("\n  NOT run by this command, and to be done by hand:");
+console.log("    1. installation on a clean machine  (VM with SOLIDWORKS, without the bridge)");
+console.log("    4. client open during the installation  (the real Claude Desktop: here there is only half");
+console.log("       of the file locked by another process; if the client rewrites it on exit, we cannot tell)");
+console.log("    5. SOLIDWORKS absent  (machine without SOLIDWORKS)");
 if (!ATTACH) {
   console.log("\n  Run without touching SOLIDWORKS (OCE_NO_ATTACH). With the bench stopped, the owner runs");
   console.log("    node Checks\\test-installer.js --attach");
   console.log("  which is the only run where --verify can exit 0. The self-test codes 3 (SOLIDWORKS closed)");
   console.log("  and 4 (not installed or not registered) need SOLIDWORKS closed, or a machine without it.");
 }
-console.log("\n  banco lasciato in " + BENCH + " se serve guardarci dentro");
+console.log("\n  bench left in " + BENCH + " if you need to look inside");
 process.exit(failed.length ? 1 : 0);

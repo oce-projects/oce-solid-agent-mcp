@@ -29,7 +29,7 @@ namespace Checks.OutlineTest
 
         private static int Main()
         {
-            Console.WriteLine("La geometria delle sagome");
+            Console.WriteLine("The geometry of the outlines");
             Console.WriteLine();
 
             Rings();
@@ -38,7 +38,7 @@ namespace Checks.OutlineTest
             Inside();
 
             Console.WriteLine();
-            if (trouble == 0) { Console.WriteLine("Tutto torna."); return 0; }
+            if (trouble == 0) { Console.WriteLine("Everything adds up."); return 0; }
             Console.WriteLine(trouble + " scostamenti.");
             return 1;
         }
@@ -47,20 +47,20 @@ namespace Checks.OutlineTest
 
         private static void Rings()
         {
-            Console.WriteLine("L'anello pulito");
+            Console.WriteLine("The clean ring");
 
             // The first one repeated at the tail is removed: it is the way almost
             // everybody writes a "closed" polyline, and leaving it would give a
             // side of length zero.
-            Count("primo ripetuto in coda",
+            Count("first repeated at the end",
                 ClosedShape.Ring(P(new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 10 }, new[] { 0.0, 0 })), 3);
 
             // The joins of the strokes carry a double point each.
-            Count("doppioni di fila",
+            Count("consecutive duplicates",
                 ClosedShape.Ring(P(new[] { 0.0, 0 }, new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 0 }, new[] { 5.0, 8 })), 3);
 
             // A ring already clean must not be touched.
-            Count("gia' pulito",
+            Count("already clean",
                 ClosedShape.Ring(P(new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 5.0, 8 })), 3);
 
             // A square has four vertices and the fourth is NOT a duplicate:
@@ -73,12 +73,12 @@ namespace Checks.OutlineTest
         private static void Areas()
         {
             Console.WriteLine("L'area");
-            Holds("quadrato 10x10", ClosedShape.Area(P(
+            Holds("square 10x10", ClosedShape.Area(P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 10 }, new[] { 0.0, 10 })), 100, 1e-9);
 
             // The direction does not matter: the area is an absolute value, and the contours
             // arrive in both directions depending on who wrote them.
-            Holds("quadrato al contrario", ClosedShape.Area(P(
+            Holds("reversed square", ClosedShape.Area(P(
                 new[] { 0.0, 0 }, new[] { 0.0, 10 }, new[] { 10.0, 10 }, new[] { 10.0, 0 })), 100, 1e-9);
 
             Holds("triangolo", ClosedShape.Area(P(
@@ -86,7 +86,7 @@ namespace Checks.OutlineTest
 
             // Three points in a row: null area. It is the case that the check on the
             // outlines must refuse.
-            Holds("punti allineati", ClosedShape.Area(P(
+            Holds("aligned points", ClosedShape.Area(P(
                 new[] { 0.0, 0 }, new[] { 5.0, 0 }, new[] { 10.0, 0 })), 0, 1e-9);
 
             // An L-shaped polygon, which is not convex: the Gauss formula does not
@@ -99,14 +99,14 @@ namespace Checks.OutlineTest
 
         private static void Crossings()
         {
-            Console.WriteLine("Gli incroci");
+            Console.WriteLine("The crossings");
 
             CleanCase("square", P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 10 }, new[] { 0.0, 10 }));
 
             // The L is concave. A badly written check confuses «concave»
             // with «self-intersects», and would refuse half of the brackets that exist.
-            CleanCase("elle concava", P(
+            CleanCase("concave L", P(
                 new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 4 },
                 new[] { 4.0, 4 }, new[] { 4.0, 10 }, new[] { 0.0, 10 }));
 
@@ -118,12 +118,12 @@ namespace Checks.OutlineTest
                 double angle = Math.PI / 2 + i * Math.PI / 5;
                 star.Add(new[] { radius * Math.Cos(angle), radius * Math.Sin(angle) });
             }
-            CleanCase("stella a cinque punte", star);
+            CleanCase("five-pointed star", star);
 
             Dirty("papillon", P(
                 new[] { 0.0, 0 }, new[] { 100.0, 0 }, new[] { 0.0, 50 }, new[] { 100.0, 50 }));
 
-            Dirty("papillon storto", P(
+            Dirty("crooked bow tie", P(
                 new[] { 0.0, 0 }, new[] { 100.0, 0 }, new[] { 10.0, 60 }, new[] { 90.0, 80 }));
 
             // A TRIANGLE CANNOT SELF-INTERSECT. With three sides all three are
@@ -136,12 +136,12 @@ namespace Checks.OutlineTest
 
         private static void Inside()
         {
-            Console.WriteLine("Dentro e fuori");
+            Console.WriteLine("Inside and outside");
             var square = P(new[] { -50.0, -50 }, new[] { 50.0, -50 },
                              new[] { 50.0, 50 }, new[] { -50.0, 50 });
-            Sta("il centro", new[] { 0.0, 0 }, square, true);
-            Sta("appena dentro", new[] { 49.9, 0 }, square, true);
-            Sta("appena fuori", new[] { 50.1, 0 }, square, false);
+            Sta("the center", new[] { 0.0, 0 }, square, true);
+            Sta("just inside", new[] { 49.9, 0 }, square, true);
+            Sta("just outside", new[] { 50.1, 0 }, square, false);
             Sta("lontano", new[] { 215.0, 0 }, square, false);
 
             // The L is the case that unmasks a check made with the bounding box
@@ -149,8 +149,8 @@ namespace Checks.OutlineTest
             // IN THE NOTCH — inside the bounding box and outside the material.
             var ell = P(new[] { 0.0, 0 }, new[] { 10.0, 0 }, new[] { 10.0, 4 },
                          new[] { 4.0, 4 }, new[] { 4.0, 10 }, new[] { 0.0, 10 });
-            Sta("nell'incavo dell'elle", new[] { 7.0, 7 }, ell, false);
-            Sta("nel pieno dell'elle", new[] { 2.0, 7 }, ell, true);
+            Sta("in the notch of the L", new[] { 7.0, 7 }, ell, false);
+            Sta("in the body of the L", new[] { 2.0, 7 }, ell, true);
             Console.WriteLine();
 
             TheBorder();
@@ -183,29 +183,29 @@ namespace Checks.OutlineTest
 
         private static void TheBorder()
         {
-            Console.WriteLine("Il bordo");
+            Console.WriteLine("The border");
 
             var plate = P(new[] { 0.0, 0 }, new[] { 10.0, 0 },
                             new[] { 10.0, 10 }, new[] { 0.0, 10 });
 
             // The four sides, one by one: the answer must be the same.
-            Where("un punto sul lato destro", new[] { 10.0, 5 }, plate, WhereItIsFound.OnBorder);
-            Where("un punto sul lato sinistro", new[] { 0.0, 5 }, plate, WhereItIsFound.OnBorder);
-            Where("un punto sul lato in alto", new[] { 5.0, 10 }, plate, WhereItIsFound.OnBorder);
-            Where("un punto sul lato in basso", new[] { 5.0, 0 }, plate, WhereItIsFound.OnBorder);
-            Where("un vertice", new[] { 10.0, 10 }, plate, WhereItIsFound.OnBorder);
+            Where("a point on the right side", new[] { 10.0, 5 }, plate, WhereItIsFound.OnBorder);
+            Where("a point on the left side", new[] { 0.0, 5 }, plate, WhereItIsFound.OnBorder);
+            Where("a point on the top side", new[] { 5.0, 10 }, plate, WhereItIsFound.OnBorder);
+            Where("a point on the bottom side", new[] { 5.0, 0 }, plate, WhereItIsFound.OnBorder);
+            Where("a vertex", new[] { 10.0, 10 }, plate, WhereItIsFound.OnBorder);
 
             // And inside and outside keep working.
-            Where("il centro", new[] { 5.0, 5 }, plate, WhereItIsFound.Inside);
-            Where("appena dentro il bordo destro", new[] { 9.99, 5 }, plate, WhereItIsFound.Inside);
-            Where("appena fuori dal bordo destro", new[] { 10.01, 5 }, plate, WhereItIsFound.Outside);
+            Where("the center", new[] { 5.0, 5 }, plate, WhereItIsFound.Inside);
+            Where("just inside the right border", new[] { 9.99, 5 }, plate, WhereItIsFound.Inside);
+            Where("just outside the right border", new[] { 10.01, 5 }, plate, WhereItIsFound.Outside);
 
             // THE SYMMETRY, which is the point of all this.
             var onRight = P(new[] { 8.0, 2 }, new[] { 10.0, 2 },
                             new[] { 10.0, 8 }, new[] { 8.0, 8 });
             var onLeft = P(new[] { 0.0, 2 }, new[] { 2.0, 2 },
                               new[] { 2.0, 8 }, new[] { 0.0, 8 });
-            MirrorShape("una cava a filo del bordo", onRight, onLeft, plate);
+            MirrorShape("a cut-out flush with the border", onRight, onLeft, plate);
 
             // WHY `WhereItIs` EXISTS, fixed in a check instead of in a
             // comment. `Inside` alone — the parity of the crossings —
@@ -216,12 +216,12 @@ namespace Checks.OutlineTest
             foreach (var p in onRight) if (ClosedShape.Inside(p, plate)) rightInside++;
             foreach (var p in onLeft) if (ClosedShape.Inside(p, plate)) leftInside++;
             if (rightInside != leftInside)
-                Console.WriteLine("  ok  `Inside` da solo e' asimmetrico (a destra " +
-                    rightInside + " dentro su 4, a sinistra " + leftInside +
-                    "): e' il motivo per cui c'e' `WhereItIs`");
+                Console.WriteLine("  ok  `Inside` alone is asymmetric (on the right " +
+                    rightInside + " inside out of 4, on the left " + leftInside +
+                    "): that is why `WhereItIs` exists");
             else
-                Male("`Inside` da solo non e' piu' asimmetrico (" + rightInside +
-                     " e " + leftInside + "): rileggere se `WhereItIs` serve ancora");
+                Male("`Inside` alone is no longer asymmetric (" + rightInside +
+                     " and " + leftInside + "): check again whether `WhereItIs` is still needed");
 
             // And one that REALLY straddles must stay straddling.
             var straddling = P(new[] { 8.0, 2 }, new[] { 12.0, 2 },
@@ -229,11 +229,11 @@ namespace Checks.OutlineTest
             int d, f, b;
             Classify(straddling, plate, out d, out f, out b);
             if (d > 0 && f > 0)
-                Console.WriteLine("  ok  una cava davvero a cavallo: " +
-                    d + " dentro, " + f + " fuori, " + b + " sul bordo");
+                Console.WriteLine("  ok  a really straddling cut-out: " +
+                    d + " inside, " + f + " outside, " + b + " on the border");
             else
-                Male("una cava davvero a cavallo non viene piu' vista: " +
-                     d + " dentro, " + f + " fuori, " + b + " sul bordo");
+                Male("a really straddling cut-out is no longer seen: " +
+                     d + " inside, " + f + " outside, " + b + " on the border");
 
             Console.WriteLine();
         }
@@ -276,13 +276,13 @@ namespace Checks.OutlineTest
             if (d1 == d2 && f1 == f2 && b1 == b2)
             {
                 Console.WriteLine("  ok  " + what +
-                    ": stesso verdetto da tutt'e due i lati (" +
-                    d1 + " dentro, " + b1 + " sul bordo, " + f1 + " fuori)");
+                    ": same verdict from both sides (" +
+                    d1 + " inside, " + b1 + " on the border, " + f1 + " outside)");
                 return;
             }
-            Male(what + ": a destra " + d1 + "/" + f1 + "/" + b1 +
-                 ", a sinistra " + d2 + "/" + f2 + "/" + b2 +
-                 "  (dentro/fuori/bordo) - stessa geometria, verdetto diverso");
+            Male(what + ": on the right " + d1 + "/" + f1 + "/" + b1 +
+                 ", on the left " + d2 + "/" + f2 + "/" + b2 +
+                 "  (inside/outside/border) - same geometry, different verdict");
         }
 
         private static void Where(
@@ -290,7 +290,7 @@ namespace Checks.OutlineTest
         {
             var had = ClosedShape.WhereItIs(point, polygon);
             if (had == expected) Console.WriteLine("  ok  " + what + ": " + had);
-            else Male(what + ": detto " + had + ", atteso " + expected);
+            else Male(what + ": said " + had + ", expected " + expected);
         }
 
         // ------------------------------------------------------------------
@@ -303,7 +303,7 @@ namespace Checks.OutlineTest
         private static void Count(string what, List<double[]> ring, int expected)
         {
             if (ring.Count == expected) Console.WriteLine("  ok  " + what + ": " + expected + " punti");
-            else Male(what + ": " + ring.Count + " punti, attesi " + expected);
+            else Male(what + ": " + ring.Count + " points, expected " + expected);
         }
 
         private static void Holds(string what, double had, double expected, double within)
@@ -313,21 +313,21 @@ namespace Checks.OutlineTest
                     "  ok  {0}: {1:0.####}", what, had));
             else
                 Male(string.Format(CultureInfo.InvariantCulture,
-                    "{0}: {1:0.######} invece di {2:0.######}", what, had, expected));
+                    "{0}: {1:0.######} instead of {2:0.######}", what, had, expected));
         }
 
         private static void CleanCase(string what, List<double[]> ring)
         {
             int location = ClosedShape.WhereItCrosses(ring);
-            if (location < 0) Console.WriteLine("  ok  " + what + ": non si incrocia");
-            else Male(what + ": accusato di incrociarsi al lato " + location + ", e non e' vero");
+            if (location < 0) Console.WriteLine("  ok  " + what + ": does not cross itself");
+            else Male(what + ": accused of crossing itself at side " + location + ", and it is not true");
         }
 
         private static void Dirty(string what, List<double[]> ring)
         {
             int location = ClosedShape.WhereItCrosses(ring);
-            if (location >= 0) Console.WriteLine("  ok  " + what + ": si incrocia al lato " + location);
-            else Male(what + ": si incrocia e non se ne accorge");
+            if (location >= 0) Console.WriteLine("  ok  " + what + ": crosses itself at side " + location);
+            else Male(what + ": crosses itself and does not notice");
         }
 
         private static void Sta(string what, double[] point, List<double[]> polygon, bool expected)
@@ -336,8 +336,8 @@ namespace Checks.OutlineTest
             if (inside == expected)
                 Console.WriteLine("  ok  " + what + ": " + (inside ? "dentro" : "fuori"));
             else
-                Male(what + ": detto " + (inside ? "dentro" : "fuori") +
-                     ", atteso " + (expected ? "dentro" : "fuori"));
+                Male(what + ": said " + (inside ? "inside" : "outside") +
+                     ", expected " + (expected ? "inside" : "outside"));
         }
 
         private static void Male(string line)

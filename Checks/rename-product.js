@@ -77,10 +77,10 @@ var TEXT = ['.cs', '.csproj', '.js', '.ps1', '.md', '.json', '.manifest', '.conf
 
 // Files that are NOT touched, one by one and with the reason next to them.
 var UNTOUCHABLE = {
-    'CHANGELOG.md': 'le voci storiche dicono cosa si chiamava allora',
-    'ultimo-giro.txt': 'uscita del banco, si rigenera',
-    'ultimo-ponte.txt': 'uscita del banco, si rigenera',
-    'rename-product.js': 'e\' questo script, e nomina i vietati di mestiere',
+    'CHANGELOG.md': 'the historical entries say what it was called then',
+    'ultimo-giro.txt': 'bench output, regenerated',
+    'ultimo-ponte.txt': 'bench output, regenerated',
+    'rename-product.js': 'it is this script, and it names the forbidden words as part of its job',
 };
 
 var SKIP_FOLDERS = ['.git', 'bin', 'obj', 'dist', 'node_modules', 'lavoro', 'Payload'];
@@ -143,12 +143,12 @@ for (var i = 0; i < touched.length; i++) {
 }
 console.log('');
 console.log(touched.length + ' file, ' + total + ' sostituzioni' +
-    (WRITE ? ' SCRITTE' : ' (prova a vuoto: aggiungi --scrivi)'));
+    (WRITE ? ' WRITTEN' : ' (dry run: add --scrivi)'));
 
 console.log('');
-console.log('Non toccati apposta:');
+console.log('Left alone on purpose:');
 Object.keys(UNTOUCHABLE).forEach(function (f) {
     console.log('  ' + f.padEnd(24) + UNTOUCHABLE[f]);
 });
 console.log('');
-console.log('Il file SolidWorksMcp.csproj va rinominato a parte, con git mv.');
+console.log('The file SolidWorksMcp.csproj has to be renamed separately, with git mv.');

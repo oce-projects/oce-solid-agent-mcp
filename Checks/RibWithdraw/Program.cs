@@ -28,7 +28,7 @@ internal static class Program
     {
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
         Console.WriteLine("PROBE rib sketch removal — SOLIDWORKS " + sw.RevisionNumber());
         string tpl = sw.GetUserPreferenceStringValue((int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
         var doc = sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;

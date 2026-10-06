@@ -267,8 +267,8 @@ function Look($itemName, $pattern, $why, $caseSensitive, $except = @()) {
     $foundItems = @(Lines $pattern $caseSensitive | Where-Object {
         -not ($except -contains (Split-Path -Leaf $_.Path))
     })
-    if ($foundItems.Count -eq 0) { Write-Host "  ok  nessun $itemName"; return }
-    Write-Host "  XX  $itemName ($why) in $($foundItems.Count) punti:"
+    if ($foundItems.Count -eq 0) { Write-Host "  ok  no $itemName"; return }
+    Write-Host "  XX  $itemName ($why) in $($foundItems.Count) places:"
     $script:trouble++
     $seen = @{}
     foreach ($t in $foundItems) {
@@ -277,16 +277,16 @@ function Look($itemName, $pattern, $why, $caseSensitive, $except = @()) {
         $seen[$relative] = $true
         Write-Host "        ${relative}:$($t.LineNumber)"
     }
-    if ($seen.Count -lt $foundItems.Count) { Write-Host "        (e altre righe negli stessi file)" }
+    if ($seen.Count -lt $foundItems.Count) { Write-Host "        (and more lines in the same files)" }
 }
 
-Write-Host "=== Nell'albero di lavoro"
-Look 'il nome utente' 'oscar' 'il nome di chi lavora' $false $nameOnly
-Look 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $sessionOnly
-Look 'un indirizzo interno' $TrueAddress 'una rete privata' $false
-Look 'l''interno di un altro repository' $InsideAnotherRepo 'cartelle e righe di casa d''altri' $false $twoChecks
-Look 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $talkAboutDisks
-Look 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkAboutDisks
+Write-Host "=== In the working tree"
+Look 'the user name' 'oscar' 'the name of the person working' $false $nameOnly
+Look 'a session path' 'AppData.Local.Temp' 'exists only on this machine' $false $sessionOnly
+Look 'an internal address' $TrueAddress 'a private network' $false
+Look 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks
+Look 'the O: drive' '(?<![A-Za-z])O:\\' 'a company network drive' $true $talkAboutDisks
+Look 'the W: drive' '(?<![A-Za-z])W:\\' 'a company network drive' $true $talkAboutDisks
 
 # ==============================================================================
 # 2. The history about to be pushed
@@ -308,7 +308,7 @@ Look 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkA
 # of the language detector: `git ls-files` minus the binaries by extension.
 
 Write-Host ""
-Write-Host "=== Nella storia che si sta per spingere"
+Write-Host "=== In the history about to be pushed"
 
 $upstream = (RunGit @('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'))
 if (-not $upstream) { $upstream = 'origin/main' }
@@ -335,37 +335,37 @@ $why = ""
 
 if (-not $exists) {
     $allHistory = $true
-    $why = "nessun ramo a monte ($upstream)"
+    $why = "no upstream branch ($upstream)"
 } else {
     $remote = ($upstream -split '/')[0]
     $branch   = ($upstream -split '/', 2)[1]
     $la = (RunGit @('ls-remote', '--heads', $remote, $branch))
     if (-not $la) {
         $allHistory = $true
-        $why = "il remoto non risponde, e un riferimento locale non basta"
+        $why = "the remote does not answer, and a local reference is not enough"
     } else {
         $remoteSha = ($la -split "\s+")[0]
         $shaLocale = (RunGit @('rev-parse', $upstream))
         if ($remoteSha -ne $shaLocale) {
             $allHistory = $true
-            $why = "$upstream qui dice $($shaLocale.Substring(0,7)) ma il remoto " +
-                      "dice $($remoteSha.Substring(0,7)): la storia e' stata riscritta"
+            $why = "$upstream here says $($shaLocale.Substring(0,7)) but the remote " +
+                      "says $($remoteSha.Substring(0,7)): the history was rewritten"
         }
     }
 }
 
 if ($allHistory) {
     Write-Host "  .. $why"
-    Write-Host "  .. si guarda TUTTA la storia"
+    Write-Host "  .. the WHOLE history is examined"
     $toPush = @(RunGit @('rev-list', 'HEAD'))
 } else {
     $toPush = @(RunGit @('rev-list', "$upstream..HEAD"))
 }
 
 if ($toPush.Count -eq 0) {
-    Write-Host "  ok  niente da spingere"
+    Write-Host "  ok  nothing to push"
 } else {
-    Write-Host "  .. $($toPush.Count) commit da guardare"
+    Write-Host "  .. $($toPush.Count) commits to look at"
 
     function LookAtHistory($itemName, $pattern, $why, $caseSensitive, $except = @()) {
         $foundItems = @(RunGit (@('grep', '--text', '-n', '--no-color') +
@@ -385,25 +385,25 @@ if ($toPush.Count -eq 0) {
             $true
         })
 
-        if ($gaps.Count -eq 0) { Write-Host "  ok  nessun $itemName"; return }
+        if ($gaps.Count -eq 0) { Write-Host "  ok  no $itemName"; return }
         $script:trouble++
         $file = @($gaps | ForEach-Object {
             $null = $_ -match '^([0-9a-f]{7,40}):([^:]+):'
             $Matches[2]
         } | Sort-Object -Unique)
-        Write-Host "  XX  $itemName ($why) in $($gaps.Count) punti, $($file.Count) file:"
+        Write-Host "  XX  $itemName ($why) in $($gaps.Count) places, $($file.Count) files:"
         foreach ($f in $file) { Write-Host "        $f" }
-        Write-Host "        La storia non si ripara con una modifica: serve"
+        Write-Host "        History cannot be repaired with a change: it has to be"
         Write-Host "        Checks\cleanup-history.js e git filter-branch, e va"
-        Write-Host "        fatto PRIMA del push - dopo diventa un force-push."
+        Write-Host "        done BEFORE the push - afterwards it becomes a force-push."
     }
 
-    LookAtHistory 'il nome utente' 'oscar' 'il nome di chi lavora' $false $nameOnly
-    LookAtHistory 'un percorso di sessione' 'AppData.Local.Temp' 'esiste solo su questa macchina' $false $sessionOnly
-    LookAtHistory 'un indirizzo interno' $TrueAddress 'una rete privata' $false
-    LookAtHistory 'l''interno di un altro repository' $InsideAnotherRepo 'cartelle e righe di casa d''altri' $false $twoChecks
-    LookAtHistory 'il disco O:' '(?<![A-Za-z])O:\\' 'un disco di rete aziendale' $true $talkAboutDisks
-    LookAtHistory 'il disco W:' '(?<![A-Za-z])W:\\' 'un disco di rete aziendale' $true $talkAboutDisks
+    LookAtHistory 'the user name' 'oscar' 'the name of the person working' $false $nameOnly
+    LookAtHistory 'a session path' 'AppData.Local.Temp' 'exists only on this machine' $false $sessionOnly
+    LookAtHistory 'an internal address' $TrueAddress 'a private network' $false
+    LookAtHistory 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks
+    LookAtHistory 'the O: drive' '(?<![A-Za-z])O:\\' 'a company network drive' $true $talkAboutDisks
+    LookAtHistory 'the W: drive' '(?<![A-Za-z])W:\\' 'a company network drive' $true $talkAboutDisks
 }
 
 # ==============================================================================
@@ -424,19 +424,19 @@ if ($toPush.Count -eq 0) {
 # this list shows, file by file, to whoever reads before publishing.
 
 Write-Host ""
-Write-Host "=== Percorsi di questa installazione (non vietati, ma da sapere)"
+Write-Host "=== Paths of this installation (not forbidden, but worth knowing)"
 $onDiskS = Lines '(?<![A-Za-z])S:\\' $true
 if ($onDiskS.Count -eq 0) {
     Write-Host "  nessuno"
 } else {
     $file = $onDiskS | ForEach-Object { $_.Path.Substring($root.Length + 1) } | Sort-Object -Unique
-    Write-Host "  $($onDiskS.Count) riferimenti a S: in $($file.Count) file:"
+    Write-Host "  $($onDiskS.Count) references to S: in $($file.Count) files:"
     foreach ($f in $file) { Write-Host "     $f" }
-    Write-Host "  Vanno bene solo se chi clona puo' scavalcarli con una variabile o un"
-    Write-Host "  argomento. Se sono costanti, non e' un repository che si clona."
+    Write-Host "  They are fine only if whoever clones can override them with a variable or an"
+    Write-Host "  argument. If they are constants, it is not a repository that can be cloned."
 }
 
 Write-Host ""
 if ($trouble -eq 0) { Write-Host 'Pulito.'; exit 0 }
-Write-Host "$trouble categorie da ripulire."
+Write-Host "$trouble categories to clean up."
 exit 1

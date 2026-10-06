@@ -37,7 +37,7 @@ namespace Checks.PositionsTest
 
         private static int Main()
         {
-            Console.WriteLine("Il giudizio sulle posizioni dei fori");
+            Console.WriteLine("The verdict on hole positions");
             Console.WriteLine();
 
             TheCaseThatCouldNotBeTested();
@@ -46,7 +46,7 @@ namespace Checks.PositionsTest
             TheDistanceFromAxis();
 
             Console.WriteLine();
-            if (trouble == 0) { Console.WriteLine("Tutto torna."); return 0; }
+            if (trouble == 0) { Console.WriteLine("Everything adds up."); return 0; }
             Console.WriteLine(trouble + " scostamenti.");
             return 1;
         }
@@ -57,31 +57,31 @@ namespace Checks.PositionsTest
 
         private static void TheCaseThatCouldNotBeTested()
         {
-            Console.WriteLine("=== Quando non si e' potuto guardare");
+            Console.WriteLine("=== When it could not be looked at");
 
             // THIS IS THE DEFECT. The feature exists, the points were
             // requested, but on the part there is no cylindrical face of the
             // expected diameter: the holes might not be there at all.
             // Before, this road came out as «verificate».
-            Outcome("nessuna faccia cilindrica trovata",
+            Outcome("no cylindrical face found",
                   PositionsOutcome.NotVerifiable,
                   new List<double[]>(), null, TwoPoints());
 
-            Outcome("la lista degli assi e' nulla",
+            Outcome("the list of axes is null",
                   PositionsOutcome.NotVerifiable,
                   null, null, TwoPoints());
 
-            Outcome("SOLIDWORKS non dichiara il diametro",
+            Outcome("SOLIDWORKS does not declare the diameter",
                   PositionsOutcome.NotVerifiable,
-                  null, "SOLIDWORKS non dichiara un diametro per questa lavorazione: " +
-                        "non ho un termine di confronto",
+                  null, "SOLIDWORKS does not declare a diameter for this feature: " +
+                        "I have nothing to compare with",
                   TwoPoints());
 
-            Outcome("la lavorazione non espone le facce",
+            Outcome("the feature does not expose the faces",
                   PositionsOutcome.NotVerifiable,
-                  null, "la lavorazione non espone le sue facce", TwoPoints());
+                  null, "the feature does not expose its faces", TwoPoints());
 
-            Outcome("nessuna posizione chiesta",
+            Outcome("no position asked",
                   PositionsOutcome.NotVerifiable,
                   new List<double[]> { ZAxis(30, 20) }, null, new List<double[]>());
 
@@ -90,7 +90,7 @@ namespace Checks.PositionsTest
             // «verificate» was false.
             string reason;
             PositionsVerdict.Judge(new List<double[]>(), null, PlaneXy, 0.01, TwoPoints(), out reason);
-            True("il motivo c'e' ed e' una frase",
+            True("the reason is there and it is a sentence",
                  !string.IsNullOrWhiteSpace(reason) && reason.Length > 20, reason);
 
             Console.WriteLine();
@@ -102,26 +102,26 @@ namespace Checks.PositionsTest
 
         private static void WhenItCanBeChecked()
         {
-            Console.WriteLine("=== Quando si e' potuto guardare");
+            Console.WriteLine("=== When it could be looked at");
 
-            Outcome("due fori dove erano stati chiesti",
+            Outcome("two holes where they were asked",
                   PositionsOutcome.Verified,
                   new List<double[]> { ZAxis(30, 20), ZAxis(70, 20) }, null, TwoPoints());
 
             // One axis for two holes: the second hole is not there. The farthest
             // is 40 mm away, and it must be said.
-            Outcome("un foro dei due non c'e'",
+            Outcome("one of the two holes is not there",
                   PositionsOutcome.Wrong,
                   new List<double[]> { ZAxis(30, 20) }, null, TwoPoints());
 
-            Outcome("un foro finito altrove",
+            Outcome("one hole ended up elsewhere",
                   PositionsOutcome.Wrong,
                   new List<double[]> { ZAxis(30, 20), ZAxis(72, 20) }, null, TwoPoints());
 
             // MORE AXES THAN HOLES IS NOT AN ERROR: a counterbored hole has two coaxial
             // cylindrical faces, and the counterbore of the right diameter ends
             // up in there. What counts is that every requested point has one close by.
-            Outcome("piu' assi che fori (lamatura coassiale)",
+            Outcome("more axes than holes (coaxial counterbore)",
                   PositionsOutcome.Verified,
                   new List<double[]> { ZAxis(30, 20), ZAxis(30, 20), ZAxis(70, 20) },
                   null, TwoPoints());
@@ -132,7 +132,7 @@ namespace Checks.PositionsTest
             var outcome = PositionsVerdict.Judge(
                 new List<double[]> { ZAxis(30, 20), ZAxis(72, 20) },
                 null, PlaneXy, 0.01, TwoPoints(), out reason);
-            True("il rifiuto dice quale foro e di quanto",
+            True("the refusal says which hole and by how much",
                  outcome == PositionsOutcome.Wrong &&
                  reason != null && reason.Contains("2") && reason.Contains("mm"),
                  reason);
@@ -146,18 +146,18 @@ namespace Checks.PositionsTest
 
         private static void TheThreshold()
         {
-            Console.WriteLine("=== La soglia di " +
+            Console.WriteLine("=== The threshold of " +
                 PositionsVerdict.ToleranceMm.ToString("0.##", CultureInfo.InvariantCulture) + " mm");
 
             var requested = new List<double[]> { new double[] { 30, 20 } };
 
             // Inside the threshold: 0.09 mm.
-            Outcome("scostamento 0.09 mm", PositionsOutcome.Verified,
+            Outcome("deviation 0.09 mm", PositionsOutcome.Verified,
                   new List<double[]> { ZAxis(30.09, 20) }, null, requested);
 
             // Outside: 0.11 mm. Two values straddling it, not just one: a threshold
             // tested from one side only is not a threshold, it is an example.
-            Outcome("scostamento 0.11 mm", PositionsOutcome.Wrong,
+            Outcome("deviation 0.11 mm", PositionsOutcome.Wrong,
                   new List<double[]> { ZAxis(30.11, 20) }, null, requested);
 
             // EXACTLY ON THE THRESHOLD IS NOT TESTED, and the why is worth more
@@ -186,10 +186,10 @@ namespace Checks.PositionsTest
             // noise, and no noise can trigger the refusal by itself.
             // It is the same shape of reasoning as on the gear, where
             // between the two quantities there were two.
-            True("il rumore sta un milione di volte sotto la soglia",
+            True("the noise is a million times below the threshold",
                  noise > 0 && noise * 1e6 < PositionsVerdict.ToleranceMm,
-                 "rumore " + noise.ToString("0.0e+00", CultureInfo.InvariantCulture) +
-                 " mm contro una soglia di " +
+                 "noise " + noise.ToString("0.0e+00", CultureInfo.InvariantCulture) +
+                 " mm against a threshold of " +
                  PositionsVerdict.ToleranceMm.ToString("0.##", CultureInfo.InvariantCulture));
 
             Console.WriteLine();
@@ -201,37 +201,37 @@ namespace Checks.PositionsTest
 
         private static void TheDistanceFromAxis()
         {
-            Console.WriteLine("=== La distanza fra un punto e la retta di un cilindro");
+            Console.WriteLine("=== The distance between a point and the line of a cylinder");
 
             // Point on the axis.
-            Number("punto sull'asse", 0,
+            Number("point on the axis", 0,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.03, 0.02, 0.05 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 1, 0.0034 }));
 
             // Point 5 mm to the side, with the axis along Z: the coordinate along the axis
             // must not count.
-            Number("5 mm di lato, a qualunque quota", 0.005,
+            Number("5 mm to the side, at any height", 0.005,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0.9 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 1, 0.0034 }));
 
             // Non-normalised direction: it must come out the same.
-            Number("direzione non normalizzata", 0.005,
+            Number("direction not normalized", 0.005,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0.9 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 7.3, 0.0034 }));
 
             // Null direction: we do not divide by zero, we say «very far».
-            Number("direzione nulla", double.MaxValue,
+            Number("null direction", double.MaxValue,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0.035, 0.02, 0 },
                     new double[] { 0.03, 0.02, 0, 0, 0, 0, 0.0034 }));
 
             // Crooked arguments: we do not blow up.
-            Number("cilindro nullo", double.MaxValue,
+            Number("null cylinder", double.MaxValue,
                 PositionsVerdict.DistanceFromAxis(new double[] { 0, 0, 0 }, null));
-            Number("punto corto", double.MaxValue,
+            Number("short point", double.MaxValue,
                 PositionsVerdict.DistanceFromAxis(
                     new double[] { 0, 0 }, new double[] { 0, 0, 0, 0, 0, 1, 1 }));
 
@@ -270,7 +270,7 @@ namespace Checks.PositionsTest
             }
             trouble++;
             Console.WriteLine("  XX  " + itemName.PadRight(52) +
-                "atteso " + expected + ", avuto " + had + "  " + Short(reason));
+                "expected " + expected + ", got " + had + "  " + Short(reason));
         }
 
         private static void True(string itemName, bool condition, string detail)
@@ -294,8 +294,8 @@ namespace Checks.PositionsTest
             }
             trouble++;
             Console.WriteLine("  XX  " + itemName.PadRight(52) +
-                "atteso " + expected.ToString("0.######", CultureInfo.InvariantCulture) +
-                ", avuto " + had.ToString("0.######", CultureInfo.InvariantCulture));
+                "expected " + expected.ToString("0.######", CultureInfo.InvariantCulture) +
+                ", got " + had.ToString("0.######", CultureInfo.InvariantCulture));
         }
 
         private static string Short(string s)

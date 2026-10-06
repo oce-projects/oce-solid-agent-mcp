@@ -49,7 +49,7 @@ $ErrorActionPreference = "Continue"
 
 $redist = "C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist"
 if ($env:SW_INSTALL_PATH) { $redist = Join-Path $env:SW_INSTALL_PATH "api\redist" }
-if (-not (Test-Path $redist)) { Write-Output "non trovo $redist"; exit 2 }
+if (-not (Test-Path $redist)) { Write-Output "cannot find $redist"; exit 2 }
 
 # ALL the interops, not only sldworks: the entries also cite swconst,
 # swdocumentmgr, gtswutilities, cosworks.
@@ -61,8 +61,8 @@ foreach ($dll in (Get-ChildItem $redist -Filter "SolidWorks.Interop.*.dll")) {
     } catch { }
 }
 Write-Output ""
-Write-Output ("interop caricate: " + (Get-ChildItem $redist -Filter 'SolidWorks.Interop.*.dll').Count +
-              ",  tipi visti: " + $types.Count)
+Write-Output ("interops loaded: " + (Get-ChildItem $redist -Filter 'SolidWorks.Interop.*.dll').Count +
+              ",  types seen: " + $types.Count)
 
 # THE TODO IS NO LONGER IN THE PUBLIC REPOSITORY: it is a work journal, it lives in
 # `note-interne/` and the .gitignore excludes it. It is searched where it is today, where
@@ -81,9 +81,9 @@ if (-not $todo -or -not (Test-Path $todo)) {
 }
 if (-not $todo) {
     Write-Output ""
-    Write-Output "Il TODO non c'e' in questo clone: e' un documento interno e non"
-    Write-Output "viene pubblicato. QUESTA SONDA NON HA CONTROLLATO NIENTE."
-    Write-Output "Se ne hai una copia, indicala con TODO_MD."
+    Write-Output "The TODO is not in this clone: it is an internal document and is not"
+    Write-Output "published. THIS PROBE CHECKED NOTHING."
+    Write-Output "If you have a copy, point to it with TODO_MD."
     exit 0
 }
 $text = Get-Content $todo -Raw
@@ -136,13 +136,13 @@ foreach ($m in [regex]::Matches($text, '\b(I[A-Z][a-z]\w*)\s*(?:::|\.)\s*([A-Z]\
 # in the list of entry Z-C7. **A probe that silences itself stops
 # seeing the real cases too.**
 $sorry = @{
-    "IMate2.Name"            = "la voce Z-A8 la cita per dire che NON esiste: verificato a mano prima, e da questa sonda dopo"
-    "IAssemblyDoc.ViewMates" = "citata nella correzione che spiega che non esiste (i membri veri sono AddMate4/5, EditMate3/4, CopyWithMates)"
-    "INewGtol.NewGtol"       = "citata nella correzione che spiega che INewGtol e' un METODO di IDrawingDoc, non un tipo"
+    "IMate2.Name"            = "entry Z-A8 cites it to say that it does NOT exist: verified by hand before, and by this probe afterwards"
+    "IAssemblyDoc.ViewMates" = "cited in the correction explaining that it does not exist (the real members are AddMate4/5, EditMate3/4, CopyWithMates)"
+    "INewGtol.NewGtol"       = "cited in the correction explaining that INewGtol is a METHOD of IDrawingDoc, not a type"
 }
 
-Write-Output ("firme citate nel TODO: " + $foundOnes.Count +
-              ",  di cui dichiarate inesistenti apposta: " + $sorry.Count)
+Write-Output ("signatures cited in the TODO: " + $foundOnes.Count +
+              ",  of which declared nonexistent on purpose: " + $sorry.Count)
 Write-Output ""
 
 $missingItems = @()
@@ -160,21 +160,21 @@ foreach ($f in $foundOnes.Keys) {
     if ($c.Count -eq 0) { $missingItems += $f } else { $ok++; if ($All) { Write-Output ("  ok   " + $f) } }
 }
 
-Write-Output ("verificate e presenti: " + $ok)
+Write-Output ("verified and present: " + $ok)
 Write-Output ""
 if ($absentTypes.Count -gt 0) {
-    Write-Output ("TIPI che non esistono in queste interop: " + $absentTypes.Count)
+    Write-Output ("TYPES that do not exist in these interops: " + $absentTypes.Count)
     foreach ($x in $absentTypes) { Write-Output ("  ?  " + $x) }
     Write-Output ""
 }
 if ($missingItems.Count -gt 0) {
-    Write-Output ("MEMBRI che il loro tipo NON ha: " + $missingItems.Count)
+    Write-Output ("MEMBERS that their type does NOT have: " + $missingItems.Count)
     foreach ($x in $missingItems) { Write-Output ("  !  " + $x) }
     Write-Output ""
 }
 if ($absentTypes.Count -eq 0 -and $missingItems.Count -eq 0) {
-    Write-Output "Tutte le firme citate nel TODO esistono in questa installazione."
+    Write-Output "All the signatures cited in the TODO exist in this installation."
 }
 
-Write-Output "«Non trovato» e' una cosa da guardare, non una colpa: puo' essere un"
-Write-Output "refuso, una versione piu' nuova, o un membro che sta su un altro tipo."
+Write-Output "«Not found» is something to look at, not a fault: it may be a"
+Write-Output "typo, a newer version, or a member that lives on another type."

@@ -52,21 +52,21 @@ internal static class Program
     private static int Main()
     {
         Console.WriteLine();
-        Console.WriteLine("MODALE — CommandInProgress e IsWindowEnabled con un modale aperto (voce Z-C3)");
+        Console.WriteLine("MODAL — CommandInProgress and IsWindowEnabled with a modal open (entry Z-C3)");
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
 
         IntPtr frameBorder;
         try { frameBorder = new IntPtr(((IFrame)sw.Frame()).GetHWnd()); }
-        catch (Exception ex) { Console.WriteLine("Frame().GetHWnd() non risponde: " + ex.Message); return 2; }
+        catch (Exception ex) { Console.WriteLine("Frame().GetHWnd() does not respond: " + ex.Message); return 2; }
         uint pid;
         GetWindowThreadProcessId(frameBorder, out pid);
-        Console.WriteLine("  finestra principale 0x" + frameBorder.ToInt64().ToString("X") + ", processo " + pid);
+        Console.WriteLine("  main window 0x" + frameBorder.ToInt64().ToString("X") + ", process " + pid);
         Console.WriteLine();
-        Console.WriteLine("  giro  modale   IsWindowEnabled (ms)   CommandInProgress (ms)");
+        Console.WriteLine("  run   modal    IsWindowEnabled (ms)   CommandInProgress (ms)");
 
         int bogusUser32 = 0, bogusCom = 0, notReturned = 0;
         for (int benchRun = 1; benchRun <= 3; benchRun++)
@@ -82,7 +82,7 @@ internal static class Program
                         try
                         {
                             var its = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application");
-                            its.SendMsgToUser2("Sonda Z-C3: questa finestra si chiude da sola.",
+                            its.SendMsgToUser2("Probe Z-C3: this window closes by itself.",
                                 (int)swMessageBoxIcon_e.swMbInformation, (int)swMessageBoxBtn_e.swMbOk);
                         }
                         catch { }
@@ -98,7 +98,7 @@ internal static class Program
                     }
                     if (dialog == IntPtr.Zero)
                     {
-                        Console.WriteLine("  il modale non si e' visto entro 8 s: la sonda non puo' misurare");
+                        Console.WriteLine("  the modal did not show up within 8 s: the probe cannot measure");
                         return 4;
                     }
                     Thread.Sleep(300);
@@ -133,7 +133,7 @@ internal static class Program
 
                 Console.WriteLine("  " + benchRun + "     " + (open ? "APERTO " : "chiuso ") + "  " +
                                   enabled.ToString().PadRight(6) + " (" + msU + ")".PadRight(10) + "        " +
-                                  (!returned ? "NON TORNATA entro 5000 ms"
+                                  (!returned ? "NOT RETURNED within 5000 ms"
                                    : inProgress.HasValue ? inProgress.Value + " (" + msC + ")" : "eccezione"));
 
                 if (open)
@@ -141,7 +141,7 @@ internal static class Program
                     PostMessage(dialog, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
                     if (!wire.Join(8000))
                     {
-                        Console.WriteLine("  il modale non si chiude: CHIUDILO A MANO. Mi fermo.");
+                        Console.WriteLine("  the modal does not close: CLOSE IT BY HAND. I am stopping.");
                         return 5;
                     }
                     Thread.Sleep(300);
@@ -150,22 +150,22 @@ internal static class Program
         }
 
         Console.WriteLine();
-        Console.WriteLine("  IsWindowEnabled: " + bogusUser32 + " risposte sbagliate su 6");
-        Console.WriteLine("  CommandInProgress: " + bogusCom + " risposte sbagliate su 6, " + notReturned + " non tornate");
+        Console.WriteLine("  IsWindowEnabled: " + bogusUser32 + " wrong answers out of 6");
+        Console.WriteLine("  CommandInProgress: " + bogusCom + " wrong answers out of 6, " + notReturned + " not returned");
         Console.WriteLine();
         if (bogusUser32 == 0 && bogusCom == 0 && notReturned == 0)
         {
-            Console.WriteLine("REGGE: le due letture concordano coi fatti, e la guardia di oggi (CommandInProgress) scatta.");
+            Console.WriteLine("HOLDS: the two readings agree with the facts, and today's guard (CommandInProgress) fires.");
             return 0;
         }
         if (bogusUser32 == 0)
         {
-            Console.WriteLine("LA GUARDIA DI OGGI NON BASTA: IsWindowEnabled vede il modale, CommandInProgress " +
-                              (notReturned > 0 ? "non torna" : "sbaglia") + ".");
-            Console.WriteLine("La guardia va costruita su IsWindowEnabled della finestra principale.");
+            Console.WriteLine("TODAY'S GUARD IS NOT ENOUGH: IsWindowEnabled sees the modal, CommandInProgress " +
+                              (notReturned > 0 ? "does not return" : "is wrong") + ".");
+            Console.WriteLine("The guard must be built on IsWindowEnabled of the main window.");
             return 6;
         }
-        Console.WriteLine("NEMMENO IsWindowEnabled distingue: la sonda va ripensata prima di costruire niente.");
+        Console.WriteLine("NOT EVEN IsWindowEnabled tells them apart: the probe must be rethought before building anything.");
         return 7;
     }
 

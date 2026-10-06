@@ -110,33 +110,33 @@ const conMeta = ((full.length + meta.length * 0.5) / total) * 100;
 const halfForWhole = ((full.length + meta.length) / total) * 100;
 
 console.log(`file: ${path.relative(process.cwd(), file)}`);
-console.log(`voci con casella: ${total}`);
-console.log(`  [x] chiuse   ${full.length}`);
-console.log(`  [~] a meta'  ${meta.length}`);
-console.log(`  [ ] aperte   ${open.length}`);
+console.log(`entries with a box: ${total}`);
+console.log(`  [x] closed   ${full.length}`);
+console.log(`  [~] half done  ${meta.length}`);
+console.log(`  [ ] open     ${open.length}`);
 let defects = 0;
 if (traces.length) {
   defects++;
   console.log();
-  console.log(`  XX  ${traces.length} tracce hanno ancora la casella, e contano come lavoro:`);
+  console.log(`  XX  ${traces.length} traces still have the box, and count as work:`);
   for (const v of traces) console.log(`        [${v.stato}] ${v.titolo.slice(0, 70)}`);
-  console.log(`      La regola in testa al TODO: una traccia diventa «(com'era)».`);
-  console.log(`      Al netto: ${realWork} aperte vere.`);
+  console.log(`      The rule at the head of the TODO: a trace becomes «(com'era)».`);
+  console.log(`      Net of those: ${realWork} really open.`);
 }
 if (offLevel.length) {
   defects++;
   console.log();
-  console.log(`  XX  caselle fuori dal livello ####, invisibili a ogni conto: righe ${offLevel.join(", ")}`);
+  console.log(`  XX  boxes outside level ####, invisible to every count: lines ${offLevel.join(", ")}`);
 }
 console.log();
-console.log("completamento, e la forchetta e' il numero onesto:");
+console.log("completion, and the range is the honest number:");
 console.log(`  solo [x]                      ${fullOnly.toFixed(1)} %`);
-console.log(`  [x] piene, [~] per meta'      ${conMeta.toFixed(1)} %`);
-console.log(`  [~] contate per intere        ${halfForWhole.toFixed(1)} %`);
+console.log(`  [x] full, [~] counted half    ${conMeta.toFixed(1)} %`);
+console.log(`  [~] counted whole             ${halfForWhole.toFixed(1)} %`);
 console.log();
-console.log("la riga da riscrivere nel §1 del TODO:");
+console.log("the line to rewrite in §1 of the TODO:");
 console.log(
-  `  **${total} voci**: ${full.length} chiuse, ${meta.length} a meta', ${open.length} aperte ` +
+  `  **${total} entries**: ${full.length} closed, ${meta.length} half done, ${open.length} open ` +
     `(${fullOnly.toFixed(1)}% / ${conMeta.toFixed(1)}% / ${halfForWhole.toFixed(1)}%).`
 );
 if (defects) process.exitCode = 1;
@@ -265,25 +265,25 @@ if (process.argv.includes("--blocchi")) {
   }
 
   console.log();
-  console.log("cosa blocca le voci aperte (spie, non sentenze):");
-  console.log(`  decisione del proprietario   ${groups.proprietario.length}`);
-  console.log(`  vuole SOLIDWORKS acceso      ${groups.solidworks.length}`);
-  console.log(`  aspetta un'altra voce        ${groups.dipendenti.length}`);
-  console.log(`  SI PUO' FARE ADESSO          ${groups.adesso.length}`);
+  console.log("what blocks the open entries (warning lights, not verdicts):");
+  console.log(`  owner's decision             ${groups.proprietario.length}`);
+  console.log(`  wants SOLIDWORKS running     ${groups.solidworks.length}`);
+  console.log(`  waits for another entry      ${groups.dipendenti.length}`);
+  console.log(`  CAN BE DONE NOW              ${groups.adesso.length}`);
   console.log();
-  console.log("  -- si puo' fare adesso, senza SOLIDWORKS --");
+  console.log("  -- can be done now, without SOLIDWORKS --");
   for (const v of groups.adesso) console.log("     " + v);
   console.log();
-  console.log("  -- aspetta che un'ALTRA VOCE sia chiusa --");
+  console.log("  -- waits for ANOTHER ENTRY to be closed --");
   for (const v of groups.dipendenti) console.log("     " + v);
   console.log();
-  console.log("  -- aspetta una decisione che non e' di chi programma --");
+  console.log("  -- waits for a decision that is not the programmer's --");
   for (const v of groups.proprietario) console.log("     " + v);
 }
 
 if (showLines) {
   console.log();
-  console.log("le aperte:");
+  console.log("the open ones:");
   for (const v of open) {
     const sign = /traccia originale|tenuta per riferimento/i.test(v.titolo) ? "  (traccia)" : "";
     console.log("   " + v.titolo.split("·")[0].trim().slice(0, 78) + sign);

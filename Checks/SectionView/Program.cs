@@ -39,14 +39,14 @@ namespace Checks.SectionView
         {
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
+            if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
             if (doc.GetType() != (int)swDocumentTypes_e.swDocDRAWING)
             {
-                Console.Error.WriteLine("Il documento attivo non e' una tavola.");
+                Console.Error.WriteLine("The active document is not a drawing.");
                 return 2;
             }
             var drawing = (IDrawingDoc)doc;
@@ -66,10 +66,10 @@ namespace Checks.SectionView
                 v = v.GetNextView() as IView;
                 if (views > 50) break;
             }
-            Console.WriteLine("viste sul foglio, prima: " + views + " (il foglio compreso)");
+            Console.WriteLine("views on the sheet, before: " + views + " (the sheet included)");
             if (target == null)
             {
-                Console.Error.WriteLine("Sul foglio non c'e' nessuna vista da sezionare.");
+                Console.Error.WriteLine("There is no view on the sheet to section.");
                 return 1;
             }
 
@@ -77,14 +77,14 @@ namespace Checks.SectionView
             var outline = target.GetOutline() as double[];
             if (location == null || outline == null || outline.Length < 4)
             {
-                Console.Error.WriteLine("Non riesco a leggere posizione e ingombro della vista.");
+                Console.Error.WriteLine("Cannot read the position and bounding box of the view.");
                 return 1;
             }
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "vista «{0}» (tipo {1}) in ({2:0.####}, {3:0.####}) m",
+                "view «{0}» (type {1}) at ({2:0.####}, {3:0.####}) m",
                 target.GetName2(), target.Type, location[0], location[1]));
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "ingombro sul foglio: x {0:0.####}..{1:0.####}  y {2:0.####}..{3:0.####} m",
+                "bounding box on the sheet: x {0:0.####}..{1:0.####}  y {2:0.####}..{3:0.####} m",
                 outline[0], outline[2], outline[1], outline[3]));
 
             // 3. THE LINE THAT CROSSES FROM SIDE TO SIDE.
@@ -104,9 +104,9 @@ namespace Checks.SectionView
             ISketchSegment line = null;
             try { line = sketches.CreateLine(xCut, y1, 0.0, xCut, y2, 0.0) as ISketchSegment; }
             catch (Exception e) { Console.WriteLine("  CreateLine: " + e.Message); }
-            if (line == null) { Console.Error.WriteLine("Niente linea, niente sezione."); return 1; }
+            if (line == null) { Console.Error.WriteLine("No line, no section."); return 1; }
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "linea tracciata in x={0:0.####}, da y={1:0.####} a y={2:0.####}",
+                "line drawn at x={0:0.####}, from y={1:0.####} to y={2:0.####}",
                 xCut, y1, y2));
 
             // The sketch is CLOSED before asking for the section: with an open
@@ -120,9 +120,9 @@ namespace Checks.SectionView
             try { taken = line.Select4(false, null); }
             catch (Exception e) { Console.WriteLine("  Select4: " + e.Message); }
             var selection = (ISelectionMgr)doc.SelectionManager;
-            Console.WriteLine("linea selezionata: " + taken +
-                ", oggetti selezionati: " + selection.GetSelectedObjectCount2(-1) +
-                ", tipo: " + (selection.GetSelectedObjectCount2(-1) > 0
+            Console.WriteLine("line selected: " + taken +
+                ", selected objects: " + selection.GetSelectedObjectCount2(-1) +
+                ", type: " + (selection.GetSelectedObjectCount2(-1) > 0
                     ? selection.GetSelectedObjectType3(1, -1).ToString() : "-"));
 
             // 5. THE SECTION, beside the view.
@@ -134,9 +134,9 @@ namespace Checks.SectionView
                 born = drawing.CreateSectionViewAt5(
                     xSection, ySection, 0.0, "A", 0, null, 0);
             }
-            catch (Exception e) { Console.WriteLine("  CreateSectionViewAt5 ha sollevato: " + e.Message); }
-            Console.WriteLine("CreateSectionViewAt5 ha risposto: " +
-                (born == null ? "null" : "un oggetto"));
+            catch (Exception e) { Console.WriteLine("  CreateSectionViewAt5 raised: " + e.Message); }
+            Console.WriteLine("CreateSectionViewAt5 answered: " +
+                (born == null ? "null" : "an object"));
 
             // THE REAL CHECK: how many views there are now.
             int after = 0;
@@ -151,10 +151,10 @@ namespace Checks.SectionView
                 w = w.GetNextView() as IView;
                 if (after > 50) break;
             }
-            Console.WriteLine("viste sul foglio, dopo:  " + after);
+            Console.WriteLine("views on the sheet, after:  " + after);
             Console.WriteLine(after > views
-                ? "  -> LA SEZIONE C'E'. Ultima vista: «" + last + "»"
-                : "  -> nessuna vista in piu': la sezione NON e' nata");
+                ? "  -> THE SECTION IS THERE. Last view: «" + last + "»"
+                : "  -> no extra view: the section was NOT created");
 
             // ── THE HATCHING: TWO NUMBERS, AND BEFORE AND AFTER THE RECALCULATION ──
             //
@@ -173,7 +173,7 @@ namespace Checks.SectionView
                 int howMany1 = -1, returned1 = -1;
                 try { returned1 = lastView.GetSolidHatchCount(out howMany1); } catch (Exception e)
                 { Console.WriteLine("  GetSolidHatchCount (prima): " + e.Message); }
-                Console.WriteLine("tratteggio PRIMA del ricalcolo: ritorno=" + returned1 +
+                Console.WriteLine("hatching BEFORE the recalculation: return=" + returned1 +
                                   "  out=" + howMany1);
             }
 
@@ -183,8 +183,8 @@ namespace Checks.SectionView
             {
                 int howMany2 = -1, returned2 = -1;
                 try { returned2 = lastView.GetSolidHatchCount(out howMany2); } catch (Exception e)
-                { Console.WriteLine("  GetSolidHatchCount (dopo): " + e.Message); }
-                Console.WriteLine("tratteggio DOPO  il ricalcolo: ritorno=" + returned2 +
+                { Console.WriteLine("  GetSolidHatchCount (after): " + e.Message); }
+                Console.WriteLine("hatching AFTER  the recalculation: return=" + returned2 +
                                   "  out=" + howMany2);
 
                 // ── WHAT IF THE COUNTER WERE ANOTHER ONE ────────────────
@@ -197,7 +197,7 @@ namespace Checks.SectionView
                 int faces = -1;
                 try { faces = lastView.GetFaceHatchCount(); } catch (Exception e)
                 { Console.WriteLine("  GetFaceHatchCount: " + e.Message); }
-                Console.WriteLine("tratteggio di FACCIA:          " + faces);
+                Console.WriteLine("FACE hatching:                 " + faces);
 
                 int typ = -1;
                 try { typ = lastView.Type; } catch { }
@@ -205,11 +205,11 @@ namespace Checks.SectionView
                 try { hasSection = lastView.GetSection() != null; } catch { }
                 int cutLines = -1;
                 try { int rt; lastView.GetSectionLineCount2(out rt); cutLines = rt; } catch { }
-                Console.WriteLine("tipo vista: " + typ +
+                Console.WriteLine("view type: " + typ +
                                   "  (swDrawingSectionView = " +
                                   (int)swDrawingViewTypes_e.swDrawingSectionView + ")");
-                Console.WriteLine("GetSection() risponde: " + (hasSection ? "un oggetto" : "null") +
-                                  "   righe di taglio sulla vista di partenza: " + cutLines);
+                Console.WriteLine("GetSection() answers: " + (hasSection ? "an object" : "null") +
+                                  "   cut lines on the starting view: " + cutLines);
             }
 
             return after > views ? 0 : 1;

@@ -46,14 +46,14 @@ namespace Checks.DetailView
         {
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
+            if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
             if (doc.GetType() != (int)swDocumentTypes_e.swDocDRAWING)
             {
-                Console.Error.WriteLine("Il documento attivo non e' una tavola.");
+                Console.Error.WriteLine("The active document is not a drawing.");
                 return 2;
             }
             var drawing = (IDrawingDoc)doc;
@@ -70,21 +70,21 @@ namespace Checks.DetailView
                     target = v;
                 v = v.GetNextView() as IView;
             }
-            Console.WriteLine("viste sul foglio, prima: " + views + " (il foglio compreso)");
+            Console.WriteLine("views on the sheet, before: " + views + " (the sheet included)");
             if (target == null)
             {
-                Console.Error.WriteLine("Sul foglio non c'e' nessuna vista da dettagliare.");
+                Console.Error.WriteLine("There is no view on the sheet to make a detail of.");
                 return 1;
             }
 
             var outline = target.GetOutline() as double[];
             if (outline == null || outline.Length < 4)
             {
-                Console.Error.WriteLine("Non riesco a leggere l'ingombro della vista.");
+                Console.Error.WriteLine("Cannot read the view's bounding box.");
                 return 1;
             }
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "vista «{0}» (tipo {1}), ingombro x {2:0.####}..{3:0.####} y {4:0.####}..{5:0.####} m",
+                "view «{0}» (type {1}), bounding box x {2:0.####}..{3:0.####} y {4:0.####}..{5:0.####} m",
                 target.GetName2(), target.Type, outline[0], outline[2], outline[1], outline[3]));
 
             // TWO OUTPUTS, AND NEITHER IS OBVIOUS. See the comment at the top of the
@@ -92,7 +92,7 @@ namespace Checks.DetailView
             int circlesBefore = -1, returnedBefore = -1;
             try { returnedBefore = target.GetDetailCircleCount2(out circlesBefore); }
             catch (Exception e) { Console.WriteLine("  GetDetailCircleCount2: " + e.Message); }
-            Console.WriteLine("circonferenze PRIMA: ritorno=" + returnedBefore + "  out=" + circlesBefore);
+            Console.WriteLine("circles BEFORE: return=" + returnedBefore + "  out=" + circlesBefore);
 
             // 2. THE CIRCLE, INSIDE THE VIEW.
             //
@@ -116,11 +116,11 @@ namespace Checks.DetailView
             catch (Exception e) { Console.WriteLine("  CreateCircleByRadius: " + e.Message); }
             if (circle == null)
             {
-                Console.Error.WriteLine("Niente cerchio, niente dettaglio.");
+                Console.Error.WriteLine("No circle, no detail.");
                 return 1;
             }
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "cerchio tracciato in ({0:0.####}, {1:0.####}) raggio {2:0.####} m", cx, cy, radius));
+                "circle drawn at ({0:0.####}, {1:0.####}) radius {2:0.####} m", cx, cy, radius));
 
             // The sketch is CLOSED first, as for the section.
             try { doc.SketchManager.InsertSketch(true); } catch { }
@@ -131,9 +131,9 @@ namespace Checks.DetailView
             try { taken = circle.Select4(false, null); }
             catch (Exception e) { Console.WriteLine("  Select4: " + e.Message); }
             var selection = (ISelectionMgr)doc.SelectionManager;
-            Console.WriteLine("cerchio selezionato: " + taken +
-                ", oggetti selezionati: " + selection.GetSelectedObjectCount2(-1) +
-                ", tipo: " + (selection.GetSelectedObjectCount2(-1) > 0
+            Console.WriteLine("circle selected: " + taken +
+                ", selected objects: " + selection.GetSelectedObjectCount2(-1) +
+                ", type: " + (selection.GetSelectedObjectCount2(-1) > 0
                     ? selection.GetSelectedObjectType3(1, -1).ToString() : "-"));
 
             // 4. THE DETAIL, beside the view.
@@ -151,9 +151,9 @@ namespace Checks.DetailView
                     (int)swDetCircleShowType_e.swDetCircleCIRCLE, false, false, false, 0);
             }
             catch (Exception e)
-            { Console.WriteLine("  CreateDetailViewAt4 ha sollevato: " + e.Message); }
-            Console.WriteLine("CreateDetailViewAt4 ha risposto: " +
-                (born == null ? "null" : "un oggetto"));
+            { Console.WriteLine("  CreateDetailViewAt4 raised: " + e.Message); }
+            Console.WriteLine("CreateDetailViewAt4 answered: " +
+                (born == null ? "null" : "an object"));
 
             // THE CHECK: how many views there are now, and what type the last one is.
             int after = 0;
@@ -165,11 +165,11 @@ namespace Checks.DetailView
                 last = w;
                 w = w.GetNextView() as IView;
             }
-            Console.WriteLine("viste sul foglio, dopo:  " + after);
+            Console.WriteLine("views on the sheet, after:  " + after);
 
             int circlesAfter = -1, returnedAfter = -1;
             try { returnedAfter = target.GetDetailCircleCount2(out circlesAfter); } catch { }
-            Console.WriteLine("circonferenze DOPO : ritorno=" + returnedAfter + "  out=" + circlesAfter);
+            Console.WriteLine("circles AFTER : return=" + returnedAfter + "  out=" + circlesAfter);
 
             // AND THE VERSION WITHOUT THE «2», which is the other road that has not been
             // tried. If it answered a clean count, the «2» would be a
@@ -177,10 +177,10 @@ namespace Checks.DetailView
             try
             {
                 int old = target.GetDetailCircleCount();
-                Console.WriteLine("GetDetailCircleCount (senza il 2): " + old);
+                Console.WriteLine("GetDetailCircleCount (without the 2): " + old);
             }
             catch (Exception e)
-            { Console.WriteLine("GetDetailCircleCount (senza il 2): " + e.Message); }
+            { Console.WriteLine("GetDetailCircleCount (without the 2): " + e.Message); }
 
             // And the hatching here too: a detail shows the same
             // geometry enlarged, so if the starting view is not
@@ -190,7 +190,7 @@ namespace Checks.DetailView
             {
                 int faces = -1;
                 try { faces = last.GetFaceHatchCount(); } catch { }
-                Console.WriteLine("tratteggio di faccia sul dettaglio: " + faces);
+                Console.WriteLine("face hatching on the detail: " + faces);
             }
 
             if (after > views)
@@ -199,13 +199,13 @@ namespace Checks.DetailView
                 int typ = -1;
                 try { itemName = last.GetName2(); } catch { }
                 try { typ = last.Type; } catch { }
-                Console.WriteLine("  -> IL DETTAGLIO C'E'. Ultima vista: «" + itemName + "», tipo " + typ +
+                Console.WriteLine("  -> THE DETAIL IS THERE. Last view: «" + itemName + "», type " + typ +
                     (typ == (int)swDrawingViewTypes_e.swDrawingDetailView
-                        ? " (swDrawingDetailView)" : " (NON e' un dettaglio!)"));
+                        ? " (swDrawingDetailView)" : " (NOT a detail!)"));
             }
             else
             {
-                Console.WriteLine("  -> nessuna vista in piu': il dettaglio NON e' nato");
+                Console.WriteLine("  -> no extra view: the detail was NOT created");
             }
 
             try { doc.EditRebuild3(); } catch { }

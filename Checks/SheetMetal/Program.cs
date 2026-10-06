@@ -56,15 +56,15 @@ internal static class Program
     {
         bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
         Console.WriteLine();
-        Console.WriteLine("LAMIERA — la misura che dimensiona la famiglia (voce GP18)");
-        Console.WriteLine("  flangia base a L: " + Side1Mm + " + " + Side2Mm + " mm, profonda " + DepthMm +
-                          ", spessore " + ThicknessMm + ", raggio " + RadiusMm);
+        Console.WriteLine("SHEET METAL — the measurement that sizes the family (entry GP18)");
+        Console.WriteLine("  L base flange: " + Side1Mm + " + " + Side2Mm + " mm, depth " + DepthMm +
+                          ", thickness " + ThicknessMm + ", radius " + RadiusMm);
         Console.WriteLine();
 
         ISldWorks sw;
         try { sw = (ISldWorks)Marshal.GetActiveObject("SldWorks.Application"); }
-        catch (Exception ex) { Console.WriteLine("SOLIDWORKS non risponde: " + ex.Message); return 2; }
-        Says("agganciato a SOLIDWORKS " + sw.RevisionNumber());
+        catch (Exception ex) { Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message); return 2; }
+        Says("attached to SOLIDWORKS " + sw.RevisionNumber());
 
         IModelDoc2 doc = null;
         try
@@ -77,7 +77,7 @@ internal static class Program
             // ── the open L-shaped sketch, on the front plane ─────────────
             doc.ClearSelection2(true);
             if (!SelectBasePlane(doc, 1))
-            { Console.WriteLine("  non trovo «Piano frontale»"); return 4; }
+            { Console.WriteLine("  cannot find «Piano frontale»"); return 4; }
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateLine(0, Side2Mm / 1000.0, 0, 0, 0, 0);
             doc.SketchManager.CreateLine(0, 0, 0, Side1Mm / 1000.0, 0, 0);
@@ -90,7 +90,7 @@ internal static class Program
                 0.0, 0.0, 0.5, true, false, false, false);
             if (flange == null) { Console.WriteLine("  InsertSheetMetalBaseFlange2 -> null"); return 5; }
             doc.EditRebuild3();
-            Says("flangia base creata: " + flange.Name);
+            Says("base flange created: " + flange.Name);
 
             // ── T, R, K READ BACK from the sheet metal ───────────────────
             ISheetMetalFeatureData data = null;
@@ -100,14 +100,14 @@ internal static class Program
                 if (f.GetTypeName2() == "SheetMetal") data = f.GetDefinition() as ISheetMetalFeatureData;
                 f = f.GetNextFeature() as IFeature;
             }
-            if (data == null) { Console.WriteLine("  nessuna feature «SheetMetal» nell'albero"); return 5; }
+            if (data == null) { Console.WriteLine("  no «SheetMetal» feature in the tree"); return 5; }
             double t = data.Thickness * 1000.0, r = data.BendRadius * 1000.0, k = data.KFactor;
             int typeBa = data.BendAllowanceType;
-            Says("riletti: T " + t.ToString("0.###") + " mm, R " + r.ToString("0.###") + " mm, K " +
-                 k.ToString("0.###") + ", calcolo della piega tipo " + typeBa + " (2 = fattore K)");
+            Says("read back: T " + t.ToString("0.###") + " mm, R " + r.ToString("0.###") + " mm, K " +
+                 k.ToString("0.###") + ", bend calculation type " + typeBa + " (2 = K factor)");
 
             double bentVol = Volume(doc);
-            Says("volume piegato " + bentVol.ToString("0.0") + " mm^3");
+            Says("bent volume " + bentVol.ToString("0.0") + " mm^3");
 
             // ── FLATTENED ────────────────────────────────────────────────
             //
@@ -120,8 +120,8 @@ internal static class Program
             int outcome = doc.SetBendState((int)swSMBendState_e.swSMBendStateFlattened);
             doc.EditRebuild3();
             var afterSet = BoundingBox(doc);
-            Says("GetBendState " + stateBefore + ", SetBendState(sviluppata) -> " + outcome + ", GetBendState " +
-                 doc.GetBendState() + ", ingombro " + Three(afterSet));
+            Says("GetBendState " + stateBefore + ", SetBendState(flattened) -> " + outcome + ", GetBendState " +
+                 doc.GetBendState() + ", bounding box " + Three(afterSet));
             doc.SetBendState((int)swSMBendState_e.swSMBendStateFolded);
             doc.EditRebuild3();
 
@@ -132,21 +132,21 @@ internal static class Program
                 if (g.GetTypeName2() == "FlatPattern") flatPattern = g;
                 g = g.GetNextFeature() as IFeature;
             }
-            if (flatPattern == null) { Console.WriteLine("  nessuna lavorazione «FlatPattern» nell'albero"); return 5; }
+            if (flatPattern == null) { Console.WriteLine("  no «FlatPattern» feature in the tree"); return 5; }
             bool removed = flatPattern.SetSuppression2((int)swFeatureSuppressionAction_e.swUnSuppressFeature,
                 (int)swInConfigurationOpts_e.swThisConfiguration, null);
             doc.EditRebuild3();
             double[] boundingBox = BoundingBox(doc);
             double flatVol = Volume(doc);
-            Says("«" + flatPattern.Name + "» senza soppressione: " + removed + ", volume sviluppato " +
+            Says("«" + flatPattern.Name + "» without suppression: " + removed + ", flat volume " +
                  flatVol.ToString("0.0") + " mm^3");
             flatPattern.SetSuppression2((int)swFeatureSuppressionAction_e.swSuppressFeature,
                 (int)swInConfigurationOpts_e.swThisConfiguration, null);
             doc.EditRebuild3();
-            if (boundingBox == null) { Console.WriteLine("  nessun ingombro leggibile"); return 6; }
+            if (boundingBox == null) { Console.WriteLine("  no readable bounding box"); return 6; }
             Array.Sort(boundingBox);
             double length = boundingBox[2];
-            Console.WriteLine("      ingombro sviluppato: " + boundingBox[0].ToString("0.###") + " x " +
+            Console.WriteLine("      flat bounding box: " + boundingBox[0].ToString("0.###") + " x " +
                               boundingBox[1].ToString("0.###") + " x " + boundingBox[2].ToString("0.###") + " mm");
 
             // ── the hand calculation, in the two conventions ─────────────
@@ -155,11 +155,11 @@ internal static class Program
             double outer = (Side1Mm - r - t) + (Side2Mm - r - t) + ba;
             Console.WriteLine();
             Console.WriteLine("  BA = pi/2 * (R + K*T) = " + ba.ToString("0.###") + " mm");
-            Console.WriteLine("  schizzo = facce interne:  " + inner.ToString("0.###") + " mm   (scarto " +
+            Console.WriteLine("  sketch = inner faces:     " + inner.ToString("0.###") + " mm   (deviation " +
                               (length - inner).ToString("+0.###;-0.###") + ")");
-            Console.WriteLine("  schizzo = facce esterne:  " + outer.ToString("0.###") + " mm   (scarto " +
+            Console.WriteLine("  sketch = outer faces:     " + outer.ToString("0.###") + " mm   (deviation " +
                               (length - outer).ToString("+0.###;-0.###") + ")");
-            Console.WriteLine("  l'API, sviluppata:        " + length.ToString("0.###") + " mm");
+            Console.WriteLine("  the API, flat pattern:    " + length.ToString("0.###") + " mm");
 
             // ── the DXF ──────────────────────────────────────────────────
             //
@@ -172,7 +172,7 @@ internal static class Program
             try { if (File.Exists(savedPart)) File.Delete(savedPart); } catch { }
             int se = 0, knows = 0;
             bool saved = doc.Extension.SaveAs(savedPart, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref se, ref knows);
-            Says("pezzo salvato prima del DXF: " + saved + " (errori " + se + ")");
+            Says("part saved before the DXF: " + saved + " (errors " + se + ")");
 
             string dxf = Path.Combine(Path.GetTempPath(), "lamiera-sonda.dxf");
             try { if (File.Exists(dxf)) File.Delete(dxf); } catch { }
@@ -191,39 +191,39 @@ internal static class Program
             wire.Start();
             if (!wire.Join(60000))
             {
-                Console.WriteLine("  ExportFlatPatternView NON E' TORNATA in 60 s: quasi certamente un modale aperto.");
-                Console.WriteLine("  Chiudilo a mano. Mi fermo senza chiudere il pezzo.");
+                Console.WriteLine("  ExportFlatPatternView DID NOT RETURN in 60 s: almost certainly an open modal.");
+                Console.WriteLine("  Close it by hand. I am stopping without closing the part.");
                 return 10;
             }
-            if (exception != null) Console.WriteLine("      ExportFlatPatternView alza: " + exception);
+            if (exception != null) Console.WriteLine("      ExportFlatPatternView raises: " + exception);
             long weight = File.Exists(dxf) ? new FileInfo(dxf).Length : 0;
             Says("ExportFlatPatternView -> " + exported + ", DXF " + weight + " byte");
 
             Console.WriteLine();
             bool equalVolumes = bentVol > 0 && Math.Abs(flatVol - bentVol) / bentVol < 0.005;
-            string convention = Math.Abs(length - inner) <= 0.5 ? "facce interne"
-                               : Math.Abs(length - outer) <= 0.5 ? "facce esterne" : null;
+            string convention = Math.Abs(length - inner) <= 0.5 ? "inner faces"
+                               : Math.Abs(length - outer) <= 0.5 ? "outer faces" : null;
             if (!equalVolumes)
             {
-                Console.WriteLine("IL VOLUME NON SI CONSERVA: piegato " + bentVol.ToString("0.0") +
-                                  ", sviluppato " + flatVol.ToString("0.0") + ". La lunghezza sopra non e'");
-                Console.WriteLine("la misura di uno sviluppo: la famiglia NON si costruisce finche' non si sa perche'.");
+                Console.WriteLine("THE VOLUME IS NOT CONSERVED: bent " + bentVol.ToString("0.0") +
+                                  ", flat " + flatVol.ToString("0.0") + ". The length above is not");
+                Console.WriteLine("the measure of a flat pattern: the family is NOT built until we know why.");
                 return 7;
             }
             if (convention == null)
             {
-                Console.WriteLine("LO SVILUPPO NON COMBACIA CON NESSUNA DELLE DUE CONVENZIONI entro 0,5 mm.");
-                Console.WriteLine("La famiglia NON si costruisce finche' non si sa perche'.");
+                Console.WriteLine("THE FLAT PATTERN MATCHES NEITHER OF THE TWO CONVENTIONS within 0,5 mm.");
+                Console.WriteLine("The family is NOT built until we know why.");
                 return 6;
             }
             if (!exported || weight == 0)
             {
-                Console.WriteLine("Lo sviluppo torna (" + convention + "), ma il DXF non e' uscito.");
+                Console.WriteLine("The flat pattern checks out (" + convention + "), but the DXF did not come out.");
                 return 8;
             }
-            Console.WriteLine("REGGE: lo sviluppo e' " + length.ToString("0.###") + " mm come il conto a mano con lo");
-            Console.WriteLine("schizzo sulle " + convention + ", il volume si conserva, e il DXF esce.");
-            Console.WriteLine("La famiglia lamiera si puo' costruire.");
+            Console.WriteLine("HOLDS: the flat pattern is " + length.ToString("0.###") + " mm like the hand calculation with the");
+            Console.WriteLine("sketch on the " + convention + ", the volume is conserved, and the DXF comes out.");
+            Console.WriteLine("The sheet metal family can be built.");
             return 0;
         }
         catch (Exception ex)
@@ -237,7 +237,7 @@ internal static class Program
         {
             if (doc != null && !keep)
             {
-                try { sw.CloseDoc(doc.GetTitle()); Says("pezzo chiuso senza salvare"); } catch { }
+                try { sw.CloseDoc(doc.GetTitle()); Says("part closed without saving"); } catch { }
                 try
                 {
                     var f = Path.Combine(Path.GetTempPath(), "lamiera-sonda.SLDPRT");

@@ -129,35 +129,35 @@ for (const [c, docState] of citedOnes) {
   const p = location(itemName);
   if (!p) { notFound.add(itemName); continue; }
   const howMany = fs.readFileSync(p, 'utf8').split(/\r?\n/).length;
-  if (n <= howMany) { ok++; if (all) console.log('  ok   ' + c + '  (il file ha ' + howMany + ' righe)'); continue; }
+  if (n <= howMany) { ok++; if (all) console.log('  ok   ' + c + '  (the file has ' + howMany + ' lines)'); continue; }
   if (docState === 'x') { historical++; continue; }   // closed entry: it was true then
-  death.push(c + '  — il file ha ' + howMany + ' righe');
+  death.push(c + '  — the file has ' + howMany + ' lines');
 }
 
-console.log('citazioni `file:riga`:     ' + citedOnes.size);
-console.log('che puntano dentro il file: ' + ok);
-console.log('in voci chiuse, non si toccano: ' + historical);
+console.log('citations `file:riga`:      ' + citedOnes.size);
+console.log('that point inside the file: ' + ok);
+console.log('in closed entries, not touched: ' + historical);
 // THE NAMES ARE PRINTED, not only how many there are. A «7» cannot be checked:
 // to know whether it is right one has to redo the work of the probe by hand.
 if (notFound.size) {
-  console.log('file non trovati (altro repo, rinominati, o cartella sbagliata): ' +
+  console.log('files not found (other repo, renamed, or wrong folder): ' +
               notFound.size);
   for (const n of notFound) console.log('    - ' + n);
 }
 if (namesakes.size) {
-  console.log('nomi che stanno in piu\' cartelle, e senza cartella non si sceglie: ' +
+  console.log('names that exist in several folders, and without a folder one cannot choose: ' +
               [...namesakes].join(', '));
-  console.log('  (scrivere la cartella nella citazione li rende controllabili)');
+  console.log('  (writing the folder in the citation makes them checkable)');
 }
 console.log('');
 
 if (death.length === 0) {
-  console.log('Nessuna voce aperta manda a una riga che non esiste.');
+  console.log('No open entry points to a line that does not exist.');
 } else {
-  console.log('VOCI APERTE che mandano OLTRE LA FINE del file: ' + death.length);
+  console.log('OPEN ENTRIES that point PAST THE END of the file: ' + death.length);
   for (const m of death) console.log('  !  ' + m);
   console.log('');
-  console.log('Quella riga non c\'e\' proprio: la citazione e\' morta, non spostata.');
+  console.log('That line is simply not there: the citation is dead, not moved.');
   process.exitCode = 1;
 }
 
@@ -194,25 +194,25 @@ function secondPass(lines, fileName) {
       const al = b ? b : a + AFTER;
       const location = 'riga ' + (i + 1) + ' → TODO.md:' + a + (b ? '-' + b : '');
       const subject = subjects(r);
-      if (subject.length === 0) { skippedOnes.push(location + '  (nessun identificatore sulla riga)'); continue; }
+      if (subject.length === 0) { skippedOnes.push(location + '  (no identifier on the line)'); continue; }
       const window = lines.slice(da - 1, al).join('\n');
       const found = subject.filter(s => window.indexOf(s) >= 0);
-      if (found.length) { good++; if (all) console.log('  ok   ' + location + '  (ci trova ' + found[0] + ')'); continue; }
-      brokenOnes.push(location + '  — la' + (b ? ' zona' : ' zona intorno') + ' non nomina ' + subject.slice(0, 3).join(' ne\' '));
+      if (found.length) { good++; if (all) console.log('  ok   ' + location + '  (it finds ' + found[0] + ')'); continue; }
+      brokenOnes.push(location + '  — the' + (b ? ' area' : ' area around it') + ' does not name ' + subject.slice(0, 3).join(' nor '));
     }
   }
   console.log('');
-  console.log('rimandi interni a ' + fileName + ':');
-  console.log('  che trovano il loro soggetto: ' + good);
-  if (skippedOnes.length) console.log('  saltati (senza soggetto da controllare): ' + skippedOnes.length);
+  console.log('internal cross-references to ' + fileName + ':');
+  console.log('  that find their subject: ' + good);
+  if (skippedOnes.length) console.log('  skipped (no subject to check): ' + skippedOnes.length);
   if (brokenOnes.length === 0) {
-    console.log('  Nessun rimando interno manda a righe che parlano d\'altro.');
+    console.log('  No internal cross-reference points to lines that talk about something else.');
     return 0;
   }
-  console.log('  RIMANDI CHE MANDANO NEL POSTO SBAGLIATO: ' + brokenOnes.length);
+  console.log('  CROSS-REFERENCES POINTING TO THE WRONG PLACE: ' + brokenOnes.length);
   for (const x of brokenOnes) console.log('    !  ' + x);
   console.log('');
-  console.log('  La riga citata esiste — ma non parla di quello che la frase dice.');
+  console.log('  The cited line exists — but it does not talk about what the sentence says.');
   return brokenOnes.length;
 }
 
@@ -221,24 +221,24 @@ if (secondPass(lines, path.basename(fileTodo)) > 0) process.exitCode = 1;
 // ── and now it is made to fail on purpose, in both directions ──────────────
 if (process.argv.includes('--provami')) {
   console.log('');
-  console.log('=== PROVA DEL CONTROLLO: lo stesso rimando, rotto e sano ===');
+  console.log('=== TEST OF THE CHECK: the same cross-reference, broken and healthy ===');
   const fake = [];
   for (let i = 0; i < 40; i++) fake.push('riempitivo');
-  fake[29] = 'qui si parla di `IFace2.Normal` e di sottosquadri.';
-  fake[34] = 'e qui invece `GetRemainingDOFs` risponde 2 = non disponibile.';
+  fake[29] = 'this talks about `IFace2.Normal` and about undercuts.';
+  fake[34] = 'and here instead `GetRemainingDOFs` answers 2 = not available.';
 
   const broken = fake.slice();
-  broken.push('la strada e\' morta: `TODO.md:25-30` registra che `GetRemainingDOFs` non torna un conteggio.');
+  broken.push('the road is dead: `TODO.md:25-30` records that `GetRemainingDOFs` does not return a count.');
   const sound = fake.slice();
-  sound.push('la strada e\' morta: `TODO.md:33-36` registra che `GetRemainingDOFs` non torna un conteggio.');
+  sound.push('the road is dead: `TODO.md:33-36` records that `GetRemainingDOFs` does not return a count.');
 
   const a = secondPass(broken, 'FINTO-rotto');
   const b = secondPass(sound, 'FINTO-sano');
   console.log('');
   if (a === 1 && b === 0) {
-    console.log('IL CONTROLLO SCATTA sul rimando rotto e TACE su quello sano. Provato.');
+    console.log('THE CHECK FIRES on the broken cross-reference and STAYS SILENT on the healthy one. Proven.');
   } else {
-    console.log('IL CONTROLLO NON SI COMPORTA COME DICE: rotto=' + a + ' (atteso 1), sano=' + b + ' (atteso 0)');
+    console.log('THE CHECK DOES NOT BEHAVE AS IT SAYS: broken=' + a + ' (expected 1), healthy=' + b + ' (expected 0)');
     process.exitCode = 1;
   }
 }

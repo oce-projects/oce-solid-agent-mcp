@@ -29,19 +29,19 @@ namespace Checks.Option
         {
             if (arguments.Length < 1)
             {
-                Console.Error.WriteLine("Serve il numero dell'opzione.");
+                Console.Error.WriteLine("The option number is needed.");
                 return 2;
             }
             int number;
             if (!int.TryParse(arguments[0], out number))
             {
-                Console.Error.WriteLine("Il primo argomento e' un numero.");
+                Console.Error.WriteLine("The first argument is a number.");
                 return 2;
             }
 
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             // TWO LEVELS, AND THEY ARE NOT INTERCHANGEABLE.
@@ -72,9 +72,9 @@ namespace Checks.Option
             catch { }
 
             Console.WriteLine("opzione " + number + " prima:");
-            Console.WriteLine("  applicazione: " + (appOk ? app.ToString() : "non leggibile"));
-            Console.WriteLine("  documento   : " +
-                (doc == null ? "nessun documento attivo" : docOk ? document.ToString() : "non leggibile"));
+            Console.WriteLine("  application: " + (appOk ? app.ToString() : "not readable"));
+            Console.WriteLine("  document    : " +
+                (doc == null ? "no active document" : docOk ? document.ToString() : "not readable"));
 
             if (arguments.Length < 2) return 0;
             bool wanted = arguments[1] == "on";
@@ -82,16 +82,16 @@ namespace Checks.Option
 
             if (location == "doc")
             {
-                if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 1; }
+                if (doc == null) { Console.Error.WriteLine("No active document."); return 1; }
                 try { doc.Extension.SetUserPreferenceToggle(number, 0, wanted); }
-                catch (Exception e) { Console.Error.WriteLine("Non riesco: " + e.Message); return 1; }
-                Console.WriteLine("documento adesso: " + doc.Extension.GetUserPreferenceToggle(number, 0));
+                catch (Exception e) { Console.Error.WriteLine("I cannot: " + e.Message); return 1; }
+                Console.WriteLine("document now: " + doc.Extension.GetUserPreferenceToggle(number, 0));
             }
             else
             {
                 try { sw.SetUserPreferenceToggle(number, wanted); }
-                catch (Exception e) { Console.Error.WriteLine("Non riesco: " + e.Message); return 1; }
-                Console.WriteLine("applicazione adesso: " + sw.GetUserPreferenceToggle(number));
+                catch (Exception e) { Console.Error.WriteLine("I cannot: " + e.Message); return 1; }
+                Console.WriteLine("application now: " + sw.GetUserPreferenceToggle(number));
             }
             return 0;
         }

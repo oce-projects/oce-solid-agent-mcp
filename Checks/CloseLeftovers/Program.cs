@@ -65,7 +65,7 @@ namespace Checks.CloseLeftovers
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException)
             {
-                Console.Error.WriteLine("SOLIDWORKS non e' aperto: niente da chiudere.");
+                Console.Error.WriteLine("SOLIDWORKS is not open: nothing to close.");
                 return 2;
             }
             var sw = (ISldWorks)raw;
@@ -81,18 +81,18 @@ namespace Checks.CloseLeftovers
                 string docTitle = doc.GetTitle();
                 string filePath = doc.GetPathName() ?? "";
                 if (spare.Contains(docTitle))
-                    kept.Add(docTitle + "  (risparmiato: c'era gia' prima)");
+                    kept.Add(docTitle + "  (spared: it was there before)");
                 else if (Deviation(filePath, folders)) toClose.Add(docTitle);
                 else kept.Add(docTitle + (filePath == "" ? "" : "  " + filePath));
                 doc = (IModelDoc2)doc.GetNext();
             }
 
-            Console.WriteLine(toClose.Count + " da chiudere, " + kept.Count + " tenuti.");
+            Console.WriteLine(toClose.Count + " to close, " + kept.Count + " kept.");
             foreach (var t in kept) Console.WriteLine("  tenuto:  " + t);
             if (!reallyClose)
             {
-                foreach (var t in toClose) Console.WriteLine("  sarebbe chiuso:  " + t);
-                Console.WriteLine("Nessuno chiuso: manca --chiudi.");
+                foreach (var t in toClose) Console.WriteLine("  would be closed:  " + t);
+                Console.WriteLine("None closed: --chiudi is missing.");
                 return 0;
             }
 
@@ -100,9 +100,9 @@ namespace Checks.CloseLeftovers
             foreach (var t in toClose)
             {
                 try { sw.CloseDoc(t); done++; }
-                catch (Exception e) { Console.Error.WriteLine("  non chiuso " + t + ": " + e.Message); }
+                catch (Exception e) { Console.Error.WriteLine("  not closed " + t + ": " + e.Message); }
             }
-            Console.WriteLine("chiusi: " + done);
+            Console.WriteLine("closed: " + done);
 
             // THE CHECK THAT REALLY HAPPENED. The documents are counted again:
             // CloseDoc returns nothing, and without recounting «closed» cannot be told
@@ -110,7 +110,7 @@ namespace Checks.CloseLeftovers
             int remain = 0;
             var d2 = (IModelDoc2)sw.GetFirstDocument();
             while (d2 != null) { remain++; d2 = (IModelDoc2)d2.GetNext(); }
-            Console.WriteLine("documenti aperti adesso: " + remain);
+            Console.WriteLine("open documents now: " + remain);
             return 0;
         }
 

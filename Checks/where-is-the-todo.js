@@ -42,9 +42,9 @@ function findTheTodo(root, argv) {
     ];
     for (const c of candidates) if (fs.existsSync(c)) return c;
 
-    console.log('Il TODO non c\'e\' in questo clone: e\' un documento interno e');
-    console.log('non viene pubblicato. QUESTA SONDA NON HA CONTROLLATO NIENTE.');
-    console.log('Se ne hai una copia, indicala con TODO_MD o passala come argomento.');
+    console.log('The TODO is not in this clone: it is an internal document and');
+    console.log('is not published. THIS PROBE CHECKED NOTHING.');
+    console.log('If you have a copy, point to it with TODO_MD or pass it as an argument.');
     return null;
 }
 

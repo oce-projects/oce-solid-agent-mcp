@@ -33,11 +33,11 @@ namespace Checks.RedTree
         {
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
-            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS non e' aperto."); return 2; }
+            catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
 
             var doc = (IModelDoc2)sw.ActiveDoc;
-            if (doc == null) { Console.Error.WriteLine("Nessun documento attivo."); return 2; }
+            if (doc == null) { Console.Error.WriteLine("No active document."); return 2; }
             Console.WriteLine("documento: " + doc.GetTitle());
 
             bool showed = true;
@@ -47,9 +47,9 @@ namespace Checks.RedTree
                     (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild);
                 sw.SetUserPreferenceToggle(
                     (int)swUserPreferenceToggle_e.swShowErrorsEveryRebuild, false);
-                Console.WriteLine("finestra degli errori: era " + showed + ", spenta");
+                Console.WriteLine("errors window: it was " + showed + ", turned off");
             }
-            catch (Exception e) { Console.WriteLine("finestra degli errori: " + e.Message); }
+            catch (Exception e) { Console.WriteLine("errors window: " + e.Message); }
 
             try
             {
@@ -76,15 +76,15 @@ namespace Checks.RedTree
                     for (int i = 0; vn != null && i < vn.Length; i++)
                         Console.WriteLine("  guaio " + i + ": «" + vn[i] + "»" +
                             (ve != null && i < ve.Length
-                                ? ", errore " + ve[i] + " (" + Explain(ve[i]) + ")" : "") +
-                            (goes != null && i < goes.Length ? ", avviso " + goes[i] : ""));
+                                ? ", error " + ve[i] + " (" + Explain(ve[i]) + ")" : "") +
+                            (goes != null && i < goes.Length ? ", warning " + goes[i] : ""));
                 }
             }
             catch (Exception e) { Console.WriteLine("GetWhatsWrong: " + e.Message); }
 
             // FEATURE PER FEATURE.
             Console.WriteLine();
-            Console.WriteLine("=== L'albero");
+            Console.WriteLine("=== The tree");
             try
             {
                 var f = doc.FirstFeature() as IFeature;
@@ -101,7 +101,7 @@ namespace Checks.RedTree
                     f = f.GetNextFeature() as IFeature;
                 }
             }
-            catch (Exception e) { Console.WriteLine("giro dell'albero: " + e.Message); }
+            catch (Exception e) { Console.WriteLine("tree loop: " + e.Message); }
 
             try
             {
@@ -121,7 +121,7 @@ namespace Checks.RedTree
         {
             if (Enum.IsDefined(typeof(swFeatureError_e), code))
                 return ((swFeatureError_e)code).ToString();
-            return "codice " + code + ", non nell'enum";
+            return "code " + code + ", not in the enum";
         }
     }
 }
