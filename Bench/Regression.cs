@@ -396,7 +396,7 @@ namespace Oce.Solid.Agent.Bench
 
                 File.WriteAllText(file, string.Join("\r\n", t) + "\r\n",
                                   new System.Text.UTF8Encoding(false));
-                Console.WriteLine("regressione: " + file);
+                Console.WriteLine("regression: " + file);
             }
             catch (Exception ex)
             {

@@ -166,7 +166,7 @@ namespace Oce.Solid.Agent.ContractTests
                 o = new List<double[]> { Origin, Origin };
                 r = PlaneIndex(references, n, o, "right");
                 int wrongCase = PlaneIndex(references, new List<double[]> { Front, Top, Right },
-                                           new List<double[]> { Origin, Origin, Origin }, "Superiore");
+                                           new List<double[]> { Origin, Origin, Origin }, "Top");
                 int unknown = PlaneIndex(references, new List<double[]> { Front, Top, Right },
                                          new List<double[]> { Origin, Origin, Origin }, "middle");
                 Check("S19: no plane with the normal, a name in another case, an unknown name: -1",

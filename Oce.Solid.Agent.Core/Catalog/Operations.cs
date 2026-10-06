@@ -4618,7 +4618,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "Without it I refuse -- there is no reasonable default value."),
                             "alignment", O(
                                 "type", "string",
-                                "description", "«aligned» (the default) or «opposite». "
+                                "description", "«aligned» (the default) or «opposite»; any other value I refuse. "
                                     + "If SOLIDWORKS refuses for alignment, try the other: two faces that "
                                     + "look at each other want «opposite».")),
                         "required", A("component_a", "face_a", "component_b", "face_b")),

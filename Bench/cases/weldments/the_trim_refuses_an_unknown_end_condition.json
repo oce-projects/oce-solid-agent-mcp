@@ -25,9 +25,9 @@
     { "operation": "trim_members",
       "arguments": { "bodies_to_trim_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(2))"],
                      "trim_boundary_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(1))"],
-                     "end_condition": "sconosciuta" },
+                     "end_condition": "made_up" },
       "must_fail": {
-        "message_includes": ["I do not fall back to", "sconosciuta"],
+        "message_includes": ["I do not fall back to", "made_up"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "the_trim_refuses_an_unknown_end_condition" } },

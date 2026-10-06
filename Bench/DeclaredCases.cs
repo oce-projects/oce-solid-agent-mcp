@@ -793,7 +793,7 @@ namespace Oce.Solid.Agent.Bench
                     {
                         bool b = (bool)val;
                         changed = !b;
-                        come = "passo " + (i + 1) + " · " + key + " " + b + "->" + (!b);
+                        come = "step " + (i + 1) + " · " + key + " " + b + "->" + (!b);
                     }
                     else
                     {
@@ -807,7 +807,7 @@ namespace Oce.Solid.Agent.Bench
                         // a real mutation.
                         double n = Math.Abs(d) < 1e-9 ? 1.0 : d * 1.5;
                         changed = n;
-                        come = "passo " + (i + 1) + " · " + key + " " +
+                        come = "step " + (i + 1) + " · " + key + " " +
                                d.ToString("0.##", CultureInfo.InvariantCulture) + "->" +
                                n.ToString("0.##", CultureInfo.InvariantCulture);
                     }

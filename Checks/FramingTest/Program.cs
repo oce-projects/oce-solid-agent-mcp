@@ -332,7 +332,7 @@ namespace Checks.FramingTest
                       howMany == 0
                           ? "on an empty document it sees no part"
                           : howMany + " pixels of «part» on an EMPTY document: the threshold lies");
-                if (howMany != 0) Deposit("righello", "vuoto", png);
+                if (howMany != 0) Deposit("ruler", "empty", png);
             }
             catch (Exception ex)
             {
@@ -376,7 +376,7 @@ namespace Checks.FramingTest
             try
             {
                 string folder = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, "fotogrammi");
+                    AppDomain.CurrentDomain.BaseDirectory, "frames");
                 Directory.CreateDirectory(folder);
                 string clean = shape.Replace(' ', '_').Replace('x', 'X');
                 string file = Path.Combine(folder, clean + "-" + which + ".png");

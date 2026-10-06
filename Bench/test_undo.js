@@ -196,7 +196,7 @@ async function benchRun() {
         ("solid_body" in d.state_after),
         d.state_after ? "title «" + d.state_after.document_title + "», solid_body " +
                        d.state_after.solid_body
-                     : "assente");
+                     : "missing");
 
   // ── RED 2: twice in a row ──────────────────────────────────────────────
   // The first undo consumed the memory. The second would remove

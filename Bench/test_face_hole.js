@@ -2,7 +2,7 @@
 //
 //   node test_face_hole.js
 //
-// WHY HERE AND NOT IN THE BENCH. `face_ref: {passo, genere}` names a step
+// WHY HERE AND NOT IN THE BENCH. `face_ref: {step, kind}` names a step
 // of the SAME plan, and the bench executes one operation at a time: there the
 // reference cannot even be formulated. The first writing of this check
 // was in the bench and came out red for the wrong reason — «di quel passo

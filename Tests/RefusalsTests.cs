@@ -266,8 +266,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// judged the whole statement, and 22 variables and methods with an Italian
         /// name held a remedy word; when the names became English the words went, and
         /// the messages stayed what they were.
+        /// **228, W3.1-bis.10b (6/10/2026): +1.** The mate refuses an alignment that is
+        /// neither «aligned» nor «opposite» (it used to build an aligned mate in silence),
+        /// and the refusal says what to write: 228 of 938.
         /// </summary>
-        private const int Floor = 227;
+        private const int Floor = 228;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -281,8 +284,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 227;   // 6/10/2026, W3.1-bis.8: 227 of 937 with the detector that skips statements (216 on the tree before the window)
-        private const int ShareFloorWithText = 937;
+        private const int ShareFloorWithRemedy = 228;   // 6/10/2026, W3.1-bis.10b: 228 of 938 (W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 938;
 
         /// <summary>
         /// The openings with which this code says no.

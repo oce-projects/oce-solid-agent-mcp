@@ -193,7 +193,7 @@ namespace Oce.Solid.Agent.ContractTests
                     number++;
                     if (planStep == null) continue;
                     object at0;
-                    if (planStep.TryGetValue("expect", out at0)) checkExpectations(at0, "passo " + number);
+                    if (planStep.TryGetValue("expect", out at0)) checkExpectations(at0, "step " + number);
                     // A STEP THAT MEASURES NOTHING (25/9/2026): the bench stops it
                     // as a bench error — after an hour and a half of running, and
                     // stopping the whole case there. It happened with the case of the

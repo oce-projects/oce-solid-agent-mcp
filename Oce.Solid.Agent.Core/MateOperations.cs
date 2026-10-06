@@ -150,7 +150,15 @@ namespace Oce.Solid.Agent.Core
                     "deciding for you how far apart two faces are.");
             if (double.IsNaN(distance)) distance = 0;
 
-            string alignment = Str(a, "alignment", "aligned");
+            // ONLY THE TWO NAMES (W3.1-bis.10b). Anything that was not «opposite» used
+            // to mean aligned: after the rename an old or misspelt value would have built
+            // the other mate in silence, and the volume does not see an alignment.
+            string alignment = (Str(a, "alignment", "aligned") ?? "aligned").Trim();
+            if (!alignment.Equals("aligned", StringComparison.OrdinalIgnoreCase) &&
+                !alignment.Equals("opposite", StringComparison.OrdinalIgnoreCase))
+                return Failed(
+                    "Alignment «" + alignment + "» unknown: you can write aligned (the default) " +
+                    "or opposite. I touched nothing.");
             int align = alignment.Equals("opposite", StringComparison.OrdinalIgnoreCase)
                 ? (int)swMateAlign_e.swMateAlignANTI_ALIGNED
                 : 0;   // swAlignNONE = aligned

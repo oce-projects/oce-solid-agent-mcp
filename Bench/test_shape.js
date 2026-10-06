@@ -25,7 +25,7 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
-const PLANS = path.join(__dirname, "cases", "forma");
+const PLANS = path.join(__dirname, "cases", "shape");
 
 // THE REAL PARTS, taken from `Bench/views/*-state.json`, which is the file that the
 // model has NOT seen. If it is missing, the measurement cannot be made: an

@@ -132,7 +132,7 @@ if ($catalogNames.Count -lt 20) {
                 "that all is well.") -ForegroundColor Red
     exit 1
 }
-Fine ("catalogo: " + $catalogNames.Count + " operazioni")
+Fine ("catalogue: " + $catalogNames.Count + " operations")
 
 # --- 2. what the executor DECLARES it can do --------------------------------
 if (-not (Test-Path -LiteralPath $Library)) {

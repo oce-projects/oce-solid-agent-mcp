@@ -315,13 +315,16 @@ const cfgA5 = path.join(BENCH, "a5.json");
 fs.copyFileSync(MODEL, cfgA5);
 install(["--silent", "--dir", dirA5, "--config", cfgA5]);
 fs.writeFileSync(path.join(dirA5, "questions-without-answer.jsonl"), "{\"name\":\"x\"}\n");
+// the archive of the measured profile sections lives in %LOCALAPPDATA%\Oce.Solid.Agent,
+// the default install folder, since library 0.150.2 (W3.1-bis.10b)
+fs.writeFileSync(path.join(dirA5, "profile-sections.txt"), "x\n");
 const rA5 = install(["--uninstall", "--dir", dirA5, "--config", cfgA5]);
 const a5 = json(cfgA5);
 outcome("A5. uninstall removes the client entry (no --keep-client)",
   rA5.exitCode === 0 && !!a5 && !(a5.mcpServers || {}).solidworks,
   "exit " + rA5.exitCode + ", servers " + Object.keys((a5 || {}).mcpServers || {}).join(", "));
 outcome("A5. ...and leaves the other servers", !!a5 && Object.keys(a5.mcpServers).sort().join(",") === "filesystem,github", null);
-outcome("A5. it removes the log the bridge writes beside itself (.jsonl), and then the folder",
+outcome("A5. it removes the files the bridge writes beside itself (.jsonl, profile-sections.txt), and then the folder",
   !fs.existsSync(dirA5), fs.existsSync(dirA5) ? "left: " + fs.readdirSync(dirA5).join(", ") : null);
 
 const dirK = path.join(BENCH, "installed-keep");

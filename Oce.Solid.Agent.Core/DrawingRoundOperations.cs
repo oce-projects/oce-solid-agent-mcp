@@ -544,7 +544,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string CylinderKey(double diameterMm, double[] meta)
         {
-            return "cil|" + Math.Round(diameterMm, 2).ToString("0.00", Ci) + "|" +
+            return "cyl|" + Math.Round(diameterMm, 2).ToString("0.00", Ci) + "|" +
                    string.Join(",", meta.Take(3).Select(v => (Math.Round(v * 1000, 1) + 0.0).ToString("0.0", Ci)));
         }
 

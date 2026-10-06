@@ -321,7 +321,7 @@ namespace Oce.Solid.Agent.ContractTests
             var withList = new Dictionary<string, object>
             {
                 ["measurements"] = new[] { "80X80X5", "100X100X6", "40X40X3" },
-                ["vuoto"] = new string[0],
+                ["empty"] = new string[0],
             };
             Func<string, object, object, Dictionary<string, object>> list = (theField, c, n) =>
             {
@@ -359,7 +359,7 @@ namespace Oce.Solid.Agent.ContractTests
             // AN EMPTY LIST CONTAINS NOTHING, and it is not an absent field:
             // it is a list that is there and is empty. The two things are told apart.
             Check("list RED: an empty list contains nothing",
-                  !Expectations.Matches(list("vuoto", new List<object> { "any" }, null),
+                  !Expectations.Matches(list("empty", new List<object> { "any" }, null),
                                    null, docState, withList, out d), d);
             // AN ABSENT FIELD IS NOT AN EMPTY SENTENCE, and it is not even a
             // red: it is a bench error, as for every other measurement. The

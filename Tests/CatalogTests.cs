@@ -74,7 +74,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ? root["operations"] : null) as object[];
             if (operations == null) { Check("the catalog has «operations»", false, ""); return; }
             Check("the catalog has at least thirty operations", operations.Length >= 30,
-                  operations.Length + " operazioni");
+                  operations.Length + " operations");
 
             TheReadmeStatesTheRightNumber(operations.Length);
 

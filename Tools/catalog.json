@@ -3555,7 +3555,7 @@
      },
      "alignment": {
       "type": "string",
-      "description": "«aligned» (the default) or «opposite». If SOLIDWORKS refuses for alignment, try the other: two faces that look at each other want «opposite»."
+      "description": "«aligned» (the default) or «opposite»; any other value I refuse. If SOLIDWORKS refuses for alignment, try the other: two faces that look at each other want «opposite»."
      }
     },
     "required": [

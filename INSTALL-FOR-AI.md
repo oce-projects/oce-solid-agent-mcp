@@ -324,7 +324,9 @@ $p.ExitCode
 ```
 
 It removes the six installed files, the `.jsonl` log of unanswered questions the bridge writes
-beside itself, **and the `solidworks` entry of each MCP client** — but only an entry that runs
+beside itself, the archive of measured profile sections `profile-sections.txt` (it always lives in
+`%LOCALAPPDATA%\Oce.Solid.Agent`, so it goes only when that is the folder uninstalled; it
+is rebuilt by measuring), **and the `solidworks` entry of each MCP client** — but only an entry that runs
 the bridge in that folder; an entry pointing elsewhere is left alone, and the output says so.
 `--keep-client` leaves the entries in place (someone about to reinstall). With `--config <file>`
 only that file is touched. The folder is removed only if nothing else is in it.

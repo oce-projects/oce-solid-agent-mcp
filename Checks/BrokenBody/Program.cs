@@ -185,11 +185,11 @@ namespace Checks.BrokenBody
         private static void Tell(string label, IBody2[] bodies)
         {
             Console.WriteLine();
-            Console.WriteLine("=== " + label + " — " + bodies.Length + " corpi");
+            Console.WriteLine("=== " + label + " — " + bodies.Length + " bodies");
             for (int i = 0; i < bodies.Length; i++)
             {
                 var c = bodies[i];
-                Console.WriteLine("  corpo " + (i + 1) + "  tipo " + TypeName(c));
+                Console.WriteLine("  body " + (i + 1) + "  type " + TypeName(c));
                 Console.WriteLine("    facce            " + Number(() => c.GetFaceCount()));
                 Console.WriteLine("    Check()          " + Number(() => c.Check()));
                 Console.WriteLine("    Check2()         " + Number(() => c.Check2()));
@@ -261,8 +261,8 @@ namespace Checks.BrokenBody
             {
                 int t = c.GetType();
                 if (t == (int)swBodyType_e.swSolidBody) return "solid";
-                if (t == (int)swBodyType_e.swSheetBody) return "foglio";
-                if (t == (int)swBodyType_e.swWireBody)  return "filo";
+                if (t == (int)swBodyType_e.swSheetBody) return "sheet";
+                if (t == (int)swBodyType_e.swWireBody)  return "wire";
                 return t.ToString();
             }
             catch { return "?"; }

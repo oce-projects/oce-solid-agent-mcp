@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.Bench
                 return 2;   // bench error, not a red check
             }
 
-            // `--library <percorso>` before everything else: if the library
+            // `--library <path>` before everything else: if the library
             // is another one, the measurement is another one too, and it must be said at the head.
             var arguments = new List<string>(lineArguments ?? new string[0]);
             int location = arguments.IndexOf("--library");
@@ -290,7 +290,7 @@ namespace Oce.Solid.Agent.Bench
             // the contract checks verify in the abstract.
             _pretendWithoutSolidWorks = arguments.Remove("--pretend-no-solidworks");
 
-            // `--group <nomi>`: a single family of checks, while working.
+            // `--group <names>`: a single family of checks, while working.
             //
             // ── WHY IT EXISTS (entry F13) ─────────────────────────────────
             //
@@ -333,7 +333,7 @@ namespace Oce.Solid.Agent.Bench
                 return 0;
             }
 
-            // `--family <nomi>`: inside the «cases» group, only those
+            // `--family <names>`: inside the «cases» group, only those
             // folders (25/9/2026, entry E19). «cases» alone is the thousand declared
             // cases, three quarters of an hour: to see TWO new cases fail
             // before writing the code — the rule of every new check —

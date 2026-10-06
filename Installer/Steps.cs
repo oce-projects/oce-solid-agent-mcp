@@ -71,8 +71,13 @@ namespace Oce.Solid.Agent.Installer
         /// elsewhere, and then it is not ours to remove). Left behind, it kept
         /// the folder alive with the message that the folder held someone
         /// else's files, which was not true.
+        /// Since 0.150.2 of the library (W3.1-bis.10b) a second one: the archive of the
+        /// measured profile sections (SectionProfile.ReadArchivePath) lives in
+        /// %LOCALAPPDATA%\Oce.Solid.Agent, which is also the default install folder.
+        /// It is rebuilt by measuring; left behind, it would keep the folder alive in
+        /// the same way. With --dir elsewhere it is not in the folder and nothing happens.
         /// </summary>
-        public static readonly string[] BridgeOwnFiles = { "questions-without-answer.jsonl" };
+        public static readonly string[] BridgeOwnFiles = { "questions-without-answer.jsonl", "profile-sections.txt" };
 
         // ── THE EXIT CODES OF THE BRIDGE'S --self-test (entry H19, B3) ─────────
         // The same numbers as Program.SelfTest* in the bridge, which this

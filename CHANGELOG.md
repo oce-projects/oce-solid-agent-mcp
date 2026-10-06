@@ -191,6 +191,36 @@ fields, class `quote`). Not exceptions, still to do or to remove: `Alias.cs` and
 name map, the `Checks/language/window-*.js` tools, `Bench/tasks/` (the autonomous run,
 branch `d9-fix`), the local names of the probes and of the `Bench/*.js` scripts.
 
+**Adversarial review of the window (second commit).** Every literal the rename commit
+removed was looked for again in the whole tree, quoted, and every reader of a renamed
+value was followed to its producer. What it found, and what changed:
+- **The mate took any alignment but `opposite` as aligned.** After the rename an old or
+  misspelt value (a plan written for the bridge before, such as the D9 prerequisites
+  of `d9-fix`) would have built the other mate in silence, and no volume sees an
+  alignment. `mate` now refuses an alignment that is neither `aligned` nor `opposite`,
+  before touching anything, and says what to write; the catalogue says so. The floor of
+  the refusals that say what to do rises to 228 of 938. *Not proven on SOLIDWORKS: the
+  refusal comes before the first call, but no bench case asks for it yet.*
+- **Readers renamed, producers not**: the probe `BrokenBody` compared its body kind with
+  `sheet` while its producer still returned the Italian words (the check could never
+  hold); `Bench/test_shape.js` read `cases/` plus the Italian folder while the ignore
+  rule and the texts name `cases/shape`. Both producers now say the English names.
+- **The archive of the measured profile sections** moved, with its new name, into
+  `%LOCALAPPDATA%\Oce.Solid.Agent`, which is also the default install folder: left
+  there, it would have kept the folder alive after an uninstall with the message that
+  the folder held someone else's files (the defect of H19 A5, back). The installer now
+  removes `profile-sections.txt` with the registry; `test-installer.js` A5 writes it
+  and was seen red before the fix; `INSTALL-FOR-AI.md` says so.
+- **A test made vacuous by an earlier rename**: `Zc215IdentityContract` asked for «a name
+  in another case» with an Italian plane name, which is simply unknown; it asks for `Top`
+  now, the English name in the wrong case.
+- The last names of the same kind: the internal cylinder key `cyl|` (its sibling was
+  already `cyl?|`), the invented end condition of the trim case (`made_up`), the labels
+  `step N` of the bench and of `LimitsTests`, the counts of `check-catalog.ps1` and
+  `CatalogTests`, the outputs of `BrokenBody`, `FramingTest` (and its `frames` folder),
+  `test_undo.js`, `Regression.cs`, a field of `ExpectationsTests`, the path of the
+  archive in the note of `a_frame_too_small_closes_the_profile_library`.
+
 ---
 
 ## Unreleased — W3.1-bis.10, the documents, the scripts and the options in English (branch `w31bis-10`) · bridge 0.127.2 · library 0.150.1 (unchanged)
