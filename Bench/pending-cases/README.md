@@ -1,26 +1,26 @@
-# Casi scritti prima della cosa che misurano
+# Cases written before the thing they measure
 
-Questa cartella **il banco non la guarda**: scandisce `Bench/cases/` e basta
-(`DeclaredCases.cs:94`). Qui dentro stanno i casi che esercitano un
-comportamento **che ancora non c'è**, scritti in anticipo.
+**The bench does not look at this folder**: it scans `Bench/cases/` and nothing
+else (`DeclaredCases.cs:94`). In here live the cases that exercise a behaviour
+**that does not exist yet**, written in advance.
 
-## Perché esiste, e non è un cassetto
+## Why it exists, and it is not a drawer
 
-Un caso che deve fallire, messo in `cases/`, fa diventare rosso il banco per un
-motivo noto — e un banco rosso per un motivo noto è **un banco che smette di
-dire qualcosa**: chi lo guarda impara a ignorare quella riga, e il giorno in
-cui diventa rossa per un altro motivo non se ne accorge nessuno.
+A case that must fail, put in `cases/`, turns the bench red for a known reason
+— and a bench that is red for a known reason is **a bench that stops saying
+anything**: whoever looks at it learns to ignore that line, and the day it turns
+red for another reason nobody notices.
 
-È la stessa forma di `Bench/tasks/` (voce Z-G9): *l'ingresso nasce prima di
-chi lo esegue, con la sua misura accanto.*
+It is the same shape as `Bench/tasks/` (entry Z-G9): *the input is born before
+whoever runs it, with its measurement next to it.*
 
-## La regola per uscire di qui
+## The rule for leaving here
 
-Un caso si sposta in `Bench/cases/` **nello stesso commit** in cui arriva il
-comportamento che misura, e quel commit porta un giro di banco verde. Non
-prima: un caso in `cases/` è una promessa che il giro mantiene.
+A case moves to `Bench/cases/` **in the same commit** in which the behaviour it
+measures arrives, and that commit carries a green bench run. Not before: a case
+in `cases/` is a promise that the run keeps.
 
-## Cosa c'è adesso
+## What is here now
 
 **One case, from 28/9/2026 (Z-C21.10, C8-2):**
 `a_dimension_hidden_by_hand_does_not_count.json`. It measures that a drawing
@@ -35,61 +35,61 @@ one that is not swAnnotationHidden is a bench error), with a bench run.
 
 ### Before, from 24/9/2026
 
-**Niente, ed è la cosa giusta.** I quattro casi di Z-G3 sono stati spostati in
-`Bench/cases/` il 24/9/2026, lo stesso giorno in cui i due `default` sono
-arrivati — `document_properties/default_material.json` con la sua
-`requested_material.json`, `bodies/default_combine.json` con la sua
+**Nothing, and that is the right thing.** The four cases of Z-G3 were moved to
+`Bench/cases/` on 24/9/2026, the same day on which the two `default` behaviours
+arrived — `document_properties/default_material.json` with its
+`requested_material.json`, `bodies/default_combine.json` with its
 `requested_combine.json`.
 
-La cartella resta vuota con questo file dentro, perché la forma serve ancora:
-la prossima volta che un caso nasce prima della cosa che misura, va qui.
+The folder stays empty with this file in it, because the shape is still needed:
+the next time a case is born before the thing it measures, it goes here.
 
-### Una cosa che è successa mentre erano qui, e vale la pena ricordarla
+### Something that happened while they were here, and is worth remembering
 
-I due casi di `combine_bodies` mettevano i corpi a **120 mm** di distanza, per
-rendere inconfondibili i tre esiti (unione = somma, sottrazione = il solo
-principale, intersezione = zero). Rileggendo la descrizione dell'operazione
-prima di spostarli è saltato fuori che **`combine_bodies` dichiara di fallire**
-quando dopo l'unione i corpi sono ancora due: *«di solito non si toccano
-davvero, e fallisco invece di confermarti un pezzo diverso da quello che
-credi»*.
+The two cases of `combine_bodies` put the bodies **120 mm** apart, to make the
+three outcomes unmistakable (union = the sum, subtraction = the main body alone,
+intersection = zero). Rereading the description of the operation before moving
+them, it turned out that **`combine_bodies` declares that it fails** when after
+the union the bodies are still two: *«usually they do not really touch, and I
+fail instead of confirming a part different from the one you think you have»*.
 
-Due corpi distanti non si fondono. L'unione sarebbe fallita, e **il caso rosso
-avrebbe accusato il predefinito invece della geometria** — cioè avrebbe fatto
-cercare il difetto nel posto sbagliato. Adesso si sovrappongono di 40 mm e i
-tre numeri restano distinti: 80000, 30000, 20000.
+Two bodies far apart do not fuse. The union would have failed, and **the red
+case would have accused the default instead of the geometry** — that is, it
+would have sent people looking for the defect in the wrong place. Now they
+overlap by 40 mm and the three numbers stay distinct: 80000, 30000, 20000.
 
-*Un caso si rilegge contro la descrizione dell'operazione che esercita, non
-solo contro lo schema: lo schema dice cosa accetta, la descrizione dice cosa
-rifiuta.*
-## La decisione di contratto che questi due casi fissano
+*A case is reread against the description of the operation it exercises, not
+only against the schema: the schema says what it accepts, the description says
+what it refuses.*
 
-Un predefinito **non è un campo in meno**: è una scelta fatta da qualcun altro.
-La voce Z-G3 nasce proprio da lì — *«nessuno ci ha pensato» e «qualcuno ci ha
-pensato e ha deciso» si leggono uguali nel JSON, e solo una delle due si può
-migliorare.*
+## The contract decision that these two cases fix
 
-Vale identico per il verso opposto: se il ponte mette S235JR e non lo dice, il
-modello **crede di averlo scelto lui**, e la prossima volta non lo chiederà
-nemmeno. Poi arriva un pezzo che andava in inox e nessuno sa dove sia stata
-presa la decisione.
+A default **is not one field less**: it is a choice made by somebody else.
+Entry Z-G3 was born exactly from there — *«nobody thought about it» and «somebody
+thought about it and decided» read the same in the JSON, and only one of the two
+can be improved.*
 
-Quindi i casi non si accontentano che l'operazione riesca. Pretendono che la
-risposta **dica l'assunzione**: quale valore, e che è stato assunto, non
-chiesto. Si pretende che ci siano **due parole** — il valore (`S235JR`,
-`union`) e la parola `predefinito`. Il valore da solo direbbe soltanto cosa
-c'è adesso; `predefinito` dice **chi l'ha scelto**, ed è l'unica differenza
-fra un aiuto e una decisione presa di nascosto.
+It holds identically the other way round: if the bridge puts S235JR and does not
+say so, the model **believes it chose it itself**, and next time it will not even
+ask. Then a part arrives that should have been in stainless steel and nobody
+knows where the decision was taken.
 
-## Una cosa che questi casi propongono e non hanno il diritto di decidere
+So the cases are not content with the operation succeeding. They demand that the
+answer **state the assumption**: which value, and that it was assumed, not asked
+for. They demand **two things** to be there — the value (`S235JR`, `union`) and
+the phrase «you have not asked for it». The value alone would say only what is
+there now; the phrase says **who chose it**, and it is the only difference
+between a help and a decision taken behind your back.
 
-Il campo su cui guardano si chiama **`measurements.note_assumption`** — si chiamava
-`misure.assunto` finché era una proposta, ed è stato allineato alla
-convenzione `note_*` che il repository usava già (`note_identifiers`,
-`note_volume`) quando è stato implementato, il 24/9/2026. Chi implementa può chiamarlo
-diversamente o metterlo altrove — in quel caso si cambia la riga `what` dei
-quattro casi, che è un minuto.
+## Something that these cases propose and have no right to decide
 
-Quello che **non** si cambia è la pretesa: la risposta deve distinguere «l'ho
-scelto io» da «l'ha scelto il ponte per me». Il nome del campo è un dettaglio;
-quella distinzione è la voce.
+The field they look at is called **`measurements.note_assumption`** — it was
+called `misure.assunto` while it was a proposal, and it was aligned with the
+`note_*` convention that the repository already used (`note_identifiers`,
+`note_volume`) when it was implemented, on 24/9/2026. Whoever implements it can
+call it differently or put it elsewhere — in that case the `what` line of the
+four cases is changed, which takes a minute.
+
+What is **not** changed is the demand: the answer must tell «I chose it» from
+«the bridge chose it for me». The name of the field is a detail; that distinction
+is the entry.

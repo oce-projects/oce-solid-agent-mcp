@@ -1,108 +1,112 @@
-# Rigenerare `catalog.json`
+# Regenerating `catalog.json`
 
-Il catalogo vive in `Oce.Solid.Agent.Core/Catalog/Operations.cs`, **accanto al
-codice che esegue le operazioni**. `catalog.json` e' un prodotto: si rigenera,
-non si modifica a mano.
+The catalogue lives in `Oce.Solid.Agent.Core/Catalog/Operations.cs`, **next to
+the code that runs the operations**. `catalog.json` is a product: it is
+regenerated, never edited by hand.
 
-## Il comando
+## The command
 
 ```bash
 .\bin\Oce.Solid.Agent.Catalog.exe Tools\catalog.json
 ```
 
-Nient'altro. Non serve il server, non serve docker, non serve la rete.
+Nothing else. No server is needed, no docker, no network.
 
-Per controllare senza scrivere — utile prima di un commit, e in una build
-automatica:
+To check without writing — useful before a commit, and in an automatic
+build:
 
 ```bash
 .\bin\Oce.Solid.Agent.Catalog.exe --controlla Tools\catalog.json
 ```
 
-Esce 0 se combacia, 1 se no. E quando non combacia dice **dove**: la posizione
-del primo carattere diverso e le trenta lettere intorno, da tutte e due le
-parti. Un «sono diversi» su un file da settantaduemila caratteri manderebbe a
-cercare a occhio.
+(`--controlla` is Italian for «check»; the option has kept that name.)
 
-## Perche' sta in C# e non nel server
+It exits 0 if the file matches, 1 if not. And when it does not match it says
+**where**: the position of the first different character and the thirty letters
+around it, on both sides. An «they are different» on a file of seventy-two
+thousand characters would send you looking by eye.
 
-Prima il catalogo viveva nel server, in `ai_disegno.py`, e questo file lo
-copiava. Rigenerarlo voleva dire: impacchettare i sorgenti del server, mandarli
-via `scp`, farli girare dentro un container usa-e-getta, e riportarsi indietro
-il risultato. Tre passi, due macchine, e docker.
+## Why it is in C# and not in the server
 
-**Chi clonava questo repository non poteva rigenerare il catalogo.** Un file che
-non si puo' rigenerare e' un file che nessuno osa toccare — e quel file e'
-l'interfaccia verso il modello.
+The catalogue used to live in the server, in `ai_disegno.py`, and this file was a
+copy of it. Regenerating it meant: packing the server's sources, sending them
+over with `scp`, running them inside a throw-away container, and bringing the
+result back. Three steps, two machines, and docker.
 
-C'e' una seconda ragione, meno pratica e piu' importante: **lo strato che
-DESCRIVE un'operazione deve essere lo stesso che la ESEGUE.** E' l'unica
-disposizione in cui un'operazione descritta e non eseguibile non puo' entrare in
-catalogo senza che qualcuno se ne accorga — il controllo diventa un'asserzione
-dentro un progetto, invece di un confronto fra due repository che nessuno rifa'.
+**Whoever cloned this repository could not regenerate the catalogue.** A file
+that cannot be regenerated is a file that nobody dares to touch — and that file
+is the interface to the model.
 
-## Cosa finisce nel file
+There is a second reason, less practical and more important: **the layer that
+DESCRIBES an operation must be the same one that RUNS it.** It is the only
+arrangement in which an operation that is described and cannot be run cannot
+enter the catalogue without somebody noticing — the check becomes an assertion
+inside a project, instead of a comparison between two repositories that nobody
+redoes.
 
-**Solo le operazioni con `Provata = true`.** Un'operazione che non e' stata
-costruita dentro SOLIDWORKS e misurata non si offre a nessuno — nemmeno da qui,
-e specialmente da qui, perche' un ponte serve a misurare e misurare con uno
-strumento non misurato non e' misurare.
+## What ends up in the file
 
-Quelle che restano fuori **si dicono**, su stderr, una per riga: un elenco che
-si accorcia in silenzio non si nota.
+**Only the operations with `Tested = true`.** An operation that has not been
+built inside SOLIDWORKS and measured is offered to nobody — not even from here,
+and especially from here, because a bridge exists to measure, and measuring with
+an unmeasured instrument is not measuring.
 
-Per ogni operazione: `name`, `family`, `summary`, `details`, `schema`,
-`precondition`. `Tested` no — e' una cosa nostra, non del modello.
+The ones that stay out are **named**, on stderr, one per line: a list that
+shrinks in silence is not noticed.
 
-Fuori restano anche le famiglie che non hanno nemmeno un'operazione provata, e
-anche quelle si dicono. Una famiglia dichiarata e vuota arriva al modello come
-una porta che non apre su niente.
+For every operation: `name`, `family`, `summary`, `details`, `schema`,
+`precondition`. `Tested` is not exported — it is ours, not the model's.
 
-## La forma del file
+The families that do not have even one tested operation stay out too, and those
+are named as well. A declared and empty family reaches the model as a door that
+opens onto nothing.
 
-Rientro di **uno** spazio, accenti per esteso e non in `\u`, a capo a solo
-avanzamento riga, nessun a capo finale, e le chiavi nell'ordine in cui sono
-scritte in C#.
+## The shape of the file
 
-Sembra pignoleria e non lo e'. Quando il catalogo e' passato dal Python al C#,
-il criterio era che il file uscito fosse **identico byte per byte** a quello che
-c'era: 72.452 byte, e lo era. Un criterio piu' morbido — «equivalente una volta
-riletto» — avrebbe lasciato passare una descrizione accorciata, e le descrizioni
-sono l'interfaccia vera verso il modello, molto piu' degli schemi.
+Indentation of **one** space, accents written out and not as `\u` escapes, line
+feed only as line end, no final line end, and the keys in the order in which they
+are written in C#.
 
-Da qui in avanti la stessa forma serve a un'altra cosa: tenere il `diff` di
-`catalog.json` leggibile quando cambia una riga sola.
+It looks pedantic and it is not. When the catalogue moved from Python to C#, the
+criterion was that the file that came out had to be **identical byte for byte**
+to the one that was there: 72,452 bytes, and it was. A softer criterion —
+«equivalent once read back» — would have let a shortened description through,
+and the descriptions are the real interface to the model, much more than the
+schemas.
 
-## Come accorgersi che e' vecchio
+From here on the same shape serves another purpose: keeping the `diff` of
+`catalog.json` readable when a single line changes.
 
-Il ponte scrive all'avvio, su stderr:
+## How to notice that it is old
+
+The bridge writes at start-up, on stderr:
 
 ```
-[ponte] catalogo: 60 operazioni provate
+[bridge] catalog: 60 operations tested
 ```
 
-Il numero qui sopra e' quello del 16 settembre 2026 ed e' solo un **esempio di
-come si legge la riga**: quello che conta e' confrontarlo con quante ne dichiara
-il `catalog.json` che si sta usando, non con questo. *Un numero scritto dentro
-un documento invecchia da solo* — era `36` fino a oggi, mentre le operazioni
-erano gia' sessanta, e nessuno poteva accorgersene leggendo.
+The number above is the one of 16 September 2026 and is only an **example of how
+to read the line**: what counts is comparing it with how many the `catalog.json`
+in use declares, not with this one. *A number written inside a document ages by
+itself* — it was `36` until today, when the operations were already sixty, and
+nobody could notice by reading.
 
-E `build.ps1` rigenera il file a ogni pacchetto, quindi non puo' restare
-indietro senza che qualcuno cancelli quel passo.
+And `build.ps1` regenerates the file with every package, so it cannot fall behind
+unless somebody deletes that step.
 
-## Il lato server, che resta da fare
+## The server side, which is still to be done
 
-`ai_disegno.py` e' ancora la fonte del catalogo **per il server**: finche' non
-legge questo JSON, le fonti sono due e divergeranno.
+`ai_disegno.py` is still the source of the catalogue **for the server**: until it
+reads this JSON, there are two sources and they will diverge.
 
-Accertato con un grep dalla parte del server: `CATALOGO_DISEGNO` ha **tre**
-consumatori oltre a quello che lo definisce, e usano `.nome`, `.provata` e
-`.precondizione`, tutti campi che il record C# ha. *(Percorsi e righe stavano
-qui per esteso: sono di un altro repository, che e' privato, e la sua struttura
-non e' una cosa che questo debba raccontare.)*
+Established with a grep from the server's side: `CATALOGO_DISEGNO` has **three**
+consumers besides the one that defines it, and they use `.nome`, `.provata` and
+`.precondizione`, all of them fields that the C# record has. *(Paths and lines
+used to be written here in full: they belong to another repository, which is
+private, and its structure is not something this one should recount.)*
 
-Ma `ai_disegno.py` tiene anche `limiti` e `riassunto`, che **non** sono fra i sei
-campi esportati e servono a `valida()` e a costruire il piano da confermare.
-Quindi l'inversione lascia in Python una parte del record: non e' una
-sostituzione, e' uno spacco. E' il lavoro che la voce C3 aveva gia' dichiarato
-fuori dalla propria stima.
+But `ai_disegno.py` also keeps `limiti` and `riassunto`, which are **not** among
+the six exported fields and are used by `valida()` and to build the plan to
+confirm. So the inversion leaves part of the record in Python: it is not a
+replacement, it is a split. It is the work that entry C3 had already declared
+outside its own estimate.

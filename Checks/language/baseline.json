@@ -2,11 +2,11 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1773,
+  "comments": 1772,
   "strings": 528,
-  "markdown": 8660,
+  "markdown": 825,
   "json_values": 611,
-  "identifiers": 1639,
+  "identifiers": 1632,
   "json_keys": 14,
   "protocol": 666,
   "paths": 0,
@@ -43,7 +43,7 @@
    "strings": 1
   },
   "Bench/README.md": {
-   "markdown": 4215
+   "markdown": 17
   },
   "Bench/Regression.cs": {
    "comments": 1
@@ -53,9 +53,6 @@
   },
   "Bench/bench.ps1": {
    "comments": 2
-  },
-  "Bench/cases/E2-the-two-cases.md": {
-   "markdown": 615
   },
   "Bench/cases/aliases/argument_by_its_italian_name.json": {
    "transition": 4
@@ -123,9 +120,6 @@
   "Bench/cases/sentence/clean_shaft_declares_profile.json": {
    "json_values": 2
   },
-  "Bench/cases/views/HOW_IT_COUNTS.md": {
-   "markdown": 476
-  },
   "Bench/cases/weldments/a_frame_too_small_closes_the_profile_library.json": {
    "json_values": 2
   },
@@ -137,9 +131,6 @@
   },
   "Bench/inspect.js": {
    "comments": 1
-  },
-  "Bench/pending-cases/README.md": {
-   "markdown": 475
   },
   "Bench/report/last.json": {
    "json_values": 6
@@ -497,7 +488,7 @@
    "comments": 2
   },
   "Tests/Program.cs": {
-   "comments": 28
+   "comments": 27
   },
   "Tests/ProgressTests.cs": {
    "comments": 4,
@@ -507,7 +498,7 @@
    "comments": 1
   },
   "Tests/README.md": {
-   "markdown": 1588
+   "markdown": 8
   },
   "Tests/RefusalsTests.cs": {
    "comments": 134,
@@ -549,9 +540,6 @@
   },
   "Tools/catalog.json": {
    "json_values": 36
-  },
-  "Tools/update.md": {
-   "markdown": 491
   },
   "build.ps1": {
    "comments": 2
@@ -621,7 +609,6 @@
    "Corpo1",
    "CorpoRotto",
    "Corri",
-   "Corrobora",
    "Cosa",
    "CosaECambiato",
    "CreateAngDim",
@@ -714,7 +701,6 @@
    "LunghezzaSviluppata",
    "MASSA",
    "MODELLI_SOLIDWORKS",
-   "MUTAZIONI",
    "Massa",
    "MassaDelPezzo",
    "Materiale",
@@ -1150,7 +1136,6 @@
    "chiusi",
    "chiuso",
    "cieca",
-   "ciechi",
    "cilindricita",
    "cilindro",
    "cilindro_d40_lungo_50",
@@ -1166,7 +1151,6 @@
    "combina_corpi",
    "combina_predefinito",
    "comeSiMisura",
-   "come_prima",
    "come_si_misura",
    "compiti",
    "completamente",
@@ -1465,7 +1449,6 @@
    "girato",
    "giro",
    "giudizio",
-   "giusto",
    "gli",
    "gli-eseguibili-ci-sono",
    "gp3_solidi",
@@ -1833,7 +1816,6 @@
    "possonoNominarli",
    "posteriore",
    "precondizione",
-   "predefinito",
    "prepara",
    "prepara-release",
    "prima",
@@ -1939,6 +1921,7 @@
    "riga",
    "righe",
    "righe-del-todo",
+   "rilascio",
    "rimandi",
    "rimandi-del-todo",
    "rinomina",
@@ -1958,7 +1941,6 @@
    "ritrovare",
    "riuscita",
    "rivoluzione",
-   "rossa_prima_di",
    "rugosita_in_tavola",
    "ruota_dentata",
    "s_cava_a_filo",
@@ -1971,7 +1953,6 @@
    "saldature",
    "salta_la_seconda_copia",
    "salva_documento",
-   "sbagliato",
    "scarti",
    "scatola_dodici_triangoli",
    "scatola_in_ascii",

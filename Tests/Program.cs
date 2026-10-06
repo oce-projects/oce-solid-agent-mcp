@@ -317,11 +317,12 @@ namespace Oce.Solid.Agent.ContractTests
             try { text = File.ReadAllText(readme); }
             catch (Exception ex) { Check("the README can be read", false, ex.Message); return; }
 
-            // ONLY the form «<numero> controlli» is looked for: the file also speaks
-            // of seconds and licences, and a broad rule would shout at a
-            // correct sentence.
+            // ONLY the bold form «**<number> checks» (the headline) is looked for: the
+            // file also speaks of seconds and licences, and the rows of the table
+            // say «4 checks» for the groups they describe, so a broad rule would
+            // shout at a correct sentence.
             var foundItems = System.Text.RegularExpressions.Regex.Matches(
-                text, @"(\d+)\s+controlli");
+                text, @"\*\*(\d+)\s+checks");
             if (foundItems.Count == 0)
             {
                 Check("the README says how many checks there are", false,
@@ -338,7 +339,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("the README says how many checks there are, and they are the real ones",
                   wrong.Count == 0,
                   wrong.Count == 0
-                      ? real + " controlli"
+                      ? real + " checks"
                       : "running: " + real + ", the README says " +
                         string.Join(" e ", wrong));
         }

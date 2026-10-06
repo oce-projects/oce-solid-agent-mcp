@@ -1,4 +1,4 @@
-# SolidWorks MCP — versions
+# OCE Solid Agent — changelog
 
 > **LANGUAGE OF THIS FILE — all of it is in English since W3.1-bis (decision D2).**
 > Entries written from 16 September 2026 on (W3.1 / W3.2) were born in English.
@@ -9,9 +9,12 @@
 > the rule of entry I1 still holds — *a rewritten changelog is a changelog that
 > lies*. Names of operations, arguments, fields, classes, files and folders are
 > given in their English form from the rename map
-> (`Controlli/lingua/name-map.tsv`), so that they match the repository as it is
+> (`Checks/language/name-map.tsv`), so that they match the repository as it is
 > published; SOLIDWORKS names, literal values and names with no row in the map
-> stay as they were written.
+> stay as they were written. The entries of the rename windows (W3.1-bis.4 to
+> .6) are the one place where the names from before the rename are quoted on
+> purpose, each with its English name beside it, and so are the sentences between
+> «» that quote what a program printed in Italian.
 
 **RULE, not habit: every code change bumps the version in
 `VERSION.txt` and adds an entry here.**
@@ -26,6 +29,69 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 - **MINOR +1** when the bridge gains visible tools or capabilities;
 - **PATCH +1** for fixes;
 - **MAJOR** stays 0 until the tool protocol is stable.
+
+---
+
+## Unreleased — W3.1-bis.10, the documents, the scripts and the options in English (branch `w31bis-10`) · bridge 0.127.2 · library 0.150.1 (unchanged)
+
+**The tenth window of W3.1-bis (TODO entry W3.1-bis.10, installer entry H19 lot
+L3, decision D13): the user documents, every other tracked Markdown file, the
+leftover texts of the checks and of the CI, and the command-line options are
+English.** Five groups, in five commits:
+
+1. **the user documents**: `README.md`, `QUICKSTART.md`, `INSTALL-FOR-AI.md`,
+   `RELEASE.md`, `NOTICE`, and light edits to `CONTRIBUTING.md` and
+   `SECURITY.md`, rewritten against the code (the catalogue has 99 operations in
+   12 families, the bridge 9 tools). `INSTALL-FOR-AI.md` is now a procedure that
+   can be verified: every step has the command, the expected exit code and
+   output, and what to do on each failure; it matches the options and exit codes
+   the installer really has (silent install 0, 1, 2, 3; uninstall 0, 1, 3;
+   `--verify`; bridge `--self-test` 0, 3, 4, 5, 6, 1). `AGENTS.md` is new and
+   points to it. Corrected on the way: `reactivate` is an argument of
+   `suppress_feature`, not an operation; the client configuration entry is
+   named `solidworks`; the bench takes hours, not seventy minutes;
+2. **the other documents and this changelog's header**: `Bench/README.md`,
+   `Bench/cases/E2-the-two-cases.md`, `Bench/cases/views/HOW_IT_COUNTS.md`,
+   `Bench/pending-cases/README.md`, `Tests/README.md`, `Tools/update.md`. The
+   contract check that reads the number of checks from `Tests/README.md` now
+   reads the bold form `**825 checks`. `Bench/tasks/` is untouched on purpose:
+   another branch is rewriting the runner there;
+3. **the scripts and the CI**: the options of the checks are English
+   (`--tutti` is `--all`, `--provami` is `--self-test`, `--righe` is `--lines`,
+   `--blocchi` is `--blockers`, `--solo-orfane` is `--orphans-only`), the step
+   names and messages of `.github/` are English, and the pre-push hook greps the
+   words the check really prints now (it grepped Italian markers that
+   the script had stopped printing, so it could not fail). The CI job id stays
+   `contratti`: renaming it would rename the status check that branch
+   protection may require;
+4. **the options of the programs, no aliases** (decision L0 of H19): the
+   installer takes `--silent`, `--dir`, `--no-client`, `--uninstall`, `--help`
+   (they were `--silenzioso`, `--cartella`, `--senza-client`, `--disinstalla`,
+   `--aiuto`) and the bridge takes `--self-test` (it was `--prova`). **Why this
+   could not wait:** an option the installer does not know does not fail, it
+   opens the window and waits for a click, so a documented `--silent` that the
+   code did not know would have stopped the AI-driven installation, which is the
+   wall INSTALL-FOR-AI exists to remove. Also English now: the installer's
+   console lines and window labels (`Install`, `Check again`, `Uninstall`,
+   `STOPPED:`), the self-test prefixes `[self-test]` and `[bridge]`, and the
+   messages that named `profili_saldatura` (now `weldment_profiles`). The
+   «» quotes in the installer's console lines are plain quotes, because the
+   console prints «» as garbage. The "done" line of the installer window no
+   longer says "sees the open document" when none is open: it says it is
+   attached to SOLIDWORKS.
+
+5. **D13: two throwaway scripts removed** (`Checks/rename-product.js` and
+`Checks/cleanup-history.js`, made for the rename of the product and the cleanup of
+the history, both finished); `Checks/check-publishability.ps1` still names them
+because it scans the history, where they exist.
+
+Still Italian on purpose, and why: what the programs still print for the bench
+and the contract suite (the words of their summary lines and the name of the
+JUnit file: the producers and the readers, `bench.ps1`, `prepare-release.ps1`, `Checks/test-installer.js`,
+change together or not at all), the option names of the bench, the catalogue and
+the leftovers closer, the file name `dist\note-di-rilascio-X.Y.Z.md`, the
+readers of the Italian TODO, and the quotes. The language gate learns them as
+exceptions in W3.1-bis.11.
 
 ---
 

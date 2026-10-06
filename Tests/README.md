@@ -1,70 +1,69 @@
-# `Oce.Solid.Agent.ContractTests` — le prove che girano dove SOLIDWORKS non c'e'
+# `Oce.Solid.Agent.ContractTests` — the tests that run where SOLIDWORKS is not
 
 ```
 msbuild Tests\Oce.Solid.Agent.ContractTests.csproj -p:Configuration=Release
 Tests\bin\Oce.Solid.Agent.ContractTests.exe
 ```
 
-Esce **0** se non fallisce niente, **1** altrimenti, e scrive
-`Tests\bin\prove.xml` in formato JUnit — quello che ogni CI sa leggere senza
-che nessuno le insegni niente.
+It exits **0** if nothing fails, **1** otherwise, and writes
+`Tests\bin\prove.xml` in JUnit format — the one that every CI can read without
+anybody teaching it anything.
 
-**825 controlli, qualche secondo, nessuna licenza.**
+**825 checks, a few seconds, no licence.**
 
-Quel numero non e' decorativo: **c'e' un controllo che lo rilegge da questo file
-e lo confronta con quanti ne girano davvero**, ed e' l'ultimo del giro (si conta
-anche da solo). Diceva `54` mentre ne giravano `113` — giusto quando fu scritto,
-invecchiato da solo mentre la suite cresceva. Chi aggiunge un controllo cambia
-anche questa riga, oppure il giro diventa rosso e gli dice di che numero si
-tratta.
+That number is not decorative: **there is a check that rereads it from this file
+and compares it with how many really run**, and it is the last one of the run
+(it counts itself too). It said `54` while `113` were running — right when it was
+written, aged by itself while the suite grew. Whoever adds a check changes this
+line too, or the run turns red and tells them which number it is.
 
 ---
 
-## Perche' un progetto a se', e non un modo del banco
+## Why a project of its own, and not a mode of the bench
 
-Il csproj del banco risolve l'interop di Dassault con un `HintPath` dentro
-`…\SOLIDWORKS\api\redist`: su una macchina senza SOLIDWORKS quel percorso non
-esiste e **la compilazione fallisce**. Un flag non basta — il problema e' prima
-del runtime.
+The bench's csproj resolves Dassault's interop with a `HintPath` inside
+`…\SOLIDWORKS\api\redist`: on a machine without SOLIDWORKS that path does not
+exist and **the build fails**. A flag is not enough — the problem comes before
+run time.
 
-Qui dentro **non c'e' nessun riferimento a `SolidWorks.Interop.*`**, e il primo
-controllo del giro e' proprio quello: si guardano i riferimenti dell'assembly,
-non il testo del csproj. Se qualcuno ne aggiunge uno «perche' serviva un tipo»,
-su questa macchina non lo noterebbe nessuno — qui SOLIDWORKS c'e', e compila lo
-stesso.
+In here **there is no reference to `SolidWorks.Interop.*`**, and the first check
+of the run is exactly that: it looks at the references of the assembly, not at
+the text of the csproj. If somebody adds one «because a type was needed», on
+this machine nobody would notice — here SOLIDWORKS is installed, and it compiles
+all the same.
 
-Quel che serve dalla libreria e dal ponte si prende per **riflessione** o
-parlandoci **su stdio**, come farebbe un cliente qualunque.
+What is needed from the library and from the bridge is taken by **reflection** or
+by talking to them **over stdio**, as any client would.
 
-## Cosa prova
+## What it tests
 
-| gruppo | |
+| group | |
 |---|---|
-| **i sorgenti stanno nei progetti** | ogni `.cs` di `Oce.Solid.Agent.Core`, `Bridge`, `Tools`, `Mcp`, `Bench`, `Tests` e `Installer` compare fra i `<Compile Include>` del suo `.csproj`. **Un file che non c'e' non viene compilato**, e se nessuno lo referenzia ancora la build resta VERDE e il codice non esiste: il difetto che non da' errore, applicato al progetto invece che al pezzo |
-| **il valutatore delle attese** | numero giusto/sbagliato, tolleranze assolute, campo assente, elenchi, indici, selettori. E' lo **stesso file** che compila il banco (`..\Bench\Expectations.cs`), non una copia |
-| **il catalogo** | ogni operazione ha nome, famiglia, sommario, descrizione, schema; ogni famiglia usata e' dichiarata; **nessun percorso di questa macchina**; `Similar()` che su «asole» trova «slot» |
-| **`Session.SameDocument`** | la guardia contro il blocco estruso nel pezzo di qualcun altro, che fino al 15/9/2026 **non aveva nemmeno una prova** |
-| **il protocollo MCP** | `initialize` rimanda la versione ricevuta, una notifica non riceve risposta, `tools/list` da' **nove** strumenti e ognuno porta un `title` di primo livello, le annotazioni dicono la verita' (`measure` di sola lettura, `build` distruttivo e non idempotente, `document` ne' di sola lettura ne' idempotente), `measure` **rifiuta** `extrude_rectangle` nominando lo strumento con cui si fa, uno strumento sconosciuto da' `isError` **nel contenuto** e non un errore JSON-RPC **ed elenca tutti quelli che esistono**, JSON malformato da' `-32700` con id nullo, e **su stdout non c'e' niente che non sia JSON** |
-| **il banco e' stato lanciato** | legge `Bench/report/last.json` e **rifiuta una consegna in cui nessuno ha lanciato il banco**: piu' di zero prove, nessuna rossa, non un giro parziale, la libreria di adesso, e **posteriore all'ultima modifica a `Oce.Solid.Agent.Core`** — dove «ultima modifica» vuol dire **anche i file sporchi**, non solo i commit |
-| **e «ultima modifica» include l'albero di lavoro** | fino al 23/9/2026 questa riga chiedeva a `git log`, cioe' alla sola storia **committata**. Fra la modifica e il commit c'era una finestra in cui rispondeva *«non c'e' niente di non provato»* con 29 file modificati e 31 nuovi sul disco — e `build.ps1` costruisce da li', non da git. Misurato: `Operations.cs` toccato alle 19:18, ultimo giro alle 15:23, controllo **verde**. Il verdetto sta adesso in una funzione che prende due date, e si prova in quattro versi: sporco piu' nuovo vince, albero pulito non cambia niente, sporco piu' vecchio non sposta, e **«nessun commit non provato» non copre piu' un albero pieno** |
-| **il ponte e il banco caricano la stessa libreria** | ce ne sono **due copie**: `Oce.Solid.Agent.Core\bin\Release\` (la misura il banco) e `bin\` (la carica il ponte, ce la mette `build.ps1`). Chi compila **il solo progetto** — la cosa piu' naturale mentre si itera — aggiorna la prima e non la seconda. Il 18/9/2026 sono divergute di **quattro versioni per nove ore**: il banco misurava 0.98.4, il ponte girava 0.98.1, e una riparazione e' stata provata tre volte dal ponte senza mai esserci dentro. Il sintomo era perfetto — «l'operazione non rifiuta» — e la causa non era nel codice |
-| **il rifiuto delle quote dice ancora quello che serve** | finche' l'import delle quote e' rotto (misurato il 18/9: sette quote **tutte marcate**, cinque strade di import, zero in tavola, e `InsertNote` che nello stesso istante funziona) **quel messaggio e' tutto cio' che un modello riceve quando chiede le quote**. Si pretende che nomini ancora quante sono marcate — il dato che divide in due le cause — e l'elenco delle strade provate. **Guarda il sorgente, non l'esecuzione, e lo dice**: la prova di comportamento sarebbe un caso con `must_fail`, e oggi non si puo' scrivere perche' il banco pretende una gemella VERDE e per `model_dimensions` non esiste. Visto scattare il 18/9 togliendo una frase e rimettendola |
-| **nel TODO due voci non si chiamano allo stesso modo** | il 17/9/2026 sono state innestate 65 voci chiamate `A1`, `C3`…: **37 di quei nomi erano gia' usati** nello stesso file da voci diverse, 33 delle quali chiuse. «Fai C3» portava a una voce verde del 14/9 che non c'entrava niente. Il doppione si accetta **solo** se una delle due e' una «traccia originale tenuta per riferimento» — li' il nome ripetuto dice qualcosa. Visto scattare il 18/9 su un doppione messo apposta, e tolto subito dopo |
-| **il catalogo promette solo documenti che l'esecutore ammette** | i tipi ammessi si leggono **dal sorgente** di `PreliminaryChecks` (i token `swDoc...` dentro `bool ammesso`), le famiglie da `bin\catalog.json`, e ogni famiglia servita deve avere un tipo su cui possa girare. Nato il 18/9/2026 **rosso**: il catalogo elencava tre operazioni di famiglia `assemblies` e l'esecutore rifiutava ogni assieme prima del primo passo. **Il banco non poteva vederlo — chiama la libreria, non il ponte.** Una famiglia nuova che nessuno ha classificato e' **rossa, non verde** |
-| **l'avanzamento e l'annullamento (W2.2)** | il gettone sta in `params._meta.progressToken` e **si rimanda com'è arrivato**: un `42` che tornasse `"42"` non combacerebbe più con niente dalla parte del client. Si pretende: chi non manda un gettone **non riceve niente** (una notifica non richiesta è rumore sul canale del protocollo); `progress` cresce sempre, e gliene si passa uno che non cresce per vedere che lo scarti; `total` e `message` si omettono invece di scriverli vuoti. La catena intera si guarda **su stdio col ponte vero**, sfruttando `dry_run: true` che gira a SOLIDWORKS chiuso. E `notifications/cancelled` **non cade più nel silenzio**: cadeva nel `default`, e siccome è una notifica l'errore veniva scartato |
-| **il registro delle domande senza risposta** | il ponte sa, quattro volte in quattro punti, che gli e' stato chiesto un nome che non esiste — e finora lo diceva a chi chiedeva e a nessun altro. Ora lo scrive. Si pretende: la riga sta su una riga sola anche se il modello inventa un nome con le virgolette dentro (una riga JSONL rotta rende illeggibile il file **da li' in poi**, non solo se stessa); scrive in aggiunta, perche' due ponti aperti che riscrivono lo stesso file si mangiano le righe; **non solleva mai** e il motivo del silenzio resta leggibile, perche' un `catch` vuoto e un `catch` mai eseguito si assomigliano troppo; **non nomina `Console`**, dove passa il JSON-RPC; e **ogni** punto che cerca un nome vicino registra, cosi' il quinto punto nasce gia' sorvegliato invece di essere dimenticato |
-| **le firme non sopravvivono al cambio di documento** | il ponte tiene `_guardato` (quale documento) e le firme (com'era). Una riga le faceva **divergere**: un piano che nominava un altro documento spostava il primo e lasciava indietro le seconde, e il guaio arrivava alla chiamata DOPO — o un rifiuto sbagliato, o un piano che passa su uid che non valgono piu'. La regola si prova prima su righe finte: prende il difetto vero, e **non punisce chi spiega** (venticinque righe di commento fra le firme e `_guardato`) — ci era gia' caduta una volta (voce Z-A1) |
-| **le chiamate vietate per contratto** | tre firme `AddDimension` quasi identiche coesistono, e due la voce GP6 le **vieta**: quella su `IModelDoc2` ritorna `Boolean` e la quota, se nasce, non e' raggiungibile. Fino al 23/9/2026 il divieto viveva **solo in una riga di TODO**. Adesso si guarda il sorgente — 30.048 righe in cinque cartelle — e si prova che la regola sappia prendere le vietate **e lasciar stare quella giusta** (voce GP6) |
-| **la conferma all'utente** | il client finto **dichiara `elicitation`**, il ponte gli manda `elicitation/create` prima di eliminare una lavorazione, il client risponde `decline` — e il ponte **si ferma dicendo di non aver toccato niente**. Piu' il ripiego: con un client che non sa chiedere non resta appeso (voce W2.5) |
-| **la prova a vuoto** | `build` con `dry_run: true` **parla col ponte vero, su stdio, con SOLIDWORKS chiuso**: su un piano sbagliato in quattro modi trova sei difetti — l'operazione che non esiste, l'obbligatorio che manca, l'argomento **sconosciuto che verrebbe ignorato in silenzio**, il rimando a un passo che non c'e'. E su un piano buono non trova niente. In tutti e due i casi **dichiara cosa non ha potuto guardare** (voce Z-G6) |
-| **la sentinella: SOLIDWORKS se n'e' andato** | tre documenti nuovi non nati **di fila** fermano il giro, che salta il resto **dicendolo** ed esce 4. Due fallimenti non bastano, tre sparsi nemmeno; una volta scattata non si spegne. Il 23/9/2026 il banco aveva provato per quaranta minuti contro un programma morto, chiamando **rosse** nove prove che non aveva fatto (voce K17) |
-| **gli errori non si confrontano con una cifra** | su 38 enum di errore di SOLIDWORKS, **13 hanno «niente errore» = 1**: `if (errore != 0)` li' e' rovesciato. La guardia dimostra di avere i denti su quattro righe che deve prendere e quattro che deve lasciar stare, **prima** di dire che i sorgenti sono puliti (voce Z-C7) |
-| **i limiti misurati e le descrizioni che li dichiarano** | ogni rifiuto ha la sua gemella e la gemella **esiste**; ogni `must_fail` pretende un messaggio; e **ogni operazione con un rifiuto provato lo dichiara nella descrizione** — erano 12 mute su 31, adesso zero (voci Z-G5, Z-C11) |
-| **i rifiuti che dicono anche cosa fare** | 576 punti di rifiuto, 537 con un messaggio proprio, **83 offrono una strada**. E' un pavimento: un rifiuto nuovo scritto muto lo fa scendere (voce Z-G4) |
-| **su che documento gira ogni operazione** | tutte e 71 lo dichiarano, con un vocabolario chiuso, e **cio' che dichiarano dev'essere eseguibile** — i tipi ammessi si leggono dal sorgente dell'esecutore. Il controllo verifica anche che il campo **servisse**: se nessuna famiglia fosse mista, sarebbe un doppione (voce Z-D0-ter) |
-| **ogni campo obbligatorio e' una decisione presa** | 92 campi, 58 quote che si chiedono davvero, **34 con una decisione scritta**. «Nessuno ci ha pensato» e «qualcuno ha deciso di chiederlo» si leggono uguali nel JSON, e solo una delle due si puo' migliorare (voce Z-G3) |
-| **gli esempi si copiano da un caso verde** | 24 operazioni su 71 portano una chiamata vera. **Nessun esempio contiene `@face(...)` o `{LAVORO}`**: un esempio che il client non puo' copiare e' una trappola, non un aiuto. E ogni campo dell'esempio esiste nello schema — l'esempio non lo esegue nessuno, quindi invecchia in silenzio (voce Z-G1) |
-| **cosa accompagna una fotografia** | la didascalia dice che **i numeri letti da un'immagine non sono autorevoli**, con i due errori misurati (Ø90 letto 79; parete 12,5 letta 6) e la strada per la misura vera (voce Z-C10) |
+| **the sources are in the projects** | every `.cs` of `Oce.Solid.Agent.Core`, `Bridge`, `Tools`, `Mcp`, `Bench`, `Tests` and `Installer` appears among the `<Compile Include>` of its `.csproj`. **A file that is not there is not compiled**, and if nobody references it yet the build stays GREEN and the code does not exist: the defect that gives no error, applied to the project instead of the part |
+| **the expectation evaluator** | right/wrong number, absolute tolerances, missing field, lists, indexes, selectors. It is the **same file** that the bench compiles (`..\Bench\Expectations.cs`), not a copy |
+| **the catalogue** | every operation has a name, a family, a summary, a description, a schema; every family used is declared; **no path of this machine**; `Similar()` that on «asole» («slots» in Italian) finds «slot» |
+| **`Session.SameDocument`** | the guard against the block extruded into somebody else's part, which until 15/9/2026 **did not even have a test** |
+| **the MCP protocol** | `initialize` sends back the version it received, a notification gets no answer, `tools/list` gives **nine** tools and each one carries a top-level `title`, the annotations tell the truth (`measure` read-only, `build` destructive and not idempotent, `document` neither read-only nor idempotent), `measure` **refuses** `extrude_rectangle` naming the tool to use for it, an unknown tool gives `isError` **in the content** and not a JSON-RPC error **and lists all the ones that exist**, malformed JSON gives `-32700` with a null id, and **on stdout there is nothing that is not JSON** |
+| **the bench has been run** | it reads `Bench/report/last.json` and **refuses a delivery in which nobody ran the bench**: more than zero tests, none red, not a partial run, the library of now, and **later than the last change to `Oce.Solid.Agent.Core`** — where «last change» means **the dirty files too**, not only the commits |
+| **and «last change» includes the working tree** | until 23/9/2026 this line asked `git log`, that is, only the **committed** history. Between the change and the commit there was a window in which it answered *«there is nothing unproven»* with 29 modified files and 31 new ones on the disk — and `build.ps1` builds from there, not from git. Measured: `Operations.cs` touched at 19:18, last run at 15:23, check **green**. The verdict now lives in a function that takes two dates, and it is tested four ways: dirty and newer wins, a clean tree changes nothing, dirty and older does not move anything, and **«no unproven commit» no longer covers a full tree** |
+| **the bridge and the bench load the same library** | there are **two copies** of it: `Oce.Solid.Agent.Core\bin\Release\` (measured by the bench) and `bin\` (loaded by the bridge, put there by `build.ps1`). Whoever builds **the project alone** — the most natural thing while iterating — updates the first and not the second. On 18/9/2026 they diverged by **four versions for nine hours**: the bench measured 0.98.4, the bridge ran 0.98.1, and a repair was tested three times by the bridge without ever being in it. The symptom was perfect — «the operation does not refuse» — and the cause was not in the code |
+| **the refusal of the dimensions still says what is needed** | as long as the dimension import is broken (measured on 18/9: seven dimensions **all marked**, five import routes, zero on the drawing, and `InsertNote` working at the same instant) **that message is everything a model receives when it asks for the dimensions**. It must still name how many are marked — the datum that splits the causes in two — and the list of the routes tried. **It looks at the source, not at the execution, and says so**: the behaviour test would be a case with `must_fail`, and today it cannot be written because the bench demands a GREEN twin and for `model_dimensions` there is none. Seen firing on 18/9 by taking a sentence out and putting it back |
+| **in the TODO two entries are not named the same way** | on 17/9/2026 65 entries called `A1`, `C3`… were grafted in: **37 of those names were already used** in the same file by different entries, 33 of them closed. «Do C3» led to a green entry of 14/9 that had nothing to do with it. The duplicate is accepted **only** if one of the two is marked «traccia originale, tenuta per riferimento» (the TODO is written in Italian; it means «original trace, kept for reference») — there the repeated name says something. Seen firing on 18/9 on a duplicate put there on purpose, and removed right after |
+| **the catalogue promises only documents that the executor admits** | the admitted types are read **from the source** of `PreliminaryChecks` (the `swDoc...` tokens inside `bool ammesso`), the families from `bin\catalog.json`, and every family served must have a type it can run on. Born on 18/9/2026 **red**: the catalogue listed three operations of the `assemblies` family and the executor refused every assembly before the first step. **The bench could not see it — it calls the library, not the bridge.** A new family that nobody has classified is **red, not green** |
+| **progress and cancellation (W2.2)** | the token is in `params._meta.progressToken` and **is sent back as it arrived**: a `42` that came back as `"42"` would no longer match anything on the client side. It demands: whoever sends no token **gets nothing** (an unrequested notification is noise on the protocol channel); `progress` always grows, and one is passed that does not grow to see that it is discarded; `total` and `message` are left out instead of being written empty. The whole chain is looked at **over stdio with the real bridge**, using `dry_run: true`, which runs with SOLIDWORKS closed. And `notifications/cancelled` **no longer falls into silence**: it fell into the `default`, and since it is a notification the error was discarded |
+| **the registry of the questions without an answer** | the bridge knows, four times in four places, that it was asked for a name that does not exist — and until now it said so to the asker and to nobody else. Now it writes it down. It demands: the line is on one line only even if the model invents a name with quotation marks inside (a broken JSONL line makes the file unreadable **from there on**, not only itself); it appends, because two open bridges that rewrite the same file eat each other's lines; it **never raises** and the reason for the silence stays readable, because an empty `catch` and a `catch` that never runs look too much alike; it **does not name `Console`**, where the JSON-RPC passes; and **every** place that looks for a near name records, so the fifth place is born already watched instead of being forgotten |
+| **the signatures do not survive the change of document** | the bridge keeps `_guardato` (which document) and the signatures (how it was). One line made them **diverge**: a plan that named another document moved the first and left the second behind, and the trouble came at the call AFTER — either a wrong refusal, or a plan that goes through on uids that are no longer valid. The rule is tested first on fake lines: it catches the real defect, and **does not punish whoever explains** (twenty-five comment lines between the signatures and `_guardato`) — it had already fallen there once (entry Z-A1) |
+| **the calls forbidden by contract** | three nearly identical `AddDimension` signatures coexist, and entry GP6 **forbids** two of them: the one on `IModelDoc2` returns `Boolean` and the dimension, if it is born, cannot be reached. Until 23/9/2026 the ban lived **only in a TODO line**. Now the source is looked at — 30,048 lines in five folders — and it is proved that the rule can catch the forbidden ones **and leave the right one alone** (entry GP6) |
+| **the confirmation to the user** | the fake client **declares `elicitation`**, the bridge sends it `elicitation/create` before deleting a feature, the client answers `decline` — and the bridge **stops saying that it touched nothing**. Plus the fallback: with a client that cannot ask it does not hang (entry W2.5) |
+| **the dry run** | `build` with `dry_run: true` **talks to the real bridge, over stdio, with SOLIDWORKS closed**: on a plan that is wrong in four ways it finds six defects — the operation that does not exist, the mandatory argument that is missing, the **unknown argument that would be ignored in silence**, the reference to a step that is not there. And on a good plan it finds nothing. In both cases it **declares what it could not look at** (entry Z-G6) |
+| **the sentinel: SOLIDWORKS has gone away** | three new documents not born **in a row** stop the run, which skips the rest **saying so** and exits 4. Two failures are not enough, three scattered ones neither; once it has fired it does not switch off. On 23/9/2026 the bench had tested for forty minutes against a dead program, calling **red** nine tests it had not done (entry K17) |
+| **errors are not compared with a figure** | of 38 SOLIDWORKS error enums, **13 have «no error» = 1**: `if (error != 0)` is upside down there. The guard shows that it has teeth on four lines it must catch and four it must leave alone, **before** saying that the sources are clean (entry Z-C7) |
+| **the measured limits and the descriptions that declare them** | every refusal has its twin and the twin **exists**; every `must_fail` demands a message; and **every operation with a tested refusal declares it in the description** — 12 were mute out of 31, now zero (entries Z-G5, Z-C11) |
+| **the refusals that also say what to do** | 576 refusal points, 537 with a message of their own, **83 offer a way out**. It is a floor: a new refusal written mute makes it go down (entry Z-G4) |
+| **on which document each operation runs** | all 71 declare it, with a closed vocabulary, and **what they declare must be executable** — the admitted types are read from the executor's source. The check also verifies that the field **was needed**: if no family were mixed, it would be a duplicate (entry Z-D0-ter) |
+| **every mandatory field is a decision taken** | 92 fields, 58 dimensions that are really asked for, **34 with a written decision**. «Nobody thought about it» and «somebody decided to ask for it» read the same in the JSON, and only one of the two can be improved (entry Z-G3) |
+| **the examples are copied from a green case** | 24 operations out of 71 carry a real call. **No example contains `@face(...)` or `{LAVORO}`**: an example that the client cannot copy is a trap, not a help. And every field of the example exists in the schema — nobody runs the example, so it ages in silence (entry Z-G1) |
+| **what accompanies a photograph** | the caption says that **the numbers read from an image are not authoritative**, with the two measured errors (Ø90 read as 79; wall 12.5 read as 6) and the way to the real measurement (entry Z-C10) |
 | **no new call to an obsolete SOLIDWORKS API** | the refined list of obsolete members (`Tests/data/obsolete-api-members.tsv`, 3066 members, built from the API help by `Checks/obsolete-api-list.js`) against the source of six folders. The receiver type is inferred from the source within the C# scope of the call (locals, parameters, fields of the class, casts, `new`, array elements, return types of methods in the source), so `Select2` on an IFeature is not taken for the obsolete IEntity one. Every call is MEASURED (an `OBSOLETE-MEASURED: <bank case>` comment AND an exact entry in the contract) or FROZEN for Z-C21.7; the undecided calls (receiver type not in the source) are frozen too, per file and name, in `Tests/data/obsolete-undecided-frozen.tsv`. All three are exact ratchets: more is red, fewer is red until the number is lowered. **Seen red** five times on changed copies of real files: a new call, a second call where one is frozen, a frozen call removed, a new call under a marker citing a real case, a new undecided call (Z-C21.6) |
 | **the selection marks come from the table** | every constant of `SelectionMarks.cs` cites its guide page and a quote that gives its value (or says UNDOCUMENTED with the bank case that measured it), and no selection call carries a non-zero literal mark: `Select2(append, N)`, `SelectByID2(..., N, ...)`, `.Mark = N`, nor a helper of the source whose `int` parameter is named mark/marca/marchio (`Select(gestore, faccia, 2)`). The rule is proved first on a table written to be wrong (Z-C21.6, pattern S9) |
 | **the Forma rewrites enum values in the catalogue's spelling** | `Bridge/Shape.cs` of the BUILT bridge, by reflection, against the served catalogue: «Superiore» reaches the library as «top», «a4v» as «A4V», nested `faccia_rif.genere` too; a string that is not an enum is never touched, «obliquo» is still refused and not rewritten, two catalogue spellings that differ only in case are refused, and all 180 top-level enum values come back in the catalogue's spelling with the case flipped. Seen red on the Forma of 0.140.0 (7 of 12) and on a mutant without `.ToList()` (Z-C21.10, S20) |
@@ -99,43 +98,44 @@ parlandoci **su stdio**, come farebbe un cliente qualunque.
 | **the script nets of W3.1-bis.2 turn red on their fakes** | `SafetyNetSelfTests` runs the self-tests of `Checks/language/token-stream.js` (31 cases: a changed string, operator, number or hole is red in every language and mode), `Checks/expected-keys-test.js` (every JSON reader of the checks exits 1 on a missing key), `Checks/test-x2.js --self-test`, `Checks/language/snapshot.js --self-test` (28 checks on a fake tree and fake ledgers: a changed refusal literal, also one its text shows as a hole, a vanished assertion target, also when another member still holds the text, a changed outcome, a run that is not full, a count dropped to 0, a catalogue or tool change are red; a translated label and the unstable case alone are not; a bridge that never answers is stopped) and `Checks/language/same-il.ps1 -SelfTest` (17 comparisons of disassembled assemblies). Seen red on 1/10/2026 by making the identical mode of `token-stream.js` accept every difference: 27 of 31; and by expecting the wrong exit code in one check of `snapshot.js`: 17 of 18 (28 checks since the review of 1/10/2026, each new one seen red on its own mutation of the tool). A self-test that says it cannot run here (exit 2: no Roslyn, no ildasm) is **not runnable here**, never green |
 | **the name map of W3.1-bis.3 is complete, and its check is seen red** | `SafetyNetSelfTests` runs `Checks/language/name-map-extract.js --self-test` (27 cases: every check of the map red on its fake row, a good map green), then `--check` on the real `Checks/language/name-map.tsv` (every Italian name the extractor finds in the tree has a row with an English name, none shared inside a type unless each row says merged, none a C# or JSON Schema keyword, the shape of the Italian name kept, a namespace extending its parent, no English name the gate reads as Italian), then `--check` on a temporary copy of the map without one row, with a collision and with a C# keyword, which must exit 1 naming (a), (b) and (c). Seen red on 1/10/2026 with a row taken out of the real map and the keyword check of the extractor blinded: all three red, the copy red on (a) and (b) only. Without Roslyn or the .NET 4.8 reference assemblies (exit 2) they are **not runnable here** |
 
-L'ultima riga e' la ragione per cui esiste la CI (voce F9): nessun runner ha una
-licenza SOLIDWORKS e non l'avra', ma **rifiutare una consegna non provata** si
-puo' fare da qualunque macchina. Per questo `last.json` e' l'unico file di
-`Bench/report/` versionato.
+The last line is the reason the CI exists (entry F9): no runner has a SOLIDWORKS
+licence and none will, but **refusing a delivery that has not been tested** can
+be done from any machine. That is why `last.json` is the only file of
+`Bench/report/` that is versioned.
 
-> **Il valutatore delle attese DEVE stare qui.** Se e' rotto lui, tutta la suite
-> con SOLIDWORKS diventa verde gratis.
+> **The expectation evaluator MUST stay here.** If it is broken, the whole suite
+> with SOLIDWORKS turns green for free.
 
-## Due trappole, e come si evitano
+## Two traps, and how to avoid them
 
-**Il timeout non e' una comodita'.** Leggere da un sottoprocesso senza bloccarsi
-vuole un timeout su ogni riga attesa: senza, una prova che fallisce **appende il
-comando** invece di diventare rossa, e in una CI vuol dire un lavoro che non
-finisce mai invece di un rosso che si legge.
+**The timeout is not a convenience.** Reading from a subprocess without blocking
+takes a timeout on every awaited line: without it, a test that fails **hangs the
+command** instead of turning red, and in a CI that means a job that never ends
+instead of a red that can be read.
 
-**E il difetto silenzioso e' l'altro**: una prova di protocollo che «passa»
-perche' ha letto **zero righe in attesa di zero righe**. Per questo «una notifica
-non riceve risposta» non si misura con un'attesa a vuoto — si manda la notifica,
-subito dopo una domanda vera, e si guarda che la **prima** riga che torna sia la
-risposta a quella.
+**And the silent defect is the other one**: a protocol test that «passes»
+because it has read **zero lines while waiting for zero lines**. That is why «a
+notification gets no answer» is not measured with an empty wait — the
+notification is sent, right after it a real question, and one checks that the
+**first** line that comes back is the answer to that.
 
-## Il BOM che ha rotto la prima riga
+## The BOM that broke the first line
 
-Appena scritto, questo gruppo ha trovato un difetto **suo**: `initialize` non
-riceveva risposta, e il ponte rispondeva `-32700: Primitiva JSON non valida`.
+As soon as it was written, this group found a defect of **its own**: `initialize`
+got no answer, and the bridge answered `-32700: Primitiva JSON non valida`
+(«invalid JSON primitive», still worded in Italian by the program).
 
-`Process.StandardInput`, su .NET Framework, nasce con la codifica di
-`Console.InputEncoding` e gli si mette subito `AutoFlush = true` — che **fa un
-Flush**, e un Flush di uno `StreamWriter` UTF-8 scrive il preambolo: tre byte,
-`EF BB BF`, davanti alla prima riga.
+`Process.StandardInput`, on .NET Framework, is born with the encoding of
+`Console.InputEncoding` and `AutoFlush = true` is set on it at once — which **does
+a Flush**, and a Flush of a UTF-8 `StreamWriter` writes the preamble: three bytes,
+`EF BB BF`, in front of the first line.
 
-> Quello che arrivava al ponte non era JSON: erano tre byte e poi del JSON.
+> What reached the bridge was not JSON: it was three bytes and then some JSON.
 
-Il sintomo pero' diceva un'altra cosa — «initialize non risponde» — perche' la
-riga d'errore non porta l'id della richiesta. Si e' visto solo **stampando le
-righe arrivate** dentro il messaggio di fallimento, ed e' il motivo per cui il
-dettaglio di una prova rossa qui non viene mai troncato.
+The symptom, though, said something else — «initialize does not answer» — because
+the error line does not carry the id of the request. It was seen only by
+**printing the lines that arrived** inside the failure message, and that is why
+the detail of a red test here is never truncated.
 
-E' la trappola gemella di quella che questo gruppo prova sul ponte: **su stdio,
-il primo byte conta.**
+It is the twin trap of the one this group tests on the bridge: **over stdio, the
+first byte counts.**

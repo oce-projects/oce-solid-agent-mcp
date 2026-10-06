@@ -1,60 +1,62 @@
-# Il banco
+# The bench
 
-Le prove che si fanno **dentro SOLIDWORKS**, contro la libreria vera.
+The tests that run **inside SOLIDWORKS**, against the real library.
 
-Sono due banchi diversi, per due domande diverse:
+There are several benches, for different questions:
 
-| | domanda | serve SOLIDWORKS? |
+| | question | needs SOLIDWORKS? |
 |---|---|---|
-| `Oce.Solid.Agent.Bench.exe` | le operazioni della libreria fanno il pezzo giusto? | si' |
-| `run_plans.js` | il ponte MCP esegue i piani come deve? | si' |
-| `test_undo.js` | `undo` ritira il piano — e si **rifiuta** quando deve? | si' |
-| `collect_views.js` | costruisce le cinque forme di V2/V3 e ne salva immagini e stato | si' |
-| `test_shape.js` | dalla sola **frase** un modello sa ridisegnare il pezzo? (V3) | si' |
-| `test_section.js` | lo **spaccato** mostra la parete, e si toglie da solo? (V4) | si' |
-| `..\Checks\Prova*.exe` | la matematica torna? | **no** |
+| `Oce.Solid.Agent.Bench.exe` | do the library's operations make the right part? | yes |
+| `run_plans.js` | does the MCP bridge run plans the way it should? | yes |
+| `test_undo.js` | does `undo` withdraw the plan, and does it **refuse** when it should? | yes |
+| `collect_views.js` | builds the five shapes of V2/V3 and saves their images and state | yes |
+| `test_shape.js` | from the **sentence** alone, can a model redraw the part? (V3) | yes |
+| `test_section.js` | does the **cutaway** show the wall, and does it switch itself off? (V4) | yes |
+| `Checks\GearTest`, `OutlineTest`, `PositionsTest` | does the maths come out right? | **no** |
 
-I primi tre misurano pezzi, l'ultimo misura formule. L'ultimo si lancia in un
-secondo e va lanciato per primo: se non torna la formula, non vale la pena
-aprire il CAD.
+The first ones measure parts, the last ones measure formulas. The last ones run
+in a second and should be run first: if the formula is wrong, it is not worth
+opening the CAD.
 
 ---
 
-## `Oce.Solid.Agent.Bench.exe` — le operazioni
+## `Oce.Solid.Agent.Bench.exe` — the operations
 
-Carica `Oce.Solid.Agent.Core.dll` e chiama i suoi tipi per riflessione, con gli
-stessi argomenti che arriverebbero da un piano. Ogni prova lavora su una parte
-usa e getta e la chiude.
+It loads `Oce.Solid.Agent.Core.dll` and calls its types by reflection, with the
+same arguments that would arrive from a plan. Every test works on a throw-away
+part and closes it.
 
-> **Prima di tutto questo c'e' `Tests\Oce.Solid.Agent.ContractTests.exe`** — 54 controlli in
-> pochi secondi, **senza SOLIDWORKS**: il valutatore delle attese, il catalogo,
-> `SameDocument`, il protocollo MCP. Vedi [Tests/README.md](../Tests/README.md).
-> Se sono rossi quelli, aprire il CAD e' tempo perso.
+> **Before all this there is `Tests\Oce.Solid.Agent.ContractTests.exe`** — hundreds of checks (the exact count is in Tests/README.md) in
+> a few seconds, **without SOLIDWORKS**: the expectation evaluator, the catalogue,
+> `SameDocument`, the MCP protocol. See [Tests/README.md](../Tests/README.md).
+> If those are red, opening the CAD is wasted time.
 
-### Un comando solo
+### One command
 
 ```
-.\Bench\bench.ps1                        tutto, e scrive il resoconto
-.\Bench\bench.ps1 -Group viste          una famiglia sola
-.\Bench\bench.ps1 -Family reanchor    una cartella sola di casi dichiarati
-.\Bench\bench.ps1 -Slow                 anche quelle che costano minuti
-.\Bench\bench.ps1 -SkipCompilation     il binario che c'e' gia'
+.\Bench\bench.ps1                        everything, and writes the report
+.\Bench\bench.ps1 -Group viste          a single family
+.\Bench\bench.ps1 -Family reanchor    a single folder of declared cases
+.\Bench\bench.ps1 -Slow                 also the ones that cost minutes
+.\Bench\bench.ps1 -SkipCompilation     the binary that is already there
 ```
 
-Compila libreria e banco (e **si ferma** se una delle due fallisce), guarda se
-SOLIDWORKS e' agganciabile, **svuota i documenti rimasti aperti**, lancia, e
-scrive `Bench/report/AAAAMMGG_hhmm.md` e `.json` piu' `last.json`.
+It compiles the library and the bench (and **stops** if either fails), checks
+whether SOLIDWORKS can be attached to, **closes the documents left open**, runs,
+and writes `Bench/report/YYYYMMDD_hhmm.md` and `.json` plus `last.json`.
 
-| uscita | |
+| exit code | |
 |---|---|
-| **0** | tutto verde |
-| **1** | prove fallite — il `.md` le elenca con atteso e misurato |
-| **2** | errore di banco: compilazione fallita, SOLIDWORKS non agganciabile, gruppo che non esiste, oppure un caso che **non si e' potuto misurare** |
+| **0** | all green |
+| **1** | failed tests — the `.md` lists them with expected and measured values |
+| **2** | bench error: the build failed, SOLIDWORKS cannot be attached to, a group that does not exist, or a case that **could not be measured** |
+| **3** | the desk was not clean: documents that are not the bench's were already open in SOLIDWORKS (entry K12). The run does not start at all |
+| **4** | SOLIDWORKS went away mid-run (entry K17, see below). The remaining checks are skipped, not red, and the run is not valid |
 
-Il 2 **non e' una prova rossa** e non va contato insieme: una prova rossa e' una
-misura, un errore di banco e' una misura **mancata**. E il 2 vince sull'1: se il
-banco non ha potuto misurare, quante prove siano fallite e' una domanda a cui
-non si e' risposto.
+The 2 **is not a red test** and must not be counted with one: a red test is a
+measurement, a bench error is a **missed** measurement. And the 2 wins over the
+1: if the bench could not measure, how many tests failed is a question that has
+not been answered. The 4 wins over both.
 
 **The test ledger, `Bench/report/tests.json`** (W3.1-bis.2, item 7), is
 written by the bench itself at the end of every run (full, partial, mutations,
@@ -76,118 +78,122 @@ more test, «every lookup by name that falls back to null found its target»
 mutation or regression run a miss is a bench error. `Oce.Solid.Agent.ContractTests` forbids a
 `?.` read of a lookup anywhere else in `Bench/`.
 
-> ### ⚠ NON LANCIARLO DENTRO UNA PIPELINE POWERSHELL
+> ### ⚠ DO NOT RUN IT INSIDE A POWERSHELL PIPELINE
 >
-> `.\Bench\bench.ps1 ... | Select-Object -First 25` **uccide il giro a meta'**.
-> `Select-Object -First N` lancia `StopUpstreamCommandsException` appena ha N
-> oggetti e **termina il comando a monte**: il banco muore, esce **255** — che
-> non e' nessuno dei tre codici qui sopra — e **non scrive il resoconto**.
-> Stesso esito con `Tee-Object` su un giro lungo, che sbatte contro
-> «Periodo di timeout del semaforo scaduto».
+> `.\Bench\bench.ps1 ... | Select-Object -First 25` **kills the run half way**.
+> `Select-Object -First N` throws `StopUpstreamCommandsException` as soon as it
+> has N objects and **terminates the upstream command**: the bench dies, exits
+> **255** — which is none of the codes above — and **does not write the
+> report**. The same happens with `Tee-Object` on a long run, which crashes into
+> the Windows error about the semaphore timeout period having expired.
 >
-> Costato due volte: un giro pieno morto a **8469 s** (644 prove passate, zero
-> fallite) e un `-Group casi` morto a **1132 s**. In tutti e due i casi **zero
-> rossi**: e' tempo buttato, non informazione.
+> This has cost us twice: a full run dead at **8469 s** (644 tests passed, zero
+> failed) and a `-Group casi` run dead at **1132 s**. In both cases **zero
+> reds**: it is wasted time, not information.
 >
-> **Il segnale che li distingue e' semplice: un giro vero scrive SEMPRE un file
-> in `Bench\report\`.** Se il resoconto non c'e', il giro non c'e' stato —
-> qualunque cosa dica l'ultima riga a schermo.
+> **The signal that tells them apart is simple: a real run ALWAYS writes a file
+> in `Bench\report\`.** If the report is not there, the run did not happen —
+> whatever the last line on screen says.
 >
-> Si lancia **nudo**, e si legge dopo: `Bench\report\last.json`, oppure
-> `Bench\ultimo-giro.txt` — che e' **UTF-16LE**, quindi un `grep` fatto a mano
-> non ci trova niente e sembra che il caso non sia mai girato. *Un log che non
-> si lascia leggere e' un log che fa concludere il falso.*
+> Run it **bare**, and read afterwards: `Bench\report\last.json`, or
+> `Bench\ultimo-giro.txt` — which is **UTF-16LE**, so a `grep` done by hand
+> finds nothing in it and it looks as if the case never ran. *A log that cannot
+> be read is a log that leads to the wrong conclusion.*
 
-L'ultima riga del giro dice **«attese verificate N su M»**, sempre, anche quando
-i due numeri combaciano. Se divergono, qualcosa sta misurando il nulla.
+The last line of the run says **«expectations verified N of M»**, always, even
+when the two numbers match. If they diverge, something is measuring nothing.
 
-Lo svuotamento sta dentro il comando perche' non e' pulizia — vedi «Prima e dopo
-ogni giro», piu' sotto: ogni lettura di stato scorre **tutti** i documenti
-aperti, e sei di troppo fanno fallire «stato sotto i 16 KB» senza che il codice
-sia cambiato.
+The clean-up is inside the command because it is not tidiness — see «Before and
+after every run», further down: every state read walks through **all** the open
+documents, and six too many make «state: under 16 KB» fail without the code
+having changed.
 
-### A mano, se serve
+### By hand, if needed
 
 ```
 msbuild Bench\Oce.Solid.Agent.Bench.csproj -p:Configuration=Release
 Bench\bin\Oce.Solid.Agent.Bench.exe --libreria Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll
 ```
 
-Senza `--libreria` cerca `Oce.Solid.Agent.Core.dll` accanto all'eseguibile. Esce 0
-se non fallisce niente.
+Without `--libreria` it looks for `Oce.Solid.Agent.Core.dll` next to the
+executable. It exits 0 if nothing fails.
 
-### Un'attesa che SPIEGA un rosso va messa PRIMA di quel rosso
+### An expectation that EXPLAINS a red must be put BEFORE that red
 
-Il banco ferma il caso alla **prima** attesa rossa (`DeclaredCases.cs`:
-`if (!ok) return false`). Non e' un difetto: un passo che ha gia' sbagliato non
-ha piu' uno stato su cui misurare, e continuare produrrebbe rossi derivati che
-sembrano difetti nuovi.
+The bench stops the case at the **first** red expectation (`DeclaredCases.cs`:
+`if (!ok) return false`). It is not a defect: a step that has already gone wrong
+no longer has a state to measure on, and carrying on would produce derived reds
+that look like new defects.
 
-**La conseguenza sorprende, e il 18/9/2026 e' costata un giro.** Un caso aveva
-un'attesa diagnostica — «di quale dei due guasti si tratta?» — scritta **dopo**
-l'attesa che poteva fallire. Quella e' fallita, il caso si e' fermato, e la
-diagnosi **non ha parlato**: nel resoconto c'era il rosso e non la sua ragione.
+**The consequence is surprising, and on 18/9/2026 it cost a run.** A case had a
+diagnostic expectation — «which of the two faults is it?» — written **after**
+the expectation that could fail. That one failed, the case stopped, and the
+diagnosis **did not speak**: the report had the red and not its reason.
 
-> *Un testimone messo in fila dietro l'imputato non testimonia.*
+> *A witness queued up behind the defendant does not testify.*
 
-Quindi, quando un'attesa serve a spiegare perche' un'altra potrebbe fallire, va
-messa **sopra**. E la prima di tutte e' sempre la stessa domanda: **ho potuto
-guardare?** Un elenco vuoto perche' non si e' potuto leggere passa qualunque
-`does_not_include`, e sembra una misura.
+So, when an expectation exists to explain why another one might fail, it goes
+**above** it. And the first of all is always the same question: **could I
+look?** An empty list because nothing could be read passes any
+`does_not_include`, and looks like a measurement.
 
-### Un gruppo solo, mentre si lavora
+### One group only, while working
 
-Un giro intero dura **da un'ora e tre quarti a due ore** — misurato il
-18/9/2026: **6774 s** per 781 prove, e 7017 s per il solo gruppo `casi`.
-Mentre si sta scrivendo qualcosa non si possono aspettare due ore per sapere di
-aver sbagliato una riga:
+A whole run lasts **from an hour and three quarters to two hours** — measured on
+18/9/2026: **6774 s** for 781 tests, and 7017 s for the `casi` group alone.
+While you are writing something you cannot wait two hours to learn that you got
+one line wrong:
 
-> **Questa riga diceva «13-17 minuti» fino al 18/9/2026, ed era vera quando fu
-> scritta: 88 prove.** Adesso sono 781, e nessuno aveva ricontrollato il numero
-> mentre la suite cresceva — lo ha trovato un agente di ricognizione, notando
-> che il resoconto e il LEGGIMI **non erano d'accordo**.
+> **This line said «13-17 minutes» until 18/9/2026, and it was true when it was
+> written: 88 tests.** Now there are 781, and nobody had rechecked the number
+> while the suite grew — a reconnaissance agent found it, noticing that the
+> report and the README **did not agree**.
 >
-> E' lo stesso difetto che il LEGGIMI delle prove si e' gia' preso una volta
-> («diceva 54 mentre ne giravano 113»), e la' e' stato chiuso con un controllo
-> che rilegge il numero. **Qui il controllo non c'e'**: la durata non e'
-> facilmente sorvegliabile, perche' cambia con la macchina.
-> Quello che si puo' fare, ed e' scritto qui perche' valga: **il numero che conta
-> sta in `report\last.json`, campo `duration_s`, e quello non invecchia** —
-> questa riga e' un'indicazione, quel campo e' una misura.
+> It is the same defect that the README of the tests has already suffered once
+> («it said 54 while 113 were running»), and there it was closed with a check
+> that rereads the number. **Here there is no check**: the duration is not easy
+> to watch over, because it changes with the machine.
+> What can be done, and it is written here so that it counts: **the number that
+> matters is in `report\last.json`, field `duration_s`, and that one does not
+> age** — this line is an indication, that field is a measurement.
 
 ```
-Bench\bin\Oce.Solid.Agent.Bench.exe --gruppi                  quali gruppi ci sono
-Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo viste            solo quelle: 6,6 secondi
-Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo tabella,forma    piu' d'uno, separati da virgola
+Bench\bin\Oce.Solid.Agent.Bench.exe --gruppi                  which groups there are
+Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo viste            only that one: 6.6 seconds
+Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo tabella,forma    more than one, separated by commas
 ```
 
-Un nome sbagliato viene **rifiutato prima di agganciare SOLIDWORKS**, e il
-rifiuto elenca i nomi veri (uscita 2).
+A wrong name is **refused before SOLIDWORKS is attached to**, and the refusal
+lists the real names (exit 2).
 
-**Il giro intero resta il predefinito, ed e' quello che vale prima di
-committare.** «Provo solo quella che ho cambiato» non funziona, e il 15/9/2026
-l'ha dimostrato due volte: tre numeri aggiunti alle facce dei fori hanno fatto
-sforare il tetto dei 16 KB **su un telaio, che fori non ne ha**, e il ritaglio
-delle immagini ha cambiato un'asserzione sul peso del PNG.
+**The whole run stays the default, and it is the one that counts before
+committing.** «I'll only try the one I changed» does not work, and on 15/9/2026
+it proved so twice: three numbers added to the hole faces pushed the 16 KB
+ceiling over the limit **on a frame, which has no holes**, and the cropping of
+the images changed an assertion about the weight of the PNG.
 
-> Il banco misura **cosa hai rotto**, non cosa hai fatto. Quello lo sai gia'.
+> The bench measures **what you have broken**, not what you have done. You
+> already know that.
 
-Per questo un giro parziale **non puo' passare per un giro intero**: il
-riepilogo — a schermo e nell'ultima riga di `in-corso.txt` — lo scrive a chiare
-lettere, e dice quanti gruppi non ha lanciato.
+That is why a partial run **cannot pass for a whole run**: the summary — on
+screen and in the last line of `in-corso.txt` — says so in plain words, and says
+how many groups it did not run.
 
 ```
-GIRO PARZIALE (solo viste, 23 gruppi non lanciati) — 6 prove, 0 fallite
+PARTIAL RUN (only viste, 23 groups not launched) — 6 prove, 0 fallite
 ```
 
-### I casi che sono file — `cases/features/`
+(In that line «prove» and «fallite» are Italian words that the bench still
+prints and that `bench.ps1` still reads: they mean «tests» and «failed».)
 
-Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
-`--gruppo casi`. Non serve una riga di C#:
+### The cases that are files — `cases/features/`
+
+A case is a JSON file with **the expected numbers next to every step**, and it
+is run with `--gruppo casi`. No line of C# is needed:
 
 ```json
 { "name": "internal_shell", "family": "features",
-  "why": "«Outward» toglie verso l'esterno o verso l'interno?",
+  "why": "Does «Outward» remove towards the outside or towards the inside? ...",
   "start": { "new_part": true },
   "steps": [
     { "operation": "shell",
@@ -200,16 +206,16 @@ Un caso e' un JSON con **i numeri attesi accanto a ogni passo**, e si lancia con
 
 | | |
 |---|---|
-| `what` | senza prefisso = lo misura il banco sul documento; `state.…` = lo stato dell'add-in; `measurements.…` = quello che l'operazione riporta |
-| misure del banco | `volume_mm3`, `bodies`, `bounding_box_mm`, `centers_x_mm`/`_y_`/`_z_`, `diameters_mm`, `center_of_mass_mm`, `last_plane_mm`, `edges_curved`, `axes_created`, `how_many_features`. **L'elenco non e' scritto da nessuna parte a mano**: e' l'elenco delle chiavi di chi le misura, e il messaggio «non so misurare …» lo legge da li' |
-| `equal_to` | un numero, un testo, un elenco di numeri (con tolleranza) o un elenco di TESTO (uno a uno, e l'ordine conta) |
-| `includes` / `does_not_include` | per le misure che sono **frasi** (`state.shape`): una stringa o un elenco. Non si mettono insieme a `equal_to` |
-| `tolerance` | **assoluta**, in mm o mm³. Diversa da zero → serve `tolerance_why`, altrimenti il caso e' **rotto** |
-| selettori | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z sono il punto che lo stato pubblica), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Schizzo1,name=D1)`, `@dimension(angular=true)` (l'unica quota in gradi, voce Z-C21.2) |
-| prima del passo | `select_first`: uid o selettori lasciati SELEZIONATI quando il passo parte, come li lascerebbe chi sta davanti a SOLIDWORKS (lo STL che esportava solo la faccia selezionata). `hide_first`: corpi, o il corpo di una faccia, NASCOSTI prima del passo (il corpo nascosto che usciva dalla verifica delle sporgenze). Tutti e due si contano dopo averli fatti: una selezione non riuscita e' un errore di banco, non un verde (voce Z-C21.2) |
+| `what` | no prefix = the bench measures it on the document; `state.…` = the add-in's state; `measurements.…` = what the operation reports |
+| bench measures | `volume_mm3`, `bodies`, `bounding_box_mm`, `centers_x_mm`/`_y_`/`_z_`, `diameters_mm`, `center_of_mass_mm`, `last_plane_mm`, `edges_curved`, `axes_created`, `how_many_features`. **The list is not written by hand anywhere**: it is the list of the keys of whoever measures them, and the message «cannot measure …» reads it from there |
+| `equal_to` | a number, a text, a list of numbers (with tolerance) or a list of TEXT (one by one, and the order counts) |
+| `includes` / `does_not_include` | for the measures that are **sentences** (`state.shape`): a string or a list. They are not combined with `equal_to` |
+| `tolerance` | **absolute**, in mm or mm³. Non-zero → `tolerance_why` is needed, otherwise the case is **broken** |
+| selectors | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z are the point that the state publishes), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Schizzo1,name=D1)`, `@dimension(angular=true)` (the only dimension in degrees, entry Z-C21.2) |
+| before the step | `select_first`: uids or selectors left SELECTED when the step starts, as someone sitting in front of SOLIDWORKS would leave them (the STL that exported only the selected face). `hide_first`: bodies, or the body of a face, HIDDEN before the step (the hidden body that came out of the overhang check). Both are counted after they are done: a selection that did not succeed is a bench error, not a green (entry Z-C21.2) |
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
-| segnaposto | `{PROFILI}` la libreria dei profili saldati di questa installazione; `{LAVORO}` la cartella in cui un caso puo' SCRIVERE (`Bench\lavoro\`, ignorata da git); `{DATI}` i file d'ingresso versionati (`Bench\data\`); `{SOLIDWORKS}` la cartella di installazione di SOLIDWORKS, per i file DI SERIE che non si versionano (i modelli di tabella; `SW_INSTALL_PATH` se non e' quella predefinita, voce Z-C21.2). Un caso che nomina un percorso di questa macchina non e' una prova, e' un ricordo |
-| `must_fail` | `message_includes` (obbligatorio), `volume_unchanged`, `no_extra_feature`, `twin`, `difference_is_the_part` (vedi «Le coppie») |
+| placeholders | `{PROFILI}` the library of welded profiles of this installation; `{LAVORO}` the folder a case may WRITE to (`Bench\lavoro\`, ignored by git); `{DATI}` the versioned input files (`Bench\data\`); `{SOLIDWORKS}` the SOLIDWORKS installation folder, for the files that ship WITH it and are not versioned (the table templates; `SW_INSTALL_PATH` if it is not the default one, entry Z-C21.2). A case that names a path of this machine is not a test, it is a memory |
+| `must_fail` | `message_includes` (mandatory), `volume_unchanged`, `no_extra_feature`, `twin`, `difference_is_the_part` (see «The pairs») |
 
 **A key the bench does not read is refused** (W3.1-bis.2, item 4). Every place
 of a case (the case, a step, an expectation, a must-fail block, an assembly, a
@@ -223,11 +229,11 @@ asked for would never be checked. A new free note starts with `_` (for example
 empty. `Oce.Solid.Agent.ContractTests` (CaseKeysTests) applies the same rule to every case
 in a second, so a key written wrong is found before the bench runs.
 
-### Un caso che gira su un ASSIEME — `cases/assemblies/` (voce GA0)
+### A case that runs on an ASSEMBLY — `cases/assemblies/` (entry GA0)
 
-Al posto di `"start": { "new_part": true }` un caso puo' chiedere un assieme, e il
-banco se lo costruisce: ogni componente e' una parte fatta **con le stesse
-operazioni dei casi**, salvata in `Bench\lavoro`, riaperta e inserita.
+Instead of `"start": { "new_part": true }` a case can ask for an assembly, and the
+bench builds it: every component is a part made **with the same operations as the
+cases**, saved in `Bench\lavoro`, reopened and inserted.
 
 ```json
 "assembly": {
@@ -243,9 +249,9 @@ operazioni dei casi**, salvata in `Bench\lavoro`, riaperta e inserita.
 
 | | |
 |---|---|
-| `name` | entra nel nome del file: `<caso>_<nome>.sldprt` in `Bench\lavoro`. Il caso lo nomina con `{LAVORO}\<caso>_<nome>.sldprt` |
-| `position_mm` | dove va il **centro dell'ingombro**, non l'origine. Assente = nell'origine dell'assieme. **Non e' un accoppiamento**. `AddComponent5` posiziona il centro: un pezzo con l'origine su una faccia — qualunque cosa estrusa a una direzione sola — si ritrova l'origine spostata di meta' ingombro, e nello stato lo si rilegge come `origin_mm`. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a `[0, -2, 30]` |
-| `to_insert` | assente o `true` = lo inserisce la preparazione. **`false` = lo costruisce e lo apre, ma NON lo inserisce**: serve per provare `insert_component`, altrimenti si misurerebbe il lavoro della preparazione credendo di misurare l'operazione |
+| `name` | goes into the file name: `<case>_<name>.sldprt` in `Bench\lavoro`. The case names it with `{LAVORO}\<case>_<name>.sldprt` |
+| `position_mm` | where the **centre of the bounding box** goes, not the origin. Absent = at the origin of the assembly. **It is not a mate**. `AddComponent5` positions the centre: a part with its origin on a face — anything extruded in one direction only — finds its origin shifted by half its size, and in the state it is read back as `origin_mm`. Ask for z=30 on a part 4 thick and the origin comes out at `[0, -2, 30]` |
+| `to_insert` | absent or `true` = the preparation inserts it. **`false` = it builds it and opens it, but does NOT insert it**: it is for testing `insert_component`, otherwise one would measure the work of the preparation believing to measure the operation |
 | `configurations` | next to `components`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
 | `components` inside a component | a SUB-ASSEMBLY instead of a part (Z-C21.5, L11-3 and L11-5): each child is built like a component (its own `name`, `steps`, `position_mm` inside the sub-assembly) as `<case>_<name>_<child>.sldprt`, inserted into a new assembly, saved as `<case>_<name>.sldasm`, and that is inserted like a part. One level only. In the state a nested component is named with its whole path (`<case>_<name>-1/<case>_<name>_<child>-1`), so it sorts right after its sub-assembly |
 | a repeated child `name` | inside a sub-assembly, two children with the same `name` are two instances of ONE part, built and registered from the first; the later one brings only its `position_mm`, and `steps` of its own are a bench error (Z-C21.11, M23) |
@@ -256,256 +262,261 @@ operazioni dei casi**, salvata in `Bench\lavoro`, riaperta e inserita.
 The three new keys take only a JSON Boolean: any other value is a bench error,
 never read as false, and so is every read-back that does not say what was asked.
 
-**`AddComponent5` vuole un documento gia' aperto**: la preparazione riapre
-**tutti** i componenti, anche quelli che non inserisce. Su un file chiuso
-l'inserimento risponde `null` senza dire perche'.
+**`AddComponent5` wants an already open document**: the preparation reopens
+**all** the components, even the ones it does not insert. On a closed file the
+insertion answers `null` without saying why.
 
-Alla fine i file vengono **cancellati**, e c'e' un controllo che lo verifica
-(`--gruppo assieme-di-prova`): *un caso che riesce perche' un file del giro prima
-era rimasto non e' un caso, e' un ricordo.*
+At the end the files are **deleted**, and a check verifies it
+(`--gruppo assieme-di-prova`): *a case that succeeds because a file from the
+previous run was left behind is not a case, it is a memory.*
 
-Quello che non riesce durante la preparazione e' un **errore di banco** (uscita
-2), non una prova rossa: il caso voleva misurare un assieme e l'assieme non e'
-mai esistito — dirlo «fallito» manderebbe a cercare il difetto nell'operazione di
-assieme, che non e' nemmeno stata chiamata.
+What fails during the preparation is a **bench error** (exit 2), not a red test:
+the case wanted to measure an assembly and the assembly never existed — calling
+it «failed» would send you looking for the defect in the assembly operation,
+which was not even called.
 
-**`does_not_include` non e' la comodita' simmetrica di `includes`: e' il motivo per
-cui esiste.** Una frase che dichiara «il profilo Ø30 per 40» su un pezzo che
-quel profilo non ce l'ha piu' non fallisce niente — e' la descrizione giusta di
-un ALTRO pezzo, e il modello ci costruisce sopra. Si prende solo pretendendo
-che una parola **sparisca**.
+**`does_not_include` is not the symmetric convenience of `includes`: it is the
+reason `includes` is not enough.** A sentence that declares «the Ø30 by 40 profile» on a part
+that no longer has that profile fails nothing — it is the right description of
+ANOTHER part, and the model builds on it. It is caught only by demanding that a
+word **disappears**.
 
-**Un selettore che trova zero o piu' di una cosa rifiuta**, e non sceglie la
-prima: un caso che gira su una faccia diversa da quella che il nome del file
-promette puo' tornare lo stesso volume, e allora e' verde e non prova niente.
-L'unica ambiguita' che si scioglie e' `n=` di `@feature`, dove l'ordine lo
-decide chi scrive il caso.
+**A selector that finds zero or more than one thing refuses**, and does not pick
+the first: a case that runs on a face other than the one the file name promises
+may return the same volume, and then it is green and proves nothing.
+The only ambiguity that is resolved is `n=` of `@feature`, where the order is
+decided by whoever writes the case.
 
-Tutto quello che impedisce di **misurare** e' un errore di banco (uscita 2), non
-una prova rossa: un campo che nello stato o nelle misure non c'e' (col messaggio
-che dice quali c'erano), un caso senza `why`, un passo **senza attese**, un
-`must_fail` senza `message_includes`, una tolleranza senza il suo
-perche', una `twin` che non esiste, un selettore che non risolve.
+Everything that prevents **measuring** is a bench error (exit 2), not a red
+test: a field that is not in the state or in the measures (with a message that
+says which ones there were), a case without `why`, a step **without
+expectations**, a `must_fail` without `message_includes`, a tolerance without
+its reason, a `twin` that does not exist, a selector that does not resolve.
 
-Un `null` **dichiarato** invece si misura: `material: null` vuol dire «quel
-posto esiste ed e' vuoto», ed e' una cosa diversa da un campo che manca.
+A **declared** `null`, on the other hand, is measured: `material: null` means
+«that place exists and is empty», which is a different thing from a field that
+is missing.
 
-### E quando SOLIDWORKS se ne va a meta' giro (uscita 4)
+### And when SOLIDWORKS goes away half way (exit 4)
 
-Tre documenti nuovi che non nascono **di fila** non sono tre prove rosse: sono
-SOLIDWORKS che non c'e' piu'. Il banco se ne accorge, **salta** tutto il resto
-dicendo per ognuno che non e' stato misurato, ed esce **4** — che vince sul 2
-e sull'1, perche' un giro non fatto non e' un giro con errori.
+Three new documents that are not born **in a row** are not three red tests:
+they are SOLIDWORKS no longer being there. The bench notices, **skips** all the
+rest saying for each one that it was not measured, and exits **4** — which wins
+over the 2 and over the 1, because a run that was not done is not a run with
+errors.
 
-«Di fila» e' la parola che conta: tre fallimenti sparsi in ottocento controlli
-sono rumore normale, e una guardia che fermasse i giri sani verrebbe
-disattivata dal primo che la vede fermarne uno.
+«In a row» is the word that counts: three failures scattered among eight hundred
+checks are normal noise, and a guard that stopped healthy runs would be switched
+off by the first person who saw it stop one.
 
-Per **vederla scattare** — che e' l'unico modo di crederle — c'e'
-`--fingi-senza-solidworks`: fa rispondere `null` a `NewDocument`, e in pochi
-secondi si legge il giro che si interrompe da solo. La condizione vera capita
-dopo ore e non si sa riprodurre a comando (voce K17, il 23/9/2026 e' costata
-un'ora e mezza di giro e nove casi giusti dipinti di rosso).
+To **see it fire** — which is the only way to believe it — there is
+`--fingi-senza-solidworks` («pretend there is no SOLIDWORKS»): it makes
+`NewDocument` answer `null`, and in a few seconds you can read the run that
+interrupts itself. The real condition happens after hours and cannot be
+reproduced on demand (entry K17; on 23/9/2026 it cost an hour and a half of run
+and nine right cases painted red).
 
-Quello che **non** copre: un SOLIDWORKS che si pianta *dentro* una chiamata
-invece di rispondere `null`. Li' non torna nessuna risposta da contare, e il
-giro resta appeso — e' la voce K18, non fatta.
+What it does **not** cover: a SOLIDWORKS that hangs *inside* a call instead of
+answering `null`. There no answer comes back to be counted, and the run stays
+hung — that is entry K18, not done.
 
-### Cosa il giro legge dalla RETE, e cosa no (voce K19)
+### What the run reads from the NETWORK, and what it does not (entry K19)
 
-Su questa postazione `S:` e' una condivisione di rete, e il modello di
-documento predefinito sta li' sopra. **Ogni parte nuova sarebbe una lettura
-SMB, e un giro ne fa ottocento.** Il 23/9/2026 tre giri di fila sono morti
-proprio li': SOLIDWORKS si e' piantato mentre apriva il `.prtdot` e ha tenuto
-la presa, e da quel momento **quel file non si leggeva piu' nemmeno da fuori**
-— ne' per il giro dopo, ne' per il SOLIDWORKS dopo. Sembrava la rete: il server
-rispondeva al ping in 0 ms e la cartella dei profili, sulla stessa
-condivisione, si elencava senza esitare.
+On this workstation `S:` is a network share, and the default document template
+is on it. **Every new part would be an SMB read, and a run makes eight hundred.**
+On 23/9/2026 three runs in a row died exactly there: SOLIDWORKS hung while
+opening the `.prtdot` and kept hold of it, and from that moment **that file could
+not be read any more even from outside** — neither by the next run, nor by the
+next SOLIDWORKS. It looked like the network: the server answered ping in 0 ms
+and the profiles folder, on the same share, could be listed without hesitation.
 
-Dal 23/9/2026 il banco **copia il modello in locale una volta per giro** e lo
-dice, col percorso di partenza e quello d'arrivo. Se la copia non riesce usa
-quello di rete e **dice anche quello**: un banco che in silenzio usa un modello
-diverso da quello della postazione sta misurando un'altra cosa.
+Since 23/9/2026 the bench **copies the template locally once per run** and says
+so, with the source path and the destination path. If the copy fails it uses the
+network one and **says that too**: a bench that silently uses a template
+different from the workstation's is measuring something else.
 
-**Restano letture di rete**, e vanno sapute perche' la prossima volta non si
-cerchi di nuovo nel posto sbagliato:
+**Network reads remain**, and they are worth knowing so that next time nobody
+looks again in the wrong place:
 
 ```
-i profili di carpenteria   la cartella che dice PROFILI_SALDATURA. Senza
-                           la variabile il banco si ferma subito e lo dice:
-                           non c'e' un percorso predefinito, perche' ogni
-                           officina tiene la propria libreria dove vuole.
-gli archivi dei materiali  dove li tiene SOLIDWORKS di suo
-i casi e i binari          dove sta il clone, che puo' essere di rete
+the framing profiles       the folder named by PROFILI_SALDATURA. Without
+                           the variable the bench stops at once and says so:
+                           there is no default path, because every
+                           workshop keeps its own library where it likes.
+the material databases     where SOLIDWORKS keeps them by itself
+the cases and the binaries wherever the clone is, which may be on the network
 ```
 
-Quella tolta e' la **piu' frequente**, non l'unica.
+The one that was removed is the **most frequent**, not the only one.
 
-### Le coppie — `cases/pairs/`
+### The pairs — `cases/pairs/`
 
-Ogni caso con `must_fail` **deve** nominare in `twin` un caso che riesce,
-e quella gemella dev'essere **verde nello stesso giro**:
+Every case with `must_fail` **must** name in `twin` a case that succeeds,
+and that twin must be **green in the same run**:
 
-> Una prova che verifica solo il rifiuto non distingue «il controllo funziona»
-> da «il controllo rifiuta tutto».
+> A test that verifies only the refusal does not tell «the check works»
+> from «the check refuses everything».
 
-Quattro coppie, tutte sullo stesso blocco 314 x 274 x 52:
+Four pairs, all on the same 314 x 274 x 52 block:
 
-| rifiuta | riesce | differiscono per |
+| refuses | succeeds | they differ by |
 |---|---|---|
-| foro 500 passante | foro 270 su faccia 274 | `diameter_mm` |
-| tasca 400x400 passante | la stessa, **cieca** da 5 | `through_all` |
-| foro a (5000, 5000) | foro 60 **col centro sul bordo** | `x_mm`, `y_mm` |
-| asola 500x300 | asola 30x9 | `length_mm`, `width_mm` |
+| 500 through hole | 270 hole on the 274 face | `diameter_mm` |
+| 400x400 through pocket | the same, **blind** by 5 | `through_all` |
+| hole at (5000, 5000) | 60 hole **with its centre on the edge** | `x_mm`, `y_mm` |
+| 500x300 slot | 30x9 slot | `length_mm`, `width_mm` |
 
-Il banco dice **quanti argomenti differiscono** e rifiuta solo i due casi che
-contano: una gemella identica al rifiuto (e' una copia) e una che non ha nemmeno
-un argomento in comune (sono due operazioni che non si parlano).
+The bench says **how many arguments differ** and refuses only the two cases that
+matter: a twin identical to the refusal (it is a copy) and one that does not even
+have one argument in common (they are two operations that do not talk to each other).
 
-**Quando la differenza e' il pezzo e non un argomento** (28/9/2026): la stessa
-nervatura nasce nella scatola svuotata e non sulla piastra senza pareti. Non si
-scrive un argomento finto per far passare la regola: si dichiara in
-`must_fail`
+**When the difference is the part and not an argument** (28/9/2026): the same
+rib is born in the hollowed box and not on the plate without walls. No fake
+argument is written to make the rule pass: it is declared in `must_fail`
 
 ```json
-"difference_is_the_part": "la piastra non ha pareti; la gemella e' la scatola svuotata"
+"difference_is_the_part": "the 40 x 40 x 2 plate has no walls; the twin is the 40 x 40 x 20 box hollowed from the top, ..."
 ```
 
-e banco e contratti (`Expectations.ResembleInPart`) pretendono tre cose: la frase
-c'e', gli argomenti sono **identici** a quelli della gemella (se differiscono la
-regola normale basta, e la dichiarazione e' di troppo), e i passi **prima** sono
-diversi (stesso pezzo e stessi argomenti resta una copia). Oggi la usa un caso
-solo: `features/limit_rib_on_a_plate_without_walls`.
+and the bench and the contracts (`Expectations.ResembleInPart`) demand three
+things: the sentence is there, the arguments are **identical** to those of the
+twin (if they differ the normal rule is enough, and the declaration is
+superfluous), and the steps **before** are different (the same part and the same
+arguments remains a copy). Today only one case uses it:
+`features/limit_rib_on_a_plate_without_walls`.
 
-### `-Regression` — quanto reggono i riferimenti
+### `-Regression` — how well the references hold
 
 ```
 .\Bench\bench.ps1 -Regression
 ```
 
-Diciannove pezzi in `cases/regression/`, ognuno con `build`, **una sola
-`modify`** e un `intent`. Il risultato e' **una di tre cose, non due**:
+Nineteen parts in `cases/regression/`, each with `build`, **a single
+`modify`** and an `intent`. The result is **one of three things, not two**:
 
 | | |
 |---|---|
-| **regge** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
-| **si stacca e lo dice** | la ricostruzione fallisce o una lavorazione porta un errore: il progettista lo vede |
-| **si stacca in silenzio** | ricostruzione a posto, nessun errore, **e la geometria e' altrove** |
+| **holds** | clean rebuild, and the geometry is where the intent declares |
+| **detaches and says so** | the rebuild fails or a feature carries an error: the designer sees it |
+| **detaches in silence** | rebuild fine, no error, **and the geometry is elsewhere** |
 
-La terza riga e' l'unico numero che conta, e si scrive **anche quando vale
-zero**. Il dettaglio caso per caso finisce in `report/regressione.md`, i tre
-numeri nel README.
+The third row is the only number that counts, and it is written **even when it
+is zero**. The detail case by case goes into `report/regressione.md`, the three
+numbers into the README.
 
-**L'`intent` e' obbligatorio**, e un caso che non lo dichiara e' un errore di
-banco: un foro a 20 mm dal bordo, su una piastra che si allarga, deve restare a
-20 dal bordo (`ancorato_a_bordo`) o dov'era (`ancorato_a_assoluto`)? Senza
-saperlo non esiste risposta giusta.
+**The `intent` is mandatory**, and a case that does not declare it is a bench
+error: a hole 20 mm from the edge, on a plate that gets wider, must stay 20
+from the edge (`ancorato_a_bordo`) or where it was (`ancorato_a_assoluto`)?
+Without knowing that there is no right answer.
 
-Due campi in piu' rispetto ai casi normali:
+Two more fields than the normal cases:
 
-* **`come_prima: true`** su un'attesa — l'invariante e' «com'era», e si misura
-  prima della modifica. Calcolarlo a mano vorrebbe dire rifare un conto che
-  SOLIDWORKS ha gia' fatto, e sbagliarlo creerebbe un falso silenzio;
-* **`center_of_mass_mm`** fra i `what` — l'invariante di posizione per cio' che
-  fori non ne lascia. Il volume da solo non distingue una tasca ferma da una
-  tasca che ha seguito il bordo.
+* **`same_as_before: true`** on an expectation — the invariant is «as it was»,
+  and it is measured before the modification. Working it out by hand would mean
+  redoing a calculation that SOLIDWORKS has already done, and getting it wrong
+  would create a false silence;
+* **`center_of_mass_mm`** among the `what` — the position invariant for what
+  leaves no holes. The volume alone does not tell a pocket that stayed put from
+  a pocket that followed the edge.
 
-### `-Mutate` — ogni caso deve poter diventare rosso
+### `-Mutate` — every case must be able to turn red
 
 ```
 .\Bench\bench.ps1 -Mutate
 ```
 
-Perturba **il piano, non il codice**: un argomento alla volta moltiplicato per
-1,5 (booleani invertiti), il caso rieseguito, e si **pretende che diventi
-rosso**. Un caso che resta verde sotto ogni perturbazione e' **cieco**.
+It perturbs **the plan, not the code**: one argument at a time multiplied by
+1.5 (booleans inverted), the case rerun, and it **demands that it turn red**. A
+case that stays green under every perturbation is **blind**.
 
-E' l'unico modo meccanico di imporre che una prova sia gia' fallita almeno una
-volta: un campo scritto a mano e' una dichiarazione, e una dichiarazione si
-copia dal caso accanto.
+It is the only mechanical way to enforce that a test has already failed at
+least once: a hand-written field is a declaration, and a declaration is copied
+from the case next to it.
 
-Costa **un documento di SOLIDWORKS per mutazione** — 67 mutazioni, ~14 minuti —
-quindi si lancia prima di una consegna, non ogni sera. Scrive
-`Bench/report/mutazioni.md`, una riga per caso, e ha un riepilogo suo
-(`MUTAZIONI — 11 casi, 0 ciechi`): i rossi che produce sono **cercati**.
+It costs **one SOLIDWORKS document per mutation** — 67 mutations, ~14 minutes —
+so it is run before a delivery, not every evening. It writes
+`Bench/report/mutazioni.md`, one line per case, and has a summary of its own
+(`MUTATIONS — 11 cases, 0 blind`): the reds it produces are **sought**.
 
-Le mutazioni su argomenti che l'operazione **ignora** (`depth_mm` su un
-taglio passante) sono saltate leggendo il catalogo, non indovinate; e si mutano
-solo i passi **con attese**.
+The mutations on arguments that the operation **ignores** (`depth_mm` on a
+through cut) are skipped by reading the catalogue, not guessed; and only the
+steps **with expectations** are mutated.
 
-### La libreria di allora — `Checks\library-of-the-time.ps1`
+### The library of the time — `Checks\library-of-the-time.ps1`
 
-Una prova custodisce davvero il suo difetto solo se, lanciata contro il codice
-di **prima** della riparazione, diventa rossa.
+A test really guards its defect only if, run against the code from **before**
+the repair, it turns red.
 
 ```
 .\Checks\library-of-the-time.ps1 0.70.0
-.\Bench\bench.ps1 -Library <il percorso stampato> -Group casi -SkipCompilation
+.\Bench\bench.ps1 -Library <the path it printed> -Group casi -SkipCompilation
 .\Checks\library-of-the-time.ps1 0.70.0 -Clean
 ```
 
-La DLL non si conserva da nessuna parte: **si ricostruisce**, perche' in questo
-repository un commit e' una versione (`git log` su `AssemblyInfo.cs`, una riga
-per numero).
+The DLL is not kept anywhere: it is **rebuilt**, because in this repository a
+commit is a version (`git log` on `AssemblyInfo.cs`, one line per number).
 
-Un caso puo' dichiarare **`rossa_prima_di: "0.67.0"`**: su una libreria piu'
-vecchia di cosi', quel caso **deve** fallire. Se passa, non stava custodendo
-niente.
+A case can declare **`red_before: "0.67.0"`**: on a library older than that,
+that case **must** fail. If it passes, it was not guarding anything.
 
-**Il confronto storico comincia dalla 0.52.0.** Prima di allora le operazioni
-stavano in `OpenPDM.SwAddin` con un altro spazio dei nomi: il banco non le
-trova, lo dice ed esce 2 — «non e' un giro rosso, e' una libreria che il banco
-non sa leggere».
+**The historical comparison starts at 0.52.0.** Before that the operations
+lived in `OpenPDM.SwAddin` with another namespace: the bench does not find
+them, says so and exits 2 — «it is not a red run, it is a library the bench
+cannot read».
 
-### I giri si contano — `storico.txt`
+### The runs are counted — `storico.txt`
 
-`in-corso.txt` lo riscrive il giro dopo, e `ultimo-giro.txt` e' una redirezione
-di chi lancia: **dei giri passati non restava niente.** Dalla voce F12 ogni giro
-aggiunge una riga in coda a `Bench/storico.txt`, con le prove fallite **per
-nome**:
+`in-corso.txt` is rewritten by the next run, and `ultimo-giro.txt` is a
+redirection by whoever launches: **nothing was left of past runs.** Since entry
+F12 every run appends a line at the end of `Bench/storico.txt`, with the failed
+tests **by name**:
 
 ```
-2026-09-15 08:53  libreria 0.75.0.0  117 prove, 0 fallite, 1 SALTATE
-2026-09-15 09:11  libreria 0.75.0.0  117 prove, 1 fallite  ->  spostamento nullo (deve fallire)
+2026-09-15 08:53  libreria 0.75.0.0  117 prove, 0 fallite, 1 SKIPPED (--lento runs them)
+2026-09-15 09:11  libreria 0.75.0.0  117 prove, 1 fallite  ->  null displacement (must fail)
 ```
 
-Serve a rispondere a una domanda sola, che senza questo file non ha risposta:
-**«quante volte e' successo a quella?»** — perche' una prova che fallisce a caso
-e che nessuno contabilizza smette di essere una prova: la volta che fallira' per
-un motivo vero, verra' archiviata come «quella che ogni tanto salta».
+(«libreria» is «library», «prove» is «tests», «fallite» is «failed»: the same
+Italian words as in the summary line above.)
 
-Non e' versionato: e' il registro di **questa** macchina.
+It serves to answer one question, which without this file has no answer:
+**«how many times has that one happened?»** — because a test that fails at
+random and that nobody keeps count of stops being a test: the time it fails for
+a real reason, it will be filed away as «the one that jumps now and then».
 
-**Le librerie di Dassault non stanno qui dentro.** Il csproj le referenzia con
-`Private=False`, quindi non finiscono nemmeno in `bin\`; a tempo di esecuzione
-si prende quella INSTALLATA sulla macchina, che e' per definizione la stessa che
-sta girando. Se SOLIDWORKS e' in un posto non standard:
-`set SW_INSTALL_PATH=D:\...\SOLIDWORKS` — **la radice, non `api\redist`**. Vale
-per compilare e per far girare, e la legge anche `build.ps1`. Il vecchio
-`SW_REDIST` (che voleva la sottocartella) resta letto dopo, per chi ce l'ha
-gia'.
+It is not versioned: it is the record of **this** machine.
 
-**Il nome dice meno di quello che fa.** Si chiamava cosi' quando provava solo le
-saldature; adesso prova sezioni, materiali, telai, fori, stato e le operazioni
-nuove. Il nome e' rimasto perche' cambiarlo costa piu' di quello che vale.
+**Dassault's libraries are not kept in here.** The csproj references them with
+`Private=False`, so they do not even end up in `bin\`; at run time the one
+INSTALLED on the machine is taken, which by definition is the same one that is
+running. If SOLIDWORKS is in a non-standard place:
+`set SW_INSTALL_PATH=D:\...\SOLIDWORKS` — **the root, not `api\redist`**. It
+applies to building and to running, and `build.ps1` reads it too. The old
+`SW_REDIST` (which wanted the subfolder) is still read afterwards, for whoever
+already has it.
+
+**The name says less than what it does.** It was called that when it tested only
+welds; now it tests sections, materials, frames, holes, state and the new
+operations. The name stayed because changing it costs more than it is worth.
 
 ---
 
-## `run_plans.js` — il ponte
+## `run_plans.js` — the bridge
 
-Manda una sequenza di piani al ponte MCP come farebbe un client, e stampa gli
-esiti.
+It sends a sequence of plans to the MCP bridge as a client would, and prints the
+outcomes.
 
 ```
 node Bench\run_plans.js Bench\cases\bridge\c4r_primary.json
-node Bench\inspect.js                  leggi lo stato senza mandare un piano
-node Bench\test_undo.js           «undo» (voce R1), coi suoi tre rossi
+node Bench\inspect.js                  read the state without sending a plan
+node Bench\test_undo.js           «undo» (entry R1), with its three reds
 ```
 
-`test_undo.js` sta qui e non in `Oce.Solid.Agent.Bench` per una ragione precisa:
-`undo` **non e' nella libreria**. E' uno strumento del ponte, e la parte che
-conta — il ricordo dell'ultimo piano, e i tre casi in cui si RIFIUTA — vive in
-`McpTools`. Provarlo dalla libreria vorrebbe dire provare un'altra cosa.
+`test_undo.js` is here and not in `Oce.Solid.Agent.Bench` for a precise reason:
+`undo` **is not in the library**. It is a bridge tool, and the part that
+counts — the memory of the last plan, and the three cases in which it REFUSES —
+lives in `McpTools`. Testing it from the library would mean testing something
+else.
 
 Since Z-C21.14 four more `undo` cases run in the full bench, in the group that
 talks to the bridge (`ClientPort.cs`, `UndoHonesty`): (a) a later plan that
@@ -517,157 +528,159 @@ withdrawing it (this case decides whether an empty undo recording stands in the
 way); (d) a second bridge process reorders the holes of the first one's plan, and
 the first one's `undo` must refuse before pressing.
 
-### `test_shape.js` — una MISURA, non un controllo
+### `test_shape.js` — a MEASUREMENT, not a check
 
-Non fa fallire nessun giro, e il codice di uscita e' sempre zero. Risponde a una
-domanda che non ha un verde e un rosso ma **un numero**: quanti dei cinque pezzi
-si ridisegnano partendo dalla sola frase che li descrive (voce V3).
+It does not make any run fail, and the exit code is always zero. It answers a
+question that does not have a green and a red but **a number**: how many of the
+five parts are redrawn starting from the sole sentence that describes them
+(entry V3).
 
-Va rifatta in tre passi, e il secondo non lo fa una macchina:
+It has to be redone in three steps, and the second one is not done by a machine:
 
 ```
-node collect_views.js        costruisce i cinque pezzi veri e salva lo stato,
-                              che dentro ha il campo `shape`
-                              -- poi si danno le cinque frasi, E NIENTE ALTRO,
-                                 a un modello isolato, che scrive i piani in
-                                 cases/forma/1..5.json
-node test_shape.js           esegue i piani e confronta volume e ingombro
+node collect_views.js        builds the five real parts and saves the state,
+                              which has the `shape` field inside
+                              -- then the five sentences are given, AND NOTHING
+                                 ELSE, to an isolated model, which writes the
+                                 plans in cases/forma/1..5.json
+node test_shape.js           runs the plans and compares volume and bounding box
 ```
 
-**Il modello che scrive i piani non deve vedere `Bench/viste/`**: li' dentro ci
-sono gli stati completi, cioe' le risposte. Se le vede, la misura non misura
-piu' niente.
+**The model that writes the plans must not see `Bench/viste/`**: in there are
+the complete states, that is, the answers. If it sees them, the measurement no
+longer measures anything.
 
-### `test_section.js` — meta' automatica, meta' da guardare
+### `test_section.js` — half automatic, half to be looked at
 
-Costruisce un guscio, ne scatta la vista intera e lo **spaccato**, e controlla
-da sola le cose che si contano:
+It builds a shell, takes the full view and the **cutaway** of it, and checks by
+itself the things that can be counted:
 
-- la sezione esce ed e' un PNG;
-- **e' diversa dalla vista intera** — il rosso vero, perche' una sezione che non
-  seziona darebbe un'immagine identica e «la sezione esce» passerebbe lo stesso;
-- dopo, volume, corpi e lavorazioni sono quelli di prima: **nessuna sezione
-  rimasta accesa, nessun corpo tagliato**. E' il rischio che la voce V4 nomina.
+- the section comes out and it is a PNG;
+- **it is different from the full view** — the real red, because a section that
+  does not section would give an identical image and «the section comes out»
+  would pass all the same;
+- afterwards, volume, bodies and features are those of before: **no section
+  left on, no body cut**. It is the risk that entry V4 names.
 
-L'altra meta' — «dalla sezione si LEGGE lo spessore» — la puo' dire solo
-qualcuno che guarda. Le due immagini restano in `Bench/viste/`
-(`v4-guscio-intero.png` e `v4-guscio-sezione.png`) proprio per quello.
+The other half — «the thickness can be READ from the section» — can be said only
+by someone who looks. The two images stay in `Bench/viste/`
+(`v4-guscio-intero.png` and `v4-guscio-sezione.png`) precisely for that.
 
-Con `PONTE=...` si punta a un altro eseguibile: serve per provare quello
-**installato** invece di quello appena compilato, che e' l'unico modo di sapere
-se il pacchetto funziona davvero e non solo se compila.
+With `PONTE=...` you point at another executable: it is for testing the
+**installed** one instead of the one just built, which is the only way to know
+whether the package really works and not only whether it compiles.
 
-### Prima e dopo ogni giro
+### Before and after every run
 
 ```
 Checks\CloseLeftovers\bin\CloseLeftovers.exe --chiudi
 Checks\NewPart\bin\NewPart.exe
 ```
 
-Non e' pulizia estetica: **ogni lettura di stato scorre tutti i documenti
-aperti**, a 244 ms di `GetNext()` ciascuno. Con cinquanta parti di scarto
-addosso, un piano da mezzo secondo di lavoro ne impiega ottantacinque.
+It is not cosmetic cleaning: **every state read walks through all the open
+documents**, at 244 ms of `GetNext()` each. With fifty leftover parts on it, a
+plan that is half a second of work takes eighty-five.
 
 ---
 
-## I casi
+## The cases
 
-**I casi dichiarati** — quelli che `--gruppo casi` esegue e misura. L'elenco
-delle famiglie sta in `Families` in `DeclaredCases.cs`: una cartella che c'e'
-ma non e' nell'elenco non viene letta, e una nell'elenco che non c'e' e' un
-errore di banco.
+**The declared cases** — the ones that `--gruppo casi` runs and measures. The
+list of the families is in `Families` in `DeclaredCases.cs`: a folder that is
+there but is not in the list is not read, and one in the list that is not there
+is a bench error.
 
 ```
-cases/features/ 37   il guscio, e da che parte toglie;
-                       la piastra simmetrica che cresce dalle due parti
-                       con edit_extrusion (revisione del 27/9, Z-C20);
-                       la quota che fa uscire l'asola dal materiale, rifiutata
-                       e rimessa com'era (voce E18 c), e la sua gemella;
-                       il raccordo sui quattro angoli e il foro guidato che
-                       segue la tabella ISO (Z-C6: prima solo in regressione);
-                       l'ANCORA (voce E18): il foro a 20 dal bordo che segue
-                       il bordo, la tasca centrata che segue la mezzeria, sul
-                       davanti, sul fianco e sul dietro; otto rifiuti e lo
-                       spigolo sul bordo di uno smusso; i fori guidati
-                       ancorati a 20 dai bordi, e «tutte o nessuna»;
-                       lo spessore sotto il raggio dei raccordi, rifiutato e
-                       rimesso (il meccanismo di r05), e la gemella che ci sta;
-                       l'ordine cambia il pezzo: il guscio prima o dopo il foro,
-                       e lo spostamento impossibile rifiutato (Z-F3); il cieco
-                       che diventa passante e la piastra che cresce (Z-F4);
-                       lo spigolo sul bordo di un RACCORDO rifiutato come
-                       quello dello smusso, il rialzo su una faccia che cresce
-                       e non e' un taglio, il foro guidato fuori dal pezzo
-                       rifiutato (Z-C21.2); il raccordo di FACCIA fra due facce
-                       di un cubo, col baricentro che dice quale spigolo, e i
-                       due rifiuti: la stessa faccia due volte e due facce che
-                       si danno le spalle (GP7); la NERVATURA (W1.2): l'angolo
-                       della L col materiale dritto e la scatola svuotata col
-                       girato (il secondo tentativo sullo stesso pezzo), la
-                       piastra senza pareti e la linea fuori dal piano
-                       rifiutate; the guided hole centred between edges too
+cases/features/ 37   the shell, and which side it removes from;
+                       the symmetric plate that grows on both sides
+                       with edit_extrusion (revision of 27/9, Z-C20);
+                       the dimension that pushes the slot out of the material,
+                       refused and put back as it was (entry E18 c), and its twin;
+                       the fillet on the four corners and the guided hole that
+                       follows the ISO table (Z-C6: before, only in regression);
+                       the ANCHOR (entry E18): the hole 20 from the edge that follows
+                       the edge, the centred pocket that follows the centre line, on
+                       the front, on the side and on the back; eight refusals and the
+                       edge on the border of a chamfer; the guided holes
+                       anchored 20 from the edges, and «all or none»;
+                       the thickness below the fillet radius, refused and
+                       put back (the mechanism of r05), and the twin that fits;
+                       the order changes the part: the shell before or after the hole,
+                       and the impossible move refused (Z-F3); the blind hole
+                       that becomes through and the plate that grows (Z-F4);
+                       the edge on the border of a FILLET refused like
+                       that of the chamfer, the boss on a face that grows
+                       and is not a cut, the guided hole outside the part
+                       refused (Z-C21.2); the FACE fillet between two faces
+                       of a cube, with the centre of mass saying which edge, and the
+                       two refusals: the same face twice and two faces that
+                       turn their backs on each other (GP7); the RIB (W1.2): the corner
+                       of the L with straight material and the hollowed box with the
+                       turned one (the second attempt on the same part), the
+                       plate without walls and the line outside the plane
+                       refused; the guided hole centred between edges too
                        close for it, and the counterbore past the edge, both
                        refused with their twins (Z-C21.10, N50); the state
                        counts selected edges and faces of fillets and
                        chamfers (Z-C21, C7-2, N14)
-cases/pairs/       8   i rifiuti con la loro gemella
-cases/slot/       18   ogni faccia, non una sola; lo schizzo quotato che si
-                       corregge con set_dimension, e l'ancora dritta e obliqua
-                       (voce E18)
-cases/chamfer/       4   dove un raccordo toglierebbe un altro volume; l'angolo
-                       dello smusso si cambia in gradi (Z-C21.2)
-cases/revolve/  5   i solidi di rotazione, e il profilo a cavallo dell'asse
-cases/plane/        7   DOVE finisce il piano, non la distanza chiesta; la foto
-                       da ricalcare messa in scala su un piano (Z-F5, legge
-                       {DATI}: Bench/data/, versionata); a picture over 2048 px
+cases/pairs/       8   the refusals with their twin
+cases/slot/       18   every face, not just one; the dimensioned sketch that is
+                       corrected with set_dimension, and the straight and oblique anchor
+                       (entry E18)
+cases/chamfer/       4   where a fillet would remove another volume; the angle
+                       of the chamfer is changed in degrees (Z-C21.2)
+cases/revolve/  5   the solids of revolution, and the profile straddling the axis
+cases/plane/        7   WHERE the plane ends up, not the distance asked; the photo
+                       to be traced, scaled on a plane (Z-F5, reads
+                       {DATI}: Bench/data/, versioned); a picture over 2048 px
                        keeps the scale of its file (Z-C21, M11)
-cases/mirror/     2   il foro deve comparire dall'altra parte
-cases/patterns/      15   la direzione, che e' il dubbio vero; l'asse riconosciuto
-                       per identita', e rifiutato se si e' spostato (voce E4);
-                       la copia tolta da una griglia rifiutata (Z-C21.2);
-                       il riempimento che fa quattordici fori, e rifiutato
-                       senza direzione, su una faccia curva e con la direzione
-                       fuori dalla faccia (W1.1); the linear pattern along an
+cases/mirror/     2   the hole must appear on the other side
+cases/patterns/      15   the direction, which is the real doubt; the axis recognised
+                       by identity, and refused if it has moved (entry E4);
+                       the copy taken out of a grid, refused (Z-C21.2);
+                       the fill that makes fourteen holes, refused
+                       without a direction, on a curved face and with the direction
+                       outside the face (W1.1); the linear pattern along an
                        axis from create_axis, and the circular pattern around a
                        straight edge (Z-C21.9, L7-5 and M16)
-cases/axis/         2   l'asse dalla parete di un foro
-cases/removal/     5   sopprimere, riaccendere, cancellare
-cases/sentence/        2   la forma detta a parole, e quando tace
-cases/check/     7   com'e' venuto: solido, chiuso, sano; il corpo nascosto
-                       che pende si vede (Z-C21.2); one sound body of two is
+cases/axis/         2   the axis from the wall of a hole
+cases/removal/     5   suppress, switch back on, delete
+cases/sentence/        2   the shape told in words, and when it is silent
+cases/check/     7   how it came out: solid, closed, sound; the dangling hidden
+                       body is seen (Z-C21.2); one sound body of two is
                        not the part (Z-C21.10, N61)
-cases/measurement/      12   quanto pesa, in che scatola ci sta, quanto dista; the
+cases/measurement/      12   how much it weighs, which box it fits in, how far it is; the
                        wall between two holes, measured as asked (Z-C21, M29);
                        a body named before the cut is not measured in place of
                        another (Z-C21.5, S5)
-cases/bodies/       15   le booleane, il raccordo variabile, il filetto cosmetico;
-                       l'unione di corpi che non si toccano rifiutata (Z-C18);
-                       la booleana col corpo letto prima di un taglio
-                       rifiutata (Z-C21.2)
-cases/export/     15   STL, STEP e IGES: il file riletto byte per byte,
-                       e il volume riaperto in SOLIDWORKS; l'IGES di un
-                       assieme rifiutato (Z-C20); lo STL con una faccia
-                       rimasta selezionata e' il pezzo intero (Z-C21.2);
+cases/bodies/       15   the booleans, the variable fillet, the cosmetic thread;
+                       the union of bodies that do not touch, refused (Z-C18);
+                       the boolean with the body read before a cut,
+                       refused (Z-C21.2)
+cases/export/     15   STL, STEP and IGES: the file read back byte by byte,
+                       and the volume reopened in SOLIDWORKS; the IGES of an
+                       assembly refused (Z-C20); the STL with a face
+                       left selected is the whole part (Z-C21.2);
                        the IGES carries the solid, not its wireframe: its
                        directory counted (Z-C21.10, N59);
                        AP242 through SOLIDWORKS MBD, refused
                        without its licence or with a .step path (Z-C21.13)
-cases/document_properties/   12   i due cassetti, e il codice che va in distinta; the
+cases/document_properties/   12   the two drawers, and the code that goes into the BOM; the
                        material reaches every configuration (Z-C21, M10)
-cases/text/        6   incidere, e la scritta che esce dalla faccia
-cases/frames/        1   i profili saldati, letti dalla libreria normata ({PROFILI})
-cases/assemblies/     22   inserire non e' accoppiare; un vincolo solo non basta;
-                       due basi uguali e uno STEP: una forma per pezzo,
-                       la massa per istanza (Z-C20);
-                       il coperchio rifatto tiene i vincoli e li rompe;
-                       il coperchio DENTRO la base (GA10);
-                       toccarsi non e' compenetrarsi (GA10, la gemella);
-                       l'assieme si pesa, si misura e si manda in STEP (Z-D1, Z-D6);
-                       fisso non e' accoppiato: tipi degli accoppiamenti, visibile,
-                       trasparente, fissa e libera (Z-D3, Z-D4, Z-D5);
-                       la staffa destra e la sinistra: istanza, opposto legato
-                       e slegato, su tre piani (GA11); da quali file dipende
-                       l'assieme, e che ci sono (Z-B3); the interference array
+cases/text/        6   engraving, and the lettering that comes out of the face
+cases/frames/        1   the welded profiles, read from the standard library ({PROFILI})
+cases/assemblies/     22   inserting is not mating; one constraint is not enough;
+                       two equal bases and a STEP: one shape per part,
+                       the mass per instance (Z-C20);
+                       the rebuilt cover keeps the constraints and breaks them;
+                       the cover INSIDE the base (GA10);
+                       touching is not interpenetrating (GA10, the twin);
+                       the assembly is weighed, measured and sent to STEP (Z-D1, Z-D6);
+                       fixed is not mated: types of mates, visible,
+                       transparent, fix and float (Z-D3, Z-D4, Z-D5);
+                       the right bracket and the left one: instance, linked
+                       and unlinked opposite, on three planes (GA11); which files
+                       the assembly depends on, and that they exist (Z-B3); the interference array
                        is as long as the count (Z-C21.10, N34); the mirrored
                        instance turns as asked (Z-C21, N26); the turned pin is
                        mated by the directions of the assembly (Z-C21.5, M1);
@@ -682,51 +695,51 @@ cases/assemblies/     22   inserire non e' accoppiare; un vincolo solo non basta
                        resolved them (Z-C21.11, N5, N27); the same mate twice
                        is refused as redundant and taken out, and a parallel
                        after it blocks RY only (Z-C14)
-cases/drawing/      42   il primo caso che arriva in TAVOLA (voce GT0);
-                       un Ø8 passante e un Ø8 cieco, due richiami; la borchia
-                       non e' un foro; l'albero smussato senza le gambe dello
-                       smusso (revisione del 27/9, Z-C20);
-                       la tavola della piastra con fori e smusso, GUARDATA:
-                       fori col richiamo e le posizioni, smusso 5 x 45, niente
-                       quote ripetute fra viste (voce GT11);
-                       foglio, isometrica e PDF di un foglio in fila (voce Z-C6);
-                       due fogli e lo stesso diedro (voce GT1);
-                       il cartiglio dice cosa vuole (voce GT3);
-                       i contatori ci sono anche a zero (voce Z-E1);
-                       la tavola si quota, e le quote dicono 120 e 10 (voce K10);
-                       lo spigolo che non esiste (la gemella del rifiuto);
-                       la nota finisce sul FOGLIO e non in una vista (voce E2-bis);
-                       la nota fuori dal foglio (la gemella del rifiuto);
-                       la sezione taglia il pezzo, e ha il TRATTEGGIO (voce GT4);
-                       il taglio fuori dalla vista (la gemella del rifiuto);
-                       il dettaglio INGRANDISCE, e il cerchio e' DIVENTATO un
-                       dettaglio -- non il tratteggio, che su un dettaglio
-                       vale zero (voce GT4, l'altra meta');
-                       il cerchio piu' grande della vista (la gemella);
-                       la tabella fori dice dove sono i fori, riletta contro il
-                       pezzo, e drawing_dimension lascia i fori alla tabella
-                       (voce GT5); la tabella sulla vista di fianco, rifiutata;
-                       datum, rugosita' e tolleranze geometriche attaccate agli
-                       spigoli e fuori dal pezzo (voci GT6, GT8), coi quattro
-                       rifiuti: lettera doppia, planarita' con un riferimento,
-                       datum che non c'e', Ra fuori scala; la distinta di
-                       taglio in tavola, una riga per lunghezza (voce GT2);
-                       lo sviluppo della L in tavola misurato contro il pezzo,
-                       e rifiutato su un pezzo pieno (voce GT13); il simbolo
-                       di saldatura sul giunto della T, e rifiutato su un corpo
-                       solo (voce GT7); il foro cieco con la sua profondita',
-                       niente fori dalla vista di fianco, nessun testo di quota
-                       accavallato (voce GT12); due sezioni con la stessa
-                       lettera, rifiutata la seconda (voce Z-C13); le croci di
-                       centro sui fori contate davvero, e i raccordi rifiutati
-                       (voce W2.11); la distinta base di un assieme di due
-                       pezzi con la bollatura (voce GT9); le quote della tavola
-                       ritrovate nel testo del PDF (voce Z-C9); la boccola
-                       tornita, dove il contorno Ø30 non e' un foro e la
-                       profondita' del cieco si legge anche dalla geometria (GT12);
-                       l'albero a gradini quotato di fianco: lunghezze in
-                       parallelo e diametri dalle generatrici (GT14); la
-                       distinta di taglio dice se ha confrontato (Z-C21.2);
+cases/drawing/      42   the first case that gets to the DRAWING (entry GT0);
+                       a through Ø8 and a blind Ø8, two callouts; the boss
+                       is not a hole; the chamfered shaft without the legs of the
+                       chamfer (revision of 27/9, Z-C20);
+                       the drawing of the plate with holes and chamfer, LOOKED AT:
+                       holes with the callout and the positions, 5 x 45 chamfer, no
+                       dimensions repeated between views (entry GT11);
+                       sheet, isometric and PDF of one sheet in a row (entry Z-C6);
+                       two sheets and the same projection angle (entry GT1);
+                       the title block says what it wants (entry GT3);
+                       the counters are there even at zero (entry Z-E1);
+                       the drawing is dimensioned, and the dimensions say 120 and 10 (entry K10);
+                       the edge that does not exist (the twin of the refusal);
+                       the note ends up on the SHEET and not in a view (entry E2-bis);
+                       the note outside the sheet (the twin of the refusal);
+                       the section cuts the part, and has the HATCHING (entry GT4);
+                       the cut outside the view (the twin of the refusal);
+                       the detail MAGNIFIES, and the circle BECAME a
+                       detail -- not the hatching, which on a detail
+                       is zero (entry GT4, the other half);
+                       the circle bigger than the view (the twin);
+                       the hole table says where the holes are, read back against the
+                       part, and drawing_dimension leaves the holes to the table
+                       (entry GT5); the table on the side view, refused;
+                       datum, roughness and geometric tolerances attached to the
+                       edges and outside the part (entries GT6, GT8), with the four
+                       refusals: double letter, flatness with a reference,
+                       a datum that is not there, Ra off scale; the cutting
+                       list on the drawing, one row per length (entry GT2);
+                       the flat pattern of the L on the drawing measured against the part,
+                       and refused on a solid part (entry GT13); the weld symbol
+                       on the joint of the T, and refused on a single
+                       body (entry GT7); the blind hole with its depth,
+                       no holes from the side view, no dimension text
+                       overlapping (entry GT12); two sections with the same
+                       letter, the second refused (entry Z-C13); the centre
+                       marks on the holes really counted, and the fillets refused
+                       (entry W2.11); the BOM of an assembly of two
+                       parts with the balloons («bollatura») (entry GT9); the dimensions of the drawing
+                       found again in the text of the PDF (entry Z-C9); the turned
+                       bushing, where the Ø30 outline is not a hole and the
+                       depth of the blind hole is also read from the geometry (GT12);
+                       the stepped shaft dimensioned from the side: lengths in
+                       parallel and diameters from the generatrices (GT14); the
+                       cutting list says whether it compared (Z-C21.2);
                        the second sheet does not repeat the dimensions of the
                        first (Z-C21.10, N43); the turned diameter held by
                        silhouettes is not an orphan (Z-C21, N3); the position
@@ -734,18 +747,18 @@ cases/drawing/      42   il primo caso che arriva in TAVOLA (voce GT0);
                        none (Z-C21.8, M38); the BOM follows the configuration
                        of the view, not the active one (Z-C21.4, L16-2, L16-3);
                        the indented BOM follows the tree (Z-C21.11, M23)
-cases/weldments/   14   la distinta conta le barre, e i due numeri vengono da
-                       due posti diversi; il taglio accorcia la barra davvero,
-                       e fra barre che non si incontrano rifiuta; il cordone
-                       va fra facce che si toccano ad angolo; il tappo chiude
-                       il tubo dentro (voce Z-C6). I corpi per NOME, con
-                       @body(name=...): i numeri C1, C2 cambiano fra un giro
-                       e l'altro; il taglio senza gioco non eredita quello
-                       rimasto (Z-C21.2); il fazzoletto nell'angolo della T,
-                       triangolare e poligonale, coi volumi misurati e la
-                       scatola del corpo nuovo; rifiutati la posizione fuori
-                       elenco, le facce che non si toccano o parallele, il
-                       poligono degenere e i lati corti troppo lunghi (GP20);
+cases/weldments/   14   the BOM counts the bars, and the two numbers come from
+                       two different places; the trim really shortens the bar,
+                       and refuses between bars that do not meet; the bead
+                       goes between faces that touch at an angle; the cap closes
+                       the tube inside (entry Z-C6). The bodies by NAME, with
+                       @body(name=...): the numbers C1, C2 change between one run
+                       and the next; the trim without a gap does not inherit the one
+                       left over (Z-C21.2); the gusset in the corner of the T,
+                       triangular and polygonal, with the volumes measured and the
+                       box of the new body; refused: the position outside the
+                       list, the faces that do not touch or are parallel, the
+                       degenerate polygon and the short sides that are too long (GP20);
                        the frame too small for its profile closes the weldment
                        profile library again, and the frame's «measured_as» is read
                        whatever the case, any other word refused (Z-C21.10,
@@ -754,44 +767,44 @@ cases/weldments/   14   la distinta conta le barre, e i due numeri vengono da
                        a short bar (Z-C21, N25, L9-4); the trim refuses an
                        end condition it does not know (Z-C21.8, N22); the end
                        cap leaves out a drilled wall (Z-C21.5, N7)
-cases/extrusions/  10   il tubo ha il buco; l'asola estrusa e' lunga quanto
-                       l'ingombro, estremita' comprese, ed e' un poligono; la
-                       ruota da 17 denti si fa, quella da 16 rifiuta; l'aletta
-                       cresce dalla faccia verso fuori (voce Z-C6); il rialzo
-                       tondo e rettangolare ancorati, e il triangolo rifiutato
-                       (voce E18); a plane name that is not one of the three is
+cases/extrusions/  10   the tube has the hole; the extruded slot is as long as
+                       the bounding box, ends included, and is a polygon; the
+                       17-tooth wheel can be made, the 16 one refuses; the fin
+                       grows from the face outwards (entry Z-C6); the round and
+                       rectangular anchored boss, and the triangle refused
+                       (entry E18); a plane name that is not one of the three is
                        refused, never the front plane (Z-C21.10, N33); the
                        sketch of the L locked for real (Z-C21, M5)
-cases/sheet_metal/     13   la L si sviluppa lunga quanto il conto a mano; data al
-                       contrario, i punti diventano le facce esterne; lo
-                       sviluppo senza file rifiutato; il tratto piu' corto
-                       delle pieghe rifiutato; la flangia a spigolo da 25
-                       che allunga lo sviluppo di 21,712, e i suoi due
-                       rifiuti — niente di dritto, spigolo non di bordo;
-                       l'orlo aperto che torna col conto, il chiuso misurato,
-                       e l'aperto senza gioco rifiutato; la piega da schizzo
-                       che alza meta' lamiera (ingombro dal conto, sviluppo
-                       invariato) e la piega a 180 rifiutata (voce GP18); the
+cases/sheet_metal/     13   the L unfolds as long as the hand calculation; dated
+                       the other way round, the points become the outer faces; the
+                       flat pattern without a file refused; the stretch shorter
+                       than the bends refused; the 25 edge flange
+                       that lengthens the flat pattern by 21.712, and its two
+                       refusals — nothing straight, edge not on the border;
+                       the open hem that matches the calculation, the closed one measured,
+                       and the open one without a gap refused; the sketched bend
+                       that lifts half the sheet (bounding box from the calculation, flat pattern
+                       unchanged) and the 180 bend refused (entry GP18); the
                        axis and the planes of a sheet are the ones the calls
                        made, not the flat pattern (Z-C21.5, S7)
-cases/dimensions/        7   la variabile che non scavalca lo smusso, rifiutata e
-                       rimessa com'era (Z-C20); la piastra si quota da sola
-                       con DimXpert, coi valori
-                       giusti; con due riferimenti rifiuta (voce Z-H3); la
-                       tolleranza sulla quota del modello, H7 riscontrato sulla
-                       ISO 286 e ±0,05, IT14 rifiutato (voce Z-F2); le quote del
-                       modello arrivano in tavola, e senza viste rifiuta (Z-C1-bis);
-                       la parete ha un nome: variabile globale e quota legata,
-                       che seguono il cambio (Z-F1); every part dimension
+cases/dimensions/        7   the variable that does not override the chamfer, refused and
+                       put back as it was (Z-C20); the plate dimensions itself
+                       with DimXpert, with the right
+                       values; with two references it refuses (entry Z-H3); the
+                       tolerance on the model dimension, H7 checked against
+                       ISO 286 and ±0.05, IT14 refused (entry Z-F2); the dimensions of the
+                       model arrive on the drawing, and without views it refuses (Z-C1-bis);
+                       the wall has a name: global variable and linked dimension,
+                       which follow the change (Z-F1); every part dimension
                        reader (set_dimension, dimension_tolerance, link_dimension)
                        with the fourth configuration active, the before and
                        after of S1 in parts (Z-C21.13)
-cases/regression/ 19   una quota a monte cambia: chi regge e chi si stacca (--regressione)
-cases/reanchor/    3   lo spigolo nominato con l'uid letto PRIMA di due fori si
-                       ritrova per firma (stessa lunghezza, stesso punto) e il
-                       baricentro dice quale angolo; accorciato da uno smusso
-                       si rifiuta, mai il piu' vicino; doppio (due corpi che si
-                       toccano) si rifiuta, «non scelgo io» (voce E19,
+cases/regression/ 19   a dimension upstream changes: who holds and who detaches (--regressione)
+cases/reanchor/    3   the edge named with the uid read BEFORE two holes is
+                       found again by signature (same length, same point) and the
+                       centre of mass says which corner; shortened by a chamfer
+                       it is refused, never the nearest one; double (two bodies that
+                       touch) it is refused, «I do not choose» (entry E19,
                        `uid_from_step`)
 cases/aliases/     4   the names of before the rename, accepted until the first
                        release (W3.1-bis.5, D4): an operation, an argument, a
@@ -799,77 +812,78 @@ cases/aliases/     4   the names of before the rename, accepted until the first
                        part, and the step lists them in measurements.deprecated
 ```
 
-`-Family` (voce E19) fa girare solo quelle cartelle dei casi dichiarati: il
-gruppo `casi` da solo sono tre quarti d'ora, e un caso nuovo si vede fallire
-PRIMA di scrivere il codice. Il giro e' parziale come con `-Group`, e riscrive
-`last.json` come lui: si rimette con `git checkout` prima del giro intero.
+`-Family` (entry E19) runs only those folders of the declared cases: the `casi`
+group alone is three quarters of an hour, and a new case can be seen to fail
+BEFORE writing the code. The run is partial as with `-Group`, and rewrites
+`last.json` like it does: put it back with `git checkout` before the whole run.
 
-`"uid_from_step": N` in un passo prende selettori e firme dallo stato di PRIMA
-del passo N, come fa il ponte con un piano scritto guardando lo stato una volta.
-Le firme sono quelle di facce, spigoli e — dalla voce Z-C21.2 — corpi
-(`center_mm`, `bounding_box_mm`, come le manda il ponte): prima un corpo nominato
-cosi' arrivava senza firma, e il corpo rinumerato da un taglio (voce E4) dal banco
-non si poteva vedere.
+`"uid_from_step": N` in a step takes selectors and signatures from the state
+BEFORE step N, as the bridge does with a plan written by looking at the state
+once. The signatures are those of faces, edges and — since entry Z-C21.2 —
+bodies (`center_mm`, `bounding_box_mm`, as the bridge sends them): before, a body
+named that way arrived without a signature, and the body renumbered by a cut
+(entry E4) could not be seen by the bench.
 
-**Gli altri** — piani per il ponte MCP e materiale di lavoro, non li esegue
-`--gruppo casi`:
-
-```
-cases/limits/    8   dove le operazioni si rompono
-cases/drawing/    7   viste, quote, PDF  (+ i casi dichiarati, vedi sotto)
-cases/views/     5   pezzi di cui si sa tutto, per le prove sulle immagini
-cases/bridge/   107   i piani del ponte MCP, per voce del TODO
-```
-
-**`cases/forma/` NON E' NEL REPOSITORY, ed e' voluto.** La cartella compare su
-questa macchina e contiene i cinque piani che un modello isolato scrive durante
-la misura V3 — li riscrive a ogni giro, e versionarli vorrebbe dire congelare
-la risposta di **un** modello di **un** giorno come se fosse la misura. La
-misura e' il numero, e sta nel README (`.gitignore`, riga 59).
-
-*Questa riga prima la contava insieme alle altre, «cases/forma/ 5», e il conto
-era vero solo qui:* su un clone pulito quella cartella non esiste, e il
-controllo di contratto «ogni cartella nominata nel LEGGIMI esiste» diventava
-rosso per chiunque tranne che per chi l'aveva scritta. **Un documento che
-descrive la macchina di chi lo scrive invece del repository e' il difetto che
-si scopre solo dal di fuori** — e dal di fuori lo scopre uno sconosciuto, al
-primo tentativo.
-
-**`cases/drawing/` contiene tutt'e due le cose, dal 17/9/2026** (voce GT0), ed e'
-l'unica cartella cosi'. I sette `tav_*.json` sono piani; i casi dichiarati della
-famiglia `drawing` stanno li' accanto. **Non si distinguono dal nome, si
-distinguono dalla FORMA**: un piano e' un array di passi, un caso e' un oggetto
-con `name`, `why` e `steps`. Il caricatore guarda la radice del JSON, salta
-gli array, e **dice a ogni giro quanti ne ha saltati e quali**:
+**The others** — plans for the MCP bridge and working material, which
+`--gruppo casi` does not run:
 
 ```
-OK   i piani a mano si riconoscono e si saltano   7 saltati (sono array, non casi):
+cases/limits/    8   where the operations break
+cases/drawing/    7   views, dimensions, PDF  (+ the declared cases, see below)
+cases/views/     5   parts of which everything is known, for the tests on images
+cases/bridge/   107   the plans of the MCP bridge, per TODO entry
+```
+
+**`cases/forma/` IS NOT IN THE REPOSITORY, and that is intended.** The folder
+appears on this machine and holds the five plans that an isolated model writes
+during the V3 measurement — it rewrites them at every run, and versioning them
+would mean freezing the answer of **one** model on **one** day as if it were the
+measurement. The measurement is the number, and it is in the README
+(`.gitignore`, line 59).
+
+*This line used to count it together with the others, «cases/forma/ 5», and the
+count was true only here:* on a clean clone that folder does not exist, and the
+contract check «every folder named in the README exists» turned red for anyone
+except whoever wrote it. **A document that describes the machine of whoever
+writes it instead of the repository is the defect that is only discovered from
+the outside** — and from the outside it is discovered by a stranger, at the
+first attempt.
+
+**`cases/drawing/` holds both things, since 17/9/2026** (entry GT0), and it is
+the only folder like that. The seven `tav_*.json` are plans; the declared cases
+of the `drawing` family are there next to them. **They are not told apart by
+name, they are told apart by SHAPE**: a plan is an array of steps, a case is an
+object with `name`, `why` and `steps`. The loader looks at the root of the JSON,
+skips the arrays, and **says at every run how many it skipped and which**:
+
+```
+OK   hand-written plans are recognised and skipped   7 skipped (arrays, not cases):
      dwg_1_save_part.json, dwg_2_create_drawing.json, dwg_3_sheet.json, ...
 ```
 
-Un file **illeggibile** non conta come piano: resta un errore di banco col motivo
-giusto. *Un riconoscimento che inghiotte anche i guasti smette di riconoscere.*
+An **unreadable** file does not count as a plan: it stays a bench error with the
+right reason. *A recognition that swallows the failures too stops recognising.*
 
-E attenzione al segnaposto, che **non e' lo stesso nelle due forme**: i casi
-dichiarati usano `{LAVORO}` e `{PROFILI}` (li risolve `Bench\Expectations.cs`), i piani
-usano `{BANCO}` (lo risolve `run_plans.js`). Scambiarli non da' nessun errore:
-il percorso resta letterale, e il caso si lamenta che un file non esiste.
+And watch out for the placeholder, which **is not the same in the two shapes**:
+the declared cases use `{LAVORO}` and `{PROFILI}` (resolved by `Bench\Expectations.cs`), the plans
+use `{BANCO}` (resolved by `run_plans.js`). Swapping them gives no error:
+the path stays literal, and the case complains that a file does not exist.
 
-I nomi in `cases/bridge/` cominciano con la voce che li ha fatti nascere —
-`c4r_*` la ruota dentata, `d3_*` le quote sui tagli, `b8_*` i riferimenti fra
-passi, `s_*` le sagome rifiutate. Chi riapre una voce trova i suoi casi
-cercando per prefisso.
+The names in `cases/bridge/` begin with the entry that gave them birth —
+`c4r_*` the gear wheel, `d3_*` the dimensions on the cuts, `b8_*` the references
+between steps, `s_*` the refused shapes. Whoever reopens an entry finds its cases
+by searching for the prefix.
 
 ---
 
-## Perche' stanno nel repository
+## Why they are in the repository
 
-Fino al 14/9/2026 stavano in una cartella temporanea di sessione, e il percorso
-della libreria era una **costante** che puntava dentro quella cartella. Quando
-le voci B4 e B5 hanno spostato le operazioni da `OpenPDM.SwAddin.Agente` a
-`Oce.Solid.Agent.Core`, il banco ha smesso di partire — e **non se n'e' accorto
-nessuno per tre giorni**, perche' viveva fuori dal repository e non lo lanciava
-piu' niente.
+Until 14/9/2026 they were in a temporary session folder, and the path of the
+library was a **constant** pointing inside that folder. When entries B4 and B5
+moved the operations from `OpenPDM.SwAddin.Agente` to
+`Oce.Solid.Agent.Core`, the bench stopped starting — and **nobody noticed for
+three days**, because it lived outside the repository and nothing launched it
+any more.
 
-> Una misura che si puo' rifare solo dalla macchina e dalla settimana in cui e'
-> stata scritta non e' una misura: e' un aneddoto.
+> A measurement that can be redone only from the machine and the week in which
+> it was written is not a measurement: it is an anecdote.
