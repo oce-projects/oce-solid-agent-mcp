@@ -57,8 +57,8 @@ namespace Oce.Solid.Agent.Core.Catalog
         {
             if (pairs.Length % 2 != 0)
                 throw new ArgumentException(
-                    "Un oggetto si scrive chiave, valore, chiave, valore: ne ho " +
-                    pairs.Length + ", che e' dispari. Manca un valore.");
+                    "An object is written key, value, key, value: this one has " +
+                    pairs.Length + ", which is odd. A value is missing.");
 
             var fields = new List<KeyValuePair<string, Node>>(pairs.Length / 2);
             for (int i = 0; i < pairs.Length; i += 2)
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 var key = pairs[i] as string;
                 if (key == null)
                     throw new ArgumentException(
-                        "La chiave in posizione " + i + " non e' un testo.");
+                        "The key at position " + i + " is not a text.");
                 fields.Add(new KeyValuePair<string, Node>(key, V(pairs[i + 1])));
             }
             return new Node(fields);

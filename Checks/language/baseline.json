@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 5929,
+  "strings": 555,
   "markdown": 11388,
-  "json_values": 6855,
-  "identifiers": 1677,
+  "json_values": 611,
+  "identifiers": 1658,
   "json_keys": 14,
-  "protocol": 675,
+  "protocol": 670,
   "paths": 0,
   "transition": 2188
  },
@@ -324,11 +324,8 @@
   "Oce.Solid.Agent.Core/BomOperations.cs": {
    "comments": 2
   },
-  "Oce.Solid.Agent.Core/Catalog/Node.cs": {
-   "strings": 22
-  },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "strings": 5387,
+   "strings": 35,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
@@ -569,7 +566,7 @@
    "json_values": 7
   },
   "Tools/catalog.json": {
-   "json_values": 6280
+   "json_values": 36
   },
   "Tools/update.md": {
    "markdown": 491
@@ -1030,7 +1027,6 @@
    "alfa",
    "alla",
    "allora",
-   "altezza",
    "alto",
    "alto_destra",
    "alto_sinistra",
@@ -1774,21 +1770,7 @@
    "moduli-di-solidworks",
    "muta",
    "mutazioni",
-   "nATTENZIONE",
-   "nDOPO",
-   "nEsempio",
-   "nGLI",
    "nGeneri",
-   "nOgni",
-   "nPERCHE",
-   "nPRIMA",
-   "nPerche",
-   "nQUELLO",
-   "nQuello",
-   "nQuesta",
-   "nRifiuta",
-   "nUNA",
-   "nUna",
    "nervatura",
    "nervatura_nell_angolo_della_l",
    "nervatura_nella_scatola_svuotata",
@@ -1880,7 +1862,6 @@
    "posizione_mm",
    "possonoNominarli",
    "posteriore",
-   "precedente",
    "precondizione",
    "predefinito",
    "prepara",
@@ -2081,7 +2062,6 @@
    "sparito",
    "specchia",
    "specchia_componente",
-   "spessore",
    "spessore_mm",
    "spigoli",
    "spigoli_inferiori",
@@ -2238,9 +2218,7 @@
    "volume_mosso",
    "volume_totale",
    "volume_totale_mm3",
-   "x_centro",
    "x_rif",
-   "y_centro",
    "z06_tavola",
    "z_a_banco_acceso_cosa_si_trova_leggendo",
    "z_le_misure_che_sbloccano",
@@ -2447,7 +2425,6 @@
    "banco",
    "banco-modelli",
    "baricentro",
-   "bene",
    "bloccato",
    "blocchi",
    "blocco",
@@ -2484,7 +2461,6 @@
    "con-inferenze",
    "concentrico",
    "condizione",
-   "configurazioni",
    "cono",
    "conta",
    "contenitore_c",
@@ -2534,7 +2510,6 @@
    "disposizione",
    "distanza",
    "distanza_normale_mm",
-   "diversi",
    "documento",
    "dodici",
    "domande",
@@ -2847,7 +2822,6 @@
    "sezione_in_tavola",
    "sezioni",
    "sezioni-profili",
-   "silenzio",
    "silenzioso",
    "simili",
    "simmetrico",
@@ -2865,7 +2839,6 @@
    "spigolo",
    "sposta",
    "sposta-corpi",
-   "squadrate",
    "staccata",
    "staffa",
    "staffa_a_elle",

@@ -32,16 +32,16 @@ namespace Oce.Solid.Agent.Core.Catalog
             {
                 new KeyValuePair<string, string>(
                     "extrusions",
-                    "fare il primo corpo del pezzo"),
+                    "making the first body of the part"),
                 new KeyValuePair<string, string>(
                     "features",
-                    "togliere o modificare materiale su un corpo che c'e' gia'"),
+                    "removing or changing material on a body that already exists"),
                 new KeyValuePair<string, string>(
                     "weldments",
-                    "carpenteria: barre, telai, tagli fra barre, distinta"),
+                    "metalwork: bars, frames, cuts between bars, cut list"),
                 new KeyValuePair<string, string>(
                     "references",
-                    "piani e assi su cui costruire"),
+                    "planes and axes to build on"),
                 // THE FAMILY THAT IS NOT A PART. All the others work
                 // inside a part document; this one puts together parts that
                 // already exist, and what distinguishes it is not what it does but what
@@ -50,44 +50,44 @@ namespace Oce.Solid.Agent.Core.Catalog
                 // below tells the model before it asks for the list.
                 new KeyValuePair<string, string>(
                     "assemblies",
-                    "mettere insieme pezzi che esistono gia'. Inserire NON e' " +
-                    "accoppiare: guarda sempre «resting»"),
+                    "putting together parts that already exist. Inserting is " +
+                    "NOT mating: always look at «resting»"),
                 new KeyValuePair<string, string>(
                     "physical_properties",
-                    "cio' che il pezzo E', non la sua forma"),
+                    "what the part IS, not its shape"),
                 new KeyValuePair<string, string>(
                     "drawing",
-                    "mettere il pezzo in tavola e consegnarlo: fogli, viste, quote, PDF"),
+                    "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF"),
                 // THE FAMILY THAT DOES NOT DRAW. Up to 0.76.0 no
                 // operation of the catalog could answer «how did it turn out?»:
                 // the measurements were there but they were private inside the operations, and the
                 // model could not call any of them.
                 new KeyValuePair<string, string>(
                     "checks",
-                    "dire com'e' venuto, senza toccarlo"),
+                    "saying how it turned out, without touching it"),
                 new KeyValuePair<string, string>(
                     "exports",
-                    "far uscire il pezzo da SOLIDWORKS: STL per la stampa 3D, "
-                    + "STEP e IGES per chi lo deve lavorare"),
+                    "getting the part out of SOLIDWORKS: STL for 3D printing, STEP "
+                    + "and IGES for whoever has to machine it"),
                 // WHAT THE PART SAYS ABOUT ITSELF. The drawing number and the
                 // revision are not geometry, but they are what reaches the
                 // title block and the PDM card: a right part with the wrong
                 // revision is a wrong part.
                 new KeyValuePair<string, string>(
                     "identity",
-                    "quello che il pezzo dice di se': numero disegno, revisione, "
-                    + "cliente, e le sue varianti"),
+                    "what the part says about itself: drawing number, revision, "
+                    + "customer, and its variants"),
                 // SHEET METAL (entry GP18). The family that produces the file that goes
                 // to the cutting machine: a silent defect here costs real
                 // sheet, and the flat pattern is always compared with the hand calculation.
                 new KeyValuePair<string, string>(
                     "sheet_metal",
-                    "lamiera piegata e il suo sviluppo in DXF per il taglio"),
+                    "bent sheet metal and its flat pattern as DXF for cutting"),
                 // THE DIMENSIONS IN THE MODEL (entry Z-H3): DimXpert from the core. It is not
                 // the drawing: the dimensions are on the part.
                 new KeyValuePair<string, string>(
                     "dimensions",
-                    "quote e tolleranze messe sul PEZZO (DimXpert), non su una tavola"),
+                    "dimensions and tolerances put on the PART (DimXpert), not on a drawing"),
             };
 
         public static readonly List<OperationSpec> All =
@@ -101,10 +101,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Un cilindro pieno centrato sull'origine.",
+                        "A solid cylinder centered on the origin.",
                     Description =
-                        "Crea un cilindro pieno: cerchio su un piano, estruso. E' "
-                        + "l'operazione per perni, spine, boccole, dischi."
+                        "Creates a solid cylinder: a circle on a plane, extruded. "
+                        + "It is the operation for pins, dowels, bushes, discs."
                         + "\n\nOn a part that already has a body, the new cylinder merges with the "
                         + "bodies it touches (merge and automatic body selection are on, as the guide "
                         + "describes them); it cannot merge with a body it does not touch, and the "
@@ -119,12 +119,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "diameter_mm", O(
                                 "type", "number"),
                             "height_mm", O(
                                 "type", "number",
-                                "description", "lunghezza del cilindro, in mm")),
+                                "description", "length of the cylinder, in mm")),
                         "required", A(
                             "diameter_mm",
                             "height_mm")),
@@ -136,20 +136,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una sagoma qualunque, data per contorni, estrusa: il modo "
-                        + "generale di fare il primo corpo.",
+                        "Any shape, given by contours, extruded: the general "
+                        + "way to make the first body.",
                     Description =
-                        "Estrude una SAGOMA QUALSIASI, data come elenco di vertici. E' "
-                        + "l'operazione con cui si fa tutto quello che non e' un rettangolo "
-                        + "o un cerchio: staffe sagomate, squadrette, fazzoletti, angolari, "
-                        + "e i profili CAVI — tubolari, tubi, sezioni a C — che si fanno con "
-                        + "DUE contorni, uno esterno e uno interno.\n\nIl primo contorno e' il "
-                        + "bordo esterno; quelli dopo sono vuoti dentro di esso. Ogni "
-                        + "contorno si chiude da solo: l'ultimo vertice si unisce al primo, "
-                        + "non ripeterlo.\n\nSe la sagoma che ti serve ha un nome (una ruota "
-                        + "dentata, un tubolare) guarda se esiste un'operazione dedicata: e' "
-                        + "piu' facile da controllare per chi conferma, perche' mostra le "
-                        + "quote invece di un elenco di punti."
+                        "Extrudes ANY SHAPE, given as a list of vertices. It is the "
+                        + "operation for everything that is not a rectangle or a circle: shaped "
+                        + "brackets, angle brackets, gussets, angles, and HOLLOW profiles "
+                        + "— tubes, pipes, C sections — which are made with TWO contours, "
+                        + "an outer one and an inner one.\n\nThe first contour is the outer "
+                        + "edge; the ones after it are voids inside it. Each contour "
+                        + "closes by itself: the last vertex joins the first, do not repeat "
+                        + "it.\n\nIf the shape you need has a name (a gear, a tubular "
+                        + "section), see whether a dedicated operation exists: it is easier for "
+                        + "whoever confirms to check, because it shows the dimensions "
+                        + "instead of a list of points."
                         + "\n\nThe result says whether the sketch is locked: true only when every segment "
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
@@ -168,31 +168,31 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "contours", O(
                                 "type", "array",
-                                "description", "Il PRIMO contorno e' il bordo esterno, i successivi sono i vuoti "
-                                    + "dentro di esso.\n\nOgni contorno puo' avere DUE forme:\n1) una "
-                                    + "spezzata chiusa: un elenco di vertici, per esempio "
-                                    + "[[0,0],[100,0],[100,60],[0,60]]. L'ultimo vertice si unisce al "
-                                    + "primo da solo: NON ripeterlo.\n2) un CERCHIO, e per un foro o un "
-                                    + "tondo va usato questo e non una spezzata con tanti lati: "
-                                    + "{\"circle\": [x_centro, y_centro], \"diameter_mm\": 20}. Un cerchio "
-                                    + "approssimato a segmenti ha il materiale dentro la circonferenza, "
-                                    + "e un albero non ci entra.\n\nEsempio, TUBO diametro esterno 60 "
-                                    + "spessore 5:\n[{\"circle\": [0, 0], \"diameter_mm\": 60}, {\"circle\": "
-                                    + "[0, 0], \"diameter_mm\": 50}]\nEsempio, TUBOLARE quadro 80x80 parete "
+                                "description", "The FIRST contour is the outer edge, the following ones are the voids "
+                                    + "inside it.\n\nEach contour can have TWO forms:\n1) a "
+                                    + "closed polyline: a list of vertices, for example "
+                                    + "[[0,0],[100,0],[100,60],[0,60]]. The last vertex joins the "
+                                    + "first by itself: do NOT repeat it.\n2) a CIRCLE, and for a hole or a "
+                                    + "round bar you must use this and not a polyline with many sides: "
+                                    + "{\"circle\": [x_center, y_center], \"diameter_mm\": 20}. The two numbers in brackets are the center. A circle "
+                                    + "approximated by segments has material inside the circumference, "
+                                    + "and a shaft does not fit in it.\n\nExample, PIPE outer diameter 60 "
+                                    + "wall 5:\n[{\"circle\": [0, 0], \"diameter_mm\": 60}, {\"circle\": "
+                                    + "[0, 0], \"diameter_mm\": 50}]\nExample, SQUARE TUBE 80x80 wall "
                                     + "5:\n[[[-40,-40],[40,-40],[40,40],[-40,40]], "
                                     + "[[-35,-35],[35,-35],[35,35],[-35,35]]]",
                                 "items", O(
-                                    "description", "una spezzata (elenco di [x_mm, y_mm]) oppure un cerchio "
+                                    "description", "a polyline (list of [x_mm, y_mm]) or a circle "
                                         + "({\"circle\": [x, y], \"diameter_mm\": d})")),
                             "thickness_mm", O(
                                 "type", "number",
-                                "description", "quanto si estrude, in mm"),
+                                "description", "how far it is extruded, in mm"),
                             "symmetric", O(
                                 "type", "boolean",
-                                "description", "estrusione meta' da una parte e meta' dall'altra del piano (predefinito: no)")),
+                                "description", "extrusion half on one side and half on the other of the plane (default: no)")),
                         "required", A(
                             "contours",
                             "thickness_mm")),
@@ -205,11 +205,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una piastra rettangolare piena, il primo corpo del pezzo.",
+                        "A solid rectangular plate, the first body of the part.",
                     Description =
-                        "Crea una piastra rettangolare: disegna un rettangolo su un piano "
-                        + "e lo estrude. E' l'operazione per piastre, staffe, basi, flange "
-                        + "squadrate."
+                        "Creates a rectangular plate: draws a rectangle on a plane and "
+                        + "extrudes it. It is the operation for plates, brackets, bases, square "
+                        + "flanges."
                         + "\n\n«plane» takes «front», «top» or «right» (the case of "
                         + "the letters does not matter); any other name is refused, it never "
                         + "falls back to the front plane."
@@ -227,22 +227,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "length_mm", O(
                                 "type", "number",
-                                "description", "primo lato, in mm"),
+                                "description", "first side, in mm"),
                             "width_mm", O(
                                 "type", "number",
-                                "description", "secondo lato, in mm"),
+                                "description", "second side, in mm"),
                             "thickness_mm", O(
                                 "type", "number",
-                                "description", "QUANTO SI ESTRUDE, in mm. Per una piastra e' lo spessore; per una "
-                                    + "barra o un profilo e' la LUNGHEZZA. Il rettangolo e' la sezione, "
-                                    + "questo e' quanto va in profondita': una barra 80x80 lunga 1000 si "
-                                    + "fa con length_mm 80, width_mm 80, thickness_mm 1000."),
+                                "description", "HOW FAR IT IS EXTRUDED, in mm. For a plate it is the thickness; "
+                                    + "for a bar or a profile it is the LENGTH. The rectangle is the section, "
+                                    + "this is how far it goes in depth: an 80x80 bar 1000 long is made "
+                                    + "with length_mm 80, width_mm 80, thickness_mm 1000."),
                             "centered", O(
                                 "type", "boolean",
-                                "description", "rettangolo centrato sull'origine (predefinito: si')")),
+                                "description", "rectangle centered on the origin (default: yes)")),
                         "required", A(
                             "length_mm",
                             "width_mm",
@@ -255,39 +255,39 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una barra da sezione normalizzata (tubolare, tondo, angolare, U, "
-                        + "T, piatto, esagono, asola) NON di carpenteria.",
+                        "A bar from a standard section (tubular, round, angle, U, T, "
+                        + "flat, hexagon, slot) that is NOT metalwork.",
                     Description =
-                        "Estrude una sezione normalizzata — tubolare, tondo, tubo, "
-                        + "angolare a L, profilato a U o a T, piatto, esagono, asola — e "
-                        + "ottiene un CORPO SOLIDO con quella forma.\n\nNON E' L'OPERAZIONE "
-                        + "DELLA CARPENTERIA. Per un elemento di telaio usa "
-                        + "«structural_member»: un corpo estruso ha la stessa forma di una "
-                        + "barra, ma non e' un membro strutturale, quindi NON genera la "
-                        + "distinta di taglio, non porta il nome del profilo, e non si "
-                        + "lascia tagliare a 45 gradi agli incroci. Chi va in officina con "
-                        + "un pezzo cosi' non ha l'elenco delle barre da tagliare.\n\nQuesta "
-                        + "operazione serve quando la sezione NON e' un elemento di telaio: "
-                        + "un distanziale ricavato da barra, una piastrina sagomata, un "
-                        + "pezzo tornito da tondo, o un profilo che nella libreria aziendale "
-                        + "non esiste.\n\nLe quote da dare cambiano con il tipo:\n• tubolare  "
-                        + "larghezza, altezza, parete\n• tubo      diametro, parete\n• tondo   "
-                        + "  diametro\n• angolare / u / t   larghezza, altezza, spessore\n• "
-                        + "piatto / asola     larghezza, altezza\n• esagono   chiave "
-                        + "(l'apertura in chiave, non il diametro "
-                        + "circoscritto)\n\n«length_mm» e' quanto e' lunga la barra: per un "
-                        + "tubolare 80x80x5 lungo 1000 sono larghezza 80, altezza 80, parete "
-                        + "5, lunghezza 1000.\n\nGLI SPIGOLI SONO VIVI, e sul peso si "
-                        + "vede. Un profilo commerciale ha gli angoli raggiati, quindi "
-                        + "questa sezione pesa di piu': un tubolare 80x80x5 lungo 1000 "
-                        + "viene 1.500.000 mm3 contro i circa 1.443.000 del profilo vero, "
-                        + "cioe' il 4% in piu'. Per la forma non cambia niente; se il "
-                        + "numero che ti serve e' il PESO, prendi il profilo dalla "
-                        + "libreria con «structural_member».\n\nL'ASOLA E' UN POLIGONO: le "
-                        + "due estremita' sono 24 lati ciascuna, coi vertici sul cerchio "
-                        + "circoscritto, cosi' che l'asola non sia mai piu' stretta del "
-                        + "nominale. Esce larga lo 0,2% in piu' (20,043 per 20) e con lo 0,2% "
-                        + "di area in piu'. Tondo e tubo sono cerchi veri."
+                        "Extrudes a standard section — tubular, round, tube, "
+                        + "L angle, U or T section, flat, hexagon, slot — and "
+                        + "gets a SOLID BODY with that shape.\n\nIT IS NOT THE "
+                        + "METALWORK OPERATION. For a frame element use "
+                        + "«structural_member»: an extruded body has the same shape as a "
+                        + "bar, but it is not a structural member, so it does NOT generate the "
+                        + "cut list, does not carry the name of the profile, and cannot be "
+                        + "mitered at 45 degrees at the joints. Whoever goes to the workshop with "
+                        + "a part like this does not have the list of bars to cut.\n\nThis "
+                        + "operation is for when the section is NOT a frame element: "
+                        + "a spacer cut from bar stock, a small shaped plate, a "
+                        + "part turned from round bar, or a profile that "
+                        + "is not in the company library.\n\nThe dimensions to give change with the type:\n• tubular  "
+                        + "width, height, wall\n• tube      diameter, wall\n• round   "
+                        + "  diameter\n• angle / u / t   width, height, thickness\n• "
+                        + "flat / slot     width, height\n• hexagon   across flats "
+                        + "(the width across the flats, not the "
+                        + "circumscribed diameter)\n\n«length_mm» is how long the bar is: for an "
+                        + "80x80x5 tubular 1000 long that is width 80, height 80, wall "
+                        + "5, length 1000.\n\nTHE EDGES ARE SHARP, and it shows in the "
+                        + "weight. A commercial profile has rounded corners, so "
+                        + "this section weighs more: an 80x80x5 tubular 1000 long "
+                        + "comes out at 1,500,000 mm3 against about 1,443,000 for the real profile, "
+                        + "that is 4% more. For the shape nothing changes; if the "
+                        + "number you need is the WEIGHT, take the profile from the "
+                        + "library with «structural_member».\n\nTHE SLOT IS A POLYGON: its "
+                        + "two ends are 24 sides each, with the vertices on the "
+                        + "circumscribed circle, so that the slot is never narrower than the "
+                        + "nominal one. It comes out 0.2% wider (20.043 for 20) and with 0.2% "
+                        + "more area. Round and tube are true circles."
                         + "\n\nThe result says whether the sketch is locked: true only when every segment "
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
@@ -306,7 +306,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "variant", O(
                                 "type", "string",
                                 "enum", A(
@@ -319,28 +319,28 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "flat",
                                     "hexagon",
                                     "slot"),
-                                "description", "quale sezione"),
+                                "description", "which section"),
                             "length_mm", O(
                                 "type", "number",
-                                "description", "quanto e' lunga la barra, in mm"),
+                                "description", "how long the bar is, in mm"),
                             "width_mm", O(
                                 "type", "number"),
                             "height_mm", O(
                                 "type", "number"),
                             "wall_mm", O(
                                 "type", "number",
-                                "description", "spessore della parete, per tubolare e tubo"),
+                                "description", "wall thickness, for tubular and tube"),
                             "thickness_mm", O(
                                 "type", "number",
-                                "description", "spessore del profilo, per angolare, U e T"),
+                                "description", "thickness of the profile, for angle, U and T"),
                             "diameter_mm", O(
                                 "type", "number"),
                             "across_flats_mm", O(
                                 "type", "number",
-                                "description", "apertura in chiave dell'esagono"),
+                                "description", "width across flats of the hexagon"),
                             "symmetric", O(
                                 "type", "boolean",
-                                "description", "meta' per parte del piano (predefinito: no)")),
+                                "description", "half on each side of the plane (default: no)")),
                         "required", A(
                             "variant",
                             "length_mm")),
@@ -353,30 +353,30 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Un solido a simmetria di rotazione: boccole, distanziali, alberi "
-                        + "a gradini, flange, pulegge, volantini.",
+                        "A solid of revolution: bushes, spacers, stepped shafts, "
+                        + "flanges, pulleys, handwheels.",
                     Description =
-                        "Ruota un profilo attorno a un asse e ottiene un corpo a simmetria "
-                        + "di rotazione. E' l'operazione per tutto cio' che si fa al tornio "
-                        + "quando la forma VARIA lungo l'asse: alberi a gradini, boccole con "
-                        + "gole, flange, pulegge. Per un cilindro costante bastano "
-                        + "«extrude_circle» o «extrude_section», piu' semplici.\n\nIl profilo "
-                        + "si da' con gli stessi CONTORNI di «extrude_profile»: il primo e' "
-                        + "il bordo, i successivi sono vuoti.\n\nLA DIFFERENZA E' L'ASSE. Il "
-                        + "profilo e' una MEZZA SEZIONE, vista di fianco come al tornio: sta "
-                        + "tutto da un lato dell'asse, al piu' toccandolo. NON deve "
-                        + "attraversarlo — un profilo che attraversa l'asse produce un "
-                        + "solido che si autointerseca.\n\nEsempio, albero a gradini: diametro "
-                        + "30 per 40 mm, poi diametro 20 per altri 30, asse lungo y=0:\n  "
-                        + "contorni: [[[0,0],[0,15],[40,15],[40,10],[70,10],[70,0]]]\n  asse: "
-                        + "[[0,0],[70,0]]\nIl lato da (70,0) a (0,0), che chiude la spezzata, "
-                        + "giace SULL'asse: e' il caso normale, non un errore.\n\nSolo il "
-                        + "corpo pieno: per una parete sottile disegna il vuoto interno come "
-                        + "secondo contorno."
-                        + "\n\nMI RIFIUTO SE L'ASSE NON STA SUL PIANO DEL PROFILO, e se il profilo "
-                        + "ATTRAVERSA l'asse. Un profilo a cavallo dell'asse genera un solido che "
-                        + "si compenetra con se stesso: SOLIDWORKS a volte lo fa lo stesso, e il "
-                        + "pezzo che ne esce non e' quello che volevi."
+                        "Revolves a profile about an axis and gets a body of revolution. It "
+                        + "is the operation for everything made on the lathe when the shape "
+                        + "VARIES along the axis: stepped shafts, bushes with grooves, flanges, "
+                        + "pulleys. For a constant cylinder «extrude_circle» or "
+                        + "«extrude_section» are enough, and simpler.\n\nThe profile is given with "
+                        + "the same CONTOURS as «extrude_profile»: the first is the edge, "
+                        + "the following ones are voids.\n\nTHE DIFFERENCE IS THE AXIS. The "
+                        + "profile is a HALF SECTION, seen from the side as on the lathe: it lies "
+                        + "all on one side of the axis, touching it at most. It must "
+                        + "NOT cross it — a profile that crosses the axis produces a "
+                        + "solid that intersects itself.\n\nExample, stepped shaft: diameter 30 "
+                        + "for 40 mm, then diameter 20 for another 30, axis along y=0:\n  "
+                        + "contours: [[[0,0],[0,15],[40,15],[40,10],[70,10],[70,0]]]\n  axis: "
+                        + "[[0,0],[70,0]]\nThe side from (70,0) to (0,0), which closes the polyline, "
+                        + "lies ON the axis: this is the normal case, not an error.\n\n"
+                        + "Solid body only: for a thin wall draw the inner void as a second "
+                        + "contour."
+                        + "\n\nI REFUSE IF THE AXIS IS NOT ON THE PLANE OF THE PROFILE, and if the profile "
+                        + "CROSSES the axis. A profile straddling the axis generates a solid that "
+                        + "interpenetrates itself: SOLIDWORKS sometimes makes it all the same, and the "
+                        + "part that comes out is not the one you wanted."
                         + "\n\nThe result says whether the sketch is locked: true only when every segment "
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
@@ -391,30 +391,30 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "contours", O(
                                 "type", "array",
-                                "description", "il profilo da ruotare, stessa sintassi di «extrude_profile»: il "
-                                    + "primo contorno e' il bordo, i successivi sono vuoti. Ogni "
-                                    + "contorno e' una spezzata chiusa di vertici [x_mm, y_mm] (l'ultimo "
-                                    + "si chiude da solo, non ripeterlo) oppure {\"circle\": [x, y], "
-                                    + "\"diameter_mm\": d}. Sta tutto da un lato dell'asse.",
+                                "description", "the profile to revolve, same syntax as «extrude_profile»: the first "
+                                    + "contour is the edge, the following ones are voids. Each "
+                                    + "contour is a closed polyline of vertices [x_mm, y_mm] (the last one "
+                                    + "closes by itself, do not repeat it) or {\"circle\": [x, y], "
+                                    + "\"diameter_mm\": d}. It lies all on one side of the axis.",
                                 "items", O(
-                                    "description", "una spezzata (elenco di [x_mm, y_mm]) oppure un cerchio "
+                                    "description", "a polyline (list of [x_mm, y_mm]) or a circle "
                                         + "({\"circle\": [x, y], \"diameter_mm\": d})")),
                             "axis", O(
                                 "type", "array",
-                                "description", "la retta di rivoluzione: DUE punti [x_mm, y_mm] nello stesso "
-                                    + "sistema dei contorni. Per un pezzo tornito e' quasi sempre l'asse "
-                                    + "orizzontale del disegno, per esempio [[0,0],[70,0]]. Non e' un "
-                                    + "dettaglio: decide l'ingombro finale quanto i vertici del profilo.",
+                                "description", "the line of revolution: TWO points [x_mm, y_mm] in the same system "
+                                    + "as the contours. For a turned part it is almost always the horizontal axis "
+                                    + "of the drawing, for example [[0,0],[70,0]]. It is not a detail: it "
+                                    + "decides the final bounding box as much as the vertices of the profile do.",
                                 "items", O(
                                     "type", "array",
                                     "items", O(
                                         "type", "number"))),
                             "angle_deg", O(
                                 "type", "number",
-                                "description", "predefinito 360, un giro completo")),
+                                "description", "default 360, one full turn")),
                         "required", A(
                             "contours",
                             "axis")),
@@ -426,16 +426,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una ruota dentata a evolvente, con foro e cava per linguetta.",
+                        "An involute gear, with bore and keyway.",
                     Description =
-                        "Crea una RUOTA DENTATA cilindrica a denti dritti, dal numero di "
-                        + "denti e dal modulo. Il profilo del dente e' a evolvente e lo "
-                        + "calcolo io: tu dai solo i dati di progetto.\n\nCon bore_mm "
-                        + "si ottiene anche il foro centrale.\n\nIL LIMITE: sotto 17 denti "
-                        + "(con l'angolo di pressione standard di 20 gradi) rifiuto, perche' "
-                        + "servirebbe la correzione di profilo contro l'intaglio del piede e "
-                        + "non la so fare. E' un limite mio, non della meccanica: con un "
-                        + "angolo di pressione maggiore il minimo scende (25 gradi: 11 denti)."
+                        "Creates a cylindrical SPUR GEAR, from the number of teeth and "
+                        + "the module. The tooth profile is an involute and I calculate "
+                        + "it: you give only the design data.\n\nWith bore_mm you also "
+                        + "get the central bore.\n\nI REFUSE IF there are fewer than 17 "
+                        + "teeth (with the standard pressure angle of 20 degrees), because a "
+                        + "profile correction against root undercut would be needed and I cannot "
+                        + "do it. It is a limit of mine, not of mechanics: with a "
+                        + "larger pressure angle the minimum goes down (25 degrees: 11 teeth)."
                         + "\n\nThe result says whether the sketch is locked: true only when every segment "
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
@@ -450,27 +450,27 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "teeth", O(
                                 "type", "integer",
-                                "description", "numero di denti (z)"),
+                                "description", "number of teeth (z)"),
                             "module_mm", O(
                                 "type", "number",
-                                "description", "il modulo m in mm. Diametro primitivo = m x z, esterno = m x (z+2)."),
+                                "description", "the module m in mm. Pitch diameter = m x z, outside diameter = m x (z+2)."),
                             "thickness_mm", O(
                                 "type", "number",
-                                "description", "larghezza di fascia"),
+                                "description", "face width"),
                             "pressure_angle_deg", O(
                                 "type", "number",
-                                "description", "predefinito 20, che e' lo standard"),
+                                "description", "default 20, which is the standard"),
                             "bore_mm", O(
                                 "type", "number",
-                                "description", "diametro del foro centrale; omettilo per una ruota piena"),
+                                "description", "diameter of the central bore; leave it out for a solid gear"),
                             "keyway", O(
                                 "type", "boolean",
-                                "description", "cava per linguetta nel foro, con larghezza e profondita' "
-                                    + "normalizzate (ISO/R 773, DIN 6885-1) ricavate dal diametro del "
-                                    + "foro. Non chiedere le quote della cava: le sceglie la norma.")),
+                                "description", "keyway in the bore, with standard width and depth (ISO/R "
+                                    + "773, DIN 6885-1) taken from the diameter of the bore. Do not ask "
+                                    + "for the dimensions of the keyway: the standard chooses them.")),
                         "required", A(
                             "teeth",
                             "module_mm",
@@ -545,7 +545,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm", O(
                                 "type", "number",
                                 "description", "see x_mm"),
-                            "anchor", AnchorSchema("l'asola"),
+                            "anchor", AnchorSchema("the slot"),
                             "length_mm", O(
                                 "type", "number",
                                 "description", "TOTAL length, end to end, not the travel. It must be "
@@ -2025,37 +2025,37 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Cordone di saldatura cosmetico fra due facce di due barre che si toccano ad angolo.",
+                        "Cosmetic weld bead between two faces of two bars that meet at an angle.",
                     Description =
-                        "Mette un cordone di saldatura d'angolo, cosmetico, fra DUE facce "
-                        + "di due corpi che si toccano lungo uno spigolo e formano un angolo: "
-                        + "per una barra in battuta su un'altra, la faccia LATERALE della "
-                        + "barra e la faccia su cui arriva. Non toglie ne' aggiunge "
-                        + "materiale: documenta la saldatura, e finisce nelle tavole e nella "
-                        + "distinta.\n\nUNA COPPIA DI FACCE PER CHIAMATA. Un cordone che gira "
-                        + "attorno a un tubolare sono piu' chiamate, una per lato: con piu' "
-                        + "facce per parte SOLIDWORKS non crea niente. Le facce si indicano "
-                        + "per identificativo, prese dallo stato del documento: e' "
-                        + "un'operazione che si chiede DOPO aver fatto le barre e i tagli, "
-                        + "guardandole.\n\nSe le due facce non si toccano, o sono parallele, "
-                        + "rifiuto: SOLIDWORKS il cordone lo creerebbe lo stesso, e in "
-                        + "distinta finirebbe una saldatura che non esiste. La lunghezza che "
-                        + "ti torno e' quella dello spigolo in comune.",
+                        "Puts a cosmetic fillet weld bead between TWO faces of two bodies "
+                        + "that touch along an edge and form an angle: for one bar butted against "
+                        + "another, the SIDE face of the bar and the face it arrives on. "
+                        + "It neither removes nor adds material: it documents the weld, "
+                        + "and it ends up in the drawings and in the bill of materials.\n\nONE "
+                        + "PAIR OF FACES PER CALL. A bead that runs all round a rectangular "
+                        + "tube is several calls, one per side: with more than one face per "
+                        + "side SOLIDWORKS creates nothing. The faces are given by identifier, "
+                        + "taken from the document state: this is an operation you "
+                        + "ask for AFTER the bars and the cuts are made, by looking at them."
+                        + "\n\nI REFUSE IF the two faces do not touch, or are parallel: SOLIDWORKS "
+                        + "would create the bead all the same, and the bill of "
+                        + "materials would end up with a weld that does not exist. The length I "
+                        + "return is that of the edge they have in common.",
                     Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "start_face_uid", O(
                                 "type", "string",
-                                "description", "una faccia del primo corpo, presa dallo stato del documento "
+                                "description", "a face of the first body, taken from the document state "
                                     + "(F1, F2...)"),
                             "end_face_uid", O(
                                 "type", "string",
-                                "description", "una faccia dell'ALTRO corpo, che tocca la prima lungo uno "
-                                    + "spigolo e fa angolo con lei"),
+                                "description", "a face of the OTHER body, which touches the first one along an "
+                                    + "edge and makes an angle with it"),
                             "leg_mm", O(
                                 "type", "number",
-                                "description", "lato del cordone (a)")),
+                                "description", "side of the bead (a)")),
                         "required", A(
                             "start_face_uid",
                             "end_face_uid",
@@ -2068,19 +2068,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Crea o aggiorna la distinta di taglio del pezzo saldato. Va per ultima.",
+                        "Creates or updates the cut list of the weldment part. Goes last.",
                     Description =
-                        "Crea o aggiorna la DISTINTA DI TAGLIO del pezzo saldato: l'elenco "
-                        + "delle barre con profilo, misura, lunghezza e quantita'.\n\nE' il "
-                        + "documento con cui si va in officina, ed e' il motivo per cui un "
-                        + "telaio si fa con i membri strutturali invece che con le "
-                        + "estrusioni. Chiamala DOPO aver messo tutte le barre e fatto tutti "
-                        + "i tagli: una distinta calcolata prima riporta lunghezze che poi "
-                        + "cambiano.\n\nUNA VOCE PER OGNI GRUPPO DI BARRE UGUALI: il pezzo diventa "
-                        + "un saldato (la lavorazione «Saldatura», se manca) e la distinta e' quella "
-                        + "automatica di SOLIDWORKS, che separa le barre per lunghezza. La risposta "
-                        + "porta le voci — descrizione, lunghezza, quantita' — e la somma delle "
-                        + "quantita' deve essere il numero delle barre, se no lo dice."
+                        "Creates or updates the CUT LIST of the weldment part: the list of "
+                        + "bars with profile, size, length and quantity.\n\nIt is the document "
+                        + "you take to the workshop, and it is the reason a frame is made with "
+                        + "structural members instead of extrusions. Call it AFTER "
+                        + "you have placed all the bars and made all the cuts: a cut list "
+                        + "calculated earlier reports lengths that change afterwards.\n\nONE ITEM "
+                        + "FOR EACH GROUP OF IDENTICAL BARS: the part becomes a weldment (the «Weldment» "
+                        + "feature, named in the language of the installation, if it is missing) "
+                        + "and the cut list is the automatic one of SOLIDWORKS, which separates the bars "
+                        + "by length. The answer carries the items (description, length, quantity), "
+                        + "and the sum of the quantities must be the number of bars, otherwise it says so."
                         + "\n\nThe answer says what SOLIDWORKS answered: automatic_cut_list_set (null "
                         + "when the cut list was automatic already), automatic_update_set and "
                         + "cut_list_updated. When the cut list did not update, the warning field of the "
@@ -2098,8 +2098,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "update_if_exists", O(
                                 "type", "boolean",
-                                "description", "se la distinta c'e' gia', la ricalcola invece di crearne una "
-                                    + "seconda (predefinito: si')")),
+                                "description", "if the cut list already exists, it recalculates it instead of creating "
+                                    + "a second one (default: yes)")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2122,36 +2122,36 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // weldments/gusset_polygon_is_not_degenerate.
                     Tested = true,
                     Summary =
-                        "Fazzoletto di rinforzo, triangolare o poligonale, nell'angolo fra due facce "
-                        + "piane di due barre che si toccano.",
+                        "Reinforcing gusset, triangular or polygonal, in the corner between two "
+                        + "planar faces of two bars that meet.",
                     Description =
-                        "Mette un FAZZOLETTO di rinforzo nell'angolo fra due barre di un telaio "
-                        + "saldato: una piastra, corpo a se', che irrigidisce il nodo e finisce in "
-                        + "distinta.\n\nLE DUE FACCE si indicano per identificativo, prese dallo "
-                        + "stato del documento: e' un'operazione che si chiede DOPO aver fatto le "
-                        + "barre e i tagli, guardandole. Devono essere PIANE, fare un angolo e "
-                        + "toccarsi lungo uno spigolo: per una barra in battuta su un'altra, la "
-                        + "faccia LATERALE della barra e la faccia su cui arriva (le stesse di "
-                        + "«weld_bead»). In un angolo di tubolari le facce candidate sono "
-                        + "quattro, e sceglierne due «probabili» vorrebbe dire mettere il rinforzo "
-                        + "dalla parte sbagliata. Facce parallele, lontane o curve: rifiuto, prima "
-                        + "di toccare il pezzo.\n\nIL PROFILO: «triangular» (il predefinito) coi "
-                        + "due lati «leg1_mm» e «leg2_mm» lungo le due facce; oppure «polygonal», "
-                        + "che taglia la punta e vuole anche i due lati corti «side3_mm» e "
-                        + "«side4_mm», piu' corti dei due lati. Un poligono senza lati corti e' "
-                        + "degenere e lo rifiuto: e' il difetto per cui questa operazione non ha "
-                        + "mai creato niente fino alla libreria 0.139.0. Lo spessore sta da tutte e "
-                        + "due le parti del piano del fazzoletto; «position» e' «start», «center» "
-                        + "(il predefinito) o «end» lungo lo spigolo comune, e un altro valore lo "
-                        + "rifiuto invece di metterlo al centro di nascosto.\n\nLA RISPOSTA E' "
-                        + "RILETTA, non ripetuta: il volume aggiunto contro il conto a mano "
-                        + "(«volume_added_mm3», «volume_expected_mm3»), i corpi prima e dopo, lo "
-                        + "spessore, il profilo, la posizione e le due facce d'appoggio riletti "
-                        + "dalla feature («thickness_read_mm», «profile_read», «location_read», "
-                        + "«supporting_faces_area_mm2»), il corpo nuovo e la sua scatola "
-                        + "(«new_body», «new_body_box_mm»). Se una di queste non torna, il "
-                        + "fazzoletto lo tolgo e te lo dico. Se ti serve solo documentare la "
-                        + "saldatura, usa «weld_bead».",
+                        "Puts a reinforcing GUSSET in the corner between two bars of a welded "
+                        + "frame: a plate, a body of its own, that stiffens the joint and ends up in the "
+                        + "cut list.\n\nTHE TWO FACES are given by identifier, taken from the "
+                        + "document state: this is an operation you ask for AFTER the bars and the cuts "
+                        + "are made, by looking at them. They must be PLANAR, make an angle and "
+                        + "touch along an edge: for one bar butted against another, the SIDE face "
+                        + "of the bar and the face it arrives on (the same ones as for "
+                        + "«weld_bead»). At a corner of rectangular tubes there are four candidate "
+                        + "faces, and picking two «likely» ones would mean putting the reinforcement "
+                        + "on the wrong side. Parallel, distant or curved faces: I refuse, before "
+                        + "touching the part.\n\nTHE PROFILE: «triangular» (the default) with the "
+                        + "two sides «leg1_mm» and «leg2_mm» along the two faces; or «polygonal», "
+                        + "which cuts off the tip and also needs the two short sides «side3_mm» "
+                        + "and «side4_mm», shorter than the two legs. A polygon without short "
+                        + "sides is degenerate and I refuse it: it is the defect because of which "
+                        + "this operation never created anything until library 0.139.0. The thickness "
+                        + "lies on both sides of the gusset's plane; «position» is «start», «center» "
+                        + "(the default) or «end» along the common edge, and I refuse any other value "
+                        + "instead of quietly putting it in the center.\n\nTHE ANSWER IS READ "
+                        + "BACK, not repeated: the added volume against the hand calculation "
+                        + "(«volume_added_mm3», «volume_expected_mm3»), the bodies before and after, "
+                        + "the thickness, the profile, the position and the two supporting faces "
+                        + "read back from the feature («thickness_read_mm», «profile_read», «location_read», "
+                        + "«supporting_faces_area_mm2»), the new body and "
+                        + "its box («new_body», «new_body_box_mm»). If one of these does not "
+                        + "match, I remove the gusset and tell you. If you only need to document "
+                        + "the weld, use «weld_bead».",
                     // No example: the two green cases name the faces with the
                     // bench selectors (@face(area~=...,normal=...)), which the
                     // client cannot copy (see OperationSpec.Esempio).
@@ -2164,40 +2164,40 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
-                                "description", "esattamente DUE facce piane, una per barra, che si toccano lungo "
-                                    + "uno spigolo e fanno angolo, prese dallo stato del documento (F1, F2...)"),
+                                "description", "exactly TWO planar faces, one per bar, that touch along an "
+                                    + "edge and make an angle, taken from the document state (F1, F2...)"),
                             "thickness_mm", O(
                                 "type", "number",
-                                "description", "spessore della piastra, da tutte e due le parti del suo piano"),
+                                "description", "thickness of the plate, on both sides of its plane"),
                             "leg1_mm", O(
                                 "type", "number",
-                                "description", "uno dei due lati del fazzoletto, quelli che corrono lungo le due "
-                                    + "facce. Quale lato vada su quale faccia la guida non lo dice e nessuna "
-                                    + "prova lo ha distinto (misurato solo con lati uguali): se ti importa, "
-                                    + "guarda il pezzo dopo"),
+                                "description", "one of the two sides of the gusset, the ones that run along the two "
+                                    + "faces. Which side goes on which face the guide does not say, and no test has "
+                                    + "told them apart (measured only with equal sides): if it matters to you, look "
+                                    + "at the part afterwards"),
                             "leg2_mm", O(
                                 "type", "number",
-                                "description", "l'altro lato, lungo l'altra faccia (vedi leg1_mm)"),
+                                "description", "the other side, along the other face (see leg1_mm)"),
                             "profile", O(
                                 "type", "string",
                                 "enum", A(
                                     "triangular",
                                     "polygonal"),
-                                "description", "forma della piastra (predefinito: triangular). Il poligonale "
-                                    + "taglia la punta e vuole «side3_mm» e «side4_mm»"),
+                                "description", "shape of the plate (default: triangular). The polygonal one cuts "
+                                    + "off the tip and needs «side3_mm» and «side4_mm»"),
                             "side3_mm", O(
                                 "type", "number",
-                                "description", "solo col profilo poligonale: primo lato corto, piu' corto dei due lati"),
+                                "description", "only with the polygonal profile: first short side, shorter than the two legs"),
                             "side4_mm", O(
                                 "type", "number",
-                                "description", "solo col profilo poligonale: secondo lato corto, piu' corto dei due lati"),
+                                "description", "only with the polygonal profile: second short side, shorter than the two legs"),
                             "position", O(
                                 "type", "string",
                                 "enum", A(
                                     "start",
                                     "center",
                                     "end"),
-                                "description", "dove sta lungo lo spigolo fra le due facce (predefinito: center)")),
+                                "description", "where it sits along the edge between the two faces (default: center)")),
                         "required", A(
                             "faces_uid",
                             "thickness_mm",
@@ -2211,35 +2211,35 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Barre vere di carpenteria lungo i segmenti che dai: e' cio' che "
-                        + "genera la distinta di taglio.",
+                        "Real metalwork bars along the segments you give: this is "
+                        + "what generates the cut list.",
                     Description =
-                        "Crea una o piu' BARRE di un telaio saldato: membri strutturali "
-                        + "veri, con il profilo preso dalla libreria dell'azienda.\n\nE' "
-                        + "L'OPERAZIONE DA USARE PER TUTTO CIO' CHE E' CARPENTERIA: "
-                        + "tubolari, angolari, piatti, IPE, HEA, HEB, UPN, UPE, profilati a "
-                        + "U e a T — sia una barra sola sia un telaio intero.\n\nPerche' non "
-                        + "basta estrudere una sezione: solo il membro strutturale genera la "
-                        + "DISTINTA DI TAGLIO, porta il nome del profilo, e si lascia "
-                        + "tagliare a 45 gradi agli incroci. Una barra estrusa ha la stessa "
-                        + "forma e non serve a fare il pezzo.\n\nPRIMA CHIAMA "
-                        + "«weldment_profiles» e copia da li' «profile_path» e "
-                        + "«configuration» alla lettera. Non comporre il nome della misura: "
-                        + "la libreria non e' uniforme e un nome inventato fa usare a "
-                        + "SolidWorks un'altra misura, senza errore.\n\nI segmenti sono le "
-                        + "linee lungo cui corrono le barre, in coordinate del modello in "
-                        + "mm. Una barra dritta lunga 200 sull'asse X e' un segmento solo: "
-                        + "da [0,0,0] a [200,0,0]. Un telaio rettangolare sono quattro "
-                        + "segmenti che si chiudono."
+                        "Creates one or more BARS of a welded frame: real structural "
+                        + "members, with the profile taken from the company library.\n\nIT "
+                        + "IS THE OPERATION TO USE FOR EVERYTHING THAT IS METALWORK: "
+                        + "tubes, angles, flat bars, IPE, HEA, HEB, UPN, UPE, U and T sections "
+                        + "— whether a single bar or a whole frame.\n\nWhy extruding a "
+                        + "section is not enough: only the structural member generates the CUT "
+                        + "LIST, carries the name of the profile, and can be mitered "
+                        + "at 45 degrees at the joints. An extruded bar has the same shape "
+                        + "and is no use for making the part.\n\nFIRST CALL "
+                        + "«weldment_profiles» and copy «profile_path» and "
+                        + "«configuration» from there to the letter. Do not compose the name of "
+                        + "the size: the library is not uniform and an invented name "
+                        + "makes SolidWorks use another size, without an error.\n\nThe segments "
+                        + "are the lines along which the bars run, in model coordinates "
+                        + "in mm. A straight bar 200 long on the X axis is one segment "
+                        + "only: from [0,0,0] to [200,0,0]. A rectangular frame is four "
+                        + "segments that close."
                         + "\n\nIf the weldment profile library is still open and modified in "
                         + "SOLIDWORKS after the insertion, the answer carries "
                         + "«profile_library_warning»: close that library without saving, or a "
                         + "Ctrl+S would rewrite the shared library. The warning can carry a second "
                         + "sentence: the library is still LOADED, hidden (an open document references it, or the close did nothing), "
-                        + "with the insertion's changes in memory even if its save "
-                        + "flag reads clean."
-                        + "\n\nI refuse an empty «configuration» when the profile file has several "
-                        + "sizes, and list them: with an empty size SOLIDWORKS builds the size the file "
+                        + "with the insertion's changes in memory even if its save flag "
+                        + "reads clean."
+                        + "\n\nI REFUSE IF «configuration» is empty and the profile file has several "
+                        + "sizes, and I list them: with an empty size SOLIDWORKS builds the size the file "
                         + "was saved on (measured: the 20 x 20 of the four in iso\\square tube.sldlfp). "
                         + "An empty size is accepted only on a file with one size, and the answer says so "
                         + "in «configuration_note».",
@@ -2249,15 +2249,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "profile_path", O(
                                 "type", "string",
-                                "description", "percorso completo del .sldlfp, copiato da weldment_profiles"),
+                                "description", "full path of the .sldlfp, copied from weldment_profiles"),
                             "configuration", O(
                                 "type", "string",
-                                "description", "la misura, copiata ALLA LETTERA da weldment_profiles (es. "
-                                    + "«80X80X5»: maiuscole e virgole comprese). Empty only for a profile "
+                                "description", "the size, copied TO THE LETTER from weldment_profiles (e.g. "
+                                    + "«80X80X5»: upper case and commas included). Empty only for a profile "
                                     + "file with one size."),
                             "segments", O(
                                 "type", "array",
-                                "description", "le linee lungo cui corrono le barre, in mm nelle coordinate del modello",
+                                "description", "the lines along which the bars run, in mm in model coordinates",
                                 "items", O(
                                     "type", "object",
                                     "properties", O(
@@ -2265,19 +2265,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                                             "type", "array",
                                             "items", O(
                                                 "type", "number"),
-                                            "description", "[x, y, z] di partenza, in mm"),
+                                            "description", "[x, y, z] of the start, in mm"),
                                         "end", O(
                                             "type", "array",
                                             "items", O(
                                                 "type", "number"),
-                                            "description", "[x, y, z] di arrivo, in mm")),
+                                            "description", "[x, y, z] of the end, in mm")),
                                     "required", A(
                                         "start",
                                         "end"))),
                             "rotation_deg", O(
                                 "type", "number",
-                                "description", "rotazione del profilo attorno al proprio asse (predefinito: 0). "
-                                    + "Serve quando un angolare o una U vanno girati."),
+                                "description", "rotation of the profile about its own axis (default: 0). "
+                                    + "Needed when an angle or a U has to be turned."),
                             "corner_treatment", O(
                                 "type", "string",
                                 "enum", A(
@@ -2285,20 +2285,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "miter",
                                     "butt1",
                                     "butt2"),
-                                "description", "come si incontrano fra loro le barre di QUESTO gruppo, DOVE SI "
-                                    + "TOCCANO. «miter» e' il taglio a 45 gradi negli angoli "
-                                    + "(default: miter, the 45 degree miter, wherever the bars of "
+                                "description", "how the bars of THIS group meet each other, WHERE THEY TOUCH. "
+                                    + "«miter» is the 45 degree cut at the corners (default: "
+                                    + "miter, the 45 degree miter, wherever the bars of "
                                     + "this group touch, closed or open path; the answer says it was the "
-                                    + "default in «corner_treatment_note»); «butt1»/«butt2» e' una "
-                                    + "barra che va in battuta sull'altra; «none» le lascia "
-                                    + "compenetrate e va detto solo se lo si vuole davvero.\n\nNON taglia "
-                                    + "le estremita' LIBERE. Su una barra sola, o sui due capi di un "
-                                    + "telaio aperto, non c'e' niente contro cui tagliare e questo "
-                                    + "parametro non ha effetto."),
+                                    + "default in «corner_treatment_note»); «butt1»/«butt2» is one bar "
+                                    + "butted against the other; «none» leaves them interpenetrating "
+                                    + "and should be said only if you really want that.\n\nIt does "
+                                    + "NOT cut the FREE ends. On a single bar, or at the two ends "
+                                    + "of an open frame, there is nothing to cut against and this "
+                                    + "parameter has no effect."),
                             "gap_mm", O(
                                 "type", "number",
-                                "description", "gioco fra le barre agli incroci, per il cordone di saldatura "
-                                    + "(predefinito: 0)")),
+                                "description", "gap between the bars at the joints, for the weld bead "
+                                    + "(default: 0)")),
                         "required", A(
                             "profile_path",
                             "configuration",
@@ -2311,16 +2311,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Taglia o estende le barre dove si incontrano.",
+                        "Trims or extends the bars where they meet.",
                     Description =
-                        "Taglia le barre dove si incontrano, o le estende fino a toccarsi. "
-                        + "E' il «taglia/estendi» della barra di saldature.\n\nServe quando "
-                        + "due gruppi di barre si incrociano e non sono stati trattati agli "
-                        + "angoli: senza, i corpi restano compenetrati e la distinta di "
-                        + "taglio riporta lunghezze che in officina non tornano.\n\nTi torno "
-                        + "di quanto e' cambiato il volume (negativo = tolto). Se il pezzo "
-                        + "non cambia, rifiuto: vuol dire che le barre non si incontrano, "
-                        + "e un taglio che non taglia niente non te lo confermo."
+                        "Trims the bars where they meet, or extends them until they touch. "
+                        + "It is the «trim/extend» of the weldments toolbar.\n\nNeeded "
+                        + "when two groups of bars cross and have not been treated at the "
+                        + "corners: without it the bodies stay interpenetrating and the "
+                        + "cut list reports lengths that do not match in the workshop.\n\nI "
+                        + "return how much the volume changed (negative = removed). I REFUSE "
+                        + "IF the part does not change: that means the bars do not meet, "
+                        + "and I do not confirm a cut that cuts nothing."
                         + "\n\nA bar that stops short of the other one is extended to its face "
                         + "(measured: a bar 20 mm short grows by 20 mm, Options 1|2|8); a bar that "
                         + "enters the other is cut at its face as before. The coped cut is not used.",
@@ -2339,13 +2339,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "both."),
                             "bodies_to_trim_ref", O(
                                 "type", "object",
-                                "description", "the bars to trim or extend, made by a previous step\n\nGeneri "
-                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
+                                "description", "the bars to trim or extend, made by a previous step\n\nKinds "
+                                    + "allowed:\n- bodies: the bars created by that step, all together",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
-                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
-                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                        "description", "the sequence number of the step that creates the geometry, counting "
+                                            + "from 1. It must be a step BEFORE this one."),
                                     "kind", O(
                                         "type", "string",
                                         "enum", A(
@@ -2357,19 +2357,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
-                                "description", "le barre contro cui tagliare, per identificativo preso dallo "
-                                    + "stato del documento (C1, C2...). Usa questo per corpi che ci sono "
-                                    + "GIA'; l'altro campo per corpi che li crea un passo precedente di "
-                                    + "questo piano. Uno o l'altro, mai tutti e due."),
+                                "description", "the bars to cut against, by identifier taken from the "
+                                    + "document state (C1, C2...). Use this for bodies that ALREADY exist; "
+                                    + "the other field is for bodies that a previous step of this "
+                                    + "plan creates. One or the other, never both."),
                             "trim_boundary_ref", O(
                                 "type", "object",
-                                "description", "le barre contro cui tagliare, da un passo precedente\n\nGeneri "
-                                    + "ammessi:\n- bodies: le barre create da quel passo, tutte insieme",
+                                "description", "the bars to cut against, from a previous step\n\nKinds "
+                                    + "allowed:\n- bodies: the bars created by that step, all together",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
-                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
-                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                        "description", "the sequence number of the step that creates the geometry, counting "
+                                            + "from 1. It must be a step BEFORE this one."),
                                     "kind", O(
                                         "type", "string",
                                         "enum", A(
@@ -2384,15 +2384,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "butt1",
                                     "butt2",
                                     "cut"),
-                                "description", "come si chiude il taglio (predefinito: cut). Any other "
-                                    + "word is refused before the part is touched, a word meaning no "
+                                "description", "how the cut ends (default: cut). Any other word is "
+                                    + "refused before the part is touched, a word meaning no "
                                     + "corner included: the trim/extend has no such corner type, and none "
                                     + "was measured. The answer names the condition used in end_condition."),
                             "gap_mm", O(
                                 "type", "number",
-                                "description", "gioco lasciato (predefinito: 0). Il gioco che passi e' "
-                                    + "sempre quello applicato, anche 0: l'ultimo gioco dato a mano "
-                                    + "in SOLIDWORKS non viene ereditato")),
+                                "description", "gap left (default: 0). The gap you pass is always "
+                                    + "the one applied, even 0: the last gap given by hand "
+                                    + "in SOLIDWORKS is not inherited")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2402,16 +2402,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Chiude con un tappo le estremita' aperte delle barre cave.",
+                        "Closes the open ends of hollow bars with a cap.",
                     Description =
-                        "Chiude con un tappo le estremita' aperte di una barra cava. Si "
-                        + "mette sulle facce di estremita' create da un passo precedente, "
-                        + "oppure sulle barre che ci sono gia' nel documento («C1», "
-                        + "«C2»...).\n\nL'UNICA COSA CHE PUO' MANCARE E' LO SPESSORE DEL "
-                        + "TAPPO. Non ha un valore predefinito, perche' e' una scelta di "
-                        + "progetto: chiedilo, e chiedi SOLO quello. Il materiale non serve "
-                        + "— lo si applica dopo con la sua operazione, e non cambia la forma "
-                        + "del tappo."
+                        "Closes the open ends of a hollow bar with a cap. It goes on "
+                        + "the end faces created by a previous step, or on the bars that are "
+                        + "already in the document («C1», «C2»...).\n\nTHE ONLY THING "
+                        + "THAT MAY BE MISSING IS THE THICKNESS OF THE CAP. It has no "
+                        + "default, because it is a design choice: ask for it, and ask "
+                        + "ONLY for that. The material is not needed — it is applied afterwards "
+                        + "with its own operation, and it does not change the shape of "
+                        + "the cap."
                         + "\n\nA PLANAR FACE WITH A HOLE MACHINED INTO IT IS NOT AN OPEN END. "
                         + "A drilled side wall of a tube (its outer and its inner face) is "
                         + "looked at and left out, and the answer counts it in "
@@ -2427,21 +2427,21 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "array",
                                 "items", O(
                                     "type", "string"),
-                                "description", "le barre di cui tappare le estremita' aperte, per identificativo "
-                                    + "preso dallo stato del documento (C1, C2...). Usa questo per corpi "
-                                    + "che ci sono GIA'; l'altro campo per corpi che li crea un passo "
-                                    + "precedente di questo piano. Uno o l'altro, mai tutti e due."),
+                                "description", "the bars whose open ends are to be capped, by identifier taken "
+                                    + "from the document state (C1, C2...). Use this for bodies that "
+                                    + "ALREADY exist; the other field is for bodies that a previous "
+                                    + "step of this plan creates. One or the other, never both."),
                             "ends_ref", O(
                                 "type", "object",
-                                "description", "le facce di estremita' da tappare, da un passo precedente\n\nGeneri "
-                                    + "ammessi:\n- free_ends: le facce di estremita' ancora aperte "
-                                    + "delle barre di quel passo, quelle che si tappano"
-                                    + " (a wall with a hole machined into it is not an end: it is left out)",
+                                "description", "the end faces to cap, from a previous step\n\nKinds allowed:\n- "
+                                    + "free_ends: the end faces of the bars of that step that "
+                                    + "are still open, the ones that get capped (a "
+                                    + "wall with a hole machined into it is not an end: it is left out)",
                                 "properties", O(
                                     "step", O(
                                         "type", "integer",
-                                        "description", "il numero d'ordine del passo che crea la geometria, contando da "
-                                            + "1. Deve essere un passo PRECEDENTE a questo."),
+                                        "description", "the sequence number of the step that creates the geometry, counting "
+                                            + "from 1. It must be a step BEFORE this one."),
                                     "kind", O(
                                         "type", "string",
                                         "enum", A(
@@ -2451,7 +2451,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "kind")),
                             "thickness_mm", O(
                                 "type", "number",
-                                "description", "spessore del tappo"),
+                                "description", "thickness of the cap"),
                             "inset_mm", O(
                                 "type", "number",
                                 "description", "NOT a depth: the side gap between the cap and the inside of "
@@ -2475,20 +2475,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Un telaio rettangolare di quattro barre, dato con due quote "
-                        + "invece che con otto coordinate.",
+                        "A rectangular frame of four bars, given with two dimensions "
+                        + "instead of eight coordinates.",
                     Description =
-                        "RICETTA: un telaio rettangolare piano, quattro barre saldate agli "
-                        + "angoli. E' il caso piu' comune della carpenteria, e si chiede con "
-                        + "due quote invece che con otto coordinate.\n\nLe quote sono "
-                        + "l'INGOMBRO ESTERNO del telaio finito. Il piano dice su quale "
-                        + "piano principale sta.\n\nCome per «structural_member», profilo e "
-                        + "misura si copiano da «weldment_profiles»."
-                        + "\n\nI refuse the frame, and draw nothing, when the profile does not "
-                        + "fit in the two sizes (its overhang, measured on a trial frame, is as "
-                        + "large as a side), and when «measured_as» is neither «overall» nor "
-                        + "«center_distance» (upper or lower case does not matter). The answer says "
-                        + "which reading it used («measured_as»), whether the profile's overhang was "
+                        "RECIPE: a flat rectangular frame, four bars welded at the corners. "
+                        + "It is the most common case of metalwork, and it is asked for with "
+                        + "two dimensions instead of eight coordinates.\n\nThe dimensions "
+                        + "are the OVERALL OUTSIDE SIZE of the finished frame. The plane "
+                        + "says which principal plane it lies on.\n\nAs for «structural_member», "
+                        + "the profile and the size are copied from «weldment_profiles»."
+                        + "\n\nI REFUSE IF the profile does not fit in "
+                        + "the two sizes (its overhang, measured on a trial frame, is as large "
+                        + "as a side), or if «measured_as» is neither «overall» nor "
+                        + "«center_distance» (upper or lower case does not matter), and I draw nothing. The answer "
+                        + "says which reading it used («measured_as»), whether the profile's overhang was "
                         + "measured now or remembered from an earlier frame («overhang_source»: "
                         + "«measured» or «archive»), and, if the weldment profile library is "
                         + "still open and modified in SOLIDWORKS afterwards, "
@@ -2509,17 +2509,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "refused, and the sizes are listed."),
                             "length_mm", O(
                                 "type", "number",
-                                "description", "ingombro esterno"),
+                                "description", "overall outside size"),
                             "width_mm", O(
                                 "type", "number",
-                                "description", "ingombro esterno"),
+                                "description", "overall outside size"),
                             "plane", O(
                                 "type", "string",
                                 "enum", A(
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "piano di costruzione: front, top o right"),
+                                "description", "construction plane: front, top or right"),
                             "corner_treatment", O(
                                 "type", "string",
                                 "enum", A(
@@ -2538,15 +2538,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "enum", A(
                                     "overall",
                                     "center_distance"),
-                                "description", "cosa vogliono dire le due quote: «overall» e' la misura del "
-                                    + "pezzo finito da fuori a fuori (e' quello che intende un "
-                                    + "progettista quando dice «telaio 1000x800»); «center_distance» e' la "
-                                    + "distanza fra gli assi delle barre. Predefinito: overall."
-                                    + " Upper or lower case does not matter («Ingombro» is "
+                                "description", "what the two dimensions mean: «overall» is the size of the "
+                                    + "finished part from outside to outside (it is what a "
+                                    + "designer means by «frame 1000x800»); «center_distance» is the distance "
+                                    + "between the axes of the bars. Default: overall. "
+                                    + "Upper or lower case does not matter («Overall» is "
                                     + "«overall»); any other word is refused."),
                             "centered", O(
                                 "type", "boolean",
-                                "description", "telaio centrato sull'origine (predefinito: si')")),
+                                "description", "frame centered on the origin (default: yes)")),
                         "required", A(
                             "profile_path",
                             "configuration",
@@ -3413,30 +3413,30 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Dice quali proprieta' il cartiglio CHIEDE e quali MOSTRA. "
-                        + "Non tocca niente.",
+                        "Says which properties the title block ASKS FOR and which it SHOWS. "
+                        + "Touches nothing.",
                     Description =
-                        "Legge il CARTIGLIO del foglio attivo e ti dice due cose "
-                        + "diverse: **quali proprieta' personalizzate chiede** e **quali "
-                        + "sta mostrando**.\n\nPERCHE' SONO DUE COSE. Un cartiglio non "
-                        + "contiene testo: contiene collegamenti, scritti "
-                        + "`$PRP:\"Descrizione\"`. Riempirlo vuol dire scrivere quelle "
-                        + "proprieta' con «set_property».\n\n**IL NOME VA COPIATO "
-                        + "ALLA LETTERA.** Se lo scrivi con una maiuscola o uno spazio "
-                        + "diversi da quelli che il cartiglio referenzia, **non succede "
-                        + "niente di visibile**: SOLIDWORKS scrive la proprieta', il "
-                        + "cartiglio non la mostra, e il PDF esce con la casella vuota. "
-                        + "Nessun errore, da nessuna parte. Per questo ti do i nomi "
-                        + "esatti invece di lasciarteli indovinare.\n\nSe una proprieta' "
-                        + "e' chiesta e non mostrata te lo dico: o non e' ancora scritta, "
-                        + "o e' scritta con un'altra grafia.\n\nAttento a "
-                        + "`$PRPSHEET`: quella prende la proprieta' dal PEZZO in vista, "
-                        + "non dal disegno. Sono due cassetti diversi, e sbagliarli vuol "
-                        + "dire scrivere sul documento sbagliato.\n\nSe il cartiglio non "
-                        + "ha nessuna nota collegata te lo dico invece di lasciarti "
-                        + "riempire proprieta' che non comparirebbero: quel testo e' "
-                        + "disegnato dentro il formato, non alimentato.",
-                    Precondition = "una tavola aperta",
+                        "Reads the TITLE BLOCK of the active sheet and tells you "
+                        + "two different things: **which custom properties it asks for** and "
+                        + "**which ones it is showing**.\n\nWHY THEY ARE TWO THINGS. A "
+                        + "title block does not contain text: it contains "
+                        + "links, written `$PRP:\"Descrizione\"`. Filling it means writing "
+                        + "those properties with «set_property».\n\n**THE NAME MUST "
+                        + "BE COPIED TO THE LETTER.** If you write it with a capital letter "
+                        + "or a space different from the ones the title block references, "
+                        + "**nothing visible happens**: SOLIDWORKS writes the property, "
+                        + "the title block does not show it, and the PDF comes out with "
+                        + "an empty box. No error, anywhere. That is why I give you "
+                        + "the exact names instead of leaving you to guess them.\n\nIf a "
+                        + "property is asked for and not shown I tell you: either it is not "
+                        + "written yet, or it is written with another spelling."
+                        + "\n\nBeware of `$PRPSHEET`: it takes the property from the "
+                        + "PART in view, not from the drawing. They are two different drawers, "
+                        + "and mixing them up means writing on the wrong document.\n\nIf "
+                        + "the title block has no linked note I tell you, instead of "
+                        + "letting you fill in properties that would not appear: that "
+                        + "text is drawn inside the sheet format, not fed.",
+                    Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",
                         "properties", O(),
@@ -3450,26 +3450,26 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "assembly",
                     Tested = true,
                     Summary =
-                        "Dice se i componenti dell'assieme si compenetrano, e di quanto "
-                        + "volume. Non tocca niente.",
+                        "Says whether the components of the assembly interpenetrate, and by how "
+                        + "much volume. Touches nothing.",
                     Description =
-                        "Cerca le INTERFERENZE fra i componenti dell'assieme aperto: i "
-                        + "punti in cui due pezzi occupano lo stesso spazio.\n\n"
-                        + "PERCHE' CONTA. Due pezzi compenetrati si aprono, si "
-                        + "ricostruiscono, si esportano e si stampano: **non c'e' nessun "
-                        + "errore da nessuna parte**, e in officina non entrano. E' il "
-                        + "difetto che si scopre a pezzo fatto.\n\nTI DICO IL VOLUME, non "
-                        + "solo quante sono. Due interferenze possono essere due decimi di "
-                        + "millimetro cubo — due facce che si sfiorano — oppure migliaia, "
-                        + "cioe' mezzo coperchio dentro la base. **Il conteggio da solo non "
-                        + "distingue un problema da un dettaglio.**\n\nLE FACCE CHE SI "
-                        + "TOCCANO, di serie, NON contano come interferenza: altrimenti "
-                        + "ogni assieme montato bene risulterebbe rotto, perche' un "
-                        + "coperchio appoggiato condivide una faccia con la base. Ma un "
-                        + "albero in un foro dello stesso diametro condivide la superficie "
-                        + "cilindrica, e li' e' proprio il problema: quel pezzo non entra. "
-                        + "Se e' quello che ti interessa, chiedimelo con «touching_counts», "
-                        + "e ti dico sempre quale delle due ho usato."
+                        "Looks for the INTERFERENCES between the components of the open "
+                        + "assembly: the places where two parts occupy the same space.\n\n"
+                        + "WHY IT MATTERS. Two interpenetrating parts "
+                        + "open, rebuild, export and print: **there is no error anywhere**, "
+                        + "and in the workshop they do not fit. It is the defect "
+                        + "you find out about when the part is made.\n\nI TELL YOU THE "
+                        + "VOLUME, not only how many there are. Two interferences can be two "
+                        + "tenths of a cubic millimeter — two faces grazing each other — or "
+                        + "thousands, that is half a lid inside the base. **The count alone "
+                        + "does not tell a problem from a detail.**\n\nFACES THAT TOUCH, "
+                        + "by default, do NOT count as an interference: otherwise every "
+                        + "well assembled assembly would come out broken, because "
+                        + "a lid resting on the base shares a face with it. But a shaft "
+                        + "in a hole of the same diameter shares the cylindrical surface, "
+                        + "and there is exactly the problem: that part does not go in. If "
+                        + "that is what interests you, ask me with «touching_counts», and I "
+                        + "always tell you which of the two I used."
                         + "\n\nTHE COUNT AND THE LIST MUST AGREE. «how_many» is the count "
                         + "SOLIDWORKS gives; «interferences_read» is how many interferences its "
                         + "list actually held. When the two differ, «volume_total_mm3» is left "
@@ -3482,24 +3482,24 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "The count of components looked at excludes suppressed components "
                         + "(suppressed_components). The two settings echoed in the answer (touching "
                         + "faces, and interferences inside multibody parts) are the values SOLIDWORKS "
-                        + "reads back; if one reads back different from the request, the check is "
-                        + "refused."
-                        + "\n\nNon modifica "
-                        + "niente: si puo' chiedere anche con «measure».",
-                    Precondition = "un assieme aperto con almeno due componenti",
+                        + "reads back; if one reads back different from the request, the check is refused."
+                        + "\n\n"
+                        + "It changes nothing: "
+                        + "it can also be asked for through «measure».",
+                    Precondition = "an open assembly with at least two components",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "touching_counts", O(
                                 "type", "boolean",
-                                "description", "vero: due facce che si toccano esattamente contano come "
-                                    + "interferenza. Serve per «questo albero entra in questo foro?». "
-                                    + "Falso (predefinito): un coperchio appoggiato non e' un errore."),
+                                "description", "true: two faces that touch exactly count as an "
+                                    + "interference. It is for «does this shaft go into this hole?». "
+                                    + "False (default): a lid resting on the base is not an error."),
                             "inside_parts", O(
                                 "type", "boolean",
-                                "description", "vero: cerca anche fra i corpi DENTRO lo stesso "
-                                    + "componente multicorpo. Falso (predefinito): solo fra componenti "
-                                    + "diversi.")),
+                                "description", "true: also looks between the bodies INSIDE the "
+                                    + "same multibody component. False (default): only between different "
+                                    + "components.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3783,19 +3783,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Dice se i corpi sono solidi chiusi e sani. Non tocca il pezzo.",
+                        "Says whether the bodies are closed, sound solids. Does not touch the part.",
                     Description =
-                        "Guarda i CORPI del pezzo e dice se sono solidi chiusi e senza "
-                        + "difetti.\n\nNon disegna e non modifica niente: e' una domanda, non "
-                        + "un'operazione. Chiamala prima di consegnare un pezzo che verra' "
-                        + "stampato o esportato.\n\nPer ogni corpo risponde: il tipo (solido, "
-                        + "foglio, filo), quante facce ha, se e' chiuso, quante fessure e "
-                        + "quanti difetti topologici, col NOME del difetto e non col numero. "
-                        + "Poi un giudizio in una frase: «printable» vuol dire UN SOLO corpo "
-                        + "solido, chiuso, senza difetti.\n\nUn corpo APERTO -- una superficie "
-                        + "rimasta li' per sbaglio -- e' il caso che conta e quello che "
-                        + "nessuno vede: non da' errore da nessuna parte, sembra un pezzo, e "
-                        + "lo STL che ne esce non racchiude niente."
+                        "Looks at the BODIES of the part and says whether they are closed "
+                        + "solids with no defects.\n\nIt does not draw and does not modify anything: "
+                        + "it is a question, not an operation. Call it before handing over a "
+                        + "part that is going to be printed or exported.\n\nFor each body it answers: "
+                        + "the type (solid, sheet, wire), how many faces it has, whether it "
+                        + "is closed, how many gaps and how many topological defects, with the "
+                        + "NAME of the defect and not the number. Then a verdict in one sentence: "
+                        + "«printable» means ONE SINGLE solid body, closed, with no defects.\n\nAn "
+                        + "OPEN body -- a surface left there by mistake -- is the case that "
+                        + "matters and the one nobody sees: it gives no error anywhere, it looks like "
+                        + "a part, and the STL that comes out of it encloses nothing."
                         + "\n\nWITH «body_uid» THE VERDICT IS ABOUT THAT BODY ONLY: "
                         + "«printable» and «verdict» speak for it, and «verdict_about» says so "
                         + "(«body C2»; «part» when you ask for the whole part). «bodies_in_part» "
@@ -3804,18 +3804,18 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nA body whose defect check (Check3) or gap count (Diagnose) cannot be read "
                         + "is not called sound: its defect list is null with defects_not_read, and the "
                         + "printable verdict is false with the reason."
-                        + "\n\nATTENZIONE a cosa NON "
-                        + "guarda: lo spessore delle pareti e le sovrasporgenze. Un guscio da "
-                        + "tre decimi passa di qui senza una parola.",
+                        + "\n\nWARNING about what it does NOT look at: "
+                        + "the wall thickness and the overhangs. A shell three tenths of a millimeter "
+                        + "thick passes through here without a word.",
                     Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "body_uid", O(
                                 "type", "string",
-                                "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
-                                    + "dici li guarda tutti. Gli identificativi stanno nello stato del "
-                                    + "documento, dentro «bodies». With it the verdict speaks for that "
+                                "description", "a single body, by identifier (for example «C2»). If you do not "
+                                    + "say it, it looks at all of them. The identifiers are in the document "
+                                    + "state, inside «bodies». With it the verdict speaks for that "
                                     + "body only; «bodies_in_part» still says how many bodies the part has. "
                                     + "The identifier is resolved through the document state and checked "
                                     + "against its signature (centre and box): if the part changed since "
@@ -3832,51 +3832,51 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Dice cosa non si stampa senza supporti, e di quanto. Non tocca il "
-                        + "pezzo.",
+                        "Says what does not print without supports, and by how much. Does not touch "
+                        + "the part.",
                     Description =
-                        "Una parete che pende nel vuoto oltre un certo angolo si stampa a "
-                        + "filamenti persi. SOLIDWORKS non dice niente -- il pezzo e' sano, "
-                        + "il volume e' giusto, la geometria e' chiusa -- e il difetto si "
-                        + "vede solo sulla macchina, a stampa finita.\n\nGUARDO OGNI "
-                        + "SUPERFICIE, anche quelle curve: il sotto di un cilindro "
-                        + "orizzontale pende nel vuoto nella sua parte bassa e non in quella "
-                        + "alta, quindi non basta una normale per faccia. Tassello e guardo "
-                        + "triangolo per triangolo, pesando per area.\n\nL'ANGOLO SI CONTA "
-                        + "DALLA VERTICALE, come negli slicer: una parete dritta e' 0, un "
-                        + "soffitto orizzontale e' 90, e «soglia 45» vuol dire che oltre i 45 "
-                        + "serve il supporto. Non e' l'angolo col piano, che e' il "
-                        + "complementare: due numeri che si somigliano e dicono il "
-                        + "contrario.\n\nQUELLO CHE APPOGGIA SUL PIANO NON LO CONTO. La "
-                        + "faccia di sotto guarda dritta in giu' -- 90 gradi, il caso "
-                        + "peggiore -- ma appoggia sul piano della macchina e si stampa "
-                        + "benissimo.\n\nTi rispondo la sporgenza peggiore, quanta area "
-                        + "pende, e le facce una per una con dove stanno, cosi' sai se girare "
-                        + "il pezzo o smussare.\n\nGUARDO ANCHE I CORPI NASCOSTI (quanti sono "
-                        + "te lo dico in «hidden_bodies»). Una faccia curva che non si lascia "
-                        + "tassellare non la posso guardare: la conto in «faces_not_analyzed», "
-                        + "e se non ho trovato sporgenze altrove «prints_without_supports» "
-                        + "e' null, non true.",
+                        "A wall that hangs in the void beyond a certain angle prints as lost "
+                        + "filaments. SOLIDWORKS says nothing -- the part is sound, the volume "
+                        + "is right, the geometry is closed -- and the defect shows only "
+                        + "on the machine, once the print is finished.\n\nI LOOK AT "
+                        + "EVERY SURFACE, the curved ones too: the underside of a "
+                        + "horizontal cylinder hangs in the void in its lower part and not in its "
+                        + "upper part, so one normal per face is not enough. I tessellate and "
+                        + "look triangle by triangle, weighting by area.\n\nTHE ANGLE IS "
+                        + "COUNTED FROM THE VERTICAL, as in slicers: a straight wall is 0, a "
+                        + "horizontal ceiling is 90, and «threshold 45» means that beyond 45 the "
+                        + "support is needed. It is not the angle with the plane, which "
+                        + "is the complement: two numbers that look alike and say "
+                        + "the opposite.\n\nWHAT RESTS ON THE PLANE I DO NOT COUNT. The "
+                        + "bottom face looks straight down -- 90 degrees, the worst case "
+                        + "-- but it rests on the plane of the machine and prints perfectly "
+                        + "well.\n\nI answer with the worst overhang, how much area "
+                        + "hangs, and the faces one by one with where they are, so you know whether "
+                        + "to turn the part or chamfer.\n\nI ALSO LOOK AT HIDDEN BODIES (how "
+                        + "many there are I tell you in «hidden_bodies»). A curved face that cannot "
+                        + "be tessellated I cannot look at: I count it in «faces_not_analyzed», "
+                        + "and if I found no overhangs elsewhere «prints_without_supports» "
+                        + "is null, not true.",
                     Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "threshold_deg", O(
                                 "type", "number",
-                                "description", "oltre quanti gradi dalla verticale serve il supporto. "
-                                    + "Predefinito 45, che e' il valore normale di una stampante a "
-                                    + "filamento; 30-35 per stare larghi, 60 se la macchina raffredda "
-                                    + "bene."),
+                                "description", "beyond how many degrees from the vertical the support "
+                                    + "is needed. Default 45, which is the normal value for a filament "
+                                    + "printer; 30-35 to be on the safe side, 60 if the machine cools "
+                                    + "well."),
                             "print_direction", O(
                                 "type", "array",
                                 "items", O("type", "number"),
-                                "description", "il verso in cui cresce la stampa, tre numeri. Predefinito "
-                                    + "[0, 0, 1]. Cambiarlo e' il modo di chiedere «e se lo stampassi "
-                                    + "girato?» senza girare il pezzo."),
+                                "description", "the direction the print grows in, three numbers. Default "
+                                    + "[0, 0, 1]. Changing it is the way to ask «what if I printed it "
+                                    + "turned?» without turning the part."),
                             "body_uid", O(
                                 "type", "string",
-                                "description", "un corpo solo (per esempio «C2»). Se non lo dici li guardo "
-                                    + "tutti.")),
+                                "description", "a single body (for example «C2»). If you do not say it I look at all "
+                                    + "of them.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3885,18 +3885,18 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "checks",
                     RequestedDocument = "any",
                     Tested = true,
-                    Summary = "Da quali file dipende il documento, e quali mancano sul disco. Non tocca niente.",
+                    Summary = "Which files the document depends on, and which are missing on the disk. Touches nothing.",
                     Description =
-                        "Un assieme (o una tavola) e' un grafo di file sul disco: ti dico da quali file "
-                        + "dipende, a tutti i livelli, e per ognuno se c'e'. Un file che manca e' un "
-                        + "componente che l'assieme mostra SOPPRESSO: prima di misurare o esportare va "
-                        + "ritrovato o sostituito.\n\nSe manca lo dice il disco, non l'API: il parametro "
-                        + "che promette di segnare i riferimenti rotti non li segna (misurato)."
+                        "An assembly (or a drawing) is a graph of files on the disk: I tell you which files it "
+                        + "depends on, at every level, and for each one whether it is there. A file that "
+                        + "is missing is a component that the assembly shows SUPPRESSED: before measuring or "
+                        + "exporting it must be found again or replaced.\n\nIf it is missing, the disk says so, "
+                        + "not the API: the parameter that promises to mark broken references does not mark them (measured)."
                         + "\n\nThe paths are where each file was last saved (GetDependencies with "
                         + "Searchflag false): with the search rules, a component that is not loaded "
                         + "could come back as another file with the same name found in another folder, "
                         + "which exists, and a missing file would not be reported (measured, L12-8).",
-                    Precondition = "un documento salvato",
+                    Precondition = "a saved document",
                     Schema = O(
                         "type", "object",
                         "properties", O(),
@@ -3909,24 +3909,24 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Volume, area, massa e baricentro del pezzo. Non tocca niente.",
+                        "Volume, area, mass and center of gravity of the part. Touches nothing.",
                     Description =
-                        "Risponde a «quanto pesa questo pezzo»: volume, area della "
-                        + "superficie, massa, densita' e baricentro.\n\nLA MASSA SENZA "
-                        + "MATERIALE NON E' ZERO, E' «NON SI SA»: se al pezzo non e' stato "
-                        + "dato un materiale ti rispondo null e ti dico perche'. SOLIDWORKS "
-                        + "risponderebbe lo stesso usando la densita' predefinita del modello "
-                        + "-- di solito 1000 kg/m3, cioe' acqua -- e un pezzo d'acciaio che "
-                        + "pesa come l'acqua e' un numero credibile e sbagliato di otto "
-                        + "volte. Usa prima «apply_material».\n\nLa massa arriva anche "
-                        + "RICALCOLATA a mano (volume per densita') accanto a quella di "
-                        + "SOLIDWORKS: se le due divergono, una delle misure non e' nelle "
-                        + "unita' che dichiara, ed e' il modo in cui un fattore mille si fa "
-                        + "vedere invece di nascondersi."
-                        + "\n\nSU UN ASSIEME peso l'assieme intero (i componenti soppressi no, e "
-                        + "te li elenco) e controllo la massa contro la somma dei pezzi letti uno "
-                        + "per uno: se non combaciano mi fermo. Se un pezzo non ha materiale, la "
-                        + "massa e' null e ti dico quale."
+                        "Answers «how much does this part weigh»: volume, surface "
+                        + "area, mass, density and center of gravity.\n\nMASS WITHOUT A "
+                        + "MATERIAL IS NOT ZERO, IT IS «UNKNOWN»: if the part has not been "
+                        + "given a material I answer null and I tell you why. SOLIDWORKS would "
+                        + "answer all the same, using the default density of the model -- "
+                        + "usually 1000 kg/m3, that is water -- and a steel part that weighs "
+                        + "like water is a believable number and wrong by a factor of eight. "
+                        + "Use «apply_material» first.\n\nThe mass also arrives "
+                        + "RECALCULATED by hand (volume times density) next to the one from "
+                        + "SOLIDWORKS: if the two diverge, one of the measures is not in the "
+                        + "units it declares, and it is the way a factor of a thousand shows "
+                        + "itself instead of hiding."
+                        + "\n\nON AN ASSEMBLY I weigh the whole assembly (suppressed components not, "
+                        + "and I list them) and I check the mass against the sum of the parts read "
+                        + "one by one: if they do not match I stop. If a part has no material, "
+                        + "the mass is null and I tell you which."
                         + "\n\nWHICH COMPONENTS WEIGH ON AN ASSEMBLY (measured). Suppressed components do "
                         + "not weigh, and they are listed. ENVELOPES do not weigh: SOLIDWORKS leaves them out "
                         + "of the assembly mass, the sum of the parts leaves them out too, and the answer names "
@@ -3950,8 +3950,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "body_uid", O(
                                 "type", "string",
-                                "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
-                                    + "dici li pesa tutti insieme. A body named from an earlier reading of "
+                                "description", "a single body, by identifier (for example «C2»). If you do not say "
+                                    + "it, it weighs them all together. A body named from an earlier reading of "
                                     + "the state is checked against its signature (centre and box): if the "
                                     + "part changed since and the identifier now names another body, the "
                                     + "step is refused instead of weighing the other one."),
@@ -3971,20 +3971,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "La scatola del pezzo in mm, corpo per corpo e tutta insieme.",
+                        "The box of the part in mm, body by body and all together.",
                     Description =
-                        "Risponde a «entra nella scatola 300x260x40»: da dove a dove arriva "
-                        + "il pezzo su ognuno dei tre assi, e quanto misura.\n\nI punti sono "
-                        + "quelli VERI del corpo, presi in sei direzioni, non la scatola "
-                        + "approssimata: un ingombro dichiarato piu' grande del vero fa "
-                        + "dimensionare male tutto quello che ci sta intorno.\n\nE' la "
-                        + "scatola ALLINEATA AGLI ASSI del modello, non la piu' piccola "
-                        + "possibile: un pezzo lungo messo in diagonale ha un ingombro molto "
-                        + "piu' grande di quello che gli servirebbe girato bene, e questa "
-                        + "misura non dice come girarlo."
-                        + "\n\nSU UN ASSIEME misuro ogni pezzo nel posto in cui sta nell'assieme "
-                        + "e la scatola che li contiene tutti; i componenti soppressi no, e te "
-                        + "li elenco."
+                        "Answers «does it fit in the 300x260x40 box»: from where to where the "
+                        + "part reaches on each of the three axes, and how big it is.\n\nThe "
+                        + "points are the TRUE ones of the body, taken in six directions, "
+                        + "not the approximated box: a bounding box declared larger than the "
+                        + "real one makes everything around it be sized wrong.\n\nIt is "
+                        + "the box ALIGNED TO THE AXES of the model, not the smallest "
+                        + "possible one: a long part placed diagonally has a much larger bounding "
+                        + "box than the one it would need turned the right way, and this "
+                        + "measure does not say how to turn it."
+                        + "\n\nON AN ASSEMBLY I measure each part in the place where it sits in "
+                        + "the assembly and the box that contains them all; suppressed components "
+                        + "not, and I list them."
                         + "\n\nON AN ASSEMBLY, LIGHTWEIGHT PARTS ARE MEASURED without resolving them: "
                         + "GetBodies3 reads the bodies of a lightweight part (measured), and the answer names "
                         + "them in «lightweight_components_measured». Envelopes and hidden components are in "
@@ -3997,9 +3997,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "body_uid", O(
                                 "type", "string",
-                                "description", "un corpo solo, per identificativo (per esempio «C2»). Se non lo "
-                                    + "dici misura tutti i corpi e la scatola che li contiene. A body named "
-                                    + "from an earlier reading of the state is checked against its "
+                                "description", "a single body, by identifier (for example «C2»). If you do not say "
+                                    + "it, it measures all the bodies and the box that contains them. A body "
+                                    + "named from an earlier reading of the state is checked against its "
                                     + "signature (centre and box) before it is measured: if the part "
                                     + "changed since and the identifier now names another body, the step "
                                     + "is refused instead of measuring the other one. The answer names the "
@@ -4243,29 +4243,29 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Quanto distano due facce o due spigoli, col controllo che il "
-                        + "numero non sia smentito dai suoi stessi punti.",
+                        "How far apart two faces or two edges are, checking that the "
+                        + "number is not contradicted by its own points.",
                     Description =
-                        "Misura la distanza PIU' CORTA fra due facce, due spigoli, o una "
-                        + "faccia e uno spigolo. E' il modo di rispondere a «quanto materiale "
-                        + "resta fra la cava della guarnizione e la faccia esterna»: due cose "
-                        + "nominate e un numero, invece di un conto a mano sull'ingombro."
-                        + "\n\nRisponde anche con i DUE PUNTI fra cui ha misurato, e con la "
-                        + "loro distanza calcolata a parte: se il numero e i punti non "
-                        + "tornano, la chiamata e' fallita e ha risposto lo stesso, e in quel "
-                        + "caso fallisco invece di darti il numero.\n\nZero vuol dire che le "
-                        + "due cose si toccano, e te lo dico.",
+                        "Measures the SHORTEST distance between two faces, two edges, or a "
+                        + "face and an edge. It is the way to answer «how much material is left "
+                        + "between the gasket groove and the outer face»: two named things and a "
+                        + "number, instead of a hand calculation on the bounding box."
+                        + "\n\nIt also answers with the TWO POINTS between which it measured, and with "
+                        + "their distance calculated separately: if the number and the "
+                        + "points do not match, the call failed and answered all the same, and in that "
+                        + "case I fail instead of giving you the number.\n\nZero means that "
+                        + "the two things touch, and I tell you.",
                     Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "start_uid", O(
                                 "type", "string",
-                                "description", "identificativo della prima faccia o del primo spigolo, preso "
-                                    + "dallo stato del documento (per esempio «F3» o «E7»)."),
+                                "description", "identifier of the first face or of the first edge, taken "
+                                    + "from the document state (for example «F3» or «E7»)."),
                             "end_uid", O(
                                 "type", "string",
-                                "description", "identificativo della seconda.")),
+                                "description", "identifier of the second.")),
                         "required", A("start_uid", "end_uid")),
                 },
                 new OperationSpec
@@ -4275,18 +4275,18 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Lo strumento di misura: area, perimetro, distanza, angolo, "
-                        + "parallelismo fra una o due entita'.",
+                        "The measuring tool: area, perimeter, distance, angle, "
+                        + "parallelism between one or two entities.",
                     Description =
-                        "Misura UNA faccia o uno spigolo -- area, perimetro, lunghezza, "
-                        + "raggio -- oppure DUE, e allora dice anche distanza, differenze sui "
-                        + "tre assi, angolo, se sono parallele o perpendicolari.\n\nE' lo "
-                        + "stesso strumento di misura che si usa a mano in SOLIDWORKS. Per la "
-                        + "sola distanza minima fra due cose, «minimum_distance» e' piu' "
-                        + "robusta: controlla il risultato coi punti.\n\nQuello che non si "
-                        + "applica non torna: il perimetro di una faccia che non ne ha, il "
-                        + "raggio di un piano. SOLIDWORKS li darebbe come -1, che e' un "
-                        + "numero e non lo e'."
+                        "Measures ONE face or edge -- area, perimeter, length, radius -- "
+                        + "or TWO, and then it also says distance, differences on the three axes, "
+                        + "angle, whether they are parallel or perpendicular.\n\nIt is the "
+                        + "same measuring tool that is used by hand in SOLIDWORKS. For the "
+                        + "minimum distance alone between two things, «minimum_distance» is "
+                        + "more robust: it checks the result against the points.\n\nWhat does "
+                        + "not apply does not come back: the perimeter of a face that has "
+                        + "none, the radius of a plane. SOLIDWORKS would give them as -1, "
+                        + "which is a number and is not one."
                         + "\n\nA distance to an arc or a circle is taken as «arc_measure» says: "
                         + "centre to centre (the default), between the nearest points or between "
                         + "the farthest points. The result says which one was used («arc_measure», "
@@ -4299,11 +4299,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "uid", O(
                                 "type", "string",
-                                "description", "la faccia o lo spigolo da misurare, preso dallo stato del "
-                                    + "documento."),
+                                "description", "the face or edge to measure, taken from the document "
+                                    + "state."),
                             "uid2", O(
                                 "type", "string",
-                                "description", "la seconda, se vuoi misurare FRA due cose."),
+                                "description", "the second one, if you want to measure BETWEEN two things."),
                             "arc_measure", O(
                                 "type", "string",
                                 "enum", A("centre", "minimum", "maximum"),
@@ -4507,33 +4507,33 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "none",
                     Tested = true,
                     Summary =
-                        "Elenca i profili della libreria e le loro misure, scritte come vanno "
-                        + "copiate. Non tocca niente.",
+                        "Lists the profiles of the library and their sizes, written as they must "
+                        + "be copied. Touches nothing.",
                     Description =
-                        "Dice quali profili ci sono -- tubolari, IPE, angolari, piatti -- e "
-                        + "per ognuno quali misure, scritte esattamente come vanno copiate."
-                        + "\n\nCHIAMAMI PRIMA di «structural_member» e «rectangular_frame». "
-                        + "Loro vogliono «profile_path» e «configuration» ALLA LETTERA, e "
-                        + "alla lettera vuol dire davvero: maiuscole, spazi e virgole contano. "
-                        + "Una misura scritta quasi giusta NON DA' ERRORE -- SOLIDWORKS usa la "
-                        + "configurazione attiva del profilo, il pezzo esce con una parete "
-                        + "diversa da quella che credi, la ricostruzione e' pulita, e te ne "
-                        + "accorgi in officina.\n\nLeggo i file senza aprirli: non apro "
-                        + "documenti e non lascio niente in giro.\n\nSe la libreria e' grande "
-                        + "te ne do i primi quaranta e te lo dico: con «search» e un pezzo del "
-                        + "nome li restringi.",
+                        "Says which profiles there are -- tubes, IPE, angles, flat bars -- and "
+                        + "for each one which sizes, written exactly as they must be copied."
+                        + "\n\nCALL ME BEFORE «structural_member» and «rectangular_frame». They want "
+                        + "«profile_path» and «configuration» TO THE LETTER, and to the "
+                        + "letter really means it: upper case, spaces and commas count. A size written "
+                        + "almost right GIVES NO ERROR -- SOLIDWORKS uses the active configuration "
+                        + "of the profile, the part comes out with a different wall from the "
+                        + "one you think, the rebuild is clean, and you find out in the workshop."
+                        + "\n\nI read the files without opening them: I open no documents "
+                        + "and leave nothing lying around.\n\nIf the library is large I give you "
+                        + "the first forty and tell you so: with «search» and a piece of the name "
+                        + "you narrow them down.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "search", O(
                                 "type", "string",
-                                "description", "un pezzo del nome del profilo, per restringere: per esempio "
-                                    + "«tubo», «IPE», «angolare». Senza, li elenca tutti."),
+                                "description", "a piece of the profile name, to narrow down: for example «IPE», «HEA», or a word of the file name such as "
+                                    + "«tube», in the language the library files are named in. Without it, it lists them all."),
                             "with_measurements", O(
                                 "type", "boolean",
-                                "description", "vero (predefinito) per avere anche le misure di ogni profilo. "
-                                    + "Falso se ti basta sapere quali profili esistono: costa meno.")),
+                                "description", "true (default) to get the sizes of each profile as well. False "
+                                    + "if all you need is to know which profiles exist: it costs less.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -4880,24 +4880,24 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Un tubo pieno di diametro dato lungo un percorso di punti. Su un "
-                        + "percorso dritto controllo che il volume sia area per lunghezza.",
+                        "A solid tube of given diameter along a path of points. On a "
+                        + "straight path I check that the volume is area times length.",
                     Description =
-                        "Fa una forma che segue una strada: un bocchettone passacavo, un "
-                        + "manico, un tubo piegato. E' la prima operazione del catalogo che "
-                        + "fa qualcosa che non e' dritto.\n\nIL PROFILO E' UN NUMERO, non uno "
-                        + "schizzo: dai il diametro e basta. Il percorso e' un elenco di "
-                        + "punti nello spazio, e lo disegno io: non ti chiedo uno schizzo "
-                        + "perche' nello stato del documento gli schizzi non hanno un "
-                        + "identificativo, e non avresti modo di indicarmelo.\n\nSU UN "
-                        + "PERCORSO DRITTO IL CONTO SI FA A MANO, e lo faccio: il volume "
-                        + "dev'essere l'area del cerchio per la lunghezza, e se non lo e' mi "
-                        + "rifiuto. Su un percorso con dei gomiti no -- nei gomiti il "
-                        + "materiale si sovrappone e il volume vero e' minore -- e allora ti "
-                        + "do il teorico dicendoti che e' un limite superiore, non la "
-                        + "risposta.\n\nUNA CURVA PIU' STRETTA DEL RAGGIO DEL TUBO non si "
-                        + "puo' fare: la superficie si attraverserebbe. SOLIDWORKS in quel "
-                        + "caso non crea niente e non dice perche'; io te lo dico.",
+                        "Makes a shape that follows a path: a cable gland, a handle, a bent "
+                        + "tube. It is the first operation of the catalogue that makes "
+                        + "something that is not straight.\n\nTHE PROFILE IS A NUMBER, not a sketch: "
+                        + "you give the diameter and that is all. The path is a list of "
+                        + "points in space, and I draw it myself: I do not ask you for a sketch "
+                        + "because in the document state sketches have no identifier, "
+                        + "and you would have no way to point one out to me.\n\nON A "
+                        + "STRAIGHT PATH THE CALCULATION IS DONE BY HAND, and I do it: the "
+                        + "volume must be the area of the circle times the length, and if it is "
+                        + "not I refuse. On a path with elbows it is not -- at the elbows "
+                        + "the material overlaps and the real volume is smaller -- and then I "
+                        + "give you the theoretical one, telling you it is an upper "
+                        + "limit, not the answer.\n\nA BEND TIGHTER THAN THE RADIUS OF THE TUBE "
+                        + "cannot be made: the surface would cross itself. In that case "
+                        + "SOLIDWORKS creates nothing and does not say why; I tell you.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
@@ -4905,11 +4905,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "path_mm", O(
                                 "type", "array",
                                 "items", O("type", "array", "items", O("type", "number")),
-                                "description", "i punti della strada, almeno due, ognuno [x, y, z] in mm. "
-                                    + "Per esempio [[0,0,0], [100,0,0]] fa un tubo dritto lungo 100."),
+                                "description", "the points of the path, at least two, each [x, y, z] in mm. "
+                                    + "For example [[0,0,0], [100,0,0]] makes a straight tube 100 long."),
                             "diameter_mm", O(
                                 "type", "number",
-                                "description", "il diametro del tubo, in mm.")),
+                                "description", "the diameter of the tube, in mm.")),
                         "required", A("path_mm", "diameter_mm")),
                 },
                 new OperationSpec
@@ -4920,20 +4920,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una transizione fra due cerchi di diametro diverso, e ti dico di "
-                        + "quanto si scosta dal tronco di cono.",
+                        "A transition between two circles of different diameter, and I tell you by "
+                        + "how much it departs from the truncated cone.",
                     Description =
-                        "Raccorda due sezioni tonde diverse: un riduttore, un imbocco, una "
-                        + "transizione da un tubo grosso a uno sottile.\n\nUN LOFT FRA DUE "
-                        + "CERCHI NON E' UN CONO, ed e' la cosa che vale la pena sapere. La "
-                        + "sua superficie e' un'approssimazione a spline della conica: il "
-                        + "volume si scosta dalla formula del tronco di cono di qualche "
-                        + "millesimo di per cento, sempre in difetto. Ti do tutti e due i "
-                        + "numeri e lo scarto, cosi' non insegui un difetto che non c'e'. Se "
-                        + "ti serve il cono esatto, «revolve» su un trapezio lo fa."
-                        + "\n\nI due cerchi stanno su piani paralleli a quello che scegli, "
-                        + "alla distanza che dici. Puoi sfalsarli uno rispetto all'altro per "
-                        + "fare una transizione obliqua.",
+                        "Blends two different round sections: a reducer, an inlet, a transition "
+                        + "from a large tube to a thin one.\n\nA LOFT BETWEEN TWO "
+                        + "CIRCLES IS NOT A CONE, and it is the thing worth knowing. Its surface "
+                        + "is a spline approximation of the cone: the volume departs from "
+                        + "the formula of the truncated cone by a few thousandths of a "
+                        + "percent, always on the low side. I give you both numbers and "
+                        + "the difference, so you do not chase a defect that is not there. If "
+                        + "you need the exact cone, «revolve» on a trapezoid does it."
+                        + "\n\nThe two circles lie on planes parallel to the one you "
+                        + "choose, at the distance you say. You can offset them from each other "
+                        + "to make an oblique transition.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
@@ -4941,26 +4941,26 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "plane", O(
                                 "type", "string",
                                 "enum", A("front", "top", "right"),
-                                "description", "il piano del primo cerchio. Predefinito «front»."),
+                                "description", "the plane of the first circle. Default «front»."),
                             "diameter1_mm", O(
                                 "type", "number",
-                                "description", "il diametro del primo cerchio, sul piano scelto."),
+                                "description", "the diameter of the first circle, on the chosen plane."),
                             "diameter2_mm", O(
                                 "type", "number",
-                                "description", "il diametro del secondo."),
+                                "description", "the diameter of the second."),
                             "distance_mm", O(
                                 "type", "number",
                                 "description", "how far the second circle is from the first, in mm. "
                                     + "Greater than zero: the second circle goes on the side the chosen "
-                                    + "plane faces (+Z for frontale, +Y for superiore, +X for destro). A "
+                                    + "plane faces (+Z for front, +Y for top, +X for right). A "
                                     + "negative or zero distance is refused."),
                             "offset1_mm", O(
                                 "type", "number",
-                                "description", "di quanto spostare di lato il primo cerchio. Predefinito 0."),
+                                "description", "how far to move the first circle sideways. Default 0."),
                             "offset2_mm", O(
                                 "type", "number",
-                                "description", "di quanto spostare di lato il secondo: serve per una "
-                                    + "transizione obliqua. Predefinito 0.")),
+                                "description", "how far to move the second one sideways: needed for "
+                                    + "an oblique transition. Default 0.")),
                         "required", A("diameter1_mm", "diameter2_mm", "distance_mm")),
                 },
                 new OperationSpec
@@ -5059,43 +5059,43 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una lamiera piegata da un profilo aperto: spessore, raggio di piega, profondita'.",
+                        "A sheet metal part bent from an open profile: thickness, bend radius, depth.",
                     Description =
-                        "Fa una LAMIERA da un profilo aperto disegnato su un piano base: una L, "
-                        + "una U, uno zeta. Ogni angolo del profilo diventa una piega col raggio "
-                        + "chiesto.\n\nI PUNTI SONO LE FACCE INTERNE quando il profilo va nel verso "
-                        + "in cui lo spessore resta a DESTRA: misurato su una L da 50 + 30 data "
-                        + "dall'alto verso destra, lo sviluppo esce 80,712 mm, uguale al conto a "
-                        + "mano sulle facce interne. Dato al contrario, lo spessore va dall'altra "
-                        + "parte e i punti diventano le facce ESTERNE: la risposta dice sempre "
-                        + "quale delle due («points_are_faces»), perche' fra le due passano "
-                        + "2 volte lo spessore per piega.\n\nLa risposta porta anche lo SVILUPPO: "
-                        + "la lunghezza del pezzo spianato misurata da SOLIDWORKS, accanto a "
-                        + "quella calcolata a mano col fattore K riletto dal pezzo. Se non "
-                        + "combaciano lo dice, prima che il DXF vada al taglio.\n\nRifiuta un "
-                        + "tratto piu' corto delle pieghe che lo mangiano (un lato da 1 mm con un "
-                        + "raggio da 2): SOLIDWORKS darebbe una lavorazione rossa senza dire quale "
-                        + "lato. E rifiuta una flangia che nasce in errore o che aggiunge meno "
-                        + "della meta' del materiale del conto a mano."
+                        "Makes a SHEET METAL part from an open profile drawn on a base plane: an L, "
+                        + "a U, a Z. Every corner of the profile becomes a bend with the radius asked "
+                        + "for.\n\nTHE POINTS ARE THE INNER FACES when the profile goes in the direction in "
+                        + "which the thickness stays on the RIGHT: measured on an L of 50 + 30 given "
+                        + "from the top towards the right, the flat pattern comes out 80.712 mm, equal "
+                        + "to the hand calculation on the inner faces. Given the other way round, the "
+                        + "thickness goes to the other side and the points become the OUTER faces: "
+                        + "the answer always says which of the two («points_are_faces»), because "
+                        + "between the two there are 2 times the thickness per bend.\n\nThe answer also "
+                        + "carries the FLAT PATTERN: the length of the flattened part measured by "
+                        + "SOLIDWORKS, next to the one calculated by hand with the K factor read "
+                        + "back from the part. If they do not match, it says so, before the DXF "
+                        + "goes to cutting.\n\nI REFUSE IF a segment is shorter than the bends that eat it "
+                        + "(a 1 mm side with a radius of 2): SOLIDWORKS would give a red feature without "
+                        + "saying which side. I also refuse a flange that is born in error or that "
+                        + "adds less than half of the material of the hand calculation."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondition = "una parte senza corpi, o a cui aggiungere una lamiera",
+                    Precondition = "a part with no bodies, or one to add a sheet metal body to",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "plane", O(
                                 "type", "string",
                                 "enum", A("front", "top", "right"),
-                                "description", "il piano base su cui sta il profilo. Predefinito «front»."),
+                                "description", "the base plane the profile lies on. Default «front»."),
                             "points", O(
                                 "type", "array",
                                 "items", O("type", "array", "items", O("type", "number")),
-                                "description", "il profilo APERTO, almeno due punti [x, y] in mm sul piano. "
-                                    + "Una L: [[0,30],[0,0],[50,0]]."),
-                            "thickness_mm", O("type", "number", "description", "lo spessore della lamiera"),
-                            "radius_mm", O("type", "number", "description", "il raggio INTERNO delle pieghe"),
-                            "depth_mm", O("type", "number", "description", "quanto e' profonda la lamiera, perpendicolare al piano")),
+                                "description", "the OPEN profile, at least two points [x, y] in mm on the plane. "
+                                    + "An L: [[0,30],[0,0],[50,0]]."),
+                            "thickness_mm", O("type", "number", "description", "the thickness of the sheet"),
+                            "radius_mm", O("type", "number", "description", "the INNER radius of the bends"),
+                            "depth_mm", O("type", "number", "description", "how deep the sheet is, perpendicular to the plane")),
                         "required", A("points", "thickness_mm", "radius_mm", "depth_mm")),
                 },
                 new OperationSpec
@@ -5105,35 +5105,35 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Una piega nuova su uno spigolo di bordo di una lamiera che c'e' gia'.",
+                        "A new bend on a border edge of a sheet metal part that already exists.",
                     Description =
-                        "Aggiunge una FLANGIA a 90 gradi su uno spigolo di bordo di una lamiera "
-                        + "(fatta con «base_flange»): e' cosi' che si chiude una scatola, con pieghe "
-                        + "su spigoli di direzioni diverse.\n\nLo spigolo e' quello fra la faccia "
-                        + "larga della lamiera e una faccia di TESTA, larga quanto lo spessore; la "
-                        + "flangia si alza dalla parte verso cui guarda la faccia larga. "
-                        + "«length_mm» e' misurata allo SPIGOLO VIRTUALE ESTERNO, e il materiale "
-                        + "resta dentro l'ingombro di prima: il lato su cui pieghi si accorcia di "
-                        + "raggio + spessore. Spessore, raggio e fattore K sono quelli della "
-                        + "lamiera, riletti.\n\nLa risposta porta il volume aggiunto accanto al "
-                        + "conto a mano (lo sviluppo in piu', (L - R - T) + BA - (R + T), per lo "
-                        + "spessore e la lunghezza dello spigolo), e la lunghezza riletta dalla "
-                        + "flangia.\n\nMI RIFIUTO se la lunghezza non lascia niente di dritto "
-                        + "(non oltre raggio + spessore), se lo spigolo non e' dritto o non sta sul "
-                        + "bordo della lamiera, e se la flangia nasce senza aggiungere materiale."
+                        "Adds a 90 degree FLANGE on a border edge of a sheet metal part (made "
+                        + "with «base_flange»): this is how a box is closed, with bends on edges of "
+                        + "different directions.\n\nThe edge is the one between the wide face of "
+                        + "the sheet and an END face, as wide as the thickness; the flange rises on "
+                        + "the side the wide face faces. «length_mm» is measured to the "
+                        + "OUTER VIRTUAL SHARP, and the material stays inside the bounding box "
+                        + "as before: the side you bend on gets shorter by radius + thickness. "
+                        + "Thickness, radius and K factor are those of the sheet, read back.\n\n"
+                        + "The answer carries the added volume next to the hand calculation "
+                        + "(the extra flat pattern, (L - R - T) + BA - (R + T), times the thickness "
+                        + "and the length of the edge), and the length read back from the flange."
+                        + "\n\nI REFUSE IF the length leaves nothing straight (not beyond "
+                        + "radius + thickness), if the edge is not straight or is not on the border "
+                        + "of the sheet, or if the flange is created without adding material."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondition = "una parte di lamiera",
+                    Precondition = "a sheet metal part",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "edge_uid", O(
                                 "type", "string",
-                                "description", "lo spigolo di bordo su cui piegare, dallo stato del documento (E1, E2...)"),
+                                "description", "the border edge to bend, from the document state (E1, E2...)"),
                             "length_mm", O(
                                 "type", "number",
-                                "description", "quanto e' lunga la flangia, misurata allo spigolo virtuale esterno")),
+                                "description", "how long the flange is, measured to the outer virtual sharp")),
                         "required", A("edge_uid", "length_mm")),
                 },
                 new OperationSpec
@@ -5143,39 +5143,39 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Il bordo di una lamiera ripiegato su se stesso, chiuso o aperto.",
+                        "The edge of a sheet metal part folded back on itself, closed or open.",
                     Description =
-                        "Ripiega su se stesso il bordo di una lamiera (fatta con «base_flange»): "
-                        + "l'orlo che toglie il filo tagliente e irrigidisce il bordo. «closed» e' "
-                        + "schiacciato sulla lamiera; «open» lascia «gap_mm» fra il bordo e la "
-                        + "lamiera. Resta dentro l'ingombro di prima.\n\nLo spigolo e' quello fra la "
-                        + "faccia larga e una faccia di testa, larga quanto lo spessore. La risposta "
-                        + "porta il volume aggiunto accanto al conto a mano: per l'aperto e' la piega "
-                        + "a 180 gradi col raggio interno pari a meta' del gioco, misurata tre volte "
-                        + "al millesimo; per il chiuso il conto usa un raggio di 0,05 mm, misurato "
-                        + "con spessore 2, e si dice ma non decide.\n\nMI RIFIUTO se l'orlo non "
-                        + "lascia niente di dritto, se «open» non ha gioco, se lo spigolo non e' "
-                        + "dritto o non sta sul bordo, e se l'orlo nasce senza aggiungere materiale."
+                        "Folds the edge of a sheet metal part (made with «base_flange») back on itself: "
+                        + "the hem that removes the sharp edge and stiffens the border. «closed» is "
+                        + "flattened against the sheet; «open» leaves «gap_mm» between the edge and the "
+                        + "sheet. It stays inside the bounding box as before.\n\nThe edge is the one between the "
+                        + "wide face and an end face, as wide as the thickness. The answer "
+                        + "carries the added volume next to the hand calculation: for the open one it is the "
+                        + "180 degree bend with the inner radius equal to half the gap, measured three times "
+                        + "to the thousandth; for the closed one the calculation uses a radius of 0.05 mm, measured "
+                        + "with thickness 2, and it is stated but does not decide.\n\nI REFUSE IF the hem does not "
+                        + "leave anything straight, if «open» has no gap, if the edge is not "
+                        + "straight or is not on the border, or if the hem is created without adding material."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondition = "una parte di lamiera",
+                    Precondition = "a sheet metal part",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "edge_uid", O(
                                 "type", "string",
-                                "description", "lo spigolo di bordo da ripiegare, dallo stato del documento (E1, E2...)"),
+                                "description", "the border edge to fold, from the document state (E1, E2...)"),
                             "variant", O(
                                 "type", "string",
                                 "enum", A("closed", "open"),
-                                "description", "closed (schiacciato) o open (con gioco). Predefinito «closed»."),
+                                "description", "closed (flattened) or open (with a gap). Default «closed»."),
                             "length_mm", O(
                                 "type", "number",
-                                "description", "quanto e' lungo il bordo ripiegato"),
+                                "description", "how long the folded edge is"),
                             "gap_mm", O(
                                 "type", "number",
-                                "description", "solo per «open»: lo spazio fra il bordo ripiegato e la lamiera")),
+                                "description", "only for «open»: the space between the folded edge and the sheet")),
                         "required", A("edge_uid", "length_mm")),
                 },
                 new OperationSpec
@@ -5185,38 +5185,38 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Piega una lamiera lungo una linea tracciata su una sua faccia.",
+                        "Bends a sheet metal part along a line drawn on one of its faces.",
                     Description =
-                        "Piega una lamiera che c'e' gia' lungo una LINEA tracciata su una sua "
-                        + "faccia piana, dall'estremo «start_mm» a «end_mm» (punti [x, y, z] in mm sul "
-                        + "piano della faccia). La linea attraversa la faccia da bordo a bordo.\n\n"
-                        + "La lamiera si piega verso la parte a cui GUARDA la faccia: per piegare "
-                        + "dall'altra parte, traccia la linea sull'altra faccia. Il raggio e' quello "
-                        + "della lamiera; il lato che resta fermo lo sceglie SOLIDWORKS, e la "
-                        + "risposta porta l'ingombro prima e dopo.\n\nUna piega non aggiunge "
-                        + "lamiera: volume e sviluppo restano quelli di prima, e se cambiano la "
-                        + "risposta lo dice.\n\nMI RIFIUTO se l'angolo non sta fra 0 e 180 gradi "
-                        + "esclusi, se la faccia non e' piana, se un estremo della linea non sta "
-                        + "sulla faccia, e se la piega nasce senza piegare niente."
+                        "Bends a sheet metal part that already exists along a LINE drawn on one "
+                        + "of its planar faces, from the point «start_mm» to the point «end_mm» (points "
+                        + "[x, y, z] in mm on the plane of the face). The line crosses the face from edge to edge.\n\n"
+                        + "The sheet bends towards the side the face FACES: to bend "
+                        + "the other way, draw the line on the other face. The radius is that of the "
+                        + "sheet; which side stays fixed is chosen by SOLIDWORKS, and the answer "
+                        + "carries the bounding box before and after.\n\nA bend does not add "
+                        + "sheet: volume and flat pattern stay what they were, and if they change the "
+                        + "answer says so.\n\nI REFUSE IF the angle is not between 0 and 180 degrees "
+                        + "exclusive, if the face is not planar, if an end of the line is not "
+                        + "on the face, or if the bend is created without bending anything."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened), and before bending I refuse if that happens.",
-                    Precondition = "una parte di lamiera",
+                    Precondition = "a sheet metal part",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "face_uid", O(
                                 "type", "string",
-                                "description", "la faccia piana su cui si traccia la linea, dallo stato del documento (F1, F2...)"),
+                                "description", "the planar face the line is drawn on, from the document state (F1, F2...)"),
                             "start_mm", O(
                                 "type", "array", "items", O("type", "number"),
-                                "description", "un estremo della linea di piega, [x, y, z] in mm sulla faccia"),
+                                "description", "one end of the bend line, [x, y, z] in mm on the face"),
                             "end_mm", O(
                                 "type", "array", "items", O("type", "number"),
-                                "description", "l'altro estremo, [x, y, z] in mm sulla faccia"),
+                                "description", "the other end, [x, y, z] in mm on the face"),
                             "angle_deg", O(
                                 "type", "number",
-                                "description", "l'angolo di piega. Predefinito 90.")),
+                                "description", "the bend angle. Default 90.")),
                         "required", A("face_uid", "start_mm", "end_mm")),
                 },
                 new OperationSpec
@@ -5226,25 +5226,25 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Il DXF dello sviluppo di una lamiera, per il taglio.",
+                        "The DXF of the flat pattern of a sheet metal part, for cutting.",
                     Description =
-                        "Scrive il pezzo di lamiera SPIANATO in un DXF: il disegno che va alla "
-                        + "macchina di taglio.\n\nIL PEZZO DEV'ESSERE SALVATO: su un pezzo senza "
-                        + "file SOLIDWORKS apre «Salva con nome» e resta ad aspettare che qualcuno "
-                        + "clicchi — misurato. Si rifiuta prima di chiamare.\n\nIl DXF si RILEGGE: "
-                        + "il suo ingombro deve avere per lato lungo lo sviluppo misurato sul "
-                        + "pezzo, se no si rifiuta — un DXF di un'altra cosa si apre uguale. Senza "
-                        + "«path» va accanto al pezzo, col suo nome."
+                        "Writes the FLATTENED sheet metal part to a DXF: the drawing that goes to "
+                        + "the cutting machine.\n\nTHE PART MUST BE SAVED: on a part with no file "
+                        + "SOLIDWORKS opens «Save As» and waits for someone to click — measured. I refuse "
+                        + "such a part before calling SOLIDWORKS.\n\nThe DXF is READ BACK: its bounding "
+                        + "box must have the flat pattern measured on the part as its long side, "
+                        + "otherwise I refuse it — a DXF of something else opens just the same. "
+                        + "Without «path» it goes next to the part, with its name."
                         + "\n\nIf the flat pattern does not unsuppress (or suppress again) when I "
                         + "measure the flat length, the answer says so in flat_pattern_problem (the "
                         + "part may be left flattened).",
-                    Precondition = "una parte di lamiera, salvata",
+                    Precondition = "a sheet metal part, saved",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "path", O(
                                 "type", "string",
-                                "description", "dove scrivere il .dxf. Predefinito: accanto al pezzo, col suo nome.")),
+                                "description", "where to write the .dxf. Default: next to the part, with its name.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -5254,20 +5254,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Quota il pezzo nel modello con DimXpert, da tre facce di riferimento.",
+                        "Dimensions the part in the model with DimXpert, from three reference faces.",
                     Description =
-                        "Mette sul PEZZO (non su una tavola) le quote che un disegnatore "
-                        + "metterebbe: spessori, lati, diametri dei fori e la loro posizione "
-                        + "dai riferimenti. E' DimXpert di SOLIDWORKS, dal nucleo, senza "
-                        + "componenti aggiuntivi.\n\nI RIFERIMENTI SONO TRE FACCE PIANE, in "
-                        + "ordine: la primaria (di solito quella d'appoggio), la secondaria e la "
-                        + "terziaria (due fianchi perpendicolari). Da loro partono le quote di "
-                        + "posizione. Con meno di tre rifiuta: DimXpert non rifiuterebbe, "
-                        + "metterebbe una quota sola.\n\nLa risposta porta i VALORI delle quote "
-                        + "(«values_mm»), letti dalle quote nate: e' il modo di vedere se ha "
-                        + "quotato quello che serviva. La risposta di SOLIDWORKS alla chiamata "
-                        + "(«auto_dimension_scheme_response») vale False anche quando ha "
-                        + "quotato — misurato: non la si guarda.",
+                        "Puts on the PART (not on a drawing) the dimensions that a draftsman "
+                        + "would put: thicknesses, sides, hole diameters and their position from "
+                        + "the datums. It is the DimXpert of SOLIDWORKS, from the core, "
+                        + "with no add-ins.\n\nTHE DATUMS ARE THREE PLANAR FACES, in order: the "
+                        + "primary (usually the resting one), the secondary and the tertiary (two "
+                        + "perpendicular sides). The position dimensions start from them. With fewer "
+                        + "than three it refuses: DimXpert would not refuse, it would put a "
+                        + "single dimension.\n\nThe answer carries the VALUES of the dimensions "
+                        + "(«values_mm»), read from the dimensions created: it is the way to see whether "
+                        + "it dimensioned what was needed. The answer of SOLIDWORKS to the call "
+                        + "(«auto_dimension_scheme_response») is False even when it did "
+                        + "dimension — measured: it is not looked at.",
                     Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
@@ -5275,11 +5275,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "references_uid", O(
                                 "type", "array",
                                 "items", O("type", "string"),
-                                "description", "TRE facce piane dallo stato del documento: primaria, secondaria, terziaria"),
+                                "description", "THREE planar faces from the document state: primary, secondary, tertiary"),
                             "tolerance", O(
                                 "type", "string",
                                 "enum", A("plus_minus", "geometric"),
-                                "description", "piu'/meno sulle quote (predefinito) o tolleranze geometriche")),
+                                "description", "plus/minus on the dimensions (default) or geometric tolerances")),
                         "required", A("references_uid")),
                 },
                 new OperationSpec
@@ -5535,24 +5535,24 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "any",
                     Tested = true,
                     Summary =
-                        "Scrive una proprieta' personalizzata -- numero disegno, revisione, "
-                        + "cliente -- sul documento oppure su una configurazione.",
+                        "Writes a custom property -- drawing number, revision, "
+                        + "customer -- on the document or on a configuration.",
                     Description =
-                        "Scrive una proprieta' personalizzata: e' cio' che finisce nel "
-                        + "cartiglio della tavola e nella scheda del PDM. «Numero disegno», "
-                        + "«Revision», «Cliente», «Descrizione».\n\nIL DOCUMENTO E UNA "
-                        + "CONFIGURAZIONE SONO DUE CASSETTI SEPARATI. Una proprieta' scritta "
-                        + "sul documento da una configurazione NON SI VEDE, e viceversa: non "
-                        + "si ereditano. Se dici «configuration» la scrivo li' e solo li'; "
-                        + "se non la dici la scrivo sul documento e solo sul documento. Te lo "
-                        + "ripeto nella risposta ogni volta, perche' e' l'errore che non da' "
-                        + "errore: si scrive il numero di disegno sul documento, lo si "
-                        + "rilegge dalla configurazione, non c'e', e nessuno dice perche'."
-                        + "\n\nSE C'E' GIA', LA SOSTITUISCO. Non ti lascio credere di aver "
-                        + "cambiato una revisione che invece e' rimasta quella di prima."
-                        + "\n\nDOPO AVER SCRITTO RILEGGO. Il comando risponde un codice, non "
-                        + "il valore: se rileggendo non trovo quello che ho scritto fallisco "
-                        + "invece di confermarti una scheda dati che non e' quella che credi."
+                        "Writes a custom property: it is what ends up in the title block of "
+                        + "the drawing and in the PDM data card. «Numero disegno» (drawing "
+                        + "number), «Revision», «Cliente» (customer), «Descrizione» (description)."
+                        + "\n\nTHE DOCUMENT AND A CONFIGURATION ARE TWO SEPARATE DRAWERS. A "
+                        + "property written on the document is NOT SEEN from a configuration, and "
+                        + "the other way round: they are not inherited. If you say «configuration» "
+                        + "I write it there and only there; if you do not say it I write it on "
+                        + "the document and only on the document. I repeat it to you in the answer "
+                        + "every time, because it is the error that gives no error: the "
+                        + "drawing number is written on the document, read back from the configuration, it is not there, and nobody says why."
+                        + "\n\nIF IT ALREADY "
+                        + "EXISTS, I REPLACE IT. I do not let you believe you changed a revision that stayed the one it was."
+                        + "\n\nAFTER WRITING I READ BACK. The command "
+                        + "answers a code, not the value: if on reading back I do not find what "
+                        + "I wrote I fail instead of confirming a data card that is not the one you think."
                         + "\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is "
                         + "checked as the TEXT written, and resolved_value gives what SOLIDWORKS "
                         + "evaluates it to, when the two differ.",
@@ -5562,60 +5562,60 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "name", O(
                                 "type", "string",
-                                "description", "il nome della proprieta', per esempio «Numero disegno» o "
-                                    + "«Revision». Scrivilo come lo vuoi vedere nel cartiglio: il nome "
-                                    + "e' quello che vedra' chi legge la scheda."),
+                                "description", "the name of the property, for example «Numero disegno» or "
+                                    + "«Revision». Write it as you want to see it in the title block: the name "
+                                    + "is what whoever reads the data card will see."),
                             "value_text", O(
                                 "type", "string",
-                                "description", "il valore da scrivere. Stringa vuota per svuotarla."),
+                                "description", "the value to write. Empty string to clear it."),
                             "configuration", O(
                                 "type", "string",
-                                "description", "il nome della configurazione su cui scriverla. Se non lo dici "
-                                    + "la scrivo sul DOCUMENTO, ed e' un posto diverso. I nomi stanno "
-                                    + "nello stato del documento, dentro «configurations».")),
+                                "description", "the name of the configuration to write it on. If you do not say it "
+                                    + "I write it on the DOCUMENT, and that is a different place. The "
+                                    + "names are in the document state, inside «configurations».")),
                         "required", A("name", "value_text")),
                 },
                 new OperationSpec
                 {
                     Name = "create_configuration",
                     Family = "identity",
-                    Example = "{\"name\":\"Left\",\"details\":\"staffa sinistra\"}",   // from `the_two_lists_do_not_see_each_other`
+                    Example = "{\"name\":\"Left\",\"details\":\"left bracket\"}",   // from `the_two_lists_do_not_see_each_other`
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Fa una variante del pezzo -- sinistra e destra, con e senza foro -- "
-                        + "e la attiva subito.",
+                        "Makes a variant of the part -- left and right, with and without a hole -- and "
+                        + "activates it at once.",
                     Description =
-                        "Crea una configurazione: la stessa staffa sinistra e destra, con e "
-                        + "senza foro, dentro un file solo. E' come un'officina a disegno "
-                        + "chiede una famiglia di pezzi.\n\nLA CREA E LA ATTIVA. SOLIDWORKS "
-                        + "sposta subito il documento sulla configurazione nuova, senza che "
-                        + "glielo si chieda: tutto quello che disegni dopo, e tutto quello "
-                        + "che lo stato ti racconta dopo, riguarda QUELLA. Te lo dico nella "
-                        + "risposta. Per tornare a un'altra c'e' «activate_configuration»."
-                        + "\n\nIL NOME CHE TI RISPONDO E' QUELLO DA USARE, e non e' detto che "
-                        + "sia quello che mi hai chiesto: i nomi di SOLIDWORKS possono avere "
-                        + "delle parentesi angolari dentro, e quelle fanno parte del nome. "
-                        + "Riportalo com'e'."
-                        + "\n\nMI RIFIUTO SE UNA CONFIGURAZIONE CON QUEL NOME C'E' GIA'. Due "
-                        + "configurazioni omonime non sono un doppione innocuo: le lavorazioni "
-                        + "soppresse in una e attive nell'altra fanno due pezzi diversi con lo "
-                        + "stesso nome, e la distinta ne conta uno.",
+                        "Creates a configuration: the same bracket left and right, with and "
+                        + "without a hole, in a single file. It is how a shop that works to "
+                        + "drawings asks for a family of parts.\n\nIT CREATES IT AND ACTIVATES "
+                        + "IT. SOLIDWORKS moves the document onto the new configuration at once, "
+                        + "without being asked: everything you draw afterwards, and everything "
+                        + "the state tells you afterwards, is about THAT one. I tell you in "
+                        + "the answer. To go back to another one there is «activate_configuration»."
+                        + "\n\nTHE NAME I ANSWER WITH IS THE ONE TO USE, and it is not "
+                        + "certain to be the one you asked me for: SOLIDWORKS names can have angle "
+                        + "brackets inside, and those are part of the name. Report it as it is."
+                        + "\n\n"
+                        + "I REFUSE IF A CONFIGURATION WITH THAT NAME ALREADY EXISTS. Two configurations with "
+                        + "the same name are not a harmless duplicate: the features suppressed "
+                        + "in one and active in the other make two different parts with the same "
+                        + "name, and the bill of materials counts one.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "name", O(
                                 "type", "string",
-                                "description", "il nome della configurazione, per esempio «Left» o "
-                                    + "«Senza foro». Se ce n'e' gia' una cosi' mi rifiuto."),
+                                "description", "the name of the configuration, for example «Left» or "
+                                    + "«No hole». If there is already one like that I refuse."),
                             "details", O(
                                 "type", "string",
-                                "description", "la descrizione che comparira' nell'elenco delle "
-                                    + "configurazioni."),
+                                "description", "the description that will appear in the list of "
+                                    + "configurations."),
                             "comment", O(
                                 "type", "string",
-                                "description", "un commento libero.")),
+                                "description", "a free comment.")),
                         "required", A("name")),
                 },
                 new OperationSpec
@@ -5626,37 +5626,37 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Passa a una configurazione gia' esistente, e verifica che ci sia "
-                        + "davvero passato.",
+                        "Switches to a configuration that already exists, and verifies that it "
+                        + "really switched.",
                     Description =
-                        "Sposta il documento su un'altra configurazione. Da qui in poi quello "
-                        + "che disegni e quello che lo stato ti racconta riguardano quella."
-                        + "\n\nIL NOME NON E' QUELLO CHE SEMBRA. La configurazione predefinita "
-                        + "si chiama spesso «Default<A macchina>» e NON «Default»: quello fra "
-                        + "parentesi angolari fa parte del nome. Chiedendo «Default» "
-                        + "SOLIDWORKS risponde di no, in silenzio -- e spesso di "
-                        + "configurazioni che cominciano per «Default» ce n'e' piu' d'una (la "
-                        + "coppia dei saldati: «<A macchina>» e «<Saldato>»), per cui non c'e' "
-                        + "nemmeno un modo giusto di indovinare. NON INDOVINO: copia il nome "
-                        + "intero da «configurations» nello stato del documento.\n\nDOPO AVER "
-                        + "CHIESTO CONTROLLO QUALE E' ATTIVA "
-                        + "ADESSO: non mi basta che il comando abbia detto di si', perche' "
-                        + "lavorare per mezz'ora sulla variante sbagliata non da' nessun "
-                        + "errore."
-                        + "\n\nMI RIFIUTO SE LA CONFIGURAZIONE NON C'E', e ti elenco quelle che ci "
-                        + "sono. E il nome dev'essere INTERO: Default non basta se si chiama "
-                        + "Default<Come lavorata>. Un nome parziale non lo indovino, perche' "
-                        + "indovinare vorrebbe dire attivare la configurazione sbagliata in "
-                        + "silenzio.",
+                        "Moves the document onto another configuration. From here on what you "
+                        + "draw and what the state tells you are about that one."
+                        + "\n\nTHE NAME IS NOT WHAT IT SEEMS. The default configuration is often called "
+                        + "«Default<As Machined>» and NOT «Default»: what is in angle brackets "
+                        + "is part of the name. Asked for «Default», SOLIDWORKS answers "
+                        + "no, silently -- and often there is more than one "
+                        + "configuration that starts with «Default» (a weldment has the pair «<As "
+                        + "Machined>» and «<As Welded>»), so there is not even a right way to "
+                        + "guess. I DO NOT GUESS: copy the whole name from «configurations» in "
+                        + "the document state. The names come in the language of the "
+                        + "installation.\n\nAFTER ASKING I CHECK WHICH "
+                        + "ONE IS ACTIVE NOW: it is not enough for me that the command "
+                        + "said yes, because working for half an hour on the wrong variant "
+                        + "gives no error."
+                        + "\n\nI REFUSE IF THE CONFIGURATION DOES NOT EXIST, and I list the "
+                        + "ones that do. And the name must be WHOLE: Default is not enough "
+                        + "if it is called Default<As Machined>. A partial name I do not guess, "
+                        + "because guessing would mean activating the wrong configuration "
+                        + "silently.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "name", O(
                                 "type", "string",
-                                "description", "il nome INTERO della configurazione da attivare, copiato da "
-                                    + "«configurations» nello stato del documento. Suffisso fra "
-                                    + "parentesi angolari compreso, se c'e'.")),
+                                "description", "the WHOLE name of the configuration to activate, copied from "
+                                    + "«configurations» in the document state. Suffix in angle "
+                                    + "brackets included, if there is one.")),
                         "required", A("name")),
                 },
             };
@@ -5669,27 +5669,27 @@ namespace Oce.Solid.Agent.Core.Catalog
         private static Node AnchorSchema(string what, bool fromContour = false)
         {
             string point = fromContour
-                ? "Il punto e' il CENTRO del contorno, e l'ancora vale per UN contorno solo, " +
-                  "tondo o rettangolare allineato agli assi della faccia."
-                : "x_mm/y_mm restano obbligatori e devono dire lo stesso punto.";
+                ? "The point is the CENTER of the contour, and the anchor applies to ONE contour only, " +
+                  "round or rectangular and aligned with the axes of the face."
+                : "x_mm/y_mm stay required and must name the same point.";
             return O(
                 "type", "object",
-                "description", "COSA TIENE " + what.ToUpperInvariant() + " DOV'E' QUANDO IL PEZZO CAMBIA. Senza, "
-                    + "x_mm/y_mm sono coordinate assolute: se la piastra si allunga, " + what + " resta "
-                    + "dov'era. Per OGNI asse, «x» e «y», tutti e due obbligatori, una di due cose: "
-                    + "{\"edge_uid\": \"E7\", \"distance_mm\": 20}, la distanza dal CENTRO a uno "
-                    + "spigolo dritto della stessa faccia che corre lungo l'altro asse; oppure "
-                    + "{\"centered_between\": [\"E3\", \"E5\"]}, a meta' fra due spigoli opposti. " + point
-                    + "\n\nMI RIFIUTO SE manca un asse; se x_mm/y_mm e l'ancora non dicono lo stesso "
-                    + "punto; se lo spigolo non e' dritto, non sta sulla faccia, non corre lungo l'altro "
-                    + "asse o sta sul bordo di uno smusso o di un raccordo (l'altra faccia dello "
-                    + "spigolo dev'essere piana e perpendicolare, e se non riesco a guardarla "
-                    + "rifiuto); se la faccia su cui lavori non e' piana; se la distanza e' meno di "
-                    + "meta' della larghezza (il profilo scavalcherebbe lo spigolo); "
+                "description", "WHAT KEEPS " + what.ToUpperInvariant() + " WHERE IT IS WHEN THE PART CHANGES. Without it, "
+                    + "x_mm/y_mm are absolute coordinates: if the plate gets longer, " + what + " stays "
+                    + "where it was. For EACH axis, «x» and «y», both required, one of two things: "
+                    + "{\"edge_uid\": \"E7\", \"distance_mm\": 20}, the distance from the CENTER to a "
+                    + "straight edge of the same face that runs along the other axis; or "
+                    + "{\"centered_between\": [\"E3\", \"E5\"]}, halfway between two opposite edges. " + point
+                    + "\n\nI REFUSE IF an axis is missing; if x_mm/y_mm and the anchor do not say the same "
+                    + "point; if the edge is not straight, is not on the face, does not run along the other "
+                    + "axis or lies on the edge of a chamfer or of a fillet (the other face of the edge must be "
+                    + "planar and perpendicular, and if I cannot look at it "
+                    + "I refuse); if the face you work on is not planar; if the distance is less than "
+                    + "half the width (the profile would straddle the edge); "
                     + "if, on a centred axis, the profile is wider than the gap between the two edges; "
-                    + "se lo schizzo non "
-                    + "risulta completamente definito, o non regge una modifica di prova — e allora il "
-                    + "taglio lo tolgo. I also refuse when I cannot do those checks: relations of the "
+                    + "if the sketch "
+                    + "does not come out fully defined, or does not hold up under a trial change — and then I remove the "
+                    + "cut. I also refuse when I cannot do those checks: relations of the "
                     + "sketch I cannot read, or an anchor dimension I cannot read or move (the test "
                     + "would pass without testing anything).",
                 "properties", O(
@@ -5703,19 +5703,19 @@ namespace Oce.Solid.Agent.Core.Catalog
             string other = axis == "x" ? "y" : "x";
             return O(
                 "type", "object",
-                "description", "l'ancora lungo " + axis + "_mm: edge_uid + distance_mm, oppure centered_between",
+                "description", "the anchor along " + axis + "_mm: edge_uid + distance_mm, or centered_between",
                 "properties", O(
                     "edge_uid", O(
                         "type", "string",
-                        "description", "uno spigolo dritto della faccia, dallo stato, che corre lungo " + other + "_mm"),
+                        "description", "a straight edge of the face, from the state, that runs along " + other + "_mm"),
                     "distance_mm", O(
                         "type", "number",
-                        "description", "dal CENTRO del profilo allo spigolo, misurata lungo " + axis + "_mm"),
+                        "description", "from the CENTER of the profile to the edge, measured along " + axis + "_mm"),
                     "centered_between", O(
                         "type", "array",
                         "items", O("type", "string"),
-                        "description", "due spigoli opposti della faccia, dallo stato, che corrono lungo "
-                            + other + "_mm: il centro resta a meta' fra loro")));
+                        "description", "two opposite edges of the face, from the state, that run along "
+                            + other + "_mm: the center stays halfway between them")));
         }
     }
 }
