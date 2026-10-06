@@ -1,8 +1,8 @@
 {
   "name": "subtract_one_cube_from_the_other",
   "family": "bodies",
-  "why": "Lo stesso pezzo di partenza, e il secondo valore dell'enum: 1000 meno i 400 di sovrapposizione fa 600. E' il numero che distingue «subtract» da «intersect» -- se i due valori fossero scambiati uscirebbe 400, che e' un volume plausibile di un pezzo plausibile.",
-  "_why_the_main_one": "nella sottrazione l'ordine cambia il pezzo: A meno B non e' B meno A. Qui i due cubi sono uguali, quindi il VOLUME e' lo stesso in tutti e due i versi -- e fino al 25/9/2026 il caso chiedeva solo quello, col principale scritto «C1». Voce Z-C16: i numeri dei corpi cambiano fra un giro e l'altro (misurato: la copia era C1 in un giro su tre), quindi il principale si nomina per NOME e si controlla il BARICENTRO, che dice quale dei due e' rimasto: l'originale meno la sovrapposizione sta a (-0,667, 0, 3,333); la copia meno l'originale starebbe a (2,667, 0, 11,667).",
+  "why": "The same starting part, and the second value of the enum: 1000 minus the 400 of overlap makes 600. It is the number that tells «subtract» from «intersect» -- if the two values were swapped, 400 would come out, which is a plausible volume of a plausible part.",
+  "_why_the_main_one": "in subtraction the order changes the part: A minus B is not B minus A. Here the two cubes are equal, so the VOLUME is the same in both directions -- and until 25/9/2026 the case asked only that, with the main body written «C1». Entry Z-C16: the numbers of the bodies change from one run to the next (measured: the copy was C1 in one run out of three), so the main body is named by NAME and the CENTRE OF MASS is checked, which says which of the two remained: the original minus the overlap sits at (-0.667, 0, 3.333); the copy minus the original would sit at (2.667, 0, 11.667).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -18,8 +18,8 @@
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "center_of_mass_mm", "equal_to": [-0.667, 0, 3.333], "tolerance": 0.01,
-          "tolerance_why": "calcolato a mano: cubo 1000 in (0,0,5) meno la sovrapposizione 8x10x5 = 400 in (1,0,7,5). Il centesimo copre l'arrotondamento" },
+          "tolerance_why": "computed by hand: cube 1000 at (0,0,5) minus the overlap 8x10x5 = 400 at (1,0,7.5). The hundredth covers the rounding" },
         { "what": "volume_mm3", "equal_to": 600,
-          "why": "1000 meno i 400 che i due cubi hanno in comune" } ] }
+          "why": "1000 minus the 400 that the two cubes have in common" } ] }
   ]
 }

@@ -1,10 +1,10 @@
 {
   "name": "r03_centered_pocket",
   "family": "regression",
-  "why": "Una tasca al centro di una piastra che si allunga. La piastra cresce DA UNA PARTE SOLA anche se lo schizzo e' centrato (misurato nella voce E2), quindi «al centro» e «dov'era» smettono di coincidere: e' il caso in cui l'intento si vede a occhio nudo.",
+  "why": "A pocket at the centre of a plate that gets longer. The plate grows ON ONE SIDE ONLY even if the sketch is centred (measured in entry E2), so «at the centre» and «where it was» stop coinciding: it is the case in which the intent is visible to the naked eye.",
   "intent": "ancorato_a_bordo",
-  "intent_why": "«tasca centrata» vuol dire centrata, non «a x = 0»: portando la lunghezza da 200 a 260 il pezzo va da X[-100,100] a X[-100,160], e il centro si sposta a x = 30. Una tasca che resta a x = 0 non e' piu' centrata.",
-  "_why_the_anchor": "VOCE E18 (b). Fino alla libreria 0.115.0 il `costruisci` dava la tasca a coordinate assolute (x 0, y 0), cioe' un'istruzione che un progettista non darebbe per «centrata»: il caso misurava un limite, e restava in silenzio per costruzione. Adesso il piano dice cosa intende — centrata fra i fianchi e fra il fondo e l'alto, con `anchor` — e le ATTESE sono le stesse di prima. Il vecchio modo resta provato dal gemello `r03b_pocket_stays_where_it_was`.",
+  "intent_why": "«centred pocket» means centred, not «at x = 0»: bringing the length from 200 to 260 the part goes from X[-100,100] to X[-100,160], and the centre moves to x = 30. A pocket that stays at x = 0 is no longer centred.",
+  "_why_the_anchor": "ENTRY E18 (b). Up to library 0.115.0 the `costruisci` gave the pocket at absolute coordinates (x 0, y 0), that is an instruction that a designer would not give for «centred»: the case measured a limit, and stayed silent by construction. Now the plan says what it means — centred between the sides and between the bottom and the top, with `anchor` — and the EXPECTATIONS are the same as before. The old way is still proved by the twin `r03b_pocket_stays_where_it_was`.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -25,6 +25,6 @@
     { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
     { "what": "center_of_mass_mm", "equal_to": [30, 0, 9.853],
       "tolerance": 0.02,
-      "tolerance_why": "il baricentro si calcola a mano: piastra 624000 mm3 in (30,0,10) meno tasca 12000 in (30,0,17.5). Il centesimo copre l'arrotondamento di SOLIDWORKS" }
+      "tolerance_why": "the centroid is computed by hand: plate 624000 mm3 at (30,0,10) minus pocket 12000 at (30,0,17.5). The hundredth covers the rounding of SOLIDWORKS" }
   ]
 }

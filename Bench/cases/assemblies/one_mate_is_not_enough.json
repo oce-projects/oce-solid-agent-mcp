@@ -1,8 +1,8 @@
 {
   "name": "one_mate_is_not_enough",
   "family": "assemblies",
-  "why": "LA VOCE GA4 ERA BLOCCATA SU UN'INCOGNITA CHE NON C'ERA. Diceva: «quali marche di selezione serva usare, la riflessione non lo dice», e ci appendeva la stima. Non serve nessuna marca: si selezionano le due facce con Select4(append) e AddMate5 risponde swAddMateError_NoError. Scoperto dentro una sonda scritta per un'altra domanda -- le sonde vanno lette tutte, non solo per la riga che si era andati a cercare.",
-  "_why_this_case_exists": "Per provare che accoppiare CAMBIA qualcosa di misurabile. Il conteggio degli accoppiamenti sale, e «resting» -- che era true su un componente inserito e non vincolato -- diventa false. Senza questa coppia di misure, «ho accoppiato» sarebbe solo una frase.",
+  "why": "ENTRY GA4 WAS BLOCKED ON AN UNKNOWN THAT WAS NOT THERE. It said: «which selection marks are needed, the reflection does not say», and hung the estimate on it. No mark is needed: you select the two faces with Select4(append) and AddMate5 answers swAddMateError_NoError. Discovered inside a probe written for another question -- probes must be read in full, not only for the line you went to look for.",
+  "_why_this_case_exists": "To prove that mating CHANGES something measurable. The count of mates goes up, and «resting» -- which was true on a component inserted and unconstrained -- becomes false. Without this pair of measurements, «I mated» would be just a sentence.",
   "_why_ONE_mate_is_not_enough": "The line this case carries. A coincident between two faces takes three degrees of freedom of six: the lid can no longer come off the base or tilt, but it CAN STILL SLIDE in the plane and turn about the normal. The assembly looks mounted and is not. The case wants the bridge NOT to call a part held by one mate constrained, and (since Z-C14, which measures the directions by moving the lid and rebuilding) to say out loud which directions are still free: TX, TZ and RY.",
   "assembly": {
     "components": [
@@ -28,9 +28,9 @@
       },
       "expect": [
         { "what": "measurements.mates_after", "equal_to": [1, 1],
-          "why": "LA MISURA, e non il valore di ritorno: AddMate5 risponde un Mate2 E scrive un ErrorStatus, e nessuno dei due dice che l'accoppiamento esiste. Lo dice il conteggio, su tutti e due i componenti." },
+          "why": "THE MEASUREMENT, and not the return value: AddMate5 answers a Mate2 AND writes an ErrorStatus, and neither of the two says that the mate exists. The count says so, on both components." },
         { "what": "measurements.resting_b", "equal_to": false,
-          "why": "IL CERCHIO SI CHIUDE. Nel caso «inserting_is_not_mating» questo stesso campo era true su un componente appena inserito. Adesso c'e' un accoppiamento e diventa false: e' la prova che i due casi misurano la stessa cosa e che accoppiare la cambia." },
+          "why": "THE CIRCLE CLOSES. In the case «inserting_is_not_mating» this same field was true on a component just inserted. Now there is a mate and it becomes false: it is the proof that the two cases measure the same thing and that mating changes it." },
         { "what": "measurements.verdict", "includes": ["still free in TX, TZ, RY"],
           "why": "THE RED THAT REALLY COUNTS. A coincident takes three degrees of six: the lid no longer lifts or tilts, but it still slides in the plane and turns about the normal. Up to library 0.147.0 the answer said it could not tell how free the lid still was; since Z-C14 the directions are measured (each move put back by the mates is blocked), and the answer must NAME the three that are still free. If this sentence ever left the answer, the bridge would be letting one mate pass for enough -- and an assembly that looks mounted without being so is exactly the defect this project hunts." },
         { "what": "measurements.blocked_directions_after[1]", "equal_to": ["TY", "RX", "RZ"],
@@ -38,9 +38,9 @@
         { "what": "measurements.degrees_removed[1]", "equal_to": 3,
           "why": "three directions blocked by this mate and none before it: the lid had no mate" },
         { "what": "state.components[1].mates", "equal_to": 1,
-          "why": "lo stato e l'operazione devono dire lo stesso numero: due letture che divergono sono peggio di una sola" },
+          "why": "the state and the operation must say the same number: two readings that diverge are worse than a single one" },
         { "what": "state.assembly_constrained", "equal_to": true,
-          "_why_this_true_does_NOT_mean_mated": "«vincolato» qui significa, alla lettera, «ogni componente non fisso ha almeno un accoppiamento» -- ed e' vero: il coperchio ne ha uno. NON significa «non si muove piu'». E' per questo che lo stato porta anche «what_is_not_known_about_constraints», e l'attesa qui sotto pretende che ci sia: un campo che dice true senza la sua avvertenza accanto sarebbe una mezza verita' che nessuno correggerebbe." },
+          "_why_this_true_does_NOT_mean_mated": "«constrained» here means, literally, «every non-fixed component has at least one mate» -- and it is true: the cover has one. It does NOT mean «it no longer moves». That is why the state also carries «what_is_not_known_about_constraints», and the expectation below demands that it be there: a field that says true without its caveat beside it would be a half truth that nobody would correct." },
         { "what": "state.what_is_not_known_about_constraints", "includes": ["at least one mate", "three of the six"] }
       ] }
   ]

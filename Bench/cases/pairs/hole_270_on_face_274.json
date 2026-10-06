@@ -1,7 +1,7 @@
 {
   "name": "hole_270_on_face_274",
   "family": "pairs",
-  "why": "La gemella di «limit_hole_that_covers_everything»: un foro da 270 su una faccia larga 274 LASCIA 2 mm di materiale per lato, ed e' legittimo. Senza questa, «il controllo funziona» e «il controllo rifiuta tutto» darebbero lo stesso verde.",
+  "why": "The twin of «limit_hole_that_covers_everything»: a hole of 270 on a face 274 wide LEAVES 2 mm of material per side, and it is legitimate. Without this one, «the check works» and «the check refuses everything» would give the same green.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -31,7 +31,7 @@
       "expect": [
         { "what": "measurements.removed_mm3", "equal_to": 2977287.37,
           "tolerance": 0.5,
-          "tolerance_why": "pi*135^2*52: il conto ha pi dentro, e l'operazione arrotonda al centesimo" },
+          "tolerance_why": "pi*135^2*52: the calculation has pi inside, and the operation rounds to the hundredth" },
         { "what": "bodies", "equal_to": 1 }
       ]
     }

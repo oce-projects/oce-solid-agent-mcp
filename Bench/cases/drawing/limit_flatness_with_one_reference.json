@@ -1,7 +1,7 @@
 {
   "name": "limit_flatness_with_one_reference",
   "family": "drawing",
-  "why": "La planarita' e' una tolleranza di FORMA: per la ISO 1101 non si riferisce a nessun datum. Una cornice di planarita' con «A» dentro si stampa e sembra valida — e un controllo che la legge non sa cosa farne. Si rifiuta prima di toccare la tavola.",
+  "why": "Flatness is a FORM tolerance: by ISO 1101 it refers to no datum. A flatness frame with «A» in it prints and looks valid — and a check that reads it does not know what to do with it. It is refused before touching the drawing.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -21,7 +21,7 @@
     { "operation": "geometric_tolerance",
       "arguments": { "view": "V2", "side": "top", "characteristic": "flatness", "value_mm": 0.02, "references": ["A"] },
       "must_fail": {
-        "message_includes": ["di FORMA", "ISO 1101"],
+        "message_includes": ["FORM tolerance", "ISO 1101"],
         "twin": "annotations_stay_outside_the_part" } }
   ]
 }

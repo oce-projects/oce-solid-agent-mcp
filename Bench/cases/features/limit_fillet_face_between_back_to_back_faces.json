@@ -1,8 +1,8 @@
 {
   "name": "limit_fillet_face_between_back_to_back_faces",
   "family": "features",
-  "why": "Il davanti e il dietro dello stesso cubo: due facce piane, parallele, che si danno le spalle. Nessuna palla le tocca tutte e due dal lato dell'aria, quindi il raccordo e' impossibile per GEOMETRIA, non per un capriccio dell'API. La sonda Checks/FaceFillet ha tolto dal giro la sua variante a facce parallele proprio per questo (REVISIONE 28/9/2026): un NULL li' misura la geometria, non la chiamata. Qui la geometria si guarda prima, e il rifiuto dice perche' e cosa usare invece.",
-  "_why_not_the_walls_of_a_pocket": "Due pareti parallele che SI GUARDANO (una cava) non si rifiutano allo stesso modo: una palla di raggio meta' della distanza le tocca tutte e due. Quel ramo non ha ancora una misura, e non si mette in un caso finche' non l'ha.",
+  "why": "The front and the back of the same cube: two planar, parallel faces that turn their backs on each other. No ball touches both of them from the air side, so the fillet is impossible by GEOMETRY, not by a whim of the API. The Checks/FaceFillet probe took its parallel-faces variant out of the run for exactly this reason (REVISION 28/9/2026): a NULL there measures the geometry, not the call. Here the geometry is looked at first, and the refusal says why and what to use instead.",
+  "_why_not_the_walls_of_a_pocket": "Two parallel walls that FACE EACH OTHER (a pocket) are not refused in the same way: a ball with a radius of half the distance touches both. That branch has no measurement yet, and it does not go into a case until it has one.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,7 +13,7 @@
       "arguments": { "face_1_uid": "@face(normal=front)", "face_2_uid": "@face(normal=back)",
                      "radius_mm": 5 },
       "must_fail": {
-        "message_includes": ["parallel", "si danno le spalle", "fillet_edges"],
+        "message_includes": ["parallel", "face away from each other", "fillet_edges"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_face_between_two_faces_of_a_cube" } }

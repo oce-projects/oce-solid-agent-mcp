@@ -1,8 +1,8 @@
 {
   "name": "limit_rib_outside_its_plane",
   "family": "features",
-  "why": "VOCE W1.2. La L della gemella e la stessa diagonale, ma scritta a z = 20 mentre il piano chiesto e' il frontale sfalsato di 25. Una linea che non sta sul piano non si puo' disegnare su quel piano: proiettarla in silenzio vorrebbe dire fare la nervatura in un posto diverso da quello chiesto. Si rifiuta PRIMA di toccare il pezzo (niente piano, niente schizzo) e si dice di quanto e' fuori e cosa cambiare.",
-  "_the_numbers": "Scarto: |20 - 25| = 5 mm, oltre i 0,05 di tolleranza (lo stesso margine di sketched_bend).",
+  "why": "ENTRY W1.2. The L of the twin and the same diagonal, but written at z = 20 while the requested plane is the front one offset by 25. A line that is not on the plane cannot be drawn on that plane: projecting it in silence would mean making the rib in a different place from the one requested. It is refused BEFORE touching the part (no plane, no sketch) and it says by how much it is off and what to change.",
+  "_the_numbers": "Deviation: |20 - 25| = 5 mm, beyond the 0.05 tolerance (the same margin as sketched_bend).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_profile",
@@ -15,7 +15,7 @@
                      "start_mm": [10, 40, 20], "end_mm": [40, 10, 20],
                      "thickness_mm": 6 },
       "must_fail": {
-        "message_includes": ["non sta sul piano front", "5 mm", "distance_mm"],
+        "message_includes": ["is not on the plane front", "5 mm", "distance_mm"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "rib_in_the_corner_of_the_l" } }

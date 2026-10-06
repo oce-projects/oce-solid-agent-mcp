@@ -1,18 +1,18 @@
 {
   "name": "limit_thread_without_a_designation",
   "family": "bodies",
-  "why": "Un filetto senza denominazione e' un'annotazione che non dice niente: sulla tavola comparirebbe un filetto senza misura, e chi lo legge dovrebbe indovinarla. Si rifiuta prima di crearlo, e si dice anche che il testo non viene da nessuna tabella -- e' quello che ha detto chi ha chiesto.",
+  "why": "A thread without a designation is an annotation that says nothing: on the drawing a thread without a size would appear, and whoever reads it would have to guess it. It is refused before creating it, and it also says that the text does not come from any table -- it is what the asker said.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_circle",
       "arguments": { "plane": "front", "diameter_mm": 6, "height_mm": 10 },
       "expect": [ { "what": "volume_mm3", "equal_to": 282.74, "tolerance": 0.5,
-                    "tolerance_why": "pi*3^2*10: il conto ha pi dentro" } ] },
+                    "tolerance_why": "pi*3^2*10: the calculation has pi in it" } ] },
     { "operation": "cosmetic_thread",
       "arguments": { "edge_uid": "@edge(curved=true,n=1)",
                      "designation": "", "depth_mm": 8 },
       "must_fail": {
-        "message_includes": ["designation", "non dice niente", "non lo ricava da una tabella"],
+        "message_includes": ["designation", "says nothing", "does not work it out from a table"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "thread_on_pin" } }

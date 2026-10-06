@@ -1,15 +1,15 @@
 {
   "name": "limit_section_outside_the_view",
   "family": "drawing",
-  "why": "VOCE GT4, il limite. `CreateSectionViewAt5` non prende il taglio in firma: lo prende dalla LINEA selezionata sul foglio. Una linea che cade fuori dalla vista produce una sezione vuota — e la vista si conta, sembra buona, e non mostra niente. Nessun errore lo direbbe.",
+  "why": "ENTRY GT4, the limit. `CreateSectionViewAt5` does not take the cut in its signature: it takes it from the LINE selected on the sheet. A line that falls outside the view produces an empty section — and the view is counted, looks good, and shows nothing. No error would say so.",
 
-  "_what_changes_compared_to_the_twin": "Un argomento: `end_mm`. La gemella lo passa a **0**, cioe' taglia in mezzo; qui vale **9999**, che su una vista larga qualche decina di millimetri di foglio e' fuori da qualunque parte. Stessa operazione, stessi argomenti, stessa tavola, stesso pezzo — cambia il VALORE, non quale argomento si passa.",
+  "_what_changes_compared_to_the_twin": "One argument: `end_mm`. The twin passes it as **0**, that is it cuts through the middle; here it is **9999**, which on a view a few tens of sheet millimetres wide is outside everything. Same operation, same arguments, same drawing, same part — it is the VALUE that changes, not which argument is passed.",
 
-  "_why_the_twin_passes_offset_mm_even_if_it_is_the_default": "La prima stesura non glielo passava, e il banco ha risposto **gemella finta: non ha nemmeno un argomento in comune col rifiuto, sono due operazioni che non si parlano**. Aveva ragione, e la regola sta scritta in questo stesso campo due righe sopra: se le due chiamate non condividono nessun argomento, il rifiuto non dimostra che il controllo su `end_mm` funziona — dimostra solo che due chiamate diverse fanno cose diverse. Il valore 0 e' il predefinito, quindi la gemella si comporta come prima: cambia che adesso lo DICE.",
+  "_why_the_twin_passes_offset_mm_even_if_it_is_the_default": "The first draft did not pass it, and the bench answered **fake twin: it has not even one argument in common with the refusal, they are two operations that do not talk to each other**. It was right, and the rule is written in this very field two lines above: if the two calls share no argument, the refusal does not show that the check on `end_mm` works — it only shows that two different calls do different things. The value 0 is the default, so the twin behaves as before: what changes is that now it SAYS it.",
 
-  "defect_caught": "Che il controllo sul taglio sparisca. E' una guardia che si scrive una volta e non si vede mai scattare: il giorno che smettesse di funzionare, le sezioni a vuoto tornerebbero «fatte», e una vista di sezione vuota su una tavola d'officina e' peggio di una sezione mancante — c'e', quindi nessuno la cerca.",
+  "defect_caught": "That the check on the cut disappears. It is a guard that is written once and never seen to fire: the day it stopped working, the empty sections would come back «done», and an empty section view on a workshop drawing is worse than a missing section — it is there, so nobody looks for it.",
 
-  "_why_the_message_must_carry_the_numbers": "«Il taglio cade fuori» da solo non dice di quanto: chi legge non sa se ha sbagliato di un millimetro o di dieci centimetri. Il messaggio nomina il valore chiesto e l'intervallo buono, che e' la differenza fra un rifiuto che si corregge e uno che si riprova a caso.",
+  "_why_the_message_must_carry_the_numbers": "«The cut falls outside» alone does not say by how much: whoever reads does not know whether they were wrong by a millimetre or by ten centimetres. The message names the value asked for and the good interval, which is the difference between a refusal that is corrected and one that is retried at random.",
 
   "start": { "new_part": true },
   "steps": [
@@ -18,7 +18,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 192000,
-          "why": "stesso pezzo della gemella fino al passo che cambia" } ] },
+          "why": "same part as the twin up to the step that changes" } ] },
 
     { "operation": "rectangular_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0,
@@ -26,30 +26,30 @@
                      "through_all": false, "depth_mm": 10 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 174000,
-          "why": "la stessa cavita' della gemella: se le due partissero da geometrie diverse non sarebbero una coppia" } ] },
+          "why": "the same cavity as the twin: if the two started from different geometries they would not be a pair" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\limit_section_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "il pezzo dev'essere su disco prima che la vista lo nomini" } ] },
+          "why": "the part must be on disk before the view names it" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il rifiuto dev'essere quello sul TAGLIO, non quello su «non e' una tavola»: senza questa attesa un rifiuto per il motivo sbagliato passerebbe per buono" } ] },
+          "why": "the refusal must be the one on the CUT, not the one on «it is not a drawing»: without this expectation a refusal for the wrong reason would pass for a good one" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\limit_section_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "e nemmeno quello su «non c'e' niente da sezionare»: la vista c'e', ed e' il taglio a essere sbagliato" } ] },
+          "why": "and not the one on «there is nothing to section» either: the view is there, and it is the cut that is wrong" } ] },
 
     { "operation": "section_view",
       "arguments": { "label": "A", "offset_mm": 9999 },
       "must_fail": {
-        "message_includes": ["FUORI dalla vista", "9999"],
+        "message_includes": ["OUTSIDE the view", "9999"],
         "twin": "section_cuts_the_part"
       } }
   ]

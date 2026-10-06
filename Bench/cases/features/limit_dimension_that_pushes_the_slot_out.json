@@ -1,8 +1,8 @@
 {
   "name": "limit_dimension_that_pushes_the_slot_out",
   "family": "features",
-  "why": "VOCE E18, pezzo (c). E' il caso `r16_slot_that_overflows` della regressione, girato in rifiuto. Una piastra 200 centrata cresce e cala DA UNA PARTE SOLA (misurato in E2): portata a 150 va da X -100 a +50, e l'asola lunga 120 al centro (X -60..+60) esce di dieci dal fianco destro. Fino alla 0.112.0 `set_dimension` lo faceva e rispondeva «fatto»: ricostruzione pulita, un corpo, nessun errore -- e un'asola chiusa diventata una tacca aperta sul bordo, che e' un altro pezzo.",
-  "_why_the_edge_is_not_followed": "L'intento del caso e' `ancorato_a_assoluto`: l'asola sta dove il progettista l'ha messa. La cura non e' spostarla, e' ACCORGERSI che esce dal materiale e dirlo. La misura e' topologica, non geometrica: le aperture chiuse delle facce piane (gli anelli interni) erano due -- l'asola sul davanti e sul dietro -- e dopo la modifica sono zero.",
+  "why": "ENTRY E18, part (c). It is the case `r16_slot_that_overflows` of the regression, run as a refusal. A centred 200 plate grows and shrinks ON ONE SIDE ONLY (measured in E2): set to 150 it runs from X -100 to +50, and the slot 120 long at the centre (X -60..+60) sticks out by ten from the right side. Up to 0.112.0 `set_dimension` did it and answered «done»: clean rebuild, one body, no error -- and a closed slot turned into an open notch on the edge, which is another part.",
+  "_why_the_edge_is_not_followed": "The intent of the case is `ancorato_a_assoluto`: the slot stays where the designer put it. The cure is not to move it, it is to NOTICE that it leaves the material and say so. The measurement is topological, not geometric: the closed openings of the planar faces (the inner loops) were two -- the slot on the front and on the back -- and after the change they are zero.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,14 +14,14 @@
                      "length_mm": 120, "width_mm": 20, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 433716.81, "tolerance": 0.5,
-          "tolerance_why": "480000 meno (100*20 + pi*10^2) * 20 = 46283,19. E' il volume che il passo dopo deve ritrovare INTATTO" } ] },
+          "tolerance_why": "480000 minus (100*20 + pi*10^2) * 20 = 46283.19. It is the volume that the next step must find INTACT" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 150 },
       "must_fail": {
-        "message_includes": ["esce dal materiale"],
+        "message_includes": ["goes out of the material"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "dimension_that_keeps_the_slot_inside" },
-      "_and_volume_unchanged_is_the_half_that_counts": "IL RIFIUTO NON BASTA SE IL PEZZO RESTA CAMBIATO. La quota si e' gia' scritta quando ci si accorge dell'asola: `set_dimension` deve rimettere il valore di prima e ricostruire. Se il volume dopo il rifiuto non e' quello di prima, il rifiuto ha detto la verita' e lasciato il danno." }
+      "_and_volume_unchanged_is_the_half_that_counts": "THE REFUSAL IS NOT ENOUGH IF THE PART STAYS CHANGED. The dimension has already been written when the slot is noticed: `set_dimension` must put back the previous value and rebuild. If the volume after the refusal is not the one before, the refusal told the truth and left the damage." }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "delete_first_hole",
   "family": "removal",
-  "why": "Eliminare non e' sopprimere: la lavorazione sparisce dall'albero e non si torna indietro con un'altra operazione, solo con `undo`. Si cancella il PRIMO foro, che figli non ne ha, e si misura tutto e tre: il volume che cresce, il foro che manca DOVE mancava, e una lavorazione in meno nell'elenco.",
-  "_why_the_centers": "il volume dice quanto materiale e' tornato, non quale foro e' sparito. Cancellato quello a x = -60 restano i due a 0 e +60: e' la differenza fra «ne ha tolto uno» e «ha tolto quello giusto».",
+  "why": "Deleting is not suppressing: the feature disappears from the tree and there is no going back with another operation, only with `undo`. We delete the FIRST hole, which has no children, and measure all three things: the volume that grows, the hole that is missing WHERE it was missing, and one feature fewer in the list.",
+  "_why_the_centers": "the volume says how much material came back, not which hole disappeared. With the one at x = -60 deleted the two at 0 and +60 remain: it is the difference between «it removed one» and «it removed the right one».",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,27 +13,27 @@
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -60, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
-                    "tolerance_why": "400000 meno pi*7^2*20: il conto ha pi dentro" } ] },
+                    "tolerance_why": "400000 minus pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 393842.48, "tolerance": 0.5,
-                    "tolerance_why": "400000 meno due volte pi*7^2*20: il conto ha pi dentro" } ] },
+                    "tolerance_why": "400000 minus twice pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 60, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [-60, 0, 60], "tolerance": 0.05,
-          "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+          "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
         { "what": "how_many_features", "equal_to": 4 } ] },
     { "operation": "delete_feature",
       "arguments": { "feature_uid": "Taglio-Estrusione1" },
       "expect": [
         { "what": "volume_mm3", "equal_to": 393842.48, "tolerance": 0.5,
-          "tolerance_why": "il volume risale di un foro: il conto ha pi dentro" },
+          "tolerance_why": "the volume goes up by one hole: the calculation has pi inside" },
         { "what": "centers_x_mm", "equal_to": [0, 60], "tolerance": 0.05,
-          "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+          "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
         { "what": "how_many_features", "equal_to": 3,
-          "_why_three": "cancellata, non spenta: dall'elenco sparisce davvero" } ] }
+          "_why_three": "deleted, not turned off: it really disappears from the list" } ] }
   ]
 }

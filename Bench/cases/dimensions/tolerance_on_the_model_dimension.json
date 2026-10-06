@@ -1,8 +1,8 @@
 {
   "name": "tolerance_on_the_model_dimension",
   "family": "dimensions",
-  "why": "VOCE Z-F2. Un foro Ø10 senza tolleranza non e' un'informazione di fabbricazione: il tornitore non sa se ci va un perno o un cavo. Messa sulla quota del MODELLO, la tolleranza arriva in tavola da sola con model_dimensions. Misurato col banchetto il 26/9/2026: SOLIDWORKS calcola gli scostamenti ISO 286 da se' (H7 su 10: 0 / +0,015), e in tavola li stampava coi decimali della quota — «10 H7 +0 / 0».",
-  "defect_caught": "Tre: la tolleranza che non si scrive (la rilettura), l'accoppiamento con l'ampiezza sbagliata (il riscontro con la tabella ISO 286-1, indipendente da SOLIDWORKS), e i decimali della tolleranza a zero, che stampano «+0/0».",
+  "why": "ENTRY Z-F2. A Ø10 hole without a tolerance is not manufacturing information: the turner does not know whether a pin or a cable goes in it. Put on the dimension of the MODEL, the tolerance reaches the drawing by itself with model_dimensions. Measured with the little test rig on 26/9/2026: SOLIDWORKS computes the ISO 286 deviations by itself (H7 on 10: 0 / +0.015), and on the drawing it printed them with the decimals of the dimension — «10 H7 +0 / 0».",
+  "defect_caught": "Three: the tolerance that is not written (the re-reading), the fit with the wrong width (the check against the ISO 286-1 table, independent of SOLIDWORKS), and the decimals of the tolerance at zero, which print «+0/0».",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,26 +10,26 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0, "diameter_mm": 10, "through_all": true },
-      "expect": [ { "what": "volume_mm3", "equal_to": 95214.6, "tolerance": 0.05, "tolerance_why": "pi dentro: 96000 meno pi x 5^2 x 10" } ] },
+      "expect": [ { "what": "volume_mm3", "equal_to": 95214.6, "tolerance": 0.05, "tolerance_why": "pi inside: 96000 minus pi x 5^2 x 10" } ] },
     { "operation": "dimension_tolerance",
       "arguments": { "dimension": "D1@Schizzo2", "variant": "fit", "fit_class": "H7" },
       "expect": [
-        { "what": "measurements.nominal_mm", "equal_to": 10, "why": "la quota del foro, non lo spessore (che vale 10 anche lui: la sonda ci era cascata)" },
-        { "what": "measurements.lower_deviation_mm", "equal_to": 0, "tolerance": 0.0001, "tolerance_why": "SOLIDWORKS scrive in metri, qui in mm a quattro decimali", "why": "un foro H parte da zero" },
-        { "what": "measurements.upper_deviation_mm", "equal_to": 0.015, "tolerance": 0.0001, "tolerance_why": "come sopra", "why": "IT7 fra 6 e 10 mm e' 15 µm (ISO 286-1)" },
-        { "what": "measurements.it_iso286_um", "equal_to": 15, "why": "il riscontro indipendente: la tabella, non SOLIDWORKS" },
+        { "what": "measurements.nominal_mm", "equal_to": 10, "why": "the dimension of the hole, not the thickness (which is also 10: the probe had fallen for it)" },
+        { "what": "measurements.lower_deviation_mm", "equal_to": 0, "tolerance": 0.0001, "tolerance_why": "SOLIDWORKS writes in metres, here in mm to four decimals", "why": "an H hole starts from zero" },
+        { "what": "measurements.upper_deviation_mm", "equal_to": 0.015, "tolerance": 0.0001, "tolerance_why": "as above", "why": "IT7 between 6 and 10 mm is 15 µm (ISO 286-1)" },
+        { "what": "measurements.it_iso286_um", "equal_to": 15, "why": "the independent check: the table, not SOLIDWORKS" },
         { "what": "measurements.tolerance_decimals", "equal_to": 3,
-          "why": "misurato: senza, in tavola usciva «+0 / 0» — i limiti coi decimali della quota" } ] },
+          "why": "measured: without it, the drawing showed «+0 / 0» — the limits with the decimals of the dimension" } ] },
     { "operation": "dimension_tolerance",
       "arguments": { "dimension": "D1@Estrusione-Estrusione1", "variant": "symmetric", "value_mm": 0.05 },
       "expect": [
-        { "what": "measurements.lower_limit_mm", "equal_to": 9.95, "tolerance": 0.0001, "tolerance_why": "quattro decimali", "why": "10 - 0,05" },
-        { "what": "measurements.upper_limit_mm", "equal_to": 10.05, "tolerance": 0.0001, "tolerance_why": "quattro decimali", "why": "10 + 0,05" },
-        { "what": "measurements.tolerance_decimals", "equal_to": 2, "why": "quelli del valore chiesto" } ] },
+        { "what": "measurements.lower_limit_mm", "equal_to": 9.95, "tolerance": 0.0001, "tolerance_why": "four decimals", "why": "10 - 0,05" },
+        { "what": "measurements.upper_limit_mm", "equal_to": 10.05, "tolerance": 0.0001, "tolerance_why": "four decimals", "why": "10 + 0,05" },
+        { "what": "measurements.tolerance_decimals", "equal_to": 2, "why": "those of the value asked for" } ] },
     { "operation": "dimension_tolerance",
       "arguments": { "dimension": "D1@Schizzo2", "variant": "fit", "fit_class": "H14" },
       "must_fail": {
-        "message_includes": ["IT14", "Scegli un grado fra 5 e 11"],
+        "message_includes": ["IT14", "Choose a grade between 5 and 11"],
         "volume_unchanged": true,
         "twin": "tolerance_on_the_model_dimension" } }
   ]

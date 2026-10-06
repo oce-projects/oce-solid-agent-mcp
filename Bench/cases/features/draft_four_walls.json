@@ -1,9 +1,9 @@
 {
   "name": "draft_four_walls",
   "family": "features",
-  "why": "Il termine di paragone dello sformo: un blocco 100x100x20, la faccia davanti come neutra, le quattro laterali inclinate di 5 gradi. E' il caso a cui si appoggia il rifiuto delle facce scambiate.",
-  "_why_the_faces_and_not_the_feature": "La lavorazione, richiesta l'angolo, dichiara SEMPRE quello che le e' stato chiesto -- anche quando non ha inclinato niente. Misurato il 16/9/2026: scambiando i marchi di selezione, `IDraftFeatureData.Angle` rilegge 5 gradi mentre le laterali sono rimaste a zero. Percio' qui si contano le facce del PEZZO che stanno all'angolo giusto, e l'angolo dichiarato dalla lavorazione si riporta accanto, con scritto che cos'e'.",
-  "_why_the_volume_grows": "Neutra sopra e pareti che si allargano verso il basso: il tronco di piramide e' piu' grosso del prisma. 207080,74 contro 200000. Il numero non e' tondo e non poteva esserlo: e' l'integrale di una sezione che cambia con la quota.",
+  "why": "The benchmark of the draft: a 100x100x20 block, the front face as neutral, the four side faces inclined by 5 degrees. It is the case that the refusal of swapped faces leans on.",
+  "_why_the_faces_and_not_the_feature": "The feature, when the angle is requested, ALWAYS declares what it was asked -- even when it has inclined nothing. Measured on 16/9/2026: swapping the selection marks, `IDraftFeatureData.Angle` reads back 5 degrees while the side faces stayed at zero. So here we count the faces of the PART that are at the right angle, and the angle declared by the feature is reported next to it, with a note saying what it is.",
+  "_why_the_volume_grows": "Neutral on top and walls that widen towards the bottom: the frustum of a pyramid is bigger than the prism. 207080.74 against 200000. The number is not round and could not be: it is the integral of a section that changes with height.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -19,16 +19,16 @@
         { "what": "measurements.angle_deg", "equal_to": 5 },
         { "what": "measurements.faces_drafted", "equal_to": 4 },
         { "what": "measurements.faces_at_corner_before", "equal_to": 0,
-          "why": "IL NUMERO DA CUI SI PARTE. Un blocco dritto non ha nessuna faccia a 5 gradi dalla neutra: se ne avesse, il conto di dopo non direbbe piu' niente." },
+          "why": "THE NUMBER WE START FROM. A straight block has no face at 5 degrees from the neutral: if it had one, the later count would no longer say anything." },
         { "what": "measurements.faces_at_corner_after", "equal_to": 4 },
         { "what": "measurements.angle_declared_by_feature", "equal_to": 5,
-          "why": "QUI COINCIDE, e nel caso rotto coincide lo stesso: e' per questo che non e' un controllo. Sta nella risposta per far vedere che i due numeri sono due cose diverse, non per garantire niente." },
+          "why": "HERE THEY COINCIDE, and in the broken case they coincide just the same: that is why it is not a check. It is in the answer to show that the two numbers are two different things, not to guarantee anything." },
         { "what": "measurements.part_grew", "equal_to": true },
         { "what": "measurements.material_mm3", "equal_to": 7080.74, "tolerance": 0.5,
-          "tolerance_why": "e' il volume di un tronco di piramide meno un prisma: il conto ha una tangente dentro" },
+          "tolerance_why": "it is the volume of a frustum of a pyramid minus a prism: the calculation has a tangent inside" },
         { "what": "volume_mm3", "equal_to": 207080.74, "tolerance": 0.5,
-          "tolerance_why": "lo stesso numero letto dallo stato invece che dalla risposta" },
+          "tolerance_why": "the same number read from the state instead of from the answer" },
         { "what": "bodies", "equal_to": 1,
-          "why": "sformare inclina le pareti, non spezza il pezzo" } ] }
+          "why": "drafting tilts the walls, it does not break the part" } ] }
   ]
 }

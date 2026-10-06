@@ -1,7 +1,7 @@
 {
   "name": "slot_30x9",
   "family": "pairs",
-  "why": "La gemella di «limit_slot_that_covers_everything». Un'asola 30 x 9 e' l'asola vera del mestiere -- quella che permette di montare -- e il materiale tolto si conta esatto: area 21x9 + pi*4.5^2 = 252,6173 mm2, per i 52 di spessore.",
+  "why": "The twin of «limit_slot_that_covers_everything». A 30 x 9 slot is the real slot of the trade -- the one that allows assembly -- and the removed material is counted exactly: area 21x9 + pi*4.5^2 = 252.6173 mm2, over the 52 of thickness.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -31,10 +31,10 @@
       "expect": [
         { "what": "measurements.area_mm2", "equal_to": 252.62,
           "tolerance": 0.01,
-          "tolerance_why": "21*9 + pi*4.5^2 = 252,6173: l'operazione arrotonda al centesimo" },
+          "tolerance_why": "21*9 + pi*4.5^2 = 252.6173: the operation rounds to the hundredth" },
         { "what": "measurements.material_removed_mm3", "equal_to": 13136.1,
           "tolerance": 0.5,
-          "tolerance_why": "252,6173 x 52: il conto ha pi dentro" },
+          "tolerance_why": "252.6173 x 52: the calculation has pi inside" },
         { "what": "bodies", "equal_to": 1 }
       ]
     }

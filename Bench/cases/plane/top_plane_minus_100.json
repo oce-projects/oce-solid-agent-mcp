@@ -1,14 +1,14 @@
 {
   "name": "top_plane_minus_100",
   "family": "plane",
-  "why": "E' IL CASO CHE SEMBRA GIUSTO. L'add-in passa il valore ASSOLUTO e aggiunge `OptionFlip` quando la distanza e' negativa: e' la lettura piu' letterale dell'enum, ma circolano macro che passano il segno direttamente. Con quelle, il piano a -100 finisce a +100 e NESSUN ERRORE LO DICE -- lo dice solo questo numero.",
+  "why": "IT IS THE CASE THAT LOOKS RIGHT. The add-in passes the ABSOLUTE value and adds `OptionFlip` when the distance is negative: it is the most literal reading of the enum, but there are macros going around that pass the sign directly. With those, the plane at -100 ends up at +100 and NO ERROR SAYS SO -- only this number does.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "create_plane",
       "arguments": { "plane": "top", "distance_mm": -100 },
       "expect": [
         { "what": "last_plane_mm", "equal_to": [0, -100, 0], "tolerance": 0.1,
-          "tolerance_why": "l'origine del piano si legge da una matrice in metri" },
+          "tolerance_why": "the origin of the plane is read from a matrix in metres" },
         { "what": "state.planes_available", "equal_to": 4 } ] }
   ]
 }

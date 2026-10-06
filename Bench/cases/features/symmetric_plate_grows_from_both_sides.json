@@ -1,8 +1,8 @@
 {
   "name": "symmetric_plate_grows_from_both_sides",
   "family": "features",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievi su edit_extrusion. Una piastra estrusa SIMMETRICA (piano medio) 100 x 60, profonda 100: da -50 a +50. edit_extrusion con depth_mm 120 la trasformava in CIECA da un lato, da 0 a +120: non cresceva di 10 per parte, si spostava di 60, e la risposta diceva «riuscito» (fine, profondita' e volume tornavano). Il piano medio resta piano medio, e la profondita' si scrive anche li' (senza, il ripristino rimetteva la condizione e lasciava la misura nuova).",
-  "defect_caught": "Un'estrusione simmetrica che cambiando profondita' diventa cieca e trasla il pezzo; la profondita' di un piano medio non riportata; il rientro che non rimette la misura.",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, findings on edit_extrusion. A SYMMETRIC extruded plate (mid-plane) 100 x 60, 100 deep: from -50 to +50. edit_extrusion with depth_mm 120 turned it into BLIND on one side, from 0 to +120: it did not grow by 10 per side, it moved by 60, and the answer said «succeeded» (end, depth and volume came back right). The mid-plane stays mid-plane, and the depth is written there too (without it, the restore put the condition back and left the new measurement).",
+  "defect_caught": "A symmetric extrusion that, when the depth changes, becomes blind and translates the part; the depth of a mid-plane not reported; the return that does not put the measurement back.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_profile",
@@ -11,20 +11,20 @@
       "expect": [
         { "what": "volume_mm3", "equal_to": 600000 },
         { "what": "state.bounding_box_from_mm", "equal_to": [-50, -30, -50], "tolerance": 0.01,
-          "tolerance_why": "punti estremi veri, arrotondati",
-          "why": "meta' da una parte e meta' dall'altra del piano frontale" } ] },
+          "tolerance_why": "true extreme points, rounded",
+          "why": "half on one side and half on the other of the front plane" } ] },
     { "operation": "edit_extrusion",
       "arguments": { "feature_uid": "@feature(kind=Extrusion,n=1)", "depth_mm": 120 },
       "expect": [
         { "what": "measurements.end_before", "equal_to": "mid plane" },
         { "what": "measurements.end_after", "equal_to": "mid plane", "why": "PRIMA DIVENTAVA «blind»" },
-        { "what": "measurements.depth_before_mm", "equal_to": 100, "why": "la profondita' di un piano medio si riporta" },
+        { "what": "measurements.depth_before_mm", "equal_to": 100, "why": "the depth of a mid-plane is reported" },
         { "what": "measurements.depth_after_mm", "equal_to": 120 },
         { "what": "volume_mm3", "equal_to": 720000 },
         { "what": "state.bounding_box_from_mm", "equal_to": [-50, -30, -60], "tolerance": 0.01,
-          "tolerance_why": "punti estremi veri, arrotondati",
-          "why": "cresce di 10 PER PARTE: da cieca sarebbe partita da 0" },
+          "tolerance_why": "true extreme points, rounded",
+          "why": "grows by 10 PER SIDE: as blind it would have started from 0" },
         { "what": "state.bounding_box_mm", "equal_to": [100, 60, 120], "tolerance": 0.01,
-          "tolerance_why": "la stessa" } ] }
+          "tolerance_why": "the same" } ] }
   ]
 }

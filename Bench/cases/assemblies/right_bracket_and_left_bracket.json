@@ -1,8 +1,8 @@
 {
   "name": "right_bracket_and_left_bracket",
   "family": "assemblies",
-  "why": "VOCE GA11. La staffa destra e la sinistra e' il caso piu' comune di carpenteria, e il pericolo sta nel legame: legato e non voluto, cambi la destra e ti cambia la sinistra; slegato e non voluto, correggi la destra e la sinistra resta sbagliata senza dirlo. Misurato il 27/9/2026 (prova0089 ga11): IMirrorComponentFeatureData da' le tre cose — l'istanza dello stesso file, il file opposto legato (una lavorazione sola, MirrorStock) e quello slegato (le lavorazioni copiate). Il caso le prova tutte e tre, su tre piani diversi perche' non si sovrappongano.",
-  "defect_caught": "Lo specchio che nasce dalla parte sbagliata; il file opposto creduto legato che e' slegato (o il contrario); l'istanza che invece crea un file; array non tipizzati che fanno una feature fantasma.",
+  "why": "ENTRY GA11. The right bracket and the left one is the most common case of metalwork, and the danger lies in the link: linked and unwanted, you change the right one and the left one changes with it; unlinked and unwanted, you correct the right one and the left one stays wrong without saying so. Measured on 27/9/2026 (prova0089 ga11): IMirrorComponentFeatureData gives the three things — the instance of the same file, the linked opposite file (a single feature, MirrorStock) and the unlinked one (the copied features). The case proves all three, on three different planes so that they do not overlap.",
+  "defect_caught": "The mirror that is born from the wrong part; the opposite file believed linked that is unlinked (or the other way round); the instance that creates a file instead; untyped arrays that make a phantom feature.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -22,32 +22,32 @@
     { "operation": "mirror_component",
       "arguments": { "component": "C2", "plane": "right", "mode": "instance" },
       "expect": [
-        { "what": "measurements.new_file", "equal_to": false, "why": "un'istanza dello stesso file" },
+        { "what": "measurements.new_file", "equal_to": false, "why": "an instance of the same file" },
         { "what": "measurements.new_center_mm", "equal_to": [-40, 10, 30], "tolerance": 0.01,
-          "tolerance_why": "punti estremi veri, arrotondati",
-          "why": "sul piano destro (YZ) la x cambia segno" },
+          "tolerance_why": "true extreme points, rounded",
+          "why": "on the right plane (YZ) x changes sign" },
         { "what": "state.how_many_components", "equal_to": 3 } ] },
     { "operation": "mirror_component",
       "arguments": { "component": "C2", "plane": "front", "mode": "opposite_linked", "suffix": "_legata" },
       "expect": [
         { "what": "measurements.new_file", "equal_to": true },
-        { "what": "measurements.linked_to_original", "equal_to": true, "why": "l'albero del file nuovo e' MirrorStock: segue l'originale" },
+        { "what": "measurements.linked_to_original", "equal_to": true, "why": "the tree of the new file is MirrorStock: it follows the original" },
         { "what": "measurements.new_center_mm", "equal_to": [40, 10, -30], "tolerance": 0.01,
-          "tolerance_why": "la stessa",
-          "why": "sul piano frontale (XY) la z cambia segno" } ] },
+          "tolerance_why": "the same",
+          "why": "on the front plane (XY) z changes sign" } ] },
     { "operation": "mirror_component",
       "arguments": { "component": "C2", "plane": "top", "mode": "opposite_unlinked", "suffix": "_slegata" },
       "expect": [
         { "what": "measurements.new_file", "equal_to": true },
-        { "what": "measurements.linked_to_original", "equal_to": false, "why": "le lavorazioni copiate: non segue piu' l'originale" },
+        { "what": "measurements.linked_to_original", "equal_to": false, "why": "the copied features: it no longer follows the original" },
         { "what": "measurements.new_center_mm", "equal_to": [40, -10, 30], "tolerance": 0.01,
-          "tolerance_why": "la stessa",
-          "why": "sul piano superiore (XZ) la y cambia segno" },
+          "tolerance_why": "the same",
+          "why": "on the top plane (XZ) y changes sign" },
         { "what": "state.how_many_components", "equal_to": 5 } ] },
     { "operation": "mirror_component",
       "arguments": { "component": "C2", "plane": "right" },
       "must_fail": {
-        "message_includes": ["Dimmi «mode»", "instance"],
+        "message_includes": ["Tell me «mode»", "instance"],
         "twin": "right_bracket_and_left_bracket" } }
   ]
 }

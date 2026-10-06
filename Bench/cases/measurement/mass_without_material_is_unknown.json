@@ -1,8 +1,8 @@
 {
   "name": "mass_without_material_is_unknown",
   "family": "measurement",
-  "why": "IL CASO PER CUI L'OPERAZIONE ESISTE COSI'. Senza materiale SOLIDWORKS non fallisce: risponde con la densita' predefinita del modello, che e' 1000 kg/m3 -- l'acqua. Sullo stesso cubo da 200.000 mm3 sono 0,2 kg invece di 1,6: un numero credibile, sbagliato di OTTO VOLTE, e il posto in cui si scopre e' il preventivo. Misurato il 15/9/2026.",
-  "_why_null_and_not_zero": "la massa e' `null`, non zero: zero sarebbe un pezzo che non pesa niente, e sarebbe una risposta. `null` vuol dire «non si sa», ed e' accompagnato da una frase che dice cosa fare. Il volume invece si sa eccome, e infatti c'e'.",
+  "why": "THE CASE THIS OPERATION EXISTS FOR. Without a material SOLIDWORKS does not fail: it answers with the default density of the model, which is 1000 kg/m3 -- water. On the same 200,000 mm3 cube that is 0.2 kg instead of 1.6: a believable number, wrong by EIGHT TIMES, and the place where it is found out is the quote. Measured on 15/9/2026.",
+  "_why_null_and_not_zero": "the mass is `null`, not zero: zero would be a part that weighs nothing, and it would be an answer. `null` means «unknown», and it comes with a sentence saying what to do. The volume, instead, is perfectly well known, and in fact it is there.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,13 +13,13 @@
       "arguments": {},
       "expect": [
         { "what": "measurements.volume_mm3", "equal_to": 200000, "tolerance": 0.5,
-          "tolerance_why": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
+          "tolerance_why": "the volume is read in cubic metres and multiplied by a billion" },
         { "what": "measurements.mass_kg", "equal_to": null,
-          "_why_null": "non si sa, e si dice" },
+          "_why_null": "unknown, and it says so" },
         { "what": "measurements.density_kg_m3", "equal_to": null },
         { "what": "measurements.material", "equal_to": null },
         { "what": "measurements.why_no_mass",
-          "includes": ["nessun materiale", "1000 kg/m3", "acqua", "otto volte", "apply_material"],
-          "why": "il rifiuto deve dire COSA non si sa, PERCHE' la risposta di SOLIDWORKS sarebbe credibile, e COSA fare" } ] }
+          "includes": ["there is no material", "1000 kg/m3", "water", "eight times", "apply_material"],
+          "why": "the refusal must say WHAT is not known, WHY the answer from SOLIDWORKS would be believable, and WHAT to do" } ] }
   ]
 }

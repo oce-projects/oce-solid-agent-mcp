@@ -1,7 +1,7 @@
 {
   "name": "limit_round_slot",
   "family": "slot",
-  "why": "Lunga quanto larga non e' un'asola, e' un foro tondo. Chiederla cosi' quasi sempre vuol dire che uno dei due numeri e' sbagliato, e il rifiuto lo dice invece di fare un cerchio senza commentare.",
+  "why": "As long as wide is not a slot, it is a round hole. Asking for it that way almost always means that one of the two numbers is wrong, and the refusal says so instead of making a circle without comment.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,7 +10,7 @@
     { "operation": "slot",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 20, "width_mm": 20, "angle_deg": 0, "through_all": true },
       "must_fail": {
-        "message_includes": ["la lunghezza si misura da", "fuori a fuori"],
+        "message_includes": ["the length is measured from", "outside to outside"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "through_slot" } }

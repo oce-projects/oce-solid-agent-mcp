@@ -1,7 +1,7 @@
 [
  {
-  "_why": "V2 -- forma 3 di 5: STAFFA A L. Due parallelepipedi a novanta gradi. Le facce sono poche e tutte piane: lo stato testuale ha ogni numero che serve, e nessuno dice DA CHE PARTE sta l'aletta. E' la forma in cui una vista sola dovrebbe vincere piu' nettamente.",
-  "_truth": "Base 120x60x8 sul piano superiore, piu' un'aletta 120x8 alta 50 cresciuta dal bordo y=-30 della faccia in cima. Volume 120*60*8 + 120*8*50 = 57600 + 48000 = 105600 mm3.",
+  "_why": "V2 -- shape 3 of 5: L BRACKET. Two boxes at ninety degrees. The faces are few and all planar: the textual state has every number that is needed, and none of them says WHICH SIDE the tab is on. It is the shape in which a single view should win most clearly.",
+  "_truth": "Base 120x60x8 on the top plane, plus a 120x8 tab 50 high grown from the edge y=-30 of the top face. Volume 120*60*8 + 120*8*50 = 57600 + 48000 = 105600 mm3.",
   "operation": "extrude_rectangle",
   "arguments": { "plane": "top", "length_mm": 120, "width_mm": 60, "thickness_mm": 8, "centered": true }
  },

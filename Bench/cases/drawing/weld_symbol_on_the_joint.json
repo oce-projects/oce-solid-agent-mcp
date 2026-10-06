@@ -1,9 +1,9 @@
 {
   "name": "weld_symbol_on_the_joint",
   "family": "drawing",
-  "why": "VOCE GT7. La T dei casi di saldatura (una barra 80x80x5 da 600, una da 300 che ci arriva sopra, tagliata sulla prima) messa in tavola col simbolo del cordone d'angolo ISO, gola 4. Misurato col banchetto il 26/9/2026: il codice del simbolo e' quello della libreria gtol.sym, «<WELD-FILL>»; con «<IGWS-FILLET>», «<GWS-FILLET>» o «Fillet» il simbolo nasceva lo stesso, col testo riletto uguale, e SENZA triangolo — l'ha detto solo il PNG.",
-  "defect_caught": "Il simbolo col codice sbagliato (nasce, si rilegge, e non disegna il triangolo), il simbolo su uno spigolo che non e' un giunto, la gola che non e' quella chiesta.",
-  "_the_views_are_called_by_uid": "V2, la vista dall'alto: la barra corta ci arriva di fianco e la linea del giunto si vede.",
+  "why": "ENTRY GT7. The T of the weld cases (an 80x80x5 bar 600 long, one of 300 arriving on top of it, cut on the first) put on the drawing with the ISO fillet weld symbol, throat 4. Measured with the little test rig on 26/9/2026: the code of the symbol is the one of the library gtol.sym, «<WELD-FILL>»; with «<IGWS-FILLET>», «<GWS-FILLET>» or «Fillet» the symbol was born all the same, with the text re-read the same, and WITHOUT the triangle — only the PNG said so.",
+  "defect_caught": "The symbol with the wrong code (it is born, it is re-read, and it does not draw the triangle), the symbol on an edge that is not a joint, the throat that is not the one asked for.",
+  "_the_views_are_called_by_uid": "V2, the view from above: the short bar arrives from the side and the line of the joint can be seen.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "structural_member",
@@ -23,10 +23,10 @@
                      "trim_boundary_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(1))"] },
       "expect": [
         { "what": "measurements.volume_change_mm3", "equal_to": -58798.23, "tolerance": 0.05,
-          "tolerance_why": "40 mm x 1469,956 mm2 di sezione, che ha pi dentro: senza il taglio la corta resta dentro la lunga e non c'e' nessun giunto" } ] },
+          "tolerance_why": "40 mm x 1469.956 mm2 of section, which has pi in it: without the cut the short one stays inside the long one and there is no joint" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\weld_symbol_on_the_joint.sldprt" },
-      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "una vista si aggancia al FILE del pezzo" } ] },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
@@ -37,11 +37,11 @@
       "arguments": { "view": "V2", "variant": "fillet", "throat_mm": 4 },
       "expect": [
         { "what": "measurements.symbol_reread", "equal_to": "<WELD-FILL>",
-          "why": "il codice della libreria, quello che disegna il triangolo" },
-        { "what": "measurements.throat_reread", "equal_to": "a4", "why": "ISO 2553: la gola si scrive «a» davanti al numero, a sinistra del simbolo" },
+          "why": "the code of the library, the one that draws the triangle" },
+        { "what": "measurements.throat_reread", "equal_to": "a4", "why": "ISO 2553: the throat is written «a» in front of the number, to the left of the symbol" },
         { "what": "measurements.texts", "equal_to": 2,
-          "why": "la gola E il simbolo disegnato: con un codice che la libreria non conosce i testi erano 1 — il codice restava testo e il triangolo non c'era" },
-        { "what": "measurements.attached_to_edge", "equal_to": true, "why": "la freccia sta sulla linea del giunto" },
-        { "what": "measurements.symbols_after", "equal_to": 1, "why": "uno, non zero e non due" } ] }
+          "why": "the throat AND the symbol drawn: with a code the library does not know the texts were 1 — the code stayed as text and the triangle was not there" },
+        { "what": "measurements.attached_to_edge", "equal_to": true, "why": "the arrow sits on the line of the joint" },
+        { "what": "measurements.symbols_after", "equal_to": 1, "why": "one, not zero and not two" } ] }
   ]
 }

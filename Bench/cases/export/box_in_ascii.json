@@ -1,8 +1,8 @@
 {
   "name": "box_in_ascii",
   "family": "export",
-  "why": "Lo stesso pezzo in ASCII: gli stessi dodici triangoli, contati in un altro modo -- righe «facet» invece dei quattro byte dell'intestazione. Due strade per lo stesso numero, e se una delle due sbagliasse si vedrebbe subito.",
-  "_why_there_are_no_bytes": "la dimensione di un STL ASCII dipende da come il float viene scritto, e un'attesa su quella sarebbe un'attesa sul formattatore di SOLIDWORKS, non sul pezzo.",
+  "why": "The same part in ASCII: the same twelve triangles, counted in another way -- «facet» lines instead of the four bytes of the header. Two roads to the same number, and if one of the two went wrong it would be seen at once.",
+  "_why_there_are_no_bytes": "the size of an ASCII STL depends on how the float is written, and an expectation on it would be an expectation on the formatter of SOLIDWORKS, not on the part.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,10 +13,10 @@
       "arguments": { "path": "{LAVORO}\\gp2_ascii.stl", "binary": false },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 12,
-          "_why_twelve": "gli stessi dodici del caso binario: e' il pezzo, non il formato" },
+          "_why_twelve": "the same twelve as the binary case: it is the part, not the format" },
         { "what": "measurements.file_format", "equal_to": "ASCII" },
         { "what": "measurements.how_triangles_are_known",
-          "includes": ["righe", "facet"] },
+          "includes": ["records", "facet"] },
         { "what": "measurements.units", "equal_to": "mm" } ] }
   ]
 }

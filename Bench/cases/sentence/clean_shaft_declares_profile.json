@@ -1,8 +1,8 @@
 {
   "name": "clean_shaft_declares_profile",
   "family": "sentence",
-  "why": "LA FRASE E' CIO' CHE IL MODELLO LEGGE. Un albero a gradini fatto di rivoluzione e basta ha un profilo che si puo' raccontare: Ø30 per 40, Ø20 per 30, Ø34 per 20. Se la descrizione non lo dice, il modello non sa che pezzo ha in mano e i numeri dello stato da soli non glielo raccontano.",
-  "_why_not_equal": "l'attesa e' su «contiene» e non su «uguale» perche' una frase cambia a ogni virgola sistemata: pretenderla identica vorrebbe dire riscrivere il caso a ogni miglioria del fraseggio, e finirebbe con qualcuno che allarga l'attesa invece di guardare il pezzo. Quello che non puo' cambiare sono i tre diametri e le tre lunghezze.",
+  "why": "THE SENTENCE IS WHAT THE MODEL READS. A stepped shaft made only of revolution has a profile that can be told: Ø30 for 40, Ø20 for 30, Ø34 for 20. If the description does not say it, the model does not know what part it is holding and the numbers of the state alone do not tell it.",
+  "_why_not_equal": "the expectation is on «contiene» and not on «uguale» because a sentence changes with every comma fixed: demanding it identical would mean rewriting the case at every improvement of the wording, and it would end with someone widening the expectation instead of looking at the part. What cannot change are the three diameters and the three lengths.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
@@ -12,10 +12,10 @@
                                    [70, 10], [70, 17], [90, 17], [90, 0]]] },
       "expect": [
         { "what": "volume_mm3", "equal_to": 55857.53, "tolerance": 0.5,
-          "tolerance_why": "pi*(15^2*40 + 10^2*30 + 17^2*20): il conto ha pi dentro" },
+          "tolerance_why": "pi*(15^2*40 + 10^2*30 + 17^2*20): the calculation has pi inside" },
         { "what": "bodies", "equal_to": 1 },
         { "what": "state.shape",
-          "includes": ["pezzo di rivoluzione", "profilo",
-                       "Ø30 per 40", "Ø20 per 30", "Ø34 per 20"] } ] }
+          "includes": ["part of revolution", "profile ",
+                       "Ø30 for 40", "Ø20 for 30", "Ø34 for 20"] } ] }
   ]
 }

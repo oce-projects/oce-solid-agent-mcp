@@ -1,8 +1,8 @@
 {
   "name": "hole_wizard_follows_the_table",
   "family": "features",
-  "why": "VOCE Z-C6, la seconda meta'. `hole_wizard` era a catalogo con casi solo nella REGRESSIONE (r01, r02, r07, r14), che gira soltanto con `-Regression`, e nel C# del banco: nessun caso dichiarato di un giro normale la toccava. L'ha trovato il controllo di contratto nuovo, il 25/9/2026.",
-  "defect_caught": "Il foro che esce della misura sbagliata per il TIPO: un M8 filettato vuole il preforo da 6,8 (il filetto e' cosmetico), un M8 di passaggio il foro da 9. Scambiarli fa un pezzo in cui la vite o non entra o non tiene, e la ricostruzione e' pulita lo stesso. `diameter_machined_mm` lo dice l'operazione; il volume lo conferma il pezzo.",
+  "why": "ENTRY Z-C6, the second half. `hole_wizard` was in the catalogue with cases only in the REGRESSION (r01, r02, r07, r14), which runs only with `-Regression`, and in the C# of the bench: no declared case of a normal run touched it. The new contract check found it, on 25/9/2026.",
+  "defect_caught": "The hole that comes out with the wrong size for the TYPE: a threaded M8 wants the 6.8 tap drill (the thread is cosmetic), an M8 clearance hole wants the 9 hole. Swapping them makes a part where the screw either does not go in or does not hold, and the rebuild is clean just the same. `diameter_machined_mm` is told by the operation; the volume is confirmed by the part.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,18 +13,18 @@
                      "through_all": true, "positions": [ { "x_mm": 0, "y_mm": 0 } ] },
       "expect": [
         { "what": "measurements.diameter_machined_mm", "equal_to": 6.8, "tolerance": 0.001,
-          "tolerance_why": "il preforo dell'M8 dalla tabella ISO di SOLIDWORKS, riletto: il millesimo e' l'arrotondamento",
-          "why": "FILETTATO = preforo, non il diametro della vite" },
+          "tolerance_why": "the tap drill of the M8 from the ISO table of SOLIDWORKS, read back: the thousandth is rounding",
+          "why": "THREADED = tap drill, not the diameter of the screw" },
         { "what": "volume_mm3", "equal_to": 479273.664, "tolerance": 0.01,
-          "tolerance_why": "480000 meno pi x 3,4^2 x 20 = 726,336: pi dentro, il centesimo e' l'arrotondamento. Un foro da 8 ne toglierebbe 1005,3" } ] },
+          "tolerance_why": "480000 minus pi x 3.4^2 x 20 = 726.336: pi inside, the hundredth is rounding. A hole of 8 would remove 1005.3" } ] },
     { "operation": "hole_wizard",
       "arguments": { "face_uid": "@face(normal=front)", "size": "M8", "variant": "clearance",
                      "through_all": true, "positions": [ { "x_mm": 60, "y_mm": 0 } ] },
       "expect": [
         { "what": "measurements.diameter_machined_mm", "equal_to": 9, "tolerance": 0.001,
-          "tolerance_why": "il foro di passaggio dell'M8 (serie media ISO 273) dalla tabella, riletto",
-          "why": "PASSAGGIO = la vite ci passa, quindi piu' largo della vite" },
+          "tolerance_why": "the clearance hole of the M8 (medium series ISO 273) from the table, read back",
+          "why": "CLEARANCE = the screw goes through it, so wider than the screw" },
         { "what": "volume_mm3", "equal_to": 478001.319, "tolerance": 0.01,
-          "tolerance_why": "meno pi x 4,5^2 x 20 = 1272,345: pi dentro" } ] }
+          "tolerance_why": "minus pi x 4.5^2 x 20 = 1272.345: pi inside" } ] }
   ]
 }

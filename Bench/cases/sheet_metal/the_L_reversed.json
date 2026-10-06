@@ -1,8 +1,8 @@
 {
   "name": "the_L_reversed",
   "family": "sheet_metal",
-  "why": "VOCE GP18. La stessa L di `the_L_flattens`, con i punti dati AL CONTRARIO. La sonda ha misurato che lo spessore va a destra del verso di percorrenza: invertendo il verso, lo spessore va dall'altra parte e i punti diventano le facce ESTERNE. Lo sviluppo deve cambiare di 2T per piega, e l'operazione deve DIRE quale convenzione ha trovato invece di fingere che sia sempre la stessa.",
-  "_to_verify_on_the_first_run": "Che il verso decida davvero il lato: e' la deduzione da UNA misura (la L dall'alto verso destra). Se il primo giro dice ancora «inner» e 80,712, il lato lo decide qualcos'altro, e sono le due attese su convenzione e sviluppo a doverlo dire — non questo numero a doversi adattare.",
+  "why": "ENTRY GP18. The same L as `the_L_flattens`, with the points given BACKWARDS. The probe measured that the thickness goes to the right of the direction of travel: reversing the direction, the thickness goes to the other side and the points become the OUTER faces. The flat pattern must change by 2T per bend, and the operation must SAY which convention it found instead of pretending that it is always the same.",
+  "_to_verify_on_the_first_run": "That the direction really decides the side: it is the deduction from ONE measurement (the L from the top towards the right). If the first run still says «inner» and 80.712, something else decides the side, and it is the two expectations on convention and flat pattern that must say so — not this number that must adapt.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -12,6 +12,6 @@
         { "what": "bodies", "equal_to": 1 },
         { "what": "measurements.points_are_faces", "equal_to": "outer" },
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 76.712, "tolerance": 0.01,
-          "tolerance_why": "(50 - 2 - 2) + (30 - 2 - 2) + pi/2 * (2 + 0,5 * 2) = 76,712: i punti sono l'esterno, e ogni lato perde anche lo spessore" } ] }
+          "tolerance_why": "(50 - 2 - 2) + (30 - 2 - 2) + pi/2 * (2 + 0.5 * 2) = 76.712: the points are the outside, and each leg also loses the thickness" } ] }
   ]
 }

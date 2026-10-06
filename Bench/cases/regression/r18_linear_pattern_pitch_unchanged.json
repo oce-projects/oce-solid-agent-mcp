@@ -1,9 +1,9 @@
 {
   "name": "r18_linear_pattern_pitch_unchanged",
   "family": "regression",
-  "why": "Cinque fori a passo 30 lungo una piastra che si allunga. Il passo e' una quota di lavorazione -- i fori sono a 30 mm l'uno dall'altro perche' lo dice il disegno -- e non ha niente a che vedere con la lunghezza del pezzo. Se allungando la piastra il passo cambia, la ripetizione ha seguito la cosa sbagliata.",
+  "why": "Five holes at pitch 30 along a plate that gets longer. The pitch is a feature dimension -- the holes are 30 mm from one another because the drawing says so -- and it has nothing to do with the length of the part. If lengthening the plate changes the pitch, the pattern followed the wrong thing.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "passo 30 e prima istanza dove il progettista l'ha messa: allungare la piastra lascia tutti e cinque i fori dove sono. L'invariante e' scritto «come_prima» e non come numeri, perche' la DIREZIONE della ripetizione la sceglie SOLIDWORKS dallo spigolo, e calcolarla a mano vorrebbe dire indovinare da che parte va -- un conto sbagliato qui trasformerebbe il caso in un falso silenzio.",
+  "intent_why": "pitch 30 and first instance where the designer put it: lengthening the plate leaves all five holes where they are. The invariant is written «come_prima» and not as numbers, because the DIRECTION of the pattern is chosen by SOLIDWORKS from the edge, and computing it by hand would mean guessing which way it goes -- a wrong calculation here would turn the case into a false silence.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -30,12 +30,12 @@
     { "what": "bounding_box_mm", "equal_to": [460, 120, 20] },
     { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+      "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
     { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "come sopra" },
+      "tolerance_why": "as above" },
     { "what": "diameters_mm", "same_as_before": true,
       "tolerance": 0.02,
-      "tolerance_why": "cinque fori da 9: il diametro si legge da CylinderParams" }
+      "tolerance_why": "five holes of 9: the diameter is read from CylinderParams" }
   ]
 }

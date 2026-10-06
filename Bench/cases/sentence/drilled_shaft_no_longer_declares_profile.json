@@ -1,9 +1,9 @@
 {
   "name": "drilled_shaft_no_longer_declares_profile",
   "family": "sentence",
-  "why": "E' IL ROSSO VERO DELLA FRASE, e sta tutto in «non_contiene». Lo stesso albero, con un foro assiale passante: la faccia cilindrica INTERNA che ne nasce manda in vacca la formula che ricostruisce il profilo da un solido di rotazione. La descrizione deve continuare a dire che e' un pezzo di rivoluzione -- quello e' vero -- e deve SMETTERE di dichiarare il profilo, che non e' piu' quello.",
-  "_why_it_is_the_defect_that_gives_no_error": "una frase che dichiara «Ø30 per 40, Ø20 per 30, Ø34 per 20» su un pezzo che quel profilo non ce l'ha piu' non fallisce niente: e' una descrizione giusta di un altro pezzo, e il modello ci costruisce sopra. Si prende solo pretendendo che una parola SPARISCA, ed e' per questo che l'operatore «non_contiene» esiste.",
-  "_why_that_face": "@face(area~=907.92) e' il fondello Ø34, l'unica faccia piana da 907,92 mm2 del pezzo: le altre sono il fondello Ø30 (706,86) e i due risalti anulari (392,70 e 593,76). Si sceglie per misura e non per verso perche' su un solido di rotazione il verso delle due teste dipende da come e' nato l'asse.",
+  "why": "IT IS THE REAL RED OF THE SENTENCE, and it is all in «non_contiene». The same shaft, with a through axial hole: the INTERNAL cylindrical face that it creates breaks the formula that rebuilds the profile from a solid of revolution. The description must keep saying that it is a part of revolution -- that is true -- and must STOP declaring the profile, which is no longer that one.",
+  "_why_it_is_the_defect_that_gives_no_error": "a sentence that declares «Ø30 for 40, Ø20 for 30, Ø34 for 20» on a part that no longer has that profile fails nothing: it is a right description of another part, and the model builds on it. It is caught only by demanding that a word DISAPPEAR, and that is why the operator «non_contiene» exists.",
+  "_why_that_face": "@face(area~=907.92) is the Ø34 end face, the only planar face of 907.92 mm2 of the part: the others are the Ø30 end face (706.86) and the two annular shoulders (392.70 and 593.76). It is chosen by measurement and not by direction because on a solid of revolution the direction of the two ends depends on how the axis was born.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
@@ -12,15 +12,15 @@
                      "contours": [[[0, 0], [0, 15], [40, 15], [40, 10],
                                    [70, 10], [70, 17], [90, 17], [90, 0]]] },
       "expect": [
-        { "what": "state.shape", "includes": ["profilo", "Ø30 per 40"] } ] },
+        { "what": "state.shape", "includes": ["profile ", "Ø30 for 40"] } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(area~=907.92)", "x_mm": 0, "y_mm": 0,
                      "diameter_mm": 10, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 48788.95, "tolerance": 0.5,
-          "tolerance_why": "55857,53 meno pi*5^2*90: il conto ha pi dentro" },
+          "tolerance_why": "55857.53 minus pi*5^2*90: the calculation has pi inside" },
         { "what": "state.shape",
-          "includes": ["rivoluzione", "1 foro"],
-          "does_not_include": ["profilo"] } ] }
+          "includes": ["revolution", "1 hole"],
+          "does_not_include": ["profile "] } ] }
   ]
 }

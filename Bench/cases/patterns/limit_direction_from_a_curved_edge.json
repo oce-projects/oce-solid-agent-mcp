@@ -1,8 +1,8 @@
 {
   "name": "limit_direction_from_a_curved_edge",
   "family": "patterns",
-  "why": "UNO SPIGOLO CURVO NON E' UNA DIREZIONE: il bordo di un foro e' un cerchio, e da' la tangente in un punto che nessuno ha scelto -- un pezzo che sembra giusto. L'operazione lo rifiuta dicendo che serve uno spigolo rettilineo o un asse fatto con «create_axis».",
-  "_why_it_was_a_fake_test": "LA PROVA IN C# DI QUESTO CONTROLLO ERA VERDE E NON MISURAVA NIENTE, e si e' scoperto scrivendo questo file. Diceva: «un bordo curvo non compare fra gli spigoli che lo stato elenca, quindi il modello non puo' nominarlo, quindi il controllo non e' raggiungibile» -- e lo verificava contando gli spigoli con «dritto»: false. QUEL CAMPO NON ESISTE. Lo stato scrive «curved»: true sugli spigoli non rettilinei e non scrive «dritto» su nessuno, quindi TryGetValue falliva sempre, il conto restava zero e il verde era garantito a prescindere dal pezzo. Misurato qui: dopo un foro passante lo stato offre DUE spigoli curvi, il modello puo' nominarli benissimo, e la strada che si credeva chiusa e' sempre stata aperta.",
+  "why": "A CURVED EDGE IS NOT A DIRECTION: the edge of a hole is a circle, and it gives the tangent at a point that nobody chose -- a part that looks right. The operation refuses it, saying that a straight edge or an axis made with «create_axis» is needed.",
+  "_why_it_was_a_fake_test": "THE C# CHECK OF THIS GUARD WAS GREEN AND MEASURED NOTHING, and this was found out while writing this file. It said: «a curved edge does not appear among the edges the state lists, so the model cannot name it, so the guard is not reachable» -- and it verified it by counting the edges with «dritto»: false. THAT FIELD DOES NOT EXIST. The state writes «curved»: true on non-straight edges and writes «dritto» on none, so TryGetValue always failed, the count stayed at zero and the green was guaranteed whatever the part. Measured here: after a through hole the state offers TWO curved edges, the model can name them perfectly well, and the road that was believed closed has always been open.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,21 +11,21 @@
       "expect": [
         { "what": "volume_mm3", "equal_to": 480000 },
         { "what": "edges_curved", "equal_to": 0,
-          "_why_zero": "una piastra ha dodici spigoli e sono tutti dritti: e' il termine di paragone del passo dopo" } ] },
+          "_why_zero": "a plate has twelve edges and they are all straight: it is the benchmark for the next step" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
                      "diameter_mm": 9, "through_all": true },
       "expect": [
         { "what": "diameters_mm", "equal_to": [9], "tolerance": 0.02,
-          "tolerance_why": "il diametro si legge da CylinderParams" },
+          "tolerance_why": "the diameter is read from CylinderParams" },
         { "what": "edges_curved", "equal_to": 2,
-          "_why_two": "i due bordi tondi del foro passante, uno per faccia. E' QUESTO il numero che rende il caso possibile: sono spigoli che lo stato elenca e che il modello puo' nominare" } ] },
+          "_why_two": "the two round edges of the through hole, one per face. It is THIS number that makes the case possible: they are edges that the state lists and that the model can name" } ] },
     { "operation": "linear_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "axis1_uid": "@edge(curved=true,n=1)",
                      "pitch1_mm": 40, "instance_count1": 3 },
       "must_fail": {
-        "message_includes": ["non e' dritto", "spigolo rettilineo"],
+        "message_includes": ["is not straight", "rectilinear edge"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "three_holes_pitch_40" } }

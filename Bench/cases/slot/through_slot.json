@@ -1,7 +1,7 @@
 {
   "name": "through_slot",
   "family": "slot",
-  "why": "Un'asola per M10 che scorre 40 mm: larga 11, lunga 51 da fuori a fuori. IL DUBBIO E' IL VERSO DEGLI ARCHI: se «Direction» e' sbagliato l'arco gira dalla parte lunga -- 270 gradi invece di 90 -- e il contorno si autointerseca. Il taglio riesce lo stesso e toglie una forma diversa: il volume lo dice al primo confronto.",
+  "why": "A slot for M10 that slides 40 mm: 11 wide, 51 long outside to outside. THE DOUBT IS THE DIRECTION OF THE ARCS: if «Direction» is wrong the arc turns the long way round -- 270 degrees instead of 90 -- and the outline intersects itself. The cut succeeds just the same and removes a different shape: the volume says so at the first comparison.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,10 +11,10 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": true },
       "expect": [
         { "what": "measurements.area_mm2", "equal_to": 535.03, "tolerance": 0.01,
-          "tolerance_why": "(51-11)*11 + pi*5,5^2 = 535,0332: l'operazione arrotonda al centesimo" },
+          "tolerance_why": "(51-11)*11 + pi*5.5^2 = 535.0332: the operation rounds to the hundredth" },
         { "what": "measurements.material_removed_mm3", "equal_to": 10700.66, "tolerance": 0.5,
-          "tolerance_why": "535,0332 per 20 di spessore: il conto ha pi dentro" },
+          "tolerance_why": "535.0332 over 20 of thickness: the calculation has pi inside" },
         { "what": "volume_mm3", "equal_to": 469299.34, "tolerance": 0.5,
-          "tolerance_why": "480000 meno l'asola: il conto ha pi dentro" } ] }
+          "tolerance_why": "480000 minus the slot: the calculation has pi inside" } ] }
   ]
 }

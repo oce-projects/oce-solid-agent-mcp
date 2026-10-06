@@ -1,9 +1,9 @@
 {
   "name": "cap_closes_the_pipe",
   "family": "weldments",
-  "why": "VOCE Z-C6. `end_cap` era a catalogo con `Provata = true` e nessun giro di banco la toccava. Misurata il 25/9/2026: funziona, e il volume che aggiunge si conta a mano al mm3.",
+  "why": "ENTRY Z-C6. `end_cap` was in the catalogue with `Provata = true` and no bench run touched it. Measured on 25/9/2026: it works, and the volume it adds can be counted by hand to the mm3.",
 
-  "defect_caught": "Il tappo che nasce su un'estremita' sola, o fuori dal tubo invece che dentro. Due tappi dentro danno +42250 mm3 e tre corpi; uno solo darebbe +21125, e un tappo appoggiato fuori sul filo (80 x 80) darebbe +32000 a testa.",
+  "defect_caught": "The cap that is born on one end only, or outside the tube instead of inside. Two caps inside give +42250 mm3 and three bodies; a single one would give +21125, and a cap resting outside flush (80 x 80) would give +32000 each.",
 
   "start": { "new_part": true },
   "steps": [
@@ -15,16 +15,16 @@
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 881973.45, "tolerance": 0.5,
-          "tolerance_why": "600 mm x 1469,956 mm2: la sezione del tubo ha i raggi degli angoli, quindi pi dentro" } ] },
+          "tolerance_why": "600 mm x 1469.956 mm2: the section of the tube has the corner radii, so pi inside" } ] },
 
     { "operation": "end_cap",
       "arguments": { "bodies_uid": ["C1"], "thickness_mm": 5 },
       "expect": [
         { "what": "measurements.end_capped", "equal_to": 2,
-          "why": "una barra aperta ha due estremita', e le tappa tutte e due" },
+          "why": "an open bar has two ends, and it caps both of them" },
         { "what": "bodies", "equal_to": 3,
-          "why": "il tappo e' un corpo a se', come in officina: la barra piu' due piastre" },
+          "why": "the cap is a body of its own, as in the workshop: the bar plus two plates" },
         { "what": "volume_mm3", "equal_to": 924223.45, "tolerance": 0.5,
-          "tolerance_why": "881973,45 + 2 x 65 x 65 x 5 = +42250 esatti: il tappo sta DENTRO il tubo (luce 70) con meta' spessore di parete di gioco per lato, quindi 65 x 65, ed e' un quadrato senza raggi. La tolleranza e' quella della barra, che ha pi dentro" } ] }
+          "tolerance_why": "881973.45 + 2 x 65 x 65 x 5 = +42250 exactly: the cap sits INSIDE the tube (inner opening 70) with half a wall thickness of clearance per side, so 65 x 65, and it is a square without radii. The tolerance is that of the bar, which has pi inside" } ] }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "limit_fillet_face_on_the_same_face",
   "family": "features",
-  "why": "La stessa faccia in tutti e due gli insiemi. E' la confusione di chi voleva arrotondare i bordi di UNA faccia: un raccordo di faccia si appoggia a DUE facce diverse, e per i bordi di una faccia c'e' «fillet_edges». Si rifiuta prima di chiamare SOLIDWORKS, dicendo quale operazione serve, invece di lasciar tornare un NULL che non spiega niente.",
+  "why": "The same face in both sets. It is the confusion of someone who wanted to round the edges of ONE face: a face fillet rests on TWO different faces, and for the edges of a face there is «fillet_edges». It is refused before calling SOLIDWORKS, saying which operation is needed, instead of letting a NULL come back that explains nothing.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,7 +12,7 @@
       "arguments": { "face_1_uid": "@face(normal=front)", "face_2_uid": "@face(normal=front)",
                      "radius_mm": 5 },
       "must_fail": {
-        "message_includes": ["in tutti e due gli insiemi", "fillet_edges"],
+        "message_includes": ["in both sets", "fillet_edges"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_face_between_two_faces_of_a_cube" } }

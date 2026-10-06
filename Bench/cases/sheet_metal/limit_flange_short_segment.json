@@ -1,14 +1,14 @@
 {
   "name": "limit_flange_short_segment",
   "family": "sheet_metal",
-  "why": "VOCE GP18. Un lato lungo 1 mm con un raggio di 2: la piega si mangia tutto il tratto dritto. SOLIDWORKS darebbe una lavorazione rossa senza dire quale lato; l'operazione lo dice prima, col numero.",
+  "why": "ENTRY GP18. A leg 1 mm long with a radius of 2: the bend eats the whole straight segment. SOLIDWORKS would give a red feature without saying which leg; the operation says it beforehand, with the number.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
       "arguments": { "plane": "front", "points": [[0, 1], [0, 0], [50, 0]],
                      "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "must_fail": {
-        "message_includes": ["non resta niente di dritto"],
+        "message_includes": ["nothing straight is left"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "the_L_flattens" } }

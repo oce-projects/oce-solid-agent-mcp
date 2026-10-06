@@ -1,9 +1,9 @@
 {
   "name": "r01b_four_holes_stay_where_they_are",
   "family": "regression",
-  "why": "IL GEMELLO ASSOLUTO di `r01_four_holes_from_the_border` (voce E18): gli stessi quattro fori, senza ancora. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — fori che stanno dove stanno perche' li' c'e' qualcosa che corrisponde, non perche' sono a 20 dal bordo.",
+  "why": "THE ABSOLUTE TWIN of `r01_four_holes_from_the_border` (entry E18): the same four holes, without an anchor. It proves that the old way keeps working when it is what is wanted — holes that stay where they are because there is something there that corresponds to them, not because they are 20 from the edge.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "senza ancora x_mm/y_mm sono coordinate del modello: alzando la piastra a 180 (da Y -60..+60 a -60..+120) i fori restano a y = +/-40.",
+  "intent_why": "without an anchor x_mm/y_mm are coordinates of the model: raising the plate to 180 (from Y -60..+60 to -60..+120) the holes stay at y = +/-40.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -64,7 +64,7 @@
         40
       ],
       "tolerance": 0.05,
-      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri"
+      "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres"
     }
   ]
 }

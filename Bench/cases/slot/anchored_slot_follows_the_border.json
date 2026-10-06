@@ -1,7 +1,7 @@
 {
   "name": "anchored_slot_follows_the_border",
   "family": "slot",
-  "why": "VOCE E18 sull'asola: 60 x 20 a 40 dal fianco destro e centrata in altezza. La piastra cresce verso +X e +Y (voce E2): portata a 260 il fianco va a 160 e l'asola deve andare a x = 120 (le estremita' a 100 e 140); portata a 180 l'altezza va da -60 a 120 e l'asola deve salire a y = 30. Misurato il 25/9/2026 col banchetto.",
+  "why": "ENTRY E18 on the slot: 60 x 20 at 40 from the right side and centred in height. The plate grows towards +X and +Y (entry E2): set to 260 the side goes to 160 and the slot must go to x = 120 (the ends at 100 and 140); set to 180 the height goes from -60 to 120 and the slot must rise to y = 30. Measured on 25/9/2026 with the bench probe.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,19 +15,19 @@
                                  "y": { "centered_between": [ "@edge(axis=X,y~=-60,z~=20)", "@edge(axis=X,y~=60,z~=20)" ] } } },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [40, 80], "tolerance": 0.05,
-          "tolerance_why": "i centri delle estremita' si leggono in metri da CylinderParams" },
+          "tolerance_why": "the centres of the ends are read in metres from CylinderParams" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [100, 140], "tolerance": 0.05,
-          "tolerance_why": "il fianco destro va a 160, il centro deve restare a 40: 120, estremita' a 100 e 140" } ] },
+          "tolerance_why": "the right side goes to 160, the centre must stay at 40: 120, ends at 100 and 140" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "centers_y_mm", "equal_to": [30, 30], "tolerance": 0.05,
-          "tolerance_why": "l'altezza va da -60 a 120: a meta' c'e' 30" },
+          "tolerance_why": "the height goes from -60 to 120: at the middle there is 30" },
         { "what": "volume_mm3", "equal_to": 913716.81, "tolerance": 0.05,
-          "tolerance_why": "260*180*20 meno l'asola intera, 22283,19" } ] }
+          "tolerance_why": "260*180*20 minus the whole slot, 22283.19" } ] }
   ]
 }

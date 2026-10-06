@@ -1,11 +1,11 @@
 {
   "name": "limit_note_outside_the_sheet",
   "family": "drawing",
-  "why": "VOCE E2-bis, il limite. Le coordinate di una nota sono quelle del FOGLIO, e una nota messa fuori dal foglio **esiste, si conta, e sulla carta non c'e'**. Nessun errore lo direbbe: il conteggio sale, l'operazione risponde «fatta», e in officina arriva una tavola senza quella riga.",
+  "why": "ENTRY E2-bis, the limit. The coordinates of a note are those of the SHEET, and a note put outside the sheet **exists, is counted, and is not on the paper**. No error would say so: the count goes up, the operation answers «done», and what reaches the workshop is a drawing without that line.",
 
-  "_what_changes_compared_to_the_twin": "Un argomento: `y_mm`. La gemella lo mette a **250**, dentro un foglio A3 alto 297; qui vale **9999**. Stessa operazione, stesso testo, stessa tavola, stesso pezzo — cambia il VALORE di un argomento, non quale argomento si passa.",
+  "_what_changes_compared_to_the_twin": "One argument: `y_mm`. The twin sets it to **250**, inside an A3 sheet 297 high; here it is **9999**. Same operation, same text, same drawing, same part — it is the VALUE of an argument that changes, not which argument is passed.",
 
-  "defect_caught": "Che il controllo sul foglio sparisca. E' il genere di guardia che si scrive una volta e non si vede mai scattare, quindi nessuno si accorge il giorno in cui smette di funzionare: da quel giorno le note fuori foglio tornerebbero «fatte». Il messaggio deve anche NOMINARE il numero chiesto e la misura del foglio, altrimenti chi lo legge non sa di quanto ha sbagliato.",
+  "defect_caught": "That the check on the sheet disappears. It is the kind of guard that is written once and never seen to fire, so nobody notices the day it stops working: from that day the notes outside the sheet would come back «done». The message must also NAME the number asked for and the size of the sheet, otherwise whoever reads it does not know by how much they were wrong.",
 
   "start": { "new_part": true },
   "steps": [
@@ -14,30 +14,30 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "stesso pezzo della gemella: se le due partissero da geometrie diverse, non sarebbero una coppia" } ] },
+          "why": "same part as the twin: if the two started from different geometries, they would not be a pair" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\limit_note_outside_the_sheet.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "il pezzo dev'essere su disco prima che la vista lo nomini" } ] },
+          "why": "the part must be on disk before the view names it" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il rifiuto dev'essere quello sulla POSIZIONE, non quello su «non e' una tavola»: senza questa attesa, un rifiuto per il motivo sbagliato passerebbe per buono" } ] },
+          "why": "the refusal must be the one on the POSITION, not the one on «it is not a drawing»: without this expectation, a refusal for the wrong reason would pass for a good one" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\limit_note_outside_the_sheet.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "la tavola dev'essere nello stesso stato della gemella fino al passo che cambia" } ] },
+          "why": "the drawing must be in the same state as the twin up to the step that changes" } ] },
 
     { "operation": "note",
-      "arguments": { "text": "TOLLERANZE NON INDICATE ISO 2768-mK", "x_mm": 20, "y_mm": 9999 },
+      "arguments": { "text": "UNSPECIFIED TOLERANCES ISO 2768-mK", "x_mm": 20, "y_mm": 9999 },
       "must_fail": {
-        "message_includes": ["fuori dal foglio", "9999"],
+        "message_includes": ["outside the sheet", "9999"],
         "twin": "note_ends_up_on_the_sheet"
       } }
   ]

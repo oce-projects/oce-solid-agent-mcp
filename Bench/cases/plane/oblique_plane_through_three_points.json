@@ -1,8 +1,8 @@
 {
   "name": "oblique_plane_through_three_points",
   "family": "plane",
-  "why": "Il criterio della voce alla lettera: «il piano per tre punti noti produce un piano la cui normale si calcola a mano e si confronta». Qui il conto a mano e' scritto nel caso, e l'operazione lo rifa per conto suo e lo confronta con quello che il piano dice di essere: il caso controlla il conto, e il conto controlla il piano.",
-  "_why_a_skewed_plane_and_not_a_straight_one": "Su un piano parallelo a uno standard la normale letta per RIGHE e quella letta per COLONNE vengono uguali, e una prova fatta solo cosi' non distinguerebbe la lettura giusta da quella sbagliata -- e' la regola per cui un caso in cui due valori sbagliati danno lo stesso risultato non tabella niente. Il terzo punto a (0, 100, 100) serve a questo: li' la colonna darebbe (0, 0.7071, 0.7071), cioe' la normale girata.",
+  "why": "The criterion of the entry to the letter: «the plane through three known points produces a plane whose normal is computed by hand and compared». Here the hand calculation is written in the case, and the operation redoes it on its own and compares it with what the plane says it is: the case checks the calculation, and the calculation checks the plane.",
+  "_why_a_skewed_plane_and_not_a_straight_one": "On a plane parallel to a standard one the normal read by ROWS and the one read by COLUMNS come out equal, and a check made only that way would not tell the right reading from the wrong one -- it is the rule by which a case in which two wrong values give the same result tabulates nothing. The third point at (0, 100, 100) serves this: there the column would give (0, 0.7071, 0.7071), that is the normal turned.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,27 +16,27 @@
                      "point3_mm": [0, 100, 100] },
       "expect": [
         { "what": "measurements.normal_computed", "equal_to": [0, -0.707107, 0.707107], "tolerance": 0.0001,
-          "tolerance_why": "il prodotto vettoriale normalizzato porta una radice di due: la sesta cifra e' arrotondamento" },
+          "tolerance_why": "the normalised cross product carries a square root of two: the sixth digit is rounding" },
         { "what": "measurements.normal_reread", "equal_to": [0, -0.707107, 0.707107], "tolerance": 0.0001,
-          "tolerance_why": "come sopra",
-          "why": "LA RIGA CHE PROVA CHE IL PIANO E' QUELLO. Se si leggesse la terza COLONNA invece della terza riga, qui uscirebbe (0, 0.7071, 0.7071): stesso modulo, stessa forma, verso girato di 90 gradi. Su un piano dritto le due letture coincidono e nessuno se ne accorgerebbe." },
+          "tolerance_why": "as above",
+          "why": "THE LINE THAT PROVES THE PLANE IS THE RIGHT ONE. If the third COLUMN were read instead of the third row, here (0, 0.7071, 0.7071) would come out: same magnitude, same form, direction turned by 90 degrees. On a straight plane the two readings coincide and nobody would notice." },
         { "what": "measurements.deviation_deg", "equal_to": 0, "tolerance": 0.01,
-          "tolerance_why": "e' l'angolo fra il conto a mano e quello che dice SOLIDWORKS: sotto il centesimo di grado sono lo stesso piano" },
+          "tolerance_why": "it is the angle between the hand calculation and what SOLIDWORKS says: below a hundredth of a degree they are the same plane" },
         { "what": "measurements.planes_before", "equal_to": 3 },
         { "what": "measurements.planes_now", "equal_to": 4 },
         { "what": "state.planes_available", "equal_to": 4,
-          "why": "il piano c'e' davvero nell'albero, letto dallo stato invece che dalla risposta dell'operazione" },
+          "why": "the plane really is in the tree, read from the state instead of from the answer of the operation" },
         { "what": "volume_mm3", "equal_to": 200000,
-          "why": "un piano di riferimento non e' materiale: se il volume cambiasse, sarebbe nato altro" } ] },
+          "why": "a reference plane is not material: if the volume changed, something else had been born" } ] },
     { "operation": "plane_three_points",
       "arguments": { "point1_mm": [0, 0, 20], "point2_mm": [100, 0, 20],
                      "point3_mm": [0, 100, 20] },
       "expect": [
         { "what": "measurements.normal_reread", "equal_to": [0, 0, 1], "tolerance": 0.0001,
-          "tolerance_why": "un piano orizzontale: i numeri sono esatti, la tolleranza e' per il confronto in virgola mobile",
-          "why": "il caso facile, dopo quello difficile: serve a dire che la lettura per righe non e' una correzione che rompe i piani dritti per far tornare quelli obliqui" },
+          "tolerance_why": "a horizontal plane: the numbers are exact, the tolerance is for the floating-point comparison",
+          "why": "the easy case, after the hard one: it serves to say that reading by rows is not a correction that breaks the straight planes to make the oblique ones come out right" },
         { "what": "measurements.deviation_deg", "equal_to": 0, "tolerance": 0.01,
-          "tolerance_why": "come sopra" },
+          "tolerance_why": "as above" },
         { "what": "state.planes_available", "equal_to": 5 } ] }
   ]
 }

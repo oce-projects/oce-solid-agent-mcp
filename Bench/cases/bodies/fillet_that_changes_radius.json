@@ -1,8 +1,8 @@
 {
   "name": "fillet_that_changes_radius",
   "family": "bodies",
-  "why": "Un raccordo che va da 3 a 8 lungo uno spigolo da 40. IL NUMERO E' QUELLO CHE DISTINGUE IL VARIABILE DAL COSTANTE: il volume tolto da un raccordo di raggio r su uno spigolo lungo L e' L*r^2*(1 - pi/4); per un raggio che va da 3 a 8 la media di r^2 e' (9 + 24 + 64)/3 = 32,33, e il conto da' 277,5 mm3. Un raccordo COSTANTE da 3 ne toglierebbe 77,3, uno da 8 ne toglierebbe 549,4. I tre numeri sono lontani, e nessuno dei due sbagliati puo' passare per quello giusto.",
-  "_why_two_numbers": "l'operazione riporta sia il materiale tolto DAVVERO sia il conto rifatto a mano, e il caso li pretende tutti e due. Il raccordo vero non e' esattamente una spazzata lineare del raggio -- misurati 277,7 contro 277,5 di conto, lo 0,07% -- e per questo il conto a mano si chiama «quello che ci si aspetta» e non «quello giusto».",
+  "why": "A fillet that goes from 3 to 8 along an edge of 40. THE NUMBER IS WHAT TELLS THE VARIABLE FROM THE CONSTANT: the volume removed by a fillet of radius r on an edge of length L is L*r^2*(1 - pi/4); for a radius that goes from 3 to 8 the mean of r^2 is (9 + 24 + 64)/3 = 32.33, and the calculation gives 277.5 mm3. A CONSTANT fillet of 3 would remove 77.3 of it, one of 8 would remove 549.4. The three numbers are far apart, and neither of the two wrong ones can pass for the right one.",
+  "_why_two_numbers": "the operation reports both the material REALLY removed and the calculation redone by hand, and the case demands both. The real fillet is not exactly a linear sweep of the radius -- measured 277.7 against 277.5 of the calculation, 0.07% -- and that is why the calculation by hand is called «what is expected» and not «the right one».",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,13 +16,13 @@
         { "what": "measurements.radius_start_mm", "equal_to": 3 },
         { "what": "measurements.radius_end_mm", "equal_to": 8 },
         { "what": "measurements.material_removed_mm3", "equal_to": 277.7, "tolerance": 0.5,
-          "tolerance_why": "e' il numero MISURATO su questo pezzo; il mezzo millimetro cubo copre l'arrotondamento della risposta, non un margine di opinione" },
+          "tolerance_why": "it is the number MEASURED on this part; the half cubic millimetre covers the rounding of the answer, not a margin of opinion" },
         { "what": "measurements.expected_removed_mm3", "equal_to": 277.55, "tolerance": 0.1,
-          "tolerance_why": "40 * 32,333 * 0,214602: e' un conto chiuso, e la decima di mm3 e' l'arrotondamento" },
-        { "what": "measurements.how_it_is_counted", "includes": ["ordine di grandezza", "non e' esattamente una spazzata lineare"],
-          "why": "il conto a mano si dichiara approssimato dove viene riportato, non in una nota che nessuno legge" },
+          "tolerance_why": "40 * 32.333 * 0.214602: it is a closed calculation, and the tenth of a mm3 is the rounding" },
+        { "what": "measurements.how_it_is_counted", "includes": ["order of magnitude", "not exactly a linear sweep"],
+          "why": "the calculation by hand is declared approximate where it is reported, not in a note that nobody reads" },
         { "what": "volume_mm3", "equal_to": 63722.3, "tolerance": 0.5,
-          "tolerance_why": "64.000 meno i 277,7 tolti: il volume del pezzo lo conferma dall'altra parte" },
+          "tolerance_why": "64,000 minus the 277.7 removed: the volume of the part confirms it from the other side" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

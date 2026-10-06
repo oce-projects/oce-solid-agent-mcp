@@ -1,8 +1,8 @@
 {
   "name": "one_body_of_two_is_not_the_part",
   "family": "check",
-  "why": "Z-C21.10, finding N61. check_body_geometry with «body_uid» filters the bodies of GetBodies2 down to the one asked for, and then judged what was left: one body, so «Un solo corpo solido, chiuso e senza difetti: come geometria si puo' esportare.» That sentence is about the PART, and on a part of two bodies it is false: an STL of it is two separate shells (see `two_bodies_do_not_export`). IPartDoc~GetBodies2.html: «false gets all of the bodies in the part» -- the count was there before the filter, and the verdict did not use it.",
-  "defect_caught": "Step 3 asks for ONE body of a part of TWO. The verdict must speak for that body and say how many the part has: «verdict» names the body, says «only» and «the part has 2 bodies», and does not say «Un solo corpo»; «bodies_in_part» is 2 and «verdict_about» names the body. On library 0.140.0 the first expectation of step 3 is RED: the sentence is «Un solo corpo solido, chiuso e senza difetti: come geometria si puo' esportare.». Step 4 is the same part without «body_uid»: the verdict on the part, unchanged.",
+  "why": "Z-C21.10, finding N61. check_body_geometry with «body_uid» filters the bodies of GetBodies2 down to the one asked for, and then judged what was left: one body, so «A single solid body, closed and free of defects: as geometry it can be exported.» That sentence is about the PART, and on a part of two bodies it is false: an STL of it is two separate shells (see `two_bodies_do_not_export`). IPartDoc~GetBodies2.html: «false gets all of the bodies in the part» -- the count was there before the filter, and the verdict did not use it.",
+  "defect_caught": "Step 3 asks for ONE body of a part of TWO. The verdict must speak for that body and say how many the part has: «verdict» names the body, says «only» and «the part has 2 bodies», and does not say «A single body»; «bodies_in_part» is 2 and «verdict_about» names the body. On library 0.140.0 the first expectation of step 3 is RED: the sentence is «A single solid body, closed and free of defects: as geometry it can be exported.». Step 4 is the same part without «body_uid»: the verdict on the part, unchanged.",
   "_the_numbers": "Block 100 x 100 x 20 = 200000 mm3. move_bodies copies it 600 mm along z: 2 bodies, 400000 mm3 (as in `two_bodies_do_not_export`). bodies_in_part = 2 with or without «body_uid»; bodies_total = 1 with it (the bodies looked at), 2 without.",
   "start": { "new_part": true },
   "steps": [
@@ -21,8 +21,8 @@
       "expect": [
         { "what": "measurements.verdict",
           "includes": [ "only", "the part has 2 bodies", "body_uid" ],
-          "does_not_include": [ "Un solo corpo", "si puo' esportare" ],
-          "why": "THE LINE THAT IS RED ON 0.140.0, and it comes first so that the old library stops here with a red and not with «campo assente» on the new fields below. The body is sound, and the sentence must not let that stand for the part." },
+          "does_not_include": [ "A single solid body", "as geometry it can be exported" ],
+          "why": "THE LINE THAT IS RED ON 0.140.0, and it comes first so that the old library stops here with a red and not with «missing field» on the new fields below. The body is sound, and the sentence must not let that stand for the part." },
         { "what": "measurements.bodies_in_part", "equal_to": 2,
           "why": "every body of the part, whatever «body_uid» asked" },
         { "what": "measurements.verdict_about", "includes": [ "body C" ],
@@ -38,6 +38,6 @@
           "why": "the same part, asked as a whole: two bodies, not printable -- the verdict of `two_bodies_do_not_export`, untouched by the fix" },
         { "what": "measurements.bodies_in_part", "equal_to": 2 },
         { "what": "measurements.verdict_about", "equal_to": "part" },
-        { "what": "measurements.verdict", "includes": [ "Non lo esporterei", "2 corpi" ] } ] }
+        { "what": "measurements.verdict", "includes": [ "I would not export it", "2 bodies" ] } ] }
   ]
 }

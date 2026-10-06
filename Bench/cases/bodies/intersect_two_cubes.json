@@ -1,7 +1,7 @@
 {
   "name": "intersect_two_cubes",
   "family": "bodies",
-  "why": "Il terzo valore dell'enum: resta solo quello che i due cubi hanno in comune, 8 x 10 x 5 = 400 mm3. Con questo caso i tre valori di `swCombineBodiesOperationType_e` sono tabellati su tre numeri diversi -- 1600, 600, 400 -- e nessuno dei tre puo' passare per un altro.",
+  "why": "The third value of the enum: only what the two cubes have in common remains, 8 x 10 x 5 = 400 mm3. With this case the three values of `swCombineBodiesOperationType_e` are tabulated on three different numbers -- 1600, 600, 400 -- and none of the three can pass for another.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -17,8 +17,8 @@
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 400,
-          "why": "8 x 10 x 5: la parte che i due cubi hanno in comune" },
+          "why": "8 x 10 x 5: the part the two cubes have in common" },
         { "what": "bounding_box_mm", "equal_to": [8, 10, 5],
-          "why": "il volume da solo non dice la FORMA: 400 mm3 si fanno anche con un pezzo lungo e sottile, e l'ingombro dice che e' proprio il mattoncino della sovrapposizione" } ] }
+          "why": "the volume alone does not say the SHAPE: 400 mm3 can also be made with a long thin part, and the bounding box says that it is exactly the little brick of the overlap" } ] }
   ]
 }

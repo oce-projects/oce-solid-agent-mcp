@@ -1,7 +1,7 @@
 [
  {
-  "_why": "V2 -- forma 4 di 5: FLANGIA. Sei fori su una circonferenza di bulloneria. Nello stato testuale sono sei facce cilindriche con lo stesso diametro e sei punti diversi: che stiano su un cerchio, e a che passo, va RICAVATO. In un'immagine si vede.\n\nPrende il posto del telaio saldato che la voce V2 elencava: `rectangular_frame` vuole il percorso di una libreria profili di QUESTA macchina, e un caso di prova che nomina qualcosa di questo disco non e' una prova, e' un ricordo.",
-  "_truth": "Disco Ø140 spesso 16, foro centrale passante Ø60, sei fori passanti Ø11 su una circonferenza Ø90 a passo 60 gradi. Volume pi*70^2*16 - pi*30^2*16 - 6*pi*5.5^2*16 = 246300.9 - 45238.9 - 9123.0 = 191939.0 mm3.",
+  "_why": "V2 -- shape 4 of 5: FLANGE. Six holes on a bolt circle. In the textual state they are six cylindrical faces with the same diameter and six different points: that they lie on a circle, and at what pitch, has to be DERIVED. In an image it can be seen.\n\nIt takes the place of the welded frame that entry V2 listed: `rectangular_frame` wants the path of a profile library of THIS machine, and a check case that names something on this disk is not a check, it is a memento.",
+  "_truth": "Disc Ø140 thick 16, central through hole Ø60, six Ø11 through holes on a Ø90 circle at a 60 degree pitch. Volume pi*70^2*16 - pi*30^2*16 - 6*pi*5.5^2*16 = 246300.9 - 45238.9 - 9123.0 = 191939.0 mm3.",
   "operation": "extrude_circle",
   "arguments": { "plane": "top", "diameter_mm": 140, "height_mm": 16 }
  },

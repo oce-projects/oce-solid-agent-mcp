@@ -1,7 +1,7 @@
 {
   "name": "limit_two_sections_with_the_same_letter",
   "family": "drawing",
-  "why": "VOCE Z-C13. Due sezioni «A-A» sulla stessa tavola sono due tagli diversi che sembrano lo stesso: chi legge prende la vista sbagliata per quella linea. SOLIDWORKS non lo impedisce. La seconda sezione con la stessa lettera si rifiuta prima di tracciare la linea, dicendo le lettere gia' usate — e la lettera si legge dalle viste (IDrSection.GetLabel), non si crede a quella chiesta.",
+  "why": "ENTRY Z-C13. Two sections «A-A» on the same drawing are two different cuts that look the same: whoever reads takes the wrong view for that line. SOLIDWORKS does not prevent it. The second section with the same letter is refused before drawing the line, saying the letters already used — and the letter is read from the views (IDrSection.GetLabel), the one asked for is not trusted.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -18,12 +18,12 @@
     { "operation": "section_view",
       "arguments": { "view": "V1", "label": "A", "offset_mm": 0 },
       "expect": [
-        { "what": "measurements.hatches", "equal_to": 1, "why": "la prima sezione e' buona" },
-        { "what": "measurements.label_reread", "equal_to": "A", "why": "la lettera letta dalla vista, non quella chiesta" } ] },
+        { "what": "measurements.hatches", "equal_to": 1, "why": "the first section is good" },
+        { "what": "measurements.label_reread", "equal_to": "A", "why": "the letter read from the view, not the one asked for" } ] },
     { "operation": "section_view",
       "arguments": { "view": "V1", "label": "A", "offset_mm": 10 },
       "must_fail": {
-        "message_includes": ["gia' di la sezione", "Usa un'altra lettera"],
+        "message_includes": ["already belongs to the section", "Use a different letter"],
         "twin": "section_cuts_the_part" } }
   ]
 }

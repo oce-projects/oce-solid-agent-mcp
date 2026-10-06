@@ -1,8 +1,8 @@
 {
   "name": "variable_does_not_override_the_chamfer",
   "family": "dimensions",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo 7. Una quota legata a un'equazione set_dimension non la cambia piu' (e' guidata): la si cambia con global_variable — che pero' non aveva nessuna delle guardie di set_dimension. Piastra 120 x 80 x 20 con uno smusso da 2 su uno spigolo lungo di sopra, lo spessore legato a «parete». Portare parete a 1: lo smusso non ci sta, SOLIDWORKS ricostruisce pulito e cambia la forma (lo stesso del caso r05 per set_dimension). La risposta era «riuscito» e la variabile restava scritta. Adesso si rifiuta e si rimette la variabile di prima; il passo dopo lo prova: il volume di partenza e' quello con parete = 20.",
-  "defect_caught": "Una variabile globale che rompe uno smusso in silenzio; il rifiuto che lascia la variabile scritta.",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding 7. A dimension linked to an equation is no longer changed by set_dimension (it is driven): it is changed with global_variable — which, however, had none of the guards of set_dimension. A 120 x 80 x 20 plate with a chamfer of 2 on a long top edge, the thickness linked to «parete». Bring parete to 1: the chamfer does not fit, SOLIDWORKS rebuilds cleanly and changes the shape (the same as case r05 for set_dimension). The answer was «succeeded» and the variable stayed written. Now it is refused and the variable of before is put back; the next step proves it: the starting volume is the one with parete = 20.",
+  "defect_caught": "A global variable that silently breaks a chamfer; the refusal that leaves the variable written.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,7 +11,7 @@
     { "operation": "chamfer_edges",
       "arguments": { "edges_uid": ["@edge(axis=X,y~=20,z~=40)"], "leg_mm": 2 },
       "expect": [ { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05,
-                    "tolerance_why": "192000 meno 2 x 2 / 2 x 120" } ] },
+                    "tolerance_why": "192000 minus 2 x 2 / 2 x 120" } ] },
     { "operation": "global_variable",
       "arguments": { "name": "parete", "value_mm": 20 },
       "expect": [ { "what": "measurements.is_new", "equal_to": true } ] },
@@ -19,19 +19,19 @@
       "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"parete\"" },
       "expect": [
         { "what": "measurements.value_after_mm", "equal_to": 20 },
-        { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05, "tolerance_why": "la stessa: lo spessore non cambia" } ] },
+        { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05, "tolerance_why": "the same: the thickness does not change" } ] },
     { "operation": "global_variable",
       "arguments": { "name": "parete", "value_mm": 1 },
       "must_fail": {
-        "message_includes": ["non ci sta", "com'era"],
+        "message_includes": ["does not fit", "as it was"],
         "twin": "wall_has_a_name" } },
     { "operation": "global_variable",
       "arguments": { "name": "parete", "value_mm": 15 },
       "expect": [
         { "what": "measurements.volume_before_mm3", "equal_to": 191760, "tolerance": 0.05,
-          "tolerance_why": "la stessa",
-          "why": "IL RIFIUTO HA RIMESSO parete = 20: il pezzo di partenza di questo passo e' quello di prima" },
+          "tolerance_why": "the same",
+          "why": "THE REFUSAL PUT BACK parete = 20: the starting part of this step is the one from before" },
         { "what": "volume_mm3", "equal_to": 143760, "tolerance": 0.05,
-          "tolerance_why": "120 x 80 x 15 meno lo smusso, 240" } ] }
+          "tolerance_why": "120 x 80 x 15 minus the chamfer, 240" } ] }
   ]
 }

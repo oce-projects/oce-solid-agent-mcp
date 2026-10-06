@@ -1,8 +1,8 @@
 {
   "name": "step_ap203_says_so",
   "family": "export",
-  "why": "LO STESSO PEZZO CON L'ALTRO PROTOCOLLO, e il file lo dichiara diverso. E' il rosso della riga che rilegge il FILE_SCHEMA: se la preferenza `swStepAP` non facesse niente -- o se il numero fosse quello sbagliato -- questo caso e quello dell'AP214 uscirebbero identici, e tutti e due verdi. Due protocolli diversi che si scrivono diversi sono l'unica prova che la preferenza arriva a destinazione.",
-  "_why_ap203_is_also_needed": "certi fornitori accettano SOLO il 203. Mandare un 214 a chi legge solo il 203 vuol dire un file che non si apre, e lo si scopre dall'altra parte.",
+  "why": "THE SAME PART WITH THE OTHER PROTOCOL, and the file declares it differently. It is the red of the line that re-reads the FILE_SCHEMA: if the preference `swStepAP` did nothing -- or if the number were the wrong one -- this case and the AP214 one would come out identical, and both green. Two different protocols that are written differently are the only proof that the preference reaches its destination.",
+  "_why_ap203_is_also_needed": "some suppliers accept ONLY the 203. Sending a 214 to someone who reads only the 203 means a file that does not open, and it is discovered on the other side.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,6 +16,6 @@
         { "what": "measurements.file_schema",
           "includes": ["CONFIG_CONTROL_DESIGN"],
           "does_not_include": ["AUTOMOTIVE_DESIGN"],
-          "why": "e' la META' CHE CONTA: non basta che ci sia il nome giusto, non deve esserci quello dell'altro protocollo" } ] }
+          "why": "it is the HALF THAT COUNTS: it is not enough that the right name is there, the name of the other protocol must not be" } ] }
   ]
 }

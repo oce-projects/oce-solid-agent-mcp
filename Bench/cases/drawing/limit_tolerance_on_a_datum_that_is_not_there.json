@@ -1,7 +1,7 @@
 {
   "name": "limit_tolerance_on_a_datum_that_is_not_there",
   "family": "drawing",
-  "why": "Una perpendicolarita' rispetto a «B» su una tavola che ha solo il datum A: la cornice nascerebbe e citerebbe un riferimento che non esiste. Si rifiuta dicendo quali datum ci sono, e come si mette quello che manca.",
+  "why": "A perpendicularity with respect to «B» on a drawing that has only datum A: the frame would be born and cite a reference that does not exist. It is refused, saying which datums there are, and how to put the missing one.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -21,7 +21,7 @@
     { "operation": "geometric_tolerance",
       "arguments": { "view": "V1", "side": "right", "characteristic": "perpendicularity", "value_mm": 0.05, "references": ["B"] },
       "must_fail": {
-        "message_includes": ["datum «B»", "non c'e'", "datum"],
+        "message_includes": ["datum «B»", "is not on the drawing", "datum"],
         "twin": "annotations_stay_outside_the_part" } }
   ]
 }

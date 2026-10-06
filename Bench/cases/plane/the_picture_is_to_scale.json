@@ -1,8 +1,8 @@
 {
   "name": "the_picture_is_to_scale",
   "family": "plane",
-  "why": "VOCE Z-F5. L'ingresso piu' frequente in un'officina piccola e' una foto o uno schizzo a penna: l'immagine va messa in uno schizzo, IN SCALA, per ricalcarla. Un PNG di 400 x 200 pixel (Bench/data/retrace_400x200.png: un rettangolo nero su bianco) largo 120 mm, con l'angolo in basso a sinistra in 10,20. Misurato il 27/9/2026 (prova0089 zf5): entra a 1 px = 1 mm, SetSize e SetOrigin la portano dove si chiede, e GetPointOnSketchFromPixel vuole (colonna, riga) al contrario del nome dei suoi argomenti.",
-  "defect_caught": "L'immagine messa a 1 px = 1 mm (400 mm invece di 120); la scala creduta perche' SetSize ha risposto true; il PDF preso per un'immagine.",
+  "why": "ENTRY Z-F5. The most frequent input in a small workshop is a photo or a pen sketch: the image must be put into a sketch, TO SCALE, to trace over it. A 400 x 200 pixel PNG (Bench/data/retrace_400x200.png: a black rectangle on white) 120 mm wide, with the bottom-left corner at 10,20. Measured on 27/9/2026 (prova0089 zf5): it goes in at 1 px = 1 mm, SetSize and SetOrigin bring it where asked, and GetPointOnSketchFromPixel wants (column, row) contrary to the name of its arguments.",
+  "defect_caught": "The image put in at 1 px = 1 mm (400 mm instead of 120); the scale believed because SetSize answered true; the PDF taken for an image.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "sketch_picture",
@@ -10,15 +10,15 @@
       "expect": [
         { "what": "measurements.pixel", "equal_to": [400, 200] },
         { "what": "measurements.width_mm", "equal_to": 120, "tolerance": 0.01,
-          "tolerance_why": "riletta da GetSize, in metri e arrotondata" },
+          "tolerance_why": "read back from GetSize, in metres and rounded" },
         { "what": "measurements.height_mm", "equal_to": 60, "tolerance": 0.01,
-          "tolerance_why": "la stessa: l'aspetto bloccato" },
+          "tolerance_why": "the same: the locked aspect ratio" },
         { "what": "measurements.mm_per_pixel", "equal_to": 0.3 },
         { "what": "measurements.origin_mm", "equal_to": [10, 20], "tolerance": 0.01,
-          "tolerance_why": "riletta da GetOrigin" },
+          "tolerance_why": "read back from GetOrigin" },
         { "what": "measurements.check_scale_mm", "equal_to": 119.7, "tolerance": 0.05,
-          "tolerance_why": "399 colonne per 0,3 mm, dai due pixel portati nello schizzo",
-          "why": "la scala verificata sull'immagine, non creduta" } ] },
+          "tolerance_why": "399 columns by 0.3 mm, from the two pixels brought into the sketch",
+          "why": "the scale verified on the image, not believed" } ] },
     { "operation": "sketch_picture",
       "arguments": { "path": "{DATI}\\ricalco.pdf", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
       "must_fail": {

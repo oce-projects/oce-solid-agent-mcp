@@ -1,9 +1,9 @@
 {
   "name": "r05_chamfer_bigger_than_the_part",
   "family": "regression",
-  "why": "Uno smusso da 2 su uno SPIGOLO LUNGO, e la piastra diventa spessa 1. Non ci sta, e DEVE staccarsi rumorosamente: un difetto che il progettista vede e' un problema, non una trappola. La prima scrittura smussava i quattro spigoli VERTICALI, e quelli lo spessore non li tocca: il caso e' uscito verde per il motivo sbagliato.",
+  "why": "A chamfer of 2 on a LONG EDGE, and the plate becomes 1 thick. It does not fit, and it MUST fail noisily: a defect that the designer sees is a problem, not a trap. The first draft chamfered the four VERTICAL edges, and the thickness does not touch those: the case came out green for the wrong reason.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "lo smusso e' 2 x 45 su uno spigolo orizzontale e lo spessore va a 1: non c'e' nessun ancoraggio che possa salvarlo. L'unica risposta giusta e' un errore che si legge.",
+  "intent_why": "the chamfer is 2 x 45 on a horizontal edge and the thickness goes to 1: there is no anchoring that can save it. The only right answer is an error that can be read.",
   "build": [
     {
       "operation": "extrude_rectangle",

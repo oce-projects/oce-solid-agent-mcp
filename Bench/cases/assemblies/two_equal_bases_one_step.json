@@ -1,8 +1,8 @@
 {
   "name": "two_equal_bases_one_step",
   "family": "assemblies",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo sullo STEP dell'assieme. Il conto dei solidi attesi sommava i corpi di ogni ISTANZA; lo STEP di un assieme scrive la struttura, e la forma di un pezzo che compare due volte potrebbe esserci una volta sola. Il caso del banco aveva due pezzi DIVERSI e la terza istanza soppressa: non lo poteva vedere. Qui la base compare due volte (la seconda inserita dal passo), il coperchio una. Il caso MISURA quanti solidi scrive lo STEP; la massa dell'assieme conta le istanze.",
-  "defect_caught": "Uno STEP giusto rifiutato perche' i solidi si contano per istanza.",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding on the STEP of the assembly. The count of the expected solids summed the bodies of every INSTANCE; the STEP of an assembly writes the structure, and the shape of a part that appears twice might be there only once. The bench case had two DIFFERENT parts and the third instance suppressed: it could not see it. Here the base appears twice (the second inserted by the step), the cover once. The case MEASURES how many solids the STEP writes; the mass of the assembly counts the instances.",
+  "defect_caught": "A correct STEP refused because the solids are counted per instance.",
   "assembly": {
     "components": [
       {
@@ -78,8 +78,8 @@
           "what": "measurements.mass_kg",
           "equal_to": 1.8355,
           "tolerance": 0.0001,
-          "tolerance_why": "arrotondata a quattro decimali: 2 x 0,768 + 0,29952 = 1,83552",
-          "why": "la massa conta le ISTANZE: due basi pesano due volte"
+          "tolerance_why": "rounded to four decimals: 2 x 0.768 + 0.29952 = 1.83552",
+          "why": "the mass counts the INSTANCES: two bases weigh twice"
         },
         {
           "what": "measurements.components_weighed",
@@ -96,12 +96,12 @@
         {
           "what": "measurements.solids_in_file",
           "equal_to": 2,
-          "why": "MISURATO il 28/9/2026: con la base due volte e il coperchio una, lo STEP ha 2 solidi — la forma di un pezzo si scrive una volta sola, le istanze sono occorrenze"
+          "why": "MEASURED on 28/9/2026: with the base twice and the cover once, the STEP has 2 solids — the shape of a part is written only once, the instances are occurrences"
         },
         {
           "what": "measurements.solids_expected",
           "equal_to": 2,
-          "why": "i pezzi UNICI (percorso e configurazione), non le istanze"
+          "why": "the UNIQUE parts (path and configuration), not the instances"
         }
       ]
     }

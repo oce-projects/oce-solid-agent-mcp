@@ -1,7 +1,7 @@
 {
   "name": "closed_hem_flattens",
   "family": "sheet_metal",
-  "why": "L'orlo CHIUSO lungo 10 sullo stesso spigolo. Misurato col banchetto: +9,199 di sviluppo (e +14,199 lungo 15), cioe' 0,057 sopra la formula con raggio 0 — come un raggio interno di 0,05 mm. E' misurato con spessore 2 soltanto: per questo l'operazione lo dice accanto alla misura e non ci decide sopra, e qui si pretende la misura, non il conto.",
+  "why": "The CLOSED hem 10 long on the same edge. Measured with the bench probe: +9.199 of flat pattern (and +14.199 for 15 long), that is 0.057 above the formula with radius 0 — like an inner radius of 0.05 mm. It is measured with thickness 2 only: that is why the operation says it next to the measurement and does not decide on it, and here the measurement is demanded, not the calculation.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -12,7 +12,7 @@
       "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "variant": "closed", "length_mm": 10 },
       "expect": [
         { "what": "measurements.volume_mm3", "equal_to": 735.9, "tolerance": 0.5,
-          "tolerance_why": "misurato 735,9 col banchetto; il conto col raggio 0,05 da' 735,89" },
+          "tolerance_why": "measured 735.9 with the bench probe; the calculation with radius 0.05 gives 735.89" },
         { "what": "measurements.kind", "equal_to": "closed" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]

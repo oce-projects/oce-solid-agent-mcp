@@ -1,9 +1,9 @@
 {
   "name": "area_scales_with_the_square_of_the_height",
   "family": "text",
-  "why": "L'area delle lettere non si puo' prevedere dalla stringa -- dipende dal font -- ma va col QUADRATO dell'altezza, e quello si', si puo' pretendere. Raddoppiando l'altezza l'area quadruplica: due misure diverse che si controllano a vicenda, e nessuna delle due e' una costante scritta a mano che qualcuno un giorno aggiornera' al numero sbagliato.",
-  "_why_this_is_the_law_that_exposes_the_cut": "E' il controllo piu' fine che ci sia qui dentro. Misurato prima di scrivere l'operazione: 5 mm -> 1,1533; 10 mm -> 1,1535; 20 mm -> 0,6647. Il terzo numero non e' un font che si comporta male: e' «PROVA» a 20 mm che e' larga 94 mm e sulla faccia da 100, ancorata dove stava, non ci sta -- meta' delle lettere erano sparite e il rapporto lo ha detto. Qui le altezze stanno tutte dentro, e il rapporto deve tornare uguale: se un giorno non tornasse, vorrebbe dire che qualcosa sta venendo tagliato via in silenzio.",
-  "_why_from_the_third_step_on_n_is_needed": "INCIDERE MOLTIPLICA LE FACCE. Dopo la prima scritta le facce rivolte in avanti sono DIECI, non una: il fondo di ogni lettera e' una faccia nuova con la stessa normale, e il banco si rifiuta di indovinare quale sia quella buona. «n=1» vuol dire «la piu' grande», che e' la faccia di partenza: le altre sono i fondi delle lettere, larghi pochi millimetri quadrati. E' una scelta, e sta scritta.",
+  "why": "The area of the letters cannot be predicted from the string -- it depends on the font -- but it goes with the SQUARE of the height, and that, yes, can be demanded. Doubling the height quadruples the area: two different measurements that check each other, and neither is a hand-written constant that someone will one day update to the wrong number.",
+  "_why_this_is_the_law_that_exposes_the_cut": "It is the finest check there is in here. Measured before writing the operation: 5 mm -> 1.1533; 10 mm -> 1.1535; 20 mm -> 0.6647. The third number is not a font misbehaving: it is «PROVA» at 20 mm that is 94 mm wide and does not fit on the 100 face, anchored where it was -- half of the letters had disappeared and the ratio said so. Here the heights all fit inside, and the ratio must come out equal: if one day it did not, it would mean something is being cut away in silence.",
+  "_why_from_the_third_step_on_n_is_needed": "ENGRAVING MULTIPLIES THE FACES. After the first inscription the forward-facing faces are TEN, not one: the bottom of each letter is a new face with the same normal, and the bench refuses to guess which is the right one. «n=1» means «the largest», which is the starting face: the others are the bottoms of the letters, a few square millimetres wide. It is a choice, and it is written down.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,32 +16,32 @@
                      "height_mm": 5, "depth_mm": 2 },
       "expect": [
         { "what": "measurements.width_written_mm", "equal_to": 23.53, "tolerance": 0.1,
-          "tolerance_why": "meta' esatta della larghezza a 10 mm: la scatola va LINEARE con l'altezza, ed e' il primo dei due fatti che tengono in piedi il secondo" },
+          "tolerance_why": "exact half of the width at 10 mm: the box goes LINEARLY with the height, and it is the first of the two facts that hold up the second" },
         { "what": "measurements.area_letters_mm2", "equal_to": 28.83, "tolerance": 0.2,
-          "tolerance_why": "l'area e' la somma di 56 contorni curvi tassellati; a 5 mm i contorni sono piccoli e il rumore relativo e' il piu' alto dei tre" },
+          "tolerance_why": "the area is the sum of 56 tessellated curved outlines; at 5 mm the outlines are small and the relative noise is the highest of the three" },
         { "what": "measurements.area_over_height_squared", "equal_to": 1.1533, "tolerance": 0.01,
-          "tolerance_why": "e' un rapporto fra due numeri gia' tolleranti: un centesimo e' meno dell'1% ed e' molto piu' stretto della meta' che separerebbe questo caso da una scritta tagliata" } ] },
+          "tolerance_why": "it is a ratio between two numbers that already carry tolerance: a hundredth is less than 1% and is much narrower than the half that would separate this case from a cut-off inscription" } ] },
     { "operation": "engrave_text",
       "arguments": { "face_uid": "@face(normal=front,n=1)", "text": "PROVA",
                      "x_mm": -24, "y_mm": 0,
                      "height_mm": 10, "depth_mm": 2 },
       "expect": [
         { "what": "measurements.width_written_mm", "equal_to": 47.05, "tolerance": 0.1,
-          "tolerance_why": "il doppio di sopra, per lo stesso motivo" },
+          "tolerance_why": "the double of the above, for the same reason" },
         { "what": "measurements.area_letters_mm2", "equal_to": 115.35, "tolerance": 0.3,
-          "tolerance_why": "quattro volte quella a 5 mm, e con quattro volte il rumore assoluto" },
+          "tolerance_why": "four times the one at 5 mm, and with four times the absolute noise" },
         { "what": "measurements.area_over_height_squared", "equal_to": 1.1535, "tolerance": 0.01,
-          "tolerance_why": "stesso rapporto, stessa ragione",
-          "why": "LO STESSO NUMERO DELLA SCRITTA ALTA META'. E' questa riga la prova: le due incisioni hanno volumi diversi di quattro volte, e il rapporto e' lo stesso alla terza cifra." } ] },
+          "tolerance_why": "same ratio, same reason",
+          "why": "THE SAME NUMBER AS THE HALF-HEIGHT INSCRIPTION. This line is the proof: the two engravings have volumes that differ by four times, and the ratio is the same to the third digit." } ] },
     { "operation": "engrave_text",
       "arguments": { "face_uid": "@face(normal=front,n=1)", "text": "PROVA",
                      "x_mm": -24, "y_mm": 20,
                      "height_mm": 3, "depth_mm": 0.5 },
       "expect": [
         { "what": "measurements.depth_mm", "equal_to": 0.5,
-          "why": "mezzo millimetro e' la marcatura vera, quella che si mette su un pezzo da consegnare: le altre due sono profonde per far tornare i conti, non perche' si inciderebbe cosi'" },
+          "why": "half a millimetre is the real marking, the one put on a part to be delivered: the other two are deep to make the numbers add up, not because one would engrave that way" },
         { "what": "measurements.area_over_height_squared", "equal_to": 1.1535, "tolerance": 0.02,
-          "tolerance_why": "a 3 mm di altezza e mezzo millimetro di profondita' il volume tolto e' sotto i 6 mm3, e il rumore della tassellazione pesa il doppio",
-          "why": "IL RAPPORTO NON DIPENDE DALLA PROFONDITA'. Se dipendesse, l'operazione starebbe dividendo per il numero sbagliato -- e nessuno se ne accorgerebbe finche' tutte le incisioni sono profonde uguale." } ] }
+          "tolerance_why": "at 3 mm of height and half a millimetre of depth the removed volume is under 6 mm3, and the tessellation noise weighs double",
+          "why": "THE RATIO DOES NOT DEPEND ON THE DEPTH. If it did, the operation would be dividing by the wrong number -- and nobody would notice as long as all the engravings are equally deep." } ] }
   ]
 }

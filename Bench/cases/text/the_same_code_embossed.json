@@ -1,8 +1,8 @@
 {
   "name": "the_same_code_embossed",
   "family": "text",
-  "why": "La stessa scritta, alla stessa altezza, nello stesso posto, in RILIEVO invece che incisa: il volume deve andare dall'altra parte, dello STESSO numero. E' la coppia che dice che l'operazione sa in che verso sta lavorando -- un'estrusione che cresce dentro il pezzo, o un taglio che va in fuori, non danno nessun errore: danno un volume che non cambia, e nessuno guarda il volume.",
-  "_why_the_same_number": "230,70 mm3 tolti e 230,70 aggiunti non sono due misure: sono la stessa misura con due segni, e il fatto che coincidano dice che l'area delle lettere non dipende da cosa ci si fa. Su una stampa 3D il rilievo e' quello che si usa davvero -- una cavita' di mezzo millimetro l'ugello non la fa.",
+  "why": "The same inscription, at the same height, in the same place, EMBOSSED instead of engraved: the volume must go the other way, by the SAME number. It is the pair that says the operation knows which direction it is working in -- an extrusion that grows into the part, or a cut that goes outwards, gives no error: it gives a volume that does not change, and nobody looks at the volume.",
+  "_why_the_same_number": "230.70 mm3 removed and 230.70 added are not two measurements: they are the same measurement with two signs, and the fact that they coincide says that the area of the letters does not depend on what is done with it. On a 3D print the relief is what is really used -- a cavity of half a millimetre is not made by the nozzle.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,19 +16,19 @@
       "expect": [
         { "what": "measurements.raised", "equal_to": true },
         { "what": "measurements.material_added_mm3", "equal_to": 230.7, "tolerance": 0.5,
-          "tolerance_why": "e' lo stesso volume dell'incisione, con lo stesso rumore di tassellazione" },
+          "tolerance_why": "it is the same volume as the engraving, with the same tessellation noise" },
         { "what": "measurements.area_letters_mm2", "equal_to": 115.35, "tolerance": 0.3,
-          "tolerance_why": "stessa ragione, meta' del numero" },
+          "tolerance_why": "same reason, half the number" },
         { "what": "measurements.area_over_height_squared", "equal_to": 1.1535, "tolerance": 0.01,
-          "tolerance_why": "stesso rapporto delle incisioni",
-          "why": "lo stesso rapporto dell'incisione: le lettere sono le stesse, quello che cambia e' da che parte va il materiale" },
+          "tolerance_why": "same ratio as the engravings",
+          "why": "the same ratio as the engraving: the letters are the same, what changes is which way the material goes" },
         { "what": "measurements.bodies", "equal_to": 1,
-          "why": "il rilievo deve UNIRSI al pezzo. Se restasse staccato i corpi sarebbero due, la feature sarebbe verde lo stesso, e in officina arriverebbero cinque lettere sciolte." },
+          "why": "the relief must JOIN the part. If it stayed detached the bodies would be two, the feature would be green just the same, and five loose letters would arrive at the workshop." },
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 200230.7, "tolerance": 0.5,
-          "tolerance_why": "e' il volume di partenza piu' quello delle lettere, con lo stesso rumore",
-          "why": "IL VOLUME E' SALITO. Nel caso inciso lo stesso passo lo faceva scendere di altrettanto: e' la riga che distingue «raised» da un argomento che viene ricopiato nella risposta e ignorato." },
+          "tolerance_why": "it is the starting volume plus that of the letters, with the same noise",
+          "why": "THE VOLUME WENT UP. In the engraved case the same step made it go down by as much: it is the line that tells «raised» from an argument that is copied into the answer and ignored." },
         { "what": "bounding_box_mm", "equal_to": [100, 100, 22],
-          "why": "IL PEZZO E' DIVENTATO PIU' SPESSO DI ESATTAMENTE I 2 mm DEL RILIEVO. Il volume da solo non direbbe da che parte sono cresciute le lettere: un rilievo che crescesse verso l'interno aggiungerebbe zero, ma un rilievo che cresce nel verso giusto si vede qui e solo qui." } ] }
+          "why": "THE PART HAS BECOME THICKER BY EXACTLY THE 2 mm OF THE RELIEF. The volume alone would not say which way the letters grew: a relief that grew inwards would add zero, but a relief that grows the right way shows here and only here." } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "limit_delete_base_extrusion",
   "family": "removal",
-  "why": "E' IL CASO PERICOLOSO PER NOME: togliere l'estrusione di base fa crollare tutto quello che ci sta sopra, e SOLIDWORKS LO FA SENZA CHIEDERE. I fori sono suoi figli: cancellarla li porterebbe via, e con loro il pezzo. Si rifiuta dicendo QUALI sono i figli, cosi' chi legge decide se toglierli prima o se aveva in mente un'altra lavorazione.",
-  "_why_a_childs_name_is_searched": "e non la parola «dipendono». La prima scrittura di questo rosso cercava «dipende», e correggendo la frase in «da lei dipendono» la prova sarebbe diventata rossa su un codice giusto: un'asserzione sul FRASEGGIO si rompe ogni volta che si sistema una virgola. Quello che serve e' che il rifiuto dica i nomi.",
+  "why": "IT IS THE DANGEROUS CASE BY NAME: removing the base extrusion makes everything on top of it collapse, and SOLIDWORKS DOES IT WITHOUT ASKING. The holes are its children: deleting it would take them away, and with them the part. It is refused saying WHICH ones are the children, so that whoever reads decides whether to remove them first or whether they had another feature in mind.",
+  "_why_a_childs_name_is_searched": "and not the word «depend». The first draft of this red looked for «depends», and correcting the sentence to «they depend on it» would have turned the check red on correct code: an assertion on the WORDING breaks every time a comma is fixed. What is needed is that the refusal says the names.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,11 +13,11 @@
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -60, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
-                    "tolerance_why": "400000 meno pi*7^2*20: il conto ha pi dentro" } ] },
+                    "tolerance_why": "400000 minus pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "delete_feature",
       "arguments": { "feature_uid": "Estrusione-Estrusione1" },
       "must_fail": {
-        "message_includes": ["Taglio-Estrusione1", "senza chiedere"],
+        "message_includes": ["Taglio-Estrusione1", "without asking"],
         "volume_unchanged": true,
         "twin": "delete_first_hole" } }
   ]

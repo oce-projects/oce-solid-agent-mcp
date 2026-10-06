@@ -1,7 +1,7 @@
 {
   "name": "dimension_that_keeps_the_slot_inside",
   "family": "features",
-  "why": "LA GEMELLA di `limit_dimension_that_pushes_the_slot_out` (voce E18 pezzo c, e la regola di Z-C11). Stessa piastra, stessa asola, ma la quota scende solo a 180: la piastra va da X -100 a +80 e l'asola (X -60..+60) resta dentro. Una guardia che rifiutasse anche questa rifiuterebbe ogni modifica di una piastra con un'asola: sembrerebbe prudenza, ed e' un'operazione che dice sempre di no.",
+  "why": "THE TWIN of `limit_dimension_that_pushes_the_slot_out` (entry E18 part c, and the rule of Z-C11). Same plate, same slot, but the dimension goes down only to 180: the plate runs from X -100 to +80 and the slot (X -60..+60) stays inside. A guard that refused this one too would refuse every change to a plate with a slot: it would look like caution, and it is an operation that always says no.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,14 +12,14 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
                      "length_mm": 120, "width_mm": 20, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 433716.81, "tolerance": 0.5,
-          "tolerance_why": "480000 meno (100*20 + pi*10^2) * 20 = 46283,19: l'asola di `slot` ha i semicerchi veri (misurato su `slot/blind_slot`: 535,0332 per 5). Il mezzo millimetro cubo copre pi" } ] },
+          "tolerance_why": "480000 minus (100*20 + pi*10^2) * 20 = 46283.19: the slot of `slot` has true semicircles (measured on `slot/blind_slot`: 535.0332 for 5). Half a cubic millimetre covers pi" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 180 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 180 },
         { "what": "volume_mm3", "equal_to": 385716.81, "tolerance": 0.5,
-          "tolerance_why": "180*120*20 = 432000 meno l'asola INTERA, 46283,19. Se l'asola fosse uscita anche solo un poco, ne mancherebbe un pezzo e il volume sarebbe piu' alto" },
+          "tolerance_why": "180*120*20 = 432000 minus the WHOLE slot, 46283.19. If the slot had come out even a little, a piece of it would be missing and the volume would be higher" },
         { "what": "bounding_box_mm", "equal_to": [180, 120, 20], "tolerance": 0.01,
-          "tolerance_why": "l'ingombro si legge in metri dal corpo: il centesimo e' arrotondamento" } ] }
+          "tolerance_why": "the bounding box is read in metres from the body: the hundredth is rounding" } ] }
   ]
 }

@@ -1,14 +1,14 @@
 {
   "name": "limit_sixteen_tooth_gear",
   "family": "extrusions",
-  "why": "VOCE Z-C6. La meta' che rifiuta del bordo di `spur_gear`: sotto il limite d'intaglio (17,097 denti a 20 gradi, arrotondato per difetto a 17) l'evolvente entrerebbe nel piede, e questo generatore non fa la correzione di profilo che servirebbe. Deve dirlo — e dire che e' un limite DEL GENERATORE, non della meccanica — e non lasciare niente nel documento.",
+  "why": "ENTRY Z-C6. The half that refuses at the edge of `spur_gear`: below the undercut limit (17.097 teeth at 20 degrees, rounded down to 17) the involute would enter the root, and this generator does not make the profile shift that would be needed. It must say so — and say that it is a limit OF THE GENERATOR, not of the mechanics — and leave nothing in the document.",
 
   "start": { "new_part": true },
   "steps": [
     { "operation": "spur_gear",
       "arguments": { "plane": "top", "teeth": 16, "module_mm": 2, "thickness_mm": 10 },
       "must_fail": {
-        "message_includes": ["sotto 17 denti", "correzione di profilo"],
+        "message_includes": ["under 17 teeth", "profile shift"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "the_seventeen_tooth_gear_can_be_made" } }

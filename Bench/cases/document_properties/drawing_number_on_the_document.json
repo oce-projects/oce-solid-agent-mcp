@@ -1,8 +1,8 @@
 {
   "name": "drawing_number_on_the_document",
   "family": "document_properties",
-  "why": "Il termine di paragone: si scrive una proprieta' sul documento e la si rilegge. E' il caso che dice che l'operazione funziona, e serve perche' senza di lui un rifiuto su un caso rotto non distinguerebbe un controllo che funziona da uno che rifiuta tutto.",
-  "_why_also_the_state": "L'operazione rilegge da sola e risponde il valore: se il caso guardasse solo quello, un'operazione che si tiene il valore in una variabile e non tocca il file passerebbe. Lo stato del documento e' letto da un'altra parte del codice, e legge dal documento vero.",
+  "why": "The term of comparison: a property is written on the document and read back. It is the case that says the operation works, and it is needed because without it a refusal on a broken case would not tell a check that works from one that refuses everything.",
+  "_why_also_the_state": "The operation re-reads by itself and answers the value: if the case looked only at that, an operation that keeps the value in a variable and does not touch the file would pass. The state of the document is read by another part of the code, and reads from the real document.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,14 +16,14 @@
         { "what": "measurements.value_text", "equal_to": "A" },
         { "what": "measurements.location", "includes": ["document"] },
         { "what": "state.property.Revision", "equal_to": "A",
-          "why": "il valore va letto dal documento, non dalla risposta dell'operazione che l'ha scritto" },
+          "why": "the value must be read from the document, not from the answer of the operation that wrote it" },
         { "what": "volume_mm3", "equal_to": 200000,
-          "why": "scrivere una proprieta' non tocca la geometria: se il volume cambia, l'operazione sta facendo dell'altro" } ] },
+          "why": "writing a property does not touch the geometry: if the volume changes, the operation is doing something else" } ] },
     { "operation": "set_property",
       "arguments": { "name": "Revision", "value_text": "B" },
       "expect": [
         { "what": "measurements.value_text", "equal_to": "B",
-          "why": "LA SECONDA SCRITTURA SOSTITUISCE. Con «solo se nuova» SOLIDWORKS lascerebbe «A» e risponderebbe lo stesso: una revisione che non cambia senza che nessuno dia errore." },
+          "why": "THE SECOND WRITE REPLACES. With «only if new» SOLIDWORKS would leave «A» and answer the same: a revision that does not change with nobody giving an error." },
         { "what": "state.property.Revision", "equal_to": "B" } ] }
   ]
 }

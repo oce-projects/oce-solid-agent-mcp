@@ -1,7 +1,7 @@
 {
   "name": "limit_anchor_on_the_chamfer_border",
   "family": "features",
-  "why": "VOCE E18, rischio 9 del critico. Lo spigolo fra la faccia davanti e uno smusso passa tutti gli altri controlli: sta nel piano della faccia, e' dritto, corre lungo l'asse giusto. Ma e' il bordo dello smusso, e se lo smusso passa da 5 a 8 il foro si sposta di 3 senza che nessuno lo sappia. Si guarda l'ALTRA faccia dello spigolo: dev'essere piana e perpendicolare a quella su cui si lavora. Misurato il 25/9/2026 col banchetto.",
+  "why": "ENTRY E18, risk 9 of the critic. The edge between the front face and a chamfer passes all the other checks: it lies in the plane of the face, it is straight, it runs along the right axis. But it is the border of the chamfer, and if the chamfer goes from 5 to 8 the hole moves by 3 without anyone knowing. We look at the OTHER face of the edge: it must be planar and perpendicular to the one being worked on. Measured on 25/9/2026 with the bench probe.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,12 +11,12 @@
     { "operation": "chamfer_edges",
       "arguments": { "edges_uid": [ "@edge(axis=Y,x~=100,z~=20)" ], "leg_mm": 5 },
       "expect": [ { "what": "volume_mm3", "equal_to": 478500, "tolerance": 0.05,
-          "tolerance_why": "480000 meno 5*5/2*120 = 1500" } ] },
+          "tolerance_why": "480000 minus 5*5/2*120 = 1500" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 75, "y_mm": 40, "diameter_mm": 10, "through_all": true,
                      "anchor": { "x": { "edge_uid": "@edge(axis=Y,x~=95,z~=20)", "distance_mm": 20 },
                                  "y": { "edge_uid": "@edge(axis=X,y~=60,z~=20)", "distance_mm": 20 } } },
-      "must_fail": { "message_includes": ["sul bordo di uno smusso o di un raccordo"], "volume_unchanged": true,
+      "must_fail": { "message_includes": ["on the border of a chamfer or a fillet"], "volume_unchanged": true,
                         "no_extra_feature": true, "twin": "anchored_hole_follows_the_border" } }
   ]
 }

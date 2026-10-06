@@ -1,9 +1,9 @@
 {
   "name": "r16_slot_that_overflows",
   "family": "regression",
-  "why": "Un'asola lunga 120 su una piastra che si accorcia da 200 a 150. L'asola sborda, e deve staccarsi RUMOROSAMENTE: un'asola aperta sul fianco e' un pezzo diverso, e se esce senza dire niente e' il difetto peggiore della sezione.",
+  "why": "A slot 120 long on a plate that shortens from 200 to 150. The slot sticks out, and it must fail NOISILY: a slot open on the side is a different part, and if it comes out without saying anything it is the worst defect of the section.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "l'asola sta dove il progettista l'ha messa, al centro. Accorciare la piastra non la sposta -- la fa uscire dal materiale, ed e' quello che si vuole vedere detto.",
+  "intent_why": "the slot is where the designer put it, at the centre. Shortening the plate does not move it -- it makes it leave the material, and that is what we want to see said.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -22,6 +22,6 @@
     { "what": "bodies", "equal_to": 1 },
     { "what": "volume_mm3", "equal_to": 313716.81,
       "tolerance": 0.5,
-      "tolerance_why": "150*120*20 = 360000 meno l'asola INTERA: (120-20)*20 + pi*10^2 = 2314,159 per 20 di spessore. Se l'asola sborda ne esce di meno, ed e' quello che questo caso cerca. Il conto ha pi dentro" }
+      "tolerance_why": "150*120*20 = 360000 minus the WHOLE slot: (120-20)*20 + pi*10^2 = 2314.159 over 20 of thickness. If the slot sticks out, less comes out, and that is what this case looks for. The calculation has pi inside" }
   ]
 }

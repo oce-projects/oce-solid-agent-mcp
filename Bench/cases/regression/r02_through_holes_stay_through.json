@@ -1,9 +1,9 @@
 {
   "name": "r02_through_holes_stay_through",
   "family": "regression",
-  "why": "Stessa piastra del caso 1, ma a cambiare e' lo SPESSORE. Quattro fori passanti devono restare passanti: e' la condizione di fine del taglio, non una misura, ed e' proprio il genere di cosa che si rompe in silenzio quando la quota che cambia e' un'altra.",
+  "why": "Same plate as case 1, but what changes is the THICKNESS. Four through holes must stay through: it is the end condition of the cut, not a measurement, and it is exactly the kind of thing that breaks in silence when the dimension that changes is another one.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "i fori stanno dove stanno: ingrossare la piastra non li sposta, e in officina nessuno se lo aspetta. Qui l'invariante e' che restino QUATTRO e passanti.",
+  "intent_why": "the holes stay where they are: thickening the plate does not move them, and in the workshop nobody expects it. Here the invariant is that they stay FOUR and through.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -26,10 +26,10 @@
     { "what": "bounding_box_mm", "equal_to": [200, 120, 35] },
     { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+      "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
     { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "come sopra" },
+      "tolerance_why": "as above" },
     { "what": "bodies", "equal_to": 1 }
   ]
 }

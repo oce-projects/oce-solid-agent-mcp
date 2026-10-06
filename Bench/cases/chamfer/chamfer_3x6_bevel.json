@@ -1,7 +1,7 @@
 {
   "name": "chamfer_3x6_bevel",
   "family": "chamfer",
-  "why": "Due lati diversi: e' `DistanceDistance`, il cianfrino della saldatura. SE L'ENUM FINISSE SU `AngleDistance` il secondo lato verrebbe ignorato e si toglierebbe 3*3/2*100 = 450 invece di 900 -- la meta', e il pezzo uscirebbe con una preparazione sbagliata senza che niente fallisca.",
+  "why": "Two different sides: it is `DistanceDistance`, the bevel of the weld. IF THE ENUM ENDED UP ON `AngleDistance` the second side would be ignored and 3*3/2*100 = 450 would be removed instead of 900 -- half, and the part would come out with a wrong preparation without anything failing.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,6 +11,6 @@
       "arguments": { "edges_uid": ["@edge(axis=X,length~=100,n=1)"], "leg_mm": 3, "angle_deg": 45, "second_leg_mm": 6 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 119100,
-          "_why_exact": " 120000 meno 3*6/2*100 e' un conto esatto. Se il secondo lato fosse ignorato sarebbe 119550" } ] }
+          "_why_exact": " 120000 minus 3*6/2*100 is an exact calculation. If the second side were ignored it would be 119550" } ] }
   ]
 }

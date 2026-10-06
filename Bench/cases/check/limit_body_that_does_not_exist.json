@@ -1,7 +1,7 @@
 {
   "name": "limit_body_that_does_not_exist",
   "family": "check",
-  "why": "Un identificativo di corpo che non c'e' va rifiutato, non risposto con un elenco vuoto e «printable: true». Zero corpi guardati e nessun problema trovato sono la stessa riga per chi legge, ed e' il modo piu' comodo di avere un verde che non prova niente.",
+  "why": "A body identifier that does not exist must be refused, not answered with an empty list and «printable: true». Zero bodies looked at and no problem found are the same line for whoever reads, and it is the easiest way to have a green that proves nothing.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,7 +11,7 @@
     { "operation": "check_body_geometry",
       "arguments": { "body_uid": "C9" },
       "must_fail": {
-        "message_includes": ["Non trovo il corpo", "C9"],
+        "message_includes": ["I cannot find the body", "C9"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "healthy_body_exports" } }

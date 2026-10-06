@@ -1,7 +1,7 @@
 {
   "name": "slot_on_narrow_plate_90",
   "family": "slot",
-  "why": "La gemella del caso a zero gradi, ed e' QUESTA a vedere la rotazione. Sulla piastra larga 40 l'asola girata di 90 gradi sporge di 5,5 mm da tutte e due le coste -- y da -25,5 a +25,5 contro una semialtezza di 20 -- e le due calotte cadono fuori: resta il rettangolo 40 x 11. Se la rotazione non venisse applicata, questo caso e quello a zero gradi darebbero LO STESSO NUMERO.",
+  "why": "The twin of the zero-degree case, and it is THIS one that sees the rotation. On the plate 40 wide the slot turned by 90 degrees sticks out by 5.5 mm from both sides -- y from -25.5 to +25.5 against a half-height of 20 -- and the two end caps fall outside: the 40 x 11 rectangle remains. If the rotation were not applied, this case and the zero-degree one would give THE SAME NUMBER.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,6 +11,6 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 90, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 151200, "tolerance": 1.0,
-          "tolerance_why": "160000 meno il solo rettangolo 40 x 11 x 20 = 8800. Le due calotte cadono fuori dal materiale: il millimetro cubo copre il modo in cui SOLIDWORKS taglia sul bordo" } ] }
+          "tolerance_why": "160000 minus the 40 x 11 x 20 rectangle alone = 8800. The two caps fall outside the material: the cubic millimetre covers the way SOLIDWORKS cuts on the edge" } ] }
   ]
 }

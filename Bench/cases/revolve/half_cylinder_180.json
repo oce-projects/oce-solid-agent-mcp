@@ -1,7 +1,7 @@
 {
   "name": "half_cylinder_180",
   "family": "revolve",
-  "why": "Mezzo giro: esattamente la meta'. Verifica che `angle_deg` arrivi in radianti giusti e non venga ignorato -- se fosse ignorato uscirebbe il cilindro intero, e il volume e' il doppio.",
+  "why": "Half a turn: exactly half. It verifies that `angle_deg` arrives in the right radians and is not ignored -- if it were ignored the whole cylinder would come out, and the volume is double.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
@@ -10,7 +10,7 @@
                      "contours": [[[0, 0], [0, 20], [50, 20], [50, 0]]] },
       "expect": [
         { "what": "volume_mm3", "equal_to": 31415.927, "tolerance": 0.5,
-          "tolerance_why": "pi*20^2*50/2: il conto ha pi dentro" },
+          "tolerance_why": "pi*20^2*50/2: the calculation has pi inside" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

@@ -1,9 +1,9 @@
 {
   "name": "two_equal_holes_one_through_one_blind",
   "family": "drawing",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo 1. QuotaIFori raggruppa i fori per diametro E profondita' apposta per non scrivere «2× Ø8 ↧5» su un passante e un cieco; ma la chiave del «gia' quotato» era il solo diametro, aggiunta dentro lo stesso ciclo: il secondo gruppo (il cieco) finiva «gia' quotato in questa tavola», senza richiamo, senza profondita' e senza posizione. In officina si forava passante. Una piastra 120 x 80 x 10 con un Ø8 passante e un Ø8 cieco profondo 5.",
-  "defect_caught": "Il secondo gruppo di fori dello stesso diametro saltato come gia' quotato; un cieco che esce dalla tavola senza richiamo ne' profondita'.",
-  "_the_views_are_called_by_uid": "V2 dall'alto (i fori come cerchi).",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding 1. QuotaIFori groups the holes by diameter AND depth on purpose so as not to write «2× Ø8 ↧5» on a through hole and a blind one; but the key of the «already dimensioned» was the diameter alone, added inside the same loop: the second group (the blind one) ended up «already dimensioned in this drawing», without callout, without depth and without position. In the workshop it got drilled through. A 120 x 80 x 10 plate with a through Ø8 and a blind Ø8 5 deep.",
+  "defect_caught": "The second group of holes of the same diameter skipped as already dimensioned; a blind hole that leaves the drawing without callout or depth.",
+  "_the_views_are_called_by_uid": "V2 from above (the holes as circles).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,12 +12,12 @@
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 30, "y_mm": 0, "diameter_mm": 8, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 95497.35, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: 96000 meno pi x 4^2 x 10" } ] },
+                    "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 10" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -30, "y_mm": 0, "diameter_mm": 8,
                      "through_all": false, "depth_mm": 5 },
       "expect": [ { "what": "volume_mm3", "equal_to": 95246.02, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: meno pi x 4^2 x 5. Il cieco per secondo: dopo, il suo fondo e' un'altra faccia «up»" } ] },
+                    "tolerance_why": "pi inside: minus pi x 4^2 x 5. The blind one second: afterwards, its bottom is another «up» face" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\two_equal_holes_one_through_one_blind.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
@@ -30,13 +30,13 @@
     { "operation": "drawing_dimension",
       "arguments": { "view": "V2" },
       "expect": [
-        { "what": "measurements.holes[0].diameter_mm", "equal_to": 8, "why": "il gruppo (Ø8, passante) viene prima: -1 prima di 5" },
+        { "what": "measurements.holes[0].diameter_mm", "equal_to": 8, "why": "the group (Ø8, through) comes first: -1 before 5" },
         { "what": "measurements.holes[0].through_all_from_geometry", "equal_to": true },
         { "what": "measurements.holes[1].diameter_mm", "equal_to": 8,
-          "why": "IL SECONDO GRUPPO C'E': prima finiva fra i «gia' quotati in questa tavola»" },
-        { "what": "measurements.holes[1].depth_mm", "equal_to": 5, "why": "il cieco porta la sua profondita'" },
+          "why": "THE SECOND GROUP IS THERE: before, it ended up among the «already dimensioned in this drawing»" },
+        { "what": "measurements.holes[1].depth_mm", "equal_to": 5, "why": "the blind one carries its depth" },
         { "what": "measurements.holes[1].through_all_from_geometry", "equal_to": false },
-        { "what": "measurements.already_dimensioned_elsewhere", "does_not_include": ["fori Ø8"],
-          "why": "nessuno dei due gruppi e' stato quotato prima di questa chiamata" } ] }
+        { "what": "measurements.already_dimensioned_elsewhere", "does_not_include": ["holes Ø8"],
+          "why": "neither of the two groups was dimensioned before this call" } ] }
   ]
 }

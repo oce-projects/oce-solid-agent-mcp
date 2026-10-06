@@ -1,7 +1,7 @@
 {
   "name": "stepped_shaft",
   "family": "revolve",
-  "why": "L'albero D30 per 40 e poi D20 per 30 e' L'ESEMPIO SCRITTO NELLA DESCRIZIONE dell'operazione, quindi e' quello che il modello copiera' piu' spesso. Se sbaglia questo, sbaglia in produzione.",
+  "why": "The D30 for 40 and then D20 for 30 shaft is THE EXAMPLE WRITTEN IN THE DESCRIPTION of the operation, so it is the one the model will copy most often. If it gets this one wrong, it gets it wrong in production.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
@@ -10,7 +10,7 @@
                      "contours": [[[0, 0], [0, 15], [40, 15], [40, 10], [70, 10], [70, 0]]] },
       "expect": [
         { "what": "volume_mm3", "equal_to": 37699.112, "tolerance": 0.5,
-          "tolerance_why": "pi*15^2*40 + pi*10^2*30: il conto ha pi dentro" },
+          "tolerance_why": "pi*15^2*40 + pi*10^2*30: the calculation has pi inside" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

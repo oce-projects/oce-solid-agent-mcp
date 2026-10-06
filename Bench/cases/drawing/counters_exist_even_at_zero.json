@@ -1,11 +1,11 @@
 {
   "name": "counters_exist_even_at_zero",
   "family": "drawing",
-  "why": "VOCE Z-E1. Dieci voci di tavola aspettano di scrivere rugosita', riferimenti di datum, simboli di saldatura e GD&T. **Quattro delle API che le inseriscono tornano `Void`** — un bottone, non un'API: non hanno modo di dire che non hanno fatto niente, e infatti non lo dicono. Senza un contatore INDIPENDENTE letto dallo stato, ognuna di quelle dieci voci sarebbe verde sulla parola dell'operazione stessa. Questo caso mette i contatori PRIMA del bisogno.",
+  "why": "ENTRY Z-E1. Ten drawing entries are waiting to write surface finish, datum references, weld symbols and GD&T. **Four of the APIs that insert them return `Void`** — a button, not an API: they have no way to say they did nothing, and indeed they do not say so. Without an INDEPENDENT counter read from the state, each of those ten entries would be green on the word of the operation itself. This case puts the counters BEFORE the need.",
 
-  "defect_caught": "Un campo che compare solo quando ha un valore interessante insegna a non cercarlo: chi non trova `surface_finish` conclude che l'API non sappia rispondere, non che il numero sia zero. Qui i sei numeri si pretendono **tutti e sei, anche tutti a zero** — e il banco tratta un campo assente come prova ROSSA (voce F4), quindi l'attesa e' vera.",
+  "defect_caught": "A field that appears only when it has an interesting value teaches nobody to look for it: whoever does not find `surface_finish` concludes that the API cannot answer, not that the number is zero. Here the six numbers are demanded **all six, even all at zero** — and the bench treats a missing field as a RED proof (entry F4), so the expectation is true.",
 
-  "_and_the_sheet_is_counted_separately": "Misurato il 18/9/2026 e ha cambiato il progetto del campo: le note del cartiglio stanno sul FOGLIO, non su una vista, e sono **sessantasette** su questo modello di tavola. `InsertNote` — oggi l'unica API di annotazione che funziona fuori processo — mette la nota **sul foglio**: 67 -> 68, con tutte e tre le viste ferme a zero. Contando solo le viste, `note` sarebbe un campo che **non puo' diventare vero**, cioe' una promessa e non una misura. Per questo il foglio ha i suoi sei numeri in un cassetto suo.",
+  "_and_the_sheet_is_counted_separately": "Measured on 18/9/2026 and it changed the design of the field: the notes of the title block are on the SHEET, not on a view, and they are **sixty-seven** on this drawing template. `InsertNote` — today the only annotation API that works out of process — puts the note **on the sheet**: 67 -> 68, with all three views stuck at zero. Counting only the views, `note` would be a field that **cannot become true**, that is a promise and not a measurement. That is why the sheet has its own six numbers in a drawer of its own.",
 
   "start": { "new_part": true },
   "steps": [
@@ -14,46 +14,46 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "il pezzo su cui si fa la tavola" } ] },
+          "why": "the part the drawing is made on" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\counters_exist_even_at_zero.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una vista si aggancia al percorso del pezzo" } ] },
+          "why": "a view attaches to the path of the part" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il banco segue il documento nuovo (voce GT0)" } ] },
+          "why": "the bench follows the new document (entry GT0)" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\counters_exist_even_at_zero.sldprt" },
-      "_and_the_part_is_named_explicitly": "Vedi `title_block_says_what_it_wants`: senza questa riga la tavola si faceva del primo pezzo aperto, e nessuno dava errore. Da questo caso e' partito il guaio — e' il suo pezzo quello che finiva nella tavola dell'altro.",
+      "_and_the_part_is_named_explicitly": "See `title_block_says_what_it_wants`: without this line the drawing was made of the first part open, and nobody gave an error. The trouble started from this case — it is its part that ended up in the drawing of the other.",
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "servono viste vere: i contatori stanno su `IView`, e senza viste non ci sarebbe niente su cui chiederli" },
+          "why": "real views are needed: the counters live on `IView`, and without views there would be nothing to ask them on" },
 
         { "what": "state.annotations_total.gtol", "equal_to": 0,
-          "why": "**IL PEZZO CHE VALE LA VOCE, ed e' lo zero.** Il campo dev'esserci anche quando non c'e' niente da contare: il banco tratta un campo assente come prova rossa (F4), quindi questa attesa distingue «zero» da «non lo so»" },
+          "why": "**THE PART THAT MAKES THE ENTRY WORTH IT, and it is the zero.** The field must be there even when there is nothing to count: the bench treats a missing field as a red proof (F4), so this expectation tells «zero» from «I do not know»" },
         { "what": "state.annotations_total.datum", "equal_to": 0,
-          "why": "idem: `InsertDatumTag()` torna `Void` e non dira' mai se ha inserito. Questo numero e' l'unico modo di saperlo, e dev'esistere prima della voce che lo usa" },
+          "why": "ditto: `InsertDatumTag()` returns `Void` and will never say whether it inserted. This number is the only way to know, and it must exist before the entry that uses it" },
         { "what": "state.annotations_total.welds", "equal_to": 0,
-          "why": "idem: anche `InsertWeldSymbol(...)` torna `Void`" },
+          "why": "ditto: `InsertWeldSymbol(...)` too returns `Void`" },
         { "what": "state.annotations_total.surface_finish", "equal_to": 0,
-          "why": "letto con `GetSFSymbolCount`, **non** `GetSurfaceFinishSymbolCount` — il nome per simmetria con `InsertSurfaceFinishSymbol`, che non esiste" },
+          "why": "read with `GetSFSymbolCount`, **not** `GetSurfaceFinishSymbolCount` — the name for symmetry with `InsertSurfaceFinishSymbol`, which does not exist" },
 
         { "what": "state.annotations_total.note", "equal_to": 0,
-          "why": "**LE VISTE SONO VUOTE, E QUI SI VEDE SE QUALCUNO HA SOMMATO IL FOGLIO.** Se questo numero fosse sessantasette invece di zero, vorrebbe dire che le note del cartiglio sono finite nel conto delle viste — e una tavola senza una sola annotazione sembrerebbe piena" },
+          "why": "**THE VIEWS ARE EMPTY, AND HERE WE SEE WHETHER SOMEONE SUMMED THE SHEET.** If this number were sixty-seven instead of zero, it would mean that the notes of the title block ended up in the count of the views — and a drawing without a single annotation would look full" },
 
         { "what": "state.sheet_annotations.note", "equal_to": 67,
-          "why": "IL CONTRALTARE, e senza di lui lo zero qui sopra non proverebbe niente: proverebbe solo che i contatori tornano zero sempre. Sessantasette e' il cartiglio di QUESTA officina (`Disegno.drwdot`): se il modello di tavola cambia, questa attesa diventa rossa **e deve** — il numero di note del cartiglio non e' un dettaglio di forma, e' cio' che il cartiglio chiede" },
+          "why": "THE COUNTERPART, and without it the zero above would prove nothing: it would only prove that the counters always return zero. Sixty-seven is the title block of THIS workshop (`Disegno.drwdot`): if the drawing template changes, this expectation turns red **and it must** — the number of notes of the title block is not a detail of form, it is what the title block asks for" },
 
         { "what": "state.views[0].annotations.all", "equal_to": 0,
-          "why": "il campo c'e' anche per vista, non solo nel totale. Si chiama «all» e non «total» perche' `GetAnnotationCount` **non e' la somma** delle altre cinque: conta anche le quote" },
+          "why": "the field is there per view too, not only in the total. It is called «all» and not «total» because `GetAnnotationCount` **is not the sum** of the other five: it also counts the dimensions" },
 
-        { "what": "state.what_is_not_known_about_annotations", "includes": "layer non stampabile",
-          "why": "la cecita' viaggia con la risposta: un'annotazione su un layer non stampabile esiste, viene contata, e nel PDF non c'e'. Chi legge questi numeri sta leggendo il documento, non cio' che esce dalla stampante" } ] }
+        { "what": "state.what_is_not_known_about_annotations", "includes": "non-printing layer",
+          "why": "the blindness travels with the answer: an annotation on a non-printing layer exists, is counted, and is not in the PDF. Whoever reads these numbers is reading the document, not what comes out of the printer" } ] }
   ]
 }

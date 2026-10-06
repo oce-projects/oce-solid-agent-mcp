@@ -1,8 +1,8 @@
 {
   "name": "three_holes_pitch_40",
   "family": "patterns",
-  "why": "LA DIREZIONE E' IL DUBBIO VERO. Fino alla 0.30.2 questa operazione pretendeva un asse, e l'unica cosa che ne crea uno e' `create_axis`, che lo prende dal centro di un foro: ripetere lungo quello vuol dire ripetere DENTRO LO SPESSORE, e «otto fori in fila sulla piastra» non aveva nessuna forma valida. Adesso la direzione si prende da uno spigolo dritto, che lo stato elenca gia'.",
-  "_why_y_is_the_invariant": "da che parte vada la ripetizione -- a +40/+80 oppure a -40/-80 -- lo decide il verso dello spigolo, che e' un dato e non un difetto (`flip1` esiste per invertirlo). Quello che NON puo' cambiare e' la y: ripetendo lungo uno spigolo che corre in X, i tre fori restano tutti a y = -40. Se uno si sposta in y, la ripetizione ha seguito lo spigolo sbagliato -- ed e' proprio il difetto che questa prova esiste per prendere.",
+  "why": "THE DIRECTION IS THE REAL DOUBT. Up to 0.30.2 this operation demanded an axis, and the only thing that creates one is `create_axis`, which takes it from the centre of a hole: repeating along that means repeating INSIDE THE THICKNESS, and «eight holes in a row on the plate» had no valid form. Now the direction is taken from a straight edge, which the state already lists.",
+  "_why_y_is_the_invariant": "which way the pattern goes -- to +40/+80 or to -40/-80 -- is decided by the direction of the edge, which is a given and not a defect (`flip1` exists to invert it). What CANNOT change is y: repeating along an edge that runs in X, the three holes all stay at y = -40. If one moves in y, the pattern followed the wrong edge -- and that is exactly the defect this check exists to catch.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,18 +14,18 @@
                      "diameter_mm": 9, "through_all": true },
       "expect": [
         { "what": "centers_y_mm", "equal_to": [-40], "tolerance": 0.05,
-          "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" } ] },
+          "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" } ] },
     { "operation": "linear_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "axis1_uid": "@edge(axis=X,length~=200,n=1)",
                      "pitch1_mm": 40, "instance_count1": 3 },
       "expect": [
         { "what": "diameters_mm", "equal_to": [9, 9, 9], "tolerance": 0.02,
-          "tolerance_why": "tre fori da 9: il diametro si legge da CylinderParams" },
+          "tolerance_why": "three holes of 9: the diameter is read from CylinderParams" },
         { "what": "centers_y_mm", "equal_to": [-40, -40, -40], "tolerance": 0.05,
-          "tolerance_why": "come sopra" },
+          "tolerance_why": "as above" },
         { "what": "volume_mm3", "equal_to": 476182.97, "tolerance": 0.5,
-          "tolerance_why": "480000 meno tre volte pi*4,5^2*20: il conto ha pi dentro" },
+          "tolerance_why": "480000 minus three times pi*4.5^2*20: the calculation has pi inside" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

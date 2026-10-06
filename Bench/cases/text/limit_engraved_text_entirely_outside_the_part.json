@@ -1,8 +1,8 @@
 {
   "name": "limit_engraved_text_entirely_outside_the_part",
   "family": "text",
-  "why": "L'ancora a 200 mm da una faccia larga 100: la scritta non tocca il pezzo da nessuna parte. Senza il controllo sulla scatola questo caso arriverebbe fino al taglio, e li' `FeatureCut4` torna NULL -- misurato. Sarebbe un rifiuto, ma quello sbagliato: «la lavorazione non e' stata creata e SOLIDWORKS non dice perche'», invece di «la scritta e' tutta fuori dalla faccia, di 152 mm».",
-  "_why_failing_is_not_enough": "Un rosso che scatta per il motivo sbagliato non prova niente e sembra identico a uno che funziona. Qui il messaggio DEVE dire di quanto sborda: e' l'unica informazione con cui chi ha sbagliato il numero puo' correggerlo al primo colpo invece che per tentativi.",
+  "why": "The anchor at 200 mm from a face 100 wide: the inscription touches the part nowhere. Without the check on the box this case would go all the way to the cut, and there `FeatureCut4` returns NULL -- measured. It would be a refusal, but the wrong one: «the feature was not created and SOLIDWORKS does not say why», instead of «the text is entirely outside the face, by 152 mm».",
+  "_why_failing_is_not_enough": "A red that fires for the wrong reason proves nothing and looks identical to one that works. Here the message MUST say by how much it sticks out: it is the only piece of information with which whoever got the number wrong can correct it at the first try instead of by trial and error.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,7 +14,7 @@
                      "x_mm": 200, "y_mm": -5,
                      "height_mm": 10, "depth_mm": 2 },
       "must_fail": {
-        "message_includes": ["esce di", "bordo X alto", "Non lo incido"],
+        "message_includes": ["sticks out by", "top X edge", "I do not engrave it"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "code_engraved_in_the_center" } }

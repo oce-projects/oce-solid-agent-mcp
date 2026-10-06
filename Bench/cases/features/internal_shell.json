@@ -1,7 +1,7 @@
 {
   "name": "internal_shell",
   "family": "features",
-  "why": "«Outward» toglie verso l'esterno o verso l'interno? Il dubbio di 80j. Verso l'interno l'ingombro NON cambia e il vuoto e' (100-10) x (60-10) x (40-5) = 157500: restano 82500 mm3. La gemella «external_shell» fa lo stesso gesto col verso opposto, e i due numeri sono lontanissimi: se il verso fosse invertito si vedrebbe al primo confronto.",
+  "why": "Does «Outward» remove towards the outside or towards the inside? The doubt of 80j. Inward, the bounding box does NOT change and the void is (100-10) x (60-10) x (40-5) = 157500: 82500 mm3 remain. The twin «external_shell» makes the same gesture in the opposite direction, and the two numbers are very far apart: if the direction were inverted it would show at the first comparison.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -32,7 +32,7 @@
         { "what": "bounding_box_mm", "equal_to": [100, 60, 40] },
         { "what": "measurements.material_removed_mm3", "equal_to": 157500,
           "tolerance": 0.1,
-          "tolerance_why": "l'operazione arrotonda al decimo prima di riportarlo" },
+          "tolerance_why": "the operation rounds to the tenth before reporting it" },
         { "what": "measurements.faces_removed", "equal_to": 1 },
         { "what": "measurements.facing", "equal_to": "inner" }
       ]

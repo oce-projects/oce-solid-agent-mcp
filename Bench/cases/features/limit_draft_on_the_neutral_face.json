@@ -1,8 +1,8 @@
 {
   "name": "limit_draft_on_the_neutral_face",
   "family": "features",
-  "why": "La stessa faccia messa insieme come neutra e come faccia da sformare. E' l'errore di chi non ha capito che sono due ruoli diversi -- e non e' innocuo: la faccia neutra e' il piano da cui si MISURA l'angolo, quindi chiedere di inclinarla rispetto a se stessa non vuol dire niente. Si rifiuta prima di chiamare, e si spiega la differenza invece di dire «argomento non valido».",
-  "_why_this_is_the_refusal_that_can_be_written": "Il difetto vero di questa operazione -- scambiare i due ruoli -- non si puo' mettere in un caso: i ruoli li assegna il codice con i marchi di selezione, e dal di fuori non c'e' modo di scambiarli. Quello che si puo' prendere dal di fuori e' la confusione fra i due, ed e' questo.",
+  "why": "The same face given both as neutral and as the face to draft. It is the mistake of someone who has not understood that they are two different roles -- and it is not harmless: the neutral face is the plane the angle is MEASURED from, so asking to tilt it relative to itself means nothing. It is refused before calling, and the difference is explained instead of saying «invalid argument».",
+  "_why_this_is_the_refusal_that_can_be_written": "The real defect of this operation -- swapping the two roles -- cannot be put in a case: the roles are assigned by the code with the selection marks, and from outside there is no way to swap them. What can be caught from outside is the confusion between the two, and this is it.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,7 +14,7 @@
                      "faces_uid": ["@face(normal=front)"],
                      "angle_deg": 5 },
       "must_fail": {
-        "message_includes": ["e' insieme la faccia neutra", "NON si muove"],
+        "message_includes": ["is both the neutral face", "does not move"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "draft_four_walls" } }

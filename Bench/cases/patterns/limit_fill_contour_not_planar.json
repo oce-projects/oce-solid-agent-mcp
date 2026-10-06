@@ -1,7 +1,7 @@
 {
   "name": "limit_fill_contour_not_planar",
   "family": "patterns",
-  "why": "IL CONTORNO E' UNA FACCIA PIANA. IFillPatternFeatureData, Remarks, marca 16384: «Sketch, face, planar curve on a face, or coplanar faces» -- il riempimento dispone le copie a giri concentrici DENTRO un contorno piano. La parete del foro e' l'unica faccia curva del pezzo e lo stato la offre (piana=false): nominarla come contorno e' un errore che si puo' fare davvero. L'operazione la rifiuta prima di selezionare niente e dice di indicare la faccia piana da cui parte il foro. La gemella e' lo stesso passo con la faccia alta.",
+  "why": "THE BOUNDARY IS A PLANAR FACE. IFillPatternFeatureData, Remarks, mark 16384: «Sketch, face, planar curve on a face, or coplanar faces» -- the fill lays out the copies in concentric loops INSIDE a planar boundary. The wall of the hole is the only curved face of the part and the state offers it (planar=false): naming it as the boundary is a mistake that can really be made. The operation refuses it before selecting anything and says to indicate the planar face the hole starts from. The twin is the same step with the top face.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,16 +13,16 @@
                      "diameter_mm": 8, "through_all": true },
       "expect": [
         { "what": "diameters_mm", "equal_to": [8], "tolerance": 0.02,
-          "tolerance_why": "il diametro si legge da CylinderParams, che torna metri" },
+          "tolerance_why": "the diameter is read from CylinderParams, which returns metres" },
         { "what": "volume_mm3", "equal_to": 71396.81, "tolerance": 0.5,
-          "tolerance_why": "72000 meno pi*4^2*12: il conto ha pi dentro" } ] },
+          "tolerance_why": "72000 minus pi*4^2*12: the calculation has pi inside" } ] },
     { "operation": "fill_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "face_uid": "@face(planar=false)",
                      "axis_uid": "@edge(axis=X,y~=12,z~=30)",
                      "pitch_mm": 17.0240490494193, "copies_per_turn": 10, "margin_mm": 0 },
       "must_fail": {
-        "message_includes": ["non e' piana", "faccia piana"],
+        "message_includes": ["not planar", "a planar face"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fill_makes_fourteen_holes" } }

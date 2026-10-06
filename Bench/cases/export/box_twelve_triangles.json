@@ -1,8 +1,8 @@
 {
   "name": "box_twelve_triangles",
   "family": "export",
-  "why": "UN PARALLELEPIPEDO FA DODICI TRIANGOLI, sempre: sei facce piane, due triangoli ciascuna. Non e' un numero plausibile, e' un numero esatto -- ed e' quello che rende questo caso una misura invece di un «il file c'e' e pesa qualcosa».",
-  "_why_the_bytes": "un STL binario e' 80 byte di intestazione, 4 col numero di triangoli, poi 50 per triangolo: 84 + 50*12 = 684. Il file deve pesare ESATTAMENTE quello. Se il conto non torna, il file si apre lo stesso e non e' il pezzo -- e questo e' l'unico posto in tutta la catena in cui la cosa si puo' vedere.",
+  "why": "A BOX MAKES TWELVE TRIANGLES, always: six planar faces, two triangles each. It is not a plausible number, it is an exact number -- and it is what makes this case a measurement instead of a «the file is there and weighs something».",
+  "_why_the_bytes": "a binary STL is 80 bytes of header, 4 with the number of triangles, then 50 per triangle: 84 + 50*12 = 684. The file must weigh EXACTLY that. If the count does not add up, the file opens all the same and is not the part -- and this is the only place in the whole chain where it can be seen.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,17 +13,17 @@
       "arguments": { "path": "{LAVORO}\\gp2_scatola.stl" },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 12,
-          "_why_twelve": "sei facce piane, due triangoli ciascuna" },
+          "_why_twelve": "six planar faces, two triangles each" },
         { "what": "measurements.byte", "equal_to": 684,
-          "_why_684": "84 + 50*12: l'intestazione piu' i dodici triangoli" },
+          "_why_684": "84 + 50*12: the header plus the twelve triangles" },
         { "what": "measurements.file_format", "equal_to": "binary",
-          "why": "e' il predefinito, e un ASCII peserebbe dieci volte tanto" },
+          "why": "it is the default, and an ASCII one would weigh ten times as much" },
         { "what": "measurements.units", "equal_to": "mm",
-          "why": "il file NON le porta con se' e lo slicer assume i millimetri: se questa riga non ci fosse, l'unica risposta possibile sarebbe «boh, prova»" },
+          "why": "the file does NOT carry them with it and the slicer assumes millimetres: if this line were not there, the only possible answer would be «dunno, just try»" },
         { "what": "measurements.how_triangles_are_known",
-          "includes": ["dopo l'intestazione del file binario"],
-          "why": "i triangoli si contano RILEGGENDO IL FILE, non chiedendoli a chi l'ha scritto" },
-        { "what": "measurements.check", "includes": ["si puo' esportare"],
-          "why": "la verifica ha girato DAVVERO prima di scrivere, e la sua frase viaggia con la risposta. Che il campo «exported_anyway» qui non ci sia lo prova il caso `two_bodies_exported_by_force`, dove invece c'e'" } ] }
+          "includes": ["after the header of the binary file"],
+          "why": "the triangles are counted by RE-READING THE FILE, not by asking whoever wrote it" },
+        { "what": "measurements.check", "includes": ["as geometry it can be exported"],
+          "why": "the check REALLY ran before writing, and its sentence travels with the answer. That the field «exported_anyway» is not here is proved by the case `two_bodies_exported_by_force`, where it is" } ] }
   ]
 }

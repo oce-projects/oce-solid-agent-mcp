@@ -1,7 +1,7 @@
 [
  {
-  "_why": "V2 -- forma 2 di 5: GUSCIO APERTO. E' il caso che ha aperto la sezione V: sessanta facce con un'area non dicono che questo e' una scatola vuota aperta in alto. La faccia interna e quella esterna hanno area simile e normale opposta, e da li' non si ricava una parete.",
-  "_truth": "Scatola 120x80x50 svuotata 4 mm con la faccia superiore aperta. Volume 120*80*4 (fondo) + perimetro interno alto 46: 2*120*4*46 + 2*72*4*46 = 38400 + 44160 + 26496 = 109056 mm3.",
+  "_why": "V2 -- shape 2 of 5: OPEN SHELL. It is the case that opened section V: sixty faces with an area do not say that this is an empty box open at the top. The inner face and the outer face have similar area and opposite normal, and from there a wall cannot be derived.",
+  "_truth": "Box 120x80x50 hollowed 4 mm with the top face open. Volume 120*80*4 (bottom) + inner perimeter 46 high: 2*120*4*46 + 2*72*4*46 = 38400 + 44160 + 26496 = 109056 mm3.",
   "operation": "extrude_rectangle",
   "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 50, "centered": true }
  },

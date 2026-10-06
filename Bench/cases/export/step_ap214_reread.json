@@ -1,7 +1,7 @@
 {
   "name": "step_ap214_reread",
   "family": "export",
-  "why": "IL VOLUME RILETTO DAL FILE, non la dimensione del file. Uno STEP scritto e mai riaperto e' una promessa: esiste, pesa, si apre in qualunque visualizzatore. L'unica misura che dice che la GEOMETRIA e' sopravvissuta alla traduzione e' riaprirlo in SOLIDWORKS e confrontare il volume -- ed e' quello che questo caso fa.",
+  "why": "THE VOLUME RE-READ FROM THE FILE, not the size of the file. A STEP written and never reopened is a promise: it exists, it weighs, it opens in any viewer. The only measure that says the GEOMETRY survived the translation is reopening it in SOLIDWORKS and comparing the volume -- and that is what this case does.",
   "_why_the_protocol_is_read_back": "`swStepAP` takes 203 or 214 (swconst help page FileSaveAsSTEPOptions.htm), and those values have NO enum in `swconst`: the number is a literal, and a literal is something one believes. The only proof that the 214 asked is the 214 got is the FILE_SCHEMA written inside the file, which for AP214 says «AUTOMOTIVE_DESIGN». 242 is not a value of `swStepAP`: written there it gives an AP203 file (Z-C21.13, finding C5-7), and AP242 goes through PublishSTEP242File instead.",
   "start": { "new_part": true },
   "steps": [
@@ -16,18 +16,18 @@
         { "what": "measurements.file_format", "equal_to": "STEP" },
         { "what": "measurements.protocol_requested", "equal_to": "AP214" },
         { "what": "measurements.protocol_returned", "equal_to": "AP214",
-          "why": "chiesto e ottenuto sono due cose diverse, e qui si confrontano" },
+          "why": "asked for and obtained are two different things, and here they are compared" },
         { "what": "measurements.file_schema", "includes": ["AUTOMOTIVE_DESIGN"],
-          "why": "e' il nome che lo STANDARD da' all'AP214, e sta scritto dentro il file" },
-        { "what": "measurements.how_known", "includes": ["letto dal file"] },
+          "why": "it is the name the STANDARD gives to AP214, and it is written inside the file" },
+        { "what": "measurements.how_known", "includes": ["read from the file"] },
         { "what": "measurements.volume_mm3", "equal_to": 200000, "tolerance": 0.5,
-          "tolerance_why": "e' il volume del pezzo, letto da GetMassProperties che torna metri cubi" },
+          "tolerance_why": "it is the volume of the part, read from GetMassProperties which returns cubic metres" },
         { "what": "measurements.volume_reread_mm3", "equal_to": 200000, "tolerance": 0.5,
-          "tolerance_why": "come sopra, ma sulla geometria TRADOTTA: e' il numero che conta" },
+          "tolerance_why": "as above, but on the TRANSLATED geometry: it is the number that counts" },
         { "what": "measurements.deviation_relative", "equal_to": 0, "tolerance": 0.0001,
-          "tolerance_why": "un BREP non deve perdere niente: il millesimo che l'operazione ammette e' gia' dieci volte questo" },
-        { "what": "measurements.how_the_reread_went", "includes": ["riaperto come pezzo e richiuso"] },
+          "tolerance_why": "a BREP must lose nothing: the thousandth the operation allows is already ten times this" },
+        { "what": "measurements.how_the_reread_went", "includes": ["reopened as a part and closed again"] },
         { "what": "bodies", "equal_to": 1,
-          "why": "il pezzo aperto e' ancora il suo: riaprire lo STEP non deve lasciare in giro il documento tradotto" } ] }
+          "why": "the part open is still its own: reopening the STEP must not leave the translated document lying around" } ] }
   ]
 }

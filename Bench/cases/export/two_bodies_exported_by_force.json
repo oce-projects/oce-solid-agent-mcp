@@ -1,8 +1,8 @@
 {
   "name": "two_bodies_exported_by_force",
   "family": "export",
-  "why": "LA VIA D'USCITA ESISTE, E SI DICHIARA. Un giorno qualcuno avra' ragione lui -- due corpi che vanno stampati insieme apposta -- e un rifiuto senza scampo si aggira copiando il file a mano, cioe' fuori da ogni controllo. Con «export_anyway» il file si scrive E LA RISPOSTA PORTA SCRITTO che la verifica e' stata scavalcata e cosa diceva: chi rilegge il resoconto fra un mese lo sa.",
-  "_why_twenty_four": "due parallelepipedi, dodici triangoli ciascuno. Il numero dice anche che il secondo corpo e' finito nel file davvero: un STL che ne contenesse uno solo avrebbe la stessa dimensione plausibile e sarebbe il pezzo sbagliato.",
+  "why": "THE WAY OUT EXISTS, AND IT IS DECLARED. One day somebody will be right -- two bodies that are to be printed together on purpose -- and a refusal with no way out gets bypassed by copying the file by hand, that is outside every check. With «export_anyway» the file is written AND THE ANSWER CARRIES IT WRITTEN that the check was overridden and what it said: whoever re-reads the report a month from now knows.",
+  "_why_twenty_four": "two boxes, twelve triangles each. The number also says that the second body really ended up in the file: an STL that contained only one would have the same plausible size and would be the wrong part.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,15 +16,15 @@
       "arguments": { "path": "{LAVORO}\\gp2_forzato.stl", "export_anyway": true },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 24,
-          "_why_24": "due parallelepipedi da dodici triangoli" },
+          "_why_24": "two boxes of twelve triangles" },
         { "what": "measurements.byte", "equal_to": 1284,
           "_why_1284": "84 + 50*24" },
         { "what": "measurements.exported_anyway",
-          "includes": ["asked for it", "2 corpi"],
-          "why": "il file scritto contro il parere della verifica lo dice nella risposta, e dice anche che cosa non andava" },
+          "includes": ["asked for it", "2 bodies"],
+          "why": "the file written against the opinion of the check says so in the answer, and also says what was wrong" },
         { "what": "measurements.check",
-          "includes": ["Non lo esporterei"],
-          "does_not_include": ["si puo' esportare"],
-          "why": "la verifica ha detto di no e la sua frase resta, intera: scavalcarla non vuol dire cancellarla" } ] }
+          "includes": ["I would not export it"],
+          "does_not_include": ["as geometry it can be exported"],
+          "why": "the check said no and its sentence stays, whole: overriding it does not mean erasing it" } ] }
   ]
 }

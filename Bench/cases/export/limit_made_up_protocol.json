@@ -1,7 +1,7 @@
 {
   "name": "limit_made_up_protocol",
   "family": "export",
-  "why": "«AP999» non esiste. Va rifiutato dicendo quali ci sono: i tre protocolli non sono indovinabili, e uno sbagliato che passasse in silenzio lascerebbe scrivere il file col protocollo predefinito della macchina -- cioe' col protocollo di chi ha usato SOLIDWORKS prima.",
+  "why": "«AP999» does not exist. It must be refused saying which ones exist: the three protocols cannot be guessed, and a wrong one that passed silently would let the file be written with the default protocol of the machine -- that is, with the protocol of whoever used SOLIDWORKS before.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

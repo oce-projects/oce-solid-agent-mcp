@@ -1,9 +1,9 @@
 {
   "name": "r03b_pocket_stays_where_it_was",
   "family": "regression",
-  "why": "IL GEMELLO ASSOLUTO di `r03_centered_pocket` (voce E18): la stessa tasca, senza `anchor`. Prova che il vecchio modo continua a funzionare quando e' quello che si vuole — una tasca che sta a x = 0 perche' li' c'e' qualcosa che le corrisponde, non perche' e' il centro.",
+  "why": "THE ABSOLUTE TWIN of `r03_centered_pocket` (entry E18): the same pocket, without `anchor`. It proves that the old way keeps working when it is what is wanted — a pocket that sits at x = 0 because there is something there that corresponds to it, not because it is the centre.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "senza ancora x_mm/y_mm sono coordinate del modello: portando la lunghezza a 260 la piastra va da X -100 a +160 e la tasca resta a x = 0. Il baricentro va a x = 30,588 invece di 30: e' la differenza che `r03` misura, vista dall'altra parte.",
+  "intent_why": "without an anchor x_mm/y_mm are coordinates of the model: bringing the length to 260 the plate goes from X -100 to +160 and the pocket stays at x = 0. The centroid goes to x = 30.588 instead of 30: it is the difference that `r03` measures, seen from the other side.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -22,6 +22,6 @@
     { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
     { "what": "center_of_mass_mm", "equal_to": [30.588, 0, 9.853],
       "tolerance": 0.02,
-      "tolerance_why": "piastra 624000 mm3 in (30,0,10) meno tasca 12000 in (0,0,17.5): x = 624000*30/612000 = 30,588. Il centesimo copre l'arrotondamento" }
+      "tolerance_why": "plate 624000 mm3 at (30,0,10) minus pocket 12000 at (0,0,17.5): x = 624000*30/612000 = 30.588. The hundredth covers the rounding" }
   ]
 }

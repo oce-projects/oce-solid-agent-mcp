@@ -1,16 +1,16 @@
 {
   "name": "chamfered_shaft_does_not_dimension_the_legs",
   "family": "drawing",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievi sul tondo. Un albero Ø30 lungo 40 con uno smusso 1 x 45° alle due teste. Di testa i cerchi sono due: il Ø30 (cono-cilindro) e il Ø28 (cono-piano, il bordo dello smusso), e il secondo non e' un diametro da quotare. Di fianco i cerchi visti di taglio sono quattro (a 0, 1, 39, 40): contati tutti come facce nascevano le lunghezze 1, 39 e 40 — le «gambe» dello smusso, che il resto della tavola scarta. Una faccia del tondo e' un cerchio che borda una faccia PIANA perpendicolare all'asse. E il Ø30 quotato di testa e' lo stesso CILINDRO che di fianco non si quota due volte (la chiave e' del cilindro, non del solo diametro).",
-  "defect_caught": "Le gambe dello smusso quotate come lunghezze del tondo; il bordo di uno smusso quotato come diametro esterno; lo stesso diametro quotato in due viste.",
-  "_the_views_are_called_by_uid": "V1 frontale (l'albero di fianco), V3 laterale (l'albero di testa).",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, findings on the round part. A Ø30 shaft 40 long with a 1 x 45° chamfer at both ends. From the end the circles are two: the Ø30 (cone-cylinder) and the Ø28 (cone-plane, the edge of the chamfer), and the second is not a diameter to dimension. From the side the circles seen edge-on are four (at 0, 1, 39, 40): counted all as faces, the lengths 1, 39 and 40 were born — the «legs» of the chamfer, which the rest of the drawing discards. A face of the round part is a circle that borders a PLANAR face perpendicular to the axis. And the Ø30 dimensioned from the end is the same CYLINDER that from the side is not dimensioned twice (the key belongs to the cylinder, not to the diameter alone).",
+  "defect_caught": "The legs of the chamfer dimensioned as lengths of the round part; the edge of a chamfer dimensioned as an outer diameter; the same diameter dimensioned in two views.",
+  "_the_views_are_called_by_uid": "V1 front (the shaft from the side), V3 side (the shaft from the end).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
       "arguments": { "plane": "front", "angle_deg": 360, "axis": [[0, 0], [40, 0]],
                      "contours": [[[0, 0], [0, 14], [1, 15], [39, 15], [40, 14], [40, 0]]] },
       "expect": [ { "what": "volume_mm3", "equal_to": 28182.18, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: pi x 15^2 x 40 meno due anelli di smusso (pi x 15^2 x 1 meno il tronco di cono pi/3 x (15^2 + 15 x 14 + 14^2))" } ] },
+                    "tolerance_why": "pi inside: pi x 15^2 x 40 minus two chamfer rings (pi x 15^2 x 1 minus the truncated cone pi/3 x (15^2 + 15 x 14 + 14^2))" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\chamfered_shaft_does_not_dimension_the_legs.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
@@ -23,18 +23,18 @@
     { "operation": "drawing_dimension",
       "arguments": { "view": "V3" },
       "expect": [
-        { "what": "measurements.outer_diameters[0].diameter_reread_mm", "equal_to": 30, "why": "il diametro dell'albero, riletto" },
+        { "what": "measurements.outer_diameters[0].diameter_reread_mm", "equal_to": 30, "why": "the diameter of the shaft, re-read" },
         { "what": "measurements.borders_not_dimensioned", "includes": ["Ø28"],
-          "why": "il bordo dello smusso si dice, non si quota come diametro" } ] },
+          "why": "the edge of the chamfer is stated, not dimensioned as a diameter" } ] },
     { "operation": "drawing_dimension",
       "arguments": { "view": "V1" },
       "expect": [
         { "what": "measurements.round_lengths_mm", "equal_to": [40],
-          "why": "la sola lunghezza: fra le due teste piane. Niente 1 e 39" },
-        { "what": "measurements.round_notes", "includes": ["smusso sul Ø30"], "why": "lo smusso si dice" },
+          "why": "the only length: between the two flat ends. No 1 and 39" },
+        { "what": "measurements.round_notes", "includes": ["chamfer on Ø30"], "why": "the chamfer is stated" },
         { "what": "measurements.round_diameters_mm", "does_not_include": ["30"],
-          "why": "il Ø30 e' gia' quotato di testa: lo stesso cilindro, una volta sola" },
+          "why": "the Ø30 is already dimensioned from the end: the same cylinder, only once" },
         { "what": "measurements.dimensions_mm", "does_not_include": ["30"],
-          "why": "nessuna quota da 30 nasce in questa vista: il Ø30 e' di testa. Il primo giro (28/9/2026) chiedeva anche che lo dicesse fra i gia' quotati: di fianco SOLIDWORKS non espone una coppia di generatrici del Ø30 stretto fra i due smussi (come il Ø20 dell'albero a gradini), quindi non c'e' niente da tentare e niente da dire. Quello che conta e' che non nasca un doppione." } ] }
+          "why": "no dimension of 30 is born in this view: the Ø30 is from the end. The first run (28/9/2026) also asked that it say so among those already dimensioned: from the side SOLIDWORKS does not expose a pair of generatrices of the Ø30 squeezed between the two chamfers (like the Ø20 of the stepped shaft), so there is nothing to attempt and nothing to say. What matters is that a duplicate is not born." } ] }
   ]
 }

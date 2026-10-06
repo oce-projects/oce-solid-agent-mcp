@@ -13,9 +13,9 @@
                      "diameter_mm": 8, "through_all": true },
       "expect": [
         { "what": "diameters_mm", "equal_to": [8], "tolerance": 0.02,
-          "tolerance_why": "il diametro si legge da CylinderParams, che torna metri" },
+          "tolerance_why": "the diameter is read from CylinderParams, which returns metres" },
         { "what": "volume_mm3", "equal_to": 71396.81, "tolerance": 0.5,
-          "tolerance_why": "72000 meno pi*4^2*12: il conto ha pi dentro" } ] },
+          "tolerance_why": "72000 minus pi*4^2*12: the calculation has pi inside" } ] },
     { "operation": "fill_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "face_uid": "@face(normal=up)",

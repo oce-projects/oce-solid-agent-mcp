@@ -1,31 +1,31 @@
 {
   "name": "thread_on_pin",
   "family": "bodies",
-  "why": "IL VOLUME NON DEVE CAMBIARE: il filetto cosmetico e' un'annotazione, non un taglio. Un cilindro D6 lungo 10 fa 282,74 mm3 prima e 282,74 dopo. Se cambiasse, si sarebbe chiamata la cosa sbagliata -- e sarebbe un pezzo con meno materiale di quello che chi ha chiesto crede.",
-  "_why_the_edge_and_not_the_face": "sulla faccia cilindrica `InsertCosmeticThread3` torna NULL in tutte le combinazioni provate. A dirlo e' stato il modello dei dati: `ICosmeticThreadFeatureData` ha una proprieta' `Edge`. Col bordo TONDO selezionato funziona al primo colpo.",
+  "why": "THE VOLUME MUST NOT CHANGE: the cosmetic thread is an annotation, not a cut. A D6 cylinder 10 long makes 282.74 mm3 before and 282.74 after. If it changed, the wrong thing would have been called -- and it would be a part with less material than the asker believes.",
+  "_why_the_edge_and_not_the_face": "on the cylindrical face `InsertCosmeticThread3` returns NULL in every combination tried. The data model said so: `ICosmeticThreadFeatureData` has an `Edge` property. With the ROUND edge selected it works at the first attempt.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_circle",
       "arguments": { "plane": "front", "diameter_mm": 6, "height_mm": 10 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 282.74, "tolerance": 0.5,
-          "tolerance_why": "pi*3^2*10: il conto ha pi dentro" },
+          "tolerance_why": "pi*3^2*10: the calculation has pi in it" },
         { "what": "edges_curved", "equal_to": 2,
-          "_why_two": "i due bordi tondi del cilindro, sopra e sotto" } ] },
+          "_why_two": "the two round edges of the cylinder, above and below" } ] },
     { "operation": "cosmetic_thread",
       "arguments": { "edge_uid": "@edge(curved=true,n=1)",
                      "designation": "M6x1", "depth_mm": 8 },
       "expect": [
         { "what": "measurements.feature_kind", "equal_to": "CosmeticThread",
-          "why": "il nome che SOLIDWORKS da' alla feature: e' cosi' che si sa che e' nata quella e non un'altra" },
+          "why": "the name SOLIDWORKS gives to the feature: that is how we know that this one was born and not another" },
         { "what": "measurements.designation", "equal_to": "M6x1",
-          "why": "riletta DALLA FEATURE, non ricopiata dall'argomento: se il callout fosse rimasto vuoto, sulla tavola comparirebbe un filetto senza misura" },
+          "why": "re-read FROM THE FEATURE, not copied from the argument: if the callout had stayed empty, a thread without a size would appear on the drawing" },
         { "what": "measurements.diameter_mm", "equal_to": 6, "tolerance": 0.01,
-          "tolerance_why": "il diametro e' misurato sullo spigolo, e arriva da CircleParams in metri" },
+          "tolerance_why": "the diameter is measured on the edge, and arrives from CircleParams in metres" },
         { "what": "volume_mm3", "equal_to": 282.74, "tolerance": 0.5,
-          "tolerance_why": "lo STESSO di prima: e' un'annotazione. Il conto ha pi dentro" },
+          "tolerance_why": "the SAME as before: it is an annotation. The calculation has pi in it" },
         { "what": "measurements.designation_is_yours",
-          "includes": ["e' il testo che mi hai dato", "ignora lo standard e la taglia"],
-          "why": "«generata da una tabella» e «ricopiata da te» non sono la stessa cosa, e chi legge una tavola ha diritto di sapere quale delle due sta guardando" } ] }
+          "includes": ["is the text you gave me", "ignores the standard and the size"],
+          "why": "«generated from a table» and «copied by you» are not the same thing, and whoever reads a drawing has the right to know which of the two they are looking at" } ] }
   ]
 }

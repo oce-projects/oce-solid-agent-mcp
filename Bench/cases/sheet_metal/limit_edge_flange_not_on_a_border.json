@@ -1,8 +1,8 @@
 {
   "name": "limit_edge_flange_not_on_a_border",
   "family": "sheet_metal",
-  "why": "Lo spigolo dove la piega della L incontra la faccia interna del lato da 50 (x = 2, y = 0, lungo Z): da una parte c'e' la faccia larga, dall'altra il CILINDRO della piega — non una faccia di testa piana larga quanto lo spessore. Li' una flangia non si attacca; si rifiuta dicendo quale spigolo serve.",
-  "_how_it_was_chosen": "La prima stesura prendeva lo spigolo lungo X in basso sulla faccia interna (y = 0, z = 0), credendo il fianco della L una faccia sola. Il banchetto (`prova0089 elle`, 26/9/2026) ha detto il contrario: in una lamiera il fianco e' spezzato per tratti, e il tratto del lato da 50 e' largo proprio lo spessore (96 mm2 = 2 x 48). Quello spigolo E' di bordo, e una flangia li' e' legittima.",
+  "why": "The edge where the bend of the L meets the inner face of the 50 leg (x = 2, y = 0, along Z): on one side there is the wide face, on the other the CYLINDER of the bend — not a planar end face as wide as the thickness. A flange does not attach there; it is refused saying which edge is needed.",
+  "_how_it_was_chosen": "The first draft took the edge along X at the bottom on the inner face (y = 0, z = 0), believing the side of the L to be a single face. The bench probe (`prova0089 elle`, 26/9/2026) said the opposite: in a sheet-metal part the side is split into segments, and the segment of the 50 leg is exactly as wide as the thickness (96 mm2 = 2 x 48). That edge IS a border edge, and a flange there is legitimate.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -12,7 +12,7 @@
     { "operation": "edge_flange",
       "arguments": { "edge_uid": "@edge(axis=Z,x~=2,y~=0)", "length_mm": 25 },
       "must_fail": {
-        "message_includes": ["non sta sul bordo della lamiera", "faccia di testa"],
+        "message_includes": ["is not on the border of the sheet", "an end face as wide as the thickness"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "edge_flange_closes_the_side" } }

@@ -1,11 +1,11 @@
 {
   "name": "detail_enlarges",
   "family": "drawing",
-  "why": "VOCE GT4, l'altra meta'. La sezione fa vedere cosa c'e' dentro; il dettaglio fa vedere cio' che e' troppo piccolo per leggersi alla scala del disegno — una gola, uno smusso, un raccordo con la sua quota. Senza, su una tavola d'officina quelle cose si quotano a occhio.",
+  "why": "ENTRY GT4, the other half. The section shows what is inside; the detail shows what is too small to be read at the scale of the drawing — a groove, a chamfer, a fillet with its dimension. Without it, on a workshop drawing those things are dimensioned by eye.",
 
-  "_why_the_hatch_is_not_checked": "Sulla sezione la campitura dice che il taglio ha incontrato materiale, ed e' il controllo che conta. Un dettaglio NON taglia niente: mostra la stessa geometria ingrandita, e `GetFaceHatchCount` sul dettaglio risponde **0** (misurato il 23/9/2026). Copiare il controllo della sezione avrebbe prodotto un'operazione che rifiuta sempre — cioe' il difetto che la sezione ha avuto al primo uso, ripetuto per analogia.",
+  "_why_the_hatch_is_not_checked": "On the section the hatching says that the cut met material, and it is the check that counts. A detail cuts NOTHING: it shows the same geometry enlarged, and `GetFaceHatchCount` on the detail answers **0** (measured on 23/9/2026). Copying the check of the section would have produced an operation that always refuses — that is the defect the section had at first use, repeated by analogy.",
 
-  "defect_caught": "Un cerchio che resta disegnato a mano accanto a una vista in piu' che non gli e' legata. `views_after` sale in tutti e due i casi. La prova che il cerchio e' DIVENTATO un dettaglio e' che la vista di partenza ha una circonferenza di dettaglio in piu': da zero a uno. Il conto si legge dal VALORE DI RITORNO di `GetDetailCircleCount2`, non dal suo `out` — l'out passa da 1 a 35 per una circonferenza sola, e chi lo leggesse come un conto direbbe che la vista ne aveva gia' una prima di averne.",
+  "defect_caught": "A circle that stays hand-drawn next to an extra view that is not tied to it. `views_after` goes up in both cases. The proof that the circle BECAME a detail is that the starting view has one more detail circumference: from zero to one. The count is read from the RETURN VALUE of `GetDetailCircleCount2`, not from its `out` — the out goes from 1 to 35 for a single circumference, and whoever read it as a count would say the view already had one before having any.",
 
   "start": { "new_part": true },
   "steps": [
@@ -14,46 +14,46 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 192000,
-          "why": "se il pezzo non e' quello, non lo e' nemmeno la tavola" } ] },
+          "why": "if the part is not the right one, neither is the drawing" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\detail_enlarges.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una tavola si fa su un pezzo salvato" } ] },
+          "why": "a drawing is made on a saved part" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "da qui in poi il documento attivo e' un altro" } ] },
+          "why": "from here on the active document is another one" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\detail_enlarges.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "senza una vista di modello non c'e' niente da dettagliare" } ] },
+          "why": "without a model view there is nothing to detail" } ] },
 
     { "operation": "detail_view",
       "arguments": { "label": "B", "scale": 2, "radius_mm": 8 },
       "expect": [
         { "what": "measurements.circles_before", "equal_to": 0,
-          "why": "la vista di partenza non ne aveva nessuna: e' il termine di paragone, e senza di lui «adesso ce n'e' una» non direbbe che e' nata adesso" },
+          "why": "the starting view had none: it is the term of comparison, and without it «there is one now» would not say that it was born now" },
 
         { "what": "measurements.circles_after", "equal_to": 1,
-          "_and_this_is_the_line_that_counts": "**E' L'UNICA COSA CHE DISTINGUE UN DETTAGLIO DA UN CERCHIO DISEGNATO A MANO.** `views_after` sale comunque: una vista in piu' sul foglio non dice che sia legata a quel cerchio. La circonferenza di dettaglio sulla vista di PARTENZA lo dice.",
-          "why": "da zero a una, sulla vista di partenza" },
+          "_and_this_is_the_line_that_counts": "**IT IS THE ONLY THING THAT TELLS A DETAIL FROM A HAND-DRAWN CIRCLE.** `views_after` goes up anyway: an extra view on the sheet does not say that it is tied to that circle. The detail circumference on the STARTING view says it.",
+          "why": "from zero to one, on the starting view" },
 
         { "what": "measurements.is_detail", "equal_to": true,
-          "why": "il tipo della vista nata (swDrawingDetailView), non il fatto che il conto sia salito" },
+          "why": "the type of the view born (swDrawingDetailView), not the fact that the count went up" },
 
         { "what": "measurements.views_before", "equal_to": 4,
-          "why": "tre viste di modello piu' il FOGLIO, che nell'elenco di SOLIDWORKS e' la prima «view»" },
+          "why": "three model views plus the SHEET, which in the SOLIDWORKS list is the first «view»" },
 
         { "what": "measurements.views_after", "equal_to": 5,
-          "why": "una in piu': il riscontro che l'API non si e' limitata a rispondere un oggetto" },
+          "why": "one more: the check that the API did not just answer an object" },
 
-        { "what": "measurements.what_it_does_not_check", "includes": ["particolare che serviva"],
-          "why": "la cecita' che conta: un cerchio spostato di dieci millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto valido" } ] }
+        { "what": "measurements.what_it_does_not_check", "includes": ["detail that was needed"],
+          "why": "the blindness that counts: a circle moved by ten millimetres enlarges a piece of smooth plane, and it is just as valid" } ] }
   ]
 }

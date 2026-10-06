@@ -1,7 +1,7 @@
 {
   "name": "limit_wrong_extension",
   "family": "export",
-  "why": "L'ESTENSIONE NON E' UN DETTAGLIO DEL NOME: e' l'unica cosa che dice a `SaveAs3` che formato scrivere. Un percorso che finisce in .stp fa scrivere uno STEP con dentro tutt'altro, e il file esiste, pesa qualcosa e si apre -- semplicemente non e' quello che qualcuno stava per mandare alla stampante.",
+  "why": "THE EXTENSION IS NOT A DETAIL OF THE NAME: it is the only thing that tells `SaveAs3` which format to write. A path that ends in .stp makes it write a STEP with something else entirely inside, and the file exists, weighs something and opens -- it is simply not what somebody was about to send to the printer.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,7 +11,7 @@
     { "operation": "export_stl",
       "arguments": { "path": "{LAVORO}\\gp2_sbagliato.stp" },
       "must_fail": {
-        "message_includes": ["non finisce in .stl", "che formato scrivere"],
+        "message_includes": ["does not end in .stl", "which format to write"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "box_twelve_triangles" } }

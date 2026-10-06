@@ -1,7 +1,7 @@
 {
   "name": "anchored_round_boss_follows_the_border",
   "family": "extrusions",
-  "why": "VOCE E18 su `extrude_on_face`, l'ultima operazione della voce che prende una posizione su una faccia (a parte `hole_wizard`). Qui non ci sono x_mm/y_mm: il punto che l'ancora tiene e' il CENTRO del contorno, e vale per un contorno solo, tondo o rettangolare. Un perno Ø20 alto 10 a 30 dal fianco destro e centrato in altezza: dopo 260 x 180 deve stare a (130, 30). Misurato il 25/9/2026 col banchetto.",
+  "why": "ENTRY E18 on `extrude_on_face`, the last operation of the entry that takes a position on a face (apart from `hole_wizard`). Here there are no x_mm/y_mm: the point the anchor keeps is the CENTRE of the outline, and it holds for a single outline, round or rectangular. A Ø20 pin 10 high at 30 from the right side and centred in height: after 260 x 180 it must be at (130, 30). Measured on 25/9/2026 with the little test rig.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,21 +15,21 @@
                                  "y": { "centered_between": [ "@edge(axis=X,y~=-60,z~=20)", "@edge(axis=X,y~=60,z~=20)" ] } } },
       "expect": [
         { "what": "volume_mm3", "equal_to": 483141.59, "tolerance": 0.05,
-          "tolerance_why": "480000 piu' pi*10^2*10" },
+          "tolerance_why": "480000 plus pi*10^2*10" },
         { "what": "centers_x_mm", "equal_to": [70], "tolerance": 0.05,
-          "tolerance_why": "l'asse del cilindro si legge in metri" },
+          "tolerance_why": "the axis of the cylinder is read in metres" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [130], "tolerance": 0.05,
-          "tolerance_why": "il fianco destro va a 160, il perno resta a 30: 130" } ] },
+          "tolerance_why": "the right side goes to 160, the pin stays at 30: 130" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "centers_y_mm", "equal_to": [30], "tolerance": 0.05,
-          "tolerance_why": "l'altezza va da -60 a 120, a meta' c'e' 30" },
+          "tolerance_why": "the height goes from -60 to 120, in the middle there is 30" },
         { "what": "volume_mm3", "equal_to": 939141.59, "tolerance": 0.05,
-          "tolerance_why": "260*180*20 piu' il perno" } ] }
+          "tolerance_why": "260*180*20 plus the pin" } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "limit_configuration_that_does_not_exist",
   "family": "document_properties",
-  "why": "IL ROSSO DI `activate_configuration`. `ShowConfiguration2` su un nome che non c'e' risponde FALSE e basta: nessuna eccezione, nessun messaggio, il documento resta dov'era. Un'operazione che non guardasse il valore di ritorno direbbe «fatto» e lascerebbe il piano a disegnare sulla variante di prima -- e nel file finito non ci sarebbe niente da cui accorgersene.",
-  "_why_the_message_lists": "«Non trovo la configurazione Destra» e' meta' della risposta; l'altra meta' e' quali ci sono, perche' quasi sempre il nome giusto e' li' scritto in un modo che chi chiama non si aspettava -- con delle parentesi angolari dentro, per esempio.",
+  "why": "THE RED OF `activate_configuration`. `ShowConfiguration2` on a name that is not there answers FALSE and nothing else: no exception, no message, the document stays where it was. An operation that did not look at the return value would say «done» and leave the plan drawing on the variant from before -- and in the finished file there would be nothing to notice it by.",
+  "_why_the_message_lists": "«I cannot find the configuration Right» is half of the answer; the other half is which ones there are, because almost always the right name is there written in a way the caller did not expect -- with angle brackets inside, for example.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,7 +15,7 @@
     { "operation": "activate_configuration",
       "arguments": { "name": "Right" },
       "must_fail": {
-        "message_includes": ["Non trovo la configurazione", "Right", "Left"],
+        "message_includes": ["I cannot find the configuration", "Right", "Left"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "goes_back_with_the_full_name" } }

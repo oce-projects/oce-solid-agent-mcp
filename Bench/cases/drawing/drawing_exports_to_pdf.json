@@ -1,7 +1,7 @@
 {
   "name": "drawing_exports_to_pdf",
   "family": "drawing",
-  "why": "VOCE Z-C6. `set_sheet`, `model_view` ed `export_pdf` sono a catalogo con `Provata = true` e fino al 24/9/2026 le toccava solo un piano a mano (`dwg_3_sheet`, `dwg_5_isometric`, `dwg_7_pdf`): un appunto di come si e' misurato una volta, che non gira in nessun giro e non pretende niente. Questo caso le mette in fila su una tavola vera e pretende da ognuna una cosa che si puo' sbagliare in silenzio.",
+  "why": "ENTRY Z-C6. `set_sheet`, `model_view` and `export_pdf` are in the catalogue with `Provata = true` and until 24/9/2026 only a hand-written plan touched them (`dwg_3_sheet`, `dwg_5_isometric`, `dwg_7_pdf`): a note of how it was measured once, which runs in no run and demands nothing. This case lines them up on a real drawing and demands from each one thing that can go wrong silently.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -9,68 +9,68 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "120 x 80 x 10: se questo non torna, la tavola sotto e' di un altro pezzo" } ] },
+          "why": "120 x 80 x 10: if this does not add up, the drawing below is of another part" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\drawing_exports_to_pdf.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una vista si aggancia al FILE del pezzo: senza salvarlo non c'e' niente da mettere in tavola" } ] },
+          "why": "a view attaches to the FILE of the part: without saving it there is nothing to put on the drawing" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "da qui in poi i passi misurano la tavola, non il pezzo" },
+          "why": "from here on the steps measure the drawing, not the part" },
         { "what": "measurements.sheets", "equal_to": 1,
-          "why": "un foglio: e' il numero con cui l'ultimo passo confronta le pagine del PDF" } ] },
+          "why": "one sheet: it is the number the last step compares the pages of the PDF with" } ] },
 
     { "operation": "set_sheet",
       "arguments": { "paper_size": "A3", "scale_numerator": 1, "scale_denominator": 2 },
       "expect": [
         { "what": "measurements.scale", "equal_to": "1:2",
-          "why": "LA SCALA RILETTA DAL FOGLIO, non ripetuta dall'argomento: l'operazione rifiuta se il foglio dice altro, e qui si guarda che la rilettura sia arrivata fino alla risposta. Una tavola in scala sbagliata si stampa uguale e ogni quota letta col righello e' falsa." },
+          "why": "THE SCALE RE-READ FROM THE SHEET, not repeated from the argument: the operation refuses if the sheet says otherwise, and here we look that the re-reading reached the answer. A drawing in the wrong scale prints all the same and every dimension read with a ruler is false." },
         { "what": "measurements.projection_angle", "equal_to": "first",
-          "why": "il diedro NON si decide qui: si rilegge dal modello di tavola dell'officina e si riscrive uguale. Se questa riga dicesse «third», `SetProperties2` avrebbe ribaltato la tavola senza errore" },
+          "why": "the projection angle is NOT decided here: it is re-read from the drawing template of the workshop and rewritten the same. If this line said «third», `SetProperties2` would have flipped the drawing without an error" },
         { "what": "measurements.width_mm", "equal_to": 420, "tolerance": 0.1,
-          "tolerance_why": "l'A3 e' 420 x 297 per norma; il decimo copre l'arrotondamento a un decimale della risposta" },
+          "tolerance_why": "A3 is 420 x 297 by the standard; the tenth covers the rounding to one decimal of the answer" },
         { "what": "measurements.height_mm", "equal_to": 297, "tolerance": 0.1,
-          "tolerance_why": "come sopra" } ] },
+          "tolerance_why": "as above" } ] },
 
     { "operation": "model_view",
       "arguments": { "model": "{LAVORO}\\drawing_exports_to_pdf.sldprt",
                      "view": "isometric", "x_mm": 320, "y_mm": 200 },
       "expect": [
         { "what": "measurements.views_after", "equal_to": 1,
-          "why": "UNA vista, contata dall'operazione dopo la chiamata: `CreateDrawViewFromModelView3` torna `null` e basta quando il nome non va, e senza contare sembrerebbe una tavola che non vuole l'isometrica" },
+          "why": "ONE view, counted by the operation after the call: `CreateDrawViewFromModelView3` returns just `null` when the name is wrong, and without counting it would look like a drawing that does not want the isometric" },
         { "what": "state.views_total", "equal_to": 1,
-          "why": "LE DUE LETTURE CONCORDANO: l'operazione dice una, lo stato riletto da capo ne trova una" },
+          "why": "THE TWO READINGS AGREE: the operation says one, the state re-read from scratch finds one" },
         { "what": "measurements.sw_name", "includes": ["Iso"],
-          "why": "il nome VERO con cui SOLIDWORKS l'ha accettata (`*Isometrica` qui, `*Isometric` in inglese): e' il fatto che l'operazione dichiara perche' la prossima volta sia scritto invece che ricordato" } ] },
+          "why": "the TRUE name with which SOLIDWORKS accepted it (`*Isometrica` here, `*Isometric` in English): it is the fact the operation declares so that next time it is written instead of remembered" } ] },
 
     { "operation": "note",
       "arguments": { "text": "PROVA123", "x_mm": 20, "y_mm": 250 },
       "expect": [
         { "what": "measurements.notes_placed", "equal_to": 1,
-          "why": "la scritta che l'ultimo passo deve RITROVARE nel PDF (voce GT3-bis)" } ] },
+          "why": "the text that the last step must FIND AGAIN in the PDF (entry GT3-bis)" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\drawing_exports_to_pdf.slddrw" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "`export_pdf` senza percorso mette il PDF accanto alla tavola: una tavola mai salvata non ha un «accanto»" } ] },
+          "why": "`export_pdf` without a path puts the PDF next to the drawing: a drawing never saved has no «next to»" } ] },
 
     { "operation": "export_pdf",
       "arguments": { "search": ["PROVA123", "ASSENTE987"] },
       "expect": [
         { "what": "measurements.found", "equal_to": ["PROVA123"],
-          "why": "VOCE GT3-bis: la nota scritta due passi prima esce dal PDF come TESTO. Misurato con `Checks/PdfText`: nel file e' scritta come indici di glifo dietro le tabelle /ToUnicode, e una ricerca nei byte non la troverebbe — `export_pdf` la decodifica" },
+          "why": "ENTRY GT3-bis: the note written two steps earlier comes out of the PDF as TEXT. Measured with `Checks/PdfText`: in the file it is written as glyph indices behind the /ToUnicode tables, and a search in the bytes would not find it — `export_pdf` decodes it" },
         { "what": "measurements.not_found", "equal_to": ["ASSENTE987"],
-          "why": "IL ROSSO NELLA STESSA CORSA: una scritta che nella tavola non c'e' NON deve trovarsi. Senza questa riga, un decodificatore che «trova» tutto passerebbe la riga sopra" },
+          "why": "THE RED IN THE SAME RUN: a text that is not in the drawing must NOT be found. Without this line, a decoder that «finds» everything would pass the line above" },
         { "what": "measurements.sheets", "equal_to": 1 },
         { "what": "measurements.pages", "equal_to": 1,
-          "why": "LE PAGINE SI CONTANO NEL FILE SCRITTO, non si ricopiano dai fogli: `CountPdfPages` apre il PDF e conta gli oggetti «/Type /Page». E' la misura che prende il PDF di un foglio solo quando la tavola ne ha tre -- il difetto per cui questa operazione esiste" },
+          "why": "THE PAGES ARE COUNTED IN THE FILE WRITTEN, not copied from the sheets: `CountPdfPages` opens the PDF and counts the objects «/Type /Page». It is the measure that catches the PDF of a single sheet when the drawing has three -- the defect this operation exists for" },
         { "what": "measurements.path", "includes": ["drawing_exports_to_pdf", ".pdf"],
-          "why": "accanto alla tavola, col suo nome: e' dove chi lo cerca lo va a cercare" } ] }
+          "why": "next to the drawing, with its name: it is where whoever looks for it goes to look" } ] }
   ]
 }

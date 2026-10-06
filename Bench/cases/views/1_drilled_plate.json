@@ -1,7 +1,7 @@
 [
  {
-  "_why": "V2 -- forma 1 di 5: PIASTRA FORATA. E' il caso in cui l'elenco delle facce dovrebbe bastare da solo: sagoma nota, fori con diametro e posizione, niente da indovinare. Se anche qui le immagini servono, il problema non e' la forma.",
-  "_truth": "Piastra 200x120x15, quattro fori passanti Ø12 agli angoli, a +-80 e +-45 dal centro. Volume 200*120*15 - 4*pi*36*15 = 360000 - 6785.8 = 353214.2 mm3.",
+  "_why": "V2 -- shape 1 of 5: DRILLED PLATE. It is the case in which the list of faces should be enough on its own: known outline, holes with diameter and position, nothing to guess. If even here the images are needed, the problem is not the shape.",
+  "_truth": "Plate 200x120x15, four Ø12 through holes at the corners, at +-80 and +-45 from the centre. Volume 200*120*15 - 4*pi*36*15 = 360000 - 6785.8 = 353214.2 mm3.",
   "operation": "extrude_rectangle",
   "arguments": { "plane": "top", "length_mm": 200, "width_mm": 120, "thickness_mm": 15, "centered": true }
  },

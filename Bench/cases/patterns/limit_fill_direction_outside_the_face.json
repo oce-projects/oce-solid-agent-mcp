@@ -1,7 +1,7 @@
 {
   "name": "limit_fill_direction_outside_the_face",
   "family": "patterns",
-  "why": "LA DIREZIONE DEVE CORRERE LUNGO LA FACCIA. Uno spigolo dello spessore (lungo Y, perpendicolare alla faccia alta) e' dritto, e la guardia di «linear_pattern» lo accetterebbe; ma il riempimento dispone le copie DENTRO la faccia di contorno, e una direzione che ne esce non ha un verso da seguire la' dentro. L'operazione legge il verso dello spigolo (LineParams) e la normale della faccia, rifiuta quando la direzione esce dal piano (qui di 90 gradi) e dice di indicare uno dei bordi dritti della faccia. La gemella e' lo stesso passo con lo spigolo lungo X della faccia alta, che corre lungo la faccia.",
+  "why": "THE DIRECTION MUST RUN ALONG THE FACE. An edge of the thickness (along Y, perpendicular to the top face) is straight, and the guard of «linear_pattern» would accept it; but the fill lays out the copies INSIDE the boundary face, and a direction that leaves it has no way to go in there. The operation reads the direction of the edge (LineParams) and the normal of the face, refuses when the direction leaves the plane (here by 90 degrees) and says to indicate one of the straight edges of the face. The twin is the same step with the edge along X of the top face, which runs along the face.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,16 +13,16 @@
                      "diameter_mm": 8, "through_all": true },
       "expect": [
         { "what": "diameters_mm", "equal_to": [8], "tolerance": 0.02,
-          "tolerance_why": "il diametro si legge da CylinderParams, che torna metri" },
+          "tolerance_why": "the diameter is read from CylinderParams, which returns metres" },
         { "what": "volume_mm3", "equal_to": 71396.81, "tolerance": 0.5,
-          "tolerance_why": "72000 meno pi*4^2*12: il conto ha pi dentro" } ] },
+          "tolerance_why": "72000 minus pi*4^2*12: the calculation has pi inside" } ] },
     { "operation": "fill_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "face_uid": "@face(normal=up)",
                      "axis_uid": "@edge(axis=Y,length~=12,n=1)",
                      "pitch_mm": 17.0240490494193, "copies_per_turn": 10, "margin_mm": 0 },
       "must_fail": {
-        "message_includes": ["non sta nel piano della faccia di contorno", "bordi dritti"],
+        "message_includes": ["is not in the plane of the boundary face", "straight borders"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fill_makes_fourteen_holes" } }

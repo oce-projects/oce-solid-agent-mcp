@@ -1,7 +1,7 @@
 {
   "name": "the_L_flattens",
   "family": "sheet_metal",
-  "why": "VOCE GP18. La prima operazione della famiglia lamiera, sullo stesso pezzo di `Checks/SheetMetal` (24/9/2026): una L da 50 + 30, profonda 40, spessore 2, raggio 2. Lo sviluppo si sa senza calcolatore, e il DXF che ne esce va a una macchina di taglio: e' la famiglia in cui un difetto silenzioso costa lamiera vera.",
+  "why": "ENTRY GP18. The first operation of the sheet-metal family, on the same part as `Checks/SheetMetal` (24/9/2026): an L of 50 + 30, 40 deep, thickness 2, radius 2. The flat pattern is known without a calculator, and the DXF that comes out goes to a cutting machine: it is the family in which a silent defect costs real sheet metal.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -10,13 +10,13 @@
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "measurements.k_factor", "equal_to": 0.5,
-          "why": "RILETTO dalla lamiera, non chiesto: e' quello del modello di documento. Se un giorno il modello cambia, questo caso lo dice prima che cambi lo sviluppo" },
+          "why": "READ BACK from the sheet metal, not asked: it is that of the document template. If one day the template changes, this case says so before the flat pattern changes" },
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
-          "tolerance_why": "(50 - 2) + (30 - 2) + pi/2 * (2 + 0,5 * 2) = 80,712. Misurato 80,712 con la sonda: il centesimo copre l'arrotondamento. Con le facce esterne verrebbe 76,712 — quattro millimetri, cioe' una lamiera tagliata corta" },
+          "tolerance_why": "(50 - 2) + (30 - 2) + pi/2 * (2 + 0.5 * 2) = 80.712. Measured 80.712 with the probe: the hundredth covers the rounding. With the outer faces it would be 76.712 — four millimetres, that is a sheet cut short" },
         { "what": "measurements.points_are_faces", "equal_to": "inner",
-          "why": "la convenzione MISURATA, detta dalla risposta: chi manda i punti deve sapere se sono l'interno o l'esterno della piega" },
+          "why": "the MEASURED convention, stated by the answer: whoever sends the points must know whether they are the inside or the outside of the bend" },
         { "what": "volume_mm3", "equal_to": 6456.96, "tolerance": 0.5,
-          "tolerance_why": "80,712 * 40 * 2: la lamiera non si allunga ne' si accorcia nel conto, e' la definizione di fibra neutra. Misurato 6457,0" } ] },
+          "tolerance_why": "80.712 * 40 * 2: the sheet neither lengthens nor shortens in the calculation, it is the definition of neutral fibre. Measured 6457.0" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\the_L_flattens.sldprt" },
@@ -26,8 +26,8 @@
       "arguments": { "path": "{LAVORO}\\the_L_flattens.dxf" },
       "expect": [
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
-          "tolerance_why": "la stessa misura del primo passo, riletta dopo il salvataggio e l'esportazione: il DXF non deve aver cambiato il pezzo" },
+          "tolerance_why": "the same measurement as the first step, read back after the saving and the export: the DXF must not have changed the part" },
         { "what": "measurements.path", "includes": ["the_L_flattens", ".dxf"],
-          "why": "accanto al pezzo, col suo nome. L'operazione RILEGGE il DXF e rifiuta se il suo lato lungo non e' lo sviluppo: un DXF di un'altra cosa si apre uguale" } ] }
+          "why": "next to the part, with its name. The operation READS BACK the DXF and refuses if its long side is not the flat pattern: a DXF of something else opens just the same" } ] }
   ]
 }

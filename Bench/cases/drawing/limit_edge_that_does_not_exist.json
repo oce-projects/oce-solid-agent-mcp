@@ -1,11 +1,11 @@
 {
   "name": "limit_edge_that_does_not_exist",
   "family": "drawing",
-  "why": "LA GEMELLA DI `drawing_dimensions_itself` (voce F5): un rifiuto non sta mai da solo. Una prova che verifica solo il rifiuto non distingue «il controllo funziona» da «l'operazione rifiuta tutto» — e qui la gemella verde esiste davvero, cosa che a `model_dimensions` manca e che ha impedito di scrivere il suo caso sul rifiuto.",
+  "why": "THE TWIN OF `drawing_dimensions_itself` (entry F5): a refusal is never alone. A proof that verifies only the refusal does not tell «the check works» from «the operation refuses everything» — and here the green twin really exists, which `model_dimensions` lacks and which prevented writing its case on the refusal.",
 
-  "_what_changes_compared_to_the_twin": "Un argomento: `edges`. La gemella non lo dice e quota i primi quattro; questo chiede lo spigolo **999**, che non c'e'. Stessa operazione, stessa tavola, stesso pezzo.",
+  "_what_changes_compared_to_the_twin": "One argument: `edges`. The twin does not say it and dimensions the first four; this one asks for edge **999**, which is not there. Same operation, same drawing, same part.",
 
-  "defect_caught": "Un'operazione che, chiesto uno spigolo che non esiste, ne quota **un altro** e risponde «fatto». La tavola uscirebbe quotata, con la quota attaccata alla cosa sbagliata, e nessuno direbbe niente. Il rifiuto deve dire **quanti spigoli ha la vista**, perche' e' l'informazione che serve a chiedere quello giusto: *un rifiuto che non dice l'alternativa lascia chi legge a indovinare esattamente cio' che l'operazione ha smesso di indovinare.*",
+  "defect_caught": "An operation that, asked for an edge that does not exist, dimensions **another one** and answers «done». The drawing would come out dimensioned, with the dimension attached to the wrong thing, and nobody would say anything. The refusal must say **how many edges the view has**, because it is the information needed to ask for the right one: *a refusal that does not say the alternative leaves the reader to guess exactly what the operation has stopped guessing.*",
 
   "start": { "new_part": true },
   "steps": [
@@ -14,30 +14,30 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "lo stesso pezzo della gemella" } ] },
+          "why": "the same part as the twin" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\limit_edge_that_does_not_exist.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una vista si aggancia al percorso del pezzo" } ] },
+          "why": "a view attaches to the path of the part" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il banco segue il documento nuovo (voce GT0)" } ] },
+          "why": "the bench follows the new document (entry GT0)" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\limit_edge_that_does_not_exist.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "serve una vista vera: il rifiuto deve dire quanti spigoli ha, e senza vista non ne avrebbe nessuno" } ] },
+          "why": "a real view is needed: the refusal must say how many edges it has, and without a view it would have none" } ] },
 
     { "operation": "drawing_dimension",
       "arguments": { "edges": [999] },
       "must_fail": {
-        "message_includes": ["999", "ne mostra"],
+        "message_includes": ["999", "does not exist: the view"],
         "twin": "drawing_dimensions_itself" } }
   ]
 }

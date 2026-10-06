@@ -1,7 +1,7 @@
 {
   "name": "slot_on_narrow_plate_0",
   "family": "slot",
-  "why": "LA ROTAZIONE VA VISTA, E IL VOLUME NON LA VEDE: girare un'asola non cambia quanto materiale toglie. Per renderla osservabile serve una piastra STRETTA, dove l'asola ci sta per il lungo e non per il largo. Questo e' il caso a zero gradi, e sta tutta dentro.",
+  "why": "THE ROTATION MUST BE SEEN, AND THE VOLUME DOES NOT SEE IT: turning a slot does not change how much material it removes. To make it observable a NARROW plate is needed, where the slot fits lengthwise and not widthwise. This is the zero-degree case, and it is entirely inside.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,6 +11,6 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 149299.34, "tolerance": 0.5,
-          "tolerance_why": "160000 meno 535,0332 per 20: il conto ha pi dentro" } ] }
+          "tolerance_why": "160000 minus 535.0332 over 20: the calculation has pi inside" } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "code_engraved_in_the_center",
   "family": "text",
-  "why": "Il termine di paragone: «PROVA» alta 10 mm incisa 2 mm su una faccia che la contiene tutta. E' il caso a cui si appoggiano i rifiuti, e senza di lui «non ci sta» non distinguerebbe un controllo che funziona da uno che rifiuta tutto.",
-  "_why_the_area_and_not_the_volume": "L'area delle lettere non si puo' calcolare dalla stringa: dipende dal font. Ma il volume tolto diviso la profondita' la da', e quel numero e' stabile. E' il solo modo di avere un'attesa che non sia «diverso da zero» -- che passerebbe anche su una scritta tagliata a meta'.",
+  "why": "The benchmark: «PROVA» 10 mm high engraved 2 mm on a face that contains all of it. It is the case the refusals lean on, and without it «does not fit» would not tell a check that works from one that refuses everything.",
+  "_why_the_area_and_not_the_volume": "The area of the letters cannot be calculated from the string: it depends on the font. But the removed volume divided by the depth gives it, and that number is stable. It is the only way to have an expectation that is not «different from zero» -- which would pass even on an inscription cut off halfway.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -18,21 +18,21 @@
         { "what": "measurements.height_mm", "equal_to": 10 },
         { "what": "measurements.raised", "equal_to": false },
         { "what": "measurements.contours", "equal_to": 56,
-          "why": "«PROVA» ha 56 contorni: ogni lettera il suo esterno, e P, R, O, A anche quello interno. E' il numero che dice che le lettere sono state davvero costruite e non che l'operazione ha letto una stringa." },
+          "why": "«PROVA» has 56 outlines: each letter its outer one, and P, R, O, A also the inner one. It is the number that says the letters were really built and that the operation did not just read a string." },
         { "what": "measurements.width_written_mm", "equal_to": 47.05, "tolerance": 0.1,
-          "tolerance_why": "la larghezza esce dal disegno dei glifi del font, e l'ultima cifra dipende dal campionamento delle curve: sotto il decimo di millimetro non e' un numero su cui appoggiarsi" },
+          "tolerance_why": "the width comes from the drawing of the glyphs of the font, and the last digit depends on the sampling of the curves: below a tenth of a millimetre it is not a number to lean on" },
         { "what": "measurements.height_written_mm", "equal_to": 10.51, "tolerance": 0.1,
-          "tolerance_why": "stessa ragione; e la scatola e' piu' alta dei 10 mm chiesti perche' «PROVA» non ha lettere che scendono sotto la linea, ma i glifi sbordano appena" },
+          "tolerance_why": "same reason; and the box is taller than the 10 mm asked because «PROVA» has no letters that go below the line, but the glyphs stick out slightly" },
         { "what": "measurements.material_removed_mm3", "equal_to": 230.7, "tolerance": 0.5,
-          "tolerance_why": "il volume di un'incisione e' la somma di 56 contorni curvi: mezzo millimetro cubo e' il rumore della tassellazione, non una variazione" },
+          "tolerance_why": "the volume of an engraving is the sum of 56 curved outlines: half a cubic millimetre is the tessellation noise, not a variation" },
         { "what": "measurements.area_letters_mm2", "equal_to": 115.35, "tolerance": 0.3,
-          "tolerance_why": "e' il volume diviso due, quindi meta' della tolleranza di sopra" },
+          "tolerance_why": "it is the volume divided by two, so half of the tolerance above" },
         { "what": "measurements.bodies", "equal_to": 1,
-          "why": "una marcatura non deve staccare niente" },
+          "why": "a marking must not detach anything" },
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 199769.3, "tolerance": 0.5,
-          "tolerance_why": "e' lo stesso numero di sopra visto dall'altra parte: il volume del pezzo, letto dallo stato invece che dalla risposta dell'operazione" },
-        { "what": "measurements.what_it_does_not_check", "includes": ["riempie tutta"],
-          "why": "questa faccia e' un quadrato pieno, quindi il controllo «ci sta nella scatola» e' completo -- e l'operazione lo dice invece di lasciarlo credere" } ] }
+          "tolerance_why": "it is the same number as above seen from the other side: the volume of the part, read from the state instead of from the answer of the operation" },
+        { "what": "measurements.what_it_does_not_check", "includes": ["fills it entirely"],
+          "why": "this face is a full square, so the check «it fits in the box» is complete -- and the operation says so instead of letting it be believed" } ] }
   ]
 }

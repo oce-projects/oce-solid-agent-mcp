@@ -1,11 +1,11 @@
 {
   "name": "cut_list_counts_the_bars",
   "family": "weldments",
-  "why": "VOCE Z-C6. `cut_list` e' a catalogo con `Provata = true` da sempre, e fino al 23/9/2026 **nessun giro di banco la toccava**: ne' un caso dichiarato, ne' il C# del banco, ne' un piano a mano. «Provata» li' voleva dire «qualcuno l'ha misurata una volta», non «qualcosa la controlla ogni volta» — e le due cose si leggono uguali nel file.",
+  "why": "ENTRY Z-C6. `cut_list` has been in the catalogue with `Provata = true` forever, and until 23/9/2026 **no bench run touched it**: not a declared case, not the bench's C#, not a hand-made plan. «Provata» there meant «someone measured it once», not «something checks it every time» — and the two things read the same in the file.",
 
-  "_why_it_counts": "E' il documento con cui si va in officina, ed e' il motivo per cui un telaio si fa con i membri strutturali invece che con le estrusioni. Una distinta che conta le barre sbagliate manda a tagliare il ferro sbagliato, e non da' nessun errore.",
+  "_why_it_counts": "It is the document you go to the workshop with, and it is the reason a frame is made with structural members instead of extrusions. A cut list that counts the wrong bars sends the wrong iron to be cut, and gives no error.",
 
-  "defect_caught": "**E IL 26/9/2026 NE HA PRESO UNO CHE ERA SFUGGITO (voce GT2).** Il caso era verde con la distinta SBAGLIATA: una voce sola, «QUANTITY 4, LUNGHEZZA 1000» — quattro barre da 1000 dove due sono da 800. Contava i corpi, e i corpi erano giusti. Adesso chiede anche le voci: due, una da 1000 e una da 800, quattro barre in tutto. Poi: una distinta che nasce vuota, o che conta un numero di barre diverso da quelle che ci sono. `bodies_in_cut_list` si legge CHIEDENDO alle cartelle della distinta quanti corpi hanno — non ricopiando il numero dei corpi del pezzo — quindi i due numeri possono divergere, ed e' proprio quando divergono che serve saperlo.",
+  "defect_caught": "**AND ON 26/9/2026 IT CAUGHT ONE THAT HAD SLIPPED THROUGH (entry GT2).** The case was green with the WRONG cut list: a single item, «QUANTITY 4, LENGTH 1000» — four bars of 1000 where two are 800. It counted the bodies, and the bodies were right. Now it asks for the items too: two, one of 1000 and one of 800, four bars in all. Then: a cut list that is born empty, or that counts a different number of bars from those there are. `bodies_in_cut_list` is read by ASKING the folders of the cut list how many bodies they have — not by copying the number of the part's bodies — so the two numbers can diverge, and it is exactly when they diverge that you need to know it.",
 
   "start": { "new_part": true },
   "steps": [
@@ -21,28 +21,28 @@
       },
       "expect": [
         { "what": "bodies", "equal_to": 4,
-          "why": "quattro barre: e' il numero con cui si confronta la distinta due passi piu' sotto. Senza questa riga, «la distinta ne conta quattro» sarebbe vero anche su un telaio venuto male" } ] },
+          "why": "four bars: it is the number the cut list is compared with two steps below. Without this line, «the cut list counts four» would be true even on a badly built frame" } ] },
 
     { "operation": "cut_list",
       "arguments": {},
       "expect": [
         { "what": "measurements.bodies_in_cut_list", "equal_to": 4,
-          "_and_this_is_the_comparison": "**I DUE NUMERI ARRIVANO DA DUE POSTI DIVERSI.** `bodies` lo conta lo stato del pezzo; `bodies_in_cut_list` lo si chiede alle cartelle della distinta, una per una. Sono uguali quando la distinta e' giusta, e quando divergono e' esattamente il momento in cui qualcuno andrebbe in officina col foglio sbagliato.",
-          "why": "quattro barre nel pezzo, quattro voci nella distinta" },
+          "_and_this_is_the_comparison": "**THE TWO NUMBERS COME FROM TWO DIFFERENT PLACES.** `bodies` is counted by the state of the part; `bodies_in_cut_list` is asked of the folders of the cut list, one by one. They are equal when the cut list is right, and when they diverge it is exactly the moment when someone would go to the workshop with the wrong sheet.",
+          "why": "four bars in the part, four items in the cut list" },
 
         { "what": "measurements.already_existed", "equal_to": false,
-          "why": "la distinta e' NATA in questo passo, non trovata gia' fatta: senza questa riga il caso sarebbe verde anche se l'operazione non avesse fatto niente e si fosse limitata a leggere una distinta preesistente" },
+          "why": "the cut list was BORN in this step, not found already made: without this line the case would be green even if the operation had done nothing and had just read a pre-existing cut list" },
 
         { "what": "measurements.distinct_entries", "equal_to": 2,
-          "why": "due lunghezze, due voci: con la distinta di prima era 1, e il caso non lo vedeva" },
+          "why": "two lengths, two items: with the cut list from before it was 1, and the case did not see it" },
 
         { "what": "measurements.lengths_mm", "includes": ["1000", "800"],
-          "why": "le lunghezze LETTE dalle proprieta' delle voci (l'espressione LENGTH@@@), non ricalcolate: 1000 e 800, come il telaio chiesto" },
+          "why": "the lengths READ from the properties of the items (the LENGTH@@@ expression), not recomputed: 1000 and 800, like the frame asked for" },
 
         { "what": "measurements.quantity_total", "equal_to": 4,
-          "why": "la somma delle quantita' delle voci e' il numero delle barre: due piu' due" },
+          "why": "the sum of the quantities of the items is the number of bars: two plus two" },
 
         { "what": "measurements.made_weldment", "equal_to": true,
-          "why": "il rectangular_frame non mette la lavorazione «Saldatura»: e' questo passo che fa del pezzo un saldato, ed e' la ragione per cui le voci si separano" } ] }
+          "why": "the rectangular_frame does not put in the «Saldatura» feature (the Italian SOLIDWORKS name of the weldment feature): it is this step that makes the part a weldment, and it is the reason the items are separated" } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "plate_bounding_box",
   "family": "measurement",
-  "why": "«Entra nella scatola 300x260x40» e' l'altra domanda che si fa prima di ordinare, e la risposta e' da dove a dove arriva il pezzo su ognuno dei tre assi. I sei estremi di una piastra 100x100x20 centrata sono numeri esatti: -50/+50 in X e in Y perche' e' centrata, 0/+20 in Z perche' l'estrusione parte dal piano di schizzo e va in avanti.",
-  "_why_the_real_points": "si prendono con GetExtremePoint in sei direzioni e non con GetBodyBox, che e' dichiaratamente APPROSSIMATA per le superfici non piane e puo' essere piu' grande del pezzo. Un ingombro dichiarato piu' grande del vero fa dimensionare male tutto quello che ci sta intorno: la scatola per spedirlo, il pezzo che gli va accanto, la tasca in cui deve entrare.",
+  "why": "«Does it fit in the 300x260x40 box» is the other question asked before ordering, and the answer is from where to where the part reaches on each of the three axes. The six extremes of a centred 100x100x20 plate are exact numbers: -50/+50 in X and in Y because it is centred, 0/+20 in Z because the extrusion starts from the sketch plane and goes forward.",
+  "_why_the_real_points": "they are taken with GetExtremePoint in six directions and not with GetBodyBox, which is declared APPROXIMATE for non-planar surfaces and can be larger than the part. A bounding box declared larger than the true one makes everything around it be sized wrong: the box to ship it in, the part next to it, the pocket it has to fit into.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,16 +13,16 @@
       "arguments": {},
       "expect": [
         { "what": "measurements.from_mm", "equal_to": [-50, -50, 0], "tolerance": 0.01,
-          "tolerance_why": "gli estremi si leggono in metri e si moltiplicano per mille" },
+          "tolerance_why": "the extremes are read in metres and multiplied by a thousand" },
         { "what": "measurements.to_mm", "equal_to": [50, 50, 20], "tolerance": 0.01,
-          "tolerance_why": "come sopra" },
+          "tolerance_why": "as above" },
         { "what": "measurements.bounding_box_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
-          "tolerance_why": "come sopra" },
+          "tolerance_why": "as above" },
         { "what": "measurements.bodies[0].body", "equal_to": "C1" },
         { "what": "measurements.bodies[0].bounding_box_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
-          "tolerance_why": "con un corpo solo, la scatola del corpo e quella del pezzo sono la stessa" },
+          "tolerance_why": "with a single body, the box of the body and that of the part are the same" },
         { "what": "measurements.what_it_does_not_check",
-          "includes": ["allineata agli assi", "diagonale"],
-          "why": "il limite si dichiara a ogni chiamata: questa non e' la scatola piu' piccola possibile, e chi imballa deve saperlo" } ] }
+          "includes": ["aligned with the axes", "diagonally"],
+          "why": "the limit is declared at every call: this is not the smallest possible box, and whoever packs must know it" } ] }
   ]
 }

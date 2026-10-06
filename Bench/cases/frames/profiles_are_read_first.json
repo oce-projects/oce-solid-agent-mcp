@@ -1,24 +1,24 @@
 {
   "name": "profiles_are_read_first",
   "family": "frames",
-  "why": "L'OPERAZIONE CHE IL CATALOGO CHIEDEVA E CHE NON C'ERA. `structural_member` e `rectangular_frame` dicono, nella loro stessa descrizione, «PRIMA CHIAMA weldment_profiles e copia da li' profile_path e configurazione ALLA LETTERA». Quel nome compariva quattro volte nel catalogo -- tutte e quattro dentro il testo di chi la chiedeva -- e zero volte fra i nomi eseguibili: il modello leggeva un'istruzione che non portava da nessuna parte, e l'unica cosa che poteva fare era inventarsi un percorso e una misura.",
-  "_why_making_up_the_measurement_gives_no_error": "Sta scritto nel commento di `OperazioniSaldatura` da prima di questo caso: se la misura non c'e', SOLIDWORKS non fallisce -- usa la configurazione attiva del profilo. Il pezzo esce con una parete diversa da quella confermata, la ricostruzione e' pulita, e nessuno se ne accorge fino all'officina. Un controllo che lo prende c'e' gia', ed e' buono, ma puo' scattare solo DOPO che qualcuno ha indovinato. Questo caso prova che adesso non c'e' piu' niente da indovinare.",
-  "_and_this_case_went_red_twice_for_the_same_reason": "Prima con `segments: [[[0,0],[600,0]]]`, array annidati: «Il segmento 1 non e' leggibile». Poi con `[{\"da\":[0,0],\"a\":[600,0]}]`, oggetti ma con due coordinate: «Al segmento 1 il punto da non ha tre coordinate». Il formato vero e' una lista di oggetti con punti a TRE coordinate assolute in mm: `[{\"da\":[0,0,0],\"a\":[600,0,0]}]`. Tutte e due le volte il formato e' stato INVENTATO invece che letto in `SegmentiDa` -- che e' esattamente il difetto che questo caso racconta, ripetuto due volte mentre lo si scriveva. Si tiene scritto qui perche' costa piu' leggere due errori di banco che venti righe di sorgente.",
-  "_why_the_numbers_are_not_written_here": "Quali profili ci siano dipende dalla libreria di questa installazione, non dal codice: scrivere «ci sono 37 profili» vorrebbe dire un caso che diventa rosso quando qualcuno aggiunge un tubolare. Si pretende invece che l'elenco NON SIA VUOTO, che ogni voce porti un percorso intero, e -- la riga che conta -- che una misura presa da li' e ricopiata dentro `structural_member` sia accettata.",
+  "why": "THE OPERATION THAT THE CATALOGUE ASKED FOR AND THAT WAS NOT THERE. `structural_member` and `rectangular_frame` say, in their own description, «FIRST CALL weldment_profiles and copy profile_path and configuration FROM THERE TO THE LETTER». That name appeared four times in the catalogue -- all four inside the text of whoever asked for it -- and zero times among the executable names: the model read an instruction that led nowhere, and the only thing it could do was invent a path and a size.",
+  "_why_making_up_the_measurement_gives_no_error": "It is written in the comment of `OperazioniSaldatura` from before this case: if the size is not there, SOLIDWORKS does not fail -- it uses the active configuration of the profile. The part comes out with a wall different from the confirmed one, the rebuild is clean, and nobody notices until the shop floor. A check that catches it already exists, and it is good, but it can fire only AFTER someone has guessed. This case proves that now there is nothing left to guess.",
+  "_and_this_case_went_red_twice_for_the_same_reason": "First with `segments: [[[0,0],[600,0]]]`, nested arrays: «Segment 1 is not readable». Then with `[{\"da\":[0,0],\"a\":[600,0]}]`, objects but with two coordinates: «At segment 1 the point da does not have three coordinates». The true format is a list of objects with points of THREE absolute coordinates in mm: `[{\"da\":[0,0,0],\"a\":[600,0,0]}]`. Both times the format was INVENTED instead of read in `SegmentiDa` -- which is exactly the defect this case tells about, repeated twice while it was being written. It is kept written here because reading two bench errors costs more than twenty lines of source.",
+  "_why_the_numbers_are_not_written_here": "Which profiles exist depends on the library of this installation, not on the code: writing «there are 37 profiles» would mean a case that goes red when someone adds a tube. Instead we require that the list is NOT EMPTY, that every entry carries a whole path, and -- the line that counts -- that a size taken from there and copied into `structural_member` is accepted.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "weldment_profiles",
       "arguments": { "search": "TUBO STRUTTURALE QUADRO" },
       "expect": [
         { "what": "measurements.profiles_listed", "equal_to": 1,
-          "why": "il tubolare quadro e' un file solo: se ne uscissero due, «search» non starebbe filtrando" },
+          "why": "the square tube is one file only: if two came out, «search» would not be filtering" },
         { "what": "measurements.profiles[0].name", "includes": ["TUBO STRUTTURALE QUADRO"] },
         { "what": "measurements.profiles[0].profile_path", "includes": [".SLDLFP"],
-          "why": "IL PERCORSO SI DA' INTERO. E' quello che `structural_member` vuole in «profile_path», e ricostruirlo da nome e cartella e' il modo di sbagliarlo." },
+          "why": "THE PATH IS GIVEN WHOLE. It is what `structural_member` wants in «profile_path», and rebuilding it from name and folder is the way to get it wrong." },
         { "what": "measurements.profiles[0].measurements", "includes": ["80X80X5"],
-          "why": "LA MISURA SCRITTA COME VA COPIATA. «80X80X5» con le X maiuscole: e' cosi' che sta nel file, e «80x80x5» sarebbe un'altra cosa che SOLIDWORKS ignorerebbe senza dirlo." },
-        { "what": "measurements.how_to_use_it", "includes": ["ALLA LETTERA", "non da' errore"],
-          "why": "l'avvertimento viaggia con la risposta, non solo nel catalogo: chi legge questa risposta potrebbe non aver mai letto la descrizione dell'operazione" } ] },
+          "why": "THE SIZE WRITTEN AS IT MUST BE COPIED. «80X80X5» with capital X: that is how it is in the file, and «80x80x5» would be something else that SOLIDWORKS would ignore without saying." },
+        { "what": "measurements.how_to_use_it", "includes": ["LITERALLY", "raises no error"],
+          "why": "the warning travels with the answer, not only in the catalogue: whoever reads this answer may never have read the description of the operation" } ] },
     { "operation": "structural_member",
       "arguments": { "plane": "top",
                      "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
@@ -26,9 +26,9 @@
                      "segments": [ { "start": [0, 0, 0], "end": [600, 0, 0] } ] },
       "expect": [
         { "what": "bodies", "equal_to": 1,
-          "why": "IL CERCHIO SI CHIUDE QUI. La misura letta al passo 1 e ricopiata al passo 2 costruisce la barra: e' la prova che i due pezzi del catalogo adesso si parlano davvero, non che si citano." },
+          "why": "THE CIRCLE CLOSES HERE. The size read at step 1 and copied at step 2 builds the bar: it is the proof that the two pieces of the catalogue now really talk to each other, not just quote each other." },
         { "what": "volume_mm3", "equal_to": 881973.4, "tolerance": 500,
-          "_why_the_number_is_not_the_one_from_the_formula": "La formula (80*80 - 70*70) * 600 da' 900.000 mm3, e il pezzo vero ne fa 881.973,4 -- diciottomila in meno. Non e' un errore: un tubolare strutturale ha i RACCORDI D'ANGOLO, dentro e fuori, e la formula assume spigoli vivi. Il primo giro di questo caso e' uscito rosso proprio cosi', con 881.973 contro 900.000 attesi: il numero atteso era stato CALCOLATO invece che misurato. Adesso il centro e' la misura e la formula e' scritta qui accanto per ricordare di quanto sbaglia.",
-          "tolerance_why": "500 mm3 sono lo 0,06%: coprono il rumore di ricostruzione e un raggio d'angolo leggermente diverso su un altro profilo della libreria. Discriminano ancora larghissimo: la misura sbagliata piu' VICINA -- 70x70x5 -- darebbe circa 780.000, cioe' centomila mm3 di distanza. Un 80x80x4 ne darebbe circa 715.000." } ] }
+          "_why_the_number_is_not_the_one_from_the_formula": "The formula (80*80 - 70*70) * 600 gives 900,000 mm3, and the real part makes 881,973.4 -- eighteen thousand less. It is not an error: a structural tube has CORNER FILLETS, inside and outside, and the formula assumes sharp edges. The first run of this case came out red exactly like this, with 881,973 against 900,000 expected: the expected number had been COMPUTED instead of measured. Now the centre is the measurement and the formula is written here beside it to remember by how much it is wrong.",
+          "tolerance_why": "500 mm3 is 0.06%: it covers the rebuild noise and a slightly different corner radius on another profile of the library. It still discriminates very widely: the wrong size CLOSEST -- 70x70x5 -- would give about 780,000, that is a hundred thousand mm3 away. An 80x80x4 would give about 715,000." } ] }
   ]
 }

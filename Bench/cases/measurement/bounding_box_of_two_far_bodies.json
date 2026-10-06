@@ -1,7 +1,7 @@
 {
   "name": "bounding_box_of_two_far_bodies",
   "family": "measurement",
-  "why": "Due corpi a 600 mm di distanza: ognuno sta in 100x100x20, e la scatola che li contiene tutti e due e' alta 620. E' la differenza fra «quanto e' grande il corpo» e «quanto spazio occupa il pezzo», e su un saldato e' la domanda che conta. Se l'unione delle scatole fosse sbagliata, il numero uscirebbe uguale a quello di un corpo solo -- credibile, e sbagliato di trenta volte.",
+  "why": "Two bodies 600 mm apart: each fits in 100x100x20, and the box that contains both of them is 620 high. It is the difference between «how big is the body» and «how much space does the part take up», and on a weldment it is the question that counts. If the union of the boxes were wrong, the number would come out equal to that of a single body -- believable, and wrong by thirty times.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,15 +15,15 @@
       "arguments": {},
       "expect": [
         { "what": "measurements.bounding_box_mm", "equal_to": [100, 100, 620], "tolerance": 0.01,
-          "tolerance_why": "da z = 0 a z = 620: il secondo corpo parte a 600 ed e' spesso 20" },
+          "tolerance_why": "from z = 0 to z = 620: the second body starts at 600 and is 20 thick" },
         { "what": "measurements.bodies[0].bounding_box_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
-          "tolerance_why": "il singolo corpo e' rimasto quello di prima" } ] },
+          "tolerance_why": "the single body has stayed what it was" } ] },
     { "operation": "body_bounding_box",
       "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
       "expect": [
         { "what": "measurements.bounding_box_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
-          "tolerance_why": "chiedendo UN corpo si risponde di quello, e i 620 spariscono" },
+          "tolerance_why": "asking for ONE body gets the answer for that one, and the 620 disappears" },
         { "what": "measurements.from_mm", "equal_to": [-50, -50, 0], "tolerance": 0.01,
-          "tolerance_why": "l'ingombro da solo e' cieco su QUALE corpo (sono uguali): e' la posizione a dirlo. Voce Z-C16: il 25/9/2026 un giro su tre «C1» era la copia, a z 600, e il caso era verde lo stesso. Adesso il corpo si nomina per nome e si controlla che parta da z = 0" } ] }
+          "tolerance_why": "the bounding box alone is blind to WHICH body (they are equal): it is the position that tells. Entry Z-C16: on 25/9/2026 one run in three «C1» was the copy, at z 600, and the case was green just the same. Now the body is named by name and we check that it starts from z = 0" } ] }
   ]
 }

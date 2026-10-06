@@ -1,9 +1,9 @@
 {
   "name": "fillet_rounds_the_four_corners",
   "family": "features",
-  "why": "VOCE Z-C6, la seconda meta'. `fillet_edges` era a catalogo con un caso solo nella REGRESSIONE (r04), che gira soltanto con `-Regression`: in un giro normale nessun caso la toccava. L'ha trovato il controllo di contratto nuovo, il primo giro in cui il banco ha scritto i suoi casi verdi (25/9/2026).",
-  "defect_caught": "Un raccordo che nasce su meno spigoli di quelli chiesti, o col raggio sbagliato: il volume lo distingue al millesimo, perche' il conto a mano e' esatto.",
-  "_the_edges_by_where_they_are": "I quattro spigoli verticali (lungo Y) della piastra, nominati per coordinate: x = ±50, z = ±30. Misurato col banchetto il 25/9/2026.",
+  "why": "ENTRY Z-C6, the second half. `fillet_edges` was in the catalogue with a single case in the REGRESSION (r04), which runs only with `-Regression`: in a normal run no case touched it. The new contract check found it, the first run in which the bench wrote its own green cases (25/9/2026).",
+  "defect_caught": "A fillet that is born on fewer edges than requested, or with the wrong radius: the volume tells them apart to the thousandth, because the hand calculation is exact.",
+  "_the_edges_by_where_they_are": "The four vertical edges (along Y) of the plate, named by coordinates: x = ±50, z = ±30. Measured with the bench probe on 25/9/2026.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,8 +15,8 @@
                          "@edge(axis=Y,x~=50,z~=-30)", "@edge(axis=Y,x~=-50,z~=-30)" ],
         "radius_mm": 5 },
       "expect": [
-        { "what": "measurements.edges", "equal_to": 4, "why": "i quattro angoli, non uno di meno" },
+        { "what": "measurements.edges", "equal_to": 4, "why": "the four corners, not one fewer" },
         { "what": "volume_mm3", "equal_to": 119570.796, "tolerance": 0.01,
-          "tolerance_why": "120000 meno 4 x (1 - pi/4) x 5^2 x 20 = 429,204: il conto ha pi dentro, e il centesimo e' l'arrotondamento. Tre angoli soli darebbero 119678,097, un raggio da 4 darebbe 119725,318" } ] }
+          "tolerance_why": "120000 minus 4 x (1 - pi/4) x 5^2 x 20 = 429.204: the calculation has pi inside, and the hundredth is rounding. Only three corners would give 119678.097, a radius of 4 would give 119725.318" } ] }
   ]
 }

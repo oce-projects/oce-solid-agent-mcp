@@ -1,9 +1,9 @@
 {
   "name": "limit_copy_that_never_existed",
   "family": "patterns",
-  "why": "IL MOTIVO PER CUI `suppress_instance` CONTROLLA. Una ripetizione costruisce solo le copie che stanno nel materiale e risponde «riuscito» lo stesso -- e' la nota 80y, ed e' ancora vera. Chiedere di togliere una copia che non e' mai esistita RIESCE: `ModifyDefinition` risponde true, l'array si scrive, e nel pezzo non cambia niente. Chi legge la risposta crede di aver tolto un foro che non c'era.",
-  "_why_the_NINTH_is_asked": "Qui la fila ci sta tutta: quattro fori, tre copie. Si chiede di togliere la copia 9, che non esiste -- ed e' il modo REGGIBILE di costruire questo rosso. La strada che verrebbe in mente -- una fila che esce dal pezzo, cosi' che la quarta copia non nasca -- non si puo' percorrere dal catalogo: `linear_pattern` conta le copie fatte e si rifiuta gia' lei. Provato: partendo da -60 col passo 40 risponde «ne ho contate 1 delle 3 chieste» e la ripetizione non nasce. Il che e' una buona notizia sul prodotto e una cattiva notizia su come si scrive questo caso.",
-  "_why_the_check_is_still_needed": "Perche' una ripetizione puo' arrivare da fuori: fatta a mano in SOLIDWORKS prima che il piano cominci, o da un'operazione futura che non conti le copie. Il guardiano di `suppress_instance` non si appoggia a quello di `linear_pattern`: guarda il pezzo.",
+  "why": "THE REASON `suppress_instance` CHECKS. A pattern builds only the copies that fit in the material and answers «succeeded» just the same -- it is note 80y, and it is still true. Asking to remove a copy that never existed SUCCEEDS: `ModifyDefinition` answers true, the array is written, and nothing changes in the part. Whoever reads the answer believes they removed a hole that was not there.",
+  "_why_the_NINTH_is_asked": "Here the row fits entirely: four holes, three copies. We ask to remove copy 9, which does not exist -- and it is the WORKABLE way to build this red. The road that would come to mind -- a row that sticks out of the part, so that the fourth copy is not born -- cannot be taken from the catalogue: `linear_pattern` counts the copies made and refuses by itself. Tried: starting from -60 with pitch 40 it answers «I counted 1 of the 3 requested» and the pattern is not born. Which is good news about the product and bad news about how to write this case.",
+  "_why_the_check_is_still_needed": "Because a pattern can come from outside: made by hand in SOLIDWORKS before the plan begins, or by a future operation that does not count the copies. The guardian of `suppress_instance` does not lean on that of `linear_pattern`: it looks at the part.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,7 +14,7 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
                      "diameter_mm": 9, "through_all": true },
       "expect": [ { "what": "centers_x_mm", "equal_to": [0], "tolerance": 0.05,
-                    "tolerance_why": "il centro si legge da CylinderParams" } ] },
+                    "tolerance_why": "the centre is read from CylinderParams" } ] },
     { "operation": "linear_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
                      "axis1_uid": "@edge(axis=X,length~=200,n=1)",
@@ -22,11 +22,11 @@
       "expect": [
         { "what": "measurements.copies_done", "equal_to": 3 },
         { "what": "centers_x_mm", "equal_to": [-75, -50, -25, 0], "tolerance": 0.05,
-          "tolerance_why": "quattro centri letti da CylinderParams" } ] },
+          "tolerance_why": "four centres read from CylinderParams" } ] },
     { "operation": "suppress_instance",
       "arguments": { "feature_uid": "@feature(kind=LPattern,n=1)", "copies": [9] },
       "must_fail": {
-        "message_includes": ["did not change", "copies_done", "rimesso la ripetizione com'era"],
+        "message_includes": ["did not change", "copies_done", "put the pattern back as it was"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "skip_the_second_copy" } },
@@ -34,9 +34,9 @@
       "arguments": { "feature_uid": "@feature(kind=LPattern,n=1)", "copies": [2] },
       "expect": [
         { "what": "measurements.copies_removed_total", "equal_to": [2],
-          "why": "DOPO IL RIFIUTO L'ARRAY E' TORNATO VUOTO. Se il passo rifiutato avesse lasciato dentro il 9, qui si leggerebbe [2, 9] -- cioe' un rifiuto che ha cambiato il pezzo lo stesso, che e' la cosa peggiore delle due." },
+          "why": "AFTER THE REFUSAL THE ARRAY WENT BACK TO EMPTY. If the refused step had left the 9 in, here we would read [2, 9] -- that is a refusal that changed the part anyway, which is the worse of the two." },
         { "what": "centers_x_mm", "equal_to": [-75, -25, 0], "tolerance": 0.05,
-          "tolerance_why": "i tre centri rimasti, letti da CylinderParams",
-          "why": "e la stessa operazione, su una copia che ESISTE, funziona: senza questa riga il rifiuto di sopra non distinguerebbe un controllo che funziona da uno che rifiuta tutto" } ] }
+          "tolerance_why": "the three remaining centres, read from CylinderParams",
+          "why": "and the same operation, on a copy that EXISTS, works: without this line the refusal above would not tell a check that works from one that refuses everything" } ] }
   ]
 }

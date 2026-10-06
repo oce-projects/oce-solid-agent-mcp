@@ -1,7 +1,7 @@
 {
   "name": "limit_chamfer_bigger_than_the_edge",
   "family": "chamfer",
-  "why": "Uno smusso da 200 su uno spigolo lungo 100 non ci sta, e deve essere rifiutato PRIMA -- non lasciare l'albero a meta' con uno schizzo orfano dentro. Il messaggio da' il CRITERIO e non il verdetto: dice quanto e' lungo lo spigolo, cosi' chi legge sa di quanto sbagliava.",
+  "why": "A chamfer of 200 on an edge 100 long does not fit, and must be refused BEFORE -- not leave the tree half done with an orphan sketch inside. The message gives the CRITERION and not the verdict: it says how long the edge is, so whoever reads knows by how much they were wrong.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,7 +10,7 @@
     { "operation": "chamfer_edges",
       "arguments": { "edges_uid": ["@edge(axis=X,length~=100,n=1)"], "leg_mm": 200, "angle_deg": 45 },
       "must_fail": {
-        "message_includes": ["e' troppo per lo spigolo", "non ci sta neanche meta"],
+        "message_includes": ["is too much for the edge", "not even half of it fits"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "chamfer_5_at_45" } }

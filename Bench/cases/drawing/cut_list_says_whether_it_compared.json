@@ -1,9 +1,9 @@
 {
   "name": "cut_list_says_whether_it_compared",
   "family": "drawing",
-  "why": "VOCE Z-C21.2, rilievo L16-8. drawing_cut_list cercava la colonna delle quantita' SOLO per nome della proprieta' («QUANTITY»), e IWeldmentCutListAnnotation~GetColumnCustomProperty.html avverte: «This method returns an empty string if the column is not a user-defined column». Con un modello di tabella la cui QTY e' una colonna di TIPO quantita' (swWeldTableColumnType_Quantity = 402) il confronto con la distinta del pezzo saltava, e la risposta era un successo con una frase in fondo. Adesso la colonna si cerca prima per tipo (ITableAnnotation.GetColumnType2), poi per nome, e la risposta DICE come l'ha trovata e se il confronto e' stato fatto.",
-  "defect_caught": "Il confronto saltato in silenzio, sul modello di tabella DI SERIE di SOLIDWORKS («cut list.sldwldtbt» dell'installazione, lingua inglese, che c'e' in ogni installazione). La prima stesura di questo caso usava il modello predefinito delle opzioni («template» vuoto), che su questa macchina e' quello dell'officina: li' la QTY e' una proprieta' e si trovava gia' per nome (`cut_list_in_the_drawing` e' verde sulla 0.136.0 con `quantity_in_table` 4), per cui il caso era rosso sulla libreria vecchia solo per il campo nuovo che mancava, e la ricerca per tipo non la provava nessuno (revisione di Z-C21.2). Sul modello di serie la QTY e' una colonna di tipo, non definita dall'utente: sulla libreria vecchia la colonna non si trova, `quantity_in_table` e `match` mancano e il caso e' rosso su tre righe; su quella nuova si trova per tipo.",
-  "_to_check_on_the_first_run": "NON MISURATO: che nel modello di serie la QTY sia davvero una colonna di tipo 402 e che GetColumnCustomProperty la dia vuota lo dicono la guida e il nome del tipo, non una lettura. Se al primo giro `quantity_column_found_by` esce «name», il modello di serie ha la QTY come proprieta' e questo caso non prova la ricerca per tipo: va detto nella voce, non corretta l'attesa.",
+  "why": "ENTRY Z-C21.2, finding L16-8. drawing_cut_list looked for the quantity column ONLY by the name of the property («QUANTITY»), and IWeldmentCutListAnnotation~GetColumnCustomProperty.html warns: «This method returns an empty string if the column is not a user-defined column». With a table template whose QTY is a column of quantity TYPE (swWeldTableColumnType_Quantity = 402) the comparison with the cut list of the part was skipped, and the answer was a success with a sentence at the bottom. Now the column is looked for first by type (ITableAnnotation.GetColumnType2), then by name, and the answer SAYS how it found it and whether the comparison was made.",
+  "defect_caught": "The comparison silently skipped, on the STANDARD table template of SOLIDWORKS («cut list.sldwldtbt» of the installation, English language, which is in every installation). The first draft of this case used the default template of the options (empty «template»), which on this machine is the workshop's: there the QTY is a property and was already found by name (`cut_list_in_the_drawing` is green on 0.136.0 with `quantity_in_table` 4), so the case was red on the old library only for the new field that was missing, and the search by type was proved by nobody (review of Z-C21.2). On the standard template the QTY is a type column, not user-defined: on the old library the column is not found, `quantity_in_table` and `match` are missing and the case is red on three lines; on the new one it is found by type.",
+  "_to_check_on_the_first_run": "NOT MEASURED -- that in the standard template the QTY really is a column of type 402 and that GetColumnCustomProperty gives it empty are said by the guide and the name of the type, not by a reading. If at the first run `quantity_column_found_by` comes out «name», the standard template has the QTY as a property and this case does not prove the search by type: that must be said in the entry, not the expectation corrected.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "rectangular_frame",
@@ -33,12 +33,12 @@
       "arguments": { "view": "V1", "template": "{SOLIDWORKS}\\lang\\english\\cut list.sldwldtbt" },
       "expect": [
         { "what": "measurements.quantity_column_found_by", "equal_to": "type",
-          "why": "LA RIGA CHE PROVA L16-8: la colonna QTY del modello di serie trovata per TIPO (402), non per nome della proprieta', che qui e' vuota" },
+          "why": "THE LINE THAT PROVES L16-8: the QTY column of the standard template found by TYPE (402), not by the name of the property, which is empty here" },
         { "what": "measurements.comparison_done", "equal_to": true,
-          "why": "la colonna delle quantita' trovata e il confronto con le cartelle di distinta del pezzo fatto davvero" },
+          "why": "the quantity column found and the comparison with the cut-list folders of the part really made" },
         { "what": "measurements.quantity_in_table", "equal_to": 4,
-          "why": "sulla libreria vecchia manca: la colonna non si trovava e non si sommava niente" },
+          "why": "on the old library it is missing: the column was not found and nothing was summed" },
         { "what": "measurements.match", "equal_to": true,
-          "why": "quattro barre sul foglio, quattro corpi nelle cartelle di distinta" } ] }
+          "why": "four bars on the sheet, four bodies in the cut-list folders" } ] }
   ]
 }

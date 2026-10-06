@@ -1,8 +1,8 @@
 {
   "name": "limit_iges_of_an_assembly",
   "family": "export",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026. Con Z-D6 anche export_iges accettava un assieme, ma senza la verifica dei solidi che ha lo STEP, e il risultato dipende da una preferenza globale (swIGESComponentsIntoOneFile) che il ponte non imposta: con quella spenta SOLIDWORKS scrive un file per componente, e quello in «path» puo' non contenere l'assieme intero. Finche' non e' misurato, l'IGES di un assieme si rifiuta e rimanda allo STEP.",
-  "defect_caught": "Un IGES d'assieme dato per buono senza sapere se dentro c'e' l'assieme intero.",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026. With Z-D6 export_iges too accepted an assembly, but without the check of the solids that STEP has, and the result depends on a global preference (swIGESComponentsIntoOneFile) that the bridge does not set: with it off SOLIDWORKS writes one file per component, and the one in «path» may not contain the whole assembly. Until it is measured, the IGES of an assembly is refused and points to STEP.",
+  "defect_caught": "An assembly IGES taken as good without knowing whether the whole assembly is inside.",
   "assembly": {
     "components": [
       {
@@ -51,7 +51,7 @@
       },
       "must_fail": {
         "message_includes": [
-          "IGES di un assieme",
+          "IGES of an assembly",
           "export_step"
         ],
         "twin": "iges_solids"

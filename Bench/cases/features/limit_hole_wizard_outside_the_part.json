@@ -1,10 +1,10 @@
 {
   "name": "limit_hole_wizard_outside_the_part",
   "family": "features",
-  "why": "VOCE Z-C21.2, rilievo L4-3. IFeature~ModifyDefinition.html, Remarks: il metodo puo' rispondere true e lasciare «a new rebuild error on the feature. [...] After calling this method, call IFeature::GetErrorCode2». hole_wizard guardava solo il bool, e il volume lo leggeva solo con le ancore: un foro in errore non aveva cilindri da trovare, il giudizio delle posizioni diceva «non verificabile», e l'operazione rispondeva riuscita con «positions_not_checked».",
-  "defect_caught": "L'errore di ricostruzione forzato nel modo piu' semplice: l'unica posizione del foro sta a x = 500 su una piastra che va da -100 a 100. Il foro nasce (HoleWizard5 lo mette sulla faccia scelta), poi il punto si sposta fuori dal materiale e il foro ricostruisce in errore o non toglie niente. Sulla libreria vecchia: riuscito, «positions_not_checked». Su quella nuova: rifiuto, e il foro si toglie (volume e albero come prima).",
-  "_what_is_not_measured": "Se SOLIDWORKS dia un codice d'errore o solo un avviso per un foro fuori dal pezzo non e' misurato: per questo la guardia nuova guarda PRIMA GetErrorCode2 e POI il volume, e il messaggio che il caso pretende e' la parte comune ai due rifiuti («non e' venuto»).",
-  "_the_twin": "`hole_wizard_follows_the_table`: lo stesso M8 filettato passante sulla stessa faccia, con la posizione dentro la piastra. Differisce per «positions».",
+  "why": "ENTRY Z-C21.2, finding L4-3. IFeature~ModifyDefinition.html, Remarks: the method can answer true and leave «a new rebuild error on the feature. [...] After calling this method, call IFeature::GetErrorCode2». hole_wizard looked only at the bool, and read the volume only with the anchors: a hole in error had no cylinders to find, the verdict on the positions said «cannot be verified», and the operation answered succeeded with «positions_not_checked».",
+  "defect_caught": "The rebuild error forced in the simplest way: the only position of the hole is at x = 500 on a plate that runs from -100 to 100. The hole is born (HoleWizard5 puts it on the chosen face), then the point moves out of the material and the hole rebuilds in error or removes nothing. On the old library: succeeded, «positions_not_checked». On the new one: refusal, and the hole is removed (volume and tree as before).",
+  "_what_is_not_measured": "Whether SOLIDWORKS gives an error code or only a warning for a hole outside the part is not measured: that is why the new guard looks FIRST at GetErrorCode2 and THEN at the volume, and the message the case demands is the part common to the two refusals («did not come out»).",
+  "_the_twin": "`hole_wizard_follows_the_table`: the same threaded through M8 on the same face, with the position inside the plate. It differs by «positions».",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,7 +14,7 @@
       "arguments": { "face_uid": "@face(normal=front)", "size": "M8", "variant": "threaded",
                      "through_all": true, "positions": [ { "x_mm": 500, "y_mm": 0 } ] },
       "must_fail": {
-        "message_includes": ["Il foro guidato non e' venuto"],
+        "message_includes": ["The wizard hole did not come out"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "hole_wizard_follows_the_table" } }

@@ -1,8 +1,8 @@
 {
   "name": "limit_property_on_a_configuration_that_does_not_exist",
   "family": "document_properties",
-  "why": "IL RIFIUTO PIU' IMPORTANTE DELLA VOCE, e il piu' facile da non fare. `get_CustomPropertyManager(\"Right\")` su una configurazione che non esiste NON solleva niente: torna un gestore, e `Add3` su quel gestore risponde «AddedOrChanged». La proprieta' e' scritta, il codice e' contento, e nel file non c'e'. E' il difetto che non da' errore nella sua forma piu' pura: tutta la catena dice di si'.",
-  "_why_the_name_is_checked_first": "L'unico modo di prenderlo e' chiedere al documento quali configurazioni dichiara PRIMA di scrivere. Il controllo non puo' stare dopo -- dopo, tutto e' andato bene.",
+  "why": "THE MOST IMPORTANT REFUSAL OF THE ENTRY, and the easiest one not to make. `get_CustomPropertyManager(\"Right\")` on a configuration that does not exist raises NOTHING: it returns a manager, and `Add3` on that manager answers «AddedOrChanged». The property is written, the code is happy, and in the file it is not there. It is the defect that gives no error in its purest form: the whole chain says yes.",
+  "_why_the_name_is_checked_first": "The only way to catch it is to ask the document which configurations it declares BEFORE writing. The check cannot come after -- afterwards, everything went well.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,7 +15,7 @@
     { "operation": "set_property",
       "arguments": { "name": "NumeroDisegno", "value_text": "DIS-1234", "configuration": "Right" },
       "must_fail": {
-        "message_includes": ["Non trovo la configurazione", "Right", "Left"],
+        "message_includes": ["I cannot find the configuration", "Right", "Left"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "the_two_lists_do_not_see_each_other" } }

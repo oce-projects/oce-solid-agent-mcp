@@ -1,9 +1,9 @@
 {
   "name": "cut_list_in_the_drawing",
   "family": "drawing",
-  "why": "VOCE GT2. Dal 17/9/2026 `drawing_cut_list` era a catalogo con `Provata = false`: `InsertWeldmentTable` tornava null in 24 combinazioni su 24, e la voce diceva «il blocco e' piu' grosso della voce». Il 26/9 la causa: il telaio non era un SALDATO (`IsWeldment` falso), e senza la lavorazione «Saldatura» non nasce la distinta automatica, e senza distinta automatica non nasce la tabella. Adesso `cut_list` fa del pezzo un saldato, e la tabella nasce: due voci, 2 x 1000 e 2 x 800.",
-  "defect_caught": "Tre: la tabella che non nasce (il pezzo non saldato), la tabella con tutte le barre in una riga (la distinta fatta con `InsertWeldmentCutList2` su tutti i corpi: «4 x 1000»), e la tabella che somma un numero di barre diverso dal pezzo.",
-  "_the_views_are_called_by_uid": "V1 frontale: il telaio e' sul piano frontale, e li' si vedono le quattro barre.",
+  "why": "ENTRY GT2. Since 17/9/2026 `drawing_cut_list` was in the catalogue with `Provata = false`: `InsertWeldmentTable` returned null in 24 combinations out of 24, and the entry said «the block is bigger than the entry». On 26/9 the cause: the frame was not a WELDMENT (`IsWeldment` false), and without the «Weldment» feature the automatic cut list is not born, and without the automatic cut list the table is not born. Now `cut_list` makes a weldment of the part, and the table is born: two items, 2 x 1000 and 2 x 800.",
+  "defect_caught": "Three: the table that is not born (the part not a weldment), the table with all the bars in one row (the cut list made with `InsertWeldmentCutList2` on all the bodies: «4 x 1000»), and the table that sums a number of bars different from the part.",
+  "_the_views_are_called_by_uid": "V1 front: the frame is on the front plane, and there the four bars are seen.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "rectangular_frame",
@@ -16,15 +16,15 @@
         "corner_treatment": "miter",
         "centered": true
       },
-      "expect": [ { "what": "bodies", "equal_to": 4, "why": "quattro barre: il numero con cui si confronta la tabella" } ] },
+      "expect": [ { "what": "bodies", "equal_to": 4, "why": "four bars: the number the table is compared with" } ] },
     { "operation": "cut_list",
       "arguments": {},
       "expect": [
-        { "what": "measurements.distinct_entries", "equal_to": 2, "why": "due lunghezze, due voci" },
-        { "what": "measurements.quantity_total", "equal_to": 4, "why": "due piu' due" } ] },
+        { "what": "measurements.distinct_entries", "equal_to": 2, "why": "two lengths, two items" },
+        { "what": "measurements.quantity_total", "equal_to": 4, "why": "two plus two" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\cut_list_in_the_drawing.sldprt" },
-      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "una vista si aggancia al FILE del pezzo" } ] },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
@@ -35,16 +35,16 @@
       "arguments": { "view": "V1" },
       "expect": [
         { "what": "measurements.entries", "equal_to": 2,
-          "why": "una riga per lunghezza, sotto l'intestazione: con la distinta di prima sarebbe stata una riga sola, «4 x 1000»" },
+          "why": "one row per length, under the header: with the cut list from before it would have been a single row, «4 x 1000»" },
         { "what": "measurements.quantity_in_table", "equal_to": 4,
-          "why": "la colonna delle quantita' chiesta al modello di tabella (GetColumnCustomProperty), non indovinata per posizione" },
+          "why": "the quantity column asked of the table template (GetColumnCustomProperty), not guessed by position" },
         { "what": "measurements.match", "equal_to": true,
-          "why": "due letture indipendenti dello stesso fatto: la tabella sul foglio e le cartelle di distinta del pezzo" },
+          "why": "two independent readings of the same fact: the table on the sheet and the cut-list folders of the part" },
         { "what": "measurements.rows_read", "includes": ["800"],
-          "why": "la barra da 800 e' scritta sul foglio: e' proprio quella che la distinta di prima perdeva" },
+          "why": "the 800 bar is written on the sheet: it is exactly the one the cut list from before lost" },
         { "what": "measurements.inside_sheet", "equal_to": true,
-          "why": "VISTO NEL PNG il 26/9/2026, col resto del caso verde: la tabella del modello dell'officina ha 17 colonne e a 250/200 usciva dal foglio dopo la quarta. Adesso si misura e va in un posto libero dentro la cornice" },
-        { "what": "measurements.columns_visible", "includes": ["LUNGHEZZA", "QUANTITA"],
-          "why": "le colonne che in officina servono restano; le altre (autore, codice, i doppioni QUANTITY e TOTAL LENGTH...) si nascondono" } ] }
+          "why": "SEEN IN THE PNG on 26/9/2026, with the rest of the case green: the table of the workshop template has 17 columns and at 250/200 it ran off the sheet after the fourth. Now it is measured and goes in a free place inside the frame" },
+        { "what": "measurements.columns_visible", "includes": ["LUNGHEZZA", "quantity column"],
+          "why": "the columns the workshop needs stay; the others (author, code, the duplicates QUANTITY and TOTAL LENGTH...) are hidden" } ] }
   ]
 }

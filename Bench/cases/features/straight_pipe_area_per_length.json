@@ -1,8 +1,8 @@
 {
   "name": "straight_pipe_area_per_length",
   "family": "features",
-  "why": "Il criterio della voce alla lettera: «sweep -- profilo circolare noto lungo un percorso rettilineo di lunghezza nota, volume calcolabile a mano (area x lunghezza)». Qui il conto e' pi*10^2*100 = 31415,93, e viene alla settima cifra: uno sweep dritto non e' un'approssimazione di niente.",
-  "_why_the_path_is_a_list_of_points": "`InsertProtrusionSwept4` ha `CircularProfile` e `CircularProfileDiameter`: con quelli lo schizzo del profilo non serve. Il percorso invece uno schizzo lo vuole -- e lo disegna l'operazione, da un elenco di punti. Non poteva essere altrimenti: nello stato del documento gli schizzi non hanno identificativo, quindi «lo schizzo numero tre» e' una cosa che il modello non ha modo di dire.",
+  "why": "The criterion of the entry to the letter: «sweep -- known circular profile along a straight path of known length, volume computable by hand (area x length)». Here the calculation is pi*10^2*100 = 31415.93, and it comes out to the seventh digit: a straight sweep is not an approximation of anything.",
+  "_why_the_path_is_a_list_of_points": "`InsertProtrusionSwept4` has `CircularProfile` and `CircularProfileDiameter`: with those the profile sketch is not needed. The path, instead, wants a sketch -- and the operation draws it, from a list of points. It could not be otherwise: in the state of the document sketches have no identifier, so «the third sketch» is something the model has no way to say.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "circular_sweep",
@@ -11,26 +11,26 @@
         { "what": "measurements.path_straight", "equal_to": true },
         { "what": "measurements.path_length_mm", "equal_to": 100 },
         { "what": "measurements.volume_theoretical_mm3", "equal_to": 31415.927, "tolerance": 0.01,
-          "tolerance_why": "e' pi*10^2*100: il conto ha pi dentro e la tolleranza copre l'arrotondamento a tre decimali" },
+          "tolerance_why": "it is pi*10^2*100: the calculation has pi inside and the tolerance covers the rounding to three decimals" },
         { "what": "measurements.material_added_mm3", "equal_to": 31415.927, "tolerance": 0.01,
-          "tolerance_why": "come sopra",
-          "why": "IL VOLUME VERO E QUELLO TEORICO SONO LO STESSO NUMERO. Non «vicini»: uguali alla settima cifra. Un tubo dritto e' un cilindro esatto, e questo caso esiste per poterlo dire -- e per fare da termine di paragone al loft, che esatto non e'." },
+          "tolerance_why": "as above",
+          "why": "THE TRUE VOLUME AND THE THEORETICAL ONE ARE THE SAME NUMBER. Not «close»: equal to the seventh digit. A straight pipe is an exact cylinder, and this case exists so that this can be said -- and to serve as the benchmark for the loft, which is not exact." },
         { "what": "measurements.deviation_from_theoretical", "equal_to": 0, "tolerance": 0.0001,
-          "tolerance_why": "lo scarto relativo: sotto il decimillesimo e' zero" },
+          "tolerance_why": "the relative deviation: below the ten-thousandth it is zero" },
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 31415.927, "tolerance": 0.01,
-          "tolerance_why": "lo stesso numero letto dallo stato invece che dalla risposta" },
+          "tolerance_why": "the same number read from the state instead of from the answer" },
         { "what": "diameters_mm", "equal_to": [20], "tolerance": 0.02,
-          "tolerance_why": "il diametro della faccia cilindrica si legge da CylinderParams",
-          "why": "e la faccia del tubo ha davvero il diametro chiesto: il volume da solo tornerebbe anche con un diametro sbagliato e una lunghezza sbagliata che si compensano" } ] },
+          "tolerance_why": "the diameter of the cylindrical face is read from CylinderParams",
+          "why": "and the face of the pipe really has the requested diameter: the volume alone would also come out right with a wrong diameter and a wrong length that compensate each other" } ] },
     { "operation": "circular_sweep",
       "arguments": { "path_mm": [[0, 0, 40], [100, 0, 40], [100, 60, 40]], "diameter_mm": 20 },
       "expect": [
         { "what": "measurements.path_straight", "equal_to": false },
         { "what": "measurements.path_length_mm", "equal_to": 160 },
-        { "what": "measurements.note_on_volume", "includes": ["gomiti", "MINORE"],
-          "why": "SUL GOMITO IL CONTO NON TORNA, E SI DICE. Nel gomito il materiale si sovrappone: il volume vero e' minore di area per lunghezza. Un'operazione che desse il teorico e basta starebbe mentendo di qualche centinaio di millimetri cubi." },
+        { "what": "measurements.note_on_volume", "includes": ["elbows", "smaller than"],
+          "why": "AT THE ELBOW THE CALCULATION DOES NOT ADD UP, AND IT SAYS SO. At the elbow the material overlaps: the true volume is less than area times length. An operation that gave the theoretical one and nothing else would be lying by a few hundred cubic millimetres." },
         { "what": "bodies", "equal_to": 2,
-          "why": "il secondo tubo e' staccato dal primo: due corpi" } ] }
+          "why": "the second pipe is detached from the first: two bodies" } ] }
   ]
 }

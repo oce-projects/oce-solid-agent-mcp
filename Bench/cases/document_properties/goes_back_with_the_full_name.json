@@ -1,8 +1,8 @@
 {
   "name": "goes_back_with_the_full_name",
   "family": "document_properties",
-  "why": "Creare una configurazione ATTIVA quella nuova. Tornare a una di prima e' quindi la mossa piu' normale che ci sia dopo aver fatto una variante, ed e' il verde a cui appoggiare i rifiuti: senza, «non trovo quel nome» non distinguerebbe un controllo che funziona da uno che rifiuta tutto.",
-  "_why_the_boolean_is_not_enough": "`ShowConfiguration2` risponde un booleano, e su un nome che non va risponde `false` e basta -- niente eccezione, niente messaggio. Qui si guarda quale configurazione e' attiva ADESSO, letta dallo stato del documento, che e' un'altra strada rispetto a quella che l'operazione ha percorso.",
+  "why": "Creating a configuration makes the new one ACTIVE. Going back to one from before is therefore the most normal move there is after making a variant, and it is the green to lean the refusals on: without it, «I cannot find that name» would not tell a check that works from one that refuses everything.",
+  "_why_the_boolean_is_not_enough": "`ShowConfiguration2` answers a boolean, and on a name that does not fit answers `false` and nothing else -- no exception, no message. Here we look at which configuration is active NOW, read from the state of the document, which is a different road from the one the operation took.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,16 +16,16 @@
       "arguments": { "name": "Right" },
       "expect": [
         { "what": "state.configuration", "equal_to": "Right",
-          "why": "la seconda scalza la prima, sempre senza che nessuno l'abbia chiesto" } ] },
+          "why": "the second dislodges the first, again without anybody having asked for it" } ] },
     { "operation": "activate_configuration",
       "arguments": { "name": "Left" },
       "expect": [
         { "what": "measurements.configuration", "equal_to": "Left" },
         { "what": "state.configuration", "equal_to": "Left",
-          "why": "LA META' CHE CONTA. Che il nome risposto sia «Left» lo direbbe anche un'operazione che ricopia l'argomento e non attiva niente: quello che prova lo spostamento e' che lo stato del documento, letto da un'altra parte, dica la stessa cosa." },
+          "why": "THE HALF THAT COUNTS. That the name answered is «Left» would also be said by an operation that copies the argument and activates nothing: what proves the move is that the state of the document, read elsewhere, says the same thing." },
         { "what": "measurements.was_already_active", "equal_to": false,
-          "_why_false": "QUI CI SI E' SPOSTATI DAVVERO: si veniva da «Right». E' la meta' verde del campo, che nella gemella `limit_default_is_not_named_default` deve rispondere «vero» -- un campo che risponde sempre la stessa cosa non distingue niente." },
+          "_why_false": "HERE WE REALLY MOVED: we were coming from «Right». It is the green half of the field, which in the twin `limit_default_is_not_named_default` must answer «true» -- a field that always answers the same thing tells nothing apart." },
         { "what": "volume_mm3", "equal_to": 200000,
-          "why": "le varianti nascono copie: spostarsi fra loro non cambia il pezzo finche' nessuno le fa divergere" } ] }
+          "why": "the variants are born as copies: moving between them does not change the part as long as nobody makes them diverge" } ] }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "chamfer_5_at_45",
   "family": "chamfer",
-  "why": "Uno smusso 5x5 a 45 gradi su uno spigolo lungo 100 toglie 5*5/2*100 = 1250 mm3. UN RACCORDO R5 NE TOGLIEREBBE 537: se `swChamferAngleDistance` fosse letto come un raccordo, il numero lo direbbe subito. E' l'unica differenza fra le due operazioni che si vede senza guardare il pezzo.",
+  "why": "A 5x5 chamfer at 45 degrees on an edge 100 long removes 5*5/2*100 = 1250 mm3. AN R5 FILLET WOULD REMOVE 537: if `swChamferAngleDistance` were read as a fillet, the number would say so at once. It is the only difference between the two operations that shows without looking at the part.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,6 +11,6 @@
       "arguments": { "edges_uid": ["@edge(axis=X,length~=100,n=1)"], "leg_mm": 5, "angle_deg": 45 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 118750,
-          "_why_exact": " 120000 meno 5*5/2*100 e' un conto esatto, senza pi" } ] }
+          "_why_exact": " 120000 minus 5*5/2*100 is an exact calculation, without pi" } ] }
   ]
 }

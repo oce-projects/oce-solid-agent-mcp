@@ -1,13 +1,13 @@
 {
   "name": "limit_detail_outside_the_view",
   "family": "drawing",
-  "why": "VOCE GT4, il limite del dettaglio. Un cerchio piu' grande della vista ingrandisce del VUOTO, e il vuoto ingrandito e' comunque una vista valida: si conta, ha un'etichetta, e in officina arriva un riquadro con dentro niente.",
+  "why": "ENTRY GT4, the limit of the detail. A circle larger than the view enlarges the VOID, and the enlarged void is still a valid view: it is counted, it has a label, and what reaches the workshop is a box with nothing in it.",
 
-  "_what_changes_compared_to_the_twin": "Un argomento: `radius_mm`. La gemella lo passa a **8**, che su una vista alta una trentina di millimetri di foglio ci sta; qui vale **9999**. Stessa operazione, stessi argomenti, stessa tavola, stesso pezzo — cambia il VALORE, non quale argomento si passa.",
+  "_what_changes_compared_to_the_twin": "One argument: `radius_mm`. The twin passes it as **8**, which fits on a view about thirty millimetres high on the sheet; here it is **9999**. Same operation, same arguments, same drawing, same part — it is the VALUE that changes, not which argument is passed.",
 
-  "_why_the_twin_passes_radius_mm_even_if_it_has_a_default": "Perche' altrimenti non sarebbero una coppia. Il 23/9/2026 la coppia della sezione e' nata senza nessun argomento in comune e il banco ha risposto **gemella finta: non ha nemmeno un argomento in comune col rifiuto, sono due operazioni che non si parlano**. Due chiamate che non condividono niente non dimostrano che il controllo su `radius_mm` funziona: dimostrano che due chiamate diverse fanno cose diverse.",
+  "_why_the_twin_passes_radius_mm_even_if_it_has_a_default": "Because otherwise they would not be a pair. On 23/9/2026 the pair of the section was born with no argument in common and the bench answered **fake twin: it has not even one argument in common with the refusal, they are two operations that do not talk to each other**. Two calls that share nothing do not show that the check on `radius_mm` works: they show that two different calls do different things.",
 
-  "defect_caught": "Che il controllo sul cerchio sparisca. E' una guardia che si scrive una volta e non si vede mai scattare, quindi nessuno si accorge il giorno in cui smette: da quel giorno i dettagli sul vuoto tornerebbero «fatti». Il messaggio deve anche portare i numeri — il raggio chiesto e la misura della vista — altrimenti chi lo legge non sa di quanto ha sbagliato.",
+  "defect_caught": "That the check on the circle disappears. It is a guard that is written once and never seen to fire, so nobody notices the day it stops: from that day the details on the void would come back «done». The message must also carry the numbers — the radius asked for and the size of the view — otherwise whoever reads it does not know by how much they were wrong.",
 
   "start": { "new_part": true },
   "steps": [
@@ -16,30 +16,30 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 192000,
-          "why": "stesso pezzo della gemella fino al passo che cambia" } ] },
+          "why": "same part as the twin up to the step that changes" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\limit_detail_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "il pezzo dev'essere su disco prima che la vista lo nomini" } ] },
+          "why": "the part must be on disk before the view names it" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il rifiuto dev'essere quello sul CERCHIO, non quello su «non e' una tavola»" } ] },
+          "why": "the refusal must be the one on the CIRCLE, not the one on «it is not a drawing»" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\limit_detail_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "e nemmeno quello su «non c'e' niente da dettagliare»: la vista c'e', ed e' il cerchio a essere sbagliato" } ] },
+          "why": "and not the one on «there is nothing to detail» either: the view is there, and it is the circle that is wrong" } ] },
 
     { "operation": "detail_view",
       "arguments": { "label": "B", "scale": 2, "radius_mm": 9999 },
       "must_fail": {
-        "message_includes": ["non sta dentro la vista", "9999"],
+        "message_includes": ["does not fit inside the view", "9999"],
         "twin": "detail_enlarges"
       } }
   ]

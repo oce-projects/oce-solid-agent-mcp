@@ -1,7 +1,7 @@
 {
   "name": "blind_pocket_400",
   "family": "pairs",
-  "why": "La gemella di «limit_pocket_that_covers_everything», e dice perche' il controllo ha bisogno di «da parte a parte»: una tasca che copre tutta la faccia ma NON passa accorcia il pezzo, ed accorciare un pezzo e' una cosa che si fa. Differisce dalla gemella per UN SOLO argomento: «through_all».",
+  "why": "The twin of «limit_pocket_that_covers_everything», and it says why the check needs the cut to go «all the way through»: a pocket that covers the whole face but does NOT go through shortens the part, and shortening a part is something that is done. It differs from the twin by ONE argument only: «through_all».",
   "start": { "new_part": true },
   "steps": [
     {

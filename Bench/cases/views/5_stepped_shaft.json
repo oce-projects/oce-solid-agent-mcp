@@ -1,7 +1,7 @@
 [
  {
-  "_why": "V2 -- forma 5 di 5: PEZZO DI RIVOLUZIONE. Un albero a gradini e' tre cilindri in fila. Per lo stato testuale sono tre facce cilindriche con tre diametri e tre punti; per un'immagine e' un albero. E' anche l'esempio scritto nella descrizione dell'operazione, quindi e' la forma che un modello copia piu' spesso.",
-  "_truth": "Albero a gradini: Ø30 per 40 mm, poi Ø20 per 30 mm, poi Ø34 per 20 mm (la battuta). Volume pi*15^2*40 + pi*10^2*30 + pi*17^2*20 = 28274.3 + 9424.8 + 18158.4 = 55857.5 mm3.",
+  "_why": "V2 -- shape 5 of 5: PART OF REVOLUTION. A stepped shaft is three cylinders in a row. For the textual state they are three cylindrical faces with three diameters and three points; for an image it is a shaft. It is also the example written in the description of the operation, so it is the shape that a model copies most often.",
+  "_truth": "Stepped shaft: Ø30 for 40 mm, then Ø20 for 30 mm, then Ø34 for 20 mm (the shoulder). Volume pi*15^2*40 + pi*10^2*30 + pi*17^2*20 = 28274.3 + 9424.8 + 18158.4 = 55857.5 mm3.",
   "operation": "revolve",
   "arguments": {
    "plane": "front",

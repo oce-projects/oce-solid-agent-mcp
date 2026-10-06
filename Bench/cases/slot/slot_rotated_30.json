@@ -1,7 +1,7 @@
 {
   "name": "slot_rotated_30",
   "family": "slot",
-  "why": "Trenta gradi: un angolo che non e' ne' zero ne' un quarto di giro, dove un errore di segno o di unita' (gradi contro radianti) si vedrebbe.",
+  "why": "Thirty degrees: an angle that is neither zero nor a quarter turn, where a sign or unit error (degrees against radians) would show.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,6 +11,6 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 30, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 469299.34, "tolerance": 0.5,
-          "tolerance_why": "480000 meno 535,0332 per 20: il conto ha pi dentro" } ] }
+          "tolerance_why": "480000 minus 535.0332 over 20: the calculation has pi inside" } ] }
   ]
 }

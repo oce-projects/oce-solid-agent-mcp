@@ -1,9 +1,9 @@
 {
   "name": "r07_ring_of_holes_remains",
   "family": "regression",
-  "why": "Sei fori su una circonferenza Ø80, e il cilindro esterno cresce da 100 a 140. La corona di bulloni e' una quota di accoppiamento: e' cio' che deve combaciare con la flangia dall'altra parte, e non ha niente a che vedere col diametro esterno.",
+  "why": "Six holes on a Ø80 circle, and the outer cylinder grows from 100 to 140. The bolt circle is a mating dimension: it is what must line up with the flange on the other side, and it has nothing to do with the outer diameter.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "la corona sta a Ø80 perche' lo dice la flangia che ci si accoppia, non il pezzo. Ingrossare l'esterno non la tocca: i sei centri restano dove sono.",
+  "intent_why": "the bolt circle is at Ø80 because the flange it mates with says so, not the part. Thickening the outside does not touch it: the six centres stay where they are.",
   "build": [
     {
       "operation": "extrude_circle",
@@ -25,12 +25,12 @@
   "after": [
     { "what": "bounding_box_mm", "equal_to": [140, 140, 50],
       "tolerance": 0.02,
-      "tolerance_why": "l'ingombro di un cilindro si legge con GetExtremePoint" },
+      "tolerance_why": "the bounding box of a cylinder is read with GetExtremePoint" },
     { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "sei fori piu' il cilindro esterno, che sta in (0,0): 40*cos(60) = 20 esatto" },
+      "tolerance_why": "six holes plus the outer cylinder, which is at (0,0): 40*cos(60) = 20 exactly" },
     { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "40*sin(60) = 34,6410: il centesimo copre l'arrotondamento" }
+      "tolerance_why": "40*sin(60) = 34.6410: the hundredth covers the rounding" }
   ]
 }

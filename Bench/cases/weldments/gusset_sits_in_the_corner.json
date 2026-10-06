@@ -1,15 +1,15 @@
 {
   "name": "gusset_sits_in_the_corner",
   "family": "weldments",
-  "why": "VOCE GP20. `gusset` era a catalogo con `Provata = true` e **non ha mai creato un fazzoletto**: passava a `InsertGussetFeature3` un poligono con i due lati corti a zero (ProfileD3 = ProfileD4 = 0) e nessuna marca, e SOLIDWORKS tornava null senza dire perche'. La guida API (Remarks di InsertGussetFeature3, Insert_Gusset_Feature_Example_CSharp.htm) vuole le due facce con marca 1 E un profilo valido. La sonda del 28/9/2026 (Checks/Gusset/Program.cs), sulla stessa T di questo caso: la ricetta vecchia null, anche con la marca 1; il triangolo 60/60 spesso 5 con marca 1/1 NASCE, +9000 mm3, corpi da 2 a 3.",
+  "why": "ENTRY GP20. `gusset` was in the catalogue with `Provata = true` and **has never created a gusset**: it passed to `InsertGussetFeature3` a polygon with the two short sides at zero (ProfileD3 = ProfileD4 = 0) and no mark, and SOLIDWORKS returned null without saying why. The API guide (Remarks of InsertGussetFeature3, Insert_Gusset_Feature_Example_CSharp.htm) wants the two faces with mark 1 AND a valid profile. The probe of 28/9/2026 (Checks/Gusset/Program.cs), on the same T as this case: the old recipe null, even with mark 1; the 60/60 triangle thick 5 with marks 1/1 IS BORN, +9000 mm3, bodies from 2 to 3.",
 
-  "defect_caught": "Tre. Il fazzoletto che non nasce (il passo 7 lo pretende, coi numeri misurati). La risposta che ripete gli ingressi invece di rileggere la feature (rilievo C1-1 dell'audit): spessore, profilo, posizione e facce d'appoggio vengono da IGussetFeatureData, e una «position» fuori dall'elenco finiva in silenzio al centro mentre la risposta diceva quella chiesta — il passo 4 la pretende rifiutata. E il fazzoletto chiesto fra facce che non fanno un angolo: il passo 5 (facce che non si toccano) e il passo 6 (la testa della corta appoggiata sulla lunga, facce parallele) li pretendono rifiutati PRIMA di chiamare SOLIDWORKS, che su facce sbagliate torna null senza un perche'.",
+  "defect_caught": "Three. The gusset that is not born (step 7 demands it, with the measured numbers). The answer that repeats the inputs instead of reading the feature back (finding C1-1 of the audit): thickness, profile, position and supporting faces come from IGussetFeatureData, and a «position» outside the list ended up in the centre in silence while the answer said the one asked for — step 4 demands it refused. And the gusset asked for between faces that do not make a corner: step 5 (faces that do not touch) and step 6 (the head of the short one resting on the long one, parallel faces) demand them refused BEFORE calling SOLIDWORKS, which on wrong faces returns null with no reason given.",
 
-  "_and_the_twins_are_in_the_same_file": "Il fazzoletto buono (passo 7) va fra la faccia laterale della corta e la faccia alta della lunga, le stesse del cordone buono di weld_bead_goes_between_touching_faces. Il passo 4 cambia solo «position»; il passo 5 cambia solo la seconda faccia (quella sotto della lunga, a 80 mm); il passo 6 cambia solo la prima (la testa della corta).",
+  "_and_the_twins_are_in_the_same_file": "The good gusset (step 7) goes between the side face of the short one and the top face of the long one, the same as the good weld bead of weld_bead_goes_between_touching_faces. Step 4 changes only «position»; step 5 changes only the second face (the underside of the long one, at 80 mm); step 6 changes only the first (the head of the short one).",
 
-  "_the_selectors_are_measured": "Gli stessi del caso del cordone, misurati il 25/9/2026 dopo il taglio: la lunga ha le facce da 40800 mm2 (600 x 68), la corta da 17680 (260 x 68); fra le due «front» della lunga la esterna (z = 40) e' la seconda, fra le due «right» della corta la esterna (x = 340) e' la prima, fra le due «back» della lunga la esterna (z = -40) e' la prima. La testa tagliata della corta e' l'unica faccia da 1469,96 mm2 col verso «back».",
+  "_the_selectors_are_measured": "The same as in the weld bead case, measured on 25/9/2026 after the cut: the long one has faces of 40800 mm2 (600 x 68), the short one of 17680 (260 x 68); between the two «front» faces of the long one the outer one (z = 40) is the second, between the two «right» faces of the short one the outer one (x = 340) is the first, between the two «back» faces of the long one the outer one (z = -40) is the first. The cut head of the short one is the only face of 1469.96 mm2 with the direction «back».",
 
-  "_the_expected_numbers": "Calcolati a mano PRIMA, e confrontati con la sonda: triangolo = 60 x 60 / 2 x 5 = 9000 mm3, la sonda ha misurato +9000; il pezzo passa da 1264161,94 (la T tagliata, misurata nel caso del cordone) a 1273161,94. La scatola del corpo nuovo e' calcolata a mano e NON misurata dalla sonda (che guardava volume e corpi): il fazzoletto sta nell'angolo x >= 340, z >= 40, coi lati di 60 lungo le due facce, centrato sullo spigolo comune (y = 0) e spesso 5 da tutte e due le parti — x da 340 a 400, y da -2,5 a 2,5, z da 40 a 100. E' la misura che il volume non da': un fazzoletto finito dentro il tubo o dall'altra parte della corta aggiunge gli stessi 9000 mm3.",
+  "_the_expected_numbers": "Computed by hand BEFORE, and compared with the probe: triangle = 60 x 60 / 2 x 5 = 9000 mm3, the probe measured +9000; the part goes from 1264161.94 (the cut T, measured in the weld bead case) to 1273161.94. The box of the new body is computed by hand and NOT measured by the probe (which looked at volume and bodies): the gusset sits in the corner x >= 340, z >= 40, with sides of 60 along the two faces, centred on the common edge (y = 0) and 5 thick on both sides — x from 340 to 400, y from -2.5 to 2.5, z from 40 to 100. It is the measurement that the volume does not give: a gusset that ended up inside the tube or on the other side of the short one adds the same 9000 mm3.",
 
   "start": { "new_part": true },
   "steps": [
@@ -32,7 +32,7 @@
                      "trim_boundary_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(1))"] },
       "expect": [
         { "what": "measurements.volume_change_mm3", "equal_to": -58798.23, "tolerance": 0.05,
-          "tolerance_why": "40 mm x 1469,956 mm2 di sezione, che ha pi dentro (i raggi degli angoli). Senza il taglio la corta resterebbe dentro la lunga e non ci sarebbe nessuno spigolo comune su cui appoggiare il fazzoletto" } ] },
+          "tolerance_why": "40 mm x 1469.956 mm2 of section, which has pi inside (the corner radii). Without the cut the short one would stay inside the long one and there would be no common edge to rest the gusset on" } ] },
 
     { "operation": "gusset",
       "arguments": { "faces_uid": ["@face(area~=17680,normal=right,n=1)",
@@ -74,18 +74,18 @@
                      "position": "center" },
       "expect": [
         { "what": "measurements.volume_added_mm3", "equal_to": 9000, "tolerance": 0.05,
-          "tolerance_why": "60 x 60 / 2 x 5, tutto piano e senza smusso (BNeedChamferInGusset = false): la sonda del 28/9/2026 ha misurato +9000 al centesimo. Il fazzoletto e' un corpo suo, quindi il volume aggiunto e' la piastra intera, non quello che resta fuori dalle barre" },
+          "tolerance_why": "60 x 60 / 2 x 5, all flat and without chamfer (BNeedChamferInGusset = false): the probe of 28/9/2026 measured +9000 to the hundredth. The gusset is a body of its own, so the added volume is the whole plate, not what stays outside the bars" },
         { "what": "volume_mm3", "equal_to": 1273161.94, "tolerance": 0.5,
-          "tolerance_why": "la T tagliata (1264161,94, misurata nel caso del cordone) piu' i 9000 della piastra, letti dal documento e non dalla risposta dell'operazione; il mezzo millimetro cubo e' quello del caso del cordone sullo stesso pezzo" },
+          "tolerance_why": "the cut T (1264161.94, measured in the weld bead case) plus the 9000 of the plate, read from the document and not from the answer of the operation; the half cubic millimetre is that of the weld bead case on the same part" },
         { "what": "bodies", "equal_to": 3 },
         { "what": "measurements.thickness_read_mm", "equal_to": 5, "tolerance": 0.001,
-          "tolerance_why": "riletto da IGussetFeatureData.Thickness (metri): il millesimo e' l'arrotondamento della conversione in millimetri" },
+          "tolerance_why": "read back from IGussetFeatureData.Thickness (metres): the thousandth is the rounding of the conversion to millimetres" },
         { "what": "measurements.profile_read", "equal_to": "triangular" },
         { "what": "measurements.thickness_type_read", "equal_to": "both_sides" },
         { "what": "measurements.location_read", "equal_to": "center" },
         { "what": "measurements.supporting_faces_area_mm2", "equal_to": [40800, 17680], "tolerance": 0.5,
-          "tolerance_why": "le facce su cui SOLIDWORKS dice di aver appoggiato il fazzoletto (GetSupportingFaces), dalla piu' grande: 600 x 68 e 260 x 68, le aree dei selettori; mezzo millimetro quadro su decine di migliaia e' l'arrotondamento, una faccia sbagliata sbaglia di migliaia" },
+          "tolerance_why": "the faces on which SOLIDWORKS says it rested the gusset (GetSupportingFaces), from the largest: 600 x 68 and 260 x 68, the areas of the selectors; half a square millimetre out of tens of thousands is rounding, a wrong face is wrong by thousands" },
         { "what": "measurements.new_body_box_mm", "equal_to": [340, -2.5, 40, 400, 2.5, 100], "tolerance": 0.01,
-          "tolerance_why": "calcolata a mano (vedi «i_numeri_attesi»), letta coi punti estremi del corpo nuovo: tutte facce piane, quindi i punti estremi sono esatti e il centesimo e' l'arrotondamento a due decimali della risposta" } ] }
+          "tolerance_why": "computed by hand (see «i_numeri_attesi»), read with the extreme points of the new body: all planar faces, so the extreme points are exact and the hundredth is the rounding to two decimals of the answer" } ] }
   ]
 }

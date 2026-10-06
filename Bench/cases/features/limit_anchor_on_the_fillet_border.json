@@ -1,9 +1,9 @@
 {
   "name": "limit_anchor_on_the_fillet_border",
   "family": "features",
-  "why": "VOCE Z-C21.2, rilievo C2-1 del completamento dell'audit: la gemella di `limit_anchor_on_the_chamfer_border`, che per il raccordo NON era mai stata vista scattare. Il controllo del rischio 9 guarda l'altra faccia dello spigolo con IFace2.Normal, e IFace2~Normal.html dice: «If the face is not a planar face, then this property returns 0,0,0». Un raccordo e' un cilindro: Normal (0,0,0), coseno 0 come una parete perpendicolare vera, e lo spigolo tangente del raccordo passava per spigolo vivo. Il foro sarebbe andato dietro al raccordo a ogni modifica del raggio, senza errore.",
-  "defect_caught": "Lo stesso pezzo e la stessa ancora del caso dello smusso, con un raccordo R5 al posto dello smusso 5: lo spigolo fra la faccia davanti e il raccordo sta a x = 95, z = 20, e' dritto, corre lungo Y e sta nel piano della faccia. Sulla libreria vecchia il foro si fa (l'ancora «regge»); su quella nuova si rifiuta perche' l'altra faccia e' curva e, sullo spigolo, tangente a quella davanti: la normale del raccordo nel punto medio dello spigolo (ISurface.EvaluateAtPoint) e' quella della faccia. Una faccia curva che incontra la faccia a 90 gradi resta uno spigolo vivo e non si rifiuta.",
-  "_the_numbers": "Piastra 200 x 120 x 20 centrata: 480000. Il raccordo R5 lungo 120 toglie (5^2 - pi*5^2/4) x 120 = 5,365 x 120 = 643,81 mm3: 479356,19.",
+  "why": "ENTRY Z-C21.2, finding C2-1 of the audit completion: the twin of `limit_anchor_on_the_chamfer_border`, which for the fillet had NEVER been seen to fire. The check of risk 9 looks at the other face of the edge with IFace2.Normal, and IFace2~Normal.html says: «If the face is not a planar face, then this property returns 0,0,0». A fillet is a cylinder: Normal (0,0,0), cosine 0 like a true perpendicular wall, and the tangent edge of the fillet passed for a sharp edge. The hole would have gone behind the fillet at every change of radius, with no error.",
+  "defect_caught": "The same part and the same anchor as the chamfer case, with an R5 fillet in place of the 5 chamfer: the edge between the front face and the fillet is at x = 95, z = 20, is straight, runs along Y and lies in the plane of the face. On the old library the hole is made (the anchor «holds»); on the new one it is refused because the other face is curved and, at the edge, tangent to the front one: the normal of the fillet at the midpoint of the edge (ISurface.EvaluateAtPoint) is that of the face. A curved face that meets the face at 90 degrees stays a sharp edge and is not refused.",
+  "_the_numbers": "Centred plate 200 x 120 x 20: 480000. The R5 fillet 120 long removes (5^2 - pi*5^2/4) x 120 = 5.365 x 120 = 643.81 mm3: 479356.19.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,12 +13,12 @@
     { "operation": "fillet_edges",
       "arguments": { "edges_uid": [ "@edge(axis=Y,x~=100,z~=20)" ], "radius_mm": 5 },
       "expect": [ { "what": "volume_mm3", "equal_to": 479356.19, "tolerance": 0.05,
-          "tolerance_why": "480000 meno (25 - pi*25/4)*120 = 643,806: pi dentro, il ventesimo copre l'arrotondamento" } ] },
+          "tolerance_why": "480000 minus (25 - pi*25/4)*120 = 643.806: pi inside, the twentieth covers the rounding" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 75, "y_mm": 40, "diameter_mm": 10, "through_all": true,
                      "anchor": { "x": { "edge_uid": "@edge(axis=Y,x~=95,z~=20)", "distance_mm": 20 },
                                  "y": { "edge_uid": "@edge(axis=X,y~=60,z~=20)", "distance_mm": 20 } } },
-      "must_fail": { "message_includes": ["sul bordo di un raccordo", "tangente a questa"],
+      "must_fail": { "message_includes": ["on the border of a fillet", "tangent to this one"],
                         "volume_unchanged": true,
                         "no_extra_feature": true, "twin": "anchored_hole_follows_the_border" } }
   ]

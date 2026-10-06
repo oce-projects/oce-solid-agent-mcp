@@ -1,7 +1,7 @@
 {
   "name": "limit_blind_slot_without_depth",
   "family": "slot",
-  "why": "Cieca senza dire quanto: non c'e' nessun valore predefinito ragionevole, e sceglierne uno vorrebbe dire decidere al posto di chi disegna quanto materiale togliere.",
+  "why": "Blind without saying how deep: there is no reasonable default value, and choosing one would mean deciding in place of whoever draws how much material to remove.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,7 +10,7 @@
     { "operation": "slot",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": false },
       "must_fail": {
-        "message_includes": ["non passante senza profondita"],
+        "message_includes": ["that is not through needs a depth"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "blind_slot" } }

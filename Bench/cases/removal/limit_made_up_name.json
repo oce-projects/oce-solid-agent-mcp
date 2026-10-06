@@ -1,7 +1,7 @@
 {
   "name": "limit_made_up_name",
   "family": "removal",
-  "why": "Un nome che non c'e' va rifiutato ELENCANDO QUELLI VERI. Senza l'elenco, chi legge sa solo di aver sbagliato e non da che parte guardare -- e i nomi delle lavorazioni non sono indovinabili: «Taglio-Estrusione2» non somiglia a niente che il modello abbia scritto.",
+  "why": "A name that does not exist must be refused by LISTING THE REAL ONES. Without the list, whoever reads only knows they were wrong and not where to look -- and the names of the features cannot be guessed: «Taglio-Estrusione2» looks like nothing the model has written.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,11 +12,11 @@
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -60, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
-                    "tolerance_why": "400000 meno pi*7^2*20: il conto ha pi dentro" } ] },
+                    "tolerance_why": "400000 minus pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "delete_feature",
       "arguments": { "feature_uid": "Taglio-Che-Non-Esiste" },
       "must_fail": {
-        "message_includes": ["Non trovo la lavorazione", "Ci sono:"],
+        "message_includes": ["I cannot find the feature", "There are:"],
         "volume_unchanged": true,
         "twin": "delete_first_hole" } }
   ]

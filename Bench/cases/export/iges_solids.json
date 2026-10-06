@@ -1,8 +1,8 @@
 {
   "name": "iges_solids",
   "family": "export",
-  "why": "L'IGES serve quando dall'altra parte c'e' un CAD o una macchina che lo STEP non lo legge. Con la rappresentazione «solids» (BREP) il volume deve sopravvivere alla traduzione come nello STEP -- e si misura riaprendo il file, non guardando quanto pesa.",
-  "_why_the_records": "un IGES e' fatto di righe da ottanta caratteri, e la colonna 73 dice a che sezione appartengono: S intestazione, G globale, D directory, P parametri, T coda. Un file con le sole intestazioni e niente dentro esiste, pesa e si apre: si prende contando i record «P».",
+  "why": "IGES is needed when on the other side there is a CAD or a machine that does not read STEP. With the «solids» representation (BREP) the volume must survive the translation as in STEP -- and it is measured by reopening the file, not by looking at how much it weighs.",
+  "_why_the_records": "an IGES is made of lines of eighty characters, and column 73 says which section they belong to: S start, G global, D directory, P parameters, T terminate. A file with only the headers and nothing inside exists, weighs and opens: it is caught by counting the «P» records.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,10 +15,10 @@
       "expect": [
         { "what": "measurements.file_format", "equal_to": "IGES" },
         { "what": "measurements.representation", "equal_to": "solids" },
-        { "what": "measurements.how_known", "includes": ["colonna 73"] },
+        { "what": "measurements.how_known", "includes": ["column 73"] },
         { "what": "measurements.volume_reread_mm3", "equal_to": 200000, "tolerance": 0.5,
-          "tolerance_why": "il volume della geometria tradotta, letto da GetMassProperties che torna metri cubi" },
+          "tolerance_why": "the volume of the translated geometry, read from GetMassProperties which returns cubic metres" },
         { "what": "measurements.deviation_relative", "equal_to": 0, "tolerance": 0.0001,
-          "tolerance_why": "un BREP non deve perdere niente" } ] }
+          "tolerance_why": "a BREP must lose nothing" } ] }
   ]
 }

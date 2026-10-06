@@ -1,8 +1,8 @@
 {
   "name": "two_bodies_do_not_export",
   "family": "check",
-  "why": "IL ROSSO DELLA VERIFICA, ed e' quello che si puo' costruire col catalogo di oggi. Due corpi non sono un difetto -- un saldato ne ha dieci per costruzione -- ma per una stampa lo sono: uno STL di due corpi e' due gusci separati, e la stampante non sa quale dei due e' il pezzo. Ogni singolo corpo qui e' sano, e il giudizio dev'essere «no» lo stesso: se il conto dei corpi non ci fosse, questo caso sarebbe verde e il pezzo sbagliato.",
-  "_why_the_raw_numbers_stay_healthy": "Check(), Check2(), Check3 e Diagnose non hanno niente da ridire su nessuno dei due: e' esattamente il punto. La domanda «e' stampabile» non e' la domanda «e' rotto», e un'operazione che risponde solo alla seconda passa questo caso.",
+  "why": "THE RED OF THE CHECK, and it is the one that can be built with today's catalogue. Two bodies are not a defect -- a weldment has ten by construction -- but for a print they are: an STL of two bodies is two separate shells, and the printer does not know which of the two is the part. Each single body here is sound, and the judgement must be «no» all the same: if the count of the bodies were not there, this case would be green and the part wrong.",
+  "_why_the_raw_numbers_stay_healthy": "Check(), Check2(), Check3 and Diagnose have nothing to object to on either of the two: that is exactly the point. The question «is it printable» is not the question «is it broken», and an operation that answers only the second passes this case.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -20,18 +20,18 @@
         { "what": "measurements.bodies_total", "equal_to": 2 },
         { "what": "measurements.solids", "equal_to": 2 },
         { "what": "measurements.bodies_with_defects", "equal_to": 0,
-          "_why_zero": "i due corpi sono sani: e' il giudizio che dice no, non i difetti" },
+          "_why_zero": "the two bodies are sound: it is the judgement that says no, not the defects" },
         { "what": "measurements.bodies_not_closed", "equal_to": 0 },
         { "what": "measurements.printable", "equal_to": false },
         { "what": "measurements.verdict",
-          "includes": ["Non lo esporterei", "2 corpi", "uno solo"],
-          "does_not_include": ["si puo' esportare"] } ] },
+          "includes": ["I would not export it", "2 bodies", "only one"],
+          "does_not_include": ["as geometry it can be exported"] } ] },
     { "operation": "check_body_geometry",
       "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
-      "_why_the_name": "Voce Z-C16: il numero di un corpo cambia fra un giro e l'altro (misurato il 25/9/2026 su questo stesso pezzo: la copia era C1 in un giro su tre). Il corpo si nomina per NOME, e l'attesa «misure.corpi[0].corpo = C1» -- che chiedeva l'ordine, non il corpo -- non c'e' piu'. I due corpi qui sono uguali, e la verifica di uno solo ha lo stesso giudizio: il caso prova la strada del corpo singolo, non quale dei due.",
+      "_why_the_name": "Entry Z-C16: the number of a body changes from one run to the next (measured on 25/9/2026 on this same part: the copy was C1 in one run out of three). The body is named by NAME, and the expectation «measurements.bodies[0].body = C1» -- which asked for the order, not the body -- is no longer there. The two bodies here are equal, and the check of only one has the same judgement: the case proves the road of the single body, not which of the two.",
       "expect": [
         { "what": "measurements.bodies_total", "equal_to": 1,
-          "_why_one": "chiedendo UN corpo si risponde di quello, e il conto dei corpi del pezzo non entra nel giudizio: sul singolo corpo la domanda e' «e' sano», non «e' tutto il pezzo»" },
+          "_why_one": "asking for ONE body, the answer is about that one, and the count of the bodies of the part does not enter the judgement: on the single body the question is «is it sound», not «is it the whole part»" },
         { "what": "measurements.printable", "equal_to": true } ] }
   ]
 }

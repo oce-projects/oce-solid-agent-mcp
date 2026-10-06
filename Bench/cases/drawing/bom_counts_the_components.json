@@ -1,8 +1,8 @@
 {
   "name": "bom_counts_the_components",
   "family": "drawing",
-  "why": "VOCE GT9. La consegna standard di un assieme e' la tavola con la distinta base e la bollatura (i palloncini coi numeri di voce). Una base 120x80x10 e un coperchio 120x80x4 appoggiato sopra (non dentro: y = 7), tavola dell'assieme, distinta e palloncini.",
-  "defect_caught": "La distinta che conta i componenti in modo diverso dall'assieme (tipo sbagliato: «solo parti» invece di «primo livello», un enum che parte da 1), la quantita' che non somma i pezzi, e i palloncini che non nascono o nascono in numero diverso dalle voci.",
+  "why": "ENTRY GT9. The standard delivery of an assembly is the drawing with the BOM and the ballooning (the balloons with the item numbers). A 120x80x10 base and a 120x80x4 cover resting on top (not inside: y = 7), drawing of the assembly, BOM and balloons.",
+  "defect_caught": "The BOM that counts the components differently from the assembly (wrong type: «parts only» instead of «top level», an enum that starts from 1), the quantity that does not add up the parts, and the balloons that are not born or are born in a number different from the items.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -21,7 +21,7 @@
   "steps": [
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\bom_counts_the_components.sldasm" },
-      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "la vista si aggancia al FILE dell'assieme" } ] },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "the view attaches to the FILE of the assembly" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
@@ -31,16 +31,16 @@
     { "operation": "drawing_bom",
       "arguments": { "view": "V1" },
       "expect": [
-        { "what": "measurements.entries", "equal_to": 2, "why": "base e coperchio" },
-        { "what": "measurements.quantity_in_table", "equal_to": 2, "why": "un pezzo per voce" },
-        { "what": "measurements.match", "equal_to": true, "why": "la tabella e l'assieme, letti ognuno per conto suo" },
-        { "what": "measurements.inside_sheet", "equal_to": true, "why": "misurata e messa in un posto libero" } ] },
+        { "what": "measurements.entries", "equal_to": 2, "why": "base and cover" },
+        { "what": "measurements.quantity_in_table", "equal_to": 2, "why": "one part per item" },
+        { "what": "measurements.match", "equal_to": true, "why": "the table and the assembly, each read on its own" },
+        { "what": "measurements.inside_sheet", "equal_to": true, "why": "measured and put in a free place" } ] },
     { "operation": "balloons",
       "arguments": { "view": "V1" },
       "expect": [
-        { "what": "measurements.balloons_placed", "equal_to": 2, "why": "uno per componente, contati dopo sulla vista" },
-        { "what": "measurements.numbers", "includes": ["1", "2"], "why": "i numeri di voce della distinta" },
+        { "what": "measurements.balloons_placed", "equal_to": 2, "why": "one per component, counted afterwards on the view" },
+        { "what": "measurements.numbers", "includes": ["1", "2"], "why": "the item numbers of the BOM" },
         { "what": "measurements.how_many_entries_without_balloon", "equal_to": 0,
-          "why": "ogni voce della distinta ha il suo palloncino: sull'assieme Starlink (26/9/2026) il disco, coperto nell'isometrica, restava senza e la risposta diceva «fatto»" } ] }
+          "why": "every item of the BOM has its balloon: on the Starlink assembly (26/9/2026) the disc, covered in the isometric view, was left without one and the answer said «done»" } ] }
   ]
 }

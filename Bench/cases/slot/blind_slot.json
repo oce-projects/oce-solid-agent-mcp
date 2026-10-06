@@ -1,7 +1,7 @@
 {
   "name": "blind_slot",
   "family": "slot",
-  "why": "La stessa asola, cieca da 5. Qui il confronto e' un'uguaglianza esatta -- area per profondita' -- e non un tetto: su un taglio cieco il materiale sotto non c'entra.",
+  "why": "The same slot, blind at 5. Here the comparison is an exact equality -- area times depth -- and not a ceiling: on a blind cut the material underneath does not matter.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,8 +11,8 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": false, "depth_mm": 5 },
       "expect": [
         { "what": "measurements.material_removed_mm3", "equal_to": 2675.17, "tolerance": 0.5,
-          "tolerance_why": "535,0332 per 5: il conto ha pi dentro" },
+          "tolerance_why": "535.0332 over 5: the calculation has pi inside" },
         { "what": "volume_mm3", "equal_to": 477324.83, "tolerance": 0.5,
-          "tolerance_why": "come sopra" } ] }
+          "tolerance_why": "as above" } ] }
   ]
 }

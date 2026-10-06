@@ -1,7 +1,7 @@
 {
   "name": "axis_from_hole_wall",
   "family": "axis",
-  "why": "`create_axis` NON TORNA UNA FEATURE: torna un booleano, e l'asse si ritrova in coda all'albero. «In coda» e' una deduzione, non un fatto, e l'unica prova che l'asse esista davvero e' che lo stato lo elenchi al passo dopo. Si parte dalla parete di un foro perche' l'asse si fa dal centro di una faccia cilindrica.",
+  "why": "`create_axis` DOES NOT RETURN A FEATURE: it returns a boolean, and the axis is found again at the end of the tree. «At the end» is a deduction, not a fact, and the only proof that the axis really exists is that the state lists it at the next step. We start from the wall of a hole because the axis is made from the centre of a cylindrical face.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,13 +13,13 @@
                      "diameter_mm": 10, "through_all": true },
       "expect": [
         { "what": "diameters_mm", "equal_to": [10], "tolerance": 0.02,
-          "tolerance_why": "il diametro si legge da CylinderParams" },
+          "tolerance_why": "the diameter is read from CylinderParams" },
         { "what": "axes_created", "equal_to": 0 } ] },
     { "operation": "create_axis",
       "arguments": { "face_uid": "@face(planar=false)" },
       "expect": [
         { "what": "axes_created", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 214821.9, "tolerance": 0.5,
-          "tolerance_why": "120*120*15 meno pi*5^2*15: un asse di riferimento non toglie materiale, e questo lo dice" } ] }
+          "tolerance_why": "120*120*15 minus pi*5^2*15: a reference axis removes no material, and this says so" } ] }
   ]
 }

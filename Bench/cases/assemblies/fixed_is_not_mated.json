@@ -1,8 +1,8 @@
 {
   "name": "fixed_is_not_mated",
   "family": "assemblies",
-  "why": "VOCI Z-D3, Z-D4, Z-D5. Lo stato di un assieme diceva QUANTI accoppiamenti ha un componente, non QUALI; non diceva se un componente e' un sotto-assieme, se e' nascosto o trasparente; e fissare o liberare un componente non si poteva. Misurato il 27/9/2026 (prova0089 zd345): GetMates da' IMate2 col tipo (swMateType_e); la trasparenza sta in MaterialPropertyValues[7]; FixComponent/UnfixComponent sul componente selezionato funzionano nei due versi, anche sul primo componente, che SOLIDWORKS fissa da solo.",
-  "defect_caught": "Un accoppiamento letto col tipo sbagliato (l'enum per numero); un componente fissato che rileggendo e' ancora libero (FixComponent e' void: non dice niente); il primo componente, fissato da SOLIDWORKS, che non si lascia liberare; un sotto-assieme o un componente nascosto che lo stato non distingue.",
+  "why": "ENTRIES Z-D3, Z-D4, Z-D5. The state of an assembly said HOW MANY mates a component has, not WHICH; it did not say whether a component is a sub-assembly, hidden or transparent; and fixing or freeing a component was not possible. Measured on 27/9/2026 (prova0089 zd345): GetMates gives IMate2 with the type (swMateType_e); the transparency is in MaterialPropertyValues[7]; FixComponent/UnfixComponent on the selected component work in both directions, even on the first component, which SOLIDWORKS fixes by itself.",
+  "defect_caught": "A mate read with the wrong type (the enum by number); a component that was fixed and on re-reading is still free (FixComponent is void: it says nothing); the first component, fixed by SOLIDWORKS, that cannot be freed; a sub-assembly or a hidden component that the state does not tell apart.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -27,28 +27,28 @@
       },
       "expect": [
         { "what": "state.components[1].mates_kinds", "equal_to": ["coincidente"],
-          "why": "Z-D3: il tipo dell'accoppiamento per NOME, non solo il conteggio" },
-        { "what": "state.components[0].is_sub_assembly", "equal_to": false, "why": "Z-D4: la base e' un pezzo" },
+          "why": "Z-D3: the type of the mate by NAME, not only the count" },
+        { "what": "state.components[0].is_sub_assembly", "equal_to": false, "why": "Z-D4: the base is a part" },
         { "what": "state.components[1].visible", "equal_to": true, "why": "Z-D4" },
         { "what": "state.components[1].transparent", "equal_to": false,
-          "why": "Z-D4: nessun aspetto suo sul componente, quindi non trasparente" } ] },
+          "why": "Z-D4: no appearance of its own on the component, so not transparent" } ] },
     { "operation": "fix_component",
       "arguments": { "component": "C2", "grounded": true },
       "expect": [
         { "what": "measurements.grounded_before", "equal_to": false },
-        { "what": "measurements.grounded_after", "equal_to": true, "why": "riletto con IsFixed: FixComponent non risponde niente" },
-        { "what": "state.components_grounded", "equal_to": 2, "why": "la base (fissata da SOLIDWORKS) e il coperchio" } ] },
+        { "what": "measurements.grounded_after", "equal_to": true, "why": "re-read with IsFixed: FixComponent answers nothing" },
+        { "what": "state.components_grounded", "equal_to": 2, "why": "the base (fixed by SOLIDWORKS) and the cover" } ] },
     { "operation": "fix_component",
       "arguments": { "component": "C1", "grounded": false },
       "expect": [
-        { "what": "measurements.grounded_before", "equal_to": true, "why": "il primo componente lo fissa SOLIDWORKS da solo" },
-        { "what": "measurements.grounded_after", "equal_to": false, "why": "e si lascia liberare come uno fissato a mano (misurato)" },
-        { "what": "measurements.mates", "equal_to": 1, "why": "libero, lo tiene il suo accoppiamento" },
+        { "what": "measurements.grounded_before", "equal_to": true, "why": "the first component is fixed by SOLIDWORKS by itself" },
+        { "what": "measurements.grounded_after", "equal_to": false, "why": "and it can be freed like one fixed by hand (measured)" },
+        { "what": "measurements.mates", "equal_to": 1, "why": "free, held by its mate" },
         { "what": "state.components_grounded", "equal_to": 1 } ] },
     { "operation": "fix_component",
       "arguments": { "component": "C2" },
       "must_fail": {
-        "message_includes": ["Dimmi «grounded»"],
+        "message_includes": ["Tell me «grounded»"],
         "twin": "fixed_is_not_mated" } }
   ]
 }

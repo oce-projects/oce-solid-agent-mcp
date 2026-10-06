@@ -1,11 +1,11 @@
 {
   "name": "note_ends_up_on_the_sheet",
   "family": "drawing",
-  "why": "VOCE E2-bis. Una tavola d'officina non e' fatta solo di geometria e quote: porta le note generali — «smussare tutti gli spigoli vivi», «zincare dopo saldatura», «tolleranze non indicate ISO 2768-mK». Fino alla 0.100.0 il ponte non sapeva scriverne nemmeno una.",
+  "why": "ENTRY E2-bis. A workshop drawing is not made only of geometry and dimensions: it carries the general notes — «break all sharp edges», «galvanise after welding», «unspecified tolerances ISO 2768-mK». Up to 0.100.0 the bridge could not write even one.",
 
-  "_why_the_count_is_in_TWO_places": "`InsertNote` scrive sul **FOGLIO**, ma `GetNoteCount()` sta su `IView` — e le viste vere di una tavola cominciano DOPO la prima, perche' **la prima «view» e' il foglio**. Chi contasse solo le viste vere leggerebbe `0 -> 0` con la nota regolarmente al suo posto, e scriverebbe «nemmeno le note nascono: e' un blocco sistemico». Quel falso negativo avrebbe chiuso per sbaglio quattro voci del TODO (rugosita', datum, saldature, GD&T), tutte sbloccate proprio dal fatto che una nota nasce.",
+  "_why_the_count_is_in_TWO_places": "`InsertNote` writes on the **SHEET**, but `GetNoteCount()` lives on `IView` — and the true views of a drawing begin AFTER the first, because **the first «view» is the sheet**. Whoever counted only the true views would read `0 -> 0` with the note regularly in its place, and would write «not even the notes are born: it is a systemic block». That false negative would have closed by mistake four entries of the TODO (surface finish, datum, welds, GD&T), all unblocked precisely by the fact that a note is born.",
 
-  "defect_caught": "Una nota che nasce nel posto sbagliato, o con un testo diverso da quello chiesto. Per questo il caso non si accontenta di `notes_placed`: pretende che **le viste restino a zero** — che e' cio' che dice DOVE e' finita — e che il testo **riletto da SOLIDWORKS** contenga la stringa chiesta. Un testo ricopiato da quello in ingresso non proverebbe niente: combacerebbe sempre.",
+  "defect_caught": "A note that is born in the wrong place, or with a text different from the one asked for. That is why the case is not satisfied with `notes_placed`: it demands that **the views stay at zero** — which is what says WHERE it ended up — and that the text **re-read by SOLIDWORKS** contain the string asked for. A text copied from the one given as input would prove nothing: it would always match.",
 
   "start": { "new_part": true },
   "steps": [
@@ -14,47 +14,47 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "la piastra che poi va in tavola: se il pezzo non e' quello, non lo e' nemmeno la tavola" } ] },
+          "why": "the plate that then goes on the drawing: if the part is not the right one, neither is the drawing" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una tavola si fa su un pezzo salvato: se il salvataggio avvisa, la vista potrebbe puntare a un file che non c'e'" } ] },
+          "why": "a drawing is made on a saved part: if the save warns, the view might point to a file that is not there" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "da qui in poi il documento attivo e' un altro, ed e' la condizione di tutto il resto" } ] },
+          "why": "from here on the active document is another one, and it is the condition for all the rest" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "le viste non servono alla nota — che va sul foglio — ma servono al CONTRALTARE: senza viste, «le viste restano a zero» sarebbe vero per mancanza di viste invece che per la nota nel posto giusto" } ] },
+          "why": "the views are not needed by the note — which goes on the sheet — but they are needed by the COUNTERPART: without views, «the views stay at zero» would be true for lack of views instead of because the note is in the right place" } ] },
 
     { "operation": "note",
-      "arguments": { "text": "TOLLERANZE NON INDICATE ISO 2768-mK", "x_mm": 20, "y_mm": 250 },
+      "arguments": { "text": "UNSPECIFIED TOLERANCES ISO 2768-mK", "x_mm": 20, "y_mm": 250 },
       "expect": [
         { "what": "measurements.notes_placed", "equal_to": 1,
-          "why": "quante ne sono NATE, contate prima e dopo — non quante volte ho chiamato l'API. Il valore che torna da chi ha fatto la cosa non e' la misura della cosa" },
+          "why": "how many were BORN, counted before and after — not how many times I called the API. The value that comes back from whoever did the thing is not the measure of the thing" },
 
         { "what": "measurements.notes_views_after", "equal_to": 0,
-          "_and_this_says_WHERE": "**IL CONTRALTARE, ed e' il pezzo che vale la voce.** `notes_placed` a 1 sarebbe verde anche se la nota fosse finita dentro una vista — e una nota dentro una vista si sposta insieme alla vista, che su una tavola e' un difetto vero. Tre viste ci sono (passo precedente) e restano a zero: la nota e' sul foglio.",
-          "why": "dice su quale dei due contatori e' salita la misura" },
+          "_and_this_says_WHERE": "**THE COUNTERPART, and it is the piece that makes the entry worth it.** `notes_placed` at 1 would be green even if the note had ended up inside a view — and a note inside a view moves together with the view, which on a drawing is a real defect. Three views are there (previous step) and stay at zero: the note is on the sheet.",
+          "why": "says on which of the two counters the measure went up" },
 
         { "what": "measurements.text_reread", "includes": ["2768"],
-          "why": "**il testo RILETTO da SOLIDWORKS**, non quello che credevo di aver chiesto. Una nota che compare con un testo diverso si legge come una nota giusta finche' nessuno la confronta: sulla carta e' una riga di testo come le altre" },
+          "why": "**the text RE-READ by SOLIDWORKS**, not the one I thought I had asked for. A note that appears with a different text reads like a right note until somebody compares it: on paper it is a line of text like the others" },
 
         { "what": "measurements.text_requested", "includes": ["2768"],
-          "why": "il contraltare del riletto: se un giorno questa fosse verde e quella sopra rossa, si saprebbe subito che il problema e' nella scrittura e non nel caso" },
+          "why": "the counterpart of the re-read: if one day this one were green and the one above red, it would be known at once that the problem is in the writing and not in the case" },
 
         { "what": "measurements.where_mm", "includes": ["20"],
-          "why": "la posizione riletta dall'oggetto, non quella impostata: una nota che finisce altrove esiste, si conta, e sulla carta puo' non esserci" },
+          "why": "the position re-read from the object, not the one set: a note that ends up elsewhere exists, is counted, and may not be on the paper" },
 
-        { "what": "measurements.what_it_does_not_check", "includes": ["testo libero"],
-          "_the_first_draft_searched_for_lowercase_true": "E il giro l'ha vista rossa: la risposta dice «sia VERO» in maiuscolo, e `contiene` distingue le maiuscole. Il difetto era nell'attesa, non nell'operazione — ma da fuori i due si scrivono uguali, e per venti minuti ho guardato il codice giusto. Adesso l'attesa cerca **«testo libero»**, che nella frase sta in minuscolo perche' e' prosa e non un'enfasi: un'attesa appesa a una parola che qualcuno potrebbe decidere di gridare e' un'attesa appesa alla punteggiatura.",
-          "why": "la cecita' viaggia con la risposta: l'operazione garantisce che la nota c'e' e dice quello che hai scritto, non che sia giusto scriverlo. «Materiale S355» su un pezzo S275 passa ogni conteggio e ogni rilettura" } ] }
+        { "what": "measurements.what_it_does_not_check", "includes": ["free text"],
+          "_the_first_draft_searched_for_lowercase_true": "And the run saw it red: the answer says «be TRUE» in capitals, and `contiene` is case-sensitive. The defect was in the expectation, not in the operation — but from outside the two are written the same, and for twenty minutes I looked at the right code. Now the expectation looks for **«free text»**, which in the sentence is in lower case because it is prose and not an emphasis: an expectation hung on a word that somebody might decide to shout is an expectation hung on punctuation.",
+          "why": "the blindness travels with the answer: the operation guarantees that the note is there and says what you wrote, not that it is right to write it. «Material S355» on an S275 part passes every count and every re-read" } ] }
   ]
 }

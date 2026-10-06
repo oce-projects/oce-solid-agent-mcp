@@ -1,10 +1,10 @@
 {
   "name": "touching_is_not_interpenetrating",
   "family": "assemblies",
-  "why": "LA GEMELLA DI `cover_inside_base`, e prova la cosa che quel caso da solo non puo' provare: che il rilevamento **non risponda uno a tutto**. Due piastre appoggiate, faccia contro faccia, sono un assieme montato bene: se risultassero compenetrate, l'operazione griderebbe su ogni assieme corretto e si imparerebbe a ignorarla.",
-  "_why_this_case_counts_double": "Prova anche che **l'argomento `touching_counts` cambia davvero il verdetto**. Gli stessi due pezzi, nella stessa posizione, danno ZERO col valore di serie e UNO chiedendo che le coincidenze contino. Senza questo confronto l'argomento sarebbe una manopola che non si sa se gira: *un argomento che non cambia niente e' peggio di un argomento che non c'e', perche' chi lo mette crede di aver deciso qualcosa.*",
-  "_the_count_done_before": "La base e' 120x80x10 chiesta a y=0: `AddComponent5` piazza il CENTRO dell'ingombro, quindi occupa y da -5 a +5. Il coperchio e' 120x80x4 chiesto a y=7, quindi occupa y da +5 a +9. **Si toccano esattamente sul piano y=+5 e non si sovrappongono di niente.**",
-  "_and_what_touching_counts_is_really_for": "A un albero dentro un foro dello stesso diametro. Li' la coincidenza E' il problema -- quel pezzo non entra -- e col valore di serie risulterebbe a posto. Due domande diverse sullo stesso assieme, e l'operazione deve saperle fare tutte e due.",
+  "why": "THE TWIN OF `cover_inside_base`, and it proves the thing that case alone cannot prove: that the detection **does not answer one for everything**. Two plates resting face against face are a well-assembled assembly: if they came out as interpenetrating, the operation would shout on every correct assembly and one would learn to ignore it.",
+  "_why_this_case_counts_double": "It also proves that **the argument `touching_counts` really changes the verdict**. The same two parts, in the same position, give ZERO with the default value and ONE when asking that coincidences count. Without this comparison the argument would be a knob nobody knows whether it turns: *an argument that changes nothing is worse than an argument that is not there, because whoever sets it believes they have decided something.*",
+  "_the_count_done_before": "The base is 120x80x10 asked at y=0: `AddComponent5` places the CENTRE of the bounding box, so it occupies y from -5 to +5. The cover is 120x80x4 asked at y=7, so it occupies y from +5 to +9. **They touch exactly on the plane y=+5 and do not overlap at all.**",
+  "_and_what_touching_counts_is_really_for": "A shaft inside a hole of the same diameter. There the coincidence IS the problem -- that part does not go in -- and with the default value it would come out fine. Two different questions on the same assembly, and the operation must be able to answer both.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -25,20 +25,20 @@
       "arguments": {},
       "expect": [
         { "what": "measurements.how_many", "equal_to": 0,
-          "why": "**IL RIFERIMENTO, e viene prima.** Due piastre appoggiate non si compenetrano. Se questo non fosse zero, il caso gemello -- che ne pretende una -- non proverebbe niente: proverebbe solo che l'operazione risponde sempre lo stesso numero." },
+          "why": "**THE REFERENCE, and it comes first.** Two plates resting on each other do not interpenetrate. If this were not zero, the twin case -- which demands one -- would prove nothing: it would only prove that the operation always answers the same number." },
         { "what": "measurements.touching_counts", "equal_to": false,
-          "why": "con quale impostazione si e' ottenuto quello zero" },
-        { "what": "measurements.verdict", "includes": ["Nessuna interferenza", "touching_counts"],
-          "why": "**UNO ZERO CHE NON SPIEGA COSA NON HA GUARDATO E' UNO ZERO PERICOLOSO.** Chi legge «nessuna interferenza» deve sapere che le facce che si toccano non erano nel conto -- altrimenti manda in produzione un albero che non entra nel suo foro credendo di aver verificato." } ] },
+          "why": "with which setting that zero was obtained" },
+        { "what": "measurements.verdict", "includes": ["No interference", "touching_counts"],
+          "why": "**A ZERO THAT DOES NOT EXPLAIN WHAT IT DID NOT LOOK AT IS A DANGEROUS ZERO.** Whoever reads «no interference» must know that the faces that touch were not in the count -- otherwise they send into production a shaft that does not fit in its hole believing they have checked it." } ] },
 
     { "operation": "interference_check",
       "arguments": { "touching_counts": true },
       "expect": [
         { "what": "measurements.how_many", "equal_to": 1,
-          "why": "**LO STESSO ASSIEME, NELLO STESSO ISTANTE, CON UN'ALTRA DOMANDA.** Zero al passo prima, uno adesso: l'argomento cambia il verdetto, ed e' l'unico modo di dimostrarlo. Due pezzi che condividono una faccia sono montati bene se sono un coperchio, e sono un pezzo che non entra se sono un albero in un foro." },
+          "why": "**THE SAME ASSEMBLY, AT THE SAME INSTANT, WITH ANOTHER QUESTION.** Zero in the previous step, one now: the argument changes the verdict, and it is the only way to show it. Two parts that share a face are well assembled if they are a cover, and are a part that does not fit if they are a shaft in a hole." },
         { "what": "measurements.touching_counts", "equal_to": true,
-          "why": "e la risposta dice con quale delle due domande e' stata data" },
+          "why": "and the answer says with which of the two questions it was given" },
         { "what": "state.how_many_components", "equal_to": 2,
-          "why": "due chiamate di fila e l'assieme e' ancora quello: la verifica non tocca niente, e il rilevamento viene spento dopo ogni giro. Se restasse acceso, il documento resterebbe in modalita' interferenze per chiunque lo apra dopo." } ] }
+          "why": "two calls in a row and the assembly is still what it was: the check touches nothing, and the detection is switched off after every run. If it stayed on, the document would stay in interference mode for whoever opens it afterwards." } ] }
   ]
 }

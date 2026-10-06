@@ -1,8 +1,8 @@
 {
   "name": "order_changes_the_part",
   "family": "features",
-  "why": "VOCE Z-F3. Uno svuotamento messo prima di un foro da' un pezzo diverso da uno messo dopo. Misurato il 27/9/2026 (prova0089 zf3): scatola 100x60x40, foro Ø10 passante dall'alto, guscio 3 aprendo l'alto: foro poi guscio 56485,7 mm3, guscio prima del foro 51952,38; ReorderFeature rimette com'era; spostare il foro prima dell'estrusione su cui sta risponde false e non tocca niente.",
-  "defect_caught": "Lo spostamento creduto fatto perche' ReorderFeature ha risposto true, senza guardare l'albero e il volume; lo spostamento impossibile preso per buono; un albero lasciato rotto da uno spostamento.",
+  "why": "ENTRY Z-F3. A shell placed before a hole gives a different part from one placed after. Measured on 27/9/2026 (prova0089 zf3): 100x60x40 box, Ø10 through hole from the top, shell 3 opening the top: hole then shell 56485.7 mm3, shell before the hole 51952.38; ReorderFeature puts it back as it was; moving the hole before the extrusion it sits on answers false and touches nothing.",
+  "defect_caught": "The move believed done because ReorderFeature answered true, without looking at the tree and the volume; the impossible move taken for good; a tree left broken by a move.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,32 +11,32 @@
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 20, "y_mm": 0, "diameter_mm": 10, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 236858.41, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: 240000 meno pi x 5^2 x 40" } ] },
+                    "tolerance_why": "pi inside: 240000 minus pi x 5^2 x 40" } ] },
     { "operation": "shell",
       "arguments": { "faces_uid": ["@face(normal=up)"], "thickness_mm": 3 },
       "expect": [ { "what": "volume_mm3", "equal_to": 56485.7, "tolerance": 0.5,
-                    "tolerance_why": "misurato dalla sonda (56485,7): il guscio attorno al foro non ha una formula corta" } ] },
+                    "tolerance_why": "measured by the probe (56485.7): the shell around the hole has no short formula" } ] },
     { "operation": "reorder_feature",
       "arguments": { "feature_uid": "Svuota1", "relative_to_uid": "Taglio-Estrusione1", "placement": "before" },
       "expect": [
         { "what": "measurements.volume_before_mm3", "equal_to": 56485.7, "tolerance": 0.5,
-          "tolerance_why": "la stessa della sonda" },
+          "tolerance_why": "the same as the probe" },
         { "what": "measurements.volume_after_mm3", "equal_to": 51952.38, "tolerance": 0.5,
-          "tolerance_why": "misurato dalla sonda: il foro fatto dopo il guscio taglia solo il fondo",
-          "why": "l'ordine cambia il pezzo" },
+          "tolerance_why": "measured by the probe: the hole made after the shell cuts only the bottom",
+          "why": "the order changes the part" },
         { "what": "measurements.features_in_error", "equal_to": 0 },
         { "what": "volume_mm3", "equal_to": 51952.38, "tolerance": 0.5,
-          "tolerance_why": "lo stesso, letto dallo stato" } ] },
+          "tolerance_why": "the same, read from the state" } ] },
     { "operation": "reorder_feature",
       "arguments": { "feature_uid": "Svuota1", "relative_to_uid": "Taglio-Estrusione1", "placement": "after" },
       "expect": [
         { "what": "measurements.volume_after_mm3", "equal_to": 56485.7, "tolerance": 0.5,
-          "tolerance_why": "la stessa della sonda",
-          "why": "rimessa dov'era, il pezzo torna quello di prima" } ] },
+          "tolerance_why": "the same as the probe",
+          "why": "put back where it was, the part returns to what it was before" } ] },
     { "operation": "reorder_feature",
       "arguments": { "feature_uid": "Taglio-Estrusione1", "relative_to_uid": "Estrusione-Estrusione1", "placement": "before" },
       "must_fail": {
-        "message_includes": ["non sposta", "Non ho toccato niente"],
+        "message_includes": ["SOLIDWORKS does not move", "I touched nothing"],
         "twin": "order_changes_the_part" } }
   ]
 }

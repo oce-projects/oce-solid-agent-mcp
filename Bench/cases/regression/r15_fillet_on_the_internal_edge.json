@@ -1,9 +1,9 @@
 {
   "name": "r15_fillet_on_the_internal_edge",
   "family": "regression",
-  "why": "Due estrusioni a L con un raccordo sullo spigolo interno, e la base si allarga. Il raccordo sta su uno spigolo che la modifica non tocca: deve restare, e restare da 8. Serve a non far credere che si stacchi sempre tutto -- meta' del valore di questa suite sta nei casi che REGGONO.",
+  "why": "Two L extrusions with a fillet on the inner edge, and the base widens. The fillet is on an edge that the change does not touch: it must stay, and stay at 8. It serves to avoid making people believe that everything always comes off -- half the value of this suite is in the cases that HOLD.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "il raccordo e' agganciato allo spigolo interno della L, che la larghezza della base non muove. Il raggio resta 8, e i raccordi restano uno: e' «com'era», e infatti si scrive cosi'.",
+  "intent_why": "the fillet is hooked to the inner edge of the L, which the width of the base does not move. The radius stays 8, and the fillets stay one: it is «as it was», and that is indeed how it is written.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -27,9 +27,9 @@
   "after": [
     { "what": "bounding_box_mm", "equal_to": [200, 160, 80],
       "tolerance": 0.05,
-      "tolerance_why": "l'ingombro si legge con GetExtremePoint" },
+      "tolerance_why": "the bounding box is read with GetExtremePoint" },
     { "what": "diameters_mm", "same_as_before": true,
       "tolerance": 0.02,
-      "tolerance_why": "il raccordo lascia una faccia cilindrica di raggio 8: il diametro si legge da CylinderParams" }
+      "tolerance_why": "the fillet leaves a cylindrical face of radius 8: the diameter is read from CylinderParams" }
   ]
 }

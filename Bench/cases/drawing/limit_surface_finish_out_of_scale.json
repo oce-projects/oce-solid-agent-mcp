@@ -1,7 +1,7 @@
 {
   "name": "limit_surface_finish_out_of_scale",
   "family": "drawing",
-  "why": "Ra 0 non e' una rugosita': e' di solito un campo dimenticato. Un simbolo «0» in tavola si stampa e chiede una superficie impossibile. Si rifiuta prima di toccare la tavola, dicendo l'intervallo.",
+  "why": "Ra 0 is not a surface finish: it is usually a forgotten field. A «0» symbol on a drawing prints and asks for an impossible surface. It is refused before touching the drawing, saying the interval.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -18,7 +18,7 @@
     { "operation": "surface_finish",
       "arguments": { "view": "V1", "side": "top", "ra_um": 0 },
       "must_fail": {
-        "message_includes": ["fra 0 e 100"],
+        "message_includes": ["between 0 and 100"],
         "twin": "annotations_stay_outside_the_part" } }
   ]
 }

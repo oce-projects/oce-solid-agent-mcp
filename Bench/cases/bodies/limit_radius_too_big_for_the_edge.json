@@ -1,8 +1,8 @@
 {
   "name": "limit_radius_too_big_for_the_edge",
   "family": "bodies",
-  "why": "Un raggio da 25 su uno spigolo da 40 non ci sta: ne servirebbero 50 di spigolo. Si rifiuta PRIMA di provare, dicendo quanto e' lungo lo spigolo -- perche' chi ha chiesto 25 non ce l'ha davanti. Senza il controllo, SOLIDWORKS risponderebbe soltanto che il raccordo non e' stato creato, che e' vero e non serve a niente.",
-  "_why_the_biggest": "il controllo guarda il PIU' GRANDE dei due raggi: un raccordo che parte da 3 e arriva a 25 fallisce per il 25, e dire «3 ci sta» sarebbe una mezza verita'.",
+  "why": "A radius of 25 on an edge of 40 does not fit: it would need 50 of edge. It is refused BEFORE trying, saying how long the edge is -- because whoever asked for 25 does not have it in front of them. Without the check, SOLIDWORKS would answer only that the fillet was not created, which is true and useless.",
+  "_why_the_biggest": "the check looks at the LARGER of the two radii: a fillet that starts at 3 and ends at 25 fails because of the 25, and saying «3 fits» would be a half truth.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,7 +13,7 @@
       "arguments": { "edge_uid": "@edge(axis=Z,length~=40,n=1)",
                      "start_radius_mm": 3, "end_radius_mm": 25 },
       "must_fail": {
-        "message_includes": ["25", "40", "non ci sta neanche meta'"],
+        "message_includes": ["25", "40", "not even half of it fits"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_that_changes_radius" } }

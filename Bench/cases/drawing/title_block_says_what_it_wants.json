@@ -1,11 +1,11 @@
 {
   "name": "title_block_says_what_it_wants",
   "family": "drawing",
-  "why": "VOCE GT3. Un cartiglio non contiene testo: contiene COLLEGAMENTI a proprieta' personalizzate, scritti `$PRP:\"Nome\"`. Riempirlo vuol dire scrivere quelle proprieta' -- e `set_property` lo sapeva gia' fare. Mancava la meta' che la voce stessa chiamava due ore di lavoro a mano: **leggere quali variabili il cartiglio referenzia davvero, perche' non si indovinano.**",
-  "defect_caught": "Il nome della proprieta' scritto con una grafia diversa da quella che il cartiglio referenzia -- una maiuscola, uno spazio, la lingua -- **non da' nessun errore**: SOLIDWORKS scrive la proprieta', il cartiglio non la mostra, e il PDF esce con la casella vuota. E' il terzo caso della stessa famiglia in due giorni: `40x40x3` contro `40X40X3` sui profili, `.sldprt` contro `.SLDPRT` sui percorsi, e adesso il nome di una proprieta'. **Stesso nome, due grafie, nessun errore.**",
-  "_what_the_probe_said_about_this_shops_title_block": "Misurato il 18/9/2026 sul modello di tavola di questa officina (`Disegno.drwdot`): 39 note, di cui sette collegate. Chiede TRATTAMENTO, REVISIONE, CREAZIONE_DATA (maiuscole), Descrizione, Materiale, Peso, MASSA. **La grafia e' mista dentro lo stesso cartiglio**, e non c'e' una regola: c'e' quello che qualcuno ha scritto quando l'ha fatto. Ecco perche' l'elenco si chiede invece di dedurlo.",
-  "_and_almost_all_of_them_are_PRPSHEET": "Cioe' vanno scritte sul PEZZO, non sul disegno: `$PRPSHEET` prende la proprieta' dal modello mostrato nella vista. Scriverle sul disegno le lascerebbe tutte vuote, e nessuno direbbe niente. E' per questo che l'operazione marca quelle voci con «(dal pezzo, non dal disegno)» invece di elencarle e basta.",
-  "_and_the_TitleBlock_is_missing": "`ISheet.get_TitleBlock()` torna null su questo modello di tavola: il cartiglio e' fatto di note del FORMATO, non di un blocco cartiglio vero. L'operazione prova tutte e due le strade e dice quale ha risposto -- se avesse provato solo la prima, avrebbe detto «nessun cartiglio» su una tavola che ce l'ha.",
+  "why": "ENTRY GT3. A title block does not contain text: it contains LINKS to custom properties, written `$PRP:\"Nome\"`. Filling it means writing those properties -- and `set_property` already knew how. The half was missing that the entry itself called two hours of work by hand: **reading which variables the title block really references, because they cannot be guessed.**",
+  "defect_caught": "The name of the property written with a different spelling from the one the title block references -- a capital letter, a space, the language -- **gives no error**: SOLIDWORKS writes the property, the title block does not show it, and the PDF comes out with the box empty. It is the third case of the same family in two days: `40x40x3` against `40X40X3` on the profiles, `.sldprt` against `.SLDPRT` on the paths, and now the name of a property. **Same name, two spellings, no error.**",
+  "_what_the_probe_said_about_this_shops_title_block": "Measured on 18/9/2026 on the drawing template of this workshop (`Disegno.drwdot`): 39 notes, seven of them linked. It asks for TRATTAMENTO, REVISIONE, CREAZIONE_DATA (capitals), Descrizione, Materiale, Peso, MASSA. **The spelling is mixed inside the same title block**, and there is no rule: there is what somebody wrote when they made it. That is why the list is asked for instead of deduced.",
+  "_and_almost_all_of_them_are_PRPSHEET": "That is, they must be written on the PART, not on the drawing: `$PRPSHEET` takes the property from the model shown in the view. Writing them on the drawing would leave them all empty, and nobody would say anything. That is why the operation marks those entries with «(from the part, not from the drawing)» instead of just listing them.",
+  "_and_the_TitleBlock_is_missing": "`ISheet.get_TitleBlock()` returns null on this drawing template: the title block is made of notes of the FORMAT, not of a real title block. The operation tries both roads and says which one answered -- had it tried only the first, it would have said «no title block» on a drawing that has one.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,53 +13,53 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "il pezzo su cui si fa la tavola" } ] },
+          "why": "the part the drawing is made on" } ] },
 
     { "operation": "set_property",
       "arguments": { "name": "Descrizione", "value_text": "PROVA123" },
       "expect": [
         { "what": "state.property.Descrizione", "equal_to": "PROVA123",
-          "why": "**SI SCRIVE SUL PEZZO, non sulla tavola**, e il caso lo fa prima di creare la tavola apposta: il cartiglio la chiede con `$PRPSHEET`, cioe' dal modello mostrato nella vista. Scritta sul disegno resterebbe vuota nel cartiglio, e nessuna delle due parti direbbe niente." },
+          "why": "**IT IS WRITTEN ON THE PART, not on the drawing**, and the case does it before creating the drawing on purpose: the title block asks for it with `$PRPSHEET`, that is from the model shown in the view. Written on the drawing it would stay empty in the title block, and neither of the two sides would say anything." },
         { "what": "measurements.value_text", "equal_to": "PROVA123",
-          "why": "`Add3` risponde un codice, non il valore: l'operazione RILEGGE dopo aver scritto, e questo campo e' quello che ha riletto -- non quello che ha passato" } ] },
+          "why": "`Add3` answers a code, not the value: the operation RE-READS after writing, and this field is the one it re-read -- not the one it passed" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\title_block_says_what_it_wants.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una vista si aggancia al percorso del pezzo" } ] },
+          "why": "a view attaches to the path of the part" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il banco segue il documento nuovo (voce GT0)" } ] },
+          "why": "the bench follows the new document (entry GT0)" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\title_block_says_what_it_wants.sldprt" },
-      "_and_the_part_is_named_explicitly": "**IL 18/9/2026 QUESTA RIGA NON C'ERA, E LA TAVOLA E' USCITA DEL PEZZO SBAGLIATO.** Senza «model», `standard_views` ripiegava sul PRIMO documento aperto — un ordine che nessuno dichiara — e il pezzo dell'altro caso di tavola, ancora aperto, veniva prima. Tre viste, nessun errore, e il cartiglio che leggeva i `$PRPSHEET` da un pezzo che non c'entrava. Adesso l'operazione rifiuta invece di sorteggiare, e il caso dice quale pezzo vuole invece di sperare che ce ne sia uno solo.",
+      "_and_the_part_is_named_explicitly": "**ON 18/9/2026 THIS LINE WAS NOT THERE, AND THE DRAWING CAME OUT OF THE WRONG PART.** Without «model», `standard_views` fell back on the FIRST document open — an order nobody declares — and the part of the other drawing case, still open, came first. Three views, no error, and the title block that read the `$PRPSHEET` from a part that had nothing to do with it. Now the operation refuses instead of drawing lots, and the case says which part it wants instead of hoping there is only one.",
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "`$PRPSHEET` prende la proprieta' dal modello **mostrato in una vista**: senza viste il cartiglio non saprebbe da quale pezzo leggere" } ] },
+          "why": "`$PRPSHEET` takes the property from the model **shown in a view**: without views the title block would not know which part to read from" } ] },
 
     { "operation": "title_block",
       "arguments": {},
       "expect": [
         { "what": "measurements.properties_wanted_by_title_block", "includes": ["Descrizione", "Materiale", "TRATTAMENTO"],
-          "why": "**IL PEZZO CHE VALE LA VOCE.** Sono i nomi ESATTI che questo cartiglio referenzia, con la loro grafia -- `TRATTAMENTO` maiuscolo e `Descrizione` capitalizzato, dentro lo stesso cartiglio. Il modello li copia invece di indovinarli, e la categoria di errore sparisce." },
+          "why": "**THE PART THAT MAKES THE ENTRY WORTH IT.** They are the EXACT names this title block references, with their spelling -- `TRATTAMENTO` in capitals and `Descrizione` capitalised, inside the same title block. The model copies them instead of guessing them, and the category of error disappears." },
         { "what": "measurements.model_checked_for_properties", "includes": ["title_block_says_what_it_wants"],
-          "why": "**PRIMA DI TUTTO: HO POTUTO GUARDARE?** Se l'operazione non riesce ad arrivare al modello referenziato dalla vista, i due elenchi qui sotto sono vuoti per ignoranza e non per misura — e un elenco vuoto per ignoranza passa qualunque `non_contiene`. Qui si pretende il PERCORSO del pezzo, cosi' «non ho trovato niente» e «non ho potuto guardare» restano due risposte diverse." },
+          "why": "**FIRST OF ALL: COULD I LOOK?** If the operation cannot reach the model referenced by the view, the two lists below are empty out of ignorance and not by measurement — and a list empty out of ignorance passes any `non_contiene`. Here we demand the PATH of the part, so «I found nothing» and «I could not look» remain two different answers." },
 
         { "what": "measurements.requested_present_on_model_but_shown_empty", "does_not_include": ["Descrizione"],
-          "why": "**STA PRIMA DELL'ATTESA CHE SPIEGA, E DEVE.** Il banco ferma il caso alla PRIMA attesa rossa (`DeclaredCases.cs`, `if (!ok) return false`): una riga diagnostica messa DOPO quella che fallisce non viene mai eseguita — costruita il 18/9/2026 e messa in coda, non ha parlato. *Un testimone messo in fila dietro l'imputato non testimonia.* Qui dice quale dei due guasti e': se questa e' rossa, la proprieta' C'E' sul modello e il collegamento non l'ha risolta (e riscriverla non serve); se e' verde e la prossima e' rossa, la proprieta' non e' arrivata sul modello." },
+          "why": "**IT COMES BEFORE THE EXPECTATION THAT EXPLAINS, AND IT MUST.** The bench stops the case at the FIRST red expectation (`DeclaredCases.cs`, `if (!ok) return false`): a diagnostic line put AFTER the one that fails is never executed — built on 18/9/2026 and put at the tail, it did not speak. *A witness put in line behind the defendant does not testify.* Here it says which of the two faults it is: if this one is red, the property IS on the model and the link did not resolve it (and rewriting it is no use); if it is green and the next one is red, the property did not reach the model." },
 
         { "what": "measurements.requested_and_shown", "includes": ["Descrizione"],
-          "why": "**IL CERCHIO SI CHIUDE QUI, ed e' un'affermazione positiva, non l'assenza di un guasto.** La proprieta' e' stata scritta sul PEZZO al passo 2; il cartiglio della TAVOLA la mostra adesso. Due documenti diversi, e il collegamento `$PRPSHEET` che li unisce ha funzionato davvero. «Non e' nell'elenco delle vuote» non avrebbe provato la stessa cosa: non essere fra i rotti non e' funzionare." },
+          "why": "**THE CIRCLE CLOSES HERE, and it is a positive assertion, not the absence of a fault.** The property was written on the PART at step 2; the title block of the DRAWING shows it now. Two different documents, and the `$PRPSHEET` link that joins them really worked. «It is not in the list of the empty ones» would not have proved the same thing: not being among the broken ones is not working." },
         { "what": "measurements.requested_but_empty", "includes": ["Materiale"],
-          "why": "IL CASO ROSSO CHE VIVE NELLO STESSO GIRO. `Materiale` e' chiesta dal cartiglio e nessuno l'ha scritta: dev'essere elencata fra le vuote. Se questo elenco fosse vuoto, l'attesa qui sopra non proverebbe niente -- proverebbe solo che l'operazione dice «tutto mostrato» sempre." },
-        { "what": "measurements.searched_in", "includes": ["formato"],
-          "why": "su questo modello di tavola `get_TitleBlock()` torna null, e le note stanno nel FORMATO del foglio. L'operazione prova tutte e due le strade e dice quale ha risposto: se un giorno il modello di tavola cambiasse e nascesse un blocco cartiglio vero, questa attesa diventerebbe rossa e lo direbbe, invece di lasciare che la strada cambi in silenzio." },
-        { "what": "measurements.verdict", "includes": ["copiali alla lettera"],
-          "why": "l'avvertimento viaggia con la risposta, non solo nella descrizione dell'operazione: chi legge questa risposta potrebbe non aver mai letto il catalogo" } ] }
+          "why": "THE RED CASE THAT LIVES IN THE SAME RUN. `Materiale` is asked for by the title block and nobody wrote it: it must be listed among the empty ones. If this list were empty, the expectation above would prove nothing -- it would only prove that the operation always says «everything shown»." },
+        { "what": "measurements.searched_in", "includes": ["sheet format"],
+          "why": "on this drawing template `get_TitleBlock()` returns null, and the notes are in the FORMAT of the sheet. The operation tries both roads and says which one answered: if one day the drawing template changed and a real title block were born, this expectation would turn red and say so, instead of letting the road change silently." },
+        { "what": "measurements.verdict", "includes": ["copy them literally"],
+          "why": "the warning travels with the answer, not only in the description of the operation: whoever reads this answer may never have read the catalogue" } ] }
   ]
 }

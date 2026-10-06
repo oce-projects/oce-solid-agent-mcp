@@ -1,7 +1,7 @@
 {
   "name": "limit_fillet_on_a_double_edge",
   "family": "reanchor",
-  "why": "VOCE E19, il ramo «due candidati». La piastra e la sua copia spostata di 100 si toccano sulla faccia a x = 50: lo spigolo verticale in (50, 30) c'e' DUE volte, uno per corpo, stessa lunghezza e stesso punto. Il raccordo porta l'uid letto prima della copia (E11); dopo la copia gli spigoli sono il doppio, E11 e' uno da 60, e la ricerca per firma ne trova due uguali. Sceglierne uno sarebbe indovinare il corpo: rifiuto, «non scelgo io».",
+  "why": "ENTRY E19, the «two candidates» branch. The plate and its copy moved by 100 touch on the face at x = 50: the vertical edge at (50, 30) is there TWICE, one per body, same length and same point. The fillet carries the uid read before the copy (E11); after the copy the edges are double, E11 is a 60 one, and the search by signature finds two equal ones. Choosing one would be guessing the body: refusal, «I do not choose».",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -16,9 +16,9 @@
     { "operation": "fillet_edges",
       "uid_from_step": 2,
       "arguments": { "edges_uid": [ "@edge(axis=Z,x~=50,y~=30)" ], "radius_mm": 6 },
-      "_why_the_different_radius": "6 invece dell'8 della gemella: il rifiuto non dipende dal raggio (voce F5).",
+      "_why_the_different_radius": "6 instead of the 8 of the twin: the refusal does not depend on the radius (entry F5).",
       "must_fail": {
-        "message_includes": ["non scelgo io"],
+        "message_includes": ["I do not choose"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_finds_the_renumbered_edge_again" } }

@@ -1,13 +1,13 @@
 {
   "name": "drawing_dimensions_itself",
   "family": "drawing",
-  "why": "VOCE K10, ed e' il pezzo che chiude il ciclo. Fino al 18/9/2026 il ponte sapeva costruire il pezzo, salvarlo, fare la tavola, metterci tre viste, leggere il cartiglio ed esportare il PDF — e **non sapeva metterci una quota**. Una tavola senza quote non e' una tavola d'officina: e' geometria stampata.",
+  "why": "ENTRY K10, and it is the piece that closes the loop. Up to 18/9/2026 the bridge could build the part, save it, make the drawing, put three views on it, read the title block and export the PDF — and **could not put a dimension on it**. A drawing without dimensions is not a workshop drawing: it is printed geometry.",
 
-  "_why_CREATE_and_not_import": "`model_dimensions` IMPORTA le quote che il pezzo ha gia', con `InsertModelAnnotations*`, e su questa installazione ne porta **zero** — misurato su un pezzo con sette quote tutte marcate per il disegno, su **otto** modelli di tavola (sette di serie piu' quello dell'officina), con cinque strade diverse, e col controllo positivo verde nello stesso giro (`InsertNote` sulla stessa tavola funziona). Quella strada e' chiusa. Ma il fine non e' «le quote del modello in tavola»: e' **una tavola quotata**, e `AddDimension` le CREA — fuori processo, quattro su quattro. *Un nome che descrive il mezzo invece del fine restringe le soluzioni prima che qualcuno le cerchi*, e per due giorni il nome dell'altra operazione ha deciso la strada.",
+  "_why_CREATE_and_not_import": "`model_dimensions` IMPORTS the dimensions the part already has, with `InsertModelAnnotations*`, and on this installation it brings **zero** — measured on a part with seven dimensions all marked for the drawing, on **eight** drawing templates (seven standard plus the workshop's), with five different roads, and with the positive control green in the same run (`InsertNote` on the same drawing works). That road is closed. But the aim is not «the dimensions of the model on the drawing»: it is **a dimensioned drawing**, and `AddDimension` CREATES them — out of process, four out of four. *A name that describes the means instead of the aim narrows the solutions before anyone looks for them*, and for two days the name of the other operation decided the road.",
 
-  "defect_caught": "Una quota che **compare** e misura un'altra cosa. Sulla carta si legge uguale a una giusta, e in officina si taglia sul numero sbagliato. Per questo il caso non si accontenta di `dimensions_placed`: pretende i **millimetri**, e sono quelli del pezzo — **120 la lunghezza e 10 lo spessore**, le due dimensioni della sagoma che questa vista mostra.",
+  "defect_caught": "A dimension that **appears** and measures something else. On paper it reads the same as a right one, and in the workshop it is cut to the wrong number. That is why the case is not satisfied with `dimensions_placed`: it demands the **millimetres**, and they are those of the part — **120 the length and 10 the thickness**, the two dimensions of the outline this view shows.",
 
-  "_this_line_said_5_and_it_was_wrong": "Fino al 22/9/2026 la riga qui sopra diceva «120 la piastra, 5 lo smusso». Il 5 veniva da una sonda fatta su un ALTRO pezzo, e l'attesa del passo 6 era gia' stata corretta a 10 con la spiegazione scritta accanto — ma questa frase no. Quindi il caso CONTROLLAVA 10 e DICHIARAVA 5: verde tutte le volte, e chiunque lo leggesse senza arrivare in fondo imparava un numero falso. E' il difetto dei documenti (nota RAG `82c_il_difetto_che_non_da_errore_nei_documenti`) dentro il file che quel difetto lo insegna.",
+  "_this_line_said_5_and_it_was_wrong": "Up to 22/9/2026 the line above said «120 the plate, 5 the chamfer». The 5 came from a probe made on ANOTHER part, and the expectation of step 6 had already been corrected to 10 with the explanation written beside it — but this sentence had not. So the case CHECKED 10 and DECLARED 5: green every time, and whoever read it without getting to the end learned a false number. It is the defect of documents (RAG note `82c_il_difetto_che_non_da_errore_nei_documenti`) inside the file that teaches that very defect.",
 
   "start": { "new_part": true },
   "steps": [
@@ -16,73 +16,73 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 96000,
-          "why": "la piastra che poi si quota" } ] },
+          "why": "the plate that is then dimensioned" } ] },
 
     { "operation": "chamfer_edges",
       "arguments": { "edges_uid": ["@edge(axis=X,length~=120,n=1)"], "leg_mm": 5, "angle_deg": 45 },
-      "_the_edges_are_taken_with_the_selector": "La prima stesura usava `edges_ref: { step: 1 }`, che funziona nei PIANI del ponte e **non** nei casi dichiarati: il banco ha risposto «di quel passo non ho la geometria». Due formati per la stessa cosa, e uno solo vale qui. Col selettore lo spigolo si nomina per **cosa e'** — asse X, lungo 120, il primo — invece che per da dove viene.",
+      "_the_edges_are_taken_with_the_selector": "The first draft used `edges_ref: { step: 1 }`, which works in the PLANS of the bridge and **not** in the declared cases: the bench answered «I do not have the geometry of that step». Two formats for the same thing, and only one valid here. With the selector the edge is named by **what it is** — X axis, 120 long, the first — instead of by where it comes from.",
       "expect": [
         { "what": "volume_mm3", "equal_to": 94500, "tolerance": 0.5,
-          "tolerance_why": "il conto e' esatto (96000 meno 5*5/2*120 = 94500): il mezzo millimetro cubo copre l'arrotondamento di SOLIDWORKS e non un raccordo, che ne toglierebbe 644 invece di 1500. **La prima stesura diceva 95400 — due cifre invertite — e la tolleranza NON l'avrebbe nascosto: 900 di scarto. E' la ragione per cui si sceglie stretta.**",
-          "why": "lo smusso serve a dare al caso una seconda misura DIVERSA dalla prima: con soli 120 non si distinguerebbe una quota giusta da una quota che ripete sempre lo stesso numero. E il volume dice che lo smusso c'e' davvero, prima ancora di andare in tavola" } ] },
+          "tolerance_why": "the calculation is exact (96000 minus 5*5/2*120 = 94500): the half cubic millimetre covers the rounding of SOLIDWORKS and not a fillet, which would remove 644 instead of 1500. **The first draft said 95400 — two digits swapped — and the tolerance would NOT have hidden it: a gap of 900. That is the reason it is chosen tight.**",
+          "why": "the chamfer serves to give the case a second measure DIFFERENT from the first: with only 120 a right dimension could not be told from a dimension that always repeats the same number. And the volume says the chamfer is really there, even before going to the drawing" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\drawing_dimensions_itself.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una vista si aggancia al percorso del pezzo" } ] },
+          "why": "a view attaches to the path of the part" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "il banco segue il documento nuovo (voce GT0)" } ] },
+          "why": "the bench follows the new document (entry GT0)" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\drawing_dimensions_itself.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "le quote stanno sugli spigoli di una VISTA: senza viste non c'e' niente da quotare" },
+          "why": "the dimensions sit on the edges of a VIEW: without views there is nothing to dimension" },
         { "what": "measurements.model", "includes": ["drawing_dimensions_itself"],
-          "why": "**DI QUALE PEZZO SONO LE VISTE.** Il 18/9/2026 una tavola e' uscita con le viste del pezzo sbagliato perche' nessuna prova lo chiedeva mai: contavano tre viste e basta. Qui si dice quale pezzo, e si verifica che sia quello" } ] },
+          "why": "**WHICH PART THE VIEWS ARE OF.** On 18/9/2026 a drawing came out with the views of the wrong part because no check ever asked: they counted three views and nothing else. Here we say which part, and verify that it is that one" } ] },
 
     { "operation": "drawing_dimension",
       "arguments": { "edges": [0, 1, 2, 3] },
-      "_the_edges_are_named_not_counted": "La prima stesura passava `count: 4`, e il banco ha alzato **errore di banco** sulla gemella: «non ha nemmeno un argomento in comune col rifiuto, sono due operazioni che non si parlano» (voce F5). Aveva ragione. La gemella chiede lo spigolo **999**: se qui si dicesse `count`, le due chiamate differirebbero per **quale argomento** e non per il suo **valore** — e una coppia cosi' non prova che il controllo distingue, prova che due chiamate diverse fanno cose diverse. Adesso e' la stessa chiamata con dentro un numero che esiste invece di uno che non esiste.",
+      "_the_edges_are_named_not_counted": "The first draft passed `count: 4`, and the bench raised a **bench error** on the twin: «it has not even one argument in common with the refusal, they are two operations that do not talk to each other» (entry F5). It was right. The twin asks for edge **999**: if here we said `count`, the two calls would differ by **which argument** and not by its **value** — and a pair like that does not prove that the check tells them apart, it proves that two different calls do different things. Now it is the same call with a number that exists in place of one that does not.",
       "expect": [
         { "what": "measurements.edges_available", "equal_to": 4,
-          "_the_seven_came_from_another_part": "La prima stesura diceva SETTE, preso dalla sonda del 18/9 — che pero' smussava QUATTRO spigoli, mentre questo caso ne smussa uno. **Un numero misurato su un'altra geometria non e' una misura di questa**, ed e' lo stesso difetto delle tre sonde che costruivano il pezzo a mano (nota RAG 82h): misurare un oggetto che non e' quello in esame.",
-          "why": "gli spigoli si CHIEDONO alla vista, non si indovinano. Quattro e' quello che questa vista mostra, e se cambiasse cambierebbe anche cosa si puo' quotare" },
+          "_the_seven_came_from_another_part": "The first draft said SEVEN, taken from the probe of 18/9 — which however chamfered FOUR edges, while this case chamfers one. **A number measured on another geometry is not a measure of this one**, and it is the same defect as the three probes that built the part by hand (RAG note 82h): measuring an object that is not the one under examination.",
+          "why": "the edges are ASKED of the view, not guessed. Four is what this view shows, and if it changed, what can be dimensioned would change too" },
         { "what": "measurements.dimensions_before", "equal_to": 0,
-          "why": "si parte da zero, ed e' il contraltare di «dimensions_after»: senza, quattro quote potrebbero essere quattro quote che c'erano gia'" },
+          "why": "we start from zero, and it is the counterpart of «dimensions_after»: without it, four dimensions could be four dimensions that were already there" },
         { "what": "measurements.dimensions_placed", "equal_to": 2,
-          "_said_4_and_it_was_a_repeated_dimension": "Fino al 23/9/2026 questa attesa pretendeva **4**, e passava: si chiedevano quattro spigoli e nascevano quattro quote, 120/10/120/10. E' quotatura ripetuta — «ciascun elemento dell'oggetto deve essere quotato non piu' di una volta» (UNI ISO 129-1, nella scheda Sammarone per Zanichelli), e la figura corrispondente della fonte e' didascalizzata **«quindi errata»**. Il caso era verde su un difetto di disegno: *un'attesa verifica quello che le si chiede di verificare, non quello che sarebbe giusto*.",
-          "why": "quante ne sono NATE, contate prima e dopo — non quante volte ho chiamato l'API. Il valore che torna da chi ha fatto la cosa non e' la misura della cosa" },
+          "_said_4_and_it_was_a_repeated_dimension": "Up to 23/9/2026 this expectation demanded **4**, and it passed: four edges were asked for and four dimensions were born, 120/10/120/10. That is repeated dimensioning — «each element of the object must be dimensioned no more than once» (UNI ISO 129-1, in the Sammarone sheet for Zanichelli), and the corresponding figure of the source is captioned **«therefore wrong»**. The case was green on a drawing defect: *an expectation checks what it is asked to check, not what would be right*.",
+          "why": "how many were BORN, counted before and after — not how many times I called the API. The value that comes back from whoever did the thing is not the measure of the thing" },
 
-        { "what": "measurements.edges_discarded_duplicates", "includes": ["stessa misura"],
-          "why": "IL CONTRALTARE DI «2». Senza, `dimensions_placed` uguale 2 sarebbe verde anche se due spigoli non fossero stati quotati per un guasto. Qui si pretende che l'operazione DICA di averli scartati, e perche': chiedere quattro spigoli e vederne quotare due e' sorprendente finche' non si sa che e' una regola" },
+        { "what": "measurements.edges_discarded_duplicates", "includes": ["same measure"],
+          "why": "THE COUNTERPART OF «2». Without it, `dimensions_placed` equal to 2 would be green even if two edges had not been dimensioned because of a fault. Here we demand that the operation SAY it discarded them, and why: asking for four edges and seeing two dimensioned is surprising until you know it is a rule" },
 
         { "what": "measurements.dimensions[0].orientation", "includes": ["vertical"],
-          "why": "la prima quota e' la piu' piccola — 10 mm, lo spessore — e va messa per prima: «le linee di misura andranno disegnate in ordine progressivo, dalle minori alle maggiori, allontanandosi dal contorno delle figure». Su questo pezzo la piu' piccola e' quella verticale, quindi questa attesa prova l'ordine E la classificazione insieme" },
+          "why": "the first dimension is the smallest — 10 mm, the thickness — and goes first: «the dimension lines are to be drawn in progressive order, from the smaller to the larger, moving away from the outline of the figures». On this part the smallest is the vertical one, so this expectation proves the order AND the classification together" },
 
         { "what": "measurements.contour_grown", "equal_to": "no",
-          "_the_code_does_the_comparison": "La prima stesura di questa attesa usava un operatore `uguale_a_campo` per paragonare `contour_view_after_mm` con `contour_view_mm`. **Quell'operatore non esiste**: il valutatore del banco confronta una misura con un valore dichiarato, non due misure fra loro. Un'attesa scritta con un operatore inventato non e' un'attesa piu' debole: e' una riga che il banco non sa leggere. Il paragone e' stato spostato dentro l'operazione, che risponde «si», «no» o «sconosciuto» — e «sconosciuto» quando una delle due letture manca, perche' un confronto che non si e' potuto fare non e' un confronto andato bene.",
-          "why": "IL CONTORNO NON CRESCE con le quote attaccate alla vista. Se crescesse, ogni quota successiva scapperebbe piu' lontano della precedente e nessuno collegherebbe le due cose al piazzamento. Misurato il 23/9: [28.56, 218.55, 160.44, 240.43] prima e dopo" },
+          "_the_code_does_the_comparison": "The first draft of this expectation used an operator `uguale_a_campo` to compare `contour_view_after_mm` with `contour_view_mm`. **That operator does not exist**: the evaluator of the bench compares a measure with a declared value, not two measures with each other. An expectation written with an invented operator is not a weaker expectation: it is a line the bench cannot read. The comparison was moved inside the operation, which answers «yes», «no» or «unknown» — and «unknown» when one of the two readings is missing, because a comparison that could not be made is not a comparison that went well.",
+          "why": "THE OUTLINE DOES NOT GROW with the dimensions attached to the view. If it grew, every following dimension would run further away than the previous one and nobody would link the two things to the placement. Measured on 23/9: [28.56, 218.55, 160.44, 240.43] before and after" },
 
         { "what": "measurements.dimensions_mm", "includes": ["120"],
-          "why": "**IL PEZZO CHE VALE LA VOCE.** Non «e' comparsa una quota»: **quanto misura**. 120 e' la lunghezza della piastra, riletta da SOLIDWORKS con `GetSystemValue2` DOPO averla messa — non il numero che credevo di aver chiesto. Una quota che compare e misura un'altra cosa e' peggio di una quota che manca: sulla carta si legge uguale." },
+          "why": "**THE PART THAT MAKES THE ENTRY WORTH IT.** Not «a dimension appeared»: **what it measures**. 120 is the length of the plate, re-read by SOLIDWORKS with `GetSystemValue2` AFTER placing it — not the number I thought I had asked for. A dimension that appears and measures something else is worse than a dimension that is missing: on paper it reads the same." },
         { "what": "measurements.dimensions_mm", "includes": ["10"],
-          "_measured_here_and_not_elsewhere": "La stesura precedente pretendeva **5**, lo smusso — preso di nuovo dalla sonda, dove lo smusso era su quattro spigoli e si vedeva in quella vista. Qui lo smusso e' su UNO solo e non e' fra i quattro spigoli di questa vista. Misurato: `[120, 10, 120, 10]`. **Terza volta in un giorno che un numero arriva da una geometria diversa da quella in esame** — e le prime due le avevo gia' scritte come lezione.",
-          "why": "LA SECONDA MISURA, diversa dalla prima: 10 e' lo SPESSORE. La vista frontale mostra la sagoma 120 x 10, e queste sono le sue due dimensioni vere. Se l'operazione ripetesse sempre lo stesso valore, l'attesa qui sopra sarebbe verde lo stesso e questa no." },
+          "_measured_here_and_not_elsewhere": "The previous draft demanded **5**, the chamfer — taken again from the probe, where the chamfer was on four edges and showed up in that view. Here the chamfer is on ONE only and is not among the four edges of this view. Measured: `[120, 10, 120, 10]`. **The third time in a day that a number comes from a geometry different from the one under examination** — and I had already written the first two as a lesson.",
+          "why": "THE SECOND MEASURE, different from the first: 10 is the THICKNESS. The front view shows the 120 x 10 outline, and these are its two true dimensions. If the operation always repeated the same value, the expectation above would be green all the same and this one would not." },
 
         { "what": "measurements.dimensions_mm", "does_not_include": ["80"],
-          "why": "IL CONTRALTARE, ed e' quello che dice **su quale vista** ha quotato. 80 e' la larghezza della piastra: si vede nella vista dall'alto, non in questa. Se comparisse, l'operazione avrebbe quotato **un'altra vista** — e le due attese qui sopra sarebbero verdi lo stesso, perche' anche li' c'e' un 120. Senza questa riga, «contiene 120» non dice dove." },
+          "why": "THE COUNTERPART, and it is the one that says **in which view** it dimensioned. 80 is the width of the plate: it is seen in the view from above, not in this one. If it appeared, the operation would have dimensioned **another view** — and the two expectations above would be green all the same, because there too there is a 120. Without this line, «contains 120» does not say where." },
 
         { "what": "measurements.what_it_does_not_check", "includes": ["overlapping_texts"],
-          "_the_root_not_the_whole_word": "Questa attesa cercava la radice «accavall», non la parola intera (misurato il 23/9: «accavallano» -> «si accavalla»). Il 26/9 il testo ha smesso di coniugarla e cita il nome del campo, «overlapping_texts»: la finestra 2 ha tradotto quella citazione, e con lei la radice italiana. Il nome citato e' oggi la prova piu' stabile: e' quello che il codice scrive alla lettera.",
-          "why": "la cecita' viaggia con la risposta: l'operazione mette quote GIUSTE, non una tavola BELLA, e non guarda se si sovrappongono al disegno. Chi legge questa risposta potrebbe non aver letto il catalogo" },
+          "_the_root_not_the_whole_word": "This expectation looked for the root «accavall», not the whole word (measured on 23/9: «accavallano» -> «si accavalla»). On 26/9 the text stopped conjugating it and cites the name of the field, «overlapping_texts»: window 2 translated that quotation, and with it the Italian root. The name cited is today the most stable proof: it is what the code writes literally.",
+          "why": "the blindness travels with the answer: the operation puts RIGHT dimensions, not a NICE drawing, and does not look at whether they overlap the drawing. Whoever reads this answer may not have read the catalogue" },
 
         { "what": "state.dimensions_orphan_total", "equal_to": 0,
-          "why": "VOCE Z-A2, IL VERDE SU UN CASO VERO: due quote appena messe su spigoli che la vista mostra, e lo stato riletto da capo le dice agganciate. Il rosso — la quota che resta senza spigolo quando il pezzo cambia — lo prova il gruppo C# «orfane», perche' un caso dichiarato non sa tornare al pezzo dopo aver aperto la tavola. Zero qui e' un'affermazione: null vorrebbe dire «non lo so» (voce Z-C8)" } ] }
+          "why": "ENTRY Z-A2, THE GREEN ON A REAL CASE: two dimensions just placed on edges that the view shows, and the state re-read from scratch says they are attached. The red — the dimension that is left without an edge when the part changes — is proved by the C# group «orphans», because a declared case cannot go back to the part after opening the drawing. Zero here is an assertion: null would mean «I do not know» (entry Z-C8)" } ] }
   ]
 }

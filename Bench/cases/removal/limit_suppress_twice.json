@@ -1,7 +1,7 @@
 {
   "name": "limit_suppress_twice",
   "family": "removal",
-  "why": "Chiedere due volte la stessa soppressione NON HA ROTTO NIENTE, e non e' un errore di progetto: ma non si risponde «fatto», perche' allora «fatto» non distinguerebbe piu' un cambiamento da un nulla. Si rifiuta dicendo che era gia' cosi' e come si ottiene il contrario.",
+  "why": "Asking twice for the same suppression BROKE NOTHING, and it is not a design error: but it is not answered «done», because then «done» would no longer tell a change from nothing. It is refused saying that it was already so and how to get the opposite.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,20 +12,20 @@
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -60, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
-                    "tolerance_why": "400000 meno pi*7^2*20: il conto ha pi dentro" } ] },
+                    "tolerance_why": "400000 minus pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0,
                      "diameter_mm": 14, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 393842.48, "tolerance": 0.5,
-                    "tolerance_why": "400000 meno due volte pi*7^2*20: il conto ha pi dentro" } ] },
+                    "tolerance_why": "400000 minus twice pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "suppress_feature",
       "arguments": { "feature_uid": "Taglio-Estrusione2" },
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
-                    "tolerance_why": "torna il volume con un foro solo: il conto ha pi dentro" } ] },
+                    "tolerance_why": "the volume with a single hole comes back: the calculation has pi inside" } ] },
     { "operation": "suppress_feature",
       "arguments": { "feature_uid": "Taglio-Estrusione2" },
       "must_fail": {
-        "message_includes": ["gia' soppressa", "reactivate"],
+        "message_includes": ["already suppressed", "reactivate"],
         "volume_unchanged": true,
         "twin": "suppress_the_third_hole" } }
   ]

@@ -1,9 +1,9 @@
 {
   "name": "rib_in_the_hollowed_box",
   "family": "features",
-  "why": "VOCE W1.2. La forma dell'esempio della guida (Get_Rib_Feature_Data_Example_CSharp.htm: Shell1, Plane1, Rib1): una scatola svuotata con la nervatura sul piano di mezzo. E' il caso in cui il verso del materiale giusto e' il GIRATO -- la sonda del 28/9/2026 (righe S1/S2) l'ha visto nascere solo cosi' -- quindi qui il primo tentativo dell'operazione (dritto) non fa niente e deve riuscire il secondo. E' l'unico punto in cui i due tentativi sullo STESSO pezzo si misurano: la sonda faceva un pezzo nuovo per riga.",
-  "_the_numbers": "Scatola 40 x 40 x 20 = 32000; svuotata dall'alto con pareti da 2: il vuoto e' 36 x 36 x 18 = 23328, restano 8672 (come la sonda). La linea sta sul piano destro (x = 0) a y = 12, cioe' 10 mm sopra il fondo (che finisce a y = 2), da z = -15 a z = 15; prolungata tocca le due pareti interne a z = -18 e z = 18. La nervatura riempie 36 x 10 e spessa 2 fa +720: 8672 -> 9392, misurato.",
-  "defect_caught": "Un'operazione che provasse un verso solo (il dritto) qui rifiuterebbe una nervatura che si puo' fare. Una che non riselezionasse lo schizzo dopo il primo tentativo fallito, o che lasciasse in giro qualcosa del primo tentativo, si vedrebbe qui e non nella L.",
+  "why": "ENTRY W1.2. The shape of the example in the guide (Get_Rib_Feature_Data_Example_CSharp.htm: Shell1, Plane1, Rib1): a hollowed box with the rib on the middle plane. It is the case in which the right direction of the material is the FLIPPED one -- the probe of 28/9/2026 (lines S1/S2) saw it born only that way -- so here the first attempt of the operation (straight) does nothing and the second must succeed. It is the only place where the two attempts on the SAME part are measured: the probe made a new part per line.",
+  "_the_numbers": "Box 40 x 40 x 20 = 32000; hollowed from the top with walls of 2: the void is 36 x 36 x 18 = 23328, leaving 8672 (as in the probe). The line is on the right plane (x = 0) at y = 12, that is 10 mm above the bottom (which ends at y = 2), from z = -15 to z = 15; extended it touches the two inner walls at z = -18 and z = 18. The rib fills 36 x 10 and, 2 thick, makes +720: 8672 -> 9392, measured.",
+  "defect_caught": "An operation that tried only one direction (the straight one) would here refuse a rib that can be made. One that did not reselect the sketch after the first failed attempt, or that left something of the first attempt lying around, would be seen here and not in the L.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,30 +12,30 @@
       "expect": [
         { "what": "volume_mm3", "equal_to": 32000 },
         { "what": "state.bounding_box_from_mm", "equal_to": [-20, 0, -20],
-          "why": "LA SCATOLA CRESCE LUNGO +Y DA y = 0 (il superiore e' XZ, normale +Y): la linea del passo 3 e' scritta a y = 12 contando su questo. Se questo e' rosso, la nervatura non ha colpa." },
+          "why": "THE BOX GROWS ALONG +Y FROM y = 0 (the top plane is XZ, normal +Y): the line of step 3 is written at y = 12 counting on this. If this is red, the rib is not to blame." },
         { "what": "bounding_box_mm", "equal_to": [40, 20, 40] } ] },
     { "operation": "shell",
       "arguments": { "faces_uid": ["@face(normal=up)"], "thickness_mm": 2, "outward": false },
-      "expect": [ { "what": "volume_mm3", "equal_to": 8672, "tolerance": 0.05, "tolerance_why": "il guscio si legge da GetMassProperties in metri cubi: 8672 esatto sulla carta, 8672 al millesimo nel pezzo (banco intero del 28/9/2026, rosso senza tolleranza)" } ] },
+      "expect": [ { "what": "volume_mm3", "equal_to": 8672, "tolerance": 0.05, "tolerance_why": "the shell is read from GetMassProperties in cubic metres: 8672 exact on paper, 8672 to the thousandth in the part (whole bench of 28/9/2026, red without tolerance)" } ] },
     { "operation": "rib",
       "arguments": { "plane": "right",
                      "start_mm": [0, 12, -15], "end_mm": [0, 12, 15],
                      "thickness_mm": 2 },
       "expect": [
         { "what": "measurements.added_material_mm3", "equal_to": 720, "tolerance": 0.05,
-          "tolerance_why": "il volume si legge da GetMassProperties in metri cubi; la sonda ha misurato +720 al decimo" },
+          "tolerance_why": "the volume is read from GetMassProperties in cubic metres; the probe measured +720 to the tenth" },
         { "what": "volume_mm3", "equal_to": 9392, "tolerance": 0.05,
-          "tolerance_why": "lo stesso numero letto dallo stato invece che dalla risposta" },
+          "tolerance_why": "the same number read from the state instead of from the answer" },
         { "what": "measurements.material_side", "equal_to": "flipped",
-          "why": "nella scatola la sonda l'ha vista nascere solo col materiale girato: e' il verso opposto a quello della L" },
+          "why": "in the box the probe saw it born only with the flipped material: it is the opposite direction from that of the L" },
         { "what": "measurements.attempts", "equal_to": 2,
-          "why": "il primo verso (dritto) non fa nascere niente, il secondo si'" },
+          "why": "the first direction (straight) makes nothing, the second does" },
         { "what": "measurements.plane_created", "equal_to": false,
-          "why": "senza «distance_mm» lo schizzo sta sul piano destro, nessun piano nuovo" },
+          "why": "without «distance_mm» the sketch is on the right plane, no new plane" },
         { "what": "state.planes_available", "equal_to": 3 },
         { "what": "bounding_box_mm", "equal_to": [40, 20, 40] },
         { "what": "bodies", "equal_to": 1 },
         { "what": "how_many_features", "equal_to": 3,
-          "why": "estrusione, guscio e nervatura: il primo tentativo fallito non ha lasciato una seconda nervatura" } ] }
+          "why": "extrusion, shell and rib: the first failed attempt did not leave a second rib" } ] }
   ]
 }

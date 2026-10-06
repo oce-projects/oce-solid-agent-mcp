@@ -1,8 +1,8 @@
 {
   "name": "blind_becomes_through",
   "family": "features",
-  "why": "VOCE Z-F4. Una cieca che deve diventare passante, una piastra che deve crescere: prima l'unica strada era rifare il pezzo. Misurato il 27/9/2026 (prova0089 zf4): GetDefinition come IExtrudeFeatureData2, SetEndCondition/SetDepth, ModifyDefinition cambiano la lavorazione al suo posto, e il foro sulla faccia di sopra segue la piastra che cresce.",
-  "defect_caught": "La definizione creduta cambiata perche' ModifyDefinition ha risposto true, senza rileggerla ne' guardare il volume; «through_all» su un'estrusione; il foro che non segue la faccia quando la piastra cresce.",
+  "why": "ENTRY Z-F4. A blind hole that must become through, a plate that must grow: before, the only way was to redo the part. Measured on 27/9/2026 (prova0089 zf4): GetDefinition as IExtrudeFeatureData2, SetEndCondition/SetDepth, ModifyDefinition change the feature in place, and the hole on the top face follows the plate as it grows.",
+  "defect_caught": "The definition believed changed because ModifyDefinition answered true, without reading it back or looking at the volume; «through_all» on an extrusion; the hole that does not follow the face when the plate grows.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,32 +11,32 @@
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0, "diameter_mm": 8, "through_all": false, "depth_mm": 5 },
       "expect": [ { "what": "volume_mm3", "equal_to": 95748.67, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: 96000 meno pi x 4^2 x 5" } ] },
+                    "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 5" } ] },
     { "operation": "edit_extrusion",
       "arguments": { "feature_uid": "Taglio-Estrusione1", "through_all": true },
       "expect": [
         { "what": "measurements.end_before", "equal_to": "blind" },
-        { "what": "measurements.end_after", "equal_to": "through_all", "why": "riletta dalla definizione" },
+        { "what": "measurements.end_after", "equal_to": "through_all", "why": "read back from the definition" },
         { "what": "volume_mm3", "equal_to": 95497.35, "tolerance": 0.05,
-          "tolerance_why": "pi dentro: 96000 meno pi x 4^2 x 10" } ] },
+          "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 10" } ] },
     { "operation": "edit_extrusion",
       "arguments": { "feature_uid": "Taglio-Estrusione1", "depth_mm": 7 },
       "expect": [
         { "what": "measurements.end_after", "equal_to": "blind" },
         { "what": "measurements.depth_after_mm", "equal_to": 7 },
         { "what": "volume_mm3", "equal_to": 95648.14, "tolerance": 0.05,
-          "tolerance_why": "pi dentro: 96000 meno pi x 4^2 x 7" } ] },
+          "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 7" } ] },
     { "operation": "edit_extrusion",
       "arguments": { "feature_uid": "Estrusione-Estrusione1", "depth_mm": 12 },
       "expect": [
         { "what": "measurements.depth_before_mm", "equal_to": 10 },
-        { "what": "measurements.features_in_error", "equal_to": 0, "why": "il foro sulla faccia di sopra segue la piastra" },
+        { "what": "measurements.features_in_error", "equal_to": 0, "why": "the hole on the top face follows the plate" },
         { "what": "volume_mm3", "equal_to": 114848.14, "tolerance": 0.05,
-          "tolerance_why": "pi dentro: 120 x 80 x 12 meno pi x 4^2 x 7" } ] },
+          "tolerance_why": "pi inside: 120 x 80 x 12 minus pi x 4^2 x 7" } ] },
     { "operation": "edit_extrusion",
       "arguments": { "feature_uid": "Estrusione-Estrusione1", "through_all": true },
       "must_fail": {
-        "message_includes": ["«through_all» vale per un taglio", "depth_mm"],
+        "message_includes": ["«through_all» applies to a cut", "depth_mm"],
         "twin": "blind_becomes_through" } }
   ]
 }

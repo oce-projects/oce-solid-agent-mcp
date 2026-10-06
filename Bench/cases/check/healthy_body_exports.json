@@ -1,7 +1,7 @@
 {
   "name": "healthy_body_exports",
   "family": "check",
-  "why": "Il termine di paragone: un parallelepipedo estruso e basta. Un corpo solido solo, chiuso, senza difetti -- e l'operazione lo deve dire in chiaro. Senza questo caso, «non lo esporterei cosi'» su un pezzo rotto non distinguerebbe un controllo che funziona da uno che rifiuta tutto.",
+  "why": "The term of comparison: a box extruded and nothing else. A single solid body, closed, without defects -- and the operation must say so plainly. Without this case, «I would not export it like this» on a broken part would not tell a check that works from one that refuses everything.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -22,12 +22,12 @@
         { "what": "measurements.bodies[0].closed", "equal_to": true },
         { "what": "measurements.bodies[0].gaps", "equal_to": 0 },
         { "what": "measurements.bodies[0].check_raw", "equal_to": 1,
-          "_why_one": "«Check() dice UNO su un corpo sano»: e' la meta' della trappola. L'altra e' la riga qui sotto." },
+          "_why_one": "«Check() says ONE on a sound body»: it is half of the trap. The other half is the line below." },
         { "what": "measurements.bodies[0].check2_raw", "equal_to": 0,
-          "_why_zero": "«Check2() dice ZERO sullo stesso corpo sano». Due convenzioni opposte nella stessa interfaccia: chi ne scambia una ottiene un risultato coerente, stabile e rovesciato. Questi due numeri stanno qui apposta, perche' il giorno in cui una versione di SOLIDWORKS li cambia lo si veda da qui e non da un giudizio girato al contrario." },
-        { "what": "measurements.verdict", "includes": ["si puo' esportare"] },
+          "_why_zero": "«Check2() says ZERO on the same sound body». Two opposite conventions in the same interface: whoever swaps one gets a result that is consistent, stable and upside down. These two numbers are here on purpose, because the day a version of SOLIDWORKS changes them it will be seen from here and not from a verdict turned the wrong way round." },
+        { "what": "measurements.verdict", "includes": ["as geometry it can be exported"] },
         { "what": "measurements.what_it_does_not_check",
-          "includes": ["spessore delle pareti", "sovrasporgenze"],
-          "why": "il limite si dichiara a ogni chiamata, non una volta nella descrizione: chi legge la risposta potrebbe non aver mai letto il catalogo." } ] }
+          "includes": ["wall thickness", "overhanging parts"],
+          "why": "the limit is declared at every call, not once in the description: whoever reads the answer may never have read the catalogue." } ] }
   ]
 }

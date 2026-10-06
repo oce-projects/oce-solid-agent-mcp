@@ -1,7 +1,7 @@
 {
   "name": "limit_dimension_that_will_not_leave_the_fillet_alone",
   "family": "features",
-  "why": "Due raccordi da 8 sugli spigoli in cima, poi lo spessore portato a 6: il raccordo non ci sta piu'. SOLIDWORKS NON FALLISCE — ricostruisce pulito, zero lavorazioni in errore, e cambia la forma da solo (misurato col banchetto `prova0089 storia`, 26/9/2026). L'unico segno e' che l'estrusione di base perde due facce intere (6 -> 4): i fianchi se li prendono i raccordi. E' il meccanismo del caso r05 della regressione, l'ultimo dei silenzi. `set_dimension` deve rifiutare, dire QUALE raccordo, e rimettere il valore di prima.",
+  "why": "Two fillets of 8 on the edges at the top, then the thickness brought to 6: the fillet no longer fits. SOLIDWORKS DOES NOT FAIL — it rebuilds clean, zero features in error, and changes the shape by itself (measured with the bench probe `prova0089 storia`, 26/9/2026). The only sign is that the base extrusion loses two whole faces (6 -> 4): the sides are taken by the fillets. It is the mechanism of case r05 of the regression, the last of the silences. `set_dimension` must refuse, say WHICH fillet, and put back the previous value.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,11 +14,11 @@
       "expect": [
         { "what": "measurements.edges", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 117253.1, "tolerance": 0.05,
-          "tolerance_why": "120000 meno 2 x (1 - pi/4) x 8^2 x 100 = 2746,9: il conto ha pi dentro" } ] },
+          "tolerance_why": "120000 minus 2 x (1 - pi/4) x 8^2 x 100 = 2746.9: the calculation has pi inside" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "value_mm": 6 },
       "must_fail": {
-        "message_includes": ["non ci sta piu'", "si prende una faccia intera", "ho rimesso 20 mm"],
+        "message_includes": ["no longer fits", "takes a whole face", "restored 20 mm"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "dimension_that_leaves_the_fillet_alone" } }

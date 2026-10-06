@@ -1,8 +1,8 @@
 {
   "name": "plate_dimensions_itself",
   "family": "dimensions",
-  "why": "VOCE Z-H3. La piastra di `Checks/DimXpert` (24/9/2026): 100 x 60 x 10 con un foro passante da 20 al centro. Uno schema DimXpert, dal nucleo e senza add-in, con tre riferimenti — fondo, fianco sinistro, retro — deve mettere le quote che un disegnatore metterebbe, coi valori giusti.",
-  "_why_the_values_and_not_the_count": "Sei quote qualunque sarebbero sei quote. `values_mm` e' l'elenco ordinato dei numeri che le quote portano, ed e' quello che distingue uno schema giusto da uno che ha quotato altro: 10 lo spessore, 20 il foro, 30 e 50 la posizione del foro dai due fianchi di riferimento, 60 e 100 i lati.",
+  "why": "ENTRY Z-H3. The plate of `Checks/DimXpert` (24/9/2026): 100 x 60 x 10 with a through hole of 20 in the centre. A DimXpert scheme, from the core and without an add-in, with three references — bottom, left side, back — must put the dimensions a draughtsman would put, with the right values.",
+  "_why_the_values_and_not_the_count": "Any six dimensions would be six dimensions. `values_mm` is the ordered list of the numbers the dimensions carry, and it is what tells a right scheme from one that dimensioned something else: 10 the thickness, 20 the hole, 30 and 50 the position of the hole from the two reference sides, 60 and 100 the sides.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,13 +14,13 @@
                      "diameter_mm": 20, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 56858.41, "tolerance": 0.1,
-          "tolerance_why": "60000 meno pi * 10^2 * 10 = 3141,59" } ] },
+          "tolerance_why": "60000 minus pi * 10^2 * 10 = 3141.59" } ] },
     { "operation": "dimension_scheme",
       "arguments": { "references_uid": ["@face(normal=down)", "@face(normal=left)",
                                           "@face(normal=back)"] },
       "expect": [
         { "what": "measurements.annotations_before", "equal_to": 0 },
         { "what": "measurements.values_mm", "equal_to": [10, 20, 30, 50, 60, 100], "tolerance": 0.001,
-          "tolerance_why": "i valori li scrive DimXpert nel nome della quota, arrotondati al millesimo" } ] }
+          "tolerance_why": "the values are written by DimXpert in the name of the dimension, rounded to the thousandth" } ] }
   ]
 }

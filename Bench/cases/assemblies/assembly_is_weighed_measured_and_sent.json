@@ -1,8 +1,8 @@
 {
   "name": "assembly_is_weighed_measured_and_sent",
   "family": "assemblies",
-  "why": "VOCI Z-D1 e Z-D6. Le prime domande su una scatola stagna sono «quanto pesa» e «in che scatola ci sta», e la seconda cosa che si fa e' mandarla al fornitore. mass_properties, body_bounding_box ed export_step rifiutavano un assieme («non e' un pezzo»). Una base 120x80x10 in AISI 304 e un coperchio 120x80x4 in S235JR appoggiato sopra (y = 7). Misurato il 27/9/2026 (prova0089 zd1): la massa dell'assieme e' ESATTAMENTE la somma dei pezzi; i corpi dei componenti arrivano nello spazio della PARTE e vanno portati nell'assieme; lo STEP dell'assieme ha un MANIFOLD_SOLID_BREP per corpo, e rileggerlo apre un modale.",
-  "defect_caught": "L'assieme rifiutato; la massa che non somma i pezzi (o li somma due volte); l'ingombro calcolato nello spazio delle parti (il coperchio a y 0..4 invece di 5..9: 120 x 10 x 80 invece di 120 x 14 x 80); uno STEP che perde un componente; la rilettura dello STEP d'assieme che appende il ponte.",
+  "why": "ENTRIES Z-D1 and Z-D6. The first questions about a watertight box are «how much does it weigh» and «what box does it fit in», and the second thing you do is send it to the supplier. mass_properties, body_bounding_box and export_step used to refuse an assembly («it is not a part»). A 120x80x10 base in AISI 304 and a 120x80x4 cover in S235JR resting on top of it (y = 7). Measured on 27/9/2026 (prova0089 zd1): the mass of the assembly is EXACTLY the sum of the parts; the component bodies arrive in the space of the PART and have to be brought into the assembly; the STEP of the assembly has one MANIFOLD_SOLID_BREP per body, and reading it back opens a modal dialog.",
+  "defect_caught": "The assembly refused; a mass that does not add up the parts (or adds them twice); a bounding box computed in the space of the parts (the cover at y 0..4 instead of 5..9: 120 x 10 x 80 instead of 120 x 14 x 80); a STEP that loses a component; reading back the assembly STEP, which hangs the bridge.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -25,30 +25,30 @@
       "arguments": {},
       "expect": [
         { "what": "measurements.mass_kg", "equal_to": 1.0675, "tolerance": 0.0001,
-          "tolerance_why": "arrotondata a quattro decimali: 0,768 (96000 mm3 x 8000) + 0,29952 (38400 mm3 x 7800) = 1,06752",
-          "why": "l'assieme intero, coi materiali dei pezzi" },
+          "tolerance_why": "rounded to four decimals: 0.768 (96000 mm3 x 8000) + 0.29952 (38400 mm3 x 7800) = 1.06752",
+          "why": "the whole assembly, with the materials of the parts" },
         { "what": "measurements.sum_of_parts_kg", "equal_to": 1.0675, "tolerance": 0.0001,
-          "tolerance_why": "la stessa: il controllo indipendente, pezzo per pezzo",
-          "why": "la massa dell'assieme contro la somma dei suoi pezzi letti uno per uno" },
+          "tolerance_why": "the same: the independent check, part by part",
+          "why": "the mass of the assembly against the sum of its parts read one by one" },
         { "what": "measurements.components_weighed", "equal_to": 2 },
         { "what": "measurements.volume_mm3", "equal_to": 134400, "tolerance": 0.5,
-          "tolerance_why": "96000 + 38400, arrotondato al centesimo" } ] },
+          "tolerance_why": "96000 + 38400, rounded to the hundredth" } ] },
     { "operation": "body_bounding_box",
       "arguments": {},
       "expect": [
         { "what": "measurements.bounding_box_mm", "equal_to": [120, 14, 80], "tolerance": 0.01,
-          "tolerance_why": "punti estremi veri, arrotondati",
-          "why": "la base da -5 a 5, il coperchio da 5 a 9: 14 in altezza. Nello spazio delle parti sarebbe 10" } ] },
+          "tolerance_why": "true extreme points, rounded",
+          "why": "the base from -5 to 5, the cover from 5 to 9: 14 high. In the space of the parts it would be 10" } ] },
     { "operation": "export_step",
       "arguments": { "path": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step" },
       "expect": [
-        { "what": "measurements.solids_in_file", "equal_to": 2, "why": "un MANIFOLD_SOLID_BREP per pezzo" },
-        { "what": "measurements.solids_expected", "equal_to": 2, "why": "i corpi dei pezzi non soppressi" },
+        { "what": "measurements.solids_in_file", "equal_to": 2, "why": "one MANIFOLD_SOLID_BREP per part" },
+        { "what": "measurements.solids_expected", "equal_to": 2, "why": "the bodies of the parts that are not suppressed" },
         { "what": "measurements.protocol_returned", "equal_to": "AP214" } ] },
     { "operation": "export_step",
       "arguments": { "path": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step", "reopen_and_compare": true },
       "must_fail": {
-        "message_includes": ["reopen_and_compare", "Nuovo documento"],
+        "message_includes": ["reopen_and_compare", "New Document"],
         "twin": "assembly_is_weighed_measured_and_sent" } }
   ]
 }

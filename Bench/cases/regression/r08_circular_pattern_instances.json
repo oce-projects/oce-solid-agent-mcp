@@ -1,9 +1,9 @@
 {
   "name": "r08_circular_pattern_instances",
   "family": "regression",
-  "why": "Sei fori ripetuti attorno all'asse di un cilindro, e il cilindro esterno cresce. La ripetizione circolare e' ancorata all'asse, non alla superficie: cambiare il diametro esterno non deve toccare ne' il numero dei fori ne' il raggio su cui stanno.",
+  "why": "Six holes repeated around the axis of a cylinder, and the outer cylinder grows. The circular pattern is anchored to the axis, not to the surface: changing the outer diameter must touch neither the number of holes nor the radius they sit on.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "la corona sta dove la mette il disegno. Ingrossare l'esterno da 100 a 140 lascia i sei fori dove sono: si misura che siano ancora sei, con gli stessi centri e lo stesso diametro.",
+  "intent_why": "the bolt circle is where the drawing puts it. Thickening the outside from 100 to 140 leaves the six holes where they are: we measure that they are still six, with the same centres and the same diameter.",
   "build": [
     {
       "operation": "extrude_circle",
@@ -32,12 +32,12 @@
   "after": [
     { "what": "bounding_box_mm", "equal_to": [140, 140, 50],
       "tolerance": 0.02,
-      "tolerance_why": "l'ingombro di un cilindro si legge con GetExtremePoint" },
+      "tolerance_why": "the bounding box of a cylinder is read with GetExtremePoint" },
     { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "sei fori piu' il cilindro esterno: l'asse si legge da CylinderParams, che torna metri" },
+      "tolerance_why": "six holes plus the outer cylinder: the axis is read from CylinderParams, which returns metres" },
     { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "come sopra" }
+      "tolerance_why": "as above" }
   ]
 }

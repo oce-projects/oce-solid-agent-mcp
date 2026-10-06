@@ -1,9 +1,9 @@
 {
   "name": "walls_at_sixty_degrees_do_not_print",
   "family": "check",
-  "why": "L'altra meta' del criterio della voce: «su un pezzo con una faccia nota a 60 gradi l'operazione la classifica come non supportata». Le quattro pareti si fanno con `draft`, che le inclina di un angolo che si sceglie -- quindi la faccia a 60 gradi non e' disegnata a mano e sperata: e' costruita da un'operazione che a sua volta misura quello che ha fatto.",
-  "_why_flip_is_needed": "QUESTA RIGA E' COSTATA UN ROSSO, ed e' il ragionamento che viene istintivo e sbagliato. Senza capovolgere, lo sformo allarga il pezzo andando verso il basso: viene un tronco di piramide appoggiato sulla base larga, che e' la forma che si regge da sola -- le pareti pendono all'INFUORI e le loro normali guardano in SU. Il banco ha risposto «0 facce sporgenti» ed era giusto lui. La forma che pende e' quella che si STRINGE verso il basso, cioe' il tronco rovesciato: quella si ottiene con «flip», e infatti il pezzo cala di volume invece di crescere. Il volume, qui, e' il segno di cosa si sta costruendo.",
-  "_why_three_thresholds": "Con 45 gradi non si stampa, con 70 si'. Se la soglia non venisse usata -- se fosse scritta dentro -- le due risposte sarebbero uguali, e nessuno se ne accorgerebbe guardando solo il caso a 45.",
+  "why": "The other half of the criterion of the entry: «on a part with a known face at 60 degrees the operation classifies it as unsupported». The four walls are made with `draft`, which tilts them by an angle one chooses -- so the face at 60 degrees is not drawn by hand and hoped for: it is built by an operation that in turn measures what it did.",
+  "_why_flip_is_needed": "THIS LINE COST A RED, and it is the reasoning that comes instinctively and is wrong. Without flipping, the draft widens the part going downwards: it becomes a frustum of a pyramid resting on the wide base, which is the shape that holds itself up -- the walls overhang OUTWARDS and their normals look UP. The bench answered «0 overhanging faces» and it was the bench that was right. The shape that overhangs is the one that NARROWS going down, that is the upside-down frustum: that is obtained with «flip», and indeed the part loses volume instead of gaining it. The volume, here, is the sign of what is being built.",
+  "_why_three_thresholds": "At 45 degrees it does not print, at 70 it does. If the threshold were not used -- if it were written inside -- the two answers would be the same, and nobody would notice looking only at the case at 45.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -18,30 +18,30 @@
       "expect": [
         { "what": "measurements.faces_at_corner_after", "equal_to": 4 },
         { "what": "measurements.part_grew", "equal_to": false,
-          "why": "IL SEGNO DICE LA FORMA. Cala perche' si stringe verso il basso: e' il tronco di piramide rovesciato, cioe' la forma che pende. Se qui crescesse, avremmo costruito quella che si regge da sola e il passo dopo non proverebbe niente." } ] },
+          "why": "THE SIGN SAYS THE SHAPE. It drops because it narrows towards the bottom: it is the upside-down frustum of a pyramid, that is the shape that overhangs. If here it grew, we would have built the one that holds itself up and the next step would prove nothing." } ] },
     { "operation": "check_overhangs",
       "arguments": {},
       "expect": [
         { "what": "measurements.faces_overhanging", "equal_to": 4 },
         { "what": "measurements.overhang_worst_deg", "equal_to": 60, "tolerance": 0.1,
-          "tolerance_why": "l'angolo si ricava dalle normali dei triangoli, che sono in virgola mobile singola",
-          "why": "IL NUMERO CHE CHIUDE IL CERCHIO. Lo sformo ha inclinato le pareti di 60 gradi dalla verticale, e la verifica -- che non sa niente dello sformo e guarda solo la geometria -- ritrova 60. Due strade indipendenti verso lo stesso numero." },
+          "tolerance_why": "the angle is derived from the normals of the triangles, which are single-precision floating point",
+          "why": "THE NUMBER THAT CLOSES THE CIRCLE. The draft tilted the walls by 60 degrees from the vertical, and the check -- which knows nothing of the draft and looks only at the geometry -- finds 60 again. Two independent roads to the same number." },
         { "what": "measurements.prints_without_supports", "equal_to": false },
-        { "what": "measurements.verdict", "includes": ["NON si stampa senza supporti"] },
+        { "what": "measurements.verdict", "includes": ["NOT print without supports"] },
         { "what": "measurements.overhangs[0].overhang_deg", "equal_to": 60, "tolerance": 0.1,
-          "tolerance_why": "come sopra" } ] },
+          "tolerance_why": "as above" } ] },
     { "operation": "check_overhangs",
       "arguments": { "threshold_deg": 70 },
       "expect": [
         { "what": "measurements.threshold_deg", "equal_to": 70 },
         { "what": "measurements.faces_overhanging", "equal_to": 0,
-          "why": "LA SOGLIA SI USA DAVVERO. Stesso pezzo, stessa geometria: cambiando solo il numero la risposta si rovescia. Se la soglia fosse scritta dentro, questo passo darebbe 4 come quello di sopra." },
+          "why": "THE THRESHOLD IS REALLY USED. Same part, same geometry: changing only the number the answer flips. If the threshold were written inside, this step would give 4 like the one above." },
         { "what": "measurements.prints_without_supports", "equal_to": true } ] },
     { "operation": "check_overhangs",
       "arguments": { "print_direction": [0, 0, -1] },
       "expect": [
         { "what": "measurements.faces_overhanging", "equal_to": 0,
-          "why": "E GIRANDO IL PEZZO SI STAMPA. Stampato al contrario, il tronco rovesciato torna appoggiato sulla base larga: la stessa geometria, la stessa soglia, e nessuna sporgenza. E' la risposta alla domanda «e se lo stampassi girato?» senza girare il pezzo." },
+          "why": "AND TURNED AROUND THE PART PRINTS. Printed the other way round, the upside-down frustum is back resting on the wide base: the same geometry, the same threshold, and no overhang. It is the answer to the question «what if I printed it turned over?» without turning the part." },
         { "what": "measurements.prints_without_supports", "equal_to": true },
         { "what": "measurements.print_direction", "equal_to": [0, 0, -1] } ] }
   ]

@@ -1,7 +1,7 @@
 {
   "name": "slot_is_corrected_with_the_dimension",
   "family": "slot",
-  "why": "VOCE E18, il pezzo che serviva all'ancora e che vale anche senza. Fino alla libreria 0.117.0 lo schizzo dell'asola nasceva con quattro entita' e basta — niente relazioni, niente quote — e un'asola fatta non si poteva correggere: `set_dimension` non aveva niente da prendere. Adesso nasce con tangenze, raggi uguali, una mezzeria di costruzione fra i centri e due quote: il RAGGIO (D1 = 10) e la distanza fra i centri (D2 = 40). Misurato il 25/9/2026: portata D2 a 60 l'asola resta un'asola, col volume atteso al centesimo.",
+  "why": "ENTRY E18, the part that the anchor needed and that is worth having without it. Up to library 0.117.0 the sketch of the slot was born with four entities and nothing else — no relations, no dimensions — and a slot that was made could not be corrected: `set_dimension` had nothing to take. Now it is born with tangencies, equal radii, a construction midline between the centres and two dimensions: the RADIUS (D1 = 10) and the distance between the centres (D2 = 40). Measured on 25/9/2026: with D2 brought to 60 the slot stays a slot, with the expected volume to the hundredth.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,13 +14,13 @@
       "expect": [
         { "what": "measurements.dimensions_on_sketch", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 457716.81, "tolerance": 0.05,
-          "tolerance_why": "480000 meno (40*20 + pi*10^2) * 20" } ] },
+          "tolerance_why": "480000 minus (40*20 + pi*10^2) * 20" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo2,name=D2)", "value_mm": 60 },
       "expect": [
         { "what": "measurements.before_mm", "equal_to": 40 },
         { "what": "measurements.now_mm", "equal_to": 60 },
         { "what": "volume_mm3", "equal_to": 449716.81, "tolerance": 0.05,
-          "tolerance_why": "480000 meno (60*20 + pi*10^2) * 20: i centri a 60, le estremita' ancora tonde di raggio 10 e tangenti ai lati" } ] }
+          "tolerance_why": "480000 minus (60*20 + pi*10^2) * 20: the centres at 60, the ends still round with radius 10 and tangent to the sides" } ] }
   ]
 }

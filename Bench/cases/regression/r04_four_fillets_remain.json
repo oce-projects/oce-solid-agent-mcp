@@ -1,9 +1,9 @@
 {
   "name": "r04_four_fillets_remain",
   "family": "regression",
-  "why": "Quattro raccordi R5 sugli spigoli verticali, e la piastra si allunga. I raccordi non hanno una posizione loro: seguono gli spigoli. E' il caso che DEVE reggere, e serve a distinguere «il controllo funziona» da «tutto si stacca».",
+  "why": "Four R5 fillets on the vertical edges, and the plate gets longer. The fillets have no position of their own: they follow the edges. It is the case that MUST hold, and it serves to tell «the check works» from «everything comes off».",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "un raccordo su uno spigolo e' ancorato allo spigolo per costruzione: allungare il pezzo sposta due dei quattro, e restano quattro raccordi da 5. Qui si misura che ci siano ancora, e che siano ancora da 5.",
+  "intent_why": "a fillet on an edge is anchored to the edge by construction: lengthening the part moves two of the four, and four fillets of 5 remain. Here we measure that they are still there, and that they are still 5.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -24,6 +24,6 @@
     { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
     { "what": "diameters_mm", "same_as_before": true,
       "tolerance": 0.02,
-      "tolerance_why": "quattro facce cilindriche di raggio 5: il diametro si legge da CylinderParams in metri" }
+      "tolerance_why": "four cylindrical faces of radius 5: the diameter is read from CylinderParams in metres" }
   ]
 }

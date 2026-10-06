@@ -1,8 +1,8 @@
 {
   "name": "limit_two_bodies_do_not_export",
   "family": "export",
-  "why": "IL RIFIUTO CHE E' IL MOTIVO DELL'OPERAZIONE. Un STL di due corpi e' due gusci separati: si apre, si affetta e si stampa, e la stampante non sa quale dei due era il pezzo. Nessun errore, in nessun punto della catena -- e la misura del file (esiste, pesa qualcosa) non lo cattura. Per questo la verifica gira PRIMA di scrivere, e non dopo.",
-  "_why_the_sentence": "il rifiuto deve dire COSA non andava, non «non esporto»: chi legge non ha il pezzo davanti. E deve dire come scavalcarlo, perche' un giorno qualcuno avra' ragione lui.",
+  "why": "THE REFUSAL THAT IS THE REASON FOR THE OPERATION. An STL of two bodies is two separate shells: it opens, it gets sliced and printed, and the printer does not know which of the two was the part. No error, anywhere in the chain -- and the measure of the file (it exists, it weighs something) does not catch it. That is why the check runs BEFORE writing, and not after.",
+  "_why_the_sentence": "the refusal must say WHAT was wrong, not «I do not export»: whoever reads does not have the part in front of them. And it must say how to override it, because one day somebody will be right.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,7 +15,7 @@
     { "operation": "export_stl",
       "arguments": { "path": "{LAVORO}\\gp2_due_corpi.stl" },
       "must_fail": {
-        "message_includes": ["I do not export", "2 corpi", "export_anyway"],
+        "message_includes": ["I do not export", "2 bodies", "export_anyway"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "box_twelve_triangles" } }

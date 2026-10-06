@@ -1,7 +1,7 @@
 {
   "name": "limit_anchored_boss_neither_round_nor_rectangular",
   "family": "extrusions",
-  "why": "VOCE E18: l'ancora di un rialzo tiene il CENTRO del contorno, e quale sia il centro di un triangolo (baricentro? circocentro? il centro della scatola?) lo decide chi disegna. Indovinarlo vorrebbe dire ancorare un punto che non ha scelto nessuno: si rifiuta prima di toccare il pezzo, e si dice per quali contorni vale.",
+  "why": "ENTRY E18: the anchor of a boss keeps the CENTRE of the outline, and which is the centre of a triangle (centroid? circumcentre? the centre of the box?) is decided by whoever draws it. Guessing it would mean anchoring a point that nobody chose: it is refused before touching the part, and it says for which outlines it holds.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,7 +14,7 @@
                      "anchor": { "x": { "centered_between": [ "@edge(axis=Y,x~=-100,z~=20)", "@edge(axis=Y,x~=100,z~=20)" ] },
                                  "y": { "edge_uid": "@edge(axis=X,y~=-60,z~=20)", "distance_mm": 30 } } },
       "must_fail": {
-        "message_includes": ["UN contorno solo, tondo o rettangolare", "ne' un cerchio ne' un rettangolo"],
+        "message_includes": ["ONE contour only, round or rectangular", "neither a circle nor an aligned rectangle"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "anchored_round_boss_follows_the_border" } }

@@ -1,7 +1,7 @@
 {
   "name": "limit_open_hem_without_gap",
   "family": "sheet_metal",
-  "why": "Un orlo «open» senza gioco e' un orlo chiuso chiesto col nome sbagliato: si rifiuta prima di toccare il pezzo, dicendo cosa manca e come si chiama la cosa che forse si voleva.",
+  "why": "An «open» hem without a gap is a closed hem asked for with the wrong name: it is refused before touching the part, saying what is missing and what the thing that was perhaps wanted is called.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -12,7 +12,7 @@
       "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "variant": "open",
                      "length_mm": 10, "gap_mm": 0 },
       "must_fail": {
-        "message_includes": ["gap_mm", "maggiore di zero", "«closed»"],
+        "message_includes": ["gap_mm", "greater than zero", "«closed»"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "open_hem_checks_out" } }

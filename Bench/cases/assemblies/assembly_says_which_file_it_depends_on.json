@@ -1,8 +1,8 @@
 {
   "name": "assembly_says_which_file_it_depends_on",
   "family": "assemblies",
-  "why": "VOCE Z-B3. Un assieme e' un grafo di file sul disco, e il modello non sapeva su quali file poggia. Misurato il 27/9/2026 (prova0089 zb3): GetDependencies da' le coppie nome/percorso a tutti i livelli; il parametro «ListBrokenRefs» NON segna i file che mancano (il coperchio rinominato sul disco compariva come gli altri) — lo dice solo il disco. Il caso prova l'assieme sano; il file mancante e' stato visto dalla sonda (File.Exists falso, componente soppresso, OpenDoc6 errori 2).",
-  "defect_caught": "Un elenco di dipendenze vuoto o con un file solo; i file dei componenti presi per mancanti; lo stato che dice file_missing su un assieme sano.",
+  "why": "ENTRY Z-B3. An assembly is a graph of files on disk, and the model did not know which files it rests on. Measured on 27/9/2026 (prova0089 zb3): GetDependencies gives the name/path pairs at every level; the parameter «ListBrokenRefs» does NOT flag the files that are missing (the cover renamed on disk showed up like the others) — only the disk says so. The case proves the healthy assembly; the missing file was seen by the probe (File.Exists false, component suppressed, OpenDoc6 errors 2).",
+  "defect_caught": "An empty dependency list, or one with a single file; the component files taken for missing; the state saying file_missing on a healthy assembly.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -25,8 +25,8 @@
     { "operation": "file_dependencies",
       "arguments": {},
       "expect": [
-        { "what": "measurements.how_many_files", "equal_to": 2, "why": "la base e il coperchio" },
-        { "what": "measurements.how_many_missing", "equal_to": 0, "why": "tutti e due sul disco" },
+        { "what": "measurements.how_many_files", "equal_to": 2, "why": "the base and the cover" },
+        { "what": "measurements.how_many_missing", "equal_to": 0, "why": "both on disk" },
         { "what": "measurements.file[0].exists", "equal_to": true },
         { "what": "measurements.file[1].exists", "equal_to": true } ] }
   ]

@@ -1,7 +1,7 @@
 {
   "name": "limit_distance_of_a_face_from_itself",
   "family": "measurement",
-  "why": "La distanza di una faccia da se stessa e' zero, e lo zero e' la risposta piu' pericolosa che questa operazione possa dare: «zero» vuol dire «si toccano», ed e' cio' che si guarda per sapere se due pezzi interferiscono. Uno zero che viene da un uid ripetuto per distrazione e' indistinguibile da uno che viene da due pezzi che si toccano davvero.",
+  "why": "The distance of a face from itself is zero, and zero is the most dangerous answer this operation can give: «zero» means «they touch», and it is what we look at to know whether two parts interfere. A zero that comes from a uid repeated by distraction is indistinguishable from one that comes from two parts that really touch.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,7 +11,7 @@
     { "operation": "minimum_distance",
       "arguments": { "start_uid": "@face(normal=front)", "end_uid": "@face(normal=front)" },
       "must_fail": {
-        "message_includes": ["la stessa cosa", "non e' una misura"],
+        "message_includes": ["the same thing", "is not a measurement"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "distance_between_two_faces" } }

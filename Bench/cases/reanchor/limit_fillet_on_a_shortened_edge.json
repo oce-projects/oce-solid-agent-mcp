@@ -1,7 +1,7 @@
 {
   "name": "limit_fillet_on_a_shortened_edge",
   "family": "reanchor",
-  "why": "VOCE E19, il gemello cattivo. Stesso piano del caso gemello, ma al posto del foro uno smusso 5 x 45 sullo spigolo in alto davanti: lo spigolo verticale dell'angolo non e' piu' lungo 20 ma 15, e il suo punto medio scende da z = 10 a z = 7,5. Lo spigolo che il piano aveva visto NON C'E' PIU'. Il piu' vicino c'e' — sta nello stesso angolo — e prenderlo sarebbe il difetto peggiore: un raccordo riuscito su una cosa che il piano non ha nominato. La ricerca per firma vuole la stessa lunghezza nello stesso punto, e qui non la trova: rifiuta.",
+  "why": "ENTRY E19, the bad twin. Same plan as the twin case, but in place of the hole a 5 x 45 chamfer on the top-front edge: the vertical edge of the corner is no longer 20 long but 15, and its midpoint goes down from z = 10 to z = 7.5. The edge the plan had seen IS NO LONGER THERE. The nearest one is — it is in the same corner — and taking it would be the worst defect: a fillet that succeeded on something the plan did not name. The search by signature wants the same length at the same point, and here it does not find it: it refuses.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,13 +12,13 @@
       "arguments": { "edges_uid": [ "@edge(axis=X,y~=30,z~=20)" ], "leg_mm": 5, "angle_deg": 45 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 118750,
-          "_why_exact": " 120000 meno 5*5/2*100 e' un conto esatto" } ] },
+          "_why_exact": " 120000 minus 5*5/2*100 is an exact calculation" } ] },
     { "operation": "fillet_edges",
       "uid_from_step": 2,
       "arguments": { "edges_uid": [ "@edge(axis=Z,x~=50,y~=30)" ], "radius_mm": 5 },
-      "_why_the_different_radius": "5 invece dell'8 della gemella: il rifiuto non dipende dal raggio, e un rifiuto con gli argomenti IDENTICI alla gemella non prova il criterio (voce F5). Qui il criterio sta nel passo prima.",
+      "_why_the_different_radius": "5 instead of the 8 of the twin: the refusal does not depend on the radius, and a refusal with arguments IDENTICAL to the twin does not prove the criterion (entry F5). Here the criterion is in the step before.",
       "must_fail": {
-        "message_includes": ["non scelgo il piu' vicino"],
+        "message_includes": ["I do not choose the closest one"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_finds_the_renumbered_edge_again" } }

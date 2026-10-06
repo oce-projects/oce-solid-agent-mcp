@@ -1,7 +1,7 @@
 {
   "name": "limit_slot_outside_the_part",
   "family": "slot",
-  "why": "Tutta fuori dal pezzo: il taglio non toglie niente, e va detto. Fino alla 0.42.0 la risposta era «il taglio non e' stato creato», identica a quella di un profilo troppo grande -- due cose da fare opposte, spostare o rimpicciolire, e il messaggio non diceva quale.",
+  "why": "Entirely outside the part: the cut removes nothing, and that must be said. Up to 0.42.0 the answer was «the cut was not created», identical to that of a profile that is too big -- two opposite things to do, move or shrink, and the message did not say which.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,7 +10,7 @@
     { "operation": "slot",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 400, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": true },
       "must_fail": {
-        "message_includes": ["cade tutto fuori dal materiale", "-100 a 100"],
+        "message_includes": ["falls entirely outside the material", "-100 to 100"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "off_center_slot" } }

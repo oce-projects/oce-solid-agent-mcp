@@ -5,10 +5,10 @@
   "comments": 1791,
   "strings": 18511,
   "markdown": 11388,
-  "json_values": 54633,
+  "json_values": 18803,
   "identifiers": 1705,
   "json_keys": 14,
-  "protocol": 697,
+  "protocol": 680,
   "paths": 0,
   "transition": 2188
  },
@@ -69,857 +69,77 @@
   "Bench/cases/aliases/value_by_its_italian_name.json": {
    "transition": 3
   },
-  "Bench/cases/assemblies/assembly_is_weighed_measured_and_sent.json": {
-   "json_values": 150
-  },
-  "Bench/cases/assemblies/assembly_says_which_file_it_depends_on.json": {
-   "json_values": 78
-  },
-  "Bench/cases/assemblies/cover_inside_base.json": {
-   "json_values": 295
-  },
-  "Bench/cases/assemblies/fixed_is_not_mated.json": {
-   "json_values": 138
-  },
   "Bench/cases/assemblies/inserting_is_not_mating.json": {
-   "json_values": 757
-  },
-  "Bench/cases/assemblies/one_mate_is_not_enough.json": {
-   "json_values": 186
+   "json_values": 3
   },
   "Bench/cases/assemblies/rebuilt_cover_keeps_the_constraints_but_broken.json": {
-   "json_values": 549
-  },
-  "Bench/cases/assemblies/right_bracket_and_left_bracket.json": {
-   "json_values": 137
-  },
-  "Bench/cases/assemblies/the_interference_array_is_as_long_as_the_count.json": {
-   "json_values": 7
-  },
-  "Bench/cases/assemblies/touching_is_not_interpenetrating.json": {
-   "json_values": 279
-  },
-  "Bench/cases/assemblies/two_equal_bases_one_step.json": {
-   "json_values": 117
-  },
-  "Bench/cases/axis/axis_from_hole_wall.json": {
-   "json_values": 70
-  },
-  "Bench/cases/axis/limit_axis_from_a_planar_face.json": {
-   "json_values": 48
-  },
-  "Bench/cases/bodies/default_combine.json": {
-   "json_values": 145
-  },
-  "Bench/cases/bodies/fillet_that_changes_radius.json": {
-   "json_values": 159
-  },
-  "Bench/cases/bodies/intersect_two_cubes.json": {
-   "json_values": 51
-  },
-  "Bench/cases/bodies/limit_a_single_body.json": {
-   "json_values": 51
-  },
-  "Bench/cases/bodies/limit_combine_with_body_read_before_the_cut.json": {
-   "json_values": 228
-  },
-  "Bench/cases/bodies/limit_radius_too_big_for_the_edge.json": {
-   "json_values": 71
-  },
-  "Bench/cases/bodies/limit_thread_on_a_straight_edge.json": {
-   "json_values": 54
-  },
-  "Bench/cases/bodies/limit_thread_without_a_designation.json": {
-   "json_values": 56
-  },
-  "Bench/cases/bodies/limit_union_of_bodies_that_do_not_touch.json": {
-   "json_values": 87
+   "json_values": 4
   },
   "Bench/cases/bodies/limit_unknown_boolean.json": {
-   "json_values": 26
-  },
-  "Bench/cases/bodies/limit_variable_fillet_on_a_circle.json": {
-   "json_values": 64
-  },
-  "Bench/cases/bodies/merge_two_cubes.json": {
-   "json_values": 95
-  },
-  "Bench/cases/bodies/requested_combine.json": {
-   "json_values": 163
-  },
-  "Bench/cases/bodies/subtract_one_cube_from_the_other.json": {
-   "json_values": 114
-  },
-  "Bench/cases/bodies/thread_on_pin.json": {
-   "json_values": 147
-  },
-  "Bench/cases/bridge/e13_hole_on_the_border.json": {
-   "json_values": 116
-  },
-  "Bench/cases/bridge/e15_everything_closed.json": {
-   "json_values": 87
-  },
-  "Bench/cases/bridge/e15_shell_from_reference.json": {
-   "json_values": 86
-  },
-  "Bench/cases/bridge/e2_case_a.json": {
-   "json_values": 146
-  },
-  "Bench/cases/bridge/s_cavity_flush.json": {
-   "json_values": 85
-  },
-  "Bench/cases/chamfer/chamfer_3x6_bevel.json": {
-   "json_values": 36
-  },
-  "Bench/cases/chamfer/chamfer_5_at_45.json": {
-   "json_values": 36
-  },
-  "Bench/cases/chamfer/chamfer_angle_changes_in_deg.json": {
-   "json_values": 141
-  },
-  "Bench/cases/chamfer/limit_chamfer_bigger_than_the_edge.json": {
-   "json_values": 47
-  },
-  "Bench/cases/check/healthy_body_exports.json": {
-   "json_values": 117
-  },
-  "Bench/cases/check/hidden_hanging_body_is_visible.json": {
-   "json_values": 179
-  },
-  "Bench/cases/check/limit_body_that_does_not_exist.json": {
-   "json_values": 37
-  },
-  "Bench/cases/check/one_body_of_two_is_not_the_part.json": {
-   "json_values": 32
-  },
-  "Bench/cases/check/straight_block_prints.json": {
-   "json_values": 137
-  },
-  "Bench/cases/check/two_bodies_do_not_export.json": {
-   "json_values": 199
-  },
-  "Bench/cases/check/walls_at_sixty_degrees_do_not_print.json": {
-   "json_values": 275
-  },
-  "Bench/cases/dimensions/dimensions_come_from_the_model.json": {
-   "json_values": 20
-  },
-  "Bench/cases/dimensions/limit_scheme_with_two_references.json": {
-   "json_values": 25
-  },
-  "Bench/cases/dimensions/plate_dimensions_itself.json": {
-   "json_values": 65
-  },
-  "Bench/cases/dimensions/tolerance_on_the_model_dimension.json": {
-   "json_values": 119
+   "json_values": 1
   },
   "Bench/cases/dimensions/variable_does_not_override_the_chamfer.json": {
-   "json_values": 121
+   "json_values": 4
   },
   "Bench/cases/dimensions/wall_has_a_name.json": {
-   "json_values": 118
-  },
-  "Bench/cases/document_properties/default_material.json": {
-   "json_values": 69
-  },
-  "Bench/cases/document_properties/drawing_number_on_the_document.json": {
-   "json_values": 127
-  },
-  "Bench/cases/document_properties/goes_back_with_the_full_name.json": {
-   "json_values": 168
-  },
-  "Bench/cases/document_properties/limit_configuration_that_already_exists.json": {
-   "json_values": 134
-  },
-  "Bench/cases/document_properties/limit_configuration_that_does_not_exist.json": {
-   "json_values": 79
-  },
-  "Bench/cases/document_properties/limit_default_is_not_named_default.json": {
-   "json_values": 183
-  },
-  "Bench/cases/document_properties/limit_property_on_a_configuration_that_does_not_exist.json": {
-   "json_values": 82
-  },
-  "Bench/cases/document_properties/limit_property_without_a_name.json": {
-   "json_values": 48
+   "json_values": 2
   },
   "Bench/cases/document_properties/new_configuration_activates_itself.json": {
-   "json_values": 209
-  },
-  "Bench/cases/document_properties/requested_material.json": {
-   "json_values": 48
-  },
-  "Bench/cases/document_properties/the_two_lists_do_not_see_each_other.json": {
-   "json_values": 199
-  },
-  "Bench/cases/drawing/annotations_stay_outside_the_part.json": {
-   "json_values": 123
+   "json_values": 2
   },
   "Bench/cases/drawing/blind_hole_says_how_deep_it_is.json": {
-   "json_values": 218
-  },
-  "Bench/cases/drawing/bom_counts_the_components.json": {
-   "json_values": 118
-  },
-  "Bench/cases/drawing/center_marks_on_the_holes.json": {
-   "json_values": 169
-  },
-  "Bench/cases/drawing/chamfered_shaft_does_not_dimension_the_legs.json": {
-   "json_values": 221
-  },
-  "Bench/cases/drawing/counters_exist_even_at_zero.json": {
-   "json_values": 404
-  },
-  "Bench/cases/drawing/cut_list_in_the_drawing.json": {
-   "json_values": 207
-  },
-  "Bench/cases/drawing/cut_list_says_whether_it_compared.json": {
-   "json_values": 266
-  },
-  "Bench/cases/drawing/detail_enlarges.json": {
-   "json_values": 314
+   "json_values": 2
   },
   "Bench/cases/drawing/dimensions_arrive_in_the_pdf.json": {
-   "json_values": 126
+   "json_values": 1
   },
   "Bench/cases/drawing/drawing_dimensions_holes_and_chamfer.json": {
-   "json_values": 481
+   "json_values": 2
   },
   "Bench/cases/drawing/drawing_dimensions_itself.json": {
-   "json_values": 1132
-  },
-  "Bench/cases/drawing/drawing_exports_to_pdf.json": {
-   "json_values": 332
-  },
-  "Bench/cases/drawing/drawing_is_a_second_document.json": {
-   "json_values": 722
-  },
-  "Bench/cases/drawing/flat_pattern_in_the_drawing.json": {
-   "json_values": 163
-  },
-  "Bench/cases/drawing/hole_table_says_where_they_are.json": {
-   "json_values": 148
-  },
-  "Bench/cases/drawing/limit_datum_with_the_same_letter.json": {
-   "json_values": 26
-  },
-  "Bench/cases/drawing/limit_detail_outside_the_view.json": {
-   "json_values": 218
-  },
-  "Bench/cases/drawing/limit_edge_that_does_not_exist.json": {
-   "json_values": 159
-  },
-  "Bench/cases/drawing/limit_flat_pattern_of_a_solid_part.json": {
-   "json_values": 33
-  },
-  "Bench/cases/drawing/limit_flatness_with_one_reference.json": {
-   "json_values": 37
-  },
-  "Bench/cases/drawing/limit_hole_table_on_the_side_view.json": {
-   "json_values": 43
-  },
-  "Bench/cases/drawing/limit_note_outside_the_sheet.json": {
-   "json_values": 181
-  },
-  "Bench/cases/drawing/limit_section_outside_the_view.json": {
-   "json_values": 296
-  },
-  "Bench/cases/drawing/limit_surface_finish_out_of_scale.json": {
-   "json_values": 27
-  },
-  "Bench/cases/drawing/limit_tolerance_on_a_datum_that_is_not_there.json": {
-   "json_values": 28
-  },
-  "Bench/cases/drawing/limit_two_sections_with_the_same_letter.json": {
-   "json_values": 70
-  },
-  "Bench/cases/drawing/limit_weld_on_a_single_body.json": {
-   "json_values": 34
-  },
-  "Bench/cases/drawing/note_ends_up_on_the_sheet.json": {
-   "json_values": 447
-  },
-  "Bench/cases/drawing/section_cuts_the_part.json": {
-   "json_values": 313
-  },
-  "Bench/cases/drawing/stepped_shaft_dimensioned_from_the_side.json": {
-   "json_values": 219
-  },
-  "Bench/cases/drawing/stud_is_not_a_hole.json": {
-   "json_values": 110
-  },
-  "Bench/cases/drawing/the_second_sheet_does_not_repeat_the_dimensions.json": {
-   "json_values": 19
+   "json_values": 3
   },
   "Bench/cases/drawing/title_block_says_what_it_wants.json": {
-   "json_values": 675
-  },
-  "Bench/cases/drawing/turned_bushing_is_not_a_hole.json": {
-   "json_values": 273
-  },
-  "Bench/cases/drawing/two_equal_holes_one_through_one_blind.json": {
-   "json_values": 135
+   "json_values": 6
   },
   "Bench/cases/drawing/two_sheets_and_the_same_projection_angle.json": {
-   "json_values": 546
-  },
-  "Bench/cases/drawing/weld_symbol_on_the_joint.json": {
-   "json_values": 163
-  },
-  "Bench/cases/export/box_in_ascii.json": {
-   "json_values": 61
-  },
-  "Bench/cases/export/box_twelve_triangles.json": {
-   "json_values": 146
-  },
-  "Bench/cases/export/iges_solids.json": {
-   "json_values": 71
-  },
-  "Bench/cases/export/limit_iges_of_an_assembly.json": {
-   "json_values": 64
-  },
-  "Bench/cases/export/limit_iges_with_a_step_extension.json": {
-   "json_values": 49
-  },
-  "Bench/cases/export/limit_made_up_protocol.json": {
-   "json_values": 29
-  },
-  "Bench/cases/export/limit_two_bodies_do_not_export.json": {
-   "json_values": 68
-  },
-  "Bench/cases/export/limit_wrong_extension.json": {
-   "json_values": 44
-  },
-  "Bench/cases/export/step_ap203_says_so.json": {
-   "json_values": 84
-  },
-  "Bench/cases/export/step_ap214_reread.json": {
-   "json_values": 104
-  },
-  "Bench/cases/export/stl_does_not_export_the_selected_face.json": {
-   "json_values": 88
-  },
-  "Bench/cases/export/the_iges_carries_the_solid_not_its_wireframe.json": {
-   "json_values": 2
-  },
-  "Bench/cases/export/two_bodies_exported_by_force.json": {
-   "json_values": 107
-  },
-  "Bench/cases/extrusions/anchored_rectangular_boss_follows_the_centerline.json": {
-   "json_values": 53
-  },
-  "Bench/cases/extrusions/anchored_round_boss_follows_the_border.json": {
-   "json_values": 73
-  },
-  "Bench/cases/extrusions/extruded_slot.json": {
-   "json_values": 131
-  },
-  "Bench/cases/extrusions/limit_anchored_boss_neither_round_nor_rectangular.json": {
-   "json_values": 57
-  },
-  "Bench/cases/extrusions/limit_sixteen_tooth_gear.json": {
-   "json_values": 44
-  },
-  "Bench/cases/extrusions/pipe_has_the_hole.json": {
-   "json_values": 93
-  },
-  "Bench/cases/extrusions/tab_grows_from_the_face.json": {
-   "json_values": 113
-  },
-  "Bench/cases/extrusions/the_seventeen_tooth_gear_can_be_made.json": {
-   "json_values": 155
+   "json_values": 1
   },
   "Bench/cases/extrusions/unknown_plane_does_not_fall_back_to_front.json": {
-   "json_values": 15
-  },
-  "Bench/cases/features/anchored_hole_follows_the_border.json": {
-   "json_values": 115
-  },
-  "Bench/cases/features/anchored_hole_wizard_holes_stay_at_twenty.json": {
-   "json_values": 63
-  },
-  "Bench/cases/features/blind_becomes_through.json": {
-   "json_values": 82
-  },
-  "Bench/cases/features/boss_grows_and_is_not_a_cut.json": {
-   "json_values": 98
-  },
-  "Bench/cases/features/centered_pocket_follows_the_centerline.json": {
-   "json_values": 98
-  },
-  "Bench/cases/features/dimension_that_keeps_the_slot_inside.json": {
-   "json_values": 82
-  },
-  "Bench/cases/features/dimension_that_leaves_the_fillet_alone.json": {
-   "json_values": 49
-  },
-  "Bench/cases/features/draft_four_walls.json": {
-   "json_values": 185
-  },
-  "Bench/cases/features/external_shell.json": {
-   "json_values": 47
-  },
-  "Bench/cases/features/fillet_face_between_two_faces_of_a_cube.json": {
-   "json_values": 254
-  },
-  "Bench/cases/features/fillet_rounds_the_four_corners.json": {
-   "json_values": 85
-  },
-  "Bench/cases/features/flipped_draft_drops.json": {
-   "json_values": 123
-  },
-  "Bench/cases/features/guided_hole_centred_too_narrow.json": {
-   "json_values": 2
-  },
-  "Bench/cases/features/hole_on_the_back_follows_the_corner.json": {
-   "json_values": 75
-  },
-  "Bench/cases/features/hole_on_the_side_stays_at_half_thickness.json": {
-   "json_values": 81
-  },
-  "Bench/cases/features/hole_wizard_follows_the_table.json": {
-   "json_values": 128
-  },
-  "Bench/cases/features/internal_shell.json": {
-   "json_values": 43
-  },
-  "Bench/cases/features/limit_anchor_on_the_chamfer_border.json": {
-   "json_values": 71
-  },
-  "Bench/cases/features/limit_anchor_on_the_fillet_border.json": {
-   "json_values": 158
-  },
-  "Bench/cases/features/limit_anchor_that_does_not_report_the_same_point.json": {
-   "json_values": 179
-  },
-  "Bench/cases/features/limit_anchored_hole_wizard_holes_halfway.json": {
-   "json_values": 41
-  },
-  "Bench/cases/features/limit_dimension_that_pushes_the_slot_out.json": {
-   "json_values": 151
-  },
-  "Bench/cases/features/limit_dimension_that_will_not_leave_the_fillet_alone.json": {
-   "json_values": 70
-  },
-  "Bench/cases/features/limit_draft_on_the_neutral_face.json": {
-   "json_values": 102
-  },
-  "Bench/cases/features/limit_fillet_face_between_back_to_back_faces.json": {
-   "json_values": 101
-  },
-  "Bench/cases/features/limit_fillet_face_on_the_same_face.json": {
-   "json_values": 42
-  },
-  "Bench/cases/features/limit_hole_wizard_outside_the_part.json": {
-   "json_values": 131
-  },
-  "Bench/cases/features/limit_rib_on_a_plate_without_walls.json": {
-   "json_values": 175
-  },
-  "Bench/cases/features/limit_rib_outside_its_plane.json": {
-   "json_values": 68
-  },
-  "Bench/cases/features/loft_is_not_a_cone.json": {
-   "json_values": 386
-  },
-  "Bench/cases/features/order_changes_the_part.json": {
-   "json_values": 128
-  },
-  "Bench/cases/features/rib_in_the_corner_of_the_l.json": {
-   "json_values": 230
-  },
-  "Bench/cases/features/rib_in_the_hollowed_box.json": {
-   "json_values": 247
-  },
-  "Bench/cases/features/straight_pipe_area_per_length.json": {
-   "json_values": 201
-  },
-  "Bench/cases/features/symmetric_plate_grows_from_both_sides.json": {
-   "json_values": 106
+   "json_values": 7
   },
   "Bench/cases/frames/profiles_are_read_first.json": {
-   "json_values": 418
-  },
-  "Bench/cases/measurement/area_of_a_single_face.json": {
-   "json_values": 110
-  },
-  "Bench/cases/measurement/bounding_box_of_two_far_bodies.json": {
-   "json_values": 99
-  },
-  "Bench/cases/measurement/distance_between_two_faces.json": {
-   "json_values": 118
-  },
-  "Bench/cases/measurement/limit_bounding_box_of_a_body_that_does_not_exist.json": {
-   "json_values": 47
-  },
-  "Bench/cases/measurement/limit_distance_of_a_face_from_itself.json": {
-   "json_values": 55
-  },
-  "Bench/cases/measurement/mass_of_a_steel_cube.json": {
-   "json_values": 196
-  },
-  "Bench/cases/measurement/mass_without_material_is_unknown.json": {
-   "json_values": 100
-  },
-  "Bench/cases/measurement/plate_bounding_box.json": {
-   "json_values": 126
-  },
-  "Bench/cases/measurement/thickness_remaining_below_the_pocket.json": {
-   "json_values": 108
-  },
-  "Bench/cases/measurement/two_parallel_faces_and_it_says_so.json": {
-   "json_values": 142
-  },
-  "Bench/cases/mirror/hole_mirrored_on_right.json": {
-   "json_values": 112
+   "json_values": 1
   },
   "Bench/cases/mirror/limit_made_up_plane.json": {
-   "json_values": 44
-  },
-  "Bench/cases/pairs/blind_pocket_400.json": {
-   "json_values": 38
-  },
-  "Bench/cases/pairs/hole_270_on_face_274.json": {
-   "json_values": 35
-  },
-  "Bench/cases/pairs/hole_60_on_the_border.json": {
-   "json_values": 69
-  },
-  "Bench/cases/pairs/limit_hole_outside_the_material.json": {
-   "json_values": 40
-  },
-  "Bench/cases/pairs/limit_hole_that_covers_everything.json": {
-   "json_values": 45
-  },
-  "Bench/cases/pairs/limit_pocket_that_covers_everything.json": {
-   "json_values": 36
-  },
-  "Bench/cases/pairs/limit_slot_that_covers_everything.json": {
-   "json_values": 36
-  },
-  "Bench/cases/pairs/slot_30x9.json": {
-   "json_values": 30
-  },
-  "Bench/cases/patterns/fill_makes_fourteen_holes.json": {
-   "json_values": 295
-  },
-  "Bench/cases/patterns/grid_3x2.json": {
-   "json_values": 131
-  },
-  "Bench/cases/patterns/limit_copy_that_never_existed.json": {
-   "json_values": 232
+   "json_values": 1
   },
   "Bench/cases/patterns/limit_direction_from_a_curved_edge.json": {
-   "json_values": 170
-  },
-  "Bench/cases/patterns/limit_fill_contour_not_planar.json": {
-   "json_values": 81
-  },
-  "Bench/cases/patterns/limit_fill_direction_outside_the_face.json": {
-   "json_values": 109
-  },
-  "Bench/cases/patterns/limit_fill_without_direction.json": {
-   "json_values": 13
-  },
-  "Bench/cases/patterns/limit_grid_does_not_count_as_a_row.json": {
-   "json_values": 118
+   "json_values": 2
   },
   "Bench/cases/patterns/limit_moved_axis.json": {
-   "json_values": 66
-  },
-  "Bench/cases/patterns/limit_zero_is_not_a_copy.json": {
-   "json_values": 74
-  },
-  "Bench/cases/patterns/recognized_axis.json": {
-   "json_values": 140
-  },
-  "Bench/cases/patterns/skip_the_second_copy.json": {
-   "json_values": 404
-  },
-  "Bench/cases/patterns/three_holes_pitch_40.json": {
-   "json_values": 128
-  },
-  "Bench/cases/plane/front_plane_minus_250.json": {
-   "json_values": 39
-  },
-  "Bench/cases/plane/limit_three_points_in_a_row.json": {
-   "json_values": 119
-  },
-  "Bench/cases/plane/oblique_plane_through_three_points.json": {
-   "json_values": 220
-  },
-  "Bench/cases/plane/the_picture_is_to_scale.json": {
-   "json_values": 79
-  },
-  "Bench/cases/plane/top_plane_minus_100.json": {
-   "json_values": 45
-  },
-  "Bench/cases/plane/top_plane_plus_100.json": {
-   "json_values": 46
-  },
-  "Bench/cases/reanchor/fillet_finds_the_renumbered_edge_again.json": {
-   "json_values": 226
-  },
-  "Bench/cases/reanchor/limit_fillet_on_a_double_edge.json": {
-   "json_values": 67
-  },
-  "Bench/cases/reanchor/limit_fillet_on_a_shortened_edge.json": {
-   "json_values": 119
-  },
-  "Bench/cases/regression/r01_four_holes_from_the_border.json": {
-   "json_values": 150
-  },
-  "Bench/cases/regression/r01b_four_holes_stay_where_they_are.json": {
-   "json_values": 59
-  },
-  "Bench/cases/regression/r02_through_holes_stay_through.json": {
-   "json_values": 70
-  },
-  "Bench/cases/regression/r03_centered_pocket.json": {
-   "json_values": 124
-  },
-  "Bench/cases/regression/r03b_pocket_stays_where_it_was.json": {
-   "json_values": 69
-  },
-  "Bench/cases/regression/r04_four_fillets_remain.json": {
-   "json_values": 67
-  },
-  "Bench/cases/regression/r05_chamfer_bigger_than_the_part.json": {
-   "json_values": 64
-  },
-  "Bench/cases/regression/r06_axial_hole_in_the_cylinder.json": {
-   "json_values": 90
-  },
-  "Bench/cases/regression/r07_ring_of_holes_remains.json": {
-   "json_values": 78
-  },
-  "Bench/cases/regression/r08_circular_pattern_instances.json": {
-   "json_values": 86
-  },
-  "Bench/cases/regression/r10_shell_bottom_moves.json": {
-   "json_values": 144
-  },
-  "Bench/cases/regression/r11_thicker_bottom.json": {
-   "json_values": 85
-  },
-  "Bench/cases/regression/r12_frame_with_a_thinner_profile.json": {
-   "json_values": 138
-  },
-  "Bench/cases/regression/r14_hole_wizard_and_the_pilot_hole.json": {
-   "json_values": 97
-  },
-  "Bench/cases/regression/r15_fillet_on_the_internal_edge.json": {
-   "json_values": 76
-  },
-  "Bench/cases/regression/r16_slot_that_overflows.json": {
-   "json_values": 85
-  },
-  "Bench/cases/regression/r17_mirror_stays_symmetric.json": {
-   "json_values": 70
-  },
-  "Bench/cases/regression/r18_linear_pattern_pitch_unchanged.json": {
-   "json_values": 111
-  },
-  "Bench/cases/regression/r19_hole_twenty_from_the_border.json": {
-   "json_values": 80
-  },
-  "Bench/cases/removal/delete_first_hole.json": {
-   "json_values": 112
-  },
-  "Bench/cases/removal/limit_delete_base_extrusion.json": {
-   "json_values": 87
-  },
-  "Bench/cases/removal/limit_made_up_name.json": {
-   "json_values": 43
-  },
-  "Bench/cases/removal/limit_suppress_twice.json": {
-   "json_values": 61
-  },
-  "Bench/cases/removal/suppress_the_third_hole.json": {
-   "json_values": 120
-  },
-  "Bench/cases/revolve/cylinder_d40_long_50.json": {
-   "json_values": 36
-  },
-  "Bench/cases/revolve/half_cylinder_180.json": {
-   "json_values": 24
-  },
-  "Bench/cases/revolve/hollow_bushing.json": {
-   "json_values": 41
-  },
-  "Bench/cases/revolve/limit_profile_straddling_the_axis.json": {
-   "json_values": 151
-  },
-  "Bench/cases/revolve/stepped_shaft.json": {
-   "json_values": 31
+   "json_values": 1
   },
   "Bench/cases/sentence/clean_shaft_declares_profile.json": {
-   "json_values": 83
-  },
-  "Bench/cases/sentence/drilled_shaft_no_longer_declares_profile.json": {
-   "json_values": 128
-  },
-  "Bench/cases/sheet_metal/closed_hem_flattens.json": {
-   "json_values": 50
-  },
-  "Bench/cases/sheet_metal/edge_flange_closes_the_side.json": {
-   "json_values": 83
-  },
-  "Bench/cases/sheet_metal/limit_bend_at_180_deg.json": {
-   "json_values": 30
-  },
-  "Bench/cases/sheet_metal/limit_edge_flange_not_on_a_border.json": {
-   "json_values": 98
-  },
-  "Bench/cases/sheet_metal/limit_edge_flange_without_a_straight.json": {
-   "json_values": 38
-  },
-  "Bench/cases/sheet_metal/limit_flange_short_segment.json": {
-   "json_values": 33
-  },
-  "Bench/cases/sheet_metal/limit_flat_pattern_without_a_file.json": {
-   "json_values": 101
-  },
-  "Bench/cases/sheet_metal/limit_open_hem_without_gap.json": {
-   "json_values": 29
-  },
-  "Bench/cases/sheet_metal/open_hem_checks_out.json": {
-   "json_values": 46
-  },
-  "Bench/cases/sheet_metal/sketched_bend_raises_half_the_sheet_metal.json": {
-   "json_values": 70
-  },
-  "Bench/cases/sheet_metal/the_L_flattens.json": {
-   "json_values": 160
-  },
-  "Bench/cases/sheet_metal/the_L_reversed.json": {
-   "json_values": 97
-  },
-  "Bench/cases/slot/anchored_oblique_slot_keeps_its_angle.json": {
-   "json_values": 83
-  },
-  "Bench/cases/slot/anchored_slot_follows_the_border.json": {
-   "json_values": 56
-  },
-  "Bench/cases/slot/blind_slot.json": {
-   "json_values": 30
-  },
-  "Bench/cases/slot/blind_slot_back_face.json": {
-   "json_values": 72
-  },
-  "Bench/cases/slot/blind_slot_bottom_face.json": {
-   "json_values": 134
-  },
-  "Bench/cases/slot/blind_slot_left_face.json": {
-   "json_values": 134
-  },
-  "Bench/cases/slot/blind_slot_right_face.json": {
-   "json_values": 134
-  },
-  "Bench/cases/slot/blind_slot_top_face.json": {
-   "json_values": 134
-  },
-  "Bench/cases/slot/limit_blind_slot_without_depth.json": {
-   "json_values": 23
-  },
-  "Bench/cases/slot/limit_round_slot.json": {
-   "json_values": 41
-  },
-  "Bench/cases/slot/limit_slot_outside_the_part.json": {
-   "json_values": 38
-  },
-  "Bench/cases/slot/off_center_slot.json": {
-   "json_values": 25
-  },
-  "Bench/cases/slot/slot_is_corrected_with_the_dimension.json": {
-   "json_values": 72
-  },
-  "Bench/cases/slot/slot_on_narrow_plate_0.json": {
-   "json_values": 37
-  },
-  "Bench/cases/slot/slot_on_narrow_plate_90.json": {
-   "json_values": 60
-  },
-  "Bench/cases/slot/slot_rotated_30.json": {
-   "json_values": 31
-  },
-  "Bench/cases/slot/slot_rotated_90.json": {
-   "json_values": 35
-  },
-  "Bench/cases/slot/through_slot.json": {
-   "json_values": 58
-  },
-  "Bench/cases/text/area_scales_with_the_square_of_the_height.json": {
-   "json_values": 320
-  },
-  "Bench/cases/text/code_engraved_in_the_center.json": {
-   "json_values": 221
-  },
-  "Bench/cases/text/limit_engraved_text_entirely_outside_the_part.json": {
-   "json_values": 94
-  },
-  "Bench/cases/text/limit_engraved_text_that_exits_the_face.json": {
-   "json_values": 188
-  },
-  "Bench/cases/text/limit_marking_without_depth.json": {
-   "json_values": 61
-  },
-  "Bench/cases/text/the_same_code_embossed.json": {
-   "json_values": 215
-  },
-  "Bench/cases/views/1_drilled_plate.json": {
-   "json_values": 39
-  },
-  "Bench/cases/views/2_open_shell.json": {
-   "json_values": 47
-  },
-  "Bench/cases/views/3_l_bracket.json": {
-   "json_values": 47
-  },
-  "Bench/cases/views/4_drilled_flange.json": {
-   "json_values": 75
-  },
-  "Bench/cases/views/5_stepped_shaft.json": {
-   "json_values": 49
+   "json_values": 2
   },
   "Bench/cases/views/HOW_IT_COUNTS.md": {
    "markdown": 476
   },
   "Bench/cases/weldments/a_frame_too_small_closes_the_profile_library.json": {
-   "json_values": 7
-  },
-  "Bench/cases/weldments/cap_closes_the_pipe.json": {
-   "json_values": 96
+   "json_values": 2
   },
   "Bench/cases/weldments/cut_list_counts_the_bars.json": {
-   "json_values": 313
-  },
-  "Bench/cases/weldments/cut_shortens_the_bar.json": {
-   "json_values": 246
-  },
-  "Bench/cases/weldments/cut_without_gap_does_not_inherit.json": {
-   "json_values": 243
+   "json_values": 2
   },
   "Bench/cases/weldments/frame_reading_ignores_case.json": {
-   "json_values": 4
-  },
-  "Bench/cases/weldments/gusset_polygon_is_not_degenerate.json": {
-   "json_values": 330
-  },
-  "Bench/cases/weldments/gusset_sits_in_the_corner.json": {
-   "json_values": 439
-  },
-  "Bench/cases/weldments/weld_bead_goes_between_touching_faces.json": {
-   "json_values": 282
+   "json_values": 2
   },
   "Bench/inspect.js": {
    "comments": 1
   },
   "Bench/pending-cases/README.md": {
    "markdown": 475
-  },
-  "Bench/pending-cases/a_dimension_hidden_by_hand_does_not_count.json": {
-   "json_values": 12
   },
   "Bench/report/last.json": {
    "json_values": 6
@@ -3098,8 +2318,6 @@
    "ANGOLO2",
    "APERTO",
    "ASSENTE987",
-   "ATTENZIONE",
-   "ATTIVA",
    "Agente",
    "Annulla",
    "Anteriore",
@@ -3144,7 +2362,6 @@
    "LAVORO",
    "LUNGHEZZA",
    "Lavoro",
-   "MINORE",
    "MODELLI_SOLIDWORKS",
    "Materiale",
    "Metti",
@@ -3175,7 +2392,6 @@
    "Pulito",
    "Pulizia",
    "QUADRO_COPIA",
-   "QUANTITA",
    "RAGGIUNGIBILE",
    "REGGE",
    "RISCONTRO_CATALOGO",
@@ -3220,7 +2436,6 @@
    "_slegata",
    "a_asola_foro_taglio_piano",
    "accoppia",
-   "acqua",
    "adesso",
    "aggiungi",
    "aiuto",
@@ -3232,13 +2447,11 @@
    "altre",
    "altro",
    "alza",
-   "ambigua",
    "ancorato_a_assoluto",
    "ancorato_a_bordo",
    "angolare",
    "angolo",
    "angolo_gradi",
-   "annotazione",
    "annotazioni",
    "annulla",
    "annullamenti",
@@ -3246,7 +2459,6 @@
    "annullare",
    "api_sw_array_tipizzati",
    "api_sw_che_aprono_finestre",
-   "appoggiato",
    "apri",
    "apri_la_tavola",
    "archivi",
@@ -3294,7 +2506,6 @@
    "cerniera",
    "chiamala",
    "chiedi",
-   "chilogrammi",
    "chiudi",
    "chiudi-gli-scarti",
    "chiuso",
@@ -3429,7 +2640,6 @@
    "geometria",
    "giro",
    "gli",
-   "gomiti",
    "gp2_due_corpi",
    "gp2_forzato",
    "gp2_sbagliato",
@@ -3490,9 +2700,7 @@
    "materiali",
    "mensola",
    "mensola-s3",
-   "metri",
    "metti",
-   "millimetri",
    "mio",
    "misti",
    "misura",
@@ -3532,7 +2740,6 @@
    "orfana",
    "orfana-sonda",
    "orfane_banco",
-   "originale",
    "ottanta",
    "otto",
    "papillon",
@@ -3564,13 +2771,11 @@
    "positiva",
    "posizione",
    "precondizione",
-   "predefinito",
    "prima",
    "prima-di-oce-solid-agent",
    "problemi",
    "prodotto",
    "profili",
-   "profilo",
    "proiezione",
    "pronto",
    "proporzional",
@@ -3695,8 +2900,6 @@
    "soppresso",
    "sostituzioni",
    "sotto",
-   "sovrasporgenze",
-   "sparirebbe",
    "specchia",
    "spessore",
    "spigoli",

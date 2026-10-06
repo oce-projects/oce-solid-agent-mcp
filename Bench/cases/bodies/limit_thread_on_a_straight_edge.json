@@ -1,7 +1,7 @@
 {
   "name": "limit_thread_on_a_straight_edge",
   "family": "bodies",
-  "why": "Su uno spigolo dritto non c'e' niente da filettare. Senza il controllo la chiamata tornerebbe null e il messaggio parlerebbe della faccia cilindrica, mandando a cercare il guaio dalla parte sbagliata: il guaio e' che quello spigolo non e' un cerchio.",
+  "why": "On a straight edge there is nothing to thread. Without the check the call would return null and the message would talk about the cylindrical face, sending the reader to look for the trouble in the wrong place: the trouble is that that edge is not a circle.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,12 +10,12 @@
       "expect": [
         { "what": "volume_mm3", "equal_to": 64000 },
         { "what": "edges_curved", "equal_to": 0,
-          "_why_zero": "un cubo ha dodici spigoli e sono tutti dritti: non c'e' nessun bordo tondo da nominare" } ] },
+          "_why_zero": "a cube has twelve edges and they are all straight: there is no round edge to name" } ] },
     { "operation": "cosmetic_thread",
       "arguments": { "edge_uid": "@edge(axis=Z,length~=40,n=1)",
                      "designation": "M6x1", "depth_mm": 8 },
       "must_fail": {
-        "message_includes": ["non e' un cerchio", "spigolo dritto"],
+        "message_includes": ["is not a circle", "straight edge"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "thread_on_pin" } }

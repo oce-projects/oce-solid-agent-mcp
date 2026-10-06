@@ -1,7 +1,7 @@
 {
   "name": "default_material",
   "family": "document_properties",
-  "why": "Voce Z-G3. `apply_material` pretende `material`, e un'officina di carpenteria lavora S235JR salvo avviso contrario: l'archivio di questa postazione lo risolve gia' (misurato: «S235JR» -> «1.0037 (S235JR)»). Il caso NON si accontenta che l'operazione riesca senza l'argomento: pretende che la risposta DICA l'assunzione. Se il ponte mette S235JR e tace, il modello crede di averlo scelto lui, la volta dopo non lo chiede nemmeno, e poi arriva un pezzo che andava in inox senza che nessuno sappia dove sia stata presa la decisione. La gemella e' `requested_material`: stesso materiale chiesto per nome, e la dichiarazione NON deve comparire.",
+  "why": "Entry Z-G3. `apply_material` demands `material`, and a metalwork shop works S235JR unless told otherwise: the library of this workstation already resolves it (measured: «S235JR» -> «1.0037 (S235JR)»). The case is NOT satisfied with the operation succeeding without the argument: it demands that the answer SAY the assumption. If the bridge puts S235JR and says nothing, the model believes it chose it itself, next time does not even ask, and then a part that should have been stainless arrives without anybody knowing where the decision was taken. The twin is `requested_material`: the same material asked for by name, and the declaration must NOT appear.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -22,7 +22,7 @@
       "arguments": {},
       "expect": [
         { "what": "state.material", "includes": ["S235JR"] },
-        { "what": "measurements.note_assumption", "includes": ["S235JR", "predefinito"] }
+        { "what": "measurements.note_assumption", "includes": ["S235JR", "you have not asked for it"] }
       ]
     }
   ]

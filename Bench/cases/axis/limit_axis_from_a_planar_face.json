@@ -1,7 +1,7 @@
 {
   "name": "limit_axis_from_a_planar_face",
   "family": "axis",
-  "why": "Una faccia piana non e' un asse. Va rifiutata con un motivo che dica COSA FARE -- l'asse si fa dal centro di un foro o di un albero -- e non con un «non riuscito» che lascia chi legge a indovinare.",
+  "why": "A planar face is not an axis. It must be refused with a reason that says WHAT TO DO -- the axis is made from the centre of a hole or of a shaft -- and not with a «failed» that leaves the reader to guess.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,11 +12,11 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0,
                      "diameter_mm": 10, "through_all": true },
       "expect": [ { "what": "diameters_mm", "equal_to": [10], "tolerance": 0.02,
-                    "tolerance_why": "il diametro si legge da CylinderParams" } ] },
+                    "tolerance_why": "the diameter is read from CylinderParams" } ] },
     { "operation": "create_axis",
       "arguments": { "face_uid": "@face(normal=front)" },
       "must_fail": {
-        "message_includes": ["non e' cilindrica ne' conica", "dal centro di un foro"],
+        "message_includes": ["neither cylindrical nor conical", "from the center of a hole"],
         "volume_unchanged": true,
         "twin": "axis_from_hole_wall" } }
   ]

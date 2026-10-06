@@ -1,8 +1,8 @@
 {
   "name": "limit_configuration_that_already_exists",
   "family": "document_properties",
-  "why": "Due configurazioni con lo stesso nome non si possono fare, e SOLIDWORKS lo dice tornando NULL: nessuna eccezione, nessun motivo. Un'operazione che non guardasse il valore di ritorno direbbe «fatto», e il piano proseguirebbe credendo di aver creato la variante -- salvo poi lavorare su quella di prima, perche' la configurazione attiva non e' cambiata.",
-  "_why_it_is_not_a_wrong_argument": "L'argomento e' sensato e scritto bene: quello che non va e' lo STATO del documento. E' il tipo di rifiuto che non si puo' prendere leggendo la chiamata -- si prende solo guardando com'e' andata.",
+  "why": "Two configurations with the same name cannot be made, and SOLIDWORKS says so by returning NULL: no exception, no reason. An operation that did not look at the return value would say «done», and the plan would go on believing it had created the variant -- only to work on the one before, because the active configuration did not change.",
+  "_why_it_is_not_a_wrong_argument": "The argument is sensible and well written: what is wrong is the STATE of the document. It is the kind of refusal that cannot be caught by reading the call -- it is caught only by looking at how it went.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,14 +10,14 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "create_configuration",
-      "arguments": { "name": "Left", "details": "staffa sinistra" },
+      "arguments": { "name": "Left", "details": "left bracket" },
       "expect": [
         { "what": "state.configuration", "equal_to": "Left" },
         { "what": "how_many_configuration_names", "equal_to": 3 } ] },
     { "operation": "create_configuration",
-      "arguments": { "name": "Left", "details": "la seconda, che non deve nascere" },
+      "arguments": { "name": "Left", "details": "the second, which must not be born" },
       "must_fail": {
-        "message_includes": ["c'e' gia'", "Left"],
+        "message_includes": ["already exists", "Left"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "new_configuration_activates_itself" } },
@@ -25,8 +25,8 @@
       "arguments": { "name": "Left" },
       "expect": [
         { "what": "how_many_configuration_names", "equal_to": 3,
-          "why": "DOPO IL RIFIUTO SE NE CONTANO ANCORA TRE, cioe' le due del modello piu' la nostra. Il messaggio d'errore lo scrive il nostro codice e direbbe la stessa frase anche se SOLIDWORKS avesse creato una «Left» bis: questa riga guarda il documento, non il messaggio." },
+          "why": "AFTER THE REFUSAL THERE ARE STILL THREE, that is the two of the template plus ours. The error message is written by our code and would say the same sentence even if SOLIDWORKS had created a second «Left»: this line looks at the document, not at the message." },
         { "what": "measurements.was_already_active", "equal_to": true,
-          "_why_true": "il rifiuto non ha spostato niente, quindi «Left» e' ancora quella attiva e riattivarla non e' uno spostamento" } ] }
+          "_why_true": "the refusal did not move anything, so «Left» is still the active one and activating it again is not a move" } ] }
   ]
 }

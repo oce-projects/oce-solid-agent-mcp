@@ -1,8 +1,8 @@
 {
   "name": "flat_pattern_in_the_drawing",
   "family": "drawing",
-  "why": "VOCE GT13. La L dei casi di lamiera (30 + 50, spessore 2, raggio 2, profondita' 40) messa in tavola DISTESA: la vista che serve a chi taglia il lamierino. Misurato col banchetto il 26/9/2026: la vista nasce al primo colpo, con una linea di piega; il suo contorno (`GetOutline`) diceva 51,88 x 92,592 mm per uno sviluppo di 80,712 x 40 — contiene la nota della piega e un margine. L'ingombro si legge dagli spigoli visibili.",
-  "defect_caught": "La vista che nasce ma non e' distesa (la L piegata al posto dello sviluppo), la vista che misura un'altra cosa dallo sviluppo del pezzo, e la misura presa dal contorno della vista invece che dal disegno.",
+  "why": "ENTRY GT13. The L of the sheet-metal cases (30 + 50, thickness 2, radius 2, depth 40) put on the drawing FLATTENED: the view that serves whoever cuts the sheet blank. Measured with the little test rig on 26/9/2026: the view is born at the first attempt, with a bend line; its outline (`GetOutline`) said 51.88 x 92.592 mm for a flat pattern of 80.712 x 40 — it contains the bend note and a margin. The bounding box is read from the visible edges.",
+  "defect_caught": "The view that is born but is not flattened (the bent L instead of the flat pattern), the view that measures something different from the flat pattern of the part, and the measure taken from the outline of the view instead of from the drawing.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -10,27 +10,27 @@
                      "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.001,
-          "tolerance_why": "tre decimali, come la risposta" } ] },
+          "tolerance_why": "three decimals, like the answer" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\flat_pattern_in_the_drawing.sldprt" },
-      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "la vista si aggancia al FILE del pezzo" } ] },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "the view attaches to the FILE of the part" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
     { "operation": "flat_pattern_view",
       "arguments": { "model": "{LAVORO}\\flat_pattern_in_the_drawing.sldprt" },
       "expect": [
-        { "what": "measurements.flat", "equal_to": true, "why": "IsFlatPatternView: la lamiera distesa, non la L" },
-        { "what": "measurements.bend_lines", "equal_to": 1, "why": "una piega, una linea" },
+        { "what": "measurements.flat", "equal_to": true, "why": "IsFlatPatternView: the flattened sheet metal, not the L" },
+        { "what": "measurements.bend_lines", "equal_to": 1, "why": "one bend, one line" },
         { "what": "measurements.bounding_box_mm[0]", "equal_to": 80.712, "tolerance": 0.01,
-          "tolerance_why": "gli spigoli campionati e portati sul foglio: un centesimo e' molto meno di quello che separerebbe la L piegata (50 o 30) dallo sviluppo",
-          "why": "il lato lungo: 30 + 50 meno le due correzioni di piega, lo stesso numero del pezzo" },
+          "tolerance_why": "the edges sampled and brought onto the sheet: a hundredth is far less than what would separate the bent L (50 or 30) from the flat pattern",
+          "why": "the long side: 30 + 50 minus the two bend corrections, the same number as the part" },
         { "what": "measurements.bounding_box_mm[1]", "equal_to": 40, "tolerance": 0.01,
-          "tolerance_why": "come sopra",
-          "why": "la profondita' della L" },
+          "tolerance_why": "as above",
+          "why": "the depth of the L" },
         { "what": "measurements.matches_with_part", "equal_to": true,
-          "why": "due letture indipendenti: la vista sul foglio e il corpo del pezzo disteso" },
+          "why": "two independent readings: the view on the sheet and the body of the flattened part" },
         { "what": "measurements.inside_sheet", "equal_to": true,
-          "why": "VISTO NEL PNG il 26/9/2026, col resto del caso verde: messa a 300/90 a scala 2:1 la vista scendeva nel cartiglio. Adesso va in un posto libero, fuori dalle viste e dal cartiglio" } ] }
+          "why": "SEEN IN THE PNG on 26/9/2026, with the rest of the case green: put at 300/90 at scale 2:1 the view went down into the title block. Now it goes in a free place, outside the views and the title block" } ] }
   ]
 }

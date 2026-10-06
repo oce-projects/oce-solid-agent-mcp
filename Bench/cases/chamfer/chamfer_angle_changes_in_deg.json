@@ -1,10 +1,10 @@
 {
   "name": "chamfer_angle_changes_in_deg",
   "family": "chamfer",
-  "why": "VOCE Z-C21.2, rilievo M3. set_dimension convertiva ogni quota da millimetri: «30» sull'angolo di uno smusso diventava 0,03 rad, cioe' 1,7 gradi, e la rilettura — convertita allo stesso modo — diceva che aveva preso. IDimension~GetType.html: «Type of dimension as defined by swDimensionParamType_e» (DoubleAngular = 1). Lo stato le quote angolari le scrive in gradi: adesso set_dimension le legge e le scrive in gradi, e la risposta lo dice con «before_deg» e «after_deg».",
-  "defect_caught": "Lo smusso 5 a 45 gradi di `chamfer_5_at_45`, poi l'angolo portato a 30. Sulla libreria vecchia la risposta ha «before_mm» e «now_mm» (0,785 e 30 «mm» su una quota in radianti) e niente «after_deg»: il caso e' rosso alla prima attesa.",
-  "_the_dimension_is_named_by_kind": "`@dimension(angular=true)`: l'unica quota in gradi del pezzo, che lo stato marca con «deg». I nomi che SOLIDWORKS da' alle quote di uno smusso (D1, D2) e il loro ordine non sono misurati, e scriverli qui sarebbe indovinare.",
-  "_why_there_is_no_volume": "Con un lato da 5 e l'angolo a 30 gradi l'altro lato e' 5 x tan 30 = 2,887 oppure 5 / tan 30 = 8,660, secondo da quale faccia SOLIDWORKS conta l'angolo, e questo non e' misurato: 119278,31 o 117834,94 mm3. Un'attesa su uno dei due numeri sarebbe una scommessa; la quota riletta in gradi no.",
+  "why": "ENTRY Z-C21.2, finding M3. set_dimension converted every dimension from millimetres: «30» on the angle of a chamfer became 0.03 rad, that is 1.7 degrees, and the re-reading — converted the same way — said it had taken. IDimension~GetType.html: «Type of dimension as defined by swDimensionParamType_e» (DoubleAngular = 1). The state writes angular dimensions in degrees: now set_dimension reads and writes them in degrees, and the answer says so with «before_deg» and «after_deg».",
+  "defect_caught": "The 5 at 45 degrees chamfer of `chamfer_5_at_45`, then the angle brought to 30. On the old library the answer has «before_mm» and «now_mm» (0.785 and 30 «mm» on a dimension in radians) and no «after_deg»: the case is red at the first expectation.",
+  "_the_dimension_is_named_by_kind": "`@dimension(angular=true)`: the only dimension in degrees of the part, which the state marks with «deg». The names SOLIDWORKS gives to the dimensions of a chamfer (D1, D2) and their order are not measured, and writing them here would be guessing.",
+  "_why_there_is_no_volume": "With one side of 5 and the angle at 30 degrees the other side is 5 x tan 30 = 2.887 or 5 / tan 30 = 8.660, depending on which face SOLIDWORKS counts the angle from, and this is not measured: 119278.31 or 117834.94 mm3. An expectation on one of the two numbers would be a bet; the dimension re-read in degrees is not.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -17,8 +17,8 @@
       "arguments": { "dimension": "@dimension(angular=true)", "value_mm": 30 },
       "expect": [
         { "what": "measurements.after_deg", "equal_to": 30,
-          "why": "riletta dalla quota e convertita in gradi. Sulla libreria vecchia il campo non c'e'" },
+          "why": "re-read from the dimension and converted to degrees. On the old library the field is not there" },
         { "what": "measurements.before_deg", "equal_to": 45,
-          "why": "l'angolo dello smusso com'era: 45 gradi, non 0,785" } ] }
+          "why": "the angle of the chamfer as it was: 45 degrees, not 0.785" } ] }
   ]
 }

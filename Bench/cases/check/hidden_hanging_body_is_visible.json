@@ -1,10 +1,10 @@
 {
   "name": "hidden_hanging_body_is_visible",
   "family": "check",
-  "why": "VOCE Z-C21.2, rilievo L12-1. check_overhangs chiamava GetBodies2(swSolidBody, true), e IPartDoc~GetBodies2.html dice del secondo argomento: «True gets only the visible bodies, false gets all of the bodies in the part». Un corpo nascosto per guardare dentro il pezzo usciva dall'analisi senza che niente lo dicesse, e la risposta era «si stampa senza supporti» su un pezzo che ha un corpo che pende.",
-  "defect_caught": "Due corpi: un blocco dritto, che si stampa, e la sua copia rastremata a 60 gradi come in `walls_at_sixty_degrees_do_not_print`, che pende da quattro lati. La copia si NASCONDE prima della verifica («prima_nascondi», col corpo della sua faccia davanti). Sulla libreria vecchia la verifica guarda solo il blocco dritto e risponde 0 facce sporgenti; su quella nuova le quattro pareti della copia ci sono.",
-  "_and_what_if_the_hidden_body_does_not_tessellate": "La guida non dice se GetTessTriangles risponde su un corpo nascosto (la mini-sonda della voce e' ancora da lanciare). Qui non conta: le quattro pareti sono PIANE, e per una faccia piana il ripiego su IFace2.Normal e' esatto. Se tassellano si contano per triangoli, se no per normale: 4 in tutti e due i casi.",
-  "_where_the_faces_are": "Il blocco va da x = -50 a 50, la copia (dx = 200) da 150 a 250. Le facce si nominano per il punto che lo stato pubblica, GetClosestPointOn(0,0,0): per la copia cade a x = 150 (davanti, sinistra, alto, basso) e a x = 250 (destra); per il blocco a x = 0, -50 e 50.",
+  "why": "ENTRY Z-C21.2, finding L12-1. check_overhangs called GetBodies2(swSolidBody, true), and IPartDoc~GetBodies2.html says of the second argument: «True gets only the visible bodies, false gets all of the bodies in the part». A body hidden to look inside the part dropped out of the analysis without anything saying so, and the answer was «it prints without supports» on a part that has a body that overhangs.",
+  "defect_caught": "Two bodies: a straight block, which prints, and its copy tapered at 60 degrees as in `walls_at_sixty_degrees_do_not_print`, which overhangs on four sides. The copy is HIDDEN before the check («prima_nascondi», with the body of its front face in front). On the old library the check looks only at the straight block and answers 0 overhanging faces; on the new one the four walls of the copy are there.",
+  "_and_what_if_the_hidden_body_does_not_tessellate": "The guide does not say whether GetTessTriangles answers on a hidden body (the mini-probe of the entry is still to be run). Here it does not matter: the four walls are PLANAR, and for a planar face the fallback on IFace2.Normal is exact. If they tessellate they are counted by triangles, if not by normal: 4 in both cases.",
+  "_where_the_faces_are": "The block goes from x = -50 to 50, the copy (dx = 200) from 150 to 250. The faces are named by the point the state publishes, GetClosestPointOn(0,0,0): for the copy it falls at x = 150 (front, left, top, bottom) and at x = 250 (right); for the block at x = 0, -50 and 50.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -25,18 +25,18 @@
       "expect": [
         { "what": "measurements.faces_at_corner_after", "equal_to": 4 },
         { "what": "measurements.part_grew", "equal_to": false,
-          "why": "si stringe verso il basso: e' il tronco rovesciato, la forma che pende (vedi `walls_at_sixty_degrees_do_not_print`)" },
+          "why": "it narrows towards the bottom: it is the upside-down frustum, the shape that overhangs (see `walls_at_sixty_degrees_do_not_print`)" },
         { "what": "bodies", "equal_to": 2 } ] },
     { "operation": "check_overhangs",
       "hide_first": [ "@face(normal=front,x~=150)" ],
       "arguments": {},
       "expect": [
         { "what": "measurements.faces_overhanging", "equal_to": 4,
-          "why": "le quattro pareti a 60 gradi della copia NASCOSTA. Sulla libreria vecchia: 0" },
+          "why": "the four walls at 60 degrees of the HIDDEN copy. On the old library: 0" },
         { "what": "measurements.overhang_worst_deg", "equal_to": 60, "tolerance": 0.1,
-          "tolerance_why": "l'angolo si ricava dalle normali dei triangoli, che sono in virgola mobile singola" },
+          "tolerance_why": "the angle is derived from the normals of the triangles, which are single-precision floating point" },
         { "what": "measurements.prints_without_supports", "equal_to": false },
         { "what": "measurements.hidden_bodies", "equal_to": 1,
-          "why": "la risposta dice che un corpo nascosto e' stato guardato" } ] }
+          "why": "the answer says that a hidden body was looked at" } ] }
   ]
 }

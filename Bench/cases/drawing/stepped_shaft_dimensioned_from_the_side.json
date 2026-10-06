@@ -1,19 +1,19 @@
 {
   "name": "stepped_shaft_dimensioned_from_the_side",
   "family": "drawing",
-  "why": "VOCE GT14. Un pezzo tornito si quota nella vista LONGITUDINALE: le lunghezze fra le facce e i diametri. L'albero a gradini dell'esempio di «revolve»: Ø30 x 40, Ø20 x 30, Ø34 x 20. Misurato il 27/9/2026: due cerchi visti di taglio con AddDimension2 danno la distanza fra le facce; due generatrici della stessa faccia danno da sole la quota col Ø. Le lunghezze in parallelo dalla faccia di sinistra (lo zero unico, come per i fori). Il Ø20, in questa vista, SOLIDWORKS non lo espone (la sua faccia non e' fra le visibili, una generatrice ha la faccia null e non si seleziona): la risposta lo deve DIRE. Non sempre pero': il 28/9/2026, con SOLIDWORKS appena riaperto, lo ha esposto ed e' stato quotato (l'attesa sui non raggiunti lo racconta).",
-  "defect_caught": "La vista longitudinale di un tondo rifiutata o quotata a caso (prima: «nessuna quota e' nata»); una lunghezza a catena al posto del parallelo; un diametro sbagliato e plausibile (di taglio AddDiameterDimension2 dice 60 per un Ø30); un diametro non quotato taciuto; le stesse quote ripetute nelle altre viste.",
-  "_the_views_are_called_by_uid": "V1 frontale e V2 dall'alto (l'albero di fianco), V3 laterale (l'albero di testa: due cerchi).",
+  "why": "ENTRY GT14. A turned part is dimensioned in the LONGITUDINAL view: the lengths between the faces and the diameters. The stepped shaft of the «revolve» example: Ø30 x 40, Ø20 x 30, Ø34 x 20. Measured on 27/9/2026: two circles seen edge-on with AddDimension2 give the distance between the faces; two generatrices of the same face give the dimension with the Ø by themselves. The lengths in parallel from the left face (the single zero, as for the holes). The Ø20, in this view, SOLIDWORKS does not expose (its face is not among the visible ones, a generatrix has a null face and cannot be selected): the answer must SAY so. Not always, though: on 28/9/2026, with SOLIDWORKS just reopened, it exposed it and it was dimensioned (the expectation on the ones not reached tells it).",
+  "defect_caught": "The longitudinal view of a round part refused or dimensioned at random (before: «no dimension was born»); a chained length in place of the parallel one; a wrong and plausible diameter (edge-on AddDiameterDimension2 says 60 for a Ø30); a diameter not dimensioned and kept quiet; the same dimensions repeated in the other views.",
+  "_the_views_are_called_by_uid": "V1 front and V2 from above (the shaft from the side), V3 side (the shaft from the end: two circles).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
       "arguments": { "plane": "front", "angle_deg": 360, "axis": [[0, 0], [90, 0]],
                      "contours": [[[0, 0], [0, 15], [40, 15], [40, 10], [70, 10], [70, 17], [90, 17], [90, 0]]] },
       "expect": [ { "what": "volume_mm3", "equal_to": 55857.52, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: pi x (15^2 x 40 + 10^2 x 30 + 17^2 x 20)" } ] },
+                    "tolerance_why": "pi inside: pi x (15^2 x 40 + 10^2 x 30 + 17^2 x 20)" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\stepped_shaft_dimensioned_from_the_side.sldprt" },
-      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "una vista si aggancia al FILE del pezzo" } ] },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
@@ -23,18 +23,18 @@
     { "operation": "drawing_dimension",
       "arguments": { "view": "V1" },
       "expect": [
-        { "what": "measurements.round_axis", "equal_to": "horizontal", "why": "l'albero sta di fianco, lungo il foglio" },
+        { "what": "measurements.round_axis", "equal_to": "horizontal", "why": "the shaft lies on its side, along the sheet" },
         { "what": "measurements.round_lengths_mm", "equal_to": [40, 70, 90],
-          "why": "in parallelo dalla faccia di sinistra, rilette: 40 fino al primo gradino, 70 fino al secondo, 90 in tutto" },
+          "why": "in parallel from the left face, re-read: 40 up to the first step, 70 up to the second, 90 in all" },
         { "what": "measurements.round_diameters_mm", "includes": ["34", "30"],
-          "why": "dalle due generatrici di ogni faccia, rilette col Ø" },
+          "why": "from the two generatrices of every face, re-read with the Ø" },
         { "what": "measurements.round_diameters_not_reached", "does_not_include": ["Ø30", "Ø34"],
-          "why": "quelli sono quotati. Il Ø20 non ha un'attesa: a seconda di come SOLIDWORKS espone le generatrici e' quotato oppure finisce qui col suo motivo. Banco intero del 28/9/2026 su 0.140.0: non raggiunto. Su 0.141.0, con SOLIDWORKS appena riaperto e il codice del tondo intatto: quotato, round_diameters_mm [34, 30, 20]. Tutte e due le uscite sono oneste" },
+          "why": "those are dimensioned. The Ø20 has no expectation: depending on how SOLIDWORKS exposes the generatrices it is dimensioned or it ends up here with its reason. Full bench of 28/9/2026 on 0.140.0: not reached. On 0.141.0, with SOLIDWORKS just reopened and the code of the round part untouched: dimensioned, round_diameters_mm [34, 30, 20]. Both outcomes are honest" },
         { "what": "measurements.how_many_texts_overlap", "equal_to": 0 } ] },
     { "operation": "drawing_dimension",
       "arguments": { "view": "V2" },
       "must_fail": {
-        "message_includes": ["gia' quotati in un'altra vista"],
+        "message_includes": ["already dimensioned in another view"],
         "twin": "stepped_shaft_dimensioned_from_the_side" } }
   ]
 }

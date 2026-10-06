@@ -1,7 +1,7 @@
 {
   "name": "limit_a_single_body",
   "family": "bodies",
-  "why": "Una booleana su un corpo solo non ha senso, e il modo in cui non ce l'ha e' pericoloso: SOLIDWORKS potrebbe rispondere una feature che non fa niente, e il pezzo resterebbe quello di prima con un passo in piu' nell'albero. Si rifiuta prima, e si dice anche COME si fa nascere un secondo corpo -- che e' la cosa che chi chiede non sa.",
+  "why": "A boolean on a single body makes no sense, and the way it makes none is dangerous: SOLIDWORKS might answer a feature that does nothing, and the part would stay what it was with one more step in the tree. It is refused beforehand, and it also says HOW a second body is brought into being -- which is the thing the asker does not know.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,7 +11,7 @@
     { "operation": "combine_bodies",
       "arguments": { "operation": "union", "main_body_uid": "C1" },
       "must_fail": {
-        "message_includes": ["almeno due corpi", "move_bodies"],
+        "message_includes": ["at least two bodies", "move_bodies"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "merge_two_cubes" } }

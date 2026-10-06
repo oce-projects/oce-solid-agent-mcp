@@ -1,11 +1,11 @@
 {
   "name": "rebuilt_cover_keeps_the_constraints_but_broken",
   "family": "assemblies",
-  "_the_name_went_through_three_rounds_and_the_third_is_the_right_one": "«tiene» -> «perde» -> «tiene» -> «tiene_ma_rotti». Non e' indecisione, e' la misura che arriva a pezzi. (1) «tiene» era l'ipotesi. (2) Una sonda ha mostrato che ReplaceComponents2 con ReAttachMates: true solleva RPC_E_SERVERFAULT e con false passa, e io ne ho DEDOTTO che false volesse dire «scarta i vincoli»: rinominato in «perde». (3) Il banco ha misurato 0 persi -- l'ipotesi era giusta, la deduzione sbagliata: rinominato in «tiene». (4) Il banco ha misurato 2 PROBLEMI nel documento: i vincoli ci sono e sono in ERRORE. Nessuno dei tre nomi precedenti era vero.",
-  "_the_lesson_of_the_three_rounds": "Due errori diversi, e il secondo e' peggiore del primo. Il primo: una sonda che prova se la CHIAMATA riesce non prova cosa la chiamata FA -- stampava i percorsi e non contava i vincoli. Il secondo: avendo misurato che i vincoli RESTANO, ho concluso che stessero bene. **Restare non e' funzionare.** Serviva una terza domanda, e non era sul conteggio: era sul documento.",
-  "why": "«IL COPERCHIO VA RIFATTO» e' il gesto piu' comune di chi progetta, e la voce GA7 ne nominava il pericolo: «se l'API sostituisce il documento ma NON conserva gli accoppiamenti, si ripresenta identico il difetto tipico -- pezzo diverso, nessun errore». Il pezzo nuovo entra, l'assieme si apre, la ricostruzione e' pulita, e il componente e' libero.",
-  "_why_the_case_mates_BEFORE_replacing": "Perche' senza un accoppiamento da perdere non c'e' niente da misurare. Il passo 1 vincola il coperchio alla base; il passo 2 lo sostituisce con un pezzo diverso; il passo 3 e' lo stato. Se i vincoli non sopravvivessero, «mates_lost» sarebbe maggiore di zero e il caso lo direbbe.",
-  "_why_the_signature_had_not_been_found": "Il censimento delle API la cercava su `IComponent2` -- 170 metodi, nessun ReplaceComponent -- e ne aveva concluso «non elenca una firma dedicata». Sta su `IAssemblyDoc`: ReplaceComponents2(FileName, ConfigName, ReplaceAllInstance, UseConfigChoice, ReAttachMates). E' la stessa lezione di AddConfiguration3 (nota 81s): un nome dice come si chiama un metodo, non su quale interfaccia sta.",
+  "_the_name_went_through_three_rounds_and_the_third_is_the_right_one": "«tiene» -> «perde» -> «tiene» -> «tiene_ma_rotti». It is not indecision, it is the measurement arriving in pieces. (1) «tiene» (holds) was the hypothesis. (2) A probe showed that ReplaceComponents2 with ReAttachMates: true raises RPC_E_SERVERFAULT and with false goes through, and I DEDUCED that false meant «discard the constraints»: renamed to «perde» (loses). (3) The bench measured 0 lost -- the hypothesis was right, the deduction wrong: renamed to «tiene» (holds). (4) The bench measured 2 PROBLEMS in the document: the constraints are there and are in ERROR. None of the three previous names was true.",
+  "_the_lesson_of_the_three_rounds": "Two different mistakes, and the second is worse than the first. The first: a probe that tests whether the CALL succeeds does not prove what the call DOES -- it printed the paths and did not count the constraints. The second: having measured that the constraints REMAIN, I concluded that they were fine. **Remaining is not working.** A third question was needed, and it was not about the count: it was about the document.",
+  "why": "«THE COVER MUST BE REDONE» is the most common gesture of a designer, and entry GA7 named its danger: «if the API replaces the document but does NOT keep the mates, the typical defect shows up again, identical -- different part, no error». The new part goes in, the assembly opens, the rebuild is clean, and the component is free.",
+  "_why_the_case_mates_BEFORE_replacing": "Because without a mate to lose there is nothing to measure. Step 1 constrains the cover to the base; step 2 replaces it with a different part; step 3 is the state. If the constraints did not survive, «mates_lost» would be greater than zero and the case would say so.",
+  "_why_the_signature_had_not_been_found": "The census of the APIs looked for it on `IComponent2` -- 170 methods, no ReplaceComponent -- and concluded «it does not list a dedicated signature». It is on `IAssemblyDoc`: ReplaceComponents2(FileName, ConfigName, ReplaceAllInstance, UseConfigChoice, ReAttachMates). It is the same lesson as AddConfiguration3 (note 81s): a name says what a method is called, not on which interface it sits.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -36,7 +36,7 @@
       },
       "expect": [
         { "what": "measurements.mates_after", "equal_to": [1, 1],
-          "why": "serve un vincolo da perdere: senza, il passo dopo non misurerebbe niente" } ] },
+          "why": "a constraint to lose is needed: without it, the next step would measure nothing" } ] },
 
     { "operation": "replace_component",
       "arguments": {
@@ -45,23 +45,23 @@
       },
       "expect": [
         { "what": "measurements.target", "includes": ["coperchio2"],
-          "why": "il pezzo nuovo e' DENTRO: si guarda che qualche componente usi davvero quel file, non il Boolean che ReplaceComponents2 restituisce" },
+          "why": "the new part is INSIDE: you check that some component really uses that file, not the Boolean that ReplaceComponents2 returns" },
         { "what": "measurements.components_after", "equal_to": 2,
-          "why": "sostituire non e' aggiungere: i componenti restano due" },
+          "why": "replacing is not adding: the components stay two" },
         { "what": "measurements.mates_lost", "equal_to": 0,
-          "why": "LA RISPOSTA ALLA DOMANDA DI GA7, misurata e non dedotta: **i vincoli NON si perdono.** `ReAttachMates: false` non vuol dire «scartali» -- vuol dire «non provare a riagganciarli interattivamente». Con `true` e un vincolo vero da riagganciare, ReplaceComponents2 solleva RPC_E_SERVERFAULT (misurato in quattro condizioni: assieme salvato e non, file nuovo aperto e chiuso). Con `false` passa, e il conteggio resta 2 prima e 2 dopo.",
-          "_and_here_i_was_wrong": "Avevo concluso «i vincoli si perdono sempre» da una sonda che provava solo se la CHIAMATA riusciva: stampava i percorsi dei componenti e non contava gli accoppiamenti. La chiamata riusciva, quindi avevo dedotto il resto. Il caso di banco ha misurato 0 persi contro i 2 che pretendevo, ed e' il caso ad aver ragione. **Una sonda che non misura la cosa non e' una prova della cosa, nemmeno quando riesce.**" },
+          "why": "THE ANSWER TO THE QUESTION OF GA7, measured and not deduced: **the constraints are NOT lost.** `ReAttachMates: false` does not mean «discard them» -- it means «do not try to re-attach them interactively». With `true` and a real constraint to re-attach, ReplaceComponents2 raises RPC_E_SERVERFAULT (measured in four conditions: assembly saved and not, new file open and closed). With `false` it goes through, and the count stays 2 before and 2 after.",
+          "_and_here_i_was_wrong": "I had concluded «the constraints are always lost» from a probe that only tested whether the CALL succeeded: it printed the paths of the components and did not count the mates. The call succeeded, so I had deduced the rest. The bench case measured 0 lost against the 2 I demanded, and it is the case that was right. **A probe that does not measure the thing is not a proof of the thing, not even when it succeeds.**" },
         { "what": "measurements.problems_before", "equal_to": 0,
-          "why": "prima della sostituzione l'assieme e' sano: serve come riferimento, altrimenti «due problemi dopo» non direbbe se sono nuovi" },
+          "why": "before the replacement the assembly is healthy: it is needed as a reference, otherwise «two problems afterwards» would not say whether they are new" },
         { "what": "measurements.problems_after", "equal_to": 2,
-          "why": "**LA COSA CHE QUESTO CASO HA TROVATO, ed e' il difetto che non da' errore in forma pura.** I vincoli SOPRAVVIVONO alla sostituzione -- il conteggio dice 2 prima e 2 dopo, e da solo direbbe «tutto a posto» -- **ma vanno in ERRORE**, perche' puntavano a facce del pezzo vecchio. Due vincoli rotti che sembrano due vincoli sani. Il conteggio degli accoppiamenti non puo' vederlo: e' `GetWhatsWrongCount` a vederlo, la stessa domanda che si fa un progettista guardando l'albero rosso.",
-          "_why_TWO_and_not_one": "Il vincolo e' uno solo, e i problemi sono due: l'accoppiamento in errore e il componente che lo porta. Non si pretende «maggiore di zero» ma il numero esatto -- una soglia lascerebbe passare un terzo problema comparso per un'altra ragione, e allora il caso smetterebbe di misurare quello che dice di misurare.",
-          "_if_it_ever_became_0": "Vorrebbe dire che SOLIDWORKS ha imparato a riagganciare i vincoli a un pezzo sostituito -- buona notizia, e da verificare prima di crederci. Il caso diventerebbe rosso e lo direbbe, che e' esattamente cio' che deve fare." },
-        { "what": "measurements.verdict", "includes": ["ERRORE", "accoppia"],
-          "why": "IL PUNTO DELL'OPERAZIONE. Il numero da solo non basta: chi legge deve sapere che quei vincoli CI SONO e NON TENGONO, e cosa fare -- toglierli e rimetterli. Un avvertimento senza rimedio si impara a ignorare." },
+          "why": "**THE THING THIS CASE FOUND, and it is the defect that gives no error in its pure form.** The constraints SURVIVE the replacement -- the count says 2 before and 2 after, and alone it would say «all fine» -- **but they go into ERROR**, because they pointed at faces of the old part. Two broken constraints that look like two healthy ones. The count of the mates cannot see it: it is `GetWhatsWrongCount` that sees it, the same question a designer asks looking at the red tree.",
+          "_why_TWO_and_not_one": "There is a single constraint, and the problems are two: the mate in error and the component that carries it. We do not demand «greater than zero» but the exact number -- a threshold would let a third problem through that appeared for another reason, and then the case would stop measuring what it says it measures.",
+          "_if_it_ever_became_0": "It would mean that SOLIDWORKS has learned to re-attach the constraints to a replaced part -- good news, and to be verified before believing it. The case would turn red and say so, which is exactly what it must do." },
+        { "what": "measurements.verdict", "includes": ["mates are in ERROR", "put it back with"],
+          "why": "THE POINT OF THE OPERATION. The number alone is not enough: whoever reads must know that those constraints ARE THERE and DO NOT HOLD, and what to do -- remove them and put them back. A warning without a remedy is learned to be ignored." },
         { "what": "state.how_many_components", "equal_to": 2,
-          "why": "sostituire non e' aggiungere. Lo stato si rilegge dopo ogni passo, quindi le attese sull'assieme stanno qui e non in un passo in piu': un passo aggiunto solo per leggere lo stato avrebbe dovuto usare un'operazione, e le operazioni di PARTE su un assieme si rifiutano." },
+          "why": "replacing is not adding. The state is re-read after every step, so the expectations on the assembly are here and not in an extra step: a step added only to read the state would have had to use an operation, and PART operations on an assembly are refused." },
         { "what": "state.assembly_constrained", "equal_to": true,
-          "why": "E IL CERCHIO SI CHIUDE SU GA5: lo stato e l'operazione devono raccontare la STESSA cosa. L'operazione dice «i vincoli sono rimasti»; lo stato, che li conta per conto suo rileggendo i componenti, dice «ogni componente non fisso ha almeno un accoppiamento». Due letture indipendenti che concordano. Se divergessero, una delle due mentirebbe e non si saprebbe quale." } ] }
+          "why": "AND THE CIRCLE CLOSES ON GA5: the state and the operation must tell the SAME thing. The operation says «the constraints remained»; the state, which counts them on its own by re-reading the components, says «every non-fixed component has at least one mate». Two independent readings that agree. If they diverged, one of the two would be lying and we would not know which." } ] }
   ]
 }

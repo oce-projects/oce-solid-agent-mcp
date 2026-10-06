@@ -1,8 +1,8 @@
 {
   "name": "two_parallel_faces_and_it_says_so",
   "family": "measurement",
-  "why": "Lo strumento di misura su due facce: distanza, e se sono parallele o perpendicolari. Le due facce grandi di una piastra sono parallele e distano 10; non sono perpendicolari, e anche quel «no» e' un'attesa -- un campo che rispondesse sempre «vero» passerebbe la meta' dei casi.",
-  "_already_seen_red": "`IMeasure.Calculate(Object Entities)` PRENDE UN ARGOMENTO E NON LO GUARDA: misura quello che e' SELEZIONATO. Misurato il 15/9/2026: chiamata con un vettore di due facce risponde FALSE; con le stesse due facce selezionate e l'argomento a null risponde TRUE e da' 0,01. E chiamata con UNA faccia nell'array, mentre la selezione ne conteneva ancora due, ha risposto TRUE e ha dato l'area di tutte e due -- 3200 mm2 invece di 1600. Un numero credibile, del pezzo giusto, di un'altra selezione. L'operazione adesso svuota la selezione, seleziona a mano e guarda il booleano.",
+  "why": "The measuring tool on two faces: distance, and whether they are parallel or perpendicular. The two large faces of a plate are parallel and 10 apart; they are not perpendicular, and that «no» is an expectation too -- a field that always answered «true» would pass half the cases.",
+  "_already_seen_red": "`IMeasure.Calculate(Object Entities)` TAKES AN ARGUMENT AND DOES NOT LOOK AT IT: it measures what is SELECTED. Measured on 15/9/2026: called with a vector of two faces it answers FALSE; with the same two faces selected and the argument null it answers TRUE and gives 0.01. And called with ONE face in the array, while the selection still contained two, it answered TRUE and gave the area of both -- 3200 mm2 instead of 1600. A believable number, from the right part, of another selection. The operation now empties the selection, selects by hand and looks at the boolean.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,11 +13,11 @@
       "arguments": { "uid": "@face(normal=front)", "uid2": "@face(normal=back)" },
       "expect": [
         { "what": "measurements.distance_mm", "equal_to": 10, "tolerance": 0.001,
-          "tolerance_why": "lo spessore della piastra, dato in metri" },
+          "tolerance_why": "the thickness of the plate, given in metres" },
         { "what": "measurements.parallel", "equal_to": true },
         { "what": "measurements.perpendicular", "equal_to": false,
-          "why": "anche il «no» e' un'attesa: un campo che risponde sempre vero passerebbe meta' dei casi" },
+          "why": "the «no» is an expectation too: a field that always answers true would pass half the cases" },
         { "what": "measurements.area_total_mm2", "equal_to": 3200, "tolerance": 0.5,
-          "tolerance_why": "due facce da 40x40: l'area totale e' la somma, ed e' cosi' che si vede se ha misurato TUTTE E DUE le cose che gli sono state date" } ] }
+          "tolerance_why": "two faces of 40x40: the total area is the sum, and that is how you see whether it measured BOTH the things it was given" } ] }
   ]
 }

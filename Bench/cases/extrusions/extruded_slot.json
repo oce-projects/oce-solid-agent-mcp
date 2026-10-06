@@ -1,9 +1,9 @@
 {
   "name": "extruded_slot",
   "family": "extrusions",
-  "why": "VOCE Z-C6. `extrude_section` e' a catalogo con `Provata = true`, e fino al 24/9/2026 la toccavano solo piani a mano (`bridge/c4s_*`, `forma/3`) che non pretendono niente. Il caso e' quello del piano `c4s_slot`.",
-  "defect_caught": "Un'asola e' un rettangolo con due estremita' tonde: se uscissero dritte, o se «larghezza» fosse letta come la distanza fra i centri invece che l'ingombro, il pezzo sarebbe un altro e non darebbe errore. Il volume lo dice: dritte fanno 12000, fra i centri 15141,6, giuste 11163,28.",
-  "_the_slot_is_a_polygon": "E I SEMICERCHI NON SONO SEMICERCHI. `Sections.cs` li fa di 24 lati ciascuno, coi vertici sul cerchio CIRCOSCRITTO (raggio r/cos(pi/48) = 10,0215): un'asola approssimata per difetto sarebbe piu' stretta del nominale, e una vite non ci passerebbe. Anche i lati dritti stanno a +-10,0215: l'asola esce larga 20,043. Il primo giro di questo caso aspettava 11141,59 — il conto di un'asola coi semicerchi veri — ed e' uscito 11163,281: aveva ragione il pezzo, e la descrizione dell'operazione non lo diceva. Adesso lo dice.",
+  "why": "ENTRY Z-C6. `extrude_section` is in the catalogue with `Provata = true`, and until 24/9/2026 only hand-written plans touched it (`bridge/c4s_*`, `forma/3`) which demand nothing. The case is that of the plan `c4s_slot`.",
+  "defect_caught": "A slot is a rectangle with two round ends: if they came out straight, or if «width» were read as the distance between the centres instead of the overall size, the part would be another one and would give no error. The volume says so: straight ends make 12000, between the centres 15141.6, right ones 11163.28.",
+  "_the_slot_is_a_polygon": "AND THE SEMICIRCLES ARE NOT SEMICIRCLES. `Sections.cs` makes them of 24 sides each, with the vertices on the CIRCUMSCRIBED circle (radius r/cos(pi/48) = 10.0215): a slot approximated from below would be narrower than the nominal, and a screw would not pass. The straight sides too sit at +-10.0215: the slot comes out 20.043 wide. The first run of this case expected 11141.59 — the calculation of a slot with true semicircles — and 11163.281 came out: the part was right, and the description of the operation did not say so. Now it does.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_section",
@@ -12,6 +12,6 @@
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 11163.28, "tolerance": 0.1,
-          "tolerance_why": "Area = 2*20 * 2*10,0215 (la parte dritta, larga 2*rp) + 24 * 10,0215^2 * sin(pi/24) (i due mezzi poligoni) = 801,72 + 314,61 = 1116,328 mm2, per 10 di lunghezza: 11163,28. Misurato 11163,281. Il decimo copre l'arrotondamento dei vertici; l'asola coi semicerchi veri (11141,59) sta a 21,7 mm3, le estremita' dritte a 836." } ] }
+          "tolerance_why": "Area = 2*20 * 2*10.0215 (the straight part, 2*rp wide) + 24 * 10.0215^2 * sin(pi/24) (the two half polygons) = 801.72 + 314.61 = 1116.328 mm2, for 10 of length: 11163.28. Measured 11163.281. The tenth covers the rounding of the vertices; the slot with true semicircles (11141.59) is 21.7 mm3 away, the straight ends 836." } ] }
   ]
 }

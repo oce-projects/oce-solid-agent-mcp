@@ -1,7 +1,7 @@
 {
   "name": "limit_bounding_box_of_a_body_that_does_not_exist",
   "family": "measurement",
-  "why": "Un identificativo che non c'e' va rifiutato, non risposto con una scatola vuota o con quella di tutto il pezzo. Una misura su niente che esce come una misura e' il difetto che non da' errore: i numeri ci sono, sono plausibili, e non sono del corpo che qualcuno ha chiesto.",
+  "why": "An identifier that does not exist must be refused, not answered with an empty box or with that of the whole part. A measurement on nothing that comes out as a measurement is the defect that gives no error: the numbers are there, they are plausible, and they are not those of the body someone asked for.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,7 +11,7 @@
     { "operation": "body_bounding_box",
       "arguments": { "body_uid": "C9" },
       "must_fail": {
-        "message_includes": ["Non trovo il corpo", "C9"],
+        "message_includes": ["I cannot find the body", "C9"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "plate_bounding_box" } }

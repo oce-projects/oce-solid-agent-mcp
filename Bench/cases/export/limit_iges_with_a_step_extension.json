@@ -1,7 +1,7 @@
 {
   "name": "limit_iges_with_a_step_extension",
   "family": "export",
-  "why": "Chiedere un IGES e dare un percorso che finisce in .step fa scrivere uno STEP con dentro tutt'altro, e il file esiste, pesa e si apre: e' il difetto che non da' errore, nella forma piu' banale. L'estensione e' l'unica cosa che dice a SaveAs3 che formato scrivere, e qui si controlla che combaci con l'operazione chiesta.",
+  "why": "Asking for an IGES and giving a path that ends in .step makes it write a STEP with something else entirely inside, and the file exists, weighs and opens: it is the defect that gives no error, in its most trivial form. The extension is the only thing that tells SaveAs3 which format to write, and here we check that it matches the operation asked for.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,7 +12,7 @@
       "arguments": { "path": "{LAVORO}\\gp3_sbagliato.step", "representation": "solids",
                      "reopen_and_compare": true },
       "must_fail": {
-        "message_includes": [".iges", "che formato scrivere"],
+        "message_includes": [".iges", "which format to write"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "iges_solids" } }

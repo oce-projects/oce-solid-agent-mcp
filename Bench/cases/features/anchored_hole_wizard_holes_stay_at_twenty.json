@@ -1,7 +1,7 @@
 {
   "name": "anchored_hole_wizard_holes_stay_at_twenty",
   "family": "features",
-  "why": "VOCE E18 su `hole_wizard`, l'ultimo pezzo della voce. Lo schizzo dei punti lo fa HoleWizard: la libreria ci rientra dopo averli posizionati, ogni punto riceve la sua ancora, e lo schizzo si pretende completamente definito dopo l'ultimo. Misurato il 25/9/2026 col banchetto: quattro fori M8 a 20 dai bordi, alzata la piastra a 180 e poi allungata a 260, stanno a y -40 -40 100 100 e x -80 -80 140 140.",
+  "why": "ENTRY E18 on `hole_wizard`, the last part of the entry. The sketch of the points is made by HoleWizard: the library goes back into it after placing them, every point gets its anchor, and the sketch is required to be fully defined after the last one. Measured on 25/9/2026 with the bench probe: four M8 holes 20 from the edges, with the plate raised to 180 and then lengthened to 260, sit at y -40 -40 100 100 and x -80 -80 140 140.",
   "start": {
     "new_part": true
   },
@@ -97,7 +97,7 @@
             40
           ],
           "tolerance": 0.05,
-          "tolerance_why": "l'asse del cilindro si legge in metri"
+          "tolerance_why": "the cylinder axis is read in metres"
         },
         {
           "what": "measurements.hole_sketch",
@@ -121,7 +121,7 @@
             100
           ],
           "tolerance": 0.05,
-          "tolerance_why": "l'alto va a 120: i fori di sopra restano a 20 da lui"
+          "tolerance_why": "the top moves to 120: the holes at the top stay 20 from it"
         }
       ]
     },
@@ -141,7 +141,7 @@
             140
           ],
           "tolerance": 0.05,
-          "tolerance_why": "il fianco destro va a 160: i fori di destra restano a 20 da lui"
+          "tolerance_why": "the right side moves to 160: the holes on the right stay 20 from it"
         }
       ]
     }

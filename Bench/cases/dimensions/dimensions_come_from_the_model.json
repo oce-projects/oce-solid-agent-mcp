@@ -11,17 +11,17 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0, "diameter_mm": 10, "through_all": true },
-      "expect": [ { "what": "volume_mm3", "equal_to": 95214.6, "tolerance": 0.05, "tolerance_why": "pi dentro" } ] },
+      "expect": [ { "what": "volume_mm3", "equal_to": 95214.6, "tolerance": 0.05, "tolerance_why": "pi inside" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\dimensions_come_from_the_model.sldprt" },
-      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "una vista si aggancia al FILE del pezzo" } ] },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
     { "operation": "model_dimensions",
       "arguments": { "hole_callouts": false },
       "must_fail": {
-        "message_includes": ["non ha viste", "Metti prima le viste"],
+        "message_includes": ["has no views", "First put the views"],
         "twin": "dimensions_come_from_the_model" } },
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\dimensions_come_from_the_model.sldprt" },
@@ -33,6 +33,6 @@
           "why": "THE LINE THAT IS RED ON 0.141.0 (there it is 7). Each of the 4 model dimensions once: probe_duplicate_dims gave 4 with DuplicateDims true and 7 with false, the 120, the 80 and the depth 10 placed twice. Zero was the block of Z-C1" },
         { "what": "measurements.how", "includes": ["InsertModelAnnotations3"],
           "why": "the 4 come from the first step, the MARKED mask on all views, the very call the probe measured: no fallback ran" },
-        { "what": "state.views_total", "equal_to": 3, "why": "l'import non tocca le viste" } ] }
+        { "what": "state.views_total", "equal_to": 3, "why": "the import does not touch the views" } ] }
   ]
 }

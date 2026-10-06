@@ -1,7 +1,7 @@
 {
   "name": "limit_datum_with_the_same_letter",
   "family": "drawing",
-  "why": "Due datum «A» nella stessa tavola non danno errore in SOLIDWORKS, e ogni tolleranza che cita A diventa ambigua (la trappola scritta in Z-E6, fusa in GT6). Il secondo si rifiuta dicendo quali lettere ci sono gia'.",
+  "why": "Two datums «A» in the same drawing give no error in SOLIDWORKS, and every tolerance that cites A becomes ambiguous (the trap written in Z-E6, merged into GT6). The second one is refused, saying which letters are already there.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -21,7 +21,7 @@
     { "operation": "datum",
       "arguments": { "view": "V1", "side": "left", "letter": "A" },
       "must_fail": {
-        "message_includes": ["c'e' gia' un datum «A»", "ambigua"],
+        "message_includes": ["already has a datum «A»", "ambiguous"],
         "twin": "annotations_stay_outside_the_part" } }
   ]
 }

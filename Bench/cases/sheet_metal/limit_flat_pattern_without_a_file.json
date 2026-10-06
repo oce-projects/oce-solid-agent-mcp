@@ -1,7 +1,7 @@
 {
   "name": "limit_flat_pattern_without_a_file",
   "family": "sheet_metal",
-  "why": "VOCE GP18, la trappola 2 della famiglia: `ExportFlatPatternView` su un pezzo MAI SALVATO apre «Salva con nome» e la chiamata COM non torna — misurato con la sonda, che e' rimasta appesa finche' la finestra non e' stata chiusa da fuori. L'operazione deve rifiutare PRIMA di chiamare.",
+  "why": "ENTRY GP18, trap 2 of the family: `ExportFlatPatternView` on a NEVER SAVED part opens «Save As» and the COM call does not return — measured with the probe, which stayed hung until the window was closed from outside. The operation must refuse BEFORE calling.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -10,9 +10,9 @@
       "expect": [ { "what": "bodies", "equal_to": 1 } ] },
     { "operation": "flat_pattern_dxf",
       "arguments": { "path": "{LAVORO}\\limit_flat_pattern_without_a_file.dxf" },
-      "_the_twin_differs_by_path_and_that_is_not_what_counts": "Il banco pretende che rifiuto e gemella differiscano per UN argomento (voce F5), e la prima stesura non ne aveva nessuno: «gemella finta, identica al rifiuto». Qui il rifiuto dipende dallo STATO — il pezzo mai salvato — e non da un argomento. `path` e' l'unico che l'operazione prende, e differisce per rispettare la regola; la differenza che decide e' il salvataggio, che la gemella fa due passi prima. Scritto perche' chi legge non creda che sia il percorso a far rifiutare.",
+      "_the_twin_differs_by_path_and_that_is_not_what_counts": "The bench demands that refusal and twin differ by ONE argument (entry F5), and the first draft had none: «fake twin, identical to the refusal». Here the refusal depends on the STATE — the never saved part — and not on an argument. `path` is the only one the operation takes, and it differs to respect the rule; the difference that decides is the saving, which the twin does two steps earlier. Written so that whoever reads does not believe that it is the path that makes it refuse.",
       "must_fail": {
-        "message_includes": ["mai stato salvato"],
+        "message_includes": ["has never been saved"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "the_L_flattens" } }

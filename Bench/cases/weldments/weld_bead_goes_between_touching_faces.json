@@ -1,13 +1,13 @@
 {
   "name": "weld_bead_goes_between_touching_faces",
   "family": "weldments",
-  "why": "VOCE Z-C6. `weld_bead` era a catalogo con `Provata = true` e **non ha mai creato un cordone**: passava a `InsertCosmeticWeldBead2` tutte le facce di due insiemi di corpi, e quella chiamata torna null in ogni combinazione provata il 25/9/2026. Il cordone nasce solo con la chiamata vecchia, per selezione, e con UNA faccia per parte. Dalla libreria 0.114.0 l'operazione prende due facce.",
+  "why": "ENTRY Z-C6. `weld_bead` was in the catalogue with `Provata = true` and **has never created a bead**: it passed to `InsertCosmeticWeldBead2` all the faces of two sets of bodies, and that call returns null in every combination tried on 25/9/2026. The bead is born only with the old call, by selection, and with ONE face per side. From library 0.114.0 the operation takes two faces.",
 
-  "defect_caught": "Il cordone fra facce che non si toccano. SOLIDWORKS lo crea lo stesso — misurato: nasce, e il lato riletto dalla feature e' 40 invece del 4 chiesto — e in distinta finirebbe una saldatura che non esiste. Il passo 4 lo pretende rifiutato. Il passo 5 prende l'altro errore facile: la TESTA della barra corta appoggiata sulla lunga si tocca per davvero, ma e' un contatto faccia contro faccia, e un cordone d'angolo li' non ha senso.",
+  "defect_caught": "The bead between faces that do not touch. SOLIDWORKS creates it just the same — measured: it is born, and the side read back from the feature is 40 instead of the 4 asked — and a weld that does not exist would end up in the BOM. Step 4 demands it refused. Step 5 takes the other easy mistake: the HEAD of the short bar resting on the long one does really touch, but it is a face-against-face contact, and a fillet bead there makes no sense.",
 
-  "_and_the_twins_are_in_the_same_file": "Il cordone buono (passo 6) va dalla faccia laterale della corta alla faccia alta della lunga. Il passo 4 cambia solo la faccia d'arrivo (quella dietro della lunga, a 80 mm); il passo 5 cambia solo quella di partenza (la testa della corta).",
+  "_and_the_twins_are_in_the_same_file": "The good bead (step 6) goes from the side face of the short one to the top face of the long one. Step 4 changes only the destination face (the back one of the long one, at 80 mm); step 5 changes only the starting one (the head of the short one).",
 
-  "_the_selectors_are_measured": "Le due barre hanno facce uguali a coppie — la esterna e la interna del tubo hanno lo stesso verso e la stessa area — e `n=` sceglie per ordine dello stato. Misurato il 25/9/2026 dopo il taglio: la lunga ha le facce da 40800 mm2 (600 x 68), la corta da 17680 (260 x 68); fra le due «front» della lunga la esterna (z = 40) e' la seconda, fra le due «right» della corta la esterna (x = 340) e' la prima, fra le due «back» della lunga la esterna (z = -40) e' la prima. La testa tagliata della corta e' l'unica faccia da 1469,96 mm2 col verso «back».",
+  "_the_selectors_are_measured": "The two bars have faces that are equal in pairs — the outer and the inner one of the tube have the same direction and the same area — and `n=` chooses by order in the state. Measured on 25/9/2026 after the cut: the long one has faces of 40800 mm2 (600 x 68), the short one of 17680 (260 x 68); between the two «front» faces of the long one the outer one (z = 40) is the second, between the two «right» faces of the short one the outer one (x = 340) is the first, between the two «back» faces of the long one the outer one (z = -40) is the first. The cut head of the short one is the only face of 1469.96 mm2 with the direction «back».",
 
   "start": { "new_part": true },
   "steps": [
@@ -30,7 +30,7 @@
                      "trim_boundary_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(1))"] },
       "expect": [
         { "what": "measurements.volume_change_mm3", "equal_to": -58798.23, "tolerance": 0.05,
-          "tolerance_why": "40 mm x 1469,956 mm2 di sezione, che ha pi dentro (i raggi degli angoli). Senza il taglio la corta resterebbe dentro la lunga e non ci sarebbe nessuno spigolo di appoggio su cui mettere il cordone" } ] },
+          "tolerance_why": "40 mm x 1469.956 mm2 of section, which has pi inside (the corner radii). Without the cut the short one would stay inside the long one and there would be no common edge to rest the bead on" } ] },
 
     { "operation": "weld_bead",
       "arguments": { "start_face_uid": "@face(area~=17680,normal=right,n=1)",
@@ -58,10 +58,10 @@
                      "leg_mm": 4 },
       "expect": [
         { "what": "measurements.length_mm", "equal_to": 68, "tolerance": 0.01,
-          "tolerance_why": "lo spigolo in comune e' il lato PIATTO del tubo: 80 meno due raggi da 6. Contato sulla geometria, al centesimo; un cordone lungo 80 vorrebbe dire che si sono contati anche gli archi degli angoli, che sulla faccia alta non poggiano" },
+          "tolerance_why": "the common edge is the FLAT side of the tube: 80 minus two radii of 6. Counted on the geometry, to the hundredth; a bead 80 long would mean that the arcs of the corners were counted too, which do not rest on the top face" },
         { "what": "measurements.leg_reread_mm", "equal_to": 4, "tolerance": 0.001,
-          "tolerance_why": "riletto dalla definizione della feature: e' la misura che fra facce lontane veniva 40. Il millesimo e' l'arrotondamento della conversione metri-millimetri" },
+          "tolerance_why": "read back from the definition of the feature: it is the measure that between distant faces came out as 40. The thousandth is the rounding of the metre-to-millimetre conversion" },
         { "what": "volume_mm3", "equal_to": 1264161.94, "tolerance": 0.5,
-          "tolerance_why": "il cordone e' COSMETICO: il volume e' quello della T tagliata (1322960,17 meno 58798,23), e se cambiasse vorrebbe dire che si e' aggiunto materiale" } ] }
+          "tolerance_why": "the bead is COSMETIC: the volume is that of the cut T (1322960.17 minus 58798.23), and if it changed it would mean material was added" } ] }
   ]
 }

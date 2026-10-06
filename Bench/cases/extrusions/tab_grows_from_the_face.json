@@ -1,8 +1,8 @@
 {
   "name": "tab_grows_from_the_face",
   "family": "extrusions",
-  "why": "VOCE Z-C6, la seconda meta'. `extrude_on_face` era a catalogo con un caso solo nella REGRESSIONE (r15) e nel piano a mano della staffa a L (`views/3_l_bracket`), che non pretende niente: in un giro normale nessun caso la toccava. L'ha trovato il controllo di contratto nuovo, il 25/9/2026. E' la staffa a L di quel piano, stavolta con le attese.",
-  "defect_caught": "L'aletta che cresce dalla parte sbagliata della faccia (dentro la base invece che fuori), o che nasce come corpo separato. Il volume da solo non li distingue tutti e due; l'ingombro e il numero dei corpi si'.",
+  "why": "ENTRY Z-C6, the second half. `extrude_on_face` was in the catalogue with a single case in the REGRESSION (r15) and in the hand-written plan of the L bracket (`views/3_l_bracket`), which demands nothing: in a normal run no case touched it. The new contract check found it, on 25/9/2026. It is the L bracket of that plan, this time with the expectations.",
+  "defect_caught": "The tab that grows from the wrong side of the face (inside the base instead of outside), or that is born as a separate body. The volume alone does not tell both apart; the bounding box and the number of bodies do.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,14 +14,14 @@
                      "height_mm": 50 },
       "expect": [
         { "what": "measurements.material_added_mm3", "equal_to": 48000, "tolerance": 0.01,
-          "tolerance_why": "120 x 8 x 50, esatto: il centesimo e' l'arrotondamento della risposta",
-          "why": "l'aletta 120 x 8 alta 50" },
+          "tolerance_why": "120 x 8 x 50, exact: the hundredth is the rounding of the answer",
+          "why": "the tab 120 x 8, 50 high" },
         { "what": "volume_mm3", "equal_to": 105600, "tolerance": 0.01,
-          "tolerance_why": "57600 + 48000, esatto",
-          "why": "letto dal pezzo, non dall'operazione" },
-        { "what": "bodies", "equal_to": 1, "why": "l'aletta si fonde con la base: un corpo solo" },
+          "tolerance_why": "57600 + 48000, exact",
+          "why": "read from the part, not from the operation" },
+        { "what": "bodies", "equal_to": 1, "why": "the tab fuses with the base: a single body" },
         { "what": "bounding_box_mm", "equal_to": [120, 58, 60], "tolerance": 0.01,
-          "tolerance_why": "tutte misure intere; il centesimo copre l'arrotondamento della scatola",
-          "why": "58 = 8 della base + 50 dell'aletta, verso l'alto: un'aletta cresciuta DENTRO la base darebbe 50" } ] }
+          "tolerance_why": "all whole measures; the hundredth covers the rounding of the box",
+          "why": "58 = 8 of the base + 50 of the tab, upwards: a tab grown INSIDE the base would give 50" } ] }
   ]
 }

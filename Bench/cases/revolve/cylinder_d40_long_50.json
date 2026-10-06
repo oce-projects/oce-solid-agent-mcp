@@ -1,7 +1,7 @@
 {
   "name": "cylinder_d40_long_50",
   "family": "revolve",
-  "why": "Il caso piu' semplice che ci sia: un rettangolo 50 x 20 girato attorno a y = 0. Raggio 20, altezza 50, volume pi*400*50. Se l'asse o il profilo fossero letti in metri invece che in millimetri, o il verso fosse invertito, il numero non tornerebbe di poco: non tornerebbe per niente.",
+  "why": "The simplest case there is: a 50 x 20 rectangle revolved around y = 0. Radius 20, height 50, volume pi*400*50. If the axis or the profile were read in metres instead of millimetres, or the direction were inverted, the number would not be off by a little: it would not match at all.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
@@ -10,7 +10,7 @@
                      "contours": [[[0, 0], [0, 20], [50, 20], [50, 0]]] },
       "expect": [
         { "what": "volume_mm3", "equal_to": 62831.853, "tolerance": 0.5,
-          "tolerance_why": "pi*20^2*50: il conto ha pi dentro" },
+          "tolerance_why": "pi*20^2*50: the calculation has pi inside" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

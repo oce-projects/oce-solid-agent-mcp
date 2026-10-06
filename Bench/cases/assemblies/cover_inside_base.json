@@ -1,9 +1,9 @@
 {
   "name": "cover_inside_base",
   "family": "assemblies",
-  "why": "VOCE GA10, ed e' IL CASO ROSSO COSTRUITO PER PRIMO. Due pezzi che occupano lo stesso spazio: l'assieme si apre, si ricostruisce, si esporta e si stampa -- **nessun errore da nessuna parte** -- e in officina non entrano. Il primo pezzo per cui questo ponte e' stato scritto e' una scatola stagna in due meta', da montare all'aperto: «il coperchio tocca la base?» e' la domanda che decide se il pezzo si puo' fare, e fino a questa voce il ponte non sapeva rispondere.",
-  "_why_counting_them_is_not_enough": "«Due interferenze» possono essere due decimi di millimetro cubo -- due facce che si sfiorano -- oppure migliaia, cioe' mezzo coperchio dentro la base. Il conteggio da solo non distingue un problema da un dettaglio. Percio' il caso pretende IL VOLUME, e un volume calcolato prima di misurarlo.",
-  "_the_count_done_before": "La base e' 120x80x10 chiesta a y=0: `AddComponent5` piazza il CENTRO dell'ingombro, quindi occupa y da -5 a +5. Il coperchio e' 120x80x4 chiesto a y=5, quindi occupa y da +3 a +7. La sovrapposizione e' da +3 a +5, cioe' **2 mm** su tutta la faccia: 120 x 80 x 2 = **19200 mm3**. Se il banco dicesse un altro numero, il conto sbagliato e' il mio e va riscritto qui accanto -- non la tolleranza ad allargarsi.",
+  "why": "ENTRY GA10, and it is THE RED CASE BUILT FIRST. Two parts that occupy the same space: the assembly opens, rebuilds, exports and prints -- **no error anywhere** -- and in the workshop they do not fit. The first part this bridge was written for is a watertight box in two halves, to be mounted outdoors: «does the cover touch the base?» is the question that decides whether the part can be made, and until this entry the bridge could not answer it.",
+  "_why_counting_them_is_not_enough": "«Two interferences» can be two tenths of a cubic millimetre -- two faces that brush against each other -- or thousands, that is half a cover inside the base. The count alone does not tell a problem from a detail. That is why the case demands THE VOLUME, and a volume computed before it is measured.",
+  "_the_count_done_before": "The base is 120x80x10 asked at y=0: `AddComponent5` places the CENTRE of the bounding box, so it occupies y from -5 to +5. The cover is 120x80x4 asked at y=5, so it occupies y from +3 to +7. The overlap is from +3 to +5, that is **2 mm** over the whole face: 120 x 80 x 2 = **19200 mm3**. If the bench said another number, the wrong calculation is mine and must be rewritten here beside it -- not the tolerance widened.",
   "assembly": {
     "components": [
       { "name": "base",
@@ -24,16 +24,16 @@
       "arguments": {},
       "expect": [
         { "what": "measurements.how_many", "equal_to": 1,
-          "why": "una compenetrazione, fra due pezzi. Il numero esatto e non «maggiore di zero»: una soglia lascerebbe passare una seconda interferenza comparsa per un'altra ragione, e il caso smetterebbe di misurare quello che dice di misurare." },
+          "why": "one interpenetration, between two parts. The exact number and not «greater than zero»: a threshold would let a second interference through that appeared for another reason, and the case would stop measuring what it says it measures." },
         { "what": "measurements.volume_total_mm3", "equal_to": 19200, "tolerance": 1,
-          "tolerance_why": "120 x 80 x 2 = 19200 mm3 esatti, il conto e' su facce piane e paralleli: 1 mm3 copre l'arrotondamento di `GetMassProperties`, non un errore di geometria. **E' questa attesa che distingue «si sfiorano» da «uno e' dentro l'altro»**, ed e' la ragione per cui la voce vale." },
+          "tolerance_why": "120 x 80 x 2 = 19200 mm3 exactly, the calculation is on flat parallel faces: 1 mm3 covers the rounding of `GetMassProperties`, not a geometry error. **This expectation is what tells «they brush against each other» from «one is inside the other»**, and it is the reason the entry is worth it." },
         { "what": "measurements.touching_counts", "equal_to": false,
-          "why": "l'impostazione che cambia il verdetto compare NEL verdetto. Un'interferenza trovata con le coincidenze contate e una trovata senza sono due fatti diversi, e chi rilegge la risposta fra un mese deve poterli distinguere senza indovinare." },
+          "why": "the setting that changes the verdict appears IN the verdict. An interference found with the coincident faces counted and one found without are two different facts, and whoever re-reads the answer a month from now must be able to tell them apart without guessing." },
         { "what": "measurements.components_checked", "equal_to": 2,
-          "why": "su quanti componenti e' calcolato il conto. Un totale che copre in silenzio solo una parte e' peggio di nessun totale." },
-        { "what": "measurements.verdict", "includes": ["ATTENZIONE", "non entrano"],
-          "why": "IL PUNTO DELL'OPERAZIONE. Il numero da solo non basta: chi legge deve sapere che quei pezzi non si possono fare cosi'. Un avvertimento che non dice la conseguenza si impara a ignorare." },
+          "why": "how many components the count is computed on. A total that silently covers only a part is worse than no total." },
+        { "what": "measurements.verdict", "includes": ["The parts occupy the same space", "do not fit"],
+          "why": "THE POINT OF THE OPERATION. The number alone is not enough: whoever reads must know that those parts cannot be made like this. A warning that does not state the consequence is learned to be ignored." },
         { "what": "state.how_many_components", "equal_to": 2,
-          "why": "la verifica NON tocca il pezzo: e' della famiglia «checks», e dopo averla chiamata l'assieme dev'essere quello di prima. Un controllo che modifica cio' che controlla non e' un controllo." } ] }
+          "why": "the check does NOT touch the part: it belongs to the «checks» family, and after calling it the assembly must be what it was before. A check that modifies what it checks is not a check." } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "annotations_stay_outside_the_part",
   "family": "drawing",
-  "why": "VOCI GT6 e GT8. Sulla piastra 120 x 80 x 10 quotata: il datum A sul lato basso della vista frontale, la rugosita' Ra 3,2 sul lato alto, la perpendicolarita' 0,05 rispetto ad A sul fianco destro, la planarita' 0,02 sulla faccia in alto (vista dall'alto). Misurato e GUARDATO il 26/9/2026: senza spostarle, la rugosita' finiva fuori cornice (coordinate ignorate), la bandierina del datum dall'altra parte dello spigolo, e poi — a quote messe — sopra la linea del 120 e la cornice sopra la vista laterale. Adesso ognuna e' attaccata al suo spigolo e sta fuori dal pezzo, oltre le quote e fuori dalle altre viste.",
-  "defect_caught": "Un'annotazione che dice un'altra cosa (Ra, lettera, simbolo, valore, riferimento riletti) o che non e' attaccata a niente. La POSIZIONE si e' guardata nel PNG: qui si pretende che l'annotazione sia attaccata allo spigolo e che dica cio' che si e' chiesto.",
+  "why": "ENTRIES GT6 and GT8. On the dimensioned 120 x 80 x 10 plate: datum A on the bottom side of the front view, the surface finish Ra 3.2 on the top side, the perpendicularity 0.05 with respect to A on the right side, the flatness 0.02 on the top face (seen from above). Measured and LOOKED AT on 26/9/2026: without moving them, the surface finish ended up outside the frame (coordinates ignored), the datum flag on the other side of the edge, and then — with the dimensions in place — above the line of the 120 and the frame above the side view. Now each one is attached to its edge and sits outside the part, beyond the dimensions and outside the other views.",
+  "defect_caught": "An annotation that says something else (Ra, letter, symbol, value, reference re-read) or that is not attached to anything. The POSITION was looked at in the PNG: here we demand that the annotation be attached to the edge and say what was asked.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -33,7 +33,7 @@
     { "operation": "geometric_tolerance",
       "arguments": { "view": "V1", "side": "right", "characteristic": "perpendicularity", "value_mm": 0.05, "references": ["A"] },
       "expect": [
-        { "what": "measurements.symbol_reread", "equal_to": 21, "why": "swGcsPERP: la perpendicolarita', riletta come codice dalla cornice" },
+        { "what": "measurements.symbol_reread", "equal_to": 21, "why": "swGcsPERP: the perpendicularity, re-read as a code from the frame" },
         { "what": "measurements.value_reread", "equal_to": "0.05" },
         { "what": "measurements.references_reread", "includes": ["A"] },
         { "what": "measurements.attached_to_edge", "equal_to": true } ] },

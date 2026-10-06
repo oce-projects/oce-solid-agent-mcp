@@ -1,7 +1,7 @@
 {
   "name": "anchored_oblique_slot_keeps_its_angle",
   "family": "slot",
-  "why": "VOCE E18 sull'asola obliqua: 60 x 20 a 30 gradi, centro a 60 dal fianco destro e centrata in altezza. Senza ancora un'asola obliqua non ha uno spigolo da cui misurare l'angolo e puo' ruotare; con l'ancora l'angolo si quota contro il suo primo spigolo (`AddSpecificDimension` angolare: `Extension.AddDimension` torna null su quella coppia, misurato). Dopo 260 x 180 il centro deve stare a (100, 30) e le estremita' conservare i 30 gradi: (82,68, 20) e (117,32, 40).",
+  "why": "ENTRY E18 on the oblique slot: 60 x 20 at 30 degrees, centre 60 from the right side and centred in height. Without an anchor an oblique slot has no edge to measure the angle from and can rotate; with the anchor the angle is dimensioned against its first edge (angular `AddSpecificDimension`: `Extension.AddDimension` returns null on that pair, measured). After 260 x 180 the centre must be at (100, 30) and the ends keep the 30 degrees: (82.68, 20) and (117.32, 40).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,23 +15,23 @@
                                  "y": { "centered_between": [ "@edge(axis=X,y~=-60,z~=20)", "@edge(axis=X,y~=60,z~=20)" ] } } },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [22.68, 57.32], "tolerance": 0.05,
-          "tolerance_why": "40 -/+ 20*cos30 = 17,32; i centri si leggono in metri" },
+          "tolerance_why": "40 -/+ 20*cos30 = 17.32; the centres are read in metres" },
         { "what": "centers_y_mm", "equal_to": [-10, 10], "tolerance": 0.05,
           "tolerance_why": "0 -/+ 20*sen30" },
         { "what": "measurements.dimensions_on_sketch", "equal_to": 3,
-          "why": "raggio, distanza fra i centri e l'angolo contro lo spigolo d'ancora" },
+          "why": "radius, distance between the centres and the angle against the anchor edge" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [82.68, 117.32], "tolerance": 0.05,
-          "tolerance_why": "il centro va a 160 - 60 = 100, l'angolo non cambia" } ] },
+          "tolerance_why": "the centre goes to 160 - 60 = 100, the angle does not change" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [82.68, 117.32], "tolerance": 0.05,
-          "tolerance_why": "in x non si muove niente" },
+          "tolerance_why": "in x nothing moves" },
         { "what": "centers_y_mm", "equal_to": [20, 40], "tolerance": 0.05,
-          "tolerance_why": "centro a 30, -/+ 10: l'angolo resta 30 gradi" } ] }
+          "tolerance_why": "centre at 30, -/+ 10: the angle stays 30 degrees" } ] }
   ]
 }

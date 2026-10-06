@@ -1,7 +1,7 @@
 {
   "name": "limit_slot_that_covers_everything",
   "family": "pairs",
-  "why": "Un'asola 500 x 300 passante su un pezzo che occupa 314 x 274 non lascerebbe niente. La gemella e' la stessa asola ridotta a 30 x 9, che e' l'asola vera del mestiere: differiscono per due argomenti, la lunghezza e la larghezza, e sono i due che il controllo guarda.",
+  "why": "A through 500 x 300 slot on a part that occupies 314 x 274 would leave nothing. The twin is the same slot reduced to 30 x 9, which is the real slot of the trade: they differ by two arguments, the length and the width, and they are the two that the check looks at.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -29,7 +29,7 @@
         "through_all": true
       },
       "must_fail": {
-        "message_includes": ["copre tutto il pezzo", "314 x 274"],
+        "message_includes": ["covers the whole part", "314 x 274"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "slot_30x9"

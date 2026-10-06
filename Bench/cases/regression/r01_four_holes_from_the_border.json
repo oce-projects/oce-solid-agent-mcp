@@ -1,9 +1,9 @@
 {
   "name": "r01_four_holes_from_the_border",
   "family": "regression",
-  "why": "Il caso piu' comune che esista: quattro fori di fissaggio a 20 mm dagli angoli di una piastra, e la piastra si allarga. In officina quei fori restano a 20 mm dal bordo -- e' quello che vuol dire «a 20 dagli angoli».",
+  "why": "The most common case there is: four fixing holes 20 mm from the corners of a plate, and the plate widens. In the workshop those holes stay 20 mm from the edge -- that is what «20 from the corners» means.",
   "intent": "ancorato_a_bordo",
-  "intent_why": "i fori stanno a 20 mm dai bordi: allargando la piastra da 120 a 180 devono restare a 20 mm, cioe' i due in basso restano a y = -40 e i due in alto vanno da +40 a +100: la piastra cresce DA UNA PARTE SOLA (voce E2), da Y -60..+60 a Y -60..+120.",
+  "intent_why": "the holes are 20 mm from the edges: widening the plate from 120 to 180 they must stay at 20 mm, that is the two at the bottom stay at y = -40 and the two at the top go from +40 to +100: the plate grows ON ONE SIDE ONLY (entry E2), from Y -60..+60 to Y -60..+120.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -103,10 +103,10 @@
         100,
         100
       ],
-      "_why_these_numbers": "fino al 25/9/2026 l'attesa era [-70, -70, 70, 70], cioe' una piastra che cresce simmetrica: E2 ha misurato che non lo fa, e con quell'attesa il caso non avrebbe potuto reggere nemmeno con l'ancora giusta. Corretta scrivendo E18, prima di dare l'ancora a hole_wizard.",
+      "_why_these_numbers": "until 25/9/2026 the expectation was [-70, -70, 70, 70], that is a plate growing symmetrically: E2 measured that it does not, and with that expectation the case could not have held even with the right anchor. Corrected when writing E18, before giving the anchor to hole_wizard.",
       "tolerance": 0.05,
-      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri: il centesimo e' arrotondamento"
+      "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres: the hundredth is rounding"
     }
   ],
-  "_why_the_anchor": "VOCE E18, l'ultimo pezzo. Fino alla libreria 0.118.0 il `costruisci` dava i fori a coordinate assolute — un'istruzione che nessuno darebbe per «a 20 dagli angoli» — e il caso restava in silenzio per costruzione. Adesso ogni posizione porta la sua ancora ai due bordi vicini; le ATTESE sono quelle di prima (corrette il 25/9 perche' la piastra cresce da una parte sola). Il vecchio modo resta provato dal gemello `r01b_four_holes_stay_where_they_are`."
+  "_why_the_anchor": "ENTRY E18, the last part. Up to library 0.118.0 the `costruisci` gave the holes at absolute coordinates — an instruction nobody would give for «20 from the corners» — and the case stayed silent by construction. Now every position carries its anchor to the two nearby edges; the EXPECTATIONS are those from before (corrected on 25/9 because the plate grows on one side only). The old way is still proved by the twin `r01b_four_holes_stay_where_they_are`."
 }

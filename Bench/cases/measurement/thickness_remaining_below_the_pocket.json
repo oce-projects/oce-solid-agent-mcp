@@ -1,8 +1,8 @@
 {
   "name": "thickness_remaining_below_the_pocket",
   "family": "measurement",
-  "why": "E' LA DOMANDA VERA: «quanto materiale resta fra il fondo della cava e la faccia dall'altra parte?». Su una piastra spessa 20 con una tasca profonda 15 restano 5 mm, e sono i cinque millimetri che decidono se il pezzo tiene o si rompe. Il censimento la chiamava misura di spessore parete e la dava per rischiosa, perche' la via a raggi vuole una taratura che nessuno sa verificare: qui sono due facce nominate e un numero.",
-  "_why_faces_are_chosen_by_area": "dopo la tasca ci sono DUE facce che guardano avanti -- il piano di sopra e il fondo della cava -- e chiederne una per verso sarebbe ambiguo. Il fondo della cava fa 1600 mm2 e la faccia dietro 10.000: si nominano per misura, che e' l'unica cosa che le distingue.",
+  "why": "IT IS THE REAL QUESTION: «how much material is left between the bottom of the pocket and the face on the other side?». On a plate 20 thick with a pocket 15 deep, 5 mm remain, and they are the five millimetres that decide whether the part holds or breaks. The survey called it a wall-thickness measurement and rated it risky, because the ray route needs a calibration that nobody knows how to verify: here it is two named faces and a number.",
+  "_why_faces_are_chosen_by_area": "after the pocket there are TWO faces that look forward -- the top plane and the bottom of the pocket -- and asking for one by direction would be ambiguous. The bottom of the pocket makes 1600 mm2 and the face behind 10,000: they are named by size, which is the only thing that tells them apart.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,13 +15,13 @@
                      "through_all": false, "depth_mm": 15 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 176000,
-          "why": "200.000 meno 40*40*15 = 24.000" } ] },
+          "why": "200,000 minus 40*40*15 = 24,000" } ] },
     { "operation": "minimum_distance",
       "arguments": { "start_uid": "@face(area~=1600)", "end_uid": "@face(area~=10000)" },
       "expect": [
         { "what": "measurements.distance_mm", "equal_to": 5, "tolerance": 0.001,
-          "tolerance_why": "20 di piastra meno 15 di tasca; la distanza arriva in metri" },
+          "tolerance_why": "20 of plate minus 15 of pocket; the distance arrives in metres" },
         { "what": "measurements.deviation_of_check_mm", "equal_to": 0, "tolerance": 0.0005,
-          "tolerance_why": "il numero e i suoi punti devono dire la stessa cosa" } ] }
+          "tolerance_why": "the number and its points must say the same thing" } ] }
   ]
 }

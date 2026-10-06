@@ -1,8 +1,8 @@
 {
   "name": "dimensions_arrive_in_the_pdf",
   "family": "drawing",
-  "why": "VOCE Z-C9, la meta' «oggetti». I contatori contano nel documento: una quota su un livello che non si stampa, o in una vista nascosta, conta e in officina non arriva. export_pdf adesso rilegge il testo del PDF e pretende che ogni numero stampato dalle quote ci sia almeno tante volte quante lo stampano.",
-  "defect_caught": "Il controllo che si accende su una tavola buona (un numero spezzato, la virgola al posto del punto, un simbolo come <MOD-DIAM> contato come numero). Il difetto opposto — il controllo che NON vede una quota nascosta — l'ha preso il banchetto (prova0089 pdfq, 26/9/2026): il richiamo «Ø12 PASSANTE» spostato su un livello non stampabile, e il PDF dice «12 (sulla tavola 1, nel PDF 0)». Il banco non ha un'operazione che sposti una quota di livello.",
+  "why": "ENTRY Z-C9, the «objects» half. The counters count in the document: a dimension on a level that does not print, or in a hidden view, counts and does not reach the workshop. export_pdf now re-reads the text of the PDF and demands that every number printed by the dimensions be there at least as many times as they print it.",
+  "defect_caught": "The check that lights up on a good drawing (a split number, the comma in place of the decimal point, a symbol like <MOD-DIAM> counted as a number). The opposite defect — the check that does NOT see a hidden dimension — was caught by the little test rig (prova0089 pdfq, 26/9/2026): the callout «Ø12 PASSANTE» moved to a non-printing level, and the PDF says «12 (on the drawing 1, in the PDF 0)». The bench has no operation that moves a dimension to another level.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,7 +10,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -30, "y_mm": 0, "diameter_mm": 12, "through_all": true },
-      "expect": [ { "what": "volume_mm3", "equal_to": 94869.03, "tolerance": 0.05, "tolerance_why": "pi dentro: 96000 meno pi x 6^2 x 10" } ] },
+      "expect": [ { "what": "volume_mm3", "equal_to": 94869.03, "tolerance": 0.05, "tolerance_why": "pi inside: 96000 minus pi x 6^2 x 10" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\dimensions_arrive_in_the_pdf.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
@@ -22,15 +22,15 @@
       "expect": [ { "what": "measurements.views_created", "equal_to": 3 } ] },
     { "operation": "drawing_dimension",
       "arguments": { "view": "V2" },
-      "expect": [ { "what": "measurements.dimensions_placed", "equal_to": 5, "why": "il richiamo Ø12, le due posizioni del foro, 80 e 120" } ] },
+      "expect": [ { "what": "measurements.dimensions_placed", "equal_to": 5, "why": "the Ø12 callout, the two positions of the hole, 80 and 120" } ] },
     { "operation": "drawing_dimension",
       "arguments": { "view": "V1" },
-      "expect": [ { "what": "measurements.dimensions_mm", "includes": ["10"], "why": "lo spessore" } ] },
+      "expect": [ { "what": "measurements.dimensions_mm", "includes": ["10"], "why": "the thickness" } ] },
     { "operation": "export_pdf",
       "arguments": { "path": "{LAVORO}\\dimensions_arrive_in_the_pdf.pdf" },
       "expect": [
-        { "what": "measurements.dimensions_in_drawing", "equal_to": 6, "why": "le quote contate sulla tavola" },
+        { "what": "measurements.dimensions_in_drawing", "equal_to": 6, "why": "the dimensions counted on the drawing" },
         { "what": "measurements.how_many_dimension_numbers_missing", "equal_to": 0,
-          "why": "ogni numero delle sei quote e' nel testo del PDF: un controllo che si accende su una tavola buona si impara a ignorarlo" } ] }
+          "why": "every number of the six dimensions is in the text of the PDF: a check that lights up on a good drawing is learned to be ignored" } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "blind_slot_right_face",
   "family": "slot",
-  "why": "L'asola cieca sulla faccia «right». OGNI FACCIA, NON UNA SOLA: il verso degli archi e' una costante nel piano dello SCHIZZO, mentre i punti sono costruiti nel sistema del MODELLO, e la trasformazione fra i due non conserva la mano -- per due facce opposte l'asse Y risulta invertito. Se il verso e' sbagliato su questa faccia, l'asola esce lunga 40 invece di 51 con le estremita' morse: area 344,97 invece di 535,03, e il volume lo dice subito.",
-  "_why_the_offset": "y = 10 e non 0, ed e' una cosa misurata: su una piastra estrusa da z = 0 a z = 20, l'origine dello schizzo delle facce DI COSTA cade sul BORDO della faccia, non al suo centro. Un'asola a (0,0) esce meta' fuori e toglie 1337,6 mm3 invece di 2675,2 -- e l'operazione se ne accorge da sola, il che e' come si e' scoperto. La vecchia prova in C# non lo vedeva perche' costruiva la piastra a cavallo del piano medio, dove l'origine cade al centro per costruzione.",
+  "why": "The blind slot on the «right» face. EVERY FACE, NOT JUST ONE: the direction of the arcs is a constant in the plane of the SKETCH, while the points are built in the system of the MODEL, and the transformation between the two does not preserve handedness -- for two opposite faces the Y axis comes out inverted. If the direction is wrong on this face, the slot comes out 40 long instead of 51 with the ends bitten off: area 344.97 instead of 535.03, and the volume says so at once.",
+  "_why_the_offset": "y = 10 and not 0, and it is a measured thing: on a plate extruded from z = 0 to z = 20, the origin of the sketch of the SIDE faces falls on the EDGE of the face, not at its centre. A slot at (0,0) comes out half outside and removes 1337.6 mm3 instead of 2675.2 -- and the operation notices it by itself, which is how it was discovered. The old C# check did not see it because it built the plate astride the mid-plane, where the origin falls at the centre by construction.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,8 +12,8 @@
       "arguments": { "face_uid": "@face(normal=right)", "x_mm": 0, "y_mm": 10, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": false, "depth_mm": 5 },
       "expect": [
         { "what": "measurements.area_mm2", "equal_to": 535.03, "tolerance": 0.01,
-          "tolerance_why": "(51-11)*11 + pi*5,5^2 = 535,0332: l'operazione arrotonda al centesimo" },
+          "tolerance_why": "(51-11)*11 + pi*5.5^2 = 535.0332: the operation rounds to the hundredth" },
         { "what": "volume_mm3", "equal_to": 477324.83, "tolerance": 0.5,
-          "tolerance_why": "480000 meno 535,0332 per 5 di profondita': il conto ha pi dentro" } ] }
+          "tolerance_why": "480000 minus 535.0332 over 5 of depth: the calculation has pi inside" } ] }
   ]
 }

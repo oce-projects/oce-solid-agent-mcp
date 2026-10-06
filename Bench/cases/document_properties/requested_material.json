@@ -1,7 +1,7 @@
 {
   "name": "requested_material",
   "family": "document_properties",
-  "why": "La gemella di `default_material`, e senza di lei l'altra non prova niente. Chi il materiale lo NOMINA non deve ricevere una dichiarazione di predefinito: se la frase comparisse sempre diventerebbe rumore, e una frase che compare sempre smette di essere letta proprio quando dice qualcosa. Stesso materiale, stesso risultato, UNA sola differenza fra i due casi: chi l'ha scelto.",
+  "why": "The twin of `default_material`, and without it the other proves nothing. Whoever NAMES the material must not receive a declaration of default: if the sentence appeared always it would become noise, and a sentence that appears always stops being read exactly when it says something. Same material, same result, ONE single difference between the two cases: who chose it.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -22,7 +22,7 @@
       "arguments": { "material": "S235JR" },
       "expect": [
         { "what": "state.material", "includes": ["S235JR"] },
-        { "what": "measurements.note_assumption", "does_not_include": ["predefinito"] }
+        { "what": "measurements.note_assumption", "does_not_include": ["you have not asked for it"] }
       ]
     }
   ]

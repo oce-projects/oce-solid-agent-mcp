@@ -1,8 +1,8 @@
 {
   "name": "limit_default_is_not_named_default",
   "family": "document_properties",
-  "why": "LA CONFIGURAZIONE PREDEFINITA NON SI CHIAMA «Default». Si chiama «Default<A macchina>», e le parentesi angolari sono DENTRO il nome che le API accettano. `ShowConfiguration2(\"Default\")` risponde FALSE -- non solleva niente, non dice niente -- e chi non guardasse il valore di ritorno continuerebbe a disegnare sulla variante di prima per tutto il resto del piano, senza che nel file finito ci sia niente da cui accorgersene: la geometria e' coerente, le quote tornano, e' solo il pezzo sbagliato.",
-  "_why_i_do_not_guess_it": "E anche volendo, non si potrebbe. Un pezzo appena nato dal modello di questa azienda ha GIA' DUE configurazioni vere che cominciano per «Default» -- «<A macchina>» e «<Saldato>», la coppia dei saldati, e `GetConfigurationCount()` risponde 2. Tradurre il nome corto vorrebbe dire sceglierne una, e sbagliare quella scelta non da' nessun errore. Il messaggio dice invece com'e' fatto il nome, che e' l'unica cosa che serve.",
+  "why": "THE DEFAULT CONFIGURATION IS NOT CALLED «Default». It is called «Default<A macchina>», and the angle brackets are INSIDE the name that the APIs accept. `ShowConfiguration2(\"Default\")` answers FALSE -- it raises nothing, says nothing -- and whoever did not look at the return value would go on drawing on the variant from before for the rest of the plan, with nothing in the finished file to notice it by: the geometry is consistent, the dimensions add up, it is just the wrong part.",
+  "_why_i_do_not_guess_it": "And even if one wanted to, one could not. A part just born from the template of this company ALREADY HAS TWO real configurations that begin with «Default» -- «<A macchina>» and «<Saldato>», the pair of the weldments, and `GetConfigurationCount()` answers 2. Translating the short name would mean choosing one, and getting that choice wrong gives no error. The message says instead how the name is made, which is the only thing needed.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,7 +15,7 @@
     { "operation": "activate_configuration",
       "arguments": { "name": "Default" },
       "must_fail": {
-        "message_includes": ["non e' un nome intero", "Default<", "fa parte del nome"],
+        "message_includes": ["is not a full name", "Default<", "is part of the name"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "goes_back_with_the_full_name" } },
@@ -23,8 +23,8 @@
       "arguments": { "name": "Left" },
       "expect": [
         { "what": "state.configuration", "equal_to": "Left",
-          "why": "DOPO IL RIFIUTO SI E' ANCORA DOVE SI ERA. Un rifiuto che avesse gia' spostato il documento sarebbe la cosa peggiore delle due: un errore da leggere e una variante cambiata lo stesso." },
+          "why": "AFTER THE REFUSAL WE ARE STILL WHERE WE WERE. A refusal that had already moved the document would be the worse of the two: an error to read and a variant changed all the same." },
         { "what": "measurements.was_already_active", "equal_to": true,
-          "_why_true": "E QUESTO PASSO E' COSTATO UN ROSSO. `ShowConfiguration2` risponde FALSE anche quando la configurazione chiesta e' gia' quella attiva: quel booleano non distingue «non l'ho fatto» da «non c'era niente da fare». Il rifiuto che ne usciva diceva da solo di essere sbagliato -- «ho chiesto di attivare Sinistra e adesso e' attiva Sinistra». Adesso il criterio e' quale configurazione e' attiva, e il booleano torna qui come informazione." } ] }
+          "_why_true": "AND THIS STEP COST A RED. `ShowConfiguration2` answers FALSE even when the configuration asked for is already the active one: that boolean does not tell «I did not do it» from «there was nothing to do». The refusal that came out of it said by itself that it was wrong -- «I asked to activate Left and now Left is active». Now the criterion is which configuration is active, and the boolean comes back here as information." } ] }
   ]
 }

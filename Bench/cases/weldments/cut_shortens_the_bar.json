@@ -1,13 +1,13 @@
 {
   "name": "cut_shortens_the_bar",
   "family": "weldments",
-  "why": "VOCE Z-C6. `trim_members` era a catalogo con `Provata = true` e nessun caso la toccava. Quando il caso si e' scritto, il 25/9/2026, si e' scoperto che **non aveva mai tagliato niente**: passava i corpi come `object[]`, SOLIDWORKS rispondeva con una feature «Accorcia/Estendi1» che nell'albero non entrava, e l'operazione diceva `bodies_trimmed: 1` su un pezzo identico a prima. Con `Body2[]` il taglio nasce.",
+  "why": "ENTRY Z-C6. `trim_members` was in the catalogue with `Provata = true` and no case touched it. When the case was written, on 25/9/2026, it turned out that **it had never cut anything**: it passed the bodies as `object[]`, SOLIDWORKS answered with a «Accorcia/Estendi1» feature that did not enter the tree, and the operation said `bodies_trimmed: 1` on a part identical to before. With `Body2[]` the cut is born.",
 
-  "defect_caught": "Due, e sono la stessa bugia vista dai due lati. Il passo 5 prende il taglio che non taglia: la T deve perdere esattamente i 40 mm con cui la barra corta entra nella lunga, e un taglio fantasma lascerebbe il volume com'era. Il passo 4 prende la guardia che non morde: fra due barre parallele che non si incontrano SOLIDWORKS risponde ANCORA con la feature fantasma — anche con gli array tipizzati — e l'operazione deve dirlo invece di confermare.",
+  "defect_caught": "Two, and they are the same lie seen from both sides. Step 5 catches the cut that does not cut: the T must lose exactly the 40 mm by which the short bar enters the long one, and a phantom cut would leave the volume as it was. Step 4 catches the guard that does not bite: between two parallel bars that do not meet SOLIDWORKS STILL answers with the phantom feature — even with the typed arrays — and the operation must say so instead of confirming.",
 
-  "_and_the_twin_is_in_the_same_file": "Il rifiuto (passo 4) e il taglio buono (passo 5) differiscono per un argomento solo: QUALE barra si taglia contro la lunga. La lontana non la incontra, la corta si'.",
+  "_and_the_twin_is_in_the_same_file": "The refusal (step 4) and the good cut (step 5) differ by one argument only: WHICH bar is cut against the long one. The far one does not meet it, the short one does.",
 
-  "_the_bodies_are_called_by_name": "Non C1, C2, C3: con queste tre barre, create nello stesso ordine, lo stato ha detto una volta C1 = la corta e un'altra C1 = la lunga (misurato il 25/9/2026, due giri). Il nome — «(1)», «(2)», «(3)» — segue l'ordine di creazione, ed e' quello che il caso intende: (1) la lunga, (2) la corta, (3) la lontana. Serve davvero: per simmetria la TACCA della lunga contro la corta toglie esattamente lo stesso volume del taglio della corta (40 mm di mezzo tubo per 80), quindi con i corpi scambiati il passo 5 resterebbe verde lavorando sulla barra sbagliata.",
+  "_the_bodies_are_called_by_name": "The bodies are called by name. Not C1, C2, C3: with these three bars, created in the same order, the state once said C1 = the short one and another time C1 = the long one (measured on 25/9/2026, two runs). The name — «(1)», «(2)», «(3)» — follows the order of creation, and it is what the case means: (1) the long one, (2) the short one, (3) the far one. It is really needed: by symmetry the NOTCH of the long one against the short one removes exactly the same volume as the cut of the short one (40 mm of half tube by 80), so with the bodies swapped step 5 would stay green while working on the wrong bar.",
 
   "start": { "new_part": true },
   "steps": [
@@ -24,7 +24,7 @@
                      "configuration": "80X80X5",
                      "segments": [ { "start": [300, 0, 0], "end": [300, 0, 300] } ] },
       "expect": [ { "what": "bodies", "equal_to": 2,
-                    "why": "la corta parte dall'ASSE della lunga: le entra dentro di mezza larghezza, 40 mm" } ] },
+                    "why": "the short one starts from the AXIS of the long one: it goes into it by half a width, 40 mm" } ] },
 
     { "operation": "structural_member",
       "arguments": { "plane": "top",
@@ -34,13 +34,13 @@
       "expect": [
         { "what": "bodies", "equal_to": 3 },
         { "what": "volume_mm3", "equal_to": 2204933.61, "tolerance": 0.5,
-          "tolerance_why": "1500 mm di tubo 80x80x5 a 1469,956 mm2 di sezione: la sezione ha i raggi degli angoli, quindi pi dentro. Mezzo mm3 su due milioni copre l'arrotondamento; una barra in meno o in piu' sposta il volume di centinaia di migliaia" } ] },
+          "tolerance_why": "1500 mm of 80x80x5 tube at 1469.956 mm2 of section: the section has the corner radii, so pi inside. Half a mm3 out of two million covers the rounding; one bar fewer or more shifts the volume by hundreds of thousands" } ] },
 
     { "operation": "trim_members",
       "arguments": { "bodies_to_trim_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(3))"],
                      "trim_boundary_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(1))"] },
       "must_fail": {
-        "message_includes": ["nell'albero non c'e'", "non incontrano"],
+        "message_includes": ["is not in the tree", "do not meet"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "cut_shortens_the_bar" } },
@@ -52,8 +52,8 @@
         { "what": "measurements.bodies_trimmed", "equal_to": 1 },
         { "what": "bodies", "equal_to": 3 },
         { "what": "measurements.volume_change_mm3", "equal_to": -58798.23, "tolerance": 0.05,
-          "tolerance_why": "40 mm x 1469,956 mm2 = 58798,23: i 40 mm con cui la corta entrava nella lunga. La sezione ha pi dentro (i raggi), quindi il conto e' al centesimo e non esatto. Un taglio fantasma darebbe 0" },
+          "tolerance_why": "40 mm x 1469.956 mm2 = 58798.23: the 40 mm by which the short one entered the long one. The section has pi inside (the radii), so the calculation is to the hundredth and not exact. A phantom cut would give 0" },
         { "what": "volume_mm3", "equal_to": 2146135.38, "tolerance": 0.5,
-          "tolerance_why": "2204933,61 meno 58798,23. Letto dal pezzo, non dall'operazione: e' la seconda lettura dello stesso fatto" } ] }
+          "tolerance_why": "2204933.61 minus 58798.23. Read from the part, not from the operation: it is the second reading of the same fact" } ] }
   ]
 }

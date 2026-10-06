@@ -1,8 +1,8 @@
 {
   "name": "stl_does_not_export_the_selected_face",
   "family": "export",
-  "why": "VOCE Z-C21.2, rilievo L13-1. IModelDocExtension~SaveAs3.html, Remarks: «Exports the entire model, unless faces or bodies are selected, in which case, it exports only those. Call IModelDoc2::ClearSelection2 before calling this method». Fino alla libreria 0.136.0 export_stl non vuotava la selezione: una faccia rimasta selezionata da un passo prima, o a mano, faceva uscire uno STL con quella faccia sola, e il controllo sul file (84 + 50 per triangolo) lo confrontava con se stesso e lo trovava giusto.",
-  "defect_caught": "Lo stesso parallelepipedo di `box_twelve_triangles`, con la faccia davanti lasciata SELEZIONATA dal banco prima del passo («prima_seleziona»). Il pezzo intero fa dodici triangoli e 684 byte; la faccia sola ne farebbe due, cioe' 84 + 50*2 = 184 byte. Sulla libreria vecchia il passo dice «triangles: 2», e il file e' coerente con se stesso: e' il difetto che non da' errore.",
+  "why": "ENTRY Z-C21.2, finding L13-1. IModelDocExtension~SaveAs3.html, Remarks: «Exports the entire model, unless faces or bodies are selected, in which case, it exports only those. Call IModelDoc2::ClearSelection2 before calling this method». Up to library 0.136.0 export_stl did not clear the selection: a face left selected from a step before, or by hand, made an STL come out with that face alone, and the check on the file (84 + 50 per triangle) compared it with itself and found it right.",
+  "defect_caught": "The same box as `box_twelve_triangles`, with the front face left SELECTED by the bench before the step («prima_seleziona»). The whole part makes twelve triangles and 684 bytes; the face alone would make two, that is 84 + 50*2 = 184 bytes. On the old library the step says «triangles: 2», and the file is consistent with itself: it is the defect that gives no error.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,8 +14,8 @@
       "arguments": { "path": "{LAVORO}\\z_c21_2_faccia_selezionata.stl" },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 12,
-          "why": "il pezzo INTERO: sei facce piane, due triangoli ciascuna. Con la sola faccia selezionata sarebbero 2" },
+          "why": "the WHOLE part: six planar faces, two triangles each. With only the face selected there would be 2" },
         { "what": "measurements.byte", "equal_to": 684,
-          "why": "84 + 50*12. La faccia sola darebbe 184, e il controllo interno del file passerebbe lo stesso" } ] }
+          "why": "84 + 50*12. The face alone would give 184, and the internal check of the file would pass all the same" } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "limit_profile_straddling_the_axis",
   "family": "revolve",
-  "why": "UN PROFILO CHE ATTRAVERSA L'ASSE DEVE ESSERE RIFIUTATO, e questo caso misura CHE COSA lo rifiuta davvero. L'operazione ha due reti: SOLIDWORKS che non crea la feature, e il conteggio dei corpi subito dopo. Con questo profilo -- un rettangolo da y=-20 a y=+20 attorno all'asse y=0 -- scatta la PRIMA: FeatureRevolve2 torna null e il rifiuto e' «deve stare sul piano del profilo, e il profilo non deve attraversarlo». Il messaggio atteso e' quello, non quello del conteggio: un rosso che scatta per il motivo sbagliato non prova niente e da' fuori la stessa riga verde.",
-  "_safety_net_not_seen": "IL CONTEGGIO DEI CORPI NON L'HO MAI VISTO SCATTARE. Sta in SwOperations.cs subito dopo la feature («ha creato la feature ma il documento ha N corpi solidi invece di uno») e nessun caso lo porta li': i profili che ho provato o fanno un solido solo o non fanno feature. Un controllo mai visto scattare non e' un controllo -- resta scritto qui perche' si sappia che quella riga e' ancora una promessa e non una misura.",
+  "why": "A PROFILE THAT CROSSES THE AXIS MUST BE REFUSED, and this case measures WHAT really refuses it. The operation has two nets: SOLIDWORKS not creating the feature, and the count of the bodies right after. With this profile -- a rectangle from y=-20 to y=+20 around the axis y=0 -- the FIRST one fires: FeatureRevolve2 returns null and the refusal is «must lie on the profile plane, and the profile must not cross it». The expected message is that one, not that of the count: a red that fires for the wrong reason proves nothing and gives the same green line on the outside.",
+  "_safety_net_not_seen": "I HAVE NEVER SEEN THE BODY COUNT FIRE. It is in SwOperations.cs right after the feature («created the feature but the document has N solid bodies instead of one») and no case brings it there: the profiles I tried either make a single solid or make no feature. A check never seen to fire is not a check -- it stays written here so that it is known that that line is still a promise and not a measurement.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "revolve",
@@ -10,8 +10,8 @@
                      "axis": [[0, 0], [50, 0]],
                      "contours": [[[0, -20], [0, 20], [50, 20], [50, -20]]] },
       "must_fail": {
-        "message_includes": ["deve stare sul piano del profilo",
-                                  "il profilo non deve attraversarlo"],
+        "message_includes": ["must lie on the plane of the profile",
+                                  "the profile must not cross it"],
         "twin": "cylinder_d40_long_50" } }
   ]
 }

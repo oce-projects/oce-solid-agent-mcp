@@ -1,8 +1,8 @@
 {
   "name": "new_configuration_activates_itself",
   "family": "document_properties",
-  "why": "SOLIDWORKS attiva la configurazione appena creata senza che nessuno glielo chieda. Non e' scritto da nessuna parte nella chiamata, e cambia tutto quello che viene dopo: le facce, il volume, la massa e le proprieta' che lo stato racconta sono di QUELLA variante. Chi crea due configurazioni e poi disegna crede di lavorare sulla prima e lavora sull'ultima.",
-  "_why_the_comparison_with_the_state": "L'operazione dice «active_now». Lo stato del documento e' letto da un'altra parte del codice: se le due righe divergessero, una delle due mentirebbe, e questo caso e' l'unico posto in cui si vedrebbe.",
+  "why": "SOLIDWORKS activates the configuration just created without anybody asking it to. It is not written anywhere in the call, and it changes everything that comes after: the faces, the volume, the mass and the properties the state tells are those of THAT variant. Whoever creates two configurations and then draws believes they are working on the first and is working on the last.",
+  "_why_the_comparison_with_the_state": "The operation says «active_now». The state of the document is read by another part of the code: if the two lines diverged, one of the two would be lying, and this case is the only place where it would show.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,27 +11,27 @@
       "expect": [
         { "what": "volume_mm3", "equal_to": 200000 },
         { "what": "how_many_configuration_names", "equal_to": 2,
-          "why": "DUE, E NON UNA. Un pezzo appena nato dal modello di questa azienda ha gia' due configurazioni vere -- «Default<A macchina>» e «Default<Saldato>», la coppia dei saldati. Il numero da cui si parte non e' quello che verrebbe da scrivere, e questa riga e' costata un rosso: il conto sta qui apposta, invece di essere dato per scontato. I NOMI non si possono scrivere -- «A macchina» e «Saldato» sono localizzati, e un caso che li scrivesse sarebbe verde su questa installazione e rosso sulla prossima." },
+          "why": "TWO, AND NOT ONE. A part just born from the template of this company already has two real configurations -- «Default<A macchina>» and «Default<Saldato>», the pair of the weldments. The number one starts from is not the one it would be natural to write, and this line cost a red: the count is here on purpose, instead of being taken for granted. The NAMES cannot be written -- «A macchina» and «Saldato» are localised, and a case that wrote them would be green on this installation and red on the next." },
         { "what": "how_many_configurations", "equal_to": 2,
-          "why": "`GetConfigurationCount()` e `GetConfigurationNames()` sono due chiamate diverse, e qui rispondono lo stesso numero. Sta scritto perche' il giorno in cui non combaciassero sarebbe quello il fatto da sapere: sarebbero due elenchi della stessa cosa che non sono d'accordo." } ] },
+          "why": "`GetConfigurationCount()` and `GetConfigurationNames()` are two different calls, and here they answer the same number. It is written because the day they did not match, that would be the fact to know: they would be two lists of the same thing that do not agree." } ] },
     { "operation": "create_configuration",
-      "arguments": { "name": "Left", "details": "staffa sinistra" },
+      "arguments": { "name": "Left", "details": "left bracket" },
       "expect": [
         { "what": "measurements.configuration", "equal_to": "Left" },
         { "what": "measurements.active_now", "equal_to": "Left" },
-        { "what": "measurements.note_activation", "includes": ["ATTIVA"] },
+        { "what": "measurements.note_activation", "includes": ["SOLIDWORKS ACTIVATE"] },
         { "what": "state.configuration", "equal_to": "Left",
-          "why": "e' la riga che la voce chiedeva: «una configurazione creata e attivata cambia lo stato attivo letto da StatoDocumento»" },
+          "why": "it is the line the entry asked for: «a configuration created and activated changes the active state read from StatoDocumento»" },
         { "what": "how_many_configuration_names", "equal_to": 3 },
         { "what": "how_many_configurations", "equal_to": 3 },
         { "what": "volume_mm3", "equal_to": 200000,
-          "why": "la configurazione nuova nasce copia di quella di prima: se il volume cambiasse, la variante non sarebbe piu' lo stesso pezzo" } ] },
+          "why": "the new configuration is born as a copy of the one before: if the volume changed, the variant would no longer be the same part" } ] },
     { "operation": "create_configuration",
-      "arguments": { "name": "Right", "details": "staffa destra" },
+      "arguments": { "name": "Right", "details": "right bracket" },
       "expect": [
         { "what": "measurements.active_now", "equal_to": "Right" },
         { "what": "state.configuration", "equal_to": "Right",
-          "why": "la seconda scalza la prima, e anche questo senza che nessuno l'abbia chiesto" },
+          "why": "the second dislodges the first, and this too without anybody having asked for it" },
         { "what": "how_many_configuration_names", "equal_to": 4 },
         { "what": "how_many_configurations", "equal_to": 4 } ] }
   ]

@@ -1,7 +1,7 @@
 {
   "name": "limit_pocket_that_covers_everything",
   "family": "pairs",
-  "why": "Una tasca 400 x 400 PASSANTE su un pezzo che occupa 314 x 274 non lascerebbe niente. La gemella e' la stessa tasca cieca da 5, che invece accorcia il pezzo ed e' legittima: le due differiscono per UN SOLO argomento, «through_all», ed e' quello che il controllo deve guardare.",
+  "why": "A THROUGH 400 x 400 pocket on a part that occupies 314 x 274 would leave nothing. The twin is the same pocket blind at 5, which instead shortens the part and is legitimate: the two differ by ONE argument only, «through_all», and that is what the check must look at.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -30,7 +30,7 @@
         "depth_mm": 5
       },
       "must_fail": {
-        "message_includes": ["copre tutto il pezzo", "314 x 274"],
+        "message_includes": ["covers the whole part", "314 x 274"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "blind_pocket_400"

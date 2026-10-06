@@ -1,8 +1,8 @@
 {
   "name": "limit_three_points_in_a_row",
   "family": "plane",
-  "why": "Tre punti allineati non fanno un piano: per una retta ne passano infiniti. SOLIDWORKS risponde null e non dice perche' -- misurato. Qui ci si rifiuta PRIMA di chiamare, perche' il perche' si sa senza chiederlo: il prodotto vettoriale dei due vettori e' zero. Un rifiuto che spiega vale quanto uno che indovina il motivo dopo.",
-  "_why_letting_solidworks_fail_is_not_enough": "Il messaggio che ne uscirebbe sarebbe «il piano non e' stato creato e SOLIDWORKS non dice perche'», che e' vero e inutile. Chi ha sbagliato un numero non saprebbe quale dei tre.",
+  "why": "Three points in a line do not make a plane: infinitely many pass through a line. SOLIDWORKS answers null and does not say why -- measured. Here we refuse BEFORE calling, because the why is known without asking: the cross product of the two vectors is zero. A refusal that explains is worth as much as one that guesses the reason afterwards.",
+  "_why_letting_solidworks_fail_is_not_enough": "The message that would come out would be «the plane was not created and SOLIDWORKS does not say why», which is true and useless. Whoever got a number wrong would not know which of the three.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,7 +13,7 @@
       "arguments": { "point1_mm": [0, 0, 0], "point2_mm": [50, 0, 0],
                      "point3_mm": [100, 0, 0] },
       "must_fail": {
-        "message_includes": ["sono in fila", "infiniti piani"],
+        "message_includes": ["are in a line", "infinitely many planes"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "oblique_plane_through_three_points" } },
@@ -22,9 +22,9 @@
                      "point3_mm": [100, 10, 0] },
       "expect": [
         { "what": "measurements.normal_reread", "equal_to": [0, 0, 1], "tolerance": 0.0001,
-          "tolerance_why": "tre punti sul piano z=0: la normale e' l'asse Z",
-          "why": "SPOSTANDO IL TERZO PUNTO DI DIECI MILLIMETRI FUORI DALLA RETTA, il piano nasce. E' la meta' che dice che il rifiuto di sopra guarda l'allineamento e non qualcos'altro: cambia un solo numero su nove." },
+          "tolerance_why": "three points on the plane z=0: the normal is the Z axis",
+          "why": "MOVING THE THIRD POINT TEN MILLIMETRES OFF THE LINE, the plane is born. It is the half that says the refusal above looks at the alignment and not at something else: it changes a single number out of nine." },
         { "what": "state.planes_available", "equal_to": 4,
-          "why": "e dopo il rifiuto i piani erano ancora tre: il passo rifiutato non ne aveva lasciato nessuno per strada" } ] }
+          "why": "and after the refusal the planes were still three: the refused step had left none along the way" } ] }
   ]
 }

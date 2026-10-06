@@ -1,7 +1,7 @@
 {
   "name": "hole_60_on_the_border",
   "family": "pairs",
-  "why": "La gemella di «limit_hole_outside_the_material», ed e' la piu' importante delle quattro: IL CENTRO CADE FUORI DAL MATERIALE (x = 157, cioe' esattamente sul bordo) e il taglio e' legittimo lo stesso. Un controllo scritto come «il centro deve stare dentro l'ingombro» -- che e' la formulazione che viene per prima -- lo avrebbe rifiutato. Quello che gira guarda la scatola del PROFILO, non il centro.",
+  "why": "The twin of «limit_hole_outside_the_material», and it is the most important of the four: THE CENTRE FALLS OUTSIDE THE MATERIAL (x = 157, that is exactly on the edge) and the cut is legitimate just the same. A check written as «the centre must be inside the bounding box» -- which is the wording that comes first -- would have refused it. The one that runs looks at the box of the PROFILE, not at the centre.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -30,7 +30,7 @@
       "expect": [
         { "what": "measurements.removed_mm3", "equal_to": 73512.62,
           "tolerance": 1.0,
-          "tolerance_why": "mezzo cilindro, pi*30^2/2*52: il centro sta ESATTAMENTE sul bordo e quel che resta dentro non e' esattamente la meta'" },
+          "tolerance_why": "half a cylinder, pi*30^2/2*52: the centre is EXACTLY on the edge and what stays inside is not exactly half" },
         { "what": "bodies", "equal_to": 1 }
       ]
     }

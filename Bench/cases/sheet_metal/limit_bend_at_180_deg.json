@@ -1,7 +1,7 @@
 {
   "name": "limit_bend_at_180_deg",
   "family": "sheet_metal",
-  "why": "A 180 gradi la lamiera si richiude su se stessa: non e' una piega da schizzo, e' un orlo. Si rifiuta prima di toccare il pezzo, e il rifiuto nomina l'operazione giusta.",
+  "why": "At 180 degrees the sheet folds back on itself: it is not a sketched bend, it is a hem. It is refused before touching the part, and the refusal names the right operation.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -12,7 +12,7 @@
       "arguments": { "face_uid": "@face(normal=up)", "start_mm": [50, 0, 0], "end_mm": [50, 0, 40],
                      "angle_deg": 180 },
       "must_fail": {
-        "message_includes": ["fra 0 e 180", "«hem»"],
+        "message_includes": ["between 0 and 180", "«hem»"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "sketched_bend_raises_half_the_sheet_metal" } }

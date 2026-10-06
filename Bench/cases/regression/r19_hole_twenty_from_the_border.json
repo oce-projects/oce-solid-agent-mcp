@@ -1,9 +1,9 @@
 {
   "name": "r19_hole_twenty_from_the_border",
   "family": "regression",
-  "why": "VOCE E18 (a), il caso piu' comune scritto con l'operazione che adesso sa ancorare: un foro a 20 dal fianco destro e 20 dall'alto, e la piastra si allunga. `r01` dice la stessa cosa con quattro fori di `hole_wizard`, che l'ancora non la sa ancora prendere (lo schizzo dei punti lo fa HoleWizard: serve una sonda prima).",
+  "why": "ENTRY E18 (a), the most common case written with the operation that now knows how to anchor: a hole 20 from the right side and 20 from the top, and the plate gets longer. `r01` says the same thing with four `hole_wizard` holes, which cannot take the anchor yet (the sketch of the points is made by HoleWizard: a probe is needed first).",
   "intent": "ancorato_a_bordo",
-  "intent_why": "il foro sta a 20 mm dal fianco destro: portando la lunghezza da 200 a 260 il fianco va da x = 100 a x = 160 (la piastra cresce da una parte sola, voce E2), e il foro deve andare da x = 80 a x = 140. In y non cambia niente.",
+  "intent_why": "the hole is 20 mm from the right side: bringing the length from 200 to 260 the side goes from x = 100 to x = 160 (the plate grows on one side only, entry E2), and the hole must go from x = 80 to x = 140. In y nothing changes.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -23,9 +23,9 @@
     { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
     { "what": "centers_x_mm", "equal_to": [140],
       "tolerance": 0.05,
-      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+      "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
     { "what": "centers_y_mm", "equal_to": [40],
       "tolerance": 0.05,
-      "tolerance_why": "come sopra" }
+      "tolerance_why": "as above" }
   ]
 }

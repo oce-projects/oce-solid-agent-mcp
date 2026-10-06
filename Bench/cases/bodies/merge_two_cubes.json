@@ -1,8 +1,8 @@
 {
   "name": "merge_two_cubes",
   "family": "bodies",
-  "why": "Due cubi da 10 sfalsati di 2 in X e 5 in Z si sovrappongono per 8 x 10 x 5 = 400 mm3. Uniti fanno 1000 + 1000 - 400 = 1600, e UN corpo solo. Il conto dei corpi e' la meta' che conta: un'unione che fallisce in silenzio lascia due corpi dove ne serviva uno, l'albero cresce uguale, la forma sembra la stessa, e la differenza si vede solo contando.",
-  "_why_staggered": "con due cubi uguali e centrati i tre risultati sarebbero 1500, 500 e 500, e «subtract» e «intersect» non si distinguerebbero. Un caso in cui due valori sbagliati dell'enum danno lo stesso numero non tabella niente. Sfalsati, i tre numeri sono 1600, 600 e 400.",
+  "why": "Two cubes of 10 staggered by 2 in X and 5 in Z overlap by 8 x 10 x 5 = 400 mm3. United they make 1000 + 1000 - 400 = 1600, and ONE single body. The count of the bodies is the half that matters: a union that fails silently leaves two bodies where one was needed, the tree grows the same, the shape looks the same, and the difference only shows by counting.",
+  "_why_staggered": "with two equal centred cubes the three results would be 1500, 500 and 500, and «subtract» and «intersect» would not be told apart. A case in which two wrong values of the enum give the same number tabulates nothing. Staggered, the three numbers are 1600, 600 and 400.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,7 +15,7 @@
       "expect": [
         { "what": "bodies", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 2000,
-          "why": "due corpi separati che si compenetrano: il volume e' la somma, perche' sono ancora due" } ] },
+          "why": "two separate bodies that interpenetrate: the volume is the sum, because they are still two" } ] },
     { "operation": "combine_bodies",
       "arguments": { "operation": "union" },
       "expect": [
@@ -23,10 +23,10 @@
         { "what": "measurements.bodies_before", "equal_to": 2 },
         { "what": "measurements.bodies", "equal_to": 1 },
         { "what": "bodies", "equal_to": 1,
-          "why": "contato sul documento, non sulla risposta dell'operazione" },
+          "why": "counted on the document, not on the answer of the operation" },
         { "what": "volume_mm3", "equal_to": 1600,
-          "why": "1000 + 1000 - 400 di sovrapposizione" },
-        { "what": "measurements.note_identifiers", "includes": ["non valgono piu'"],
-          "why": "una booleana rifa' le facce da capo, e chi legge deve rileggere il pezzo prima di nominarle" } ] }
+          "why": "1000 + 1000 - 400 of overlap" },
+        { "what": "measurements.note_identifiers", "includes": ["no longer valid"],
+          "why": "a boolean redoes the faces from scratch, and whoever reads must re-read the part before naming them" } ] }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "name": "flipped_draft_drops",
   "family": "features",
-  "why": "Lo stesso sformo, stesso angolo, stesse facce, con «flip». Il pezzo deve CALARE invece di crescere. E' la meta' che rende `part_grew` una misura e non una costante: un campo che risponde sempre «vero» non distingue niente, e il verso di uno sformo sbagliato non da' nessun errore -- si vede solo guardando il pezzo di lato.",
-  "_why_the_two_numbers_are_not_equal": "Crescendo si aggiunge 7080,74 mm3, calando se ne tolgono 6917,45. Non e' un'asimmetria sospetta: e' geometria. Allargando verso il basso si aggiunge un tronco di piramide piu' grande del prisma; stringendo se ne toglie uno piu' piccolo, perche' la sezione cala verso il basso invece di crescere. Se i due numeri fossero uguali, vorrebbe dire che qualcuno sta approssimando.",
+  "why": "The same draft, same angle, same faces, with «flip». The part must SHRINK instead of growing. It is the half that makes `part_grew` a measurement and not a constant: a field that always answers «true» tells nothing apart, and the direction of a wrong draft gives no error -- you see it only by looking at the part from the side.",
+  "_why_the_two_numbers_are_not_equal": "Growing adds 7080.74 mm3, shrinking removes 6917.45. It is not a suspicious asymmetry: it is geometry. Widening towards the bottom adds a frustum of a pyramid bigger than the prism; narrowing removes a smaller one, because the section decreases downwards instead of increasing. If the two numbers were equal, it would mean someone is approximating.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -17,13 +17,13 @@
       "expect": [
         { "what": "measurements.flip", "equal_to": true },
         { "what": "measurements.faces_at_corner_after", "equal_to": 4,
-          "why": "capovolto o no, le pareti stanno a 5 gradi: e' il VERSO a cambiare, non l'angolo" },
+          "why": "flipped or not, the walls are at 5 degrees: it is the DIRECTION that changes, not the angle" },
         { "what": "measurements.part_grew", "equal_to": false,
-          "_why_false": "LA RIGA PER CUI ESISTE QUESTO CASO. Nel caso dritto lo stesso campo risponde vero." },
+          "_why_false": "THE LINE THIS CASE EXISTS FOR. In the straight case the same field answers true." },
         { "what": "measurements.material_mm3", "equal_to": -6917.45, "tolerance": 0.5,
-          "tolerance_why": "tronco di piramide, il conto ha una tangente dentro" },
+          "tolerance_why": "frustum of a pyramid, the calculation has a tangent inside" },
         { "what": "volume_mm3", "equal_to": 193082.55, "tolerance": 0.5,
-          "tolerance_why": "lo stesso numero letto dallo stato" },
+          "tolerance_why": "the same number read from the state" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

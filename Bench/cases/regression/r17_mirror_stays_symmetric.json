@@ -1,9 +1,9 @@
 {
   "name": "r17_mirror_stays_symmetric",
   "family": "regression",
-  "why": "Un foro specchiato sul piano destro, e la piastra si allarga. Lo specchio e' l'unica costruzione che dichiara la simmetria invece di ripeterla: se dopo la modifica i due fori non stanno piu' a x uguale e opposto, la simmetria l'ha persa il sistema, non il progettista.",
+  "why": "A hole mirrored on the right plane, and the plate widens. The mirror is the only construction that declares the symmetry instead of repeating it: if after the change the two holes are no longer at equal and opposite x, the symmetry was lost by the system, not by the designer.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "i due fori stanno a x = +/-60 rispetto al piano destro, che sta a x = 0. Allungare la piastra non li sposta: lo specchio garantisce solo che restino simmetrici, e qui si misura proprio quello.",
+  "intent_why": "the two holes are at x = +/-60 with respect to the right plane, which is at x = 0. Lengthening the plate does not move them: the mirror only guarantees that they stay symmetric, and that is exactly what is measured here.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -25,9 +25,9 @@
     { "what": "bounding_box_mm", "equal_to": [300, 120, 20] },
     { "what": "centers_x_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "l'asse del cilindro si legge da CylinderParams, che torna metri" },
+      "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
     { "what": "centers_y_mm", "same_as_before": true,
       "tolerance": 0.05,
-      "tolerance_why": "come sopra" }
+      "tolerance_why": "as above" }
   ]
 }

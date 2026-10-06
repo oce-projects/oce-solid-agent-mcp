@@ -1,7 +1,7 @@
 {
   "name": "limit_variable_fillet_on_a_circle",
   "family": "bodies",
-  "why": "Il bordo di un foro e' un cerchio: chiuso su se stesso, senza un capo e senza l'altro. Un raggio che VARIA ha bisogno di due estremi fra cui variare, e su un cerchio non ci sono. Va detto cosi', invece di lasciar fallire la chiamata con «non e' stato creato» -- che manderebbe a cercare il guaio nel raggio.",
+  "why": "The edge of a hole is a circle: closed on itself, with no end and no other. A VARYING radius needs two ends between which to vary, and on a circle there are none. It must be said like this, instead of letting the call fail with «was not created» -- which would send the reader to look for the trouble in the radius.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,12 +13,12 @@
                      "diameter_mm": 10, "through_all": true },
       "expect": [
         { "what": "edges_curved", "equal_to": 2,
-          "_why_two": "i due bordi tondi del foro passante: sono loro che il caso sta per nominare" } ] },
+          "_why_two": "the two round edges of the through hole: they are what the case is about to name" } ] },
     { "operation": "variable_fillet",
       "arguments": { "edge_uid": "@edge(curved=true,n=1)",
                      "start_radius_mm": 3, "end_radius_mm": 8 },
       "must_fail": {
-        "message_includes": ["chiuso su se stesso", "due estremi"],
+        "message_includes": ["closed on itself", "two ends"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "fillet_that_changes_radius" } }

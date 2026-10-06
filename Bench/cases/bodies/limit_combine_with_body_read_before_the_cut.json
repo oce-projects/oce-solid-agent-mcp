@@ -1,10 +1,10 @@
 {
   "name": "limit_combine_with_body_read_before_the_cut",
   "family": "bodies",
-  "why": "VOCE Z-C21.2, rilievo L6-1, sul modello della voce E4. Fino alla libreria 0.136.0 combine_bodies leggeva «C2» come «il secondo di un GetBodies2 fatto adesso» e non guardava lo stato: IPartDoc~GetBodies2.html, Remarks, «May vary the order in which bodies are returned». Un piano scritto guardando lo stato una volta — due blocchi, un taglio, poi la booleana col nome letto PRIMA del taglio — combinava un corpo che non era piu' quello visto, con `succeeded: true`. `move_bodies` lo rifiuta dal 14/9/2026 (`CorpiDaUid` + `FirmaCombacia`); combine_bodies adesso passa dallo stesso punto.",
-  "defect_caught": "Il passo 4 porta l'uid del blocco originale letto PRIMA del taglio («uid_dal_passo»: 3), con la sua firma: centro (0, 0, 5), scatola 100 x 50 x 10. Il taglio del passo 3 accorcia quel blocco di 15 mm a sinistra, quindi nessun corpo di adesso ha piu' quella firma: al suo posto c'e' o il blocco accorciato (centro spostato di 5 mm) o la copia (centro a x = 60), a seconda di come GetBodies2 li elenca. In tutti e due i casi il nome non indica piu' il corpo visto, e l'operazione deve rifiutare. Sulla libreria vecchia l'unione RIUSCIVA: i due corpi si sovrappongono ancora, e il volume veniva plausibile.",
-  "_and_the_twin_is_in_the_same_file": "Il passo 5 e' la stessa unione senza il nome letto prima: il principale predefinito, sui corpi di adesso. Differisce dal rifiuto per un argomento, «main_body_uid», e riesce: prova che il rifiuto viene dal nome vecchio e non da due corpi che non si possono unire.",
-  "_the_numbers": "Blocco 100 x 50 x 10 centrato: x da -50 a 50. Copia a dx = 60: x da 10 a 110, sovrapposta per 40 x 50 x 10 = 20000. Il taglio passante 15 x 70 centrato a x = -47,5 toglie la striscia x da -50 a -40 del solo blocco (x da -55 a -40, fuori dalla copia): 10 x 50 x 10 = 5000. Dopo: 45000 + 50000 = 95000 in due corpi. L'unione: x da -40 a 110, cioe' 150 x 50 x 10 = 75000 in un corpo.",
+  "why": "ENTRY Z-C21.2, finding L6-1, on the model of entry E4. Up to library 0.136.0 combine_bodies read «C2» as «the second of a GetBodies2 done now» and did not look at the state: IPartDoc~GetBodies2.html, Remarks, «May vary the order in which bodies are returned». A plan written by looking at the state once — two blocks, a cut, then the boolean with the name read BEFORE the cut — combined a body that was no longer the one seen, with `succeeded: true`. `move_bodies` has refused it since 14/9/2026 (`CorpiDaUid` + `FirmaCombacia`); combine_bodies now goes through the same point.",
+  "defect_caught": "Step 4 carries the uid of the original block read BEFORE the cut («uid_dal_passo»: 3), with its signature: centre (0, 0, 5), bounding box 100 x 50 x 10. The cut of step 3 shortens that block by 15 mm on the left, so no body of now has that signature any more: in its place there is either the shortened block (centre moved by 5 mm) or the copy (centre at x = 60), depending on how GetBodies2 lists them. In both cases the name no longer indicates the body seen, and the operation must refuse. On the old library the union SUCCEEDED: the two bodies still overlap, and the volume came out plausible.",
+  "_and_the_twin_is_in_the_same_file": "Step 5 is the same union without the name read earlier: the default main body, on the bodies of now. It differs from the refusal by one argument, «main_body_uid», and it succeeds: it proves that the refusal comes from the old name and not from two bodies that cannot be united.",
+  "_the_numbers": "Block 100 x 50 x 10 centred: x from -50 to 50. Copy at dx = 60: x from 10 to 110, overlapping by 40 x 50 x 10 = 20000. The through cut 15 x 70 centred at x = -47.5 removes the strip x from -50 to -40 of the block only (x from -55 to -40, outside the copy): 10 x 50 x 10 = 5000. After: 45000 + 50000 = 95000 in two bodies. The union: x from -40 to 110, that is 150 x 50 x 10 = 75000 in one body.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -20,16 +20,16 @@
     { "operation": "rectangular_cut",
       "arguments": { "face_uid": "@face(normal=front,x~=0)", "x_mm": -47.5, "y_mm": 0,
                      "length_mm": 15, "width_mm": 70, "through_all": true },
-      "_why_x_0": "le facce davanti sono due, una per corpo; GetClosestPointOn(0,0,0) mette quella del blocco a x = 0 e quella della copia a x = 10",
+      "_why_x_0": "the front faces are two, one per body; GetClosestPointOn(0,0,0) puts the one of the block at x = 0 and the one of the copy at x = 10",
       "expect": [
-        { "what": "bodies", "equal_to": 2, "why": "il taglio accorcia il blocco, non lo spezza, e non tocca la copia" },
+        { "what": "bodies", "equal_to": 2, "why": "the cut shortens the block, it does not split it, and it does not touch the copy" },
         { "what": "volume_mm3", "equal_to": 95000 } ] },
     { "operation": "combine_bodies",
       "uid_from_step": 3,
       "arguments": { "operation": "union",
                      "main_body_uid": "@body(name=Estrusione-Estrusione1)" },
       "must_fail": {
-        "message_includes": [ "e' cambiato da quando hai confermato", "non lavoro sul corpo sbagliato" ],
+        "message_includes": [ "has changed since you confirmed", "I do not work on the wrong body" ],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "limit_combine_with_body_read_before_the_cut" } },
@@ -38,6 +38,6 @@
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "volume_mm3", "equal_to": 75000,
-          "why": "45000 + 50000 meno i 20000 in comune" } ] }
+          "why": "45000 + 50000 minus the 20000 in common" } ] }
   ]
 }

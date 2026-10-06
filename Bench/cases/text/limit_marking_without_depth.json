@@ -1,7 +1,7 @@
 {
   "name": "limit_marking_without_depth",
   "family": "text",
-  "why": "Profondita' zero. SOLIDWORKS su un taglio di lunghezza nulla non fa niente e non si lamenta: la lavorazione o non nasce, o nasce e non toglie un millimetro cubo. In tutti e due i casi il piano prosegue credendo che il numero di serie ci sia. Qui si rifiuta prima, e si dice che un'annotazione senza lavorazione e' un'altra cosa -- perche' e' quello che quasi sempre chi ha scritto zero voleva davvero.",
+  "why": "Depth zero. SOLIDWORKS on a cut of zero length does nothing and does not complain: the feature is either not born, or born and removes not a cubic millimetre. In both cases the plan goes on believing that the serial number is there. Here it is refused beforehand, and it is said that an annotation without a feature is something else -- because that is almost always what whoever wrote zero really wanted.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,7 +13,7 @@
                      "x_mm": -25, "y_mm": -5,
                      "height_mm": 10, "depth_mm": 0 },
       "must_fail": {
-        "message_includes": ["non lascia segno", "annotazione"],
+        "message_includes": ["leaves no mark", "an annotation"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "code_engraved_in_the_center" } }

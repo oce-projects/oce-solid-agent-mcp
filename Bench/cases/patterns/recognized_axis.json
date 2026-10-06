@@ -1,18 +1,18 @@
 {
   "name": "recognized_axis",
   "family": "patterns",
-  "why": "VOCE E4, la parte degli ASSI. Dalla libreria 0.114.0 lo stato di un asse porta un punto sulla retta e la direzione, e `axis_uid` si controlla per identita' e non solo per esistenza. Questa e' la GEMELLA: la firma dice un punto che sta sulla retta dell'asse — ma non il suo inizio, perche' l'asse e' una retta e l'inizio puo' spostarsi senza che l'asse cambi — e la ripetizione deve riuscire.",
+  "why": "ENTRY E4, the AXES part. From library 0.114.0 the state of an axis carries a point on the line and the direction, and `axis_uid` is checked for identity and not only for existence. This is the TWIN: the signature says a point that is on the line of the axis — but not its start, because the axis is a line and the start can move without the axis changing — and the pattern must succeed.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_circle",
       "arguments": { "plane": "front", "diameter_mm": 100, "height_mm": 50 },
       "expect": [ { "what": "volume_mm3", "equal_to": 392699.08, "tolerance": 0.5,
-                    "tolerance_why": "pi * 50^2 * 50: il conto ha pi dentro" } ] },
+                    "tolerance_why": "pi * 50^2 * 50: the calculation has pi inside" } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 35, "y_mm": 0,
                      "diameter_mm": 10, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 388772.09, "tolerance": 0.5,
-                    "tolerance_why": "meno pi * 5^2 * 50 = 3926,99" } ] },
+                    "tolerance_why": "minus pi * 5^2 * 50 = 3926.99" } ] },
     { "operation": "create_axis",
       "arguments": { "face_uid": "@face(area~=15707.96)" },
       "expect": [ { "what": "axes_created", "equal_to": 1 } ] },
@@ -24,9 +24,9 @@
         "total_angle_deg": 360,
         "_signatures": { "Assi1": { "point_mm": [0, 0, 25], "direction": [0, 0, 1] } }
       },
-      "_the_signature_is_written_by_hand_and_stated": "`_signatures` e' quello che il ponte allega a ogni passo con le firme lette dallo stato quando il piano e' stato confermato. Qui si scrive a mano per costruire le due situazioni — asse al suo posto, asse altrove — senza dover spostare davvero l'asse fra la lettura e l'esecuzione, che un caso dichiarato non sa fare. Il punto (0, 0, 25) sta a meta' dell'asse del cilindro, non al suo inizio: e' la retta che conta.",
+      "_the_signature_is_written_by_hand_and_stated": "`_signatures` is what the bridge attaches to each step with the signatures read from the state when the plan was confirmed. Here it is written by hand to build the two situations — axis in its place, axis elsewhere — without having to really move the axis between the reading and the execution, which a declared case cannot do. The point (0, 0, 25) is at the middle of the axis of the cylinder, not at its start: it is the line that counts.",
       "expect": [
         { "what": "volume_mm3", "equal_to": 369137.14, "tolerance": 0.5,
-          "tolerance_why": "il cilindro meno SEI fori da 3926,99: se la ripetizione non fosse partita, il volume sarebbe quello di un foro solo" } ] }
+          "tolerance_why": "the cylinder minus SIX holes of 3926.99: if the pattern had not started, the volume would be that of a single hole" } ] }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "limit_edge_flange_without_a_straight",
   "family": "sheet_metal",
-  "why": "Una flangia lunga 4 allo spigolo esterno, con raggio 2 e spessore 2: la piega consuma tutto, non resta niente di dritto. Si rifiuta PRIMA di toccare il pezzo, col conto che dice fin dove si puo' scendere.",
+  "why": "A flange 4 long at the outer edge, with radius 2 and thickness 2: the bend consumes everything, nothing straight is left. It is refused BEFORE touching the part, with the calculation that says how far down you can go.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -11,7 +11,7 @@
     { "operation": "edge_flange",
       "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "length_mm": 4 },
       "must_fail": {
-        "message_includes": ["niente di dritto", "piu' lunga di 4 mm"],
+        "message_includes": ["nothing straight", "longer than 4 mm"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "edge_flange_closes_the_side" } }

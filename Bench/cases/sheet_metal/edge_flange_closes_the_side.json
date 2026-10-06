@@ -1,8 +1,8 @@
 {
   "name": "edge_flange_closes_the_side",
   "family": "sheet_metal",
-  "why": "VOCE GP18, la terza operazione della famiglia. Sulla L dei casi di lamiera (50 + 30, profonda 40, T 2, R 2) una flangia a 90 gradi sullo spigolo in fondo al lato da 50, lunga 25 allo spigolo virtuale esterno. La sonda `Checks/EdgeFlange` l'ha misurata prima di scriverla: nasce solo con un RETTANGOLO di profilo sulla faccia di testa, e lo sviluppo cresce di (L - R - T) + BA - (R + T), al millesimo, con 22 e con 32.",
-  "_the_edges_by_where_they_are": "La L va da x -2 a 50 e da y -2 a 30: lo spigolo in fondo al lato da 50 sulla faccia interna sta a x = 50, y = 0, lungo Z per 40.",
+  "why": "ENTRY GP18, the third operation of the family. On the L of the sheet-metal cases (50 + 30, 40 deep, T 2, R 2) a 90 degree flange on the edge at the end of the 50 leg, 25 long to the outer virtual sharp. The probe `Checks/EdgeFlange` measured it before it was written: it is born only with a profile RECTANGLE on the end face, and the flat pattern grows by (L - R - T) + BA - (R + T), to the thousandth, with 22 and with 32.",
+  "_the_edges_by_where_they_are": "The L goes from x -2 to 50 and from y -2 to 30: the edge at the end of the 50 leg on the inner face is at x = 50, y = 0, along Z for 40.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -10,16 +10,16 @@
                      "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
-          "tolerance_why": "la L di the_L_flattens: (50 - 2) + (30 - 2) + pi/2 * 3" } ] },
+          "tolerance_why": "the L of the_L_flattens: (50 - 2) + (30 - 2) + pi/2 * 3" } ] },
     { "operation": "edge_flange",
       "arguments": { "edge_uid": "@edge(axis=Z,x~=50,y~=0)", "length_mm": 25 },
       "expect": [
         { "what": "measurements.length_mm", "equal_to": 25, "tolerance": 0.01,
-          "tolerance_why": "riletta dalla flangia in metri" },
+          "tolerance_why": "read back from the flange in metres" },
         { "what": "measurements.volume_mm3", "equal_to": 1736.99, "tolerance": 0.5,
-          "tolerance_why": "(25 - 2 - 2) + pi/2 * (2 + 0,5 * 2) - (2 + 2) = 21,712 mm di sviluppo in piu', per 2 di spessore e 40 di spigolo. Misurato con la sonda a 22 e 32: 1497 e 2297, uguali al conto" },
+          "tolerance_why": "(25 - 2 - 2) + pi/2 * (2 + 0.5 * 2) - (2 + 2) = 21.712 mm of extra flat pattern, over 2 of thickness and 40 of edge. Measured with the probe at 22 and 32: 1497 and 2297, equal to the calculation" },
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 102.424, "tolerance": 0.01,
-          "tolerance_why": "80,712 + 21,712: la striscia spianata e' il lato lungo del pezzo sviluppato" },
+          "tolerance_why": "80.712 + 21.712: the flattened strip is the long side of the flat part" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

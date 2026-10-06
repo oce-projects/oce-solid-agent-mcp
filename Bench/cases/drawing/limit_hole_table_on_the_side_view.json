@@ -1,7 +1,7 @@
 {
   "name": "limit_hole_table_on_the_side_view",
   "family": "drawing",
-  "why": "La tabella fori chiesta sulla vista FRONTALE (V1), dove i fori della piastra si vedono di taglio come linee nascoste e nessuna faccia forata guarda verso chi legge. Si rifiuta dicendo su quale vista va — non si mette una tabella vuota.",
+  "why": "The hole table asked for on the FRONT view (V1), where the holes of the plate are seen edge-on as hidden lines and no drilled face looks towards whoever reads. It is refused, saying on which view it goes — an empty table is not put.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -10,7 +10,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
     { "operation": "cylindrical_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": -45, "y_mm": -25, "diameter_mm": 8, "through_all": true },
-      "expect": [ { "what": "volume_mm3", "equal_to": 95497.35, "tolerance": 0.05, "tolerance_why": "pi dentro" } ] },
+      "expect": [ { "what": "volume_mm3", "equal_to": 95497.35, "tolerance": 0.05, "tolerance_why": "pi inside" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\limit_hole_table_on_the_side_view.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
@@ -23,7 +23,7 @@
     { "operation": "hole_table",
       "arguments": { "view": "V1" },
       "must_fail": {
-        "message_includes": ["nessuna faccia con dei fori guarda verso chi legge", "V2"],
+        "message_includes": ["no face with holes faces the reader", "V2"],
         "twin": "hole_table_says_where_they_are" } }
   ]
 }

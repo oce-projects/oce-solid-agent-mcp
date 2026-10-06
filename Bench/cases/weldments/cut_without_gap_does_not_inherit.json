@@ -1,11 +1,11 @@
 {
   "name": "cut_without_gap_does_not_inherit",
   "family": "weldments",
-  "why": "VOCE Z-C21.2, rilievo L9-2. IFeatureManager~InsertWeldmentTrimFeature2.html, Remarks: «Specify 0 for GapValue to ensure that there is no weld gap. If you exclude swWeldmentTrimExtendOption_WeldGap from the Options parameter, then the weld gap defaults to the last value specified in the SOLIDWORKS user-interface.» Fino alla libreria 0.136.0 il bit si accendeva solo con `gap_mm > 0`: con 0 SOLIDWORKS usava l'ultimo gioco rimasto, e il riassunto diceva `gap_mm: 0`.",
-  "defect_caught": "Una barra lunga e due corte a T, uguali, ciascuna entra di 40 mm nella lunga. Prima si taglia la corta (2) CON un gioco di 2 mm, poi la corta (3) con `gap_mm: 0`. Il secondo taglio deve togliere esattamente i 40 mm di `cut_shortens_the_bar`, 58798,23 mm3, e non i 42 del gioco rimasto.",
-  "_what_it_cannot_show": "Il gioco che la guida chiama «last value specified in the SOLIDWORKS user-interface» lo mette una mano nel PropertyManager di Accorcia/Estendi, e un caso non ha mani. Il passo 4 e' l'unico modo che il banco ha di lasciare un gioco diverso da zero nella sessione, ma NON e' accertato che una chiamata API aggiorni il valore dell'interfaccia: se non lo fa, questo caso resta verde anche sulla libreria vecchia. Lo scenario vero (gioco dato a mano, poi `gap_mm: 0`) resta una sonda da fare a mano, scritta nel resoconto della voce. Il passo 4 misura comunque una cosa che nessun caso misurava: che il gioco chiesto venga applicato, 42 mm invece di 40.",
-  "_if_it_stays_green_on_the_old_library": "E' un caso di REGRESSIONE, non la prova di L9-2: vuol dire che la chiamata API col gioco a 2 non ha lasciato quel gioco come «ultimo valore dell'interfaccia», e il difetto resta non visto. Va scritto cosi' nella voce Z-C21.2 del TODO, con la sonda a mano: in SOLIDWORKS, Accorcia/Estendi da interfaccia con un gioco di 2 mm su due barre qualunque, poi dal ponte questo stesso passo 5 (`gap_mm: 0`) sulla libreria 0.136.0 e su quella nuova, confrontando `volume_change_mm3` con -58798,23.",
-  "_the_numbers":"Sezione del tubo 80x80x5: 1469,956 mm2 (da `cut_shortens_the_bar`: 2204933,61 / 1500 mm). Barre: 600 + 300 + 300 = 1200 mm, 1763946,89 mm3. Taglio con gioco 2: la corta si ferma a 2 mm dalla faccia della lunga, 42 mm tolti, 61738,14 mm3. Taglio senza gioco: 40 mm, 58798,23 mm3.",
+  "why": "ENTRY Z-C21.2, finding L9-2. IFeatureManager~InsertWeldmentTrimFeature2.html, Remarks: «Specify 0 for GapValue to ensure that there is no weld gap. If you exclude swWeldmentTrimExtendOption_WeldGap from the Options parameter, then the weld gap defaults to the last value specified in the SOLIDWORKS user-interface.» Up to library 0.136.0 the bit was turned on only with `gap_mm > 0`: with 0 SOLIDWORKS used the last gap left over, and the summary said `gap_mm: 0`.",
+  "defect_caught": "One long bar and two short ones in a T, equal, each entering the long one by 40 mm. First the short one (2) is cut WITH a gap of 2 mm, then the short one (3) with `gap_mm: 0`. The second cut must remove exactly the 40 mm of `cut_shortens_the_bar`, 58798.23 mm3, and not the 42 of the gap left over.",
+  "_what_it_cannot_show": "The gap that the guide calls «last value specified in the SOLIDWORKS user-interface» is set by a hand in the PropertyManager of Trim/Extend, and a case has no hands. Step 4 is the only way the bench has of leaving a non-zero gap in the session, but it is NOT established that an API call updates the value of the interface: if it does not, this case stays green even on the old library. The real scenario (gap given by hand, then `gap_mm: 0`) remains a probe to be done by hand, written in the report of the entry. Step 4 does measure something that no case measured: that the requested gap is applied, 42 mm instead of 40.",
+  "_if_it_stays_green_on_the_old_library": "It is a REGRESSION case, not the proof of L9-2: if it stays green it means that the API call with the gap at 2 did not leave that gap as the «last value of the interface», and the defect remains unseen. It must be written that way in entry Z-C21.2 of the TODO, with the probe by hand: in SOLIDWORKS, Trim/Extend from the interface with a gap of 2 mm on any two bars, then from the bridge this same step 5 (`gap_mm: 0`) on library 0.136.0 and on the new one, comparing `volume_change_mm3` with -58798.23.",
+  "_the_numbers":"Section of the 80x80x5 tube: 1469.956 mm2 (from `cut_shortens_the_bar`: 2204933.61 / 1500 mm). Bars: 600 + 300 + 300 = 1200 mm, 1763946.89 mm3. Cut with gap 2: the short one stops 2 mm from the face of the long one, 42 mm removed, 61738.14 mm3. Cut without gap: 40 mm, 58798.23 mm3.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "structural_member",
@@ -30,7 +30,7 @@
       "expect": [
         { "what": "bodies", "equal_to": 3 },
         { "what": "volume_mm3", "equal_to": 1763946.89, "tolerance": 0.5,
-          "tolerance_why": "1200 mm a 1469,956 mm2: come in `cut_shortens_the_bar`, mezzo mm3 copre l'arrotondamento della sezione con i raggi; una barra in piu' o in meno sposta centinaia di migliaia" } ] },
+          "tolerance_why": "1200 mm at 1469.956 mm2: as in `cut_shortens_the_bar`, half a mm3 covers the rounding of the section with the radii; one bar more or fewer shifts hundreds of thousands" } ] },
 
     { "operation": "trim_members",
       "arguments": { "bodies_to_trim_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(2))"],
@@ -39,7 +39,7 @@
       "expect": [
         { "what": "measurements.bodies_trimmed", "equal_to": 1 },
         { "what": "measurements.volume_change_mm3", "equal_to": -61738.14, "tolerance": 0.05,
-          "tolerance_why": "42 mm x 1469,956 mm2: i 40 mm dentro la lunga piu' i 2 di gioco. Il centesimo come nel caso gemello" } ] },
+          "tolerance_why": "42 mm x 1469.956 mm2: the 40 mm inside the long one plus the 2 of gap. The hundredth as in the twin case" } ] },
 
     { "operation": "trim_members",
       "arguments": { "bodies_to_trim_uid": ["@body(name=TUBO STRUTTURALE QUADRO 80X80X5(3))"],
@@ -48,9 +48,9 @@
       "expect": [
         { "what": "measurements.bodies_trimmed", "equal_to": 1 },
         { "what": "measurements.volume_change_mm3", "equal_to": -58798.23, "tolerance": 0.05,
-          "tolerance_why": "40 mm x 1469,956 mm2, come in `cut_shortens_the_bar`. Un gioco ereditato di 2 mm darebbe -61738,14",
-          "why": "IL GIOCO ZERO E' ZERO, non «quello di prima»" },
+          "tolerance_why": "40 mm x 1469.956 mm2, as in `cut_shortens_the_bar`. An inherited gap of 2 mm would give -61738.14",
+          "why": "THE ZERO GAP IS ZERO, not «the one from before»" },
         { "what": "volume_mm3", "equal_to": 1643410.52, "tolerance": 0.5,
-          "tolerance_why": "1763946,89 - 61738,14 - 58798,23, letto dal pezzo: la seconda lettura dello stesso fatto" } ] }
+          "tolerance_why": "1763946.89 - 61738.14 - 58798.23, read from the part: the second reading of the same fact" } ] }
   ]
 }

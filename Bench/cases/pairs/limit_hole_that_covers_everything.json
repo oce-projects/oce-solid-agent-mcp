@@ -1,7 +1,7 @@
 {
   "name": "limit_hole_that_covers_everything",
   "family": "pairs",
-  "why": "Un foro da 500 passante su un pezzo che occupa 314 x 274 non lascerebbe niente. Fino alla 0.42.0 la risposta era «Il taglio non e' stato creato. Nel pezzo e' rimasto lo schizzo...», identica a quella del foro fuori dal pezzo: due cose da fare opposte -- rimpicciolire, oppure spostare -- e il messaggio non diceva quale.",
+  "why": "A through hole of 500 on a part that occupies 314 x 274 would leave nothing. Up to 0.42.0 the answer was «The cut was not created. The sketch is left in the part...», identical to that of the hole outside the part: two opposite things to do -- make it smaller, or move it -- and the message did not say which.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -28,7 +28,7 @@
         "through_all": true
       },
       "must_fail": {
-        "message_includes": ["copre tutto il pezzo", "314 x 274"],
+        "message_includes": ["covers the whole part", "314 x 274"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "hole_270_on_face_274"

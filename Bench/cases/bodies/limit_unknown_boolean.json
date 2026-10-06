@@ -1,7 +1,7 @@
 {
   "name": "limit_unknown_boolean",
   "family": "bodies",
-  "why": "«fondi» non e' una delle tre. Un nome sconosciuto va rifiutato dicendo quali ci sono: se passasse in silenzio finirebbe nell'enum come numero, e un valore fuori dai tre consuma il corpo sbagliato senza errore.",
+  "why": "«fondi» is not one of the three. An unknown name must be refused saying which ones exist: if it passed silently it would end up in the enum as a number, and a value outside the three consumes the wrong body without error.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

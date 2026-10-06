@@ -1,9 +1,9 @@
 {
   "name": "mass_of_a_steel_cube",
   "family": "measurement",
-  "why": "«Quanto pesa questo pezzo» e' una delle due domande che si fanno prima di ordinare il materiale. Un cubo da 100x100x20 fa 200.000 mm3; l'AISI 304 della libreria di SOLIDWORKS ha densita' 8000 kg/m3, quindi 1,6 kg esatti. Nessuno dei tre numeri e' arrotondato: e' un conto che deve tornare.",
-  "_already_seen_red": "Questo caso e' gia' scattato, il 15/9/2026, la prima volta che e' stato lanciato: «density_kg_m3 1 (atteso 8000)». `IMassProperty` cambia le sue risposte a seconda di che cosa gli si e' chiesto prima -- letto `Volume` o `SurfaceArea` su quell'oggetto, `Density` diventa 1 e la massa esce OTTOMILA VOLTE piu' leggera, con volume, area e baricentro tutti giusti accanto. L'operazione adesso usa un oggetto nuovo per ogni numero, e questa riga e' cio' che lo tiene vero.",
-  "_why_the_recompute": "la massa arriva due volte -- quella di SOLIDWORKS e quella rifatta a mano come volume per densita' -- e lo scarto fra le due e' un'attesa a se'. Se un giorno una delle due misure fosse in unita' diverse da quelle che dichiara, sarebbe questa riga a dirlo: un fattore mille non si nasconde in una differenza.",
+  "why": "«How much does this part weigh» is one of the two questions asked before ordering material. A 100x100x20 cube makes 200,000 mm3; the AISI 304 of the SOLIDWORKS library has a density of 8000 kg/m3, so exactly 1.6 kg. None of the three numbers is rounded: it is a calculation that has to add up.",
+  "_already_seen_red": "This case has already fired, on 15/9/2026, the first time it was run: «density_kg_m3 1 (expected 8000)». `IMassProperty` changes its answers depending on what it was asked before -- once `Volume` or `SurfaceArea` has been read on that object, `Density` becomes 1 and the mass comes out EIGHT THOUSAND TIMES lighter, with volume, area and centroid all right beside it. The operation now uses a new object for every number, and this line is what keeps it true.",
+  "_why_the_recompute": "the mass arrives twice -- the one from SOLIDWORKS and the one redone by hand as volume times density -- and the deviation between the two is an expectation in its own right. If one day one of the two measurements were in units different from those it declares, this line would say so: a factor of a thousand does not hide in a difference.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -18,21 +18,21 @@
       "expect": [
         { "what": "measurements.bodies", "equal_to": 1 },
         { "what": "measurements.volume_mm3", "equal_to": 200000, "tolerance": 0.5,
-          "tolerance_why": "il volume si legge in metri cubi e si moltiplica per un miliardo" },
+          "tolerance_why": "the volume is read in cubic metres and multiplied by a billion" },
         { "what": "measurements.area_mm2", "equal_to": 28000, "tolerance": 0.5,
-          "tolerance_why": "2*(100*100) + 4*(100*20) = 28.000; l'area si legge in metri quadri" },
+          "tolerance_why": "2*(100*100) + 4*(100*20) = 28,000; the area is read in square metres" },
         { "what": "measurements.density_kg_m3", "equal_to": 8000, "tolerance": 0.5,
-          "tolerance_why": "e' la densita' che la libreria di SOLIDWORKS da' all'AISI 304" },
+          "tolerance_why": "it is the density that the SOLIDWORKS library gives to AISI 304" },
         { "what": "measurements.mass_kg", "equal_to": 1.6, "tolerance": 0.001,
-          "tolerance_why": "200.000 mm3 per 8000 kg/m3 = 1,6 kg: il millesimo e' l'arrotondamento della risposta" },
+          "tolerance_why": "200,000 mm3 times 8000 kg/m3 = 1.6 kg: the thousandth is the rounding of the answer" },
         { "what": "measurements.mass_recomputed_kg", "equal_to": 1.6, "tolerance": 0.001,
-          "tolerance_why": "come sopra, rifatto a mano" },
+          "tolerance_why": "as above, redone by hand" },
         { "what": "measurements.deviation_on_recompute", "equal_to": 0, "tolerance": 0.00001,
-          "tolerance_why": "le due strade devono dare lo stesso numero, non uno simile" },
+          "tolerance_why": "the two routes must give the same number, not a similar one" },
         { "what": "measurements.center_of_mass_mm", "equal_to": [0, 0, 10], "tolerance": 0.01,
-          "tolerance_why": "il baricentro si legge in metri; la piastra e' centrata in X e Y e va da z = 0 a z = 20" },
+          "tolerance_why": "the centroid is read in metres; the plate is centred in X and Y and goes from z = 0 to z = 20" },
         { "what": "measurements.material", "includes": ["AISI 304"] },
-        { "what": "measurements.units", "includes": ["millimetri", "chilogrammi"],
-          "why": "chi legge la risposta puo' non aver mai visto la descrizione dell'operazione" } ] }
+        { "what": "measurements.units", "includes": ["millimeters", "kilograms"],
+          "why": "whoever reads the answer may never have seen the description of the operation" } ] }
   ]
 }

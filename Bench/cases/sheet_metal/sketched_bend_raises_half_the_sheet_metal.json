@@ -1,24 +1,24 @@
 {
   "name": "sketched_bend_raises_half_the_sheet_metal",
   "family": "sheet_metal",
-  "why": "VOCE GP18, la quinta operazione. Una lamiera piatta 100 x 40 x 2 (R 2), piegata a 90 gradi lungo una linea di traverso a x = 50 sulla faccia alta. Misurata col banchetto (`prova0089 piega`) prima di scriverla: volume invariato, e l'ingombro che torna col conto — 46 di piano (50 - R - T), la piega da 4,712, e il resto (49,288) che sale da y = 2. Una piega non aggiunge lamiera, la sposta: lo sviluppo resta 100.",
+  "why": "ENTRY GP18, the fifth operation. A flat sheet-metal part 100 x 40 x 2 (R 2), bent at 90 degrees along a cross line at x = 50 on the top face. Measured with the bench probe (`prova0089 piega`) before writing it: volume unchanged, and the bounding box that matches the calculation — 46 of flat (50 - R - T), the bend of 4.712, and the rest (49.288) that rises from y = 2. A bend does not add sheet metal, it moves it: the flat pattern stays 100.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
       "arguments": { "plane": "front", "points": [[0, 0], [100, 0]],
                      "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [ { "what": "volume_mm3", "equal_to": 8000, "tolerance": 0.05,
-                    "tolerance_why": "100 x 40 x 2; misurato 8000,02" } ] },
+                    "tolerance_why": "100 x 40 x 2; measured 8000.02" } ] },
     { "operation": "sketched_bend",
       "arguments": { "face_uid": "@face(normal=up)", "start_mm": [50, 0, 0], "end_mm": [50, 0, 40],
                      "angle_deg": 90 },
       "expect": [
         { "what": "bounding_box_mm", "equal_to": [50, 53.288, 40], "tolerance": 0.01,
-          "tolerance_why": "in y: da -2 a R + (100 - (50 - R - T) - pi/2 * (R + K T)) = 51,288. Il lato fermo e' quello a x < 50: lo sceglie SOLIDWORKS, ed e' il motivo per cui l'attesa e' sull'ingombro intero" },
+          "tolerance_why": "in y: from -2 to R + (100 - (50 - R - T) - pi/2 * (R + K T)) = 51.288. The fixed side is the one at x < 50: it is chosen by SOLIDWORKS, and that is why the expectation is on the whole bounding box" },
         { "what": "measurements.volume_mm3", "equal_to": 8000, "tolerance": 0.05,
-          "tolerance_why": "una piega non aggiunge lamiera" },
+          "tolerance_why": "a bend does not add sheet metal" },
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 100, "tolerance": 0.01,
-          "tolerance_why": "spianata torna la lamiera di prima" },
+          "tolerance_why": "flattened, the sheet metal of before comes back" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

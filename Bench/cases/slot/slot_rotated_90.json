@@ -1,7 +1,7 @@
 {
   "name": "slot_rotated_90",
   "family": "slot",
-  "why": "L'asola girata di 90 gradi su una piastra larga abbastanza da contenerla in tutte e due i versi: il volume non cambia. Da sola questa prova non vede la rotazione -- e' «slot_on_narrow_plate_90» a vederla -- ma vede che ruotare non rompa la sagoma.",
+  "why": "The slot turned by 90 degrees on a plate wide enough to hold it in both directions: the volume does not change. By itself this check does not see the rotation -- it is «slot_on_narrow_plate_90» that sees it -- but it sees that rotating does not break the outline.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -11,6 +11,6 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 0, "y_mm": 0, "length_mm": 51, "width_mm": 11, "angle_deg": 90, "through_all": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 469299.34, "tolerance": 0.5,
-          "tolerance_why": "480000 meno 535,0332 per 20: il conto ha pi dentro" } ] }
+          "tolerance_why": "480000 minus 535.0332 over 20: the calculation has pi inside" } ] }
   ]
 }

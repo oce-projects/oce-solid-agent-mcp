@@ -1,11 +1,11 @@
 {
   "name": "section_cuts_the_part",
   "family": "drawing",
-  "why": "VOCE GT4. Un pezzo con una cavita' interna, senza sezione, non si legge in officina: le linee nascoste dicono che c'e' un vuoto, non che forma ha. E' la prima cosa che manca per una tavola meccanica vera.",
+  "why": "ENTRY GT4. A part with an internal cavity, without a section, cannot be read in the workshop: the hidden lines say that there is a void, not what shape it has. It is the first thing that is missing for a real mechanical drawing.",
 
-  "_why_the_part_has_a_pocket": "Una piastra piena si sezionerebbe lo stesso, e il caso sarebbe verde senza dimostrare niente: il tratteggio ci sarebbe comunque. Con una tasca dentro, la sezione ha qualcosa da MOSTRARE, ed e' la ragione per cui l'operazione esiste.",
+  "_why_the_part_has_a_pocket": "A solid plate would be sectioned all the same, and the case would be green without proving anything: the hatching would be there anyway. With a pocket inside, the section has something to SHOW, and it is the reason the operation exists.",
 
-  "defect_caught": "Una vista di sezione che nasce senza aver tagliato niente. `CreateSectionViewAt5` non prende il taglio in firma — lo prende dalla selezione — e una linea caduta fuori dal materiale produce una vista FORMALMENTE VALIDA e vuota: si conta, sembra buona, e non mostra niente. Per questo il caso non si accontenta di «la vista c'e'»: pretende il TRATTEGGIO, che e' l'unica cosa che distingue un taglio dentro il materiale da uno a vuoto.",
+  "defect_caught": "A section view that is born without having cut anything. `CreateSectionViewAt5` does not take the cut in its signature — it takes it from the selection — and a line that fell outside the material produces a FORMALLY VALID and empty view: it is counted, looks good, and shows nothing. That is why the case is not satisfied with «the view is there»: it demands the HATCHING, which is the only thing that tells a cut inside the material from one in the void.",
 
   "start": { "new_part": true },
   "steps": [
@@ -14,7 +14,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 192000,
-          "why": "se il pezzo non e' quello, non lo e' nemmeno la tavola" } ] },
+          "why": "if the part is not the right one, neither is the drawing" } ] },
 
     { "operation": "rectangular_cut",
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0,
@@ -22,47 +22,47 @@
                      "through_all": false, "depth_mm": 10 },
       "expect": [
         { "what": "volume_mm3", "equal_to": 174000,
-          "why": "192000 meno la tasca 60x30x10 = 18000. E' la cavita' che la sezione deve far vedere" } ] },
+          "why": "192000 minus the pocket 60x30x10 = 18000. It is the cavity the section must show" } ] },
 
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\section_cuts_the_part.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
-          "why": "una tavola si fa su un pezzo salvato: se il salvataggio avvisa, la vista potrebbe puntare a un file che non c'e'" } ] },
+          "why": "a drawing is made on a saved part: if the save warns, the view might point to a file that is not there" } ] },
 
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [
         { "what": "state.kind", "equal_to": "drawing",
-          "why": "da qui in poi il documento attivo e' un altro" } ] },
+          "why": "from here on the active document is another one" } ] },
 
     { "operation": "standard_views",
       "arguments": { "model": "{LAVORO}\\section_cuts_the_part.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "senza una vista di modello non c'e' niente da sezionare" } ] },
+          "why": "without a model view there is nothing to section" } ] },
 
     { "operation": "section_view",
       "arguments": { "label": "A", "offset_mm": 0 },
       "expect": [
         { "what": "measurements.hatches", "equal_to": 1,
-          "_and_this_is_the_line_that_counts": "**IL TRATTEGGIO E' L'UNICA COSA CHE DISTINGUE UNA SEZIONE DA UNA VISTA VUOTA.** `views_after` sale anche quando la linea di taglio cade fuori dal materiale: quella vista si conta, sembra buona, e non mostra niente. Un tratteggio vuol dire che il taglio ha incontrato del solido.",
-          "why": "uno: il taglio verticale in mezzo attraversa la piastra, che li' e' un corpo solo" },
+          "_and_this_is_the_line_that_counts": "**THE HATCHING IS THE ONLY THING THAT TELLS A SECTION FROM AN EMPTY VIEW.** `views_after` goes up even when the cutting line falls outside the material: that view is counted, looks good, and shows nothing. A hatching means that the cut met some solid.",
+          "why": "one: the vertical cut in the middle goes through the plate, which there is a single body" },
 
         { "what": "measurements.is_section", "equal_to": true,
-          "why": "il tipo della vista nata, non il fatto che il conto sia salito: una vista di proiezione in piu' farebbe salire il conto uguale" },
+          "why": "the type of the view born, not the fact that the count went up: one more projection view would make the count go up all the same" },
 
         { "what": "measurements.views_before", "equal_to": 4,
-          "why": "tre viste di modello piu' il FOGLIO, che nell'elenco di SOLIDWORKS e' la prima «view». Il numero sta qui perche' chi legge il caso non debba scoprirlo" },
+          "why": "three model views plus the SHEET, which in the SOLIDWORKS list is the first «view». The number is here so that whoever reads the case does not have to discover it" },
 
         { "what": "measurements.views_after", "equal_to": 5,
-          "why": "una in piu', ed e' il riscontro vero: `CreateSectionViewAt5` puo' rispondere un oggetto senza aver fatto niente" },
+          "why": "one more, and it is the true check: `CreateSectionViewAt5` can answer an object without having done anything" },
 
         { "what": "measurements.facing", "equal_to": "vertical",
-          "why": "il valore predefinito, detto nella risposta invece che sottinteso" },
+          "why": "the default value, stated in the answer instead of implied" },
 
-        { "what": "measurements.what_it_does_not_check", "includes": ["che serviva"],
-          "why": "la cecita' che conta: il tratteggio dice che il taglio ha incontrato materiale, non che passa per la cavita' che si voleva mostrare" } ] }
+        { "what": "measurements.what_it_does_not_check", "includes": ["that was needed"],
+          "why": "the blindness that counts: the hatching says that the cut met material, not that it goes through the cavity one wanted to show" } ] }
   ],
 
   "_twin_of": null

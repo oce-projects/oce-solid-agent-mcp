@@ -1,7 +1,7 @@
 {
   "name": "external_shell",
   "family": "features",
-  "why": "La gemella di «internal_shell», col verso opposto. Verso l'esterno il pieno di prima diventa il vuoto e la parete si aggiunge da fuori: 110 x 70 x 45 - 240000 = 106500 mm3, e l'ingombro CRESCE. E' l'ingombro a rendere questa prova diversa da un confronto di volumi: un guscio che sbagliasse verso lascerebbe l'ingombro dov'era.",
+  "why": "The twin of «internal_shell», with the opposite direction. Outward, the solid of before becomes the void and the wall is added from outside: 110 x 70 x 45 - 240000 = 106500 mm3, and the bounding box GROWS. It is the bounding box that makes this check different from a comparison of volumes: a shell that got the direction wrong would leave the bounding box where it was.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -31,7 +31,7 @@
         { "what": "bounding_box_mm", "equal_to": [110, 70, 45] },
         { "what": "measurements.material_removed_mm3", "equal_to": 133500,
           "tolerance": 0.1,
-          "tolerance_why": "l'operazione arrotonda al decimo prima di riportarlo" },
+          "tolerance_why": "the operation rounds to the tenth before reporting it" },
         { "what": "measurements.facing", "equal_to": "outer" }
       ]
     }

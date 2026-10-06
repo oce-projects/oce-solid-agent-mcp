@@ -1,7 +1,7 @@
 {
   "name": "limit_made_up_plane",
   "family": "mirror",
-  "why": "«diagonale» non e' un piano dell'albero. Un nome inventato deve essere rifiutato dicendo che quel piano non c'e': senza il controllo, la selezione fallirebbe e l'operazione uscirebbe con un errore di SOLIDWORKS che non dice da dove viene.",
+  "why": "«diagonale» is not a plane of the tree. A made-up name must be refused saying that that plane does not exist: without the check, the selection would fail and the operation would come out with a SOLIDWORKS error that does not say where it comes from.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -12,11 +12,11 @@
       "arguments": { "face_uid": "@face(normal=front)", "x_mm": 60, "y_mm": 25,
                      "diameter_mm": 12, "through_all": true },
       "expect": [ { "what": "diameters_mm", "equal_to": [12], "tolerance": 0.02,
-                    "tolerance_why": "il diametro si legge da CylinderParams" } ] },
+                    "tolerance_why": "the diameter is read from CylinderParams" } ] },
     { "operation": "mirror",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)", "plane": "diagonale" },
       "must_fail": {
-        "message_includes": ["Non ho trovato il piano", "diagonale"],
+        "message_includes": ["I did not find the plane", "diagonale"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "hole_mirrored_on_right" } }

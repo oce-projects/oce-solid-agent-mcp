@@ -1,10 +1,10 @@
 {
   "name": "r12_frame_with_a_thinner_profile",
   "family": "regression",
-  "why": "Un telaio saldato a cui si cambia il PROFILO: il tubo passa da 80 a 60. Il quartabuono agli angoli si rifa' con facce diverse, e se un angolo non si chiude due barre si fondono in un corpo solo o ne resta una staccata. Quattro barre devono restare quattro.",
-  "_why_it_is_not_the_length": "La voce F8 qui chiedeva «telaio 1000x800, 1000 -> 1400». NON E' ESPRIMIBILE OGGI: il percorso di un telaio e' un `3DProfileFeature`, e lo stato non ne pubblica le quote -- `set_dimension` non ha niente da nominare. Le uniche quote che lo stato espone sono quelle del PROFILO del tubo (D1 = 80, D2 = 6, D3 = 5), ed e' quella che si cambia qui. Scoperto misurando, dopo che due casi erano stati classificati male indovinando il nome.",
+  "why": "A welded frame whose PROFILE is changed: the tube goes from 80 to 60. The mitre at the corners is redone with different faces, and if a corner does not close two bars merge into a single body or one is left detached. Four bars must stay four.",
+  "_why_it_is_not_the_length": "Entry F8 here asked for «frame 1000x800, 1000 -> 1400». IT CANNOT BE EXPRESSED TODAY: the path of a frame is a `3DProfileFeature`, and the state does not publish its dimensions -- `set_dimension` has nothing to name. The only dimensions the state exposes are those of the tube PROFILE (D1 = 80, D2 = 6, D3 = 5), and that is the one changed here. Found out by measuring, after two cases had been misclassified by guessing the name.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "il percorso del telaio non cambia: restano quattro barre disposte come prima, e il baricentro di un telaio simmetrico resta dov'e'. Se un angolo si perde, la simmetria va via e si vede.",
+  "intent_why": "the path of the frame does not change: four bars remain laid out as before, and the centroid of a symmetric frame stays where it is. If a corner is lost, the symmetry goes and it shows.",
   "build": [
     {
       "operation": "rectangular_frame",
@@ -24,6 +24,6 @@
     { "what": "bodies", "equal_to": 4 },
     { "what": "center_of_mass_mm", "same_as_before": true,
       "tolerance": 0.5,
-      "tolerance_why": "il baricentro di un telaio simmetrico sta al centro e ci resta: mezzo millimetro su un pezzo da un metro e' molto meno di quanto si sposterebbe se un angolo si perdesse" }
+      "tolerance_why": "the centroid of a symmetric frame is at the centre and stays there: half a millimetre on a one-metre part is much less than it would move if a corner were lost" }
   ]
 }

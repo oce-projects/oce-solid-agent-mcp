@@ -1,9 +1,9 @@
 {
   "name": "r10_shell_bottom_moves",
   "family": "regression",
-  "why": "E' IL CASO. Una scatola svuotata, un foro cieco sul fondo, e la scatola diventa piu' alta. Il fondo esiste ancora -- nessuna faccia sparisce -- ma si e' spostato di 28 mm. Un foro ancorato a dove stava il fondo prima finisce nel vuoto, e il pezzo esce diverso da quello confermato.",
+  "why": "IT IS THE CASE. A hollowed box, a blind hole in the bottom, and the box becomes taller. The bottom still exists -- no face disappears -- but it has moved by 28 mm. A hole anchored to where the bottom was before ends up in the void, and the part comes out different from the confirmed one.",
   "intent": "ancorato_a_bordo",
-  "intent_why": "«il foro sul fondo» vuol dire sul fondo. La scatola e' aperta di sotto e il fondo e' il soffitto, spesso 5: alzandola da 52 a 80 il fondo passa da z = 47 a z = 75. Un foro che resta a z assoluto non e' piu' sul fondo, e li' non c'e' piu' materiale da togliere.",
+  "intent_why": "«the hole in the bottom» means in the bottom. The box is open underneath and the bottom is the ceiling, 5 thick: raising it from 52 to 80 the bottom goes from z = 47 to z = 75. A hole that stays at absolute z is no longer in the bottom, and there is no longer any material there to remove.",
   "build": [
     {
       "operation": "extrude_rectangle",
@@ -26,6 +26,6 @@
     { "what": "bounding_box_mm", "equal_to": [314, 274, 80] },
     { "what": "center_of_mass_mm", "equal_to": [0, 0, 57.253],
       "tolerance": 0.05,
-      "tolerance_why": "il guscio da solo ha il baricentro a 57,443; il foro (z 75..78, centro 76,5) lo porta a 57,253. Se il foro restasse dov'era, a z 47..50, si troverebbe nel VUOTO e non toglierebbe niente: 57,443. Centonovanta millesimi fra le due risposte, e cinque centesimi di tolleranza le distinguono. IL VOLUME NON SI USA APPOSTA: il guscio che SOLIDWORKS costruisce ha 960 mm3 in piu' del modello a scatole annidate (misurato), e quel 960 non c'entra niente col foro -- un'attesa sul volume assoluto classificherebbe male il caso per un errore nel MIO conto, non nel pezzo" }
+      "tolerance_why": "the shell alone has its centroid at 57.443; the hole (z 75..78, centre 76.5) takes it to 57.253. If the hole stayed where it was, at z 47..50, it would be in the VOID and would remove nothing: 57.443. One hundred and ninety thousandths between the two answers, and five hundredths of tolerance tell them apart. THE VOLUME IS NOT USED ON PURPOSE: the shell that SOLIDWORKS builds has 960 mm3 more than the nested-boxes model (measured), and that 960 has nothing to do with the hole -- an expectation on the absolute volume would misclassify the case because of an error in MY calculation, not in the part" }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "limit_hole_outside_the_material",
   "family": "pairs",
-  "why": "Un foro centrato a (5000, 5000) su un pezzo che su X va da -157 a 157: il profilo cade tutto fuori, non c'e' niente da togliere. E' il gemello del foro da 500: due difetti diversi che fino alla 0.42.0 davano LA STESSA FRASE, e le due cose da fare sono opposte.",
+  "why": "A hole centred at (5000, 5000) on a part that in X goes from -157 to 157: the profile falls entirely outside, there is nothing to remove. It is the twin of the 500 hole: two different defects that up to 0.42.0 gave THE SAME SENTENCE, and the two things to do are opposite.",
   "start": { "new_part": true },
   "steps": [
     {
@@ -28,7 +28,7 @@
         "through_all": true
       },
       "must_fail": {
-        "message_includes": ["cade tutto fuori dal materiale", "-157 a 157"],
+        "message_includes": ["falls entirely outside the material", "-157 to 157"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "hole_60_on_the_border"

@@ -1,9 +1,9 @@
 {
   "name": "stud_is_not_a_hole",
   "family": "drawing",
-  "why": "REVISIONE AVVERSARIALE DEL 27/9/2026, rilievo sulle borchie. Un foro nella vista dall'alto e' un cerchio che e' anello interno di una faccia piana: ma lo e' anche il PIEDE di una borchia, perche' la faccia della piastra la circonda. Il piede di una borchia Ø20 alta 20 su una piastra 120 x 80 x 10 poteva essere preso per un foro cieco «Ø20 ↧20» con le sue quote di posizione. Adesso: se la parete che parte dal cerchio sale FUORI dalla faccia (contro la normale della faccia piana) e' una borchia, e ha una quota di diametro.",
-  "defect_caught": "Una borchia richiamata come foro cieco; un foro che nella tavola c'e' e nel pezzo no.",
-  "_the_views_are_called_by_uid": "V2 dall'alto (la borchia come cerchio).",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding on the studs. A hole in the view from above is a circle that is the inner ring of a planar face: but so is the FOOT of a stud, because the face of the plate surrounds it. The foot of a Ø20 stud 20 high on a 120 x 80 x 10 plate could be taken for a blind hole «Ø20 ↧20» with its position dimensions. Now: if the wall that starts from the circle rises OUT of the face (against the normal of the planar face) it is a stud, and has a diameter dimension.",
+  "defect_caught": "A stud called out as a blind hole; a hole that is in the drawing and not in the part.",
+  "_the_views_are_called_by_uid": "V2 from above (the stud as a circle).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,7 +13,7 @@
       "arguments": { "face_uid": "@face(normal=up)", "height_mm": 20,
                      "contours": [ { "circle": [0, 0], "diameter_mm": 20 } ] },
       "expect": [ { "what": "volume_mm3", "equal_to": 102283.19, "tolerance": 0.05,
-                    "tolerance_why": "pi dentro: 96000 piu' pi x 10^2 x 20" } ] },
+                    "tolerance_why": "pi inside: 96000 plus pi x 10^2 x 20" } ] },
     { "operation": "save_document",
       "arguments": { "path": "{LAVORO}\\stud_is_not_a_hole.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
@@ -26,8 +26,8 @@
     { "operation": "drawing_dimension",
       "arguments": { "view": "V2" },
       "expect": [
-        { "what": "measurements.holes", "equal_to": [], "why": "il piede della borchia non e' un foro" },
+        { "what": "measurements.holes", "equal_to": [], "why": "the foot of the stud is not a hole" },
         { "what": "measurements.outer_diameters[0].diameter_reread_mm", "equal_to": 20,
-          "why": "la borchia ha la sua quota di diametro, riletta" } ] }
+          "why": "the stud has its own diameter dimension, re-read" } ] }
   ]
 }

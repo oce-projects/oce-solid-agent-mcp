@@ -1,7 +1,7 @@
 {
   "name": "open_hem_checks_out",
   "family": "sheet_metal",
-  "why": "VOCE GP18, la quarta operazione. Un orlo aperto lungo 10 con gioco 1 sullo spigolo in fondo al lato da 50 della L. Misurato col banchetto (`prova0089 orlo`) prima di scriverlo: l'aperto e' la formula della flangia con la piega a 180 gradi e il raggio interno pari a meta' del gioco — tre misure su tre al millesimo (gioco 1 e 2, lunghezza 10 e 15).",
+  "why": "ENTRY GP18, the fourth operation. An open hem 10 long with gap 1 on the edge at the end of the 50 leg of the L. Measured with the bench probe (`prova0089 orlo`) before writing it: the open one is the formula of the flange with the bend at 180 degrees and the inner radius equal to half the gap — three measurements out of three to the thousandth (gap 1 and 2, length 10 and 15).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "base_flange",
@@ -13,9 +13,9 @@
                      "length_mm": 10, "gap_mm": 1 },
       "expect": [
         { "what": "measurements.volume_mm3", "equal_to": 776.99, "tolerance": 0.5,
-          "tolerance_why": "(10 - 0,5 - 2) + pi * (0,5 + 0,5 * 2) - (0,5 + 2) = 9,712 mm di sviluppo in piu', per 2 x 40. Misurato 776,99" },
+          "tolerance_why": "(10 - 0.5 - 2) + pi * (0.5 + 0.5 * 2) - (0.5 + 2) = 9.712 mm of extra flat pattern, over 2 x 40. Measured 776.99" },
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 90.424, "tolerance": 0.01,
-          "tolerance_why": "80,712 + 9,712: la striscia spianata" },
+          "tolerance_why": "80.712 + 9.712: the flattened strip" },
         { "what": "bodies", "equal_to": 1 } ] }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "hole_on_the_back_follows_the_corner",
   "family": "features",
-  "why": "VOCE E18, rischio 4 del critico, la seconda meta': la faccia di DIETRO (normale -Z). Lo schizzo su una faccia rivolta all'indietro ha la X girata rispetto al modello (lo dice `PuntoNelloSchizzo`), e un'ancora che ragionasse nelle coordinate dello schizzo misurerebbe dal lato sbagliato. Foro Ø8 cieco a 20 dal fianco destro e dall'alto: dopo 260 x 180 deve stare a (140, 100). Misurato il 25/9/2026 col banchetto.",
+  "why": "ENTRY E18, risk 4 of the critic, the second half: the BACK face (normal -Z). The sketch on a face that looks backwards has X reversed with respect to the model (`PuntoNelloSchizzo` says so), and an anchor that reasoned in sketch coordinates would measure from the wrong side. Blind Ø8 hole 20 from the right side and from the top: after 260 x 180 it must be at (140, 100). Measured on 25/9/2026 with the bench probe.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -15,26 +15,26 @@
                                  "y": { "edge_uid": "@edge(axis=X,y~=60,z~=0)", "distance_mm": 20 } } },
       "expect": [
         { "what": "volume_mm3", "equal_to": 479748.67, "tolerance": 0.05,
-          "tolerance_why": "480000 meno pi*4^2*5 = 251,327" },
+          "tolerance_why": "480000 minus pi*4^2*5 = 251.327" },
         { "what": "centers_x_mm", "equal_to": [80], "tolerance": 0.05,
-          "tolerance_why": "l'asse del cilindro si legge in metri" },
+          "tolerance_why": "the cylinder axis is read in metres" },
         { "what": "centers_y_mm", "equal_to": [40], "tolerance": 0.05,
-          "tolerance_why": "come sopra" } ] },
+          "tolerance_why": "as above" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 260 },
         { "what": "centers_x_mm", "equal_to": [140], "tolerance": 0.05,
-          "tolerance_why": "il fianco destro va a 160: 140" } ] },
+          "tolerance_why": "the right side moves to 160: 140" } ] },
     { "operation": "set_dimension",
       "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 180 },
         { "what": "centers_x_mm", "equal_to": [140], "tolerance": 0.05,
-          "tolerance_why": "il fianco destro non si e' mosso" },
+          "tolerance_why": "the right side has not moved" },
         { "what": "centers_y_mm", "equal_to": [100], "tolerance": 0.05,
-          "tolerance_why": "l'alto va a 120: 100" },
+          "tolerance_why": "the top moves to 120: 100" },
         { "what": "volume_mm3", "equal_to": 935748.67, "tolerance": 0.05,
-          "tolerance_why": "260*180*20 meno il foro intero" } ] }
+          "tolerance_why": "260*180*20 minus the whole hole" } ] }
   ]
 }

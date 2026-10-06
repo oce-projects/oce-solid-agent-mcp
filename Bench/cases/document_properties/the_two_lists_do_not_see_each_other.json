@@ -1,8 +1,8 @@
 {
   "name": "the_two_lists_do_not_see_each_other",
   "family": "document_properties",
-  "why": "LA TRAPPOLA DELLA VOCE, misurata. Le proprieta' del documento e quelle di una configurazione sono due elenchi separati: non si ereditano e non si vedono a vicenda. Chi scrive il numero di disegno sul documento e poi lo cerca fra le proprieta' della configurazione NON LO TROVA, e SOLIDWORKS non dice perche'. E' il difetto che non da' errore: la scheda dati esce vuota e il pezzo e' giusto.",
-  "_why_here_and_not_in_the_catalog": "La nota nel catalogo la legge chi sceglie l'operazione; questo caso la tiene vera. Il giorno in cui una versione di SOLIDWORKS cominciasse a ereditarle, la nota resterebbe scritta e sbagliata: questo caso diventerebbe rosso.",
+  "why": "THE TRAP OF THE ENTRY, measured. The properties of the document and those of a configuration are two separate lists: they are not inherited and do not see each other. Whoever writes the drawing number on the document and then looks for it among the properties of the configuration DOES NOT FIND IT, and SOLIDWORKS does not say why. It is the defect that gives no error: the data sheet comes out empty and the part is right.",
+  "_why_here_and_not_in_the_catalog": "The note in the catalogue is read by whoever chooses the operation; this case keeps it true. The day a version of SOLIDWORKS began to inherit them, the note would stay written and wrong: this case would turn red.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -14,10 +14,10 @@
       "expect": [
         { "what": "measurements.value_text", "equal_to": "DIS-1234" },
         { "what": "measurements.visible_from_other_list", "equal_to": false,
-          "why": "scritta sul DOCUMENTO, dalla configurazione attiva non si vede" },
-        { "what": "measurements.two_lists", "includes": ["NON si vede"] } ] },
+          "why": "written on the DOCUMENT, it cannot be seen from the active configuration" },
+        { "what": "measurements.two_lists", "includes": ["NOT visible"] } ] },
     { "operation": "create_configuration",
-      "arguments": { "name": "Left", "details": "staffa sinistra" },
+      "arguments": { "name": "Left", "details": "left bracket" },
       "expect": [ { "what": "measurements.configuration", "equal_to": "Left" } ] },
     { "operation": "set_property",
       "arguments": { "name": "Hand", "value_text": "SX", "configuration": "Left" },
@@ -26,15 +26,15 @@
         { "what": "measurements.configuration", "equal_to": "Left" },
         { "what": "measurements.location", "includes": ["Left"] },
         { "what": "measurements.visible_from_other_list", "equal_to": false,
-          "why": "scritta sulla CONFIGURAZIONE, dal documento non si vede: e' lo stesso muro guardato dall'altra parte" },
+          "why": "written on the CONFIGURATION, it cannot be seen from the document: it is the same wall looked at from the other side" },
         { "what": "state.property.DrawingNumber", "equal_to": "DIS-1234",
-          "why": "quella del documento e' ancora li' dove l'abbiamo messa" },
+          "why": "the one of the document is still there where we put it" },
         { "what": "state.configuration_properties.Hand", "equal_to": "SX",
-          "why": "e quella della configurazione sta nell'altro elenco. Sono due campi nello stato apposta: un campo solo sarebbe una fusione che nel file non esiste." } ] },
+          "why": "and the one of the configuration is in the other list. They are two fields in the state on purpose: a single field would be a merge that does not exist in the file." } ] },
     { "operation": "set_property",
       "arguments": { "name": "DrawingNumber", "value_text": "DIS-1234", "configuration": "Left" },
       "expect": [
         { "what": "measurements.visible_from_other_list", "equal_to": true,
-          "_why_true": "ADESSO SI VEDE DI LA', ma perche' ce n'e' una SUA che si chiama uguale -- non perche' sia la stessa. Questa riga sta qui perche' il «falso» delle righe sopra dev'essere un fatto misurato e non una costante scritta a mano: un campo che risponde sempre falso e' indistinguibile da un campo giusto, finche' non si costruisce il caso in cui deve rispondere vero." } ] }
+          "_why_true": "NOW IT CAN BE SEEN FROM THERE, but because there is one of ITS OWN with the same name -- not because it is the same one. This line is here because the «false» of the lines above must be a measured fact and not a constant written by hand: a field that always answers false is indistinguishable from a right field, until the case is built in which it must answer true." } ] }
   ]
 }

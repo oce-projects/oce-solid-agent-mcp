@@ -1,7 +1,7 @@
 {
   "name": "limit_anchored_hole_wizard_holes_halfway",
   "family": "features",
-  "why": "VOCE E18: i fori di `hole_wizard` stanno in uno schizzo solo, e un punto senza ancora lo lascerebbe sottovincolato — alla prima modifica quel foro andrebbe dove lo mette il risolutore. Quindi l'ancora si da' a tutte le posizioni o a nessuna, e si rifiuta prima di creare il foro.",
+  "why": "ENTRY E18: the holes of `hole_wizard` are in a single sketch, and a point without an anchor would leave it under-constrained — at the first change that hole would go wherever the solver puts it. So the anchor is given to all the positions or to none, and it is refused before the hole is created.",
   "start": {
     "new_part": true
   },
@@ -51,8 +51,8 @@
       },
       "must_fail": {
         "message_includes": [
-          "a TUTTE le posizioni o a nessuna",
-          "1 su 2"
+          "to ALL the positions or to none",
+          "1 of 2"
         ],
         "volume_unchanged": true,
         "no_extra_feature": true,
