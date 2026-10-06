@@ -76,8 +76,8 @@ namespace Oce.Solid.Agent.Bridge
         /// <summary>
         /// WHY THE ATTACH FAILED, as a value and not as a sentence (entry H19,
         /// B3). The installer used to decide whether an install had worked by
-        /// looking for a phrase in the output of `--prova`; that phrase is
-        /// for a person, and it was about to be translated. `--prova` now
+        /// looking for a phrase in the output of `--self-test`; that phrase is
+        /// for a person, and it was about to be translated. `--self-test` now
         /// turns this value into its exit code (Program.SelfTestExitCode),
         /// and the sentence stays for whoever reads it.
         /// </summary>
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.Bridge
         ///   REGDB_E_CLASSNOTREG 0x80040154   class not registered     -> same
         ///
         /// Since entry H19 (B3) no program reads these sentences: the installer
-        /// reads the exit code of `--prova`, which comes from FailureOf. They are
+        /// reads the exit code of `--self-test`, which comes from FailureOf. They are
         /// for a person, and can be translated like any other message.
         /// </summary>
         internal static string AttachMessage(int hresult)

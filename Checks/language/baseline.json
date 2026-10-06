@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1771,
+  "comments": 1769,
   "strings": 417,
   "markdown": 825,
   "json_values": 611,
   "identifiers": 1628,
   "json_keys": 14,
-  "protocol": 660,
+  "protocol": 651,
   "paths": 0,
   "transition": 2188
  },
@@ -534,9 +534,6 @@
   },
   "Tools/catalog.json": {
    "json_values": 36
-  },
-  "build.ps1": {
-   "comments": 2
   }
  },
  "sets": {
@@ -2211,9 +2208,7 @@
    "DESCRIZIONE",
    "Descrizione",
    "Disegno",
-   "Disinstalla",
    "Disinstallare",
-   "Disinstallato",
    "DocumentoRichiesto",
    "E2-i-due-casi",
    "ECCEZIONE",
@@ -2222,7 +2217,6 @@
    "Esempio",
    "Esiste",
    "Esito",
-   "FERMATO",
    "FINTO",
    "FINTO-rotto",
    "FINTO-sano",
@@ -2272,7 +2266,6 @@
    "RISCONTRO_RADICE",
    "RISCONTRO_REGISTRO",
    "RISCONTRO_SOLA_LETTURA",
-   "Ricontrolla",
    "Rifiuta",
    "Riga",
    "Riscontro",
@@ -2297,7 +2290,6 @@
    "Tipo",
    "VERDE",
    "VERDETTO",
-   "Verifica",
    "VersioneDaFile",
    "VersionePonte",
    "_firme",
@@ -2311,7 +2303,6 @@
    "accoppia",
    "adesso",
    "aggiungi",
-   "aiuto",
    "albero",
    "allineato",
    "allora",
@@ -2436,7 +2427,6 @@
    "dimmi",
    "disegna",
    "disegno",
-   "disinstalla",
    "disposizione",
    "distanza",
    "distanza_normale_mm",
@@ -2737,7 +2727,6 @@
    "selezioni",
    "senza",
    "senza-attesa",
-   "senza-client",
    "sessanta",
    "sessione",
    "settanta",
@@ -2746,7 +2735,6 @@
    "sezione_in_tavola",
    "sezioni",
    "sezioni-profili",
-   "silenzioso",
    "simili",
    "simmetrico",
    "smusso",

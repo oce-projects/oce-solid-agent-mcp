@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.Installer
             // empty otherwise. Written as PROFILI_SALDATURA in the client's env.
             // A folder already in an installed client's entry comes first: it
             // was chosen by someone (H19 review).
-            Add(Subtitle("Weldment profiles folder (optional: profili_saldatura needs it)", ref y));
+            Add(Subtitle("Weldment profiles folder (optional: weldment_profiles needs it)", ref y));
             string source;
             _weldmentProfiles.Text =
                 Configuration.ExistingWeldmentProfiles(Configuration.FoundClients().Where(c => c.Installed)) ??
@@ -127,8 +127,8 @@ namespace Oce.Solid.Agent.Installer
             Add(_client);
             y += 62;
 
-            // ── bottoni ──────────────────────────────────────────────────
-            _install.Text = "Installa";
+            // ── buttons ───────────────────────────────────────────────────
+            _install.Text = "Install";
             _install.Location = new Point(18, y);
             _install.Size = new Size(150, 34);
             _install.BackColor = Color.FromArgb(0, 120, 212);
@@ -137,13 +137,13 @@ namespace Oce.Solid.Agent.Installer
             _install.Click += (s, e) => Install();
             Add(_install);
 
-            _recheck.Text = "Ricontrolla";
+            _recheck.Text = "Check again";
             _recheck.Location = new Point(178, y);
             _recheck.Size = new Size(110, 34);
             _recheck.Click += (s, e) => Recheck();
             Add(_recheck);
 
-            _uninstall.Text = "Disinstalla";
+            _uninstall.Text = "Uninstall";
             _uninstall.Location = new Point(674, y);
             _uninstall.Size = new Size(110, 34);
             _uninstall.Click += (s, e) => Uninstall();
@@ -331,7 +331,7 @@ namespace Oce.Solid.Agent.Installer
                 // failure, including SOLIDWORKS not installed.
                 if (code == Steps.SelfTestAttached && !notWired)
                 {
-                    _outcome.Text = "Done: the bridge runs and sees the open document.";
+                    _outcome.Text = "Done: the bridge runs and is attached to SOLIDWORKS.";
                     _outcome.ForeColor = Color.FromArgb(0, 120, 40);
                 }
                 else if (Steps.SelfTestAccepted(code) && !notWired)
@@ -351,7 +351,7 @@ namespace Oce.Solid.Agent.Installer
             catch (Exception ex)
             {
                 Write("");
-                Write("FERMATO: " + ex.Message);
+                Write("STOPPED: " + ex.Message);
                 _outcome.Text = "Not installed: " + ex.Message;
                 _outcome.ForeColor = Color.FromArgb(190, 30, 30);
             }
@@ -383,7 +383,7 @@ namespace Oce.Solid.Agent.Installer
             }
             else
             {
-                _outcome.Text = "Disinstallato.";
+                _outcome.Text = "Uninstalled.";
                 _outcome.ForeColor = Color.DimGray;
             }
             Recheck();

@@ -12,8 +12,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// THE SELF-TEST SPEAKS IN CODES, AND BOTH SIDES AGREE ON THEM (entry H19, B3).
     ///
     /// Until 0.125.0 the installer decided whether an install had worked by
-    /// looking for two sentences in the output of the bridge's --prova. Now
-    /// --prova exits 0, 1, 3, 4, 5 or 6, and the installer reads the number. The
+    /// looking for two sentences in the output of the bridge's --self-test. Now
+    /// --self-test exits 0, 1, 3, 4, 5 or 6, and the installer reads the number. The
     /// numbers are written twice, in the bridge (Program.SelfTest*) and in
     /// the installer (Steps.SelfTest*), because the installer cannot reference
     /// the bridge's assembly: two lists of the same thing are two things that
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.ContractTests
             foreach (var x in expected)
             {
                 int got = code(x.H);
-                Check("0x" + x.H.ToString("X8") + " " + x.What + ": --prova exits " + x.Code, got == x.Code, "exits " + got);
+                Check("0x" + x.H.ToString("X8") + " " + x.What + ": --self-test exits " + x.Code, got == x.Code, "exits " + got);
             }
 
             // Every value of the enum has a code, and none of them is 2: that

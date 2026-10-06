@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent
 
             var session = new Session();
             var reason = session.Attach();
-            if (reason != null) Protocol.Note("[ponte] " + reason);
+            if (reason != null) Protocol.Note("[bridge] " + reason);
             else
                 Protocol.Note(
                     "[bridge] SolidWorks " + session.SolidWorksVersion() +
@@ -77,11 +77,11 @@ namespace Oce.Solid.Agent
 
             var catalog = new Catalog();
             if (catalog.LoadingError != null)
-                Protocol.Note("[ponte] " + catalog.LoadingError);
+                Protocol.Note("[bridge] " + catalog.LoadingError);
             else
                 Protocol.Note("[bridge] catalog: " + catalog.HowMany + " operations tested");
 
-            if (arguments != null && arguments.Length > 0 && arguments[0] == "--prova")
+            if (arguments != null && arguments.Length > 0 && arguments[0] == "--self-test")
                 return Test(session, catalog);
 
             var tools = new McpTools(session, catalog);
@@ -133,7 +133,7 @@ namespace Oce.Solid.Agent
                 }
                 catch (Exception ex)
                 {
-                    Protocol.Note("[ponte] " + ex);
+                    Protocol.Note("[bridge] " + ex);
                     if (!isNotification)
                         Protocol.Send(output, Protocol.Error(
                             id, Protocol.InternalError, ex.Message));
@@ -384,7 +384,7 @@ namespace Oce.Solid.Agent
             return "2024-11-05";
         }
 
-        // ── THE EXIT CODES OF --prova (entry H19, B3) ────────────────────
+        // ── THE EXIT CODES OF --self-test (entry H19, B3) ────────────────────
         //
         // The installer reads these, and no longer the sentences: a sentence
         // is for a person and gets translated, a code does not. The same
@@ -431,7 +431,7 @@ namespace Oce.Solid.Agent
         }
 
         /// <summary>
-        /// The code of --prova, with what this process can see of SOLIDWORKS:
+        /// The code of --self-test, with what this process can see of SOLIDWORKS:
         /// "not running" while a SLDWORKS process runs in this session is 6.
         /// Pure, so the contracts can try both sides without SOLIDWORKS.
         /// </summary>
@@ -481,7 +481,7 @@ namespace Oce.Solid.Agent
         }
 
         /// <summary>
-        /// `--prova`: a dry run without a client, to know whether the bridge stands
+        /// `--self-test`: a dry run without a client, to know whether the bridge stands
         /// on this machine. It prints to stderr and does not touch the part.
         /// </summary>
         private static int Test(Session session, Catalog catalog)
@@ -531,11 +531,11 @@ namespace Oce.Solid.Agent
             }
 
             var docState = session.State(out var error);
-            if (docState == null) { Protocol.Note("[prova] " + error); return SelfTestOther; }
+            if (docState == null) { Protocol.Note("[self-test] " + error); return SelfTestOther; }
 
             foreach (var key in new[] { "document_title", "kind", "volume_mm3", "bodies_total" })
                 if (docState.TryGetValue(key, out var v))
-                    Protocol.Note("[prova] " + key + " = " + v);
+                    Protocol.Note("[self-test] " + key + " = " + v);
 
             Protocol.Note("[self-test] the bridge works.");
             return 0;

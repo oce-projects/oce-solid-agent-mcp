@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.Installer
     ///   solidworks  where api\redist is, and which SOLIDWORKS it belongs to
     ///   clients     for each MCP client, whether its "solidworks" entry runs
     ///               the installed exe; and whether PROFILI_SALDATURA is in it
-    ///   self-test   the exit code of the bridge's --prova (0, 1, 3, 4, 5, 6)
+    ///   self-test   the exit code of the bridge's --self-test (0, 1, 3, 4, 5, 6)
     ///   handshake   initialize and tools/list over stdio with the installed
     ///               exe, as a client does, and the number of tools
     ///
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.Installer
             // ── clients ──────────────────────────────────────────────────
             var clients = string.IsNullOrWhiteSpace(chosenConfig)
                 ? Configuration.FoundClients().Where(c => c.Installed).ToList()
-                : new List<Client> { new Client { Name = "file indicato", File = chosenConfig, Installed = true } };
+                : new List<Client> { new Client { Name = "chosen file", File = chosenConfig, Installed = true } };
             var clientRows = new List<object>();
             var wired = new List<string>();
             var elsewhere = new List<string>();
@@ -179,7 +179,7 @@ namespace Oce.Solid.Agent.Installer
                 else if (profiles.Count > 0)
                     add("weldment profiles", Warn, "PROFILI_SALDATURA points at a folder that does not exist: " + profiles[0]);
                 else
-                    add("weldment profiles", Warn, "PROFILI_SALDATURA is not set: profili_saldatura will refuse " +
+                    add("weldment profiles", Warn, "PROFILI_SALDATURA is not set: weldment_profiles will refuse " +
                                                   "(install again with --weldment-profiles <folder>)");
             }
 

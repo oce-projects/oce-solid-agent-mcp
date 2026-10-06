@@ -142,7 +142,7 @@ if (Test-Path $catalog) { $beforeBytes = [IO.File]::ReadAllBytes($catalog) }
 
 # AN EXECUTABLE THAT WRITES TO stderr IS NOT AN EXECUTABLE THAT FAILS.
 #
-# `Oce.Solid.Agent.Catalog.exe` prints to stderr the line «[catalogo] scritto ...»,
+# `Oce.Solid.Agent.Catalog.exe` prints to stderr the line «[catalog] written ...»,
 # which is a report and not an error. But with `$ErrorActionPreference = 'Stop'`
 # PowerShell 5.1 wraps every stderr line of a native command in an
 # ErrorRecord (`NativeCommandError`) and STOPS the script, even with the executable
@@ -240,7 +240,7 @@ $final = Join-Path $dist "Installer.exe"
 Copy-Item $exe $final -Force
 
 # -----------------------------------------------------------------------------
-Step "Verifica"
+Step "Check"
 # -----------------------------------------------------------------------------
 # A package smaller than the bridge it should contain is a package
 # that does not contain it. It is a coarse check and it catches the case that matters:
@@ -281,4 +281,4 @@ Write-Host ""
 # inside this repository, the payload carries them. The only thing needed
 # on the machine of whoever installs is SOLIDWORKS, for its interops.
 Write-Host "  A single file. Give it to anyone who has SOLIDWORKS." -ForegroundColor White
-Write-Host "  Try:  .\dist\Installer.exe --aiuto" -ForegroundColor DarkGray
+Write-Host "  Try:  .\dist\Installer.exe --help" -ForegroundColor DarkGray

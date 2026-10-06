@@ -20,7 +20,7 @@ namespace Oce.Solid.Agent.Installer
         {
             arguments = arguments ?? new string[0];
 
-            if (arguments.Any(a => Equal(a, "--aiuto") || Equal(a, "-h") || Equal(a, "/?")))
+            if (arguments.Any(a => Equal(a, "--help") || Equal(a, "-h") || Equal(a, "/?")))
             {
                 Show(Help());
                 return 0;
@@ -33,9 +33,9 @@ namespace Oce.Solid.Agent.Installer
             // Whoever installed from a script must be able to remove from a script, and
             // the proof that the folder is NOT deleted when there remains
             // stuff belonging to others inside must be repeatable without a finger on the mouse.
-            bool uninstall = arguments.Any(a => Equal(a, "--disinstalla"));
+            bool uninstall = arguments.Any(a => Equal(a, "--uninstall"));
             bool verify = arguments.Any(a => Equal(a, "--verify"));
-            bool silent = arguments.Any(a => Equal(a, "--silenzioso") || Equal(a, "-s"));
+            bool silent = arguments.Any(a => Equal(a, "--silent") || Equal(a, "-s"));
             if (uninstall || verify || silent)
             {
                 // A REAL CONSOLE, AND A LOG (entry H19, B2): see Output.cs for
@@ -52,7 +52,7 @@ namespace Oce.Solid.Agent.Installer
                     if (uninstall) return Remove(arguments);
                     if (verify)
                         return Verify.Run(
-                            Value(arguments, "--cartella") ?? Steps.DefaultFolder,
+                            Value(arguments, "--dir") ?? Steps.DefaultFolder,
                             Value(arguments, "--redist"),
                             Value(arguments, "--config"),
                             arguments.Any(a => Equal(a, "--json")));
@@ -103,7 +103,7 @@ namespace Oce.Solid.Agent.Installer
         //      the block to paste by hand is printed
         //   2  installed and wired, but the bridge's self-test did not
         //      confirm (its code is not 0, 3 or 5; see Steps.SelfTestAccepted)
-        //   0  installed, every client asked for is wired (or --senza-client),
+        //   0  installed, every client asked for is wired (or --no-client),
         //      and the self-test confirmed
         //
         // 3 comes before 2 because it is what the install flow meets first,
@@ -142,12 +142,12 @@ namespace Oce.Solid.Agent.Installer
         /// </summary>
         private static int Remove(string[] arguments)
         {
-            var folder = Value(arguments, "--cartella") ?? Steps.DefaultFolder;
+            var folder = Value(arguments, "--dir") ?? Steps.DefaultFolder;
             bool keepClient = arguments.Any(a => Equal(a, "--keep-client"));
             var chosenConfig = Value(arguments, "--config");
             Action<string> tell = line => Console.WriteLine("  " + line);
             Console.WriteLine(Steps.ProductName + " - uninstall");
-            Console.WriteLine("  cartella: " + folder);
+            Console.WriteLine("  folder: " + folder);
 
             bool entryLeft = false;
             if (keepClient) tell("--keep-client: the MCP client entries are left as they are");
@@ -195,7 +195,7 @@ namespace Oce.Solid.Agent.Installer
             // would be doing more than what was asked.
             return string.IsNullOrWhiteSpace(chosenConfig)
                 ? Configuration.FoundClients().Where(c => c.Installed).ToList()
-                : new List<Client> { new Client { Name = "file indicato", File = chosenConfig, Installed = true } };
+                : new List<Client> { new Client { Name = "chosen file", File = chosenConfig, Installed = true } };
         }
 
         /// <summary>
@@ -246,9 +246,9 @@ namespace Oce.Solid.Agent.Installer
 
         private static int Silent(string[] arguments)
         {
-            var folder = Value(arguments, "--cartella") ?? Steps.DefaultFolder;
+            var folder = Value(arguments, "--dir") ?? Steps.DefaultFolder;
             var redist = Value(arguments, "--redist") ?? Steps.FindRedist();
-            bool nothing = arguments.Any(a => Equal(a, "--senza-client"));
+            bool nothing = arguments.Any(a => Equal(a, "--no-client"));
             var chosenConfig = Value(arguments, "--config");
             var weldmentProfilesAsked = Value(arguments, "--weldment-profiles");
 
@@ -294,7 +294,7 @@ namespace Oce.Solid.Agent.Installer
                 try { anyProfile = Directory.EnumerateFiles(weldmentProfiles, "*.sldlfp", SearchOption.AllDirectories).Any(); }
                 catch { }
                 Console.WriteLine((anyProfile ? "[ok] " : "[~]  ") + "weldment profiles: " + weldmentProfiles +
-                                  (anyProfile ? "" : " (no .sldlfp file found in it: profili_saldatura will say so)"));
+                                  (anyProfile ? "" : " (no .sldlfp file found in it: weldment_profiles will say so)"));
             }
             else if (!nothing &&
                      (weldmentProfiles = Configuration.ExistingWeldmentProfiles(ClientsToTouch(chosenConfig))) != null)
@@ -313,7 +313,7 @@ namespace Oce.Solid.Agent.Installer
                     Console.WriteLine("[ok] weldment profiles: " + weldmentProfiles + " (" + source +
                                       "; another folder with --weldment-profiles <folder>)");
                 else
-                    Console.WriteLine("[~]  weldment profiles: none found. profili_saldatura will refuse until " +
+                    Console.WriteLine("[~]  weldment profiles: none found. weldment_profiles will refuse until " +
                                       "PROFILI_SALDATURA is set: install again with --weldment-profiles <folder>");
             }
 
@@ -391,7 +391,7 @@ namespace Oce.Solid.Agent.Installer
         private static void Show(string text)
         {
             // A WinExe executable does not have a console of its own: it attaches to
-            // that of whoever launched it, if there is one. Without this, `--aiuto` from
+            // that of whoever launched it, if there is one. Without this, `--help` from
             // a prompt would print nothing.
             if (!Output.AttachIfNeeded()) MessageBox.Show(text, Steps.ProductName);
             else Console.WriteLine(text);
@@ -400,29 +400,30 @@ namespace Oce.Solid.Agent.Installer
         private static string Help() =>
             Steps.ProductName + " - installer\n\n" +
             "  Installer.exe                      opens the window\n" +
-            "  Installer.exe --silenzioso         installs without a window\n" +
+            "  Installer.exe --silent             installs without a window\n" +
             "\n" +
             "  Installer.exe --verify [--json]    checks an installation, as a client would find it\n" +
             "\n" +
-            "  --cartella <path>       where to install (default: " +
+            "  --dir <path>            where to install (default: " +
             Steps.DefaultFolder + ")\n" +
             "  --redist <path>         the api\\redist folder of SOLIDWORKS\n" +
-            "  --senza-client          do not touch the configuration of the MCP clients\n" +
+            "  --no-client             do not touch the configuration of the MCP clients\n" +
             "  --config <path>         wire THAT file instead of looking for the clients\n" +
-            "  --weldment-profiles <folder>  the weldment profiles (.sldlfp) for profili_saldatura,\n" +
+            "  --weldment-profiles <folder>  the weldment profiles (.sldlfp) for weldment_profiles,\n" +
             "                          written as PROFILI_SALDATURA in the client's env\n" +
             "  --log <file>            also write the run to this file\n" +
-            "  --disinstalla           removes the installation, without opening the window\n" +
-            "  --keep-client           with --disinstalla: leave the MCP client entry in place\n" +
+            "  --uninstall             removes the installation, without opening the window\n" +
+            "  --keep-client           with --uninstall: leave the MCP client entry in place\n" +
             "  --verify                files, client entries, SOLIDWORKS, the bridge's self-test\n" +
             "                          and an MCP handshake; exit 0 all green, 2 warnings, 1 failed\n" +
             "  --json                  with --verify: one line of JSON\n" +
+            "  --help                  this list\n" +
             "\n" +
-            "Exit codes of --silenzioso: 0 installed and wired, 1 nothing installed,\n" +
+            "Exit codes of --silent: 0 installed and wired, 1 nothing installed,\n" +
             "2 installed but the self-test did not confirm, 3 installed but a client\n" +
             "not wired (the block to paste is printed). Read them with\n" +
-            "  PowerShell: (Start-Process Installer.exe -ArgumentList '--silenzioso' -Wait -PassThru -NoNewWindow).ExitCode\n" +
-            "  cmd, in a batch file: start \"\" /wait Installer.exe --silenzioso, then %ERRORLEVEL%\n" +
+            "  PowerShell: (Start-Process Installer.exe -ArgumentList '--silent' -Wait -PassThru -NoNewWindow).ExitCode\n" +
+            "  cmd, in a batch file: start \"\" /wait Installer.exe --silent, then %ERRORLEVEL%\n" +
             "\n" +
             "No administrator needed: it installs in the user's folder and does not\n" +
             "write to the system registry.";

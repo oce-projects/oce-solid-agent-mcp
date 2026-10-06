@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.Mcp
         ///
         /// `stderr` stays and is not touched: it is the only place that works **before**
         /// a client exists — the attachment to SOLIDWORKS, the catalog that does not
-        /// load, `--prova` — and it is what one looks at when something does not
+        /// load, `--self-test` — and it is what one looks at when something does not
         /// start. Removing it to «do things properly in the protocol» would mean
         /// losing the only lines that explain a failed start.
         ///
@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.Mcp
         /// silence.*
         ///
         /// Without a channel it does nothing: it is the case of the bridge launched with
-        /// `--prova`, and of every check that builds the message without
+        /// `--self-test`, and of every check that builds the message without
         /// having anyone to send it to.
         /// </summary>
         internal static void NotifyOnChannel(object message)

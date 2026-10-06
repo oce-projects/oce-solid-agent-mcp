@@ -71,7 +71,7 @@ namespace Oce.Solid.Agent.Installer
         {
             if (!ExtractIfPresent(file, destination, tell))
                 throw new Exception(
-                    "I cannot find «" + file + "»: it is neither inside the installer nor " +
+                    "I cannot find \"" + file + "\": it is neither inside the installer nor " +
                     "next to it. The installer is incomplete.");
         }
 
@@ -88,7 +88,7 @@ namespace Oce.Solid.Agent.Installer
                     if (s != null)
                     {
                         WriteWithCare(s, destination);
-                        tell("scritto " + file + " (" + Byte(destination) + ")");
+                        tell("written " + file + " (" + Byte(destination) + ")");
                         return true;
                     }
                 }
@@ -135,13 +135,13 @@ namespace Oce.Solid.Agent.Installer
             catch (UnauthorizedAccessException)
             {
                 throw new Exception(
-                    "I do not have permission to write in «" + folder + "». " +
+                    "I do not have permission to write in \"" + folder + "\". " +
                     "Choose another folder, for example inside Documents.");
             }
             catch (IOException ex) when (File.Exists(destination))
             {
                 throw new Exception(
-                    "«" + Path.GetFileName(destination) + "» is in use: the bridge is probably " +
+                    "\"" + Path.GetFileName(destination) + "\" is in use: the bridge is probably " +
                     "running inside an open MCP client. Close the " +
                     "client and try again. (" + ex.Message + ")");
             }

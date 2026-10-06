@@ -74,7 +74,7 @@ namespace Oce.Solid.Agent.Installer
         /// </summary>
         public static readonly string[] BridgeOwnFiles = { "domande-senza-risposta.jsonl" };
 
-        // ── THE EXIT CODES OF THE BRIDGE'S --prova (entry H19, B3) ─────────
+        // ── THE EXIT CODES OF THE BRIDGE'S --self-test (entry H19, B3) ─────────
         // The same numbers as Program.SelfTest* in the bridge, which this
         // assembly cannot reference; Oce.Solid.Agent.ContractTests reads both and compares.
         public const int SelfTestAttached = 0;
@@ -447,7 +447,7 @@ namespace Oce.Solid.Agent.Installer
                 throw new Exception("You did not tell me where to install.");
 
             Directory.CreateDirectory(folder);
-            tell("cartella: " + folder);
+            tell("folder: " + folder);
 
             // 1. the bridge and the catalog
             //
@@ -537,7 +537,7 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// The dry run: `--prova` touches nothing, it attaches and tells.
+        /// The dry run: `--self-test` touches nothing, it attaches and tells.
         /// It is the only way to say «installed» knowing that it is true.
         ///
         /// THE EXIT CODE DECIDES, NOT THE TEXT (entry H19, B3). Until 0.125.0
@@ -552,7 +552,7 @@ namespace Oce.Solid.Agent.Installer
             code = SelfTestNoAnswer;
             try
             {
-                var startup = new ProcessStartInfo(executable, "--prova")
+                var startup = new ProcessStartInfo(executable, "--self-test")
                 {
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -570,7 +570,7 @@ namespace Oce.Solid.Agent.Installer
 
                 using (var p = Process.Start(startup))
                 {
-                    // `--prova` writes to stderr on purpose: stdout belongs
+                    // `--self-test` writes to stderr on purpose: stdout belongs
                     // to the protocol and nothing else goes there.
                     var err = p.StandardError.ReadToEndAsync();
                     var mid = p.StandardOutput.ReadToEndAsync();
@@ -613,7 +613,7 @@ namespace Oce.Solid.Agent.Installer
                 var f = Path.Combine(folder, itemName);
                 try
                 {
-                    if (File.Exists(f)) { File.Delete(f); tell("tolto " + itemName); }
+                    if (File.Exists(f)) { File.Delete(f); tell("removed " + itemName); }
                 }
                 catch (Exception ex)
                 {
@@ -647,7 +647,7 @@ namespace Oce.Solid.Agent.Installer
         /// <paramref name="source"/> says where the answer came from.
         ///
         /// Since library 0.112 PROFILI_SALDATURA has no default, and without it
-        /// profili_saldatura refuses. Two places were checked on the machine
+        /// weldment_profiles refuses. Two places were checked on the machine
         /// this was written on (SOLIDWORKS 2021 SP5.1), and only folders that
         /// exist are ever proposed:
         ///

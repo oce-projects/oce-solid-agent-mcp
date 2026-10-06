@@ -11,11 +11,11 @@ namespace Oce.Solid.Agent.Installer
     /// Installer.exe is a Windows (GUI) program, so that a double click does
     /// not open a black console behind the window. The price: started from a
     /// shell it has no console of its own, and until 0.126.0 the silent and
-    /// uninstall modes printed into nothing. Only --aiuto attached to the
+    /// uninstall modes printed into nothing. Only --help attached to the
     /// parent's console. The installer's tests passed because they read the
     /// output through pipes, which is the one way nobody types by hand.
     ///
-    /// Now every mode without the window does what --aiuto did: if standard
+    /// Now every mode without the window does what --help did: if standard
     /// output is NOT already a file or a pipe, it attaches to the console of
     /// the process that started it. When it is a file or a pipe (a script
     /// reading the output, node's spawnSync, `> file`), it is left alone:

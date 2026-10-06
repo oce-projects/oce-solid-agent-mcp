@@ -201,8 +201,8 @@ namespace Oce.Solid.Agent.Installer
             server[ServerName] = entry;
 
             var copy = Write(client.File, root, tell);
-            tell((existed ? "updated" : "added") + " the entry «" + ServerName +
-                     "» in " + client.Name);
+            tell((existed ? "updated" : "added") + " the entry \"" + ServerName +
+                     "\" in " + client.Name);
             return copy;
         }
 
@@ -400,7 +400,7 @@ namespace Oce.Solid.Agent.Installer
                 // up in the branch below, and whoever had the client open was told that
                 // their JSON was not valid.
                 throw new Exception(
-                    "I cannot read «" + file + "»: it is locked by another " +
+                    "I cannot read \"" + file + "\": it is locked by another " +
                     "program, and I did not touch it. Usually it is the client itself " +
                     "open: close it and try again. (" + ex.Message + ")");
             }
@@ -409,7 +409,7 @@ namespace Oce.Solid.Agent.Installer
                 // A broken file is NOT silently replaced with a new one:
                 // inside there might be ten servers configured by hand.
                 throw new Exception(
-                    "The configuration file «" + file + "» is not valid JSON and I do not " +
+                    "The configuration file \"" + file + "\" is not valid JSON and I do not " +
                     "feel like rewriting it: there may be other work inside. " +
                     "Open it and fix it, then try again. (" + ex.Message + ")");
             }
@@ -447,7 +447,7 @@ namespace Oce.Solid.Agent.Installer
                 catch (IOException ex)
                 {
                     throw new Exception(
-                        "The file «" + file + "» is locked by another program, and I did not " +
+                        "The file \"" + file + "\" is locked by another program, and I did not " +
                         "touch it. Usually it is the client itself open: close it and " +
                         "try again. (" + ex.Message + ")");
                 }

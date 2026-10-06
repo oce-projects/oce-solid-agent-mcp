@@ -131,7 +131,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// A single `catch (COMException)` gave the same sentence for both,
         /// and whoever installs on behalf of somebody made a program open that
         /// was not there. The three answers are tested by code, without SOLIDWORKS.
-        /// Since entry H19 (B3) the installer reads the exit code of --prova and
+        /// Since entry H19 (B3) the installer reads the exit code of --self-test and
         /// no sentence (H19InstallerContract checks the codes): these checks
         /// keep the two sentences for a person apart, nothing more.
         /// </summary>
