@@ -2,13 +2,13 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1793,
+  "comments": 1791,
   "strings": 52506,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 837,
+  "protocol": 836,
   "paths": 0,
   "transition": 2192
  },
@@ -1310,7 +1310,7 @@
   },
   "Oce.Solid.Agent.Core/DrawingDimensionOperations.cs": {
    "strings": 668,
-   "comments": 16
+   "comments": 14
   },
   "Oce.Solid.Agent.Core/DrawingFlatPatternOperations.cs": {
    "comments": 2,
@@ -3478,7 +3478,6 @@
    "OperazioniMateriale",
    "OperazioniSaldatura",
    "OperazioniTavola",
-   "PASSANTE",
    "PRIMO",
    "PROFILI",
    "PROFILI_SALDATURA",

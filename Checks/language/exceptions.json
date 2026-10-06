@@ -93,6 +93,30 @@
   "date": "2026-09-28"
  },
  {
+  "class": "solidworks-localized",
+  "file": "^Oce\\.Solid\\.Agent\\.Core/DrawingDimensionOperations\\.cs$",
+  "pattern": "PASSANTE",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the word an Italian SOLIDWORKS writes in the callout of a through hole: the program READS it from the drawing (an IndexOf on the callout), it does not produce it, so no message of the program can hold it",
+  "signed_by": "W3.1-bis.8",
+  "date": "2026-10-06"
+ },
+ {
+  "class": "detector-lexicon",
+  "file": "^Checks/language/window-5-integration\\.json$",
+  "json_path": "^code_changes\\[\\d+\\]\\.before$",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "the snippets of code of the tree BEFORE window 5 that the integration changes by name are Italian text by nature: they must match that tree exactly",
+  "signed_by": "W3.1-bis.8",
+  "date": "2026-10-06"
+ },
+ {
   "class": "data-becomes-geometry",
   "file": "^Bench/cases/text/",
   "pattern": "PROVA",
