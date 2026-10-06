@@ -13,7 +13,7 @@
 #  in the repository nor downloaded.
 #
 #  MEASURED, NOT DEDUCED. Building locally with
-#  `/p:SwInstallPath=Z:\non-esiste` gives two hundred and some errors
+#  `/p:SwInstallPath=Z:\does-not-exist` gives two hundred and some errors
 #  `CS0246: il nome di tipo o di spazio dei nomi 'IModelDoc2' non e' stato
 #  trovato`. The first step always failed, so the two useful steps — the contract
 #  checks and the refusal of a delivery without a bench run — were
@@ -56,7 +56,7 @@
 #  — the MCP protocol, `Session.SameDocument`, the catalog exporter,
 #  the comparison between the two libraries — write an entry **«not runnable
 #  here»**, which is counted apart, printed and ends up in `prove.xml` as
-#  `<skipped>`. The summary says `N controlli, 0 falliti, M non eseguibili qui
+#  `<skipped>`. The summary (printed in Italian by the suite) says `N controlli, 0 falliti, M non eseguibili qui
 #  (K fatti davvero)`, and the declared minimum is measured on the **facts**: a
 #  suite that is all skipped does not pass the threshold.
 #
@@ -80,7 +80,7 @@
 #  SOLIDWORKS, and there is none.
 # =============================================================================
 
-name: prove
+name: tests
 
 on:
   push:
@@ -101,7 +101,7 @@ jobs:
 
     steps:
 
-      - name: Prendi il codice
+      - name: Check out the code
         uses: actions/checkout@v4
         with:
           # The check «the bench is later than the last change to the
@@ -122,31 +122,31 @@ jobs:
       - name: MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: C'e' l'interop di Dassault su questo runner?
+      - name: Is the Dassault interop on this runner?
         id: interop
         shell: pwsh
         run: .\.github\steps\interop-is-there.ps1
 
-      - name: Compila il ponte (solo dove l'interop c'e')
-        if: steps.interop.outputs.ce == 'si'
+      - name: Build the bridge (only where the interop is)
+        if: steps.interop.outputs.found == 'yes'
         run: msbuild Oce.Solid.Agent.csproj -p:Configuration=Release -v:m
 
-      - name: Compila le prove di contratto
+      - name: Build the contract tests
         run: msbuild Tests\Oce.Solid.Agent.ContractTests.csproj -p:Configuration=Release -v:m
 
-      - name: Gli eseguibili esistono davvero
+      - name: The executables really exist
         shell: pwsh
-        run: .\.github\steps\executables-exist.ps1 -InteropIsThere '${{ steps.interop.outputs.ce }}'
+        run: .\.github\steps\executables-exist.ps1 -InteropIsThere '${{ steps.interop.outputs.found }}'
 
-      - name: Lancia le prove di contratto
+      - name: Run the contract tests
         run: Tests\bin\Oce.Solid.Agent.ContractTests.exe
 
-      - name: Quanto di questo giro non ha potuto girare
+      - name: How much of this run could not run
         if: always()
         shell: pwsh
         run: .\.github\steps\how-much-did-not-run.ps1
 
-      - name: Pubblica prove.xml
+      - name: Upload prove.xml
         if: always()
         uses: actions/upload-artifact@v4
         with:

@@ -2,7 +2,7 @@
 #  Is the Dassault interop on this machine?
 # =============================================================================
 #
-#  Writes `ce=si|no` (and `dove=...`) to $env:GITHUB_OUTPUT, so that the step
+#  Writes `found=yes|no` (and `where=...`) to $env:GITHUB_OUTPUT, so that the step
 #  that builds the bridge can skip itself where it cannot build.
 #
 #  WHY IT LIVES IN A FILE AND NOT INSIDE THE WORKFLOW. The defect that gave rise
@@ -39,11 +39,11 @@ function SayIt($line) {
 
 if ($found) {
     Write-Output "interop found: $found"
-    SayIt "ce=si"
-    SayIt "dove=$found"
+    SayIt "found=yes"
+    SayIt "where=$found"
 } else {
     Write-Output "interop NOT found: the bridge cannot be built here, and that is expected."
-    Write-Output "cercata in:"
+    Write-Output "searched in:"
     $places | ForEach-Object { Write-Output "  $_" }
-    SayIt "ce=no"
+    SayIt "found=no"
 }

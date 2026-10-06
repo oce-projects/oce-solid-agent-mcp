@@ -32,7 +32,7 @@
 //  USAGE
 //      node Checks/questions-without-answer.js
 //      node Checks/questions-without-answer.js <file.jsonl>
-//      node Checks/questions-without-answer.js --righe    all of them, in time order
+//      node Checks/questions-without-answer.js --lines    all of them, in time order
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
@@ -40,7 +40,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const NAME = 'domande-senza-risposta.jsonl';
 
-const perLines = process.argv.includes('--righe');
+const perLines = process.argv.includes('--lines');
 const given = process.argv.slice(2).find(a => !a.startsWith('--'));
 
 // The same places in which the bridge would write it: the variable, then next

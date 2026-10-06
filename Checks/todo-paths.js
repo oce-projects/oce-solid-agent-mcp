@@ -28,13 +28,13 @@
 //
 //  USAGE
 //      node Checks/todo-paths.js
-//      node Checks/todo-paths.js --tutti      also the closed entries
+//      node Checks/todo-paths.js --all      also the closed entries
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const all = process.argv.includes('--tutti');
+const all = process.argv.includes('--all');
 // THE FILE CAN BE PASSED, as in `count-todo.js`: it serves to make this
 // probe trigger on a broken copy, which is the only way to believe it.
 const { findTheTodo } = require('./where-is-the-todo.js');
@@ -103,7 +103,7 @@ function location(p) {
 // The rule does NOT exempt a file by name: it wants the entry to SAY it, by writing
 // «(da creare)» right after the path, at least once. A file announced
 // and never written stays visible: when the entry closes, the path ends up
-// among those of the closed entries, and `--tutti` lists it.
+// among those of the closed entries, and `--all` lists it.
 const TO_CREATE = /^\s*\(da creare\)/;
 const announced = new Set();
 

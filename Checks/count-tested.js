@@ -29,7 +29,7 @@
 //  are fixed first, then the guard is turned on over a clean field.
 //
 //      node Checks\count-tested.js
-//      node Checks\count-tested.js --solo-orfane
+//      node Checks\count-tested.js --orphans-only
 //      node Checks\count-tested.js --catalogue <file> --cases <folder> [--bench <folder>]
 //
 //  EXIT CODES (W3.1-bis.2, item 5). It exits 0 once it has measured: the
@@ -56,7 +56,7 @@ const CATALOG = optionValue('--catalogue', path.join(ROOT, 'Tools', 'catalog.jso
 const CASES = optionValue('--cases', path.join(ROOT, 'Bench', 'cases'));
 const BENCH = optionValue('--bench', path.join(ROOT, 'Bench'));
 
-const soloOrfane = process.argv.indexOf('--solo-orfane') >= 0;
+const orphansOnly = process.argv.indexOf('--orphans-only') >= 0;
 
 // Every expected key that is missing, with where. Printed all together, and
 // then the script exits 1 without printing the counts.
@@ -184,7 +184,7 @@ function howItIsTested(op) {
 const perMode = { 'declared case': [], 'regression only': [], 'bench C#': [], 'hand-written plan only': [], 'NOTHING': [] };
 for (const op of operations) perMode[howItIsTested(op).come].push(op);
 
-if (!soloOrfane) {
+if (!orphansOnly) {
   console.log('catalog: ' + CATALOG);
   console.log('operations in the catalog (Tested = true): ' + operations.length);
   console.log('declared cases: ' + howManyCases);

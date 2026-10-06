@@ -1,8 +1,8 @@
 // Counts the entries of the TODO, and tells the numbers that the TODO itself declares.
 //
 //     node Checks/count-todo.js            the numbers
-//     node Checks/count-todo.js --righe    and also which entries are open
-//     node Checks/count-todo.js --blocchi  and WHAT blocks them, one by one
+//     node Checks/count-todo.js --lines    and also which entries are open
+//     node Checks/count-todo.js --blockers  and WHAT blocks them, one by one
 //
 // ── WHY «WHAT BLOCKS THEM» AND NOT ONLY «HOW MANY» ───────────────────────
 //
@@ -49,7 +49,7 @@ const path = require("path");
 const { findTheTodo } = require("./where-is-the-todo.js");
 const file = findTheTodo(path.join(__dirname, ".."), process.argv);
 if (!file) process.exit(0);
-const showLines = process.argv.includes("--righe");
+const showLines = process.argv.includes("--lines");
 
 const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
 
@@ -141,7 +141,7 @@ console.log(
 );
 if (defects) process.exitCode = 1;
 
-if (process.argv.includes("--blocchi")) {
+if (process.argv.includes("--blockers")) {
   // The warning lights, in order of strength: a decision of the owner beats
   // everything (it is not our work), then SOLIDWORKS, then the rest.
   // FOURTH CORRECTION, on 23/9/2026: an entry marked **decisione** in its

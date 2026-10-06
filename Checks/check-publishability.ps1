@@ -177,8 +177,8 @@ $TrueAddress = '192\.168\.\d'
 $nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 
 # Whoever replaces the scratchpad path must write it to find it:
-# `cleanup-history.js` has the schema, this check has the pattern.
-$sessionOnly = WithNamesOfBefore @('cleanup-history.js', 'check-publishability.ps1')
+# `cleanup-history.js` (gone from the tree in W3.1-bis.10, but still in the history this check reads) had the schema, this check has the pattern.
+$sessionOnly = WithNamesOfBefore @('cleanup-history.js', 'check-publishability.ps1')   # the first one only exists in the history now
 
 # THE STRUCTURE OF ANOTHER REPOSITORY, WHICH IS PRIVATE.
 #
@@ -394,8 +394,10 @@ if ($toPush.Count -eq 0) {
         Write-Host "  XX  $itemName ($why) in $($gaps.Count) places, $($file.Count) files:"
         foreach ($f in $file) { Write-Host "        $f" }
         Write-Host "        History cannot be repaired with a change: it has to be"
-        Write-Host "        Checks\cleanup-history.js e git filter-branch, e va"
-        Write-Host "        done BEFORE the push - afterwards it becomes a force-push."
+        Write-Host "        rewritten with git filter-branch (the tree filter used in 2026,"
+        Write-Host "        Checks/cleanup-history.js, left the tree in W3.1-bis.10: see it with"
+        Write-Host "        git show b829cff:Checks/cleanup-history.js), and it has to be done"
+        Write-Host "        BEFORE the push - afterwards it becomes a force-push."
     }
 
     LookAtHistory 'the user name' 'oscar' 'the name of the person working' $false $nameOnly
@@ -427,7 +429,7 @@ Write-Host ""
 Write-Host "=== Paths of this installation (not forbidden, but worth knowing)"
 $onDiskS = Lines '(?<![A-Za-z])S:\\' $true
 if ($onDiskS.Count -eq 0) {
-    Write-Host "  nessuno"
+    Write-Host "  none"
 } else {
     $file = $onDiskS | ForEach-Object { $_.Path.Substring($root.Length + 1) } | Sort-Object -Unique
     Write-Host "  $($onDiskS.Count) references to S: in $($file.Count) files:"
@@ -437,6 +439,6 @@ if ($onDiskS.Count -eq 0) {
 }
 
 Write-Host ""
-if ($trouble -eq 0) { Write-Host 'Pulito.'; exit 0 }
+if ($trouble -eq 0) { Write-Host 'Clean.'; exit 0 }
 Write-Host "$trouble categories to clean up."
 exit 1

@@ -53,7 +53,7 @@ foreach ($p in $steps) {
         $trouble++
         Write-Host ("  XX  " + $p.Name) -ForegroundColor Red
         foreach ($e in $errors) {
-            Write-Host ("        riga " + $e.Extent.StartLineNumber + ": " + $e.Message)
+            Write-Host ("        line " + $e.Extent.StartLineNumber + ": " + $e.Message)
         }
     } else {
         Write-Host ("  ok  " + $p.Name + " can be read")

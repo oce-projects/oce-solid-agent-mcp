@@ -21,7 +21,7 @@
 #       16 KB" goes from 15.6k to 16.2k and FAILS without the code having
 #       changed. It costs half an hour to hunt for a regression that is not there.
 #    4. launches the bench and measures how long it takes.
-#    5. writes Bench\report\AAAAMMGG_hhmm.md and .json, plus last.json.
+#    5. writes Bench\report\YYYYMMDD_hhmm.md and .json, plus last.json.
 #
 #  WHY THE REPORT. "It only runs when somebody launches it by hand" is half
 #  of the problem; the other half is that it LEAVES NO TRACE. A number that is

@@ -48,14 +48,14 @@
 //
 //  USAGE
 //      node Checks/todo-lines.js
-//      node Checks/todo-lines.js --tutti    also those that are fine
-//      node Checks/todo-lines.js --provami  makes the check fail on purpose
+//      node Checks/todo-lines.js --all    also those that are fine
+//      node Checks/todo-lines.js --self-test  makes the check fail on purpose
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const all = process.argv.includes('--tutti');
+const all = process.argv.includes('--all');
 const { findTheTodo } = require('./where-is-the-todo.js');
 const fileTodo = findTheTodo(root, process.argv);
 if (!fileTodo) process.exit(0);
@@ -219,7 +219,7 @@ function secondPass(lines, fileName) {
 if (secondPass(lines, path.basename(fileTodo)) > 0) process.exitCode = 1;
 
 // ── and now it is made to fail on purpose, in both directions ──────────────
-if (process.argv.includes('--provami')) {
+if (process.argv.includes('--self-test')) {
   console.log('');
   console.log('=== TEST OF THE CHECK: the same cross-reference, broken and healthy ===');
   const fake = [];

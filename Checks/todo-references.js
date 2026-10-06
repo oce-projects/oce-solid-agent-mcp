@@ -20,13 +20,13 @@
 //
 //  USAGE
 //      node Checks/todo-references.js
-//      node Checks/todo-references.js --tutti    also those that are fine
+//      node Checks/todo-references.js --all    also those that are fine
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const all = process.argv.includes('--tutti');
+const all = process.argv.includes('--all');
 // THE FILE CAN BE PASSED, as in `count-todo.js`: it serves to make this
 // probe trigger on a broken copy, which is the only way to believe it.
 const { findTheTodo } = require('./where-is-the-todo.js');

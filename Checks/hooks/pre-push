@@ -28,21 +28,21 @@
 # It is derived from $0 and not from the current folder: git runs the hooks from the root
 # of the working tree, but a `sh Checks/hooks/pre-push` run by hand does not, and a
 # hook that works only when git calls it cannot be tested.
-qui=$(dirname "$0")
+here=$(dirname "$0")
 
 # The refs being pushed arrive on stdin ("<local ref> <local sha> <remote ref>
 # <remote sha>" per line). They are read first, before any command below can
 # consume stdin; run by hand without a pipe, the hook judges HEAD.
 if [ -t 0 ]; then pushed_refs=""; else pushed_refs=$(cat); fi
-controllo="$qui/../check-publishability.ps1"
-workflow="$qui/../check-workflow.ps1"
+publishability_check="$here/../check-publishability.ps1"
+workflow="$here/../check-workflow.ps1"
 
-if [ ! -f "$controllo" ]; then
-    echo "pre-push: non trovo $controllo - il gancio non sa cosa lanciare." >&2
+if [ ! -f "$publishability_check" ]; then
+    echo "pre-push: cannot find $publishability_check - the hook does not know what to run." >&2
     exit 1
 fi
 if [ ! -f "$workflow" ]; then
-    echo "pre-push: non trovo $workflow - il gancio non sa cosa lanciare." >&2
+    echo "pre-push: cannot find $workflow - the hook does not know what to run." >&2
     exit 1
 fi
 
@@ -56,8 +56,8 @@ fi
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$workflow"
 if [ $? -ne 0 ]; then
     echo "" >&2
-    echo "pre-push: FERMO. Un passo della CI non si legge, o non lo chiama" >&2
-    echo "nessuno. Sopra c'e' scritto quale." >&2
+    echo "pre-push: STOPPED. A CI step cannot be read, or nobody calls it." >&2
+    echo "The lines above say which one." >&2
     exit 1
 fi
 
@@ -74,12 +74,12 @@ fi
 # The two probes on the interops (`todo-signatures.ps1`,
 # `signatures-api.ps1`) are NOT there: they want SOLIDWORKS installed, and a hook that fails
 # on a machine without CAD is a hook that the first who clones deactivates.
-for sonda in todo-paths.js todo-references.js todo-lines.js; do
-    if [ -f "$qui/../$sonda" ]; then
-        node "$qui/../$sonda"
+for probe in todo-paths.js todo-references.js todo-lines.js; do
+    if [ -f "$here/../$probe" ]; then
+        node "$here/../$probe"
         if [ $? -ne 0 ]; then
             echo "" >&2
-            echo "pre-push: FERMO. $sonda ha trovato qualcosa nel TODO." >&2
+            echo "pre-push: STOPPED. $probe found something in the TODO." >&2
             exit 1
         fi
     fi
@@ -88,15 +88,15 @@ done
 # ZERO OR «I DO NOT KNOW» (entry Z-C8). Until 25/9/2026 it was only a list of
 # work; with all the points repaired, it becomes a guard: a new count that
 # answers zero from a catch, without the marker ZERO-E-ZERO and the reason, does not
-# leave the workbench. It is tested before being believed (--provami).
-zero="$qui/../zero-or-unknown.js"
+# leave the workbench. It is tested before being believed (--self-test).
+zero="$here/../zero-or-unknown.js"
 if [ -f "$zero" ]; then
-    node "$zero" --provami > /dev/null
+    node "$zero" --self-test > /dev/null
     if [ $? -ne 0 ]; then
-        node "$zero" --provami | grep -E 'DA GUARDARE|!  |NON SI COMPORTA' >&2
+        node "$zero" --self-test | grep -E 'TO LOOK AT|!  |DOES NOT BEHAVE' >&2
         echo "" >&2
-        echo "pre-push: FERMO. Un conteggio dice zero dove vorrebbe dire «non lo so»." >&2
-        echo "Si ripara con -1 o null, oppure col marcatore ZERO-E-ZERO: e la ragione." >&2
+        echo "pre-push: STOPPED. A count says zero where it should say «I do not know»." >&2
+        echo "Repair it with -1 or null, or with the marker ZERO-E-ZERO: and the reason." >&2
         exit 1
     fi
 fi
@@ -128,10 +128,10 @@ net_check() {
     fi
     return 0
 }
-net_check token-stream.js node "$qui/../language/token-stream.js" --self-test || exit 1
-net_check expected-keys-test.js node "$qui/../expected-keys-test.js" || exit 1
-net_check same-il.ps1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$qui/../language/same-il.ps1" -SelfTest || exit 1
-net_check name-map-extract.js node "$qui/../language/name-map-extract.js" --self-test || exit 1
+net_check token-stream.js node "$here/../language/token-stream.js" --self-test || exit 1
+net_check expected-keys-test.js node "$here/../expected-keys-test.js" || exit 1
+net_check same-il.ps1 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$here/../language/same-il.ps1" -SelfTest || exit 1
+net_check name-map-extract.js node "$here/../language/name-map-extract.js" --self-test || exit 1
 
 # THE LANGUAGE GATE (entry W3.1-bis.1). The Italian in the repository may go
 # down, never up. The CI is the real gate; this runs the same script on the
@@ -142,8 +142,8 @@ net_check name-map-extract.js node "$qui/../language/name-map-extract.js" --self
 # tip, --tighten: if the Italian went down and baseline.json was not lowered,
 # the push stops until the lower baseline is committed, so the ratchet closes
 # on what was just translated.
-language_gate="$qui/../language/detect-italian.js"
-language_step="$qui/../../.github/steps/language-gate.ps1"
+language_gate="$here/../language/detect-italian.js"
+language_step="$here/../../.github/steps/language-gate.ps1"
 if [ ! -f "$language_gate" ] || [ ! -f "$language_step" ]; then
     echo "pre-push: cannot find $language_gate or $language_step - the hook does not know what to run." >&2
     exit 1
@@ -179,18 +179,18 @@ echo "$pushed_refs" | while read -r local_ref local_sha remote_ref remote_sha; d
     fi
 done || exit 1
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$controllo"
-esito=$?
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$publishability_check"
+outcome=$?
 
-if [ $esito -ne 0 ]; then
+if [ $outcome -ne 0 ]; then
     echo "" >&2
-    echo "pre-push: FERMO. Sopra c'e' scritto cosa uscirebbe e da dove." >&2
-    echo "  albero:  si ripara e si rifa' il commit." >&2
-    echo "  storia:  Checks\\cleanup-history.js, PRIMA del push." >&2
-    echo "           Dopo diventa un force-push." >&2
+    echo "pre-push: STOPPED. The lines above say what would go out and from where." >&2
+    echo "  tree:    repair it and commit again." >&2
+    echo "  history: rewrite it BEFORE the push (see the end of Checks/check-publishability.ps1)." >&2
+    echo "           Afterwards it becomes a force-push." >&2
     echo "" >&2
-    echo "Se e' un falso positivo, si allarga l'eccezione nel controllo e si" >&2
-    echo "scrive perche'. Non si usa --no-verify per farlo tacere." >&2
+    echo "If it is a false positive, widen the exception in the check and" >&2
+    echo "write why. Do not use --no-verify to silence it." >&2
     exit 1
 fi
 

@@ -2,23 +2,19 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1772,
-  "strings": 528,
+  "comments": 1771,
+  "strings": 417,
   "markdown": 825,
   "json_values": 611,
-  "identifiers": 1632,
+  "identifiers": 1628,
   "json_keys": 14,
-  "protocol": 666,
+  "protocol": 660,
   "paths": 0,
   "transition": 2188
  },
  "files": {
-  ".github/steps/executables-exist.ps1": {
-   "comments": 1
-  },
   ".github/workflows/tests.yml": {
-   "comments": 18,
-   "strings": 28
+   "comments": 18
   },
   ".gitignore": {
    "comments": 5
@@ -233,8 +229,7 @@
    "strings": 1
   },
   "Checks/hooks/pre-push": {
-   "comments": 1,
-   "strings": 81
+   "comments": 1
   },
   "Checks/language/name-map.tsv": {
    "transition": 2165,
@@ -280,8 +275,7 @@
    "comments": 1
   },
   "Checks/zero-or-unknown.js": {
-   "comments": 6,
-   "strings": 2
+   "comments": 6
   },
   "Oce.Solid.Agent.Core/Alias.cs": {
    "comments": 1
@@ -1174,7 +1168,6 @@
    "controlla-pubblicabilita",
    "controlla-workflow",
    "controlli",
-   "controllo",
    "controllo_mai_visto_scattare",
    "coperchio",
    "copia",
@@ -1277,7 +1270,6 @@
    "diametri_esterni",
    "diametro",
    "diametro_mm",
-   "dichiarato",
    "diedro",
    "dietro",
    "dimetrica",
@@ -1357,7 +1349,6 @@
    "esempio",
    "esiste",
    "esiti",
-   "esito",
    "esplora",
    "esploso",
    "esploso_fa_cadere_solidworks",
@@ -1993,7 +1984,6 @@
    "solidworks_documento_attivo",
    "solo_parti",
    "sommario",
-   "sonda",
    "sonda_sezione",
    "sono",
    "sopprimi_il_terzo_foro",
@@ -2273,7 +2263,6 @@
    "Pronto",
    "Prove",
    "ProveCatalogo",
-   "Pulito",
    "Pulizia",
    "QUADRO_COPIA",
    "RAGGIUNGIBILE",
@@ -2370,7 +2359,6 @@
    "banco-modelli",
    "baricentro",
    "bloccato",
-   "blocchi",
    "blocco",
    "bonifica",
    "bonifica-storia",
@@ -2384,7 +2372,6 @@
    "casi-in-attesa",
    "catalogo",
    "catalogo_che_non_esiste_",
-   "ce",
    "cercavo",
    "cerniera",
    "chiamala",
@@ -2414,7 +2401,6 @@
    "controlla-catalogo",
    "controlla-pubblicabilita",
    "controlli",
-   "controllo",
    "convertiti",
    "coperchio",
    "coperchio2",
@@ -2666,7 +2652,6 @@
    "prova_forma",
    "prova_sezione",
    "prova_x2",
-   "provami",
    "prove",
    "pubblicabilita",
    "pulisci",
@@ -2683,7 +2668,6 @@
    "quattordici",
    "quattro",
    "questa_non_esiste",
-   "qui",
    "quindici",
    "quota",
    "quota_in_tavola",

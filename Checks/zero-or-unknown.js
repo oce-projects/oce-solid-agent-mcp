@@ -59,14 +59,14 @@
 //
 //  USAGE
 //      node Checks/zero-or-unknown.js
-//      node Checks/zero-or-unknown.js --tutti      also the declared ones
-//      node Checks/zero-or-unknown.js --provami    makes it fail on purpose
+//      node Checks/zero-or-unknown.js --all      also the declared ones
+//      node Checks/zero-or-unknown.js --self-test    makes it fail on purpose
 // =============================================================================
 const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const all = process.argv.includes('--tutti');
+const all = process.argv.includes('--all');
 
 const FOLDERS = ['Oce.Solid.Agent.Core', 'Tools', 'Bridge', 'Shared', 'Mcp'];
 
@@ -111,8 +111,8 @@ function sources(dir, inside) {
 
 // The two forms, and the why of each is in the header.
 const SHAPES = [
-  { nome: 'catch that returns a number', re: /catch\s*\{\s*return\s+0(\.0)?\s*;/ },
-  { nome: 'a «not there» that becomes a count', re: /==\s*null\s*\?\s*0\s*:/ },
+  { itemName: 'catch that returns a number', re: /catch\s*\{\s*return\s+0(\.0)?\s*;/ },
+  { itemName: 'a «not there» that becomes a count', re: /==\s*null\s*\?\s*0\s*:/ },
 ];
 
 // The input conversions: an argument is being read, not the CAD.
@@ -138,17 +138,17 @@ function look(lines, fileName) {
     const r = lines[i];
     let shape = SHAPES.find(f => f.re.test(r));
     if (!shape && MUTE_CATCH.test(r) && muteCounter(lines, i))
-      shape = { nome: 'a mute catch that leaves the count where it was' };
+      shape = { itemName: 'a mute catch that leaves the count where it was' };
     if (!shape) continue;
     if (INPUT.test(r)) continue;
 
     const window = memberWindow(lines, i);
     const declared = window.indexOf(MARKER) >= 0;
     takenOnes.push({
-      dove: fileName + ':' + (i + 1),
-      riga: r.trim().slice(0, 96),
-      forma: shape.nome,
-      dichiarato: declared,
+      location: fileName + ':' + (i + 1),
+      line: r.trim().slice(0, 96),
+      shape: shape.itemName,
+      declared: declared,
     });
   }
   return takenOnes;
@@ -159,36 +159,36 @@ function benchRun(list, whatItIsCalled) {
   for (const f of list) {
     const text = typeof f === 'string'
       ? fs.readFileSync(path.join(root, f), 'utf8')
-      : f.testo;
-    const itemName = typeof f === 'string' ? f.replace(/\\/g, '/') : f.nome;
+      : f.text;
+    const itemName = typeof f === 'string' ? f.replace(/\\/g, '/') : f.itemName;
     takenOnes.push(...look(text.split(/\r?\n/), itemName));
   }
 
-  const bareOnes = takenOnes.filter(p => !p.dichiarato);
-  const called = takenOnes.filter(p => p.dichiarato);
+  const bareOnes = takenOnes.filter(p => !p.declared);
+  const called = takenOnes.filter(p => p.declared);
 
   console.log('');
   console.log(whatItIsCalled + ':');
   console.log('  points that answer zero on an error path: ' + takenOnes.length);
   console.log('  of which DECLARED (zero and zero are the same thing there): ' + called.length);
-  if (all) for (const d of called) console.log('    ok  ' + d.dove + '  ' + d.riga);
+  if (all) for (const d of called) console.log('    ok  ' + d.location + '  ' + d.line);
 
   if (bareOnes.length === 0) {
     console.log('  No point mistakes «zero» for «I do not know» without saying so.');
     return 0;
   }
   console.log('  TO LOOK AT: ' + bareOnes.length);
-  for (const n of bareOnes) console.log('    !  ' + n.dove + '  ' + n.riga);
+  for (const n of bareOnes) console.log('    !  ' + n.location + '  ' + n.line);
   return bareOnes.length;
 }
 
 // ── the check, before everything else ────────────────────────────────────────
-if (process.argv.includes('--provami')) {
+if (process.argv.includes('--self-test')) {
   console.log('=== TEST OF THE CHECK: the same point, bare and declared ===');
   const bare = [
-    'private static double VolumeMm3(IModelDoc2 modello)',
+    'private static double VolumeMm3(IModelDoc2 model)',
     '{',
-    '    try { return Leggi(modello); }',
+    '    try { return ReadIt(model); }',
     '    catch { return 0; }',
     '}',
   ].join('\n');
@@ -200,9 +200,9 @@ if (process.argv.includes('--provami')) {
     '/// `GetMates` returns null when they are zero -- measured on 17/9/2026.'];
   for (let k = 0; k < 20; k++) said.push('/// ' + k + ' line of explanation.');
   said.push('/// </summary>',
-    'private static int Quanti(IComponent2 c)',
+    'private static int HowMany(IComponent2 c)',
     '{',
-    '    try { return Leggi(c); }',
+    '    try { return ReadIt(c); }',
     '    catch { return 0; }',
     '}');
   const saidText = said.join('\n');
@@ -210,22 +210,22 @@ if (process.argv.includes('--provami')) {
     'private static int CountFaces(IModelDoc2 m)',
     '{',
     '    int n = 0;',
-    '    try { n = Leggi(m); }',
+    '    try { n = ReadIt(m); }',
     '    catch { }',
     '    return n;',
     '}',
   ].join('\n');
   const inputOnly = [
-    'private static int Intero(object v)',
+    'private static int Whole(object v)',
     '{',
     '    try { return Convert.ToInt32(v); } catch { return 0; }',
     '}',
   ].join('\n');
 
-  const a = benchRun([{ nome: 'FAKE-bare', testo: bare }], 'the BARE point');
-  const b = benchRun([{ nome: 'FAKE-declared', testo: saidText }], 'the same point DECLARED, twenty lines away');
-  const c = benchRun([{ nome: 'FAKE-input', testo: inputOnly }], 'an INPUT conversion');
-  const e = benchRun([{ nome: 'FAKE-mute', testo: mute }], 'the MUTE catch (the third form)');
+  const a = benchRun([{ itemName: 'FAKE-bare', text: bare }], 'the BARE point');
+  const b = benchRun([{ itemName: 'FAKE-declared', text: saidText }], 'the same point DECLARED, twenty lines away');
+  const c = benchRun([{ itemName: 'FAKE-input', text: inputOnly }], 'an INPUT conversion');
+  const e = benchRun([{ itemName: 'FAKE-mute', text: mute }], 'the MUTE catch (the third form)');
   console.log('');
   if (a === 1 && b === 0 && c === 0 && e === 1) {
     console.log('THE CHECK catches the bare point, STAYS SILENT on the declared one,');
