@@ -1451,7 +1451,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "feature_ref", O(
                                 "type", "object",
                                 "description", "the feature made by an earlier step of this plan. "
-                                    + "Give this OR feature_uid, not both.\n\nKinds allowed:"
+                                    + "Give this OR feature_uid, not both.\n\nAllowed kinds:"
                                     + "\n- feature: the feature made by that step, to "
                                     + "repeat it",
                                 "properties", O(
@@ -1473,7 +1473,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "face_ref", O(
                                 "type", "object",
                                 "description", "the face created by an earlier step of this same plan. Give "
-                                    + "this OR face_uid, not both.\n\nKinds allowed:\n- "
+                                    + "this OR face_uid, not both.\n\nAllowed kinds:\n- "
                                     + "pocket_floor: the floor of the pocket (there only if the pocket is "
                                     + "blind)\n- bottom_face: the face on the sketch plane, "
                                     + "the bottom of the extrusion\n- top_face: the face on "
@@ -1546,9 +1546,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«second_leg_mm» and the angle is ignored.\n\nChamfer or fillet is not "
                         + "an aesthetic preference: a chamfer is made with a milling cutter "
                         + "or a file, a fillet needs a radius tool. If the user says "
-                        + "«chamfer», do not round it."
-                        + "\n\nI REFUSE IF THE CHAMFER IS TOO BIG FOR THE EDGE -- not even half of it fits. A value "
-                        + "over the limit does not always give an error: sometimes a degenerate "
+                        + "«chamfer», do not make a fillet."
+                        + "\n\nI REFUSE IF THE CHAMFER IS TOO BIG FOR THE EDGE -- not even half of it fits. A "
+                        + "value over the limit does not always give an error: sometimes a degenerate "
                         + "geometry comes out that passes the rebuild."
                         + "\n\nThe chamfer follows tangent edges like the fillet. The document state "
                         + "lists each chamfer with «selected_edges» and «faces», and its sizes by type: "
@@ -1573,7 +1573,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "edges_ref", O(
                                 "type", "object",
                                 "description", "the edges created by an earlier step of this plan. Give this OR "
-                                    + "edges_uid, not both.\n\nKinds allowed:\n- bottom_edges: the "
+                                    + "edges_uid, not both.\n\nAllowed kinds:\n- bottom_edges: the "
                                     + "edges of the border at the bottom of the "
                                     + "extrusion\n- side_edges: the edges along the extrusion "
                                     + "direction, the vertical ones\n- top_edges: the edges "
@@ -1619,11 +1619,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "The feature is given as for «circular_pattern»."
                         + "\n\nThe plane is always one of the three base planes, and it must be "
                         + "stated: getting it wrong does not move the geometry a little, it puts it "
-                        + "in another part of the piece, and the build succeeds all the same.\n\nThe "
+                        + "somewhere else on the part, and the build succeeds all the same.\n\nThe "
                         + "FEATURE is mirrored, not the whole body: for a symmetric part, "
                         + "mirror the hole or pocket that is missing on one side."
-                        + "\n\nI REFUSE IF THE PLANE DOES NOT EXIST, and I tell you which ones there are. Invented "
-                        + "names -- diagonale (diagonal), obliquo (oblique) -- I do not interpret: mirroring "
+                        + "\n\nI REFUSE IF THE PLANE DOES NOT EXIST, and I tell you which ones there are. Invented names "
+                        + "-- diagonale (diagonal), obliquo (oblique) -- I do not interpret: mirroring "
                         + "across the wrong plane produces a plausible and wrong part.",
                     Precondition = "solid_body",
                     Schema = O(
@@ -1635,7 +1635,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "feature_ref", O(
                                 "type", "object",
                                 "description", "the feature made by an earlier step of this plan. "
-                                    + "Give this OR feature_uid, not both.\n\nKinds allowed:"
+                                    + "Give this OR feature_uid, not both.\n\nAllowed kinds:"
                                     + "\n- feature: the feature made by that step, to "
                                     + "repeat it",
                                 "properties", O(
@@ -1673,7 +1673,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "true it LEAVES THEM WHERE THEY ARE and puts copies further along: "
                         + "this is how two equal frames at a certain distance are made.\n\nIT "
                         + "IS NEEDED WHEN THE PART HAS TWO EQUAL PARTS IN DIFFERENT PLACES. "
-                        + "A castle made of two frames 600 mm apart is not asked for by "
+                        + "A rack made of two frames 600 mm apart is not asked for by "
                         + "making the frame twice: the second time would be refused, because "
                         + "the same operation twice with the same numbers makes two "
                         + "overlapping bodies. You make ONE frame, and then copy it moved 600 "
@@ -1695,7 +1695,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "bodies_ref", O(
                                 "type", "object",
                                 "description", "the bodies created by an earlier step of this same plan. "
-                                    + "Give this OR bodies_uid, not both.\n\nKinds allowed:"
+                                    + "Give this OR bodies_uid, not both.\n\nAllowed kinds:"
                                     + "\n- bodies: the bars created by that step, all together",
                                 "properties", O(
                                     "step", O(
@@ -1756,7 +1756,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "the face created by an earlier step of this same plan, when "
                                     + "the hole goes on geometry you are creating now and which "
                                     + "therefore has no identifier yet. Give this OR face_uid, not "
-                                    + "both.\n\nKinds allowed:\n- pocket_floor: the floor of the "
+                                    + "both.\n\nAllowed kinds:\n- pocket_floor: the floor of the "
                                     + "pocket (there only if the pocket is blind)\n- bottom_face: "
                                     + "the face on the sketch plane, the bottom of the "
                                     + "extrusion\n- top_face: the face on top of "
@@ -1825,7 +1825,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "face_ref", O(
                                 "type", "object",
                                 "description", "the face created by an earlier step of this same plan. Give "
-                                    + "this OR face_uid, not both.\n\nKinds allowed:\n- "
+                                    + "this OR face_uid, not both.\n\nAllowed kinds:\n- "
                                     + "pocket_floor: the floor of the pocket (there only if the pocket is "
                                     + "blind)\n- bottom_face: the face on the sketch plane, "
                                     + "the bottom of the extrusion\n- top_face: the face on "
@@ -2561,7 +2561,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Opens the drawing of the part you are looking at.",
+                        "Opens a new drawing of the part you are looking at.",
                     Description =
                         "Creates the DRAWING document of the open part and brings it to the "
                         + "front. The part stays open: a drawing view attaches to the "
@@ -2570,7 +2570,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nThe drawing template is NOT chosen: the one of this "
                         + "installation is used, which carries the shop's title block "
                         + "and the right projection angle. From here on the active document "
-                        + "is the DRAWING, and the operations that work on the part no "
+                        + "is the DRAWING, and the operations that model the part no "
                         + "longer apply until you go back to the part.",
                     Precondition = "a part or an assembly SAVED to disk",
                     Schema = O(
@@ -2730,15 +2730,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // by enumerating and refuses the holes without a mark. See entry W2.11.
                     Tested = true,
                     Summary =
-                        "Checks that every hole in the views has its centre mark, really counting them, and refuses if one is missing.",
+                        "Checks that every hole in the views has its center mark, really counting them, and refuses if one is missing.",
                     Description =
-                        "CHECKS that every hole visible in the views has its centre mark, and tries "
+                        "CHECKS that every hole visible in the views has its center mark, and tries "
                         + "to add it where it is missing. SOLIDWORKS puts them in by itself when it creates "
                         + "the view, if the document option «Croci di centro sui fori» (the one that "
-                        + "puts centre marks on holes) is on: those holes I recognise "
+                        + "puts center marks on holes) is on: those holes I recognise "
                         + "(«circles_already_marked»). A new mark cannot be made from code (measured): a "
                         + "hole without a mark is a refusal, with the way out — the option on and the view rebuilt.\n\nWHY IT "
-                        + "IS NEEDED. A drawing with twelve holes and no centre mark prints and looks "
+                        + "IS NEEDED. A drawing with twelve holes and no center mark prints and looks "
                         + "complete. In the shop, the thing needed to drill is missing: "
                         + "**where the centre is.**\n\nI TELL YOU HOW MANY WERE BORN, counted on the view: "
                         + "every mark must raise the count by one, and a circle left without a mark "
@@ -2747,7 +2747,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "seen from above, usually V2).\n\nTHE SIZE, if you do not tell me, "
                         + "is the document's: it is a house convention.\n\nWithout «view» I look "
                         + "at all of them. Not fillets or slots: measured, on arcs the mark is not "
-                        + "born from code.\n\nCENTRE MARKS ARE COUNTED BY ENUMERATING THEM: the "
+                        + "born from code.\n\nCENTER MARKS ARE COUNTED BY ENUMERATING THEM: the "
                         + "SOLIDWORKS counter (GetCenterMarkCount) does not see the ones put in "
                         + "when the view is created, and said zero on a sheet that had three."
                         + "\n\nThe walk over the holes is the one standard_views also uses on views "
@@ -3264,14 +3264,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "Creates a section view on a drawing, and checks "
                         + "that the cut met material.",
                     Description =
-                        "Cuts a view of the drawing and puts the section beside it. It "
-                        + "is the first thing that is missing for a real shop drawing: "
+                        "Cuts a view of the drawing and puts the section beside it. "
+                        + "It is the first thing that is missing for a real shop drawing: "
                         + "a part with an internal cavity, without a section, cannot "
                         + "be read — the hidden lines say there is a void, not what "
                         + "shape it has.\n\n"
                         + "I DRAW THE CUTTING LINE MYSELF, from side to side of the "
-                        + "view: a line that only grazes it gives an empty section without "
-                        + "saying anything. By default I cut in the middle; with «offset_mm» "
+                        + "view: a line that only grazes it gives an empty section "
+                        + "without saying anything. By default I cut in the middle; with «offset_mm» "
                         + "you move the cut, in **sheet** millimetres — not of "
                         + "the model, because on the sheet the view is scaled.\n\n"
                         + "I TELL YOU IF IT WAS BORN by counting the views "
@@ -3282,7 +3282,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "is not born, or the cutting line cannot be selected, the line I "
                         + "drew is removed from the sheet, said removed only after the "
                         + "sheet sketch is counted again.\n\n"
-                        + "AND I REFUSE IF THERE IS NO HATCHING. A "
+                        + "I REFUSE IF THERE IS NO HATCHING. A "
                         + "section without hatching is a cutting line that fell "
                         + "outside the material: on the sheet there remains a view that "
                         + "looks good and shows nothing, and no error would say so. "
@@ -3291,8 +3291,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "belongs to another section or to a detail I refuse and tell you "
                         + "the ones used — two «A-A» look like the same cut. The letter the "
                         + "view really has I read back to you («label_reread»).\n\n"
-                        + "WHAT I CANNOT KNOW is whether that is the section that "
-                        + "was needed. I can tell you that the cut met material, not that it "
+                        + "WHAT I CANNOT KNOW is whether that is the section that was "
+                        + "needed. I can tell you that the cut met material, not that it "
                         + "passes through the cavity you wanted to show.",
                     Precondition = "an open drawing with at least one model view",
                     Schema = O(
@@ -4027,7 +4027,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the text you write -- «M6x1» -- is what ends up on the drawing, "
                         + "WORD FOR WORD. This SOLIDWORKS call ignores the standard and the "
                         + "size: there is no table that checks whether «M6x1» is right "
-                        + "for a pin of 6. If you write it wrong, it reaches the shop wrong.",
+                        + "for a Ø6 pin. If you write it wrong, it reaches the shop wrong.",
                     Precondition = "solid_body",
                     Schema = O(
                         "type", "object",
@@ -4101,33 +4101,33 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "radius ball rolls touching both.",
                     Description =
                         "Rounds the transition between TWO FACES: the surface that results "
-                        + "is the one left by a ball of the requested radius rolling "
-                        + "in contact with both. On the edge between two faces that "
-                        + "touch it gives the same part as «fillet_edges»; the difference "
-                        + "is that you do not need to name an edge, the two faces are enough."
-                        + "\n\nOn an OUTSIDE edge it removes material, in an inside "
-                        + "corner it adds some: the answer says how much the volume changed "
-                        + "and in which direction."
+                        + "is the one left by a ball of the requested radius rolling in "
+                        + "contact with both. On the edge between two faces that touch "
+                        + "it gives the same part as «fillet_edges»; the difference is "
+                        + "that you do not need to name an edge, the two faces are enough."
+                        + "\n\nOn an OUTSIDE edge it removes material, in an inside corner it "
+                        + "adds some: the answer says how much the volume changed and in which "
+                        + "direction."
                         + "\n\nTHE HAND CALCULATION IS A CHECK, NOT A SIDE NOTE. When the two faces are "
                         + "flat, at 90 degrees and touch along an edge, the expected change is edge "
                         + "length x r^2 x (1 - pi/4), read before the fillet («expected_change_abs_mm3»). "
                         + "A volume change further from it than 0.05 mm3 (or one ten-thousandth of it, "
                         + "whichever is larger) is refused: the fillet is removed, the part is checked "
                         + "back, and the answer says so. On any other pair of faces the expected change "
-                        + "is null and nothing is compared.\n\nI REFUSE "
-                        + "IF the same face is in both sets (for the edges of a single "
-                        + "face there is «fillet_edges»), and IF the two faces are "
-                        + "flat and PARALLEL, before even trying: if they face the same "
-                        + "way, or turn their backs on each other like the front and the back "
-                        + "of a block, no ball touches both. Two walls that face each other "
-                        + "(a slot) I let you try only with a radius equal to half the "
-                        + "distance, and I tell you.\n\nAFTERWARDS I CHECK: that the new feature is "
-                        + "a fillet, that the volume has changed, that the bodies are the "
-                        + "ones from before and that no feature has gone into error. If "
-                        + "one of these does not hold I remove the fillet, check again that "
-                        + "the part is as it was, and tell you. If it is not created -- usually "
-                        + "the radius, which does not fit on the faces -- I say so and "
-                        + "point you to «fillet_edges».\n\nOne face per set; faces are "
+                        + "is null and nothing is compared.\n\nI REFUSE IF the same face is "
+                        + "in both sets (for the edges of a single face there is «fillet_edges»), "
+                        + "and IF the two faces are flat and PARALLEL; both "
+                        + "are checked before any attempt. Of two parallel faces, if they "
+                        + "face the same way, or turn their backs on each other like the front "
+                        + "and the back of a block, no ball touches both. Two walls that "
+                        + "face each other (a slot) I let you try only with a radius equal to half "
+                        + "the distance, and I tell you.\n\nAFTERWARDS I CHECK: that the new "
+                        + "feature is a fillet, that the volume has changed, that the bodies "
+                        + "are the ones from before and that no feature has gone into "
+                        + "error. If one of these does not hold I remove the fillet, check again "
+                        + "that the part is as it was, and tell you. If it is not created -- "
+                        + "usually the radius, which does not fit on the faces -- I say so "
+                        + "and point you to «fillet_edges».\n\nOne face per set; faces are "
                         + "named with the identifiers of the state, not with a reference to "
                         + "a step.",
                     Precondition = "solid_body_and_face",
@@ -4196,7 +4196,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "the body that REMAINS, if an earlier step of this same "
                                     + "plan creates it (for example after a cut, which changes "
                                     + "the identifiers). Give this OR main_body_uid, not both. "
-                                    + "The step must leave ONE body only.\n\nKinds allowed:\n- bodies: the "
+                                    + "The step must leave ONE body only.\n\nAllowed kinds:\n- bodies: the "
                                     + "bodies touched by that step",
                                 "properties", O(
                                     "step", O(
@@ -4219,7 +4219,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "object",
                                 "description", "the bodies to unite, subtract or intersect, if an earlier "
                                     + "step of this same plan creates them. Give this OR "
-                                    + "tool_bodies_uid, not both.\n\nKinds allowed:\n- bodies: the bodies "
+                                    + "tool_bodies_uid, not both.\n\nAllowed kinds:\n- bodies: the bodies "
                                     + "touched by that step, all together",
                                 "properties", O(
                                     "step", O(
@@ -5355,11 +5355,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "Example: L 60x60, 10 thick and 50 deep, front plane at distance 25, line from [10, "
                         + "40, 25] to [40, 10, 25]: the rib is the triangle in the corner, 450 mm2 x "
                         + "6 = 2700 mm3.\n\n"
-                        + "THE DIRECTION OF THE MATERIAL I try myself: first straight, then flipped, and I keep the first one in "
+                        + "THE DIRECTION OF THE MATERIAL I try myself: first as given, then flipped, and I keep the first one in "
                         + "which the rib is created and the part grows. It depends on the shape (in the L it "
-                        + "is the straight one, in the hollowed box the flipped one) and the answer "
+                        + "is the one as given, in the hollowed box the flipped one) and the answer "
                         + "says which I used and how many attempts. If the line lies between walls on both "
-                        + "sides, the straight one wins.\n\n"
+                        + "sides, the one as given wins.\n\n"
                         + "I REFUSE IF an end of the line is not on the plane given (I "
                         + "do not project it silently), IF the line is shorter than one millimeter, and "
                         + "IF the rib is created in neither of the two directions: usually it means there "
@@ -5469,13 +5469,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "refuses if the text does not fit.",
                     Description =
                         "Writes WORDS into the part: serial number, mounting direction, customer "
-                        + "name, «TOP». Engraved (default) or embossed."
-                        + "\n\nI CHECK THAT IT FITS FIRST, AND IT IS HALF OF THE JOB. The width of a "
-                        + "text cannot be calculated from the string: it depends on the font, and "
+                        + "name, «UP». Engraved (default) or embossed."
+                        + "\n\nI CHECK THAT IT FITS FIRST, AND IT IS HALF OF THE JOB. The width of a text "
+                        + "cannot be calculated from the string: it depends on the font, and "
                         + "«PROVA» 10 mm high in Century Gothic is 47 mm wide. A text that "
                         + "runs off the face is cut away SILENTLY -- the feature comes out green, "
-                        + "and in the part there is «PRO». I read where the letters "
-                        + "really end and I refuse, telling you by how much it overflowed.\n\nI "
+                        + "and in the part there is «PRO». I read where the letters really "
+                        + "end and I refuse, telling you by how much it overflowed.\n\nI "
                         + "ANSWER HOW WIDE AND HIGH IT REALLY IS, so the second time you "
                         + "already know which numbers to pass.\n\nThe anchor is the start "
                         + "of the text at the bottom left: from there it goes to the right. "
@@ -5490,7 +5490,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "text", O(
                                 "type", "string",
-                                "description", "the text, for example «SN-0042» or «TOP»."),
+                                "description", "the text, for example «SN-0042» or «UP»."),
                             "face_uid", O(
                                 "type", "string",
                                 "description", "the flat face to write on (for example «F1»). "
