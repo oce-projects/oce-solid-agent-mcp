@@ -34,10 +34,10 @@ namespace Oce.Solid.Agent.Core
             public string Touches(double x0, double y0, double x1, double y1)
             {
                 if (x0 < FrameBorder - 1e-6 || x1 > Width - FrameBorder + 1e-6 || y0 < FrameBorder - 1e-6 || y1 > Height - FrameBorder + 1e-6)
-                    return "esce dalla cornice del foglio";
+                    return "goes out of the frame of the sheet";
                 foreach (var r in BoundingBoxes)
                     if (x1 > r[0] - Detachment && x0 < r[2] + Detachment && y1 > r[1] - Detachment && y0 < r[3] + Detachment)
-                        return ReferenceEquals(r, TitleBlock) ? "cade sul cartiglio" : "cade su una vista, una tabella o una nota";
+                        return ReferenceEquals(r, TitleBlock) ? "falls on the title block" : "falls on a view, a table or a note";
                 return null;
             }
         }
@@ -171,10 +171,10 @@ namespace Oce.Solid.Agent.Core
             double c = FreeSheet.FrameBorder, s = FreeSheet.Detachment;
             var candidates = new List<Tuple<double, double, string>>
             {
-                Tuple.Create(Math.Min(f.TitleBlock[2], f.Width - c) - w, f.TitleBlock[3] + s, "sopra il cartiglio"),
-                Tuple.Create(f.Width - c - w, f.Height - c - h, "in alto a destra"),
-                Tuple.Create(c, f.Height - c - h, "in alto a sinistra"),
-                Tuple.Create(c, c, "in basso a sinistra"),
+                Tuple.Create(Math.Min(f.TitleBlock[2], f.Width - c) - w, f.TitleBlock[3] + s, "above the title block"),
+                Tuple.Create(f.Width - c - w, f.Height - c - h, "top right"),
+                Tuple.Create(c, f.Height - c - h, "top left"),
+                Tuple.Create(c, c, "bottom left"),
             };
             foreach (var k in candidates)
                 if (f.Touches(k.Item1, k.Item2, k.Item1 + w, k.Item2 + h) == null)
@@ -188,7 +188,7 @@ namespace Oce.Solid.Agent.Core
                     if (f.Touches(x, y, x + w, y + h) == null)
                     {
                         location = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                                             "nel primo posto libero ({0:0}/{1:0} mm)", x * 1000, y * 1000);
+                                             "in the first free place ({0:0}/{1:0} mm)", x * 1000, y * 1000);
                         return new[] { x, y };
                     }
             location = null;

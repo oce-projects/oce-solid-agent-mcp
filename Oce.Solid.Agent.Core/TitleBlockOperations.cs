@@ -63,22 +63,22 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: il cartiglio sta su un " +
-                    "foglio di disegno.");
+                    "The active document is not a drawing: the title block is on " +
+                    "a drawing sheet.");
 
             ISheet sheet;
             try { sheet = drawing.GetCurrentSheet() as ISheet; }
-            catch (Exception ex) { return Failed("Non riesco a leggere il foglio: " + ex.Message); }
-            if (sheet == null) return Failed("La tavola non ha un foglio attivo.");
+            catch (Exception ex) { return Failed("I cannot read the sheet: " + ex.Message); }
+            if (sheet == null) return Failed("The drawing has no active sheet.");
 
             var note = TitleBlockNotes(drawing, sheet, out string fromWhere);
             if (note.Count == 0)
                 return Failed(
-                    "Non trovo nessuna nota nel cartiglio di questo foglio" +
-                    (fromWhere == null ? "" : " (cercate " + fromWhere + ")") +
-                    ". O il modello di tavola non ha un cartiglio, o e' fatto di " +
-                    "disegno invece che di note: nel secondo caso non c'e' niente da " +
-                    "alimentare, il testo e' dipinto dentro il formato.");
+                    "I cannot find any note in the title block of this sheet" +
+                    (fromWhere == null ? "" : " (searched " + fromWhere + ")") +
+                    ". Either the drawing template has no title block, or it is " +
+                    "made of drawing instead of notes: in the second case there is " +
+                    "nothing to feed, the text is painted inside the format.");
 
             // ── WHAT IT ASKS FOR AND WHAT IT SHOWS, field by field ──────
             var fields = new List<object>();
@@ -146,10 +146,10 @@ namespace Oce.Solid.Agent.Core
             {
                 measurements["properties_wanted_by_title_block"] = requestedItems.ToArray();
                 measurements["how_to_use_it"] =
-                    "Copia questi nomi ALLA LETTERA dentro «set_property». Una " +
-                    "maiuscola o uno spazio diversi non danno nessun errore: la " +
-                    "proprieta' viene scritta, il cartiglio non la mostra, e il PDF " +
-                    "esce con la casella vuota.";
+                    "Copy these names LITERALLY into «set_property». A " +
+                    "different capital or space gives no error: the property " +
+                    "is written, the title block does not show it, and the PDF " +
+                    "comes out with the empty box.";
             }
             // This one too always, for the same reason: it is the positive
             // statement, and a statement that disappears when it is false is not
@@ -199,8 +199,8 @@ namespace Oce.Solid.Agent.Core
             string whoWasChecked;
             var onDisk = ViewModelProperty(drawing, out whoWasChecked);
             measurements["model_checked_for_properties"] = whoWasChecked ??
-                "NON SONO ARRIVATO AL MODELLO: i due elenchi qui sotto sono vuoti " +
-                "perche' non ho potuto guardare, non perche' non ci fosse niente.";
+                "I DID NOT REACH THE MODEL: the two lists below are empty " +
+                "because I could not look, not because there was nothing.";
 
             var presentButMute = new List<string>();
             if (onDisk != null)
@@ -219,10 +219,10 @@ namespace Oce.Solid.Agent.Core
             measurements["requested_present_on_model_but_shown_empty"] = presentButMute.ToArray();
             if (presentButMute.Count > 0)
                 measurements["not_the_drafters_fault"] =
-                    "Queste proprieta' CI SONO sul modello mostrato nella vista, e il " +
-                    "cartiglio le mostra vuote lo stesso: il collegamento non ha " +
-                    "risolto. Riscriverle non cambia niente. Prova a ricostruire la " +
-                    "tavola e a rileggere; se restano vuote, il collegamento e' rotto.";
+                    "These properties ARE on the model shown in the view, and the title " +
+                    "block shows them empty all the same: the link did not resolve. " +
+                    "Writing them again changes nothing. Try rebuilding the drawing " +
+                    "and reading again; if they stay empty, the link is broken.";
 
             string viewByProperty = TestText(() => sheet.CustomPropertyView);
             if (!string.IsNullOrWhiteSpace(viewByProperty))
@@ -230,26 +230,26 @@ namespace Oce.Solid.Agent.Core
 
             if (requestedItems.Count == 0)
                 measurements["verdict"] =
-                    "Il cartiglio ha " + note.Count + (note.Count == 1 ? " nota" : " note") +
-                    " ma **nessuna collegata a una proprieta'**: il testo e' scritto " +
-                    "fisso dentro il formato. Riempirlo con «set_property» non " +
-                    "cambierebbe niente, e non te lo lascio credere.";
+                    "The title block has " + note.Count + (note.Count == 1 ? " note" : " notes") +
+                    " but **none linked to a property**: the text is written fixed " +
+                    "inside the format. Filling it with «set_property» would " +
+                    "change nothing, and I do not let you believe it.";
             else if (empty.Count == 0)
                 measurements["verdict"] =
-                    "Il cartiglio vuole " + requestedItems.Count +
-                    (requestedItems.Count == 1 ? " proprieta'" : " proprieta'") + " (" +
-                    string.Join(", ", requestedItems) + ") e le mostra tutte: nessuna casella " +
-                    "vuota.";
+                    "The title block wants " + requestedItems.Count +
+                    (requestedItems.Count == 1 ? " property" : " properties") + " (" +
+                    string.Join(", ", requestedItems) + ") and shows all of them: no empty " +
+                    "box.";
             else
                 measurements["verdict"] =
-                    "ATTENZIONE: il cartiglio chiede " + requestedItems.Count + " proprieta' e " +
-                    empty.Count + " NON mostrano niente (" + string.Join(", ", empty) +
-                    "). O non sono ancora state scritte, o sono scritte con una grafia " +
-                    "diversa da quella che il cartiglio referenzia — e quel caso non da' " +
-                    "nessun errore: la tavola esce con le caselle vuote. I nomi qui " +
-                    "sopra sono quelli giusti, copiali alla lettera.";
+                    "WARNING: the title block asks for " + requestedItems.Count + " properties and " +
+                    empty.Count + " show NOTHING (" + string.Join(", ", empty) +
+                    "). Either they have not been written yet, or they are written with a " +
+                    "spelling different from the one the title block references — and that " +
+                    "case gives no error: the drawing comes out with the empty boxes. The " +
+                    "names above are the right ones, copy them literally.";
 
-            _log("[agente] " + measurements["verdict"]);
+            _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
         }
 
@@ -273,7 +273,7 @@ namespace Oce.Solid.Agent.Core
                     var n = block.GetNotes() as object[];
                     if (n != null)
                         foreach (var o in n) { var note = o as INote; if (note != null) outside.Add(note); }
-                    if (outside.Count > 0) { fromWhere = "nel blocco cartiglio del foglio"; return outside; }
+                    if (outside.Count > 0) { fromWhere = "in the title block group of the sheet"; return outside; }
                 }
             }
             catch { }
@@ -305,12 +305,12 @@ namespace Oce.Solid.Agent.Core
                         catch { }
                         ann = ann.GetNext3() as IAnnotation;
                     }
-                    if (outside.Count > 0) fromWhere = "fra le note del formato del foglio";
+                    if (outside.Count > 0) fromWhere = "among the notes of the sheet format";
                 }
             }
             catch { }
 
-            if (fromWhere == null) fromWhere = "nel blocco cartiglio e fra le note del formato";
+            if (fromWhere == null) fromWhere = "in the title block group and among the notes of the format";
             return outside;
         }
 
@@ -371,7 +371,7 @@ namespace Oce.Solid.Agent.Core
                 // lie when two documents have the same name.
                 try { whomIChecked = refObj.GetPathName(); } catch { }
                 if (string.IsNullOrWhiteSpace(whomIChecked))
-                    try { whomIChecked = "senza percorso, titolo «" + refObj.GetTitle() + "»"; } catch { }
+                    try { whomIChecked = "no path, title «" + refObj.GetTitle() + "»"; } catch { }
 
                 var outside = new List<string>();
                 var location = new List<string> { "" };
@@ -412,7 +412,7 @@ namespace Oce.Solid.Agent.Core
                 // `$PRPSHEET` takes the property from the MODEL in view, not
                 // from the drawing: it is a different drawer, and confusing them makes
                 // people write on the wrong document.
-                if (m.Groups[1].Success) itemName = itemName + "  (dal pezzo, non dal disegno)";
+                if (m.Groups[1].Success) itemName = itemName + "  (from the part, not from the drawing)";
                 if (!outside.Contains(itemName, StringComparer.Ordinal)) outside.Add(itemName);
             }
             return outside;

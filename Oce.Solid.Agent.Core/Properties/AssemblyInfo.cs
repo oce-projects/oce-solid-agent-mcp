@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 // «this check runs on the same version as back then».
 [assembly: AssemblyTitle("Oce.Solid.Agent.Core")]
 [assembly: AssemblyDescription(
-    "Operazioni di disegno per SOLIDWORKS che riportano cos'e' venuto, non cos'e' stato chiesto.")]
+    "CAD operations for SOLIDWORKS that report what actually came out, not what was asked for.")]
 [assembly: AssemblyProduct("Riscontro")]
 [assembly: AssemblyCulture("")]
 

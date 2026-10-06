@@ -70,21 +70,21 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: le quote stanno su una " +
-                    "vista di disegno. Crea prima la tavola con «create_drawing».");
+                    "The active document is not a drawing: dimensions go on a " +
+                    "drawing view. First create the drawing with «create_drawing».");
 
             var names = ViewNames(drawing);
             if (names.Count == 0)
                 return Failed(
-                    "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
-                    "Metti prima le viste con «standard_views» o «model_view».");
+                    "The drawing has no views: the dimensions would have nowhere to attach. " +
+                    "First put the views with «standard_views» or «model_view».");
 
             string wanted = Str(a, "view", null);
             string viewReason;
             IView view = ResolveView(drawing, names, wanted, out viewReason);
             if (viewReason != null) return Failed(viewReason);
             if (view == null)
-                return Failed("Non riesco a prendere la vista su cui quotare.");
+                return Failed("I cannot get the view to dimension on.");
 
             string viewName = "";
             try { viewName = view.GetName2() ?? ""; } catch { }
@@ -98,7 +98,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non riesco a chiedere gli spigoli alla vista: " + ex.Message);
+                return Failed("I cannot ask the view for its edges: " + ex.Message);
             }
 
             // ZERO-E-ZERO: the exception already has its refusal above; null is
@@ -106,10 +106,10 @@ namespace Oce.Solid.Agent.Core
             int available = edges == null ? 0 : edges.Length;
             if (available == 0)
                 return Failed(
-                    "La vista «" + viewName + "» non mostra nessuno spigolo quotabile. " +
-                    "Su una vista vuota, o su una vista in cui il modello non e' " +
-                    "risolto, non c'e' niente da quotare — e mettere zero quote " +
-                    "rispondendo «fatto» sarebbe peggio.");
+                    "The view «" + viewName + "» shows no edge that can be dimensioned. " +
+                    "On an empty view, or on a view where the model is not resolved, " +
+                    "there is nothing to dimension — and putting zero dimensions " +
+                    "while answering «done» would be worse.");
 
             // WHICH EDGES. Without saying it, the first ones are dimensioned, and how many is stated.
             var chosen = new List<int>();
@@ -120,11 +120,11 @@ namespace Oce.Solid.Agent.Core
                 {
                     int i;
                     if (!int.TryParse((o ?? "").Trim(), out i))
-                        return Failed("«edges» vuole numeri, e «" + o + "» non lo e'.");
+                        return Failed("«edges» wants numbers, and «" + o + "» is not one.");
                     if (i < 0 || i >= available)
                         return Failed(
-                            "Lo spigolo " + i + " non c'e': la vista «" + viewName +
-                            "» ne mostra " + available + " (da 0 a " + (available - 1) + ").");
+                            "The edge " + i + " does not exist: the view «" + viewName +
+                            "» has " + available + " edges (from 0 to " + (available - 1) + ").");
                     if (!chosen.Contains(i)) chosen.Add(i);
                 }
             }
@@ -132,7 +132,7 @@ namespace Oce.Solid.Agent.Core
             {
                 int howMany = (int)Num(a, "count", 4);
                 if (howMany <= 0)
-                    return Failed("«count» dev'essere almeno 1: zero quote non sono una quota.");
+                    return Failed("«count» must be at least 1: zero dimensions are not a dimension.");
                 for (int i = 0; i < Math.Min(howMany, available); i++) chosen.Add(i);
             }
 
@@ -148,9 +148,9 @@ namespace Oce.Solid.Agent.Core
             try { contour = view.GetOutline() as double[]; } catch { }
             if (contour == null || contour.Length < 4)
                 return Failed(
-                    "Non riesco a leggere l'ingombro della vista sul foglio, e senza " +
-                    "quello le quote finirebbero in un punto qualunque — fuori dal " +
-                    "foglio, se va male, e senza nessun errore.");
+                    "I cannot read the bounding box of the view on the sheet, and " +
+                    "without it the dimensions would end up anywhere — outside the sheet, " +
+                    "if it goes badly, and without any error.");
 
             double dimensionOffset = Num(a, "offset_mm", 12) / 1000.0;
             double planStep = Num(a, "pitch_mm", 10) / 1000.0;
@@ -168,8 +168,8 @@ namespace Oce.Solid.Agent.Core
             try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
             if (mu == null || tr == null)
                 return Failed(
-                    "Non riesco a leggere come la vista porta il modello sul foglio: senza, le " +
-                    "quote finirebbero nel punto sbagliato, e senza nessun errore.");
+                    "I cannot read how the view carries the model onto the sheet: without it, the " +
+                    "dimensions would end up in the wrong place, and without any error.");
             double scale = 1;
             try { scale = view.ScaleDecimal; } catch { }
             if (scale <= 0) scale = 1;
@@ -213,7 +213,7 @@ namespace Oce.Solid.Agent.Core
             {
                 if (circles.Exists(c => c.Index == i)) continue;   // the holes have their own route, below
                 var s = all.Find(t => t.Index == i);
-                if (s == null) { failed.Add(i + " (non riesco a misurarlo sul foglio)"); continue; }
+                if (s == null) { failed.Add(i + " (I cannot measure it on the sheet)"); continue; }
 
                 // THE CHAMFER IS NOT DIMENSIONED WITH ITS EDGES. The first drawing
                 // looked at had the chamfer dimensioned 7.071 obliquely (the hypotenuse)
@@ -222,12 +222,12 @@ namespace Oce.Solid.Agent.Core
                 // chamfer — are told by the chamfer dimension and the overall size together.
                 if (s.ChamferFeature != null)
                 {
-                    onChamfer.Add(i + " (spigolo dello smusso «" + s.ChamferFeature + "»: va con la quota da smusso)");
+                    onChamfer.Add(i + " (edge of the chamfer «" + s.ChamferFeature + "»: it goes with the chamfer dimension)");
                     continue;
                 }
                 if (IsChamferLeg(s, all))
                 {
-                    onChamfer.Add(i + " (accorciato dallo smusso: lo dicono la quota da smusso e l'ingombro)");
+                    onChamfer.Add(i + " (shortened by the chamfer: the chamfer dimension and the bounding box say it)");
                     continue;
                 }
 
@@ -247,13 +247,13 @@ namespace Oce.Solid.Agent.Core
                 // steps in different places are not.
                 if (seen.ContainsKey(s.Key))
                 {
-                    duplicates.Add(i + " (stessa misura dello spigolo " + seen[s.Key] + ")");
+                    duplicates.Add(i + " (same measure as the edge " + seen[s.Key] + ")");
                     continue;
                 }
                 if (s.InModel != null && already.Contains(s.InModel))
                 {
                     elsewhere.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 2).ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                                " mm: la stessa estensione e' gia' quotata in un'altra vista)");
+                                " mm: the same extent is already dimensioned in another view)");
                     continue;
                 }
                 seen[s.Key] = i;
@@ -269,8 +269,8 @@ namespace Oce.Solid.Agent.Core
             int before = CountDimensions(drawing);
             if (before < 0)
                 return Failed(
-                    "Non riesco a contare le quote della tavola prima di cominciare: senza " +
-                    "quel numero non saprei dirti quali ho messo io. Non ho toccato niente.");
+                    "I cannot count the dimensions of the drawing before starting: without " +
+                    "that number I could not tell you which ones I put. I touched nothing.");
 
             // ── THE MODAL TRAP, switched off and put back ───────────────
             bool askedForTheValue = true;
@@ -337,8 +337,8 @@ namespace Oce.Solid.Agent.Core
                     {
                         model.ClearSelection2(true);
                         var ent = edges[s.Index] as IEntity;
-                        if (ent == null) { failed.Add(s.Index + " (non e' un'entita')"); continue; }
-                        if (!ent.Select4(false, null)) { failed.Add(s.Index + " (non si seleziona)"); continue; }
+                        if (ent == null) { failed.Add(s.Index + " (it is not an entity)"); continue; }
+                        if (!ent.Select4(false, null)) { failed.Add(s.Index + " (it cannot be selected)"); continue; }
 
                         // ── WHERE THIS DIMENSION GOES ───────────────────
                         //
@@ -389,7 +389,7 @@ namespace Oce.Solid.Agent.Core
                             // look at whether the dimension is there. It is the house rule —
                             // the value that comes back from whoever did the thing is not
                             // the measurement of the thing.
-                            failed.Add(s.Index + " (chiamata andata, quota non nata)");
+                            failed.Add(s.Index + " (the call went through, the dimension was not created)");
                             continue;
                         }
 
@@ -423,9 +423,9 @@ namespace Oce.Solid.Agent.Core
             int after = CountDimensions(drawing);
             if (after < 0)
                 return Failed(
-                    "Ho messo le quote nella vista «" + viewName + "», ma poi non riesco a " +
-                    "ricontarle: non so dirti quante ne sono nate. Guarda la tavola prima di " +
-                    "andare avanti.");
+                    "I put the dimensions in the view «" + viewName + "», but then I cannot count " +
+                    "them again: I cannot tell you how many were created. Look at the drawing before " +
+                    "going on.");
             int put = after - before;
 
             if (put <= 0)
@@ -437,24 +437,24 @@ namespace Oce.Solid.Agent.Core
                 if (failed.Count == 0 && cutting.Count > 0 && measuredValues.Count == 0 && round == null &&
                     duplicates.Count + elsewhere.Count + onChamfer.Count == 0 && holesInTable <= 0)
                     return Failed(
-                        "Nella vista «" + viewName + "» gli unici spigoli sono cerchi visti di taglio (" +
-                        string.Join(", ", cutting) + ") e non stanno su uno stesso asse: non e' un pezzo tondo " +
-                        "visto di fianco che io sappia quotare. Il diametro di un cerchio lo quoto dalla vista in " +
-                        "cui e' un cerchio (di taglio, AddDiameterDimension2 dice 60 per un Ø30).");
+                        "In view «" + viewName + "» the only edges are circles seen edge-on (" +
+                        string.Join(", ", cutting) + ") and they do not lie on one axis: this is not a round part " +
+                        "seen from the side, the only kind I can dimension here. For the diameter of a circle, use the view in " +
+                        "which it is a circle (edge-on, AddDiameterDimension2 says 60 for a Ø30).");
                 if (failed.Count == 0 && ((duplicates.Count + elsewhere.Count + onChamfer.Count) > 0 || holesInTable > 0))
                     return Failed(
-                        "Nella vista «" + viewName + "» non c'e' niente da quotare che non lo sia " +
-                        "gia': " + duplicates.Count + " doppioni nella vista, " + elsewhere.Count +
-                        " gia' quotati in un'altra vista, " + onChamfer.Count + " dello smusso" +
-                        (holesInTable > 0 ? ", " + holesInTable + " fori nella tabella fori" : "") + ". " +
-                        "Ciascun elemento si quota una volta sola in tutta la tavola (UNI ISO 129-1).");
+                        "In view «" + viewName + "» there is nothing left to dimension that is not " +
+                        "already dimensioned: " + duplicates.Count + " duplicates in the view, " + elsewhere.Count +
+                        " already dimensioned in another view, " + onChamfer.Count + " on the chamfer" +
+                        (holesInTable > 0 ? ", " + holesInTable + " holes in the hole table" : "") + ". " +
+                        "Each element is dimensioned once only in the whole drawing (UNI ISO 129-1).");
                 return Failed(
-                    "Nessuna quota e' nata (erano " + before + ", sono " + after + "). " +
-                    "La vista «" + viewName + "» mostra " + available + " spigoli e ne " +
-                    "ho provati " + chosen.Count +
+                    "No dimension was created (there were " + before + ", there are " + after + "). " +
+                    "The view «" + viewName + "» shows " + available + " edges and " +
+                    "I tried " + chosen.Count +
                     (failed.Count == 0 ? "" : ": " + string.Join(", ", failed)) + ". " +
-                    "Se la finestra «Modifica» e' rimasta accesa, la chiamata si appende " +
-                    "invece di fallire: qui non e' successo, quindi e' altro.");
+                    "If the «Modify» window stayed open, the call hangs instead of " +
+                    "failing: that did not happen here, so it is something else.");
             }
 
             double[] afterContour = ContourOf(view);
@@ -570,39 +570,39 @@ namespace Oce.Solid.Agent.Core
                 ["pitch_used_mm"] = Math.Round(planStep * 1000, 2),
 
                 ["where_placed"] =
-                    "FUORI dalla sagoma della vista, in coordinate foglio: le " +
-                    "orizzontali sotto, le verticali di lato, le oblique a sinistra, " +
-                    "in ordine crescente allontanandosi dal pezzo. Viene da due " +
-                    "criteri di norma — la linea di misura e' parallela alla " +
-                    "dimensione a cui si riferisce, e sta per quanto possibile " +
-                    "all'esterno delle figure (UNI ISO 129-1, nella scheda " +
-                    "Sammarone/Zanichelli) — piu' la distanza: oltre 10 mm dal " +
-                    "contorno e passo costante fra 7 e 12 su A3/A4. Dentro la cornice " +
-                    "del foglio: se da un lato non c'e' posto, dall'altro. I fori col " +
-                    "richiamo e la posizione dai bordi di riferimento (sinistro e in " +
-                    "basso: lo zero e' l'angolo in basso a sinistra, lo stesso della " +
-                    "tabella fori), attaccata al foro piu' vicino al lato della quota; gli " +
-                    "smussi con la quota da smusso, fuori dal pezzo dalla parte dello smusso.",
+                    "OUTSIDE the outline of the view, in sheet coordinates: the " +
+                    "horizontal ones below, the vertical ones at the side, the oblique ones on the left, " +
+                    "in increasing order moving away from the part. It comes from two " +
+                    "criteria of the standard — the dimension line is parallel to the " +
+                    "dimension it refers to, and lies as far as possible " +
+                    "outside the figures (UNI ISO 129-1, in the data sheet " +
+                    "Sammarone/Zanichelli) — plus the distance: more than 10 mm from the " +
+                    "outline and a constant pitch between 7 and 12 on A3/A4. Inside the border " +
+                    "of the sheet: if there is no room on one side, on the other. Holes with the " +
+                    "callout and the position from the reference edges (left and " +
+                    "bottom: zero is the bottom-left corner, the same as the " +
+                    "hole table's), attached to the hole nearest the side of the dimension; " +
+                    "chamfers with the chamfer dimension, outside the part on the side of the chamfer.",
 
                 ["what_it_does_not_check"] =
-                    "QUALI quote servono, e se bastano. La norma distingue quote " +
-                    "funzionali, non funzionali e ausiliarie, e una quota funzionale " +
-                    "non si deve dedurre da altre: quello lo sa il progettista. So " +
-                    "dire quante ne ho messe, non se il pezzo e' definito.\n" +
-                    "Il TESTO delle quote lo guardo (dal 26/9/2026): il suo rettangolo " +
-                    "vero, letto da SOLIDWORKS, contro gli altri testi della tavola e le " +
-                    "linee del pezzo in questa vista — «overlapping_texts». Non " +
-                    "guardo le linee di misura e di richiamo, ne' il cartiglio. " +
-                    "E non guardo: se una quota di posizione dei fori andava presa da un " +
-                    "altro riferimento funzionale (prendo i bordi); quale sistema " +
-                    "adottare fra in serie, in parallelo e a quote sovrapposte; se una " +
-                    "quota andava fra parentesi come ausiliaria. Tolleranze, rugosita' " +
-                    "e riferimenti geometrici non li metto.\n" +
-                    "Quotare bene resta un mestiere: queste regole tolgono i doppioni " +
-                    "e portano le quote fuori dal pezzo, non fanno una tavola d'autore.",
+                    "WHICH dimensions are needed, and whether they are enough. The standard " +
+                    "distinguishes functional, non-functional and auxiliary dimensions, and a " +
+                    "functional dimension must not be derived from others: the designer knows " +
+                    "that. I can say how many I put, not whether the part is defined.\n" +
+                    "The TEXT of the dimensions I do look at (since 26/9/2026): its real rectangle, " +
+                    "read by SOLIDWORKS, against the other texts of the drawing and the lines of the " +
+                    "part in this view — «overlapping_texts». I do not look at the dimension " +
+                    "lines and the leader lines, nor the title block. And I do not look " +
+                    "at: whether a position dimension of the holes should have been taken from another " +
+                    "functional reference (I take the borders); which system to adopt among " +
+                    "serial, parallel and overlapping dimensions; whether a dimension should have " +
+                    "been put in parentheses as auxiliary. Tolerances, surface finish and geometric " +
+                    "references I do not put.\nDimensioning well " +
+                    "remains a craft: these rules remove the duplicates and bring the dimensions " +
+                    "outside the part, they do not make a master drawing.",
             };
 
-            _log("[agente] " + put + " quote sulla vista «" + viewName + "»: " +
+            _log("[agent] " + put + " dimensions on the view «" + viewName + "»: " +
                  ValuesInLine(born));
             return WithoutFeature(measurements);
         }
@@ -1149,14 +1149,14 @@ namespace Oce.Solid.Agent.Core
                     }
                     if (onChamfer)
                     {
-                        borders.Add("Ø" + dm + " (bordo di uno smusso o di un raccordo: va con la sua quota, non con un diametro)");
+                        borders.Add("Ø" + dm + " (border of a chamfer or a fillet: it goes with its own dimension, not with a diameter)");
                         continue;
                     }
                 }
                 bool dimensioned = its != null
                     ? already.Contains(its) || already.Contains("cil?|" + key.Substring(5))
                     : already.Contains(key);
-                if (dimensioned) { elsewhere.Add("diametro esterno Ø" + dm + " (gia' quotato in questa tavola)"); continue; }
+                if (dimensioned) { elsewhere.Add("outer diameter Ø" + dm + " (already dimensioned in this drawing)"); continue; }
                 int dimensionsBefore = CountDimensions(drawing);
                 IDisplayDimension q = null;
                 try
@@ -1169,7 +1169,7 @@ namespace Oce.Solid.Agent.Core
                 model.ClearSelection2(true);
                 if (NotGrown(drawing, dimensionsBefore, q))
                 {
-                    failed.Add("diametro esterno Ø" + dm + " (la quota non e' nata)");
+                    failed.Add("outer diameter Ø" + dm + " (the dimension was not created)");
                     continue;
                 }
                 // BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80): the count went up and
@@ -1189,8 +1189,8 @@ namespace Oce.Solid.Agent.Core
                         model.ClearSelection2(true);
                     }
                     catch { }
-                    failed.Add("diametro esterno Ø" + dm + " (SOLIDWORKS ha scritto " + (read ?? "?") +
-                                (removed ? ": l'ho tolta)" : ": toglila)"));
+                    failed.Add("outer diameter Ø" + dm + " (SOLIDWORKS wrote " + (read ?? "?") +
+                                (removed ? ": I removed it)" : ": remove it)"));
                     continue;
                 }
                 described["orientation"] = "outer diameter";
@@ -1258,7 +1258,7 @@ namespace Oce.Solid.Agent.Core
                 else if (alreadyBefore.Contains(key)) dimensioned = true;
                 if (dimensioned)
                 {
-                    elsewhere.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (gia' quotati in questa tavola)");
+                    elsewhere.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (already dimensioned in this drawing)");
                     continue;
                 }
                 // The callout goes on the top left hole: it is the first one
@@ -1290,7 +1290,7 @@ namespace Oce.Solid.Agent.Core
                             head.SheetCenter[0] - 0.015, contour[3] + dimensionOffset * 0.8, 0) as IDisplayDimension;
                 }
                 catch { }
-                string come = "richiamo del foro";
+                string come = "hole callout";
                 // THE COUNT DECIDES, NOT THE OBJECT (Z-C21.8, finding N80). Until
                 // library 0.144.0 a null object sent the hole to the fallback even
                 // when the count of dimensions had gone up: the callout was on the
@@ -1309,14 +1309,14 @@ namespace Oce.Solid.Agent.Core
                         if ((head.Edge as IEntity).Select4(false, null))
                             callout = model.AddDiameterDimension2(
                                 head.SheetCenter[0] - 0.015, contour[3] + dimensionOffset * 0.8, 0) as IDisplayDimension;
-                        come = "quota di diametro";
+                        come = "diameter dimension";
                     }
                     catch { }
                     calloutNotBorn = NotGrown(drawing, dimensionsBefore, callout);
                 }
                 if (calloutNotBorn)
                 {
-                    failed.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (il richiamo non e' nato)");
+                    failed.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the callout was not created)");
                     continue;
                 }
                 // BORN WITHOUT ITS OBJECT (N80): with callout null from here on, the
@@ -1363,8 +1363,8 @@ namespace Oce.Solid.Agent.Core
                 // «Ø8» and nothing else, and a blind hole in the workshop gets drilled through. The
                 // depth is then written by the bridge, from the geometry, in the
                 // suffix — the same «<HOLE-DEPTH>» the callout uses.
-                string depthFrom = come == "richiamo del foro" ? "richiamo" : null;
-                if (come == "quota di diametro" && head.ThroughAll == false && !double.IsNaN(head.DepthMm))
+                string depthFrom = come == "hole callout" ? "callout" : null;
+                if (come == "diameter dimension" && head.ThroughAll == false && !double.IsNaN(head.DepthMm))
                 {
                     try
                     {
@@ -1400,9 +1400,9 @@ namespace Oce.Solid.Agent.Core
                 if (head.ThroughAll == false && depth == null)
                     // A blind one, by the geometry, that leaves the drawing without
                     // depth: it is not «done», and that is stated.
-                    failed.Add("fori Ø" + g.Key.Item1.ToString("0.##", Ci) + " (cieco" +
-                                (double.IsNaN(head.DepthMm) ? "" : ", profondo " + head.DepthMm.ToString("0.##", Ci)) +
-                                ", ma la quota non porta la profondita': in officina si forerebbe passante)");
+                    failed.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (blind" +
+                                (double.IsNaN(head.DepthMm) ? "" : ", deep " + head.DepthMm.ToString("0.##", Ci)) +
+                                ", but the dimension does not carry the depth: in the workshop it would be drilled through)");
                 holes.Add(new Dictionary<string, object>
                 {
                     ["diameter_mm"] = g.Key.Item1,
@@ -1414,7 +1414,7 @@ namespace Oce.Solid.Agent.Core
                     ["diameter_reread_mm"] = described.ContainsKey("mm") ? described["mm"] : null,
                     // Null, not false, for a callout born without its object (N80):
                     // its suffix was never read.
-                    ["through_all"] = callout == null ? null : come == "richiamo del foro" ? (object)throughAll : head.ThroughAll,
+                    ["through_all"] = callout == null ? null : come == "hole callout" ? (object)throughAll : head.ThroughAll,
                     ["depth_mm"] = depth,
                     ["depth_from"] = depthFrom,
                     ["callout_suffix"] = callout == null ? null : suffix,
@@ -1554,19 +1554,19 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (NotGrown(drawing, dimensionsBefore, dimension))
             {
-                failed.Add("posizione del foro a " + expectedMm.ToString("0.##", Ci) + " mm (la quota non e' nata)");
+                failed.Add("position of the hole at " + expectedMm.ToString("0.##", Ci) + " mm (the dimension was not created)");
                 return;
             }
             // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
             // described with its value unknown, see RecordBornWithoutObject.
             var described = DescribeDimension(dimension, hole.Index);
-            described["orientation"] = horizontal ? "posizione orizzontale del foro" : "posizione verticale del foro";
+            described["orientation"] = horizontal ? "horizontal position of the hole" : "vertical position of the hole";
             described["position_mm"] = WhereItEnded(dimension);
             object mm;
             if (described.TryGetValue("mm", out mm) && mm != null &&
                 Math.Abs(Convert.ToDouble(mm, Ci) - expectedMm) > 0.05)
-                described["warning"] = "vale " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " invece di " +
-                                          expectedMm.ToString("0.##", Ci) + ": forse misura al bordo del foro e non al centro";
+                described["warning"] = "is " + Convert.ToDouble(mm, Ci).ToString("0.##", Ci) + " instead of " +
+                                          expectedMm.ToString("0.##", Ci) + ": maybe it measures to the edge of the hole and not to the center";
             if (dimension != null) born.Add(described);
             else RecordBornWithoutObject(born, described, failed,
                 "hole position at " + expectedMm.ToString("0.##", Ci) + " mm (the dimension was born but SOLIDWORKS " +
@@ -1593,7 +1593,7 @@ namespace Oce.Solid.Agent.Core
                 string key = "smusso|" + s.ChamferFeature;
                 if (already.Contains(key))
                 {
-                    elsewhere.Add("smusso «" + s.ChamferFeature + "» (gia' quotato in questa tavola)");
+                    elsewhere.Add("chamfer «" + s.ChamferFeature + "» (already dimensioned in this drawing)");
                     continue;
                 }
                 ProjectedEdge leg = null;
@@ -1607,7 +1607,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (leg == null)
                 {
-                    failed.Add("smusso «" + s.ChamferFeature + "» (nessuno spigolo a cui appoggiare la quota da smusso)");
+                    failed.Add("chamfer «" + s.ChamferFeature + "» (no edge to rest the chamfer dimension on)");
                     continue;
                 }
                 // The text OUTSIDE the part, on the side of the chamfer: from the centre
@@ -1630,7 +1630,7 @@ namespace Oce.Solid.Agent.Core
                 catch { }
                 if (NotGrown(drawing, dimensionsBefore, dimension))
                 {
-                    failed.Add("smusso «" + s.ChamferFeature + "» (la quota da smusso non e' nata)");
+                    failed.Add("chamfer «" + s.ChamferFeature + "» (the chamfer dimension was not created)");
                     continue;
                 }
                 // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
@@ -1898,8 +1898,8 @@ namespace Oce.Solid.Agent.Core
                     int k = int.Parse(uid.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
                     if (k < 1 || k > names.Count)
                     {
-                        reason = "Non c'e' la vista «" + wanted + "»: la tavola ne ha " + names.Count +
-                                 " (da V1 a V" + names.Count + ").";
+                        reason = "There is no such view: «" + wanted + "» is not among the " + names.Count +
+                                 " views of the drawing (V1 to V" + names.Count + ").";
                         return null;
                     }
                     wanted = names[k - 1];
@@ -1907,7 +1907,7 @@ namespace Oce.Solid.Agent.Core
             }
             if (!string.IsNullOrWhiteSpace(wanted) && !KnownViewName(names, wanted))
             {
-                reason = "Non c'e' nessuna vista che si chiami «" + wanted + "». Ci sono: " +
+                reason = "There is no view called «" + wanted + "». There are: " +
                          string.Join(", ", names) + ".";
                 return null;
             }

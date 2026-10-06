@@ -50,14 +50,14 @@ namespace Oce.Solid.Agent.Core
             string typ = Str(a, "variant", "fillet");
             string symbol;
             if (!WeldSymbols.TryGetValue(typ, out symbol))
-                return Failed("«variant» e' uno fra " + string.Join(", ", WeldSymbols.Keys) + ", non «" + typ + "».");
+                return Failed("«variant» is one of " + string.Join(", ", WeldSymbols.Keys) + ", not «" + typ + "».");
             double throat;
             if (!RequiredNum(a, "throat_mm", out throat, out reason)) return Failed(reason);
             if (throat <= 0 || throat > 50)
-                return Failed("«throat_mm» (la gola del cordone) sta fra 0 e 50 mm, non " +
+                return Failed("«throat_mm» (the throat of the bead) is between 0 and 50 mm, not " +
                                throat.ToString("0.###", CultureInfo.InvariantCulture) + ".");
             double length = Num(a, "length_mm", 0);
-            if (length < 0) return Failed("«length_mm» non puo' essere negativa.");
+            if (length < 0) return Failed("«length_mm» cannot be negative.");
             bool everythingAround = Bool(a, "all_around", false);
             bool inOpera = Bool(a, "field_weld", false);
             bool twoSides = Bool(a, "both_sides", false);
@@ -67,21 +67,21 @@ namespace Oce.Solid.Agent.Core
             var part = view.ReferencedDocument as IModelDoc2;
             var partDoc = part as IPartDoc;
             if (partDoc == null)
-                return Failed("Dietro la vista non c'e' una parte: il simbolo di saldatura va su un giunto fra i " +
-                               "corpi di un saldato.");
+                return Failed("Behind the view there is no part: the weld symbol goes on a joint between the " +
+                               "bodies of a weldment.");
             object[] bodies = null;
             try { bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[]; } catch { }
             if (bodies == null)
-                return Failed("Non riesco a leggere i corpi del pezzo dietro la vista: senza, non so dire dove sia il " +
-                               "giunto. Guarda il pezzo e riprova.");
+                return Failed("I cannot read the bodies of the part behind the view: without them, I cannot tell where the " +
+                               "joint is. Look at the part and retry.");
             if (bodies.Length < 2)
-                return Failed("Il pezzo dietro la vista ha " + bodies.Length + " corpi: un " +
-                               "giunto saldato e' fra DUE corpi, e un simbolo su un corpo solo non indica nessuna saldatura.");
+                return Failed("The part behind the view has " + bodies.Length + " bodies: a " +
+                               "welded joint is between TWO bodies, and a symbol on a single body does not indicate any weld.");
             IEdge joint; double alongJoint;
             if (!VisibleJoint(view, bodies, out joint, out alongJoint))
-                return Failed("Nella vista «" + (view.GetName2() ?? "") + "» non si vede nessuno spigolo in cui un corpo " +
-                               "tocca l'altro: il simbolo va sulla linea del giunto. Prova la vista in cui il giunto si vede " +
-                               "di fianco.");
+                return Failed("In the view «" + (view.GetName2() ?? "") + "» an edge where one body touches the other is " +
+                               "NOT visible: the symbol goes on the line of the joint. Try the view in which the joint is seen " +
+                               "from the side.");
 
             var side = SideEdge(view, annotationSide, out reason);
             if (side == null) return Failed(reason);
@@ -89,11 +89,11 @@ namespace Oce.Solid.Agent.Core
 
             int before = DrawingWeldSymbols(drawing);
             if (!SelectInView(model, view, joint))
-                return Failed("Non riesco a selezionare nella vista lo spigolo del giunto.");
+                return Failed("I cannot select the edge of the joint in the view.");
             string dim1 = "a" + throat.ToString("0.##", CultureInfo.InvariantCulture);
             string dim2 = length > 0 ? length.ToString("0.##", CultureInfo.InvariantCulture) : "";
             try { drawing.InsertWeldSymbol(dim1, symbol, dim2, twoSides, inOpera, false, false, everythingAround, false, ""); }
-            catch (Exception ex) { model.ClearSelection2(true); return Failed("Il simbolo di saldatura non e' nato: " + ex.Message); }
+            catch (Exception ex) { model.ClearSelection2(true); return Failed("The weld symbol was not created: " + ex.Message); }
             model.ClearSelection2(true);
             int after = DrawingWeldSymbols(drawing);
             IWeldSymbol ws = LastWeldSymbol(drawing, view);
@@ -101,11 +101,11 @@ namespace Oce.Solid.Agent.Core
             // symbol of the view could be one that was already there (and the «wrong»
             // branch would remove it). Review of 26/9/2026.
             if (before < 0 || after < 0)
-                return Failed("Non riesco a contare i simboli di saldatura della tavola (prima " + before + ", dopo " +
-                               after + "): senza, non so se e' nato quello chiesto. Guarda la tavola.");
+                return Failed("I cannot count the weld symbols of the drawing (before " + before + ", after " +
+                               after + "): without that, I do not know whether the requested one was created. Look at the drawing.");
             if (ws == null || after != before + 1)
-                return Failed("SOLIDWORKS non ha creato il simbolo di saldatura e non ha detto perche' (simboli in " +
-                               "tavola: " + before + " prima, " + after + " dopo).");
+                return Failed("SOLIDWORKS did not create the weld symbol and did not say why (symbols in the " +
+                               "drawing: " + before + " before, " + after + " after).");
 
             // ── READ BACK ───────────────────────────────────────────────────
             string readSymbol = null, readLeft = null, readRight = null;
@@ -125,19 +125,19 @@ namespace Oce.Solid.Agent.Core
 
             var wrong = new List<string>();
             if (!string.Equals((readSymbol ?? "").Trim(), symbol, StringComparison.OrdinalIgnoreCase))
-                wrong.Add("il simbolo dice «" + readSymbol + "» invece di «" + symbol + "»");
+                wrong.Add("the symbol says «" + readSymbol + "» instead of «" + symbol + "»");
             if (!string.Equals((readLeft ?? "").Trim(), dim1, StringComparison.OrdinalIgnoreCase))
-                wrong.Add("la gola dice «" + readLeft + "» invece di «" + dim1 + "»");
+                wrong.Add("the throat says «" + readLeft + "» instead of «" + dim1 + "»");
             if (dim2.Length > 0 && !string.Equals((readRight ?? "").Trim(), dim2, StringComparison.OrdinalIgnoreCase))
-                wrong.Add("la lunghezza dice «" + readRight + "» invece di «" + dim2 + "»");
-            if (everythingAround != readPerimeter) wrong.Add("«tutto attorno» non e' come chiesto");
+                wrong.Add("the length says «" + readRight + "» instead of «" + dim2 + "»");
+            if (everythingAround != readPerimeter) wrong.Add("«all around» is not as requested");
             bool fieldOk = readField == (int)swWeldSymbolField_e.swFieldWeldUp || readField == (int)swWeldSymbolField_e.swFieldWeldDown;
-            if (readField < 0) wrong.Add("«in opera» non si rilegge");
-            else if (inOpera != fieldOk) wrong.Add("«in opera» non e' come chiesto");
-            if (readSymmetric < 0 && twoSides) wrong.Add("«entrambi i lati» non si rilegge");
-            else if (twoSides != (readSymmetric == (int)swWeldSymbolSymmetric_e.swWeldSymmetric)) wrong.Add("«entrambi i lati» non e' come chiesto");
-            if (attached == 0) wrong.Add("non e' attaccato a nessuno spigolo");
-            if (attached < 0) wrong.Add("non si rilegge a cosa e' attaccato");
+            if (readField < 0) wrong.Add("«field weld» cannot be read back");
+            else if (inOpera != fieldOk) wrong.Add("«field weld» is not as requested");
+            if (readSymmetric < 0 && twoSides) wrong.Add("«both sides» cannot be read back");
+            else if (twoSides != (readSymmetric == (int)swWeldSymbolSymmetric_e.swWeldSymmetric)) wrong.Add("«both sides» is not as requested");
+            if (attached == 0) wrong.Add("it is not attached to any edge");
+            if (attached < 0) wrong.Add("what it is attached to cannot be read back");
             string textsWrong = WeldSymbolTextsWrong(texts);
             if (textsWrong != null) wrong.Add(textsWrong);
             if (wrong.Count > 0)
@@ -148,8 +148,8 @@ namespace Oce.Solid.Agent.Core
                 // said only when the weld symbols of the drawing, counted again,
                 // are back to the count before the insertion (Z-C21.8, M38).
                 bool removed = RemoveNewAnnotation(model, an, () => DrawingWeldSymbols(drawing), before);
-                return Failed("Il simbolo di saldatura e' nato ma " + string.Join("; ", wrong) +
-                               (removed ? ": l'ho tolto." : ": toglilo — " + Sentences.HowToWithdrawIt + "."));
+                return Failed("The weld symbol was created but " + string.Join("; ", wrong) +
+                               (removed ? ": I removed it." : ": remove it — " + Sentences.HowToWithdrawIt + "."));
             }
 
             return WithoutFeature(new Dictionary<string, object>

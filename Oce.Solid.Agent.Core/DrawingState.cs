@@ -323,19 +323,19 @@ namespace Oce.Solid.Agent.Core
             {
                 data["dimensions_with_number_not_from_model"] = bogusNumbers;
                 data["warning_numbers"] =
-                    bogusNumbers.Count + (bogusNumbers.Count == 1 ? " quota stampa" : " quote stampano") +
-                    " un numero che non e' quello del modello (sovrascritto, o il valore spento " +
-                    "con del testo al suo posto). La geometria e' giusta, la carta no: in officina " +
-                    "si lavora col numero stampato.";
+                    bogusNumbers.Count + (bogusNumbers.Count == 1 ? " dimension prints" : " dimensions print") +
+                    " a number that is not the model's (overwritten, or the value turned off " +
+                    "with text in its place). The geometry is right, the paper is not: in the shop " +
+                    "you work from the printed number.";
             }
             data["annotations_total"] = Six(gtolTot, datumTot, totalWelds, rugTot, noteTot, annTot);
             data["dimensions_orphan_total"] = unknownOrphans && orfaneTot == 0 ? (object)null : orfaneTot;
             data["dimensions_not_verifiable_total"] =
                 unknownOrphans && notVerifiableTotal == 0 ? (object)null : notVerifiableTotal;
             if (orfaneTot > 0)
-                data["warning_dimensions"] = orfaneTot + " quote sono attaccate a spigoli che le viste non " +
-                    "mostrano piu': sul foglio si stampano col numero di prima, appese al niente. Di " +
-                    "solito il pezzo e' cambiato dopo che la tavola e' stata quotata.";
+                data["warning_dimensions"] = orfaneTot + " dimensions are attached to edges that the views " +
+                    "no longer show: on the sheet they get printed with the old number, hanging from " +
+                    "nothing. Usually the part changed after the drawing was dimensioned.";
 
             // TWO DECLARED BLINDNESSES, and both would lead to wrong
             // conclusions if they stayed implicit.
@@ -346,29 +346,29 @@ namespace Oce.Solid.Agent.Core
                 //    this drawing template, thirty-nine. Whoever adds up the views and
                 //    compares with the total of the document finds a big difference
                 //    and concludes that something got lost.
-                "«annotations_total» somma le VISTE; le note del cartiglio " +
-                "stanno sul FOGLIO e si contano a parte, in " +
-                "«sheet_annotations» — su questo modello di tavola sono " +
-                "sessantasette, e sommarle alle viste farebbe sembrare quotata " +
-                "una tavola vuota. E un'annotazione su un layer non stampabile " +
-                "esiste, viene contata, e nel PDF non c'e': il conteggio dice " +
-                "cosa c'e' nel documento, non cosa esce dalla stampante. " +
-                "«dimensions_orphan» checks whether the edges and vertices each dimension is " +
-                "attached to are among those the view shows. A dimension attached to a " +
-                "SILHOUETTE (the apparent outline of a cylinder: the diameters of a turned " +
-                "part seen from the side) cannot be checked, because SOLIDWORKS does not " +
-                "match it with any silhouette the view shows: it is not counted as an " +
-                "orphan but in «dimensions_not_verifiable». A dimension attached to a hidden " +
-                "edge still reads as an orphan without being one.";
+                "«annotations_total» adds up the VIEWS; the notes of the title " +
+                "block are on the SHEET and are counted apart, " +
+                "in «sheet_annotations» — on this drawing template there " +
+                "are sixty-seven of them, and adding them to the views would make " +
+                "an empty drawing look dimensioned. And an annotation on a " +
+                "non-printing layer exists, is counted, and is not in the PDF: " +
+                "the count says what is in the document, not what comes out " +
+                "of the printer. «dimensions_orphan» checks whether the edges and vertices each " +
+                "dimension is attached to are among those the view shows. A dimension " +
+                "attached to a SILHOUETTE (the apparent outline of a cylinder: the diameters of a turned part seen from the side) " +
+                "cannot be checked, because SOLIDWORKS does not match it with any silhouette " +
+                "the view shows: it is not counted as an orphan but in «dimensions_not_verifiable». " +
+                "A dimension attached to a hidden edge still reads as an orphan without being " +
+                "one.";
             if (totalViews > views.Count) data["views_truncated"] = true;
 
             // THE EMPTY DRAWING MUST BE STATED, not left to be deduced from a list that is
             // missing. It is the state in which every drawing is born, and the one in which it
             // stays if `Create1stAngleViews2` said «yes» without doing anything.
             if (totalViews == 0)
-                data["note"] = "la tavola non ha ancora nessuna vista";
+                data["note"] = "the drawing has no view yet";
             else if (quoteTotali.HasValue && quoteTotali.Value == 0)
-                data["note"] = "le viste ci sono ma non c'e' nessuna quota";
+                data["note"] = "the views are there but there is no dimension";
         }
 
         /// <summary>
@@ -525,13 +525,13 @@ namespace Oce.Solid.Agent.Core
                             try { entry["view"] = v.Name; } catch { }
                             try { entry["of_model_mm"] = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
                             if (overwritten)
-                                entry["how"] = "numero sovrascritto: stampa " +
+                                entry["how"] = "overwritten number: prints " +
                                     Math.Round(q.GetOverrideValue() * 1000.0, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) + " mm";
                             else
                             {
                                 string text = "";
                                 try { text = (q.GetText(1) ?? "") + (q.GetText(2) ?? ""); } catch { }
-                                entry["how"] = "valore spento" + (text.Length > 0 ? ": al suo posto «" + text + "»" : "");
+                                entry["how"] = "value turned off" + (text.Length > 0 ? ": in its place «" + text + "»" : "");
                             }
                             details.Add(entry);
                         }
@@ -629,9 +629,9 @@ namespace Oce.Solid.Agent.Core
                 case (int)swDrawingViewTypes_e.swDrawingProjectedView: return "proiezione";
                 case (int)swDrawingViewTypes_e.swDrawingSectionView: return "sezione";
                 case (int)swDrawingViewTypes_e.swDrawingDetailView: return "dettaglio";
-                case (int)swDrawingViewTypes_e.swDrawingNamedView: return "vista con nome";
+                case (int)swDrawingViewTypes_e.swDrawingNamedView: return "named view";
                 case (int)swDrawingViewTypes_e.swDrawingAuxiliaryView: return "ausiliaria";
-                case (int)swDrawingViewTypes_e.swDrawingAlternatePositionView: return "posizione alternativa";
+                case (int)swDrawingViewTypes_e.swDrawingAlternatePositionView: return "alternate position";
                 case (int)swDrawingViewTypes_e.swDrawingRelativeView: return "relativa";
                 case (int)swDrawingViewTypes_e.swDrawingStandardView: return "standard";
                 case (int)swDrawingViewTypes_e.swDrawingDetachedView: return "staccata";

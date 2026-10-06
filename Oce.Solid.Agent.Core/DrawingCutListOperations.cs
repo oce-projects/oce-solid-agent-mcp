@@ -58,14 +58,14 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: la distinta di taglio in " +
-                    "tavola vuole una tavola con dentro una vista del saldato.");
+                    "The active document is not a drawing: the cut list in a drawing " +
+                    "needs a drawing with a view of the weldment in it.");
 
             var names = ViewNames(drawing);
             if (names.Count == 0)
                 return Failed(
-                    "La tavola non ha viste: una distinta di taglio si aggancia a una " +
-                    "vista del pezzo. Mettine una con «standard_views».");
+                    "The drawing has no views: a cut list attaches to a view " +
+                    "of the part. Put one with «standard_views».");
 
             // THE VIEW LIKE THE OTHER DRAWING OPERATIONS: by uid (V1, V2...) or
             // by name. Up to 0.124.0 only by name — «V1», as the state calls it,
@@ -75,7 +75,7 @@ namespace Oce.Solid.Agent.Core
             var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
             if (reason != null) return Failed(reason);
             if (view == null)
-                return Failed("Non riesco a prendere la vista della tavola.");
+                return Failed("I cannot get the view of the drawing.");
 
             string viewName = null;
             try { viewName = view.Name; } catch { }
@@ -100,9 +100,9 @@ namespace Oce.Solid.Agent.Core
 
             if (bodiesInPart == 0)
                 return Failed(
-                    "Il pezzo dietro la vista non ha nessuna cartella di distinta di " +
-                    "taglio: la tabella nascerebbe vuota. Chiedi prima «cut_list» " +
-                    "sul pezzo.");
+                    "The part behind the view has no cut list folder: the " +
+                    "table would be created empty. Ask for «cut_list» " +
+                    "on the part first.");
 
             double x = Units.M(Num(a, "x_mm", 250));
             double y = Units.M(Num(a, "y_mm", 200));
@@ -134,13 +134,13 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Distinta di taglio non inserita in tavola: " + ex.Message);
+                return Failed("Cut list not inserted in the drawing: " + ex.Message);
             }
             if (raw == null)
                 return Failed(
-                    "SOLIDWORKS non ha creato nessuna tabella e non ha detto perche'. " +
-                    "Di solito vuol dire che il pezzo dietro la vista non e' un saldato " +
-                    "con una distinta di taglio.");
+                    "SOLIDWORKS did not create any table and did not say why. " +
+                    "Usually it means that the part behind the view is not a " +
+                    "weldment with a cut list.");
 
             // The same COM object implements both interfaces: that
             // of the cut list (seven methods, none on the cells) and that of the
@@ -149,17 +149,17 @@ namespace Oce.Solid.Agent.Core
             var table = raw as ITableAnnotation;
             if (table == null)
                 return Failed(
-                    "La tabella e' nata ma non si lascia leggere come tabella: senza " +
-                    "leggerla non posso dire cosa c'e' dentro, e non lo chiamo fatto.");
+                    "The table was created but it cannot be read as a table: without " +
+                    "reading it I cannot say what is inside, and I do not call it done.");
 
             int lines = 0, columns = 0;
             try { lines = table.RowCount; } catch { }
             try { columns = table.ColumnCount; } catch { }
             if (lines <= 1)
                 return Failed(
-                    "La tabella e' nata con " + lines + " righe: e' vuota o ha solo " +
-                    "l'intestazione. Una distinta vuota in tavola e' peggio di nessuna " +
-                    "distinta, perche' si stampa e sembra che la carpenteria non abbia " +
+                    "The table was created with " + lines + " records: it is empty or has " +
+                    "only the header. An empty cut list in a drawing is worse than no cut " +
+                    "list, because it gets printed and it looks as if the metalwork had no " +
                     "bars.");
 
             // ── THE QUANTITY COLUMN, ASKED FOR AND NOT GUESSED ──────────
@@ -232,7 +232,7 @@ namespace Oce.Solid.Agent.Core
 
             var measurements = new Dictionary<string, object>
             {
-                ["view"] = viewName ?? "(senza nome)",
+                ["view"] = viewName ?? "(no name)",
                 ["rows"] = lines,
                 ["columns"] = columns,
                 ["entries"] = lines - 1,
@@ -264,7 +264,7 @@ namespace Oce.Solid.Agent.Core
             if (!ColumnsAndPosition(drawing, table, columns, columnProperty, headers, a, measurements, out placeReason))
             {
                 bool removed = RemoveCutTable(model, table);
-                return Failed(placeReason + (removed ? " Ho tolto la tabella." : " Togli la tabella: " + Sentences.HowToWithdrawIt + "."));
+                return Failed(placeReason + (removed ? " I removed the table." : " Remove the table: " + Sentences.HowToWithdrawIt + "."));
             }
 
             // ── THE COMPARISON ─────────────────────────────────────────
@@ -278,33 +278,33 @@ namespace Oce.Solid.Agent.Core
                 if (totalQuantity != bodiesInPart)
                 {
                     measurements["verdict"] =
-                        "ATTENZIONE: la tabella in tavola somma " + totalQuantity +
-                        (totalQuantity == 1 ? " barra" : " barre") + ", e la distinta " +
-                        "del pezzo ne ha " + bodiesInPart + ". **Le due non combaciano.** " +
-                        "Non scelgo quale credere: una tavola che dice un numero diverso " +
-                        "dal modello manda in officina la quantita' sbagliata, e nessuno " +
-                        "dei due lato da' errore. Di solito vuol dire che il pezzo e' " +
-                        "cambiato dopo l'ultimo aggiornamento della distinta: rifai " +
-                        "«cut_list» sul pezzo e poi rimetti la tabella.";
-                    _log("[agente] " + measurements["verdict"]);
+                        "WARNING: the quantity column of the table in the drawing adds up to " + totalQuantity +
+                        (totalQuantity == 1 ? " bar" : " bars") + ", and the cut list " +
+                        "of the part has " + bodiesInPart + ". **The two do not match.** I " +
+                        "do not choose which one to believe: a drawing that says a different " +
+                        "number from the model sends the wrong quantity to the workshop, " +
+                        "and neither side gives an error. Usually it means that the part " +
+                        "changed after the last update of the cut list: do «cut_list» " +
+                        "again on the part and then put the table back.";
+                    _log("[agent] " + measurements["verdict"]);
                     return SucceededWithoutCreating(measurements);
                 }
             }
 
             measurements["verdict"] =
-                "Distinta di taglio in tavola sulla vista «" + (viewName ?? "?") + "»: " +
-                (lines - 1) + (lines - 1 == 1 ? " voce" : " voci") +
+                "Cut list in the drawing on the view «" + (viewName ?? "?") + "»: " +
+                (lines - 1) + (lines - 1 == 1 ? " entry" : " entries") +
                 (quantityRead
-                    ? ", " + totalQuantity + (totalQuantity == 1 ? " barra" : " barre")
+                    ? ", " + totalQuantity + (totalQuantity == 1 ? " bar" : " bars")
                     : "") +
                 (quantityRead && bodiesInPart > 0
-                    ? ", e combacia con la distinta del pezzo (" + bodiesInPart + ")."
-                    : ". Il confronto con la distinta del pezzo non si e' potuto fare.") +
+                    ? ", and it matches the cut list of the part (" + bodiesInPart + ")."
+                    : ". The comparison with the cut list of the part could not be made.") +
                 (quantityColumn < 0
-                    ? " NOTA: non ho trovato la colonna delle quantita' ne' per tipo ne' fra le " +
-                      "proprieta' di colonna, quindi non ho sommato niente (comparison_done: false)."
+                    ? " NOTE: I did not find the quantity column either by type or among " +
+                      "the column properties, so I added up nothing (comparison_done: false)."
                     : "");
-            _log("[agente] " + measurements["verdict"]);
+            _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
         }
 
@@ -355,8 +355,8 @@ namespace Oce.Solid.Agent.Core
                     int i = headers.FindIndex(t => string.Equals((t ?? "").Trim(), (ch ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
                     if (i < 0)
                     {
-                        reason = "La tabella non ha una colonna «" + ch + "». Ha: " + string.Join(", ", headers) +
-                                 " (oppure chiedi «all»).";
+                        reason = "The table has no column «" + ch + "». It has: " + string.Join(", ", headers) +
+                                 " (or ask for «all»).";
                         return false;
                     }
                     keep[i] = true;
@@ -395,8 +395,8 @@ namespace Oce.Solid.Agent.Core
                 (hidden ? hiddenOnes : visible).Add(headers[c]);
                 if (hidden == keep[c])
                 {
-                    reason = "La colonna «" + headers[c] + "» doveva essere " + (keep[c] ? "visibile" : "nascosta") +
-                             " e non lo e': la tabella non e' quella che ti direi.";
+                    reason = "The column «" + headers[c] + "» had to be " + (keep[c] ? "visible" : "hidden") +
+                             " and it is not: the table is not the one I would tell you about.";
                     return false;
                 }
             }
@@ -414,7 +414,7 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (w <= 0 || h <= 0)
             {
-                reason = "La tabella e' nata ma non riesco a misurarla: senza misura non so se sta nel foglio.";
+                reason = "The table was created but I cannot measure it: without a measurement I do not know whether it fits in the sheet.";
                 return false;
             }
             measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
@@ -434,11 +434,11 @@ namespace Oce.Solid.Agent.Core
                 if (why != null)
                 {
                     reason = string.Format(CultureInfo.InvariantCulture,
-                        "La tabella ({0:0} x {1:0} mm) messa a {2:0}/{3:0} {4}. Togli «x_mm» e «y_mm» e la metto io in " +
-                        "un posto libero, oppure nascondi colonne con «columns».", w * 1000, h * 1000, px * 1000, py * 1000, why);
+                        "The table ({0:0} x {1:0} mm) put at {2:0}/{3:0} {4}. Remove «x_mm» and «y_mm» and I put " +
+                        "it in a free place, or hide columns with «columns».", w * 1000, h * 1000, px * 1000, py * 1000, why);
                     return false;
                 }
-                location = "dove chiesto";
+                location = "where requested";
             }
             else
             {
@@ -446,8 +446,8 @@ namespace Oce.Solid.Agent.Core
                 if (down == null)
                 {
                     reason = string.Format(CultureInfo.InvariantCulture,
-                        "Sul foglio non c'e' un posto libero per la tabella ({0:0} x {1:0} mm) fuori dalle viste e dal " +
-                        "cartiglio. Nascondi colonne con «columns», oppure usa un foglio piu' grande.", w * 1000, h * 1000);
+                        "On the sheet there is no free place for the table ({0:0} x {1:0} mm) outside the views " +
+                        "and the title block. Hide columns with «columns», or use a bigger sheet.", w * 1000, h * 1000);
                     return false;
                 }
                 px = down[0]; py = down[1] + h;   // the anchor is at the top left
@@ -462,8 +462,8 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (read == null || Math.Abs(read[0] - px) > 0.0005 || Math.Abs(read[1] - py) > 0.0005)
             {
-                reason = "Ho provato a spostare la tabella " + location + " ma non si e' spostata (riletta " +
-                         (read == null ? "niente" : string.Format(CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} mm", read[0] * 1000, read[1] * 1000)) + ").";
+                reason = "I tried to move the table " + location + " but it did not move (read back: " +
+                         (read == null ? "nothing" : string.Format(CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} mm", read[0] * 1000, read[1] * 1000)) + ").";
                 return false;
             }
             measurements["position_table_mm"] = new object[] { Math.Round(px * 1000, 1), Math.Round(py * 1000, 1) };

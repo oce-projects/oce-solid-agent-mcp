@@ -63,15 +63,15 @@ namespace Oce.Solid.Agent.Core
             var assemblyDoc = model as IAssemblyDoc;
             if (assemblyDoc == null)
                 return Failed(
-                    "Questo non e' un assieme, e' un documento di tipo «" +
-                    DocumentTypeName(TypeOf(model)) + "». I componenti si " +
-                    "sostituiscono dentro un assieme.");
+                    "This is not an assembly, it is a document of type «" +
+                    DocumentTypeName(TypeOf(model)) + "». Components are " +
+                    "replaced inside an assembly.");
 
             object[] rawItems = null;
             try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
             var components = DocumentState.ComponentsInOrder(rawItems);
             if (components.Count == 0)
-                return Failed("L'assieme non ha componenti da sostituire.");
+                return Failed("The assembly has no components to replace.");
 
             string uid = Str(a, "component", null);
             var comp = PerUid(components, uid);
@@ -87,15 +87,15 @@ namespace Oce.Solid.Agent.Core
             string newItem = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(newItem))
                 return Failed(
-                    "Non mi hai detto con cosa sostituirlo: «path» e' il percorso " +
-                    "completo del file nuovo, e dev'essere gia' aperto. Li trovi in " +
-                    "«documents_open» dello stato.");
+                    "You did not tell me what to replace it with: «path» is the full " +
+                    "path of the new file, and it must already be open. You find them in " +
+                    "«documents_open» of the state.");
             if (!File.Exists(newItem))
-                return Failed("Il file «" + newItem + "» non esiste. " + WhatIsOpen());
+                return Failed("The file «" + newItem + "» does not exist. " + WhatIsOpen());
             if (!IsOpen(newItem))
                 return Failed(
-                    "«" + Path.GetFileName(newItem) + "» non e' aperto in SOLIDWORKS, e la " +
-                    "sostituzione vuole un documento gia' aperto. " + WhatIsOpen());
+                    "«" + Path.GetFileName(newItem) + "» is not open in SOLIDWORKS, and the " +
+                    "replacement wants a document that is already open. " + WhatIsOpen());
 
             // REPLACING A PART WITH ITSELF IS NOT AN OPERATION.
             // It would succeed, it would change nothing, and whoever asked for it believed they
@@ -106,9 +106,9 @@ namespace Oce.Solid.Agent.Core
                 string.Equals(Path.GetFullPath(old), Path.GetFullPath(newItem),
                               StringComparison.OrdinalIgnoreCase))
                 return Failed(
-                    "«" + uid + "» usa gia' quel file. Sostituirlo con se stesso " +
-                    "riuscirebbe e non cambierebbe niente: se volevi un altro pezzo, " +
-                    "e' il percorso a essere sbagliato.");
+                    "«" + uid + "» already uses that file. Replacing it with " +
+                    "itself would succeed and change nothing: if you wanted another " +
+                    "part, the path is what is wrong.");
 
             bool all = Bool(a, "all_instances", true);
             string configuration = Str(a, "configuration", "");
@@ -178,8 +178,8 @@ namespace Oce.Solid.Agent.Core
                 model.ClearSelection2(true);
                 if (!SelectComponent(comp))
                     return Failed(
-                        "Non sono riuscito a selezionare «" + uid + "»: senza selezione " +
-                        "la sostituzione lavorerebbe su quello che capita, o su niente.");
+                        "I could not select «" + uid + "»: without a selection " +
+                        "the replacement would work on whatever happens to be there, or on nothing.");
                 // MatchName, NOT ManuallySelect, UNTIL A PROBE (Z-C21.4, findings
                 // M18 and N57). This comment used to say that ManuallySelect opens
                 // a window to pick the configuration by hand, and a modal window
@@ -212,7 +212,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito a sostituire il componente: " + ex.Message);
+                return Failed("I could not replace the component: " + ex.Message);
             }
             finally { try { model.ClearSelection2(true); } catch { } }
 
@@ -263,7 +263,7 @@ namespace Oce.Solid.Agent.Core
             var measurements = new Dictionary<string, object>
             {
                 ["component"] = uid,
-                ["source"] = string.IsNullOrWhiteSpace(old) ? "(senza percorso)" : Path.GetFileName(old),
+                ["source"] = string.IsNullOrWhiteSpace(old) ? "(no path)" : Path.GetFileName(old),
                 ["target"] = Path.GetFileName(newItem),
                 ["components_before"] = howManyBefore,
                 ["components_after"] = afterComp.Count,
@@ -320,30 +320,30 @@ namespace Oce.Solid.Agent.Core
 
             // ── THE JUDGMENT, which is the point of the entry ────────────
             string verdictValue;
-            string done = "Sostituito «" + measurements["source"] + "» con «" + measurements["target"] +
-                           "» su " + uid + ". ";
+            string done = "Replaced «" + measurements["source"] + "» with «" + measurements["target"] +
+                           "» on " + uid + ". ";
             if (brokenOnes)
                 // THE WORST CASE, AND IT IS NOT «LOST»: the constraints are still there and
                 // are BROKEN. Zero constraints is seen; two constraints in error
                 // seem to constrain.
-                verdictValue = done + "ATTENZIONE: gli accoppiamenti ci sono ancora (" +
-                           accAfter + ") ma il documento ha " + problemsAfter +
-                           " problemi contro i " + problemsBefore + " di prima: **qualcuno " +
-                           "di quei vincoli e' in ERRORE**, perche' puntava a una faccia " +
-                           "del pezzo vecchio. Un vincolo rotto e' peggio di un vincolo " +
-                           "assente: sembra che tenga. Toglilo e rimettilo con «mate», " +
-                           "oppure «undo».";
+                verdictValue = done + "WARNING: the mates are still there (" +
+                           accAfter + ") but the document has " + problemsAfter +
+                           " problems against the " + problemsBefore + " it had before: **some " +
+                           "of those mates are in ERROR**, because they pointed at a face " +
+                           "of the old part. A broken mate is worse than a missing mate: " +
+                           "it looks like it holds. Remove it and put it back with «mate», " +
+                           "or «undo».";
             else if (accBefore == 0)
-                verdictValue = done + "Non c'erano accoppiamenti da conservare.";
+                verdictValue = done + "There were no mates to keep.";
             else if (accAfter >= accBefore)
-                verdictValue = done + "Gli accoppiamenti sono rimasti e sono sani: " +
-                           accAfter + (accAfter == 1 ? " vincolo" : " vincoli") +
-                           ", e il documento non ha problemi nuovi.";
+                verdictValue = done + "The mates stayed and are sound: " +
+                           accAfter + (accAfter == 1 ? " mate" : " mates") +
+                           ", and the document has no new problems.";
             else
-                verdictValue = done + "**GLI ACCOPPIAMENTI SI SONO PERSI**: ne aveva " +
-                           accBefore + ", adesso ne ha " + accAfter + ". Il pezzo nuovo e' " +
-                           "dentro e **non e' vincolato**: l'assieme sembra montato e non " +
-                           "lo e'. Rimettili con «mate», oppure «undo».";
+                verdictValue = done + "**THE MATES WERE LOST**: it had " +
+                           accBefore + ", now it has " + accAfter + ". The new part is in " +
+                           "and **is not constrained**: the assembly looks assembled and it " +
+                           "is not. Put them back with «mate», or «undo».";
             if (configurationAsAsked == false)
                 verdictValue = "WARNING: you asked for the configuration «" + configuration + "», and the new " +
                            "component references " +
@@ -356,7 +356,7 @@ namespace Oce.Solid.Agent.Core
                            "build on it as if it were «" + configuration + "»: «undo» takes the swap back. " +
                            verdictValue;
             measurements["verdict"] = verdictValue;
-            _log("[agente] " + verdictValue);
+            _log("[agent] " + verdictValue);
 
             return SucceededWithoutCreating(measurements);
         }

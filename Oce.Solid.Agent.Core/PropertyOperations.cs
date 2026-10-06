@@ -97,13 +97,13 @@ namespace Oce.Solid.Agent.Core
             string itemName = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(itemName))
                 return Failed(
-                    "Manca il «name» della proprieta', per esempio «Numero disegno» o " +
+                    "The «name» of the property is missing, for example «Drawing number» or " +
                     "«Revision».");
             string val = Str(a, "value_text", null);
             if (val == null)
                 return Failed(
-                    "Manca il «value_text». Se vuoi svuotare la proprieta', passa una stringa " +
-                    "vuota: cancellarla e' un'altra cosa, e non la faccio di nascosto.");
+                    "The «value_text» is missing. If you want to empty the property, pass an empty " +
+                    "string: deleting it is another thing, and I do not do it behind your back.");
 
             string configuration = Str(a, "configuration", null);
             bool onConfiguration = !string.IsNullOrWhiteSpace(configuration);
@@ -136,9 +136,9 @@ namespace Oce.Solid.Agent.Core
                 propertyManager = model.Extension.get_CustomPropertyManager(
                     onConfiguration ? configuration : "") as ICustomPropertyManager;
             }
-            catch (Exception ex) { return Failed("Non riesco ad arrivare alle proprieta': " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot reach the properties: " + ex.Message); }
             if (propertyManager == null)
-                return Failed("Questo documento non espone le proprieta' personalizzate.");
+                return Failed("This document does not expose the custom properties.");
 
             int outcome;
             try
@@ -152,11 +152,11 @@ namespace Oce.Solid.Agent.Core
                     // comfortable way of believing one has written a revision.
                     (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
             }
-            catch (Exception ex) { return Failed("La proprieta' non e' stata scritta: " + ex.Message); }
+            catch (Exception ex) { return Failed("The property was not written: " + ex.Message); }
 
             if (outcome != (int)swCustomInfoAddResult_e.swCustomInfoAddResult_AddedOrChanged)
                 return Failed(
-                    "SOLIDWORKS ha rifiutato la proprieta' «" + itemName + "»: " +
+                    "SOLIDWORKS refused the property «" + itemName + "»: " +
                     PropertyOutcomeName(outcome) + ".");
 
             // IT IS ALWAYS RE-READ. `Add3` answers a code, not the value: the
@@ -175,9 +175,9 @@ namespace Oce.Solid.Agent.Core
             bool present = ReadPropertyBack(propertyManager, itemName, out read, out resolved);
             if (!PropertyWrittenAsAsked(val, present, read))
                 return Failed(
-                    "Ho scritto «" + val + "» in «" + itemName + "» e rileggendo trovo " +
-                    (read == null ? "il vuoto" : "«" + read + "»") + ". Non ti confermo " +
-                    "una scheda dati che non e' quella che credi.");
+                    "I wrote «" + val + "» in «" + itemName + "» and reading back I find " +
+                    (read == null ? "nothing" : "«" + read + "»") + ". I do not confirm " +
+                    "a data sheet that is not the one you think.");
 
             // AND THE OTHER DRAWER IS LOOKED AT TOO.
             //
@@ -188,7 +188,7 @@ namespace Oce.Solid.Agent.Core
             // SOLIDWORKS changed its mind and began to inherit them.
             string otherList = onConfiguration
                 ? "the document"
-                : "la configurazione attiva";
+                : "the active configuration";
             bool seenOnTheOtherSide = false;
             try
             {
@@ -197,7 +197,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     var handler = model.ConfigurationManager as IConfigurationManager;
                     whereToLook = handler == null ? null : handler.ActiveConfiguration.Name;
-                    otherList = "la configurazione «" + whereToLook + "»";
+                    otherList = "the configuration «" + whereToLook + "»";
                 }
                 if (whereToLook != null)
                 {
@@ -213,23 +213,23 @@ namespace Oce.Solid.Agent.Core
                 ["property"] = itemName,
                 ["value_text"] = read,
                 ["location"] = onConfiguration
-                    ? "la configurazione «" + configuration + "»"
+                    ? "the configuration «" + configuration + "»"
                     : "the document",
                 ["visible_from_other_list"] = seenOnTheOtherSide,
                 // THE TWO DRAWERS ARE SEPARATE, and it must be said every time: it is the
                 // thing nobody expects.
                 ["two_lists"] =
-                    "Le proprieta' del documento e quelle di una configurazione sono due " +
-                    "elenchi separati: non si ereditano e non si vedono a vicenda. Ho " +
-                    "guardato: da " + otherList + " questa proprieta' " +
-                    (seenOnTheOtherSide ? "SI VEDE." : "NON si vede."),
+                    "The properties of the document and those of a configuration are two " +
+                    "separate lists: they are not inherited and they do not see each other. " +
+                    "I looked: from " + otherList + " this property " +
+                    (seenOnTheOtherSide ? "IS visible." : "is NOT visible."),
             };
             if (onConfiguration) measurements["configuration"] = configuration;
             if (resolved != null && !string.Equals(resolved, read, StringComparison.Ordinal))
                 measurements["resolved_value"] = resolved;
 
-            _log("[agente] proprieta' «" + itemName + "» = «" + read + "» su " +
-                 (onConfiguration ? configuration : "documento"));
+            _log("[agent] property «" + itemName + "» = «" + read + "» on " +
+                 (onConfiguration ? configuration : "document"));
             return SucceededWithoutCreating(measurements);
         }
 
@@ -238,17 +238,17 @@ namespace Oce.Solid.Agent.Core
         {
             string itemName = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(itemName))
-                return Failed("Manca il «name» della configurazione, per esempio «Left».");
+                return Failed("The «name» of the configuration is missing, for example «Left».");
 
             var handler = model.ConfigurationManager as IConfigurationManager;
             if (handler == null)
-                return Failed("Questo documento non espone le configurazioni.");
+                return Failed("This document does not expose the configurations.");
 
             var alreadyThere = ConfigurationNames(model);
             if (alreadyThere.Any(n => string.Equals(n, itemName, StringComparison.OrdinalIgnoreCase) ||
                                n.StartsWith(itemName + "<", StringComparison.OrdinalIgnoreCase)))
                 return Failed(
-                    "Una configurazione «" + itemName + "» c'e' gia'. Ci sono: " +
+                    "A configuration «" + itemName + "» already exists. There are: " +
                     string.Join(", ", alreadyThere.Select(n => "«" + n + "»")) + ".");
 
             IConfiguration newOne;
@@ -266,12 +266,12 @@ namespace Oce.Solid.Agent.Core
                     Str(a, "details", "") ?? "",   // Description
                     true) as IConfiguration;           // Rebuild
             }
-            catch (Exception ex) { return Failed("La configurazione non e' stata creata: " + ex.Message); }
+            catch (Exception ex) { return Failed("The configuration was not created: " + ex.Message); }
 
             if (newOne == null)
                 return Failed(
-                    "La configurazione «" + itemName + "» non e' stata creata, e SOLIDWORKS non " +
-                    "dice perche'. Di solito e' il nome: certi caratteri non si possono usare.");
+                    "The configuration «" + itemName + "» was not created, and SOLIDWORKS does " +
+                    "not say why. Usually it is the name: some characters cannot be used.");
 
             string activate = "";
             try { activate = handler.ActiveConfiguration.Name; } catch { }
@@ -283,13 +283,13 @@ namespace Oce.Solid.Agent.Core
                 ["configurations"] = ConfigurationNames(model).ToArray(),
                 // IT ACTIVATES BY ITSELF, and the following steps work on that one.
                 ["note_activation"] =
-                    "Creando una configurazione SOLIDWORKS la ATTIVA: adesso il documento e' " +
-                    "su «" + activate + "», e i passi che seguono lavorano li'. Con " +
-                    "«activate_configuration» si torna a un'altra.",
+                    "Creating a configuration makes SOLIDWORKS ACTIVATE it: now the document is " +
+                    "on «" + activate + "», and the steps that follow work there. With " +
+                    "«activate_configuration» you go back to another one.",
                 ["note_name"] =
-                    "Il nome buono per le altre operazioni e' quello scritto qui: puo' avere " +
-                    "un suffisso fra parentesi angolari (lo stato di visualizzazione) che fa " +
-                    "parte del nome.",
+                    "The name to use for the other operations is the one written here: it " +
+                    "may have a suffix between angle brackets (the display state) which " +
+                    "is part of the name.",
             });
         }
 
@@ -298,7 +298,7 @@ namespace Oce.Solid.Agent.Core
         {
             string requested = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(requested))
-                return Failed("Manca il «name» della configurazione da attivare.");
+                return Failed("The «name» of the configuration to activate is missing.");
 
             string why;
             string itemName = TrueConfigurationName(model, requested, out why);
@@ -306,7 +306,7 @@ namespace Oce.Solid.Agent.Core
 
             bool done;
             try { done = model.ShowConfiguration2(itemName); }
-            catch (Exception ex) { return Failed("Non sono riuscito ad attivarla: " + ex.Message); }
+            catch (Exception ex) { return Failed("I could not activate it: " + ex.Message); }
 
             string activate = "";
             try
@@ -333,10 +333,10 @@ namespace Oce.Solid.Agent.Core
             // whoever will have to understand why, the day this fired.
             if (!string.Equals(activate, itemName, StringComparison.Ordinal))
                 return Failed(
-                    "Ho chiesto di attivare «" + itemName + "» e adesso e' attiva " +
-                    (string.IsNullOrEmpty(activate) ? "non so quale" : "«" + activate + "»") +
-                    " (SOLIDWORKS ha risposto " + (done ? "di si'" : "di no") + "). Non ti " +
-                    "confermo di lavorare su una configurazione diversa da quella che credi.");
+                    "I asked to activate «" + itemName + "» and now the active one is " +
+                    (string.IsNullOrEmpty(activate) ? "I do not know which" : "«" + activate + "»") +
+                    " (SOLIDWORKS answered " + (done ? "yes" : "no") + "). I do not " +
+                    "confirm that I am working on a configuration different from the one you think.");
 
             return SucceededWithoutCreating(new Dictionary<string, object>
             {
@@ -387,7 +387,7 @@ namespace Oce.Solid.Agent.Core
             var names = ConfigurationNames(model);
             if (names.Count == 0)
             {
-                why = "Questo documento non dichiara nessuna configurazione.";
+                why = "This document does not declare any configuration.";
                 return null;
             }
             foreach (var n in names)
@@ -402,14 +402,14 @@ namespace Oce.Solid.Agent.Core
             if (resembling.Count > 0)
             {
                 why =
-                    "«" + requested + "» non e' un nome intero. Il documento dichiara " +
+                    "«" + requested + "» is not a full name. The document declares " +
                     string.Join(" e ", resembling.Select(n => "«" + n + "»")) +
-                    ": il pezzo fra parentesi angolari fa parte del nome, e va copiato. " +
-                    "Chiesto cosi' com'e', SOLIDWORKS risponde di no in silenzio.";
+                    ": the piece between angle brackets is part of the name, and must " +
+                    "be copied. Asked as it is, SOLIDWORKS answers no in silence.";
                 return null;
             }
             why =
-                "Non trovo la configurazione «" + requested + "». Ci sono: " +
+                "I cannot find the configuration «" + requested + "». There are: " +
                 string.Join(", ", names.Select(n => "«" + n + "»")) + ".";
             return null;
         }

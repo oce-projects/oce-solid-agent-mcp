@@ -119,7 +119,7 @@ namespace Oce.Solid.Agent.Core
 
             if (positions == null || positions.Count == 0)
             {
-                reason = "non e' stata chiesta nessuna posizione, non c'e' niente da confrontare";
+                reason = "no position was requested, there is nothing to compare";
                 return PositionsOutcome.NotVerifiable;
             }
 
@@ -129,14 +129,14 @@ namespace Oce.Solid.Agent.Core
             // is not even known whether they are there.
             if (foundAxes == null || foundAxes.Count == 0)
             {
-                reason = "sulla lavorazione non c'e' nessuna faccia cilindrica " +
-                         "del diametro atteso: non so dire dove siano finiti i fori";
+                reason = "on the feature there is no cylindrical face of the " +
+                         "expected diameter: I cannot tell where the holes ended up";
                 return PositionsOutcome.NotVerifiable;
             }
 
             if (axes == null || axes.Length < 3)
             {
-                reason = "non so su quale piano guardare";
+                reason = "I do not know which plane to look at";
                 return PositionsOutcome.NotVerifiable;
             }
 
@@ -159,8 +159,8 @@ namespace Oce.Solid.Agent.Core
             {
                 reason = string.Format(
                     CultureInfo.InvariantCulture,
-                    "Il foro {0}, chiesto a ({1:0.##}, {2:0.##}), e' finito a {3:0.##} mm " +
-                    "da li'. Non te lo lascio passare per buono: ritiralo — " +
+                    "Hole {0}, requested at ({1:0.##}, {2:0.##}), ended up {3:0.##} mm " +
+                    "from there. I do not let it pass as good: withdraw it — " +
                     Sentences.HowToWithdrawIt + ".",
                     far + 1, positions[far][0], positions[far][1], worse * 1000.0);
                 return PositionsOutcome.Wrong;

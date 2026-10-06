@@ -74,23 +74,23 @@ namespace Oce.Solid.Agent.Core
         private Outcome CreateDrawing(IModelDoc2 model, Dictionary<string, object> a)
         {
             if (model == null)
-                return Failed("Non c'e' nessun documento aperto da mettere in tavola.");
+                return Failed("There is no open document to put in a drawing.");
 
             string modelPath = "";
             try { modelPath = model.GetPathName() ?? ""; } catch { }
             if (string.IsNullOrWhiteSpace(modelPath))
                 return Failed(
-                    "Il pezzo non e' mai stato salvato, quindi non ha un percorso, e " +
-                    "una vista di tavola si aggancia al PERCORSO del modello. " +
-                    "Salvalo una prima volta e poi rifammi la tavola.");
+                    "The part has never been saved, so it has no path, and a " +
+                    "drawing view attaches to the PATH of the model. Save " +
+                    "it once and then ask me for the drawing again.");
 
             int modelType = 0;
             try { modelType = model.GetType(); } catch { }
             if (modelType != (int)swDocumentTypes_e.swDocPART &&
                 modelType != (int)swDocumentTypes_e.swDocASSEMBLY)
                 return Failed(
-                    "Il documento attivo non e' ne' un pezzo ne' un assieme: " +
-                    "non so di cosa fare la tavola.");
+                    "The active document is neither a part nor an assembly: I do not " +
+                    "know what to make the drawing of.");
 
             string template = Str(a, "template", null);
             if (string.IsNullOrWhiteSpace(template))
@@ -100,31 +100,31 @@ namespace Oce.Solid.Agent.Core
             }
             if (string.IsNullOrWhiteSpace(template) || !File.Exists(template))
                 return Failed(
-                    "Non trovo il modello di tavola di questa installazione " +
+                    "I cannot find the drawing template of this installation " +
                     (string.IsNullOrWhiteSpace(template)
-                        ? "(la preferenza e' vuota)."
-                        : "(«" + template + "» non c'e')") +
-                    " Senza, la tavola nascerebbe senza cartiglio e con il " +
-                    "diedro sbagliato: preferisco fermarmi.");
+                        ? "(the preference is empty)."
+                        : "(«" + template + "» does not exist)") +
+                    " Without it, the drawing would be created without a title block and " +
+                    "with the wrong projection angle: I prefer to stop.");
 
             // Format and scale are passed already here: `NewDocument` accepts them, and
             // doing it in two steps would mean a wasted sheet.
             int sheetFormat = SheetFormatCode(Str(a, "paper_size", "A3"));
             object newItem;
             try { newItem = _sw.NewDocument(template, sheetFormat, 0, 0); }
-            catch (Exception ex) { return Failed("Non riesco a creare la tavola: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot create the drawing: " + ex.Message); }
 
             var drawing = newItem as IModelDoc2;
             if (drawing == null)
                 return Failed(
-                    "SolidWorks non ha creato nessuna tavola e non ha detto perche'.");
+                    "SolidWorks did not create any drawing and did not say why.");
 
             int newType = 0;
             try { newType = drawing.GetType(); } catch { }
             if (newType != (int)swDocumentTypes_e.swDocDRAWING)
                 return Failed(
-                    "Il documento creato non e' una tavola: il modello «" + template +
-                    "» non e' un modello di disegno.");
+                    "The document created is not a drawing: the template «" + template +
+                    "» is not a drawing template.");
 
             // THE MODEL MUST STILL BE OPEN.
             //
@@ -135,8 +135,8 @@ namespace Oce.Solid.Agent.Core
             // empty without any error.
             if (!OpenedDocument(modelPath))
                 return Failed(
-                    "La tavola e' nata ma il pezzo non risulta piu' aperto: le viste " +
-                    "verrebbero vuote. Riapri il pezzo e riprova.");
+                    "The drawing was created but the part no longer appears to be open: the " +
+                    "views would be empty. Open the part again and retry.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -146,7 +146,7 @@ namespace Oce.Solid.Agent.Core
                 ["sheets"] = NumberOrNull(CountSheets(drawing)),
                 ["documents_open"] = OpenDocuments().Count,
             };
-            _log("[agente] tavola creata da " + template);
+            _log("[agent] drawing created from " + template);
             var outcome = WithoutFeature(measurements);
             // FROM HERE ON WE WORK ON THE DRAWING, and it is stated.
             // Whoever executes the plan watches that the document does not change under
@@ -167,19 +167,19 @@ namespace Oce.Solid.Agent.Core
         {
             var drawing = model as IDrawingDoc;
             if (drawing == null)
-                return Failed("Il documento attivo non e' una tavola.");
+                return Failed("The active document is not a drawing.");
 
             ISheet sheet;
             try { sheet = drawing.GetCurrentSheet() as ISheet; }
-            catch (Exception ex) { return Failed("Non riesco a leggere il foglio: " + ex.Message); }
-            if (sheet == null) return Failed("La tavola non ha un foglio attivo.");
+            catch (Exception ex) { return Failed("I cannot read the sheet: " + ex.Message); }
+            if (sheet == null) return Failed("The drawing has no active sheet.");
 
             string formatName = Str(a, "paper_size", "A3");
             int sheetFormat = SheetFormatCode(formatName);
             double scaleNum = Num(a, "scale_numerator", 1);
             double scaleDen = Num(a, "scale_denominator", 1);
             if (scaleNum <= 0 || scaleDen <= 0)
-                return Failed("La scala deve avere due numeri positivi, per esempio 1:2.");
+                return Failed("The scale must have two positive numbers, for example 1:2.");
 
             // FORMAT AND SCALE ARE WRITTEN TOGETHER, AND THE PROJECTION ANGLE IS READ BACK.
             //
@@ -209,12 +209,12 @@ namespace Oce.Solid.Agent.Core
                     0, 0,
                     true);
             }
-            catch (Exception ex) { return Failed("Foglio non impostato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Sheet not set: " + ex.Message); }
 
             // The pointer to the sheet is old from this line on.
             try { sheet = drawing.GetCurrentSheet() as ISheet; }
             catch { sheet = null; }
-            if (sheet == null) return Failed("Ho perso il foglio dopo averlo impostato.");
+            if (sheet == null) return Failed("I lost the sheet after setting it.");
 
             // IT IS READ BACK. Both calls return `true` even when the
             // sheet stayed as it was — it happened with `SetMaterialPropertyName2`,
@@ -225,9 +225,9 @@ namespace Oce.Solid.Agent.Core
             if (scaleAfter != null && scaleDen != 0 &&
                 Math.Abs(scaleAfter[0] / scaleAfter[1] - scaleNum / scaleDen) > 1e-9)
                 return Failed(
-                    "Ho chiesto la scala " + scaleNum + ":" + scaleDen +
-                    " e il foglio dice " + scaleAfter[0] + ":" + scaleAfter[1] +
-                    ". Non dico che e' fatto quando non lo e'.");
+                    "I asked for the scale " + scaleNum + ":" + scaleDen +
+                    " and the sheet says " + scaleAfter[0] + ":" + scaleAfter[1] +
+                    ". I do not say it is done when it is not.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -241,7 +241,7 @@ namespace Oce.Solid.Agent.Core
             // warning: it is the only way for someone to notice before
             // the part is cut.
             if (!firstAngle)
-                _log("[agente] ATTENZIONE: questa tavola e' in TERZO diedro");
+                _log("[agent] WARNING: this drawing is in THIRD angle projection");
             return WithoutFeature(measurements);
         }
 
@@ -260,7 +260,7 @@ namespace Oce.Solid.Agent.Core
         private Outcome StandardViews(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
-            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
+            if (drawing == null) return Failed("The active document is not a drawing.");
 
             string modelPath = Str(a, "model", null);
             if (string.IsNullOrWhiteSpace(modelPath))
@@ -272,12 +272,12 @@ namespace Oce.Solid.Agent.Core
             var swPath = CanonicalPath(modelPath);
             if (swPath == null)
                 return Failed(
-                    "«" + modelPath + "» non risulta aperto. Le viste " +
-                    "nascerebbero vuote senza dare errore.");
+                    "«" + modelPath + "» does not appear to be open. The " +
+                    "views would be created empty without any error.");
 
             int before = CountViews(drawing);
             if (before < 0)
-                return Failed("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
+                return Failed("I cannot count the views of the drawing before starting. I touched nothing.");
             // The views that were already on the sheet: the centre marks the bridge
             // adds below go only on the views this call makes (Z-C21.13 review).
             // Null when one name cannot be read: then no view is known to be new,
@@ -298,21 +298,21 @@ namespace Oce.Solid.Agent.Core
             catch { viewsBefore = null; }
             bool ok;
             try { ok = drawing.Create1stAngleViews2(swPath); }
-            catch (Exception ex) { return Failed("Viste non create: " + ex.Message); }
+            catch (Exception ex) { return Failed("Views not created: " + ex.Message); }
 
             int after = CountViews(drawing);
             if (after < 0)
                 return Failed(
-                    "Ho chiesto le viste, ma poi non riesco a ricontarle: non so dirti se sono " +
-                    "nate. Guarda la tavola prima di andare avanti.");
+                    "I asked for the views, but then I cannot count them again: I cannot tell you whether " +
+                    "they were created. Look at the drawing before going on.");
             if (!ok && after == before)
                 return Failed(
-                    "SolidWorks non ha creato nessuna vista e non ha detto perche'. " +
-                    "Di solito vuol dire che il modello non e' ricostruito.");
+                    "SolidWorks did not create any view and did not say why. " +
+                    "Usually it means that the model is not rebuilt.");
             if (after <= before)
                 return Failed(
-                    "La chiamata e' andata a buon fine ma le viste sono sempre " + before +
-                    ": la tavola e' vuota. Non lo chiamo riuscito.");
+                    "The call succeeded but the views are still " + before +
+                    ": the drawing is empty. I do not call it successful.");
 
             // THE DRAWING IS REBUILT BEFORE ANSWERING (29/9/2026). The centre marks
             // SOLIDWORKS puts on holes when it creates a view (document option
@@ -457,7 +457,7 @@ namespace Oce.Solid.Agent.Core
         private Outcome ModelView(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
-            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
+            if (drawing == null) return Failed("The active document is not a drawing.");
 
             string modelPath = Str(a, "model", null);
             if (string.IsNullOrWhiteSpace(modelPath))
@@ -468,7 +468,7 @@ namespace Oce.Solid.Agent.Core
             }
             var swPath = CanonicalPath(modelPath);
             if (swPath == null)
-                return Failed("«" + modelPath + "» non risulta aperto.");
+                return Failed("«" + modelPath + "» does not appear to be open.");
 
             // THE NAMES OF THE VIEWS ARE SOLIDWORKS'S, NOT THE
             // DESIGNER'S. Italian is accepted and translated: asking whoever
@@ -478,9 +478,9 @@ namespace Oce.Solid.Agent.Core
             var swNames = SwViewNames(requested);
             if (swNames == null)
                 return Failed(
-                    "Non conosco la vista «" + requested + "». Ne conosco nove: " +
-                    "isometrica, dimetrica, trimetrica, fronte, dietro, sopra, " +
-                    "sotto, destra, sinistra.");
+                    "I do not know the view «" + requested + "». I know nine: " +
+                    "isometric, dimetric, trimetric, front, back, top, " +
+                    "bottom, right, left.");
 
             double x = Units.M(Num(a, "x_mm", 0));
             double y = Units.M(Num(a, "y_mm", 0));
@@ -527,7 +527,7 @@ namespace Oce.Solid.Agent.Core
 
             int before = CountViews(drawing);
             if (before < 0)
-                return Failed("Non riesco a contare le viste della tavola prima di cominciare. Non ho toccato niente.");
+                return Failed("I cannot count the views of the drawing before starting. I touched nothing.");
             IView view = null;
             string swName = null;
             var refused = new List<string>();
@@ -543,11 +543,11 @@ namespace Oce.Solid.Agent.Core
             // With an unreadable count the returned view stays (entry Z-C8).
             if (view == null || (after >= 0 && after <= before))
                 return Failed(
-                    "SolidWorks non ha creato la vista «" + requested + "». Ho provato " +
-                    "a chiamarla: " + string.Join(", ", refused) + ". " +
+                    "SolidWorks did not create the view «" + requested + "». I tried " +
+                    "calling it: " + string.Join(", ", refused) + ". " +
                     (itsItems.Count > 0
-                        ? "Il pezzo dice di avere queste viste: " + string.Join(", ", itsItems) + "."
-                        : "Il pezzo non dichiara nessuna vista con nome."));
+                        ? "The part says it has these views: " + string.Join(", ", itsItems) + "."
+                        : "The part does not declare any named view."));
 
             string itemName = "";
             double scale = 0;
@@ -609,15 +609,15 @@ namespace Oce.Solid.Agent.Core
         private Outcome ModelDimensions(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
-            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
+            if (drawing == null) return Failed("The active document is not a drawing.");
 
             int views = CountViews(drawing);
             if (views < 0)
-                return Failed("Non riesco a contare le viste della tavola. Non ho toccato niente.");
+                return Failed("I cannot count the views of the drawing. I touched nothing.");
             if (views == 0)
                 return Failed(
-                    "La tavola non ha viste: le quote non avrebbero dove attaccarsi. " +
-                    "Metti prima le viste.");
+                    "The drawing has no views: the dimensions would have nowhere to attach. " +
+                    "First put the views.");
 
             bool all = Bool(a, "all_dimensions", false);
             int extra = Bool(a, "hole_callouts", true)
@@ -637,8 +637,8 @@ namespace Oce.Solid.Agent.Core
             int before = CountDimensions(drawing);
             if (before < 0)
                 return Failed(
-                    "Non riesco a contare le quote della tavola prima di cominciare: senza quel " +
-                    "numero non saprei dirti quali sono arrivate. Non ho toccato niente.");
+                    "I cannot count the dimensions of the drawing before starting: without that " +
+                    "number I could not tell you which ones arrived. I touched nothing.");
             int after = before;
             string howItIsDone = null;
             int returnedItems = 0;
@@ -663,15 +663,15 @@ namespace Oce.Solid.Agent.Core
                         // is `CountDimensions` before and after, and the exception has its own branch.
                         returnedItems = returned == null ? 0 : returned.Length;
                     }
-                    catch (Exception ex) { return Failed("Quote non inserite: " + ex.Message); }
+                    catch (Exception ex) { return Failed("Dimensions not inserted: " + ex.Message); }
 
                     tested.Add("v3/" + mask + (fromSketch ? "/schizzo" : ""));
                     after = CountDimensions(drawing);
-                    if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                    if (after < 0) return Failed("I asked for the dimensions of the model, but then I cannot count the dimensions of the drawing again: I cannot tell you whether they arrived. Look at the drawing before going on.");
                     if (after > before)
                     {
                         howItIsDone = "InsertModelAnnotations3, bit " + mask +
-                                    (fromSketch ? ", posizione dallo schizzo" : "");
+                                    (fromSketch ? ", position from the sketch" : "");
                         break;
                     }
                 }
@@ -695,7 +695,7 @@ namespace Oce.Solid.Agent.Core
                     {
                         tested.Add("v2/" + mask);
                         after = CountDimensions(drawing);
-                        if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                        if (after < 0) return Failed("I asked for the dimensions of the model, but then I cannot count the dimensions of the drawing again: I cannot tell you whether they arrived. Look at the drawing before going on.");
                         if (after > before)
                         {
                             howItIsDone = "InsertModelAnnotations2" +
@@ -721,7 +721,7 @@ namespace Oce.Solid.Agent.Core
                         (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel);
                     tested.Add("InsertModelDimensions");
                     after = CountDimensions(drawing);
-                    if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
+                    if (after < 0) return Failed("I asked for the dimensions of the model, but then I cannot count the dimensions of the drawing again: I cannot tell you whether they arrived. Look at the drawing before going on.");
                     if (after > before) howItIsDone = "InsertModelDimensions";
                 }
                 catch { }
@@ -761,10 +761,10 @@ namespace Oce.Solid.Agent.Core
                     doc.ClearSelection2(true);
                 }
                 catch { }
-                tested.Add("vista per vista");
+                tested.Add("view by view");
                 after = CountDimensions(drawing);
-                if (after < 0) return Failed("Ho chiesto le quote del modello, ma poi non riesco a ricontare le quote della tavola: non so dirti se sono arrivate. Guarda la tavola prima di andare avanti.");
-                if (after > before) howItIsDone = "una vista alla volta (" + howMany + ")";
+                if (after < 0) return Failed("I asked for the dimensions of the model, but then I cannot count the dimensions of the drawing again: I cannot tell you whether they arrived. Look at the drawing before going on.");
+                if (after > before) howItIsDone = "one view at a time (" + howMany + ")";
             }
 
             if (after <= before)
@@ -783,7 +783,7 @@ namespace Oce.Solid.Agent.Core
                 string _ignore;
                 var dimensionNames = ModelDimensionNames(
                     ModelPathInView(drawing) ?? ModelToPutInView(out _ignore));
-                int marked = dimensionNames.Count(n => n.EndsWith("[marcata]"));
+                int marked = dimensionNames.Count(n => n.EndsWith("[marked]"));
 
                 // NOTHING MARKED, AND ONLY THE MARKED ONES WERE ASKED FOR (N9).
                 // Until library 0.141.0 the fallbacks brought the unmarked
@@ -803,17 +803,17 @@ namespace Oce.Solid.Agent.Core
                         string.Join(", ", tested) + ".");
 
                 return Failed(
-                    "Non e' arrivata nessuna quota (erano " + before + ", sono " + after +
-                    "; l'ultimo tentativo ne ha restituite " + returnedItems + "). " +
+                    "No dimension arrived (there were " + before + ", there are " + after +
+                    "; the last attempt returned " + returnedItems + "). " +
                     (dimensionNames.Count == 0
-                        ? "Il pezzo non ha nessuna quota da portare in tavola: e' stato " +
-                          "costruito senza quotare gli schizzi. Le quote vanno messe sul " +
-                          "MODELLO, non sulla tavola."
-                        : "Il pezzo ha " + dimensionNames.Count + " quote, di cui " +
+                        ? "The part has no dimension to bring into the drawing: it was " +
+                          "built without dimensioning the sketches. Dimensions go on the " +
+                          "MODEL, not on the drawing."
+                        : "The part has " + dimensionNames.Count + " dimensions, of which " +
                           marked +
-                          " marcate per il disegno (" +
-                          string.Join(", ", dimensionNames) + "), e nessuna arriva in tavola. " +
-                          "Ho provato: " + string.Join(", ", tested) + ". " +
+                          " marked for the drawing (" +
+                          string.Join(", ", dimensionNames) + "), and none arrives in the drawing. " +
+                          "I tried: " + string.Join(", ", tested) + ". " +
                           // Up to library 0.141.0 the tail said the import never works out
                           // of process (18/9/2026). It does since 26/9/2026 (the bench case
                           // dimensions_come_from_the_model), and with the fallbacks now held
@@ -821,11 +821,11 @@ namespace Oce.Solid.Agent.Core
                           // its marks do not reach the import: the N9 probe of Z-C21.3,
                           // 28/9/2026, marked two sketch dimensions and the MARKED mask
                           // brought 0 of them.
-                          "The import works out of process (measured on 26/9/2026 and " +
-                          "28/9/2026). A dimension marked on the sketch may still not be " +
-                          "one the MARKED mask brings (measured on 28/9/2026: two sketch " +
-                          "dimensions marked, 0 imported). Pass all_dimensions=true to import " +
-                          "every dimension of the model, or create the ones you need with " +
+                          "The import works out of process (measured on 26/9/2026 and 28/9/2026). " +
+                          "A dimension marked on the sketch may still not be one the MARKED " +
+                          "mask brings (measured on 28/9/2026: two sketch dimensions marked, 0 imported). " +
+                          "Pass all_dimensions=true to import every dimension of the model, or " +
+                          "create the ones you need with " +
                           "quota_in_tavola."));
             }
 
@@ -948,7 +948,7 @@ namespace Oce.Solid.Agent.Core
         private Outcome ExportPdf(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
-            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
+            if (drawing == null) return Failed("The active document is not a drawing.");
 
             string location = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(location))
@@ -957,26 +957,26 @@ namespace Oce.Solid.Agent.Core
                 try { its = model.GetPathName() ?? ""; } catch { }
                 if (string.IsNullOrWhiteSpace(its))
                     return Failed(
-                        "La tavola non e' mai stata salvata e non mi hai detto dove " +
-                        "mettere il PDF.");
+                        "The drawing has never been saved and you did not tell me where " +
+                        "to put the PDF.");
                 location = Path.ChangeExtension(its, ".pdf");
             }
 
             int sheets = CountSheets(model);
             if (sheets < 0)
                 return Failed(
-                    "Non riesco a contare i fogli della tavola: senza quel numero non " +
-                    "potrei controllare che il PDF li abbia tutti, che e' il motivo per cui " +
-                    "questa operazione esiste. Non ho scritto niente.");
-            if (sheets == 0) return Failed("La tavola non ha fogli.");
+                    "I cannot count the sheets of the drawing: without that number " +
+                    "I could not check that the PDF has all of them, which is the reason " +
+                    "why this operation exists. I wrote nothing.");
+            if (sheets == 0) return Failed("The drawing has no sheets.");
 
             object dataPdf;
             try { dataPdf = _sw.GetExportFileData((int)swExportDataFileType_e.swExportPdfData); }
-            catch (Exception ex) { return Failed("Non riesco a preparare il PDF: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot prepare the PDF: " + ex.Message); }
 
             var pdf = dataPdf as IExportPdfData;
             if (pdf == null)
-                return Failed("Questa installazione non espone le opzioni di esportazione PDF.");
+                return Failed("This installation does not expose the PDF export options.");
 
             bool everySheetAsked;
             try
@@ -986,7 +986,7 @@ namespace Oce.Solid.Agent.Core
                 // operation exists not to commit.
                 everySheetAsked = pdf.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             }
-            catch (Exception ex) { return Failed("Non riesco a chiedere tutti i fogli: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot ask for all the sheets: " + ex.Message); }
             // THE ANSWER OF SetSheets IS READ (Z-C21.8, finding L13-6).
             // IExportPdfData~SetSheets.html, Return Value: «True if the drawings
             // sheets are set to export to PDF, false if not». Until library
@@ -1009,8 +1009,8 @@ namespace Oce.Solid.Agent.Core
                 catch (Exception ex)
                 {
                     return Failed(
-                        "C'e' gia' un PDF li' e non riesco a sostituirlo (" + ex.Message +
-                        "): probabilmente e' aperto.");
+                        "There is already a PDF there and I cannot replace it (" + ex.Message +
+                        "): it is probably open.");
                 }
             }
 
@@ -1023,12 +1023,12 @@ namespace Oce.Solid.Agent.Core
                     (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
                     pdf, ref errors, ref warnings);
             }
-            catch (Exception ex) { return Failed("PDF non scritto: " + ex.Message); }
+            catch (Exception ex) { return Failed("PDF not written: " + ex.Message); }
 
             if (!ok || !File.Exists(location))
                 // L13-7: the codes by their swFileSaveError_e / swFileSaveWarning_e
                 // names (ErrorCodeDecoder), the raw number kept for a search.
-                return Failed("Il PDF non e' stato scritto (codice " + errors + SaveErrorNames(errors) + ")." +
+                return Failed("The PDF was not written (code " + errors + SaveErrorNames(errors) + ")." +
                                SaveWarningsTail(warnings));
 
             int pages = CountPdfPages(location);
@@ -1069,8 +1069,8 @@ namespace Oce.Solid.Agent.Core
                 measurements["found"] = foundItems.ToArray();
                 measurements["not_found"] = missingItems.ToArray();
                 if (missingItems.Count > 0)
-                    measurements["warning"] = "Nel PDF scritto non trovo: «" + string.Join("», «", missingItems) +
-                        "». Se dovevano esserci, controlla la tavola prima di mandarla.";
+                    measurements["warning"] = "I do not find in the written PDF: «" + string.Join("», «", missingItems) +
+                        "». If they were supposed to be there, check the drawing before sending it.";
             }
             // ── DO THE DIMENSIONS REACH THE PDF? (entry Z-C9, the «objects» half) ──
             //
@@ -1084,8 +1084,8 @@ namespace Oce.Solid.Agent.Core
             measurements["dimensions_not_checked"] = dimensionsWithoutText;   // their text cannot be read
             if (dimensionsWithoutText > 0)
                 measurements["warning"] = (measurements.ContainsKey("warning") ? measurements["warning"] + " " : "") +
-                    dimensionsWithoutText + (dimensionsWithoutText == 1 ? " quota non ha" : " quote non hanno") +
-                    " un testo che io sappia leggere: se arrivano nel PDF non l'ho controllato.";
+                    dimensionsWithoutText + (dimensionsWithoutText == 1 ? " dimension has no" : " dimensions have no") +
+                    " text that I can read: I did not check whether they reach the PDF.";
             if (drawingDimensions > 0)
             {
                 string pdfText = null;
@@ -1099,12 +1099,12 @@ namespace Oce.Solid.Agent.Core
                     measurements["how_many_dimension_numbers_missing"] = areMissing.Count;
                     if (areMissing.Count > 0)
                         measurements["warning"] = (measurements.ContainsKey("warning") ? measurements["warning"] + " " : "") +
-                            "Nel PDF mancano numeri che le quote della tavola stampano: " + string.Join(", ", areMissing) +
-                            ". Di solito e' una quota su un livello che non si stampa o in una vista nascosta: " +
-                            "guarda la tavola prima di mandarla in officina.";
+                            "The PDF is missing numbers that the dimensions of the drawing print: " + string.Join(", ", areMissing) +
+                            ". Usually it is a dimension on a layer that is not printed or in a hidden view: look " +
+                            "at the drawing before sending it to the workshop.";
                 }
             }
-            _log("[agente] PDF: " + sheets + " fogli, " + pages + " pagine, " + location);
+            _log("[agent] PDF: " + sheets + " sheets, " + pages + " pages, " + location);
             return WithoutFeature(measurements);
         }
 
@@ -1114,7 +1114,7 @@ namespace Oce.Solid.Agent.Core
 
         private Outcome SaveDocument(IModelDoc2 model, Dictionary<string, object> a)
         {
-            if (model == null) return Failed("Non c'e' nessun documento aperto.");
+            if (model == null) return Failed("There is no open document.");
 
             string location = Str(a, "path", null);
             int errors = 0, warnings = 0;
@@ -1126,7 +1126,7 @@ namespace Oce.Solid.Agent.Core
                 try { its = model.GetPathName() ?? ""; } catch { }
                 if (string.IsNullOrWhiteSpace(its))
                     return Failed(
-                        "Il documento non e' mai stato salvato: dimmi dove metterlo.");
+                        "The document has never been saved: tell me where to put it.");
                 location = its;
             }
 
@@ -1137,7 +1137,7 @@ namespace Oce.Solid.Agent.Core
                     (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
                     null, ref errors, ref warnings);
             }
-            catch (Exception ex) { return Failed("Non salvato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Not saved: " + ex.Message); }
 
             if (!ok || !File.Exists(location))
             {
@@ -1153,10 +1153,10 @@ namespace Oce.Solid.Agent.Core
                 try { folder = Path.GetDirectoryName(location); } catch { }
                 if (!string.IsNullOrWhiteSpace(folder) && !Directory.Exists(folder))
                     return Failed(
-                        "Il documento non e' stato salvato: **la cartella non esiste** — «" +
-                        folder + "». SOLIDWORKS non la crea, e il suo codice di errore " +
-                        "(" + errors + SaveErrorNames(errors) + ") non lo dice. Creala, o dammi un percorso dentro " +
-                        "una cartella che c'e'.");
+                        "The document was not saved: **the folder does not exist** — «" +
+                        folder + "». SOLIDWORKS does not create it, and its error code " +
+                        "(" + errors + SaveErrorNames(errors) + ") does not say so. Create it, or give me a path inside " +
+                        "a folder that exists.");
 
                 bool isReadOnly = false;
                 try
@@ -1167,12 +1167,12 @@ namespace Oce.Solid.Agent.Core
                 catch { }
                 if (isReadOnly)
                     return Failed(
-                        "Il documento non e' stato salvato: il file esiste gia' ed e' in " +
-                        "SOLA LETTURA — «" + location + "». Toglila, o fai il check-out se " +
-                        "sta in un PDM.");
+                        "The document was not saved: the file already exists and is " +
+                        "READ-ONLY — «" + location + "». Clear the read-only flag, or check it out " +
+                        "if it is in a PDM.");
 
                 // L13-7: the codes by their enum names (ErrorCodeDecoder).
-                return Failed("Il documento non e' stato salvato (codice " + errors + SaveErrorNames(errors) + ")." +
+                return Failed("The document was not saved (code " + errors + SaveErrorNames(errors) + ")." +
                                SaveWarningsTail(warnings));
             }
 
@@ -1209,7 +1209,7 @@ namespace Oce.Solid.Agent.Core
                 case "A2": return (int)swDwgPaperSizes_e.swDwgPaperA2size;
                 case "A4": return (int)swDwgPaperSizes_e.swDwgPaperA4size;
                 case "A4V":
-                case "A4 VERTICALE": return (int)swDwgPaperSizes_e.swDwgPaperA4sizeVertical;
+                case "A4 PORTRAIT": return (int)swDwgPaperSizes_e.swDwgPaperA4sizeVertical;
                 default: return (int)swDwgPaperSizes_e.swDwgPaperA3size;
             }
         }
@@ -1419,9 +1419,9 @@ namespace Oce.Solid.Agent.Core
                                 // and the answer did not say it.
                                 try
                                 {
-                                    itemName += q.MarkedForDrawing ? " [marcata]" : " [NON marcata]";
+                                    itemName += q.MarkedForDrawing ? " [marked]" : " [NOT marked]";
                                 }
-                                catch { itemName += " [marcatura non leggibile]"; }
+                                catch { itemName += " [mark not readable]"; }
 
                                 outside.Add(itemName);
                             }
@@ -1644,19 +1644,19 @@ namespace Oce.Solid.Agent.Core
             if (candidates.Count == 0)
             {
                 why =
-                    "Non c'e' nessun pezzo aperto da mettere in vista: una vista di " +
-                    "tavola si aggancia a un documento APERTO, non a un file su disco.";
+                    "There is no open part to put in a view: a drawing view " +
+                    "attaches to an OPEN document, not to a file on disk.";
                 return null;
             }
 
             why =
-                "Ci sono " + candidates.Count + " documenti aperti che potrei mettere in " +
-                "vista, e sceglierne uno sarebbe un sorteggio: " +
+                "There are " + candidates.Count + " open documents that I could put in a " +
+                "view, and choosing one would be a lottery: " +
                 string.Join(", ", candidates) +
-                ". Dimmi quale con l'argomento «model», scrivendo il percorso. " +
-                "NON e' pignoleria: fino al 18/9/2026 qui si prendeva il primo " +
-                "dell'elenco, e una tavola e' uscita con le viste del pezzo sbagliato " +
-                "senza che niente desse errore.";
+                ". Tell me which with the «model» argument, writing the path. " +
+                "It is NOT pedantry: until 18/9/2026 the first of the list was " +
+                "taken here, and a drawing came out with the views of the wrong part " +
+                "without anything giving an error.";
             return null;
         }
 

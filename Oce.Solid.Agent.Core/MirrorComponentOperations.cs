@@ -204,18 +204,18 @@ namespace Oce.Solid.Agent.Core
         {
             var assemblyDoc = model as IAssemblyDoc;
             if (assemblyDoc == null)
-                return Failed("Specchio un componente di un assieme: questo non lo e'. Per specchiare una lavorazione " +
-                               "in un pezzo c'e' «mirror».");
+                return Failed("I mirror a component of an assembly: this is not one. To mirror a feature in a " +
+                               "part there is «mirror».");
             string mode = (Str(a, "mode", "") ?? "").Trim().ToLowerInvariant();
             if (mode != "instance" && mode != "opposite_linked" && mode != "opposite_unlinked")
-                return Failed("Dimmi «mode», e' la scelta che conta: «instance» (lo stesso file, specchiato: per un " +
-                               "pezzo simmetrico), «opposite_linked» (un file nuovo che segue l'originale: cambi la " +
-                               "destra e cambia la sinistra) o «opposite_unlinked» (un file nuovo indipendente: " +
-                               "correggi la destra e la sinistra resta com'era).");
+                return Failed("Tell me «mode», it is the choice that matters: «instance» (the same file, mirrored: for a symmetric part), " +
+                               "«opposite_linked» (a new file that follows the original: you change the right one and the left one changes) " +
+                               "or «opposite_unlinked» " +
+                               "(a new independent file: you correct the right one and the left one stays as it was).");
             string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
             int which = plane == "front" ? 1 : plane == "top" ? 2 : plane == "right" ? 3 : 0;
             if (which == 0)
-                return Failed("«plane» e' un piano dell'assieme: «front», «top» o «right», non «" + plane + "».");
+                return Failed("«plane» is a plane of the assembly: «front», «top» or «right», not «" + plane + "».");
             object[] rawItems = null;
             try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
             var components = DocumentState.ComponentsInOrder(rawItems);
@@ -224,7 +224,7 @@ namespace Oce.Solid.Agent.Core
             if (c == null) return Failed(NotFound(uid, "component", components));
             string suffix = (Str(a, "suffix", "_spec") ?? "_spec").Trim();
             if (suffix.Length == 0 || suffix.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-                return Failed("«suffix» va nel nome del file nuovo: lettere e cifre, per esempio «_sx».");
+                return Failed("«suffix» goes in the name of the new file: letters and digits, for example «_sx».");
             // N26: the orientation of a mirrored instance, always set and then checked.
             // An opposite-hand file is a new, mirrored part: SOLIDWORKS has no
             // orientation to choose for it (the orientations go with
@@ -252,8 +252,8 @@ namespace Oce.Solid.Agent.Core
                                " Nothing was changed.");
             var centerBefore = ComponentCenter(c);
             if (centerBefore == null)
-                return Failed("Non leggo dove sta «" + NameOf(c) + "» nell'assieme: senza, non saprei verificare lo " +
-                               "specchio. Non ho toccato niente.");
+                return Failed("I cannot read where «" + NameOf(c) + "» is in the assembly: without it, I could not verify " +
+                               "the mirror. I touched nothing.");
             double[][] axesBefore = mode == "instance" ? ComponentAxes(c) : null;
             if (mode == "instance" && axesBefore == null)
                 return Failed("I cannot read the axes of «" + NameOf(c) + "» in the assembly (Transform2): without them I " +
@@ -299,14 +299,14 @@ namespace Oce.Solid.Agent.Core
                     return true;
                 });
                 if (creation.Stage == ApiHelpers.CreationStage.Definition)
-                    return Failed("SOLIDWORKS non ha dato la definizione dello specchio di componenti.");
+                    return Failed("SOLIDWORKS did not give the definition of the component mirror.");
                 newOne = creation.Feature;
             }
-            catch (Exception ex) { return Failed("Lo specchio non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The mirror did not succeed: " + ex.Message); }
             try { model.EditRebuild3(); } catch { }
             if (newOne == null)
-                return Failed("SOLIDWORKS non ha creato lo specchio (CreateFeature ha risposto null). Se il file «" +
-                               Path.GetFileNameWithoutExtension(originalFile) + suffix + "» c'e' gia', cambia «suffix».");
+                return Failed("SOLIDWORKS did not create the mirror (CreateFeature answered null). If the file «" +
+                               Path.GetFileNameWithoutExtension(originalFile) + suffix + "» already exists, change «suffix».");
 
             // THE ERROR CODE OF THE MIRROR THAT WAS BORN (finding L11-7).
             // IFeatureManager~CreateFeature.html: «Use IFeature::GetErrorCode2
@@ -333,16 +333,16 @@ namespace Oce.Solid.Agent.Core
             foreach (var v in DocumentState.ComponentsInOrder(after))
                 if (!namesBefore.Contains(v.Key)) { newItem = v.Value; break; }
             if (newItem == null)
-                return Failed("Lo specchio «" + SafeName(newOne) + "» c'e' ma non vedo un componente nuovo nell'assieme." +
+                return Failed("The mirror «" + SafeName(newOne) + "» is there but I do not see a new component in the assembly." +
                                RemoveMirror(model, newOne, null));
             string newFile = "";
             try { newFile = newItem.GetPathName() ?? ""; } catch { }
             bool sameFile = string.Equals(newFile, originalFile, StringComparison.OrdinalIgnoreCase);
             if (mode == "instance" && !sameFile)
-                return Failed("Ho chiesto un'istanza dello stesso file e SOLIDWORKS ha messo «" + Path.GetFileName(newFile) + "»." +
+                return Failed("I asked for an instance of the same file and SOLIDWORKS put «" + Path.GetFileName(newFile) + "»." +
                                RemoveMirror(model, newOne, newFile));
             if (mode != "instance" && sameFile)
-                return Failed("Ho chiesto un file opposto e il componente nuovo usa ancora «" + Path.GetFileName(originalFile) + "»." +
+                return Failed("I asked for an opposite file and the new component still uses «" + Path.GetFileName(originalFile) + "»." +
                                RemoveMirror(model, newOne, null));
             // THE LINK, READ FROM THE TREE OF THE NEW FILE: MirrorStock = linked.
             bool? linked = null;
@@ -358,12 +358,12 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch { }
                 if (linked == null)
-                    return Failed("Il file nuovo «" + Path.GetFileName(newFile) + "» c'e', ma non leggo il suo albero: non " +
-                                   "so dirti se segue l'originale. Aprilo e guarda se la prima lavorazione e' «Specchiato»." +
+                    return Failed("The new file «" + Path.GetFileName(newFile) + "» is there, but I cannot read its tree: I cannot " +
+                                   "tell you whether it follows the original. Open it and look whether the first feature is «Specchiato»." +
                                    RemoveMirror(model, newOne, newFile));
                 if (linked.Value != (mode == "opposite_linked"))
-                    return Failed("Ho chiesto un file " + (mode == "opposite_linked" ? "legato" : "slegato") + " all'originale e «" +
-                                   Path.GetFileName(newFile) + "» e' " + (linked.Value ? "legato" : "slegato") + "." +
+                    return Failed("I asked for a file " + (mode == "opposite_linked" ? "linked" : "unlinked") + " to the original and «" +
+                                   Path.GetFileName(newFile) + "» is " + (linked.Value ? "linked" : "unlinked") + "." +
                                    RemoveMirror(model, newOne, newFile));
             }
             // THE PLACE: the centre of the new one and the mirror of the centre of the original.
@@ -373,8 +373,8 @@ namespace Oce.Solid.Agent.Core
             double deviation = newCenter == null ? double.NaN :
                 Math.Sqrt(Math.Pow(newCenter[0] - expected[0], 2) + Math.Pow(newCenter[1] - expected[1], 2) + Math.Pow(newCenter[2] - expected[2], 2));   // BodyBox already gives mm
             if (double.IsNaN(deviation) || deviation > 0.01)
-                return Failed("«" + NameOf(newItem) + "» e' nato, ma il suo centro " + (newCenter == null ? "non si legge" :
-                               "sta a " + deviation.ToString("0.###") + " mm dallo specchio dell'originale") + ": non e' lo specchio che volevi." +
+                return Failed("«" + NameOf(newItem) + "» was created, but its center " + (newCenter == null ? "cannot be read" :
+                               "is " + deviation.ToString("0.###") + " mm from the mirror of the original") + ": it is not the mirror you wanted." +
                                RemoveMirror(model, newOne, mode == "instance" ? null : newFile));
             // N26: THE AXES, which the centre cannot see (all four orientations
             // measured with the centre 0 mm off). Read from Transform2 of the new
@@ -410,12 +410,12 @@ namespace Oce.Solid.Agent.Core
                     ["z"] = RoundedAxis(axesAfter[2]),
                 },
                 ["verdict"] = mode == "instance"
-                    ? "Un'istanza dello stesso file, specchiata: vale per un pezzo simmetrico."
+                    ? "An instance of the same file, mirrored: it works for a symmetric part."
                     : mode == "opposite_linked"
-                        ? "Un file nuovo che SEGUE l'originale: cambi la destra e cambia anche la sinistra."
-                        : "Un file nuovo INDIPENDENTE: correggi la destra e la sinistra resta com'era.",
+                        ? "A new file that FOLLOWS the original: you change the right one and the left one changes too."
+                        : "A new INDEPENDENT file: you correct the right one and the left one stays as it was.",
             };
-            _log("[agente] specchiato " + NameOf(c) + " (" + mode + ") -> " + NameOf(newItem));
+            _log("[agent] mirrored " + NameOf(c) + " (" + mode + ") -> " + NameOf(newItem));
             return SucceededWithoutCreating(measurements);
         }
 

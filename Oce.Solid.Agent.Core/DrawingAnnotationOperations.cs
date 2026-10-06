@@ -59,12 +59,12 @@ namespace Oce.Solid.Agent.Core
                 case "left": fx = -1; break;
                 case "right": fx = 1; break;
                 default:
-                    reason = "«side» e' uno fra alto, basso, sinistra, destra, non «" + side + "».";
+                    reason = "«side» is one of top, bottom, left, right, not «" + side + "».";
                     return null;
             }
             IMathUtility mu = null; MathTransform tr = null;
             try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
-            if (mu == null || tr == null) { reason = "Non riesco a leggere come la vista porta il modello sul foglio."; return null; }
+            if (mu == null || tr == null) { reason = "I cannot read how the view carries the model onto the sheet."; return null; }
             object[] edges = null;
             try { edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
             ViewSide better = null; double score = double.MinValue;
@@ -96,7 +96,7 @@ namespace Oce.Solid.Agent.Core
                 catch { }
             }
             if (better == null)
-                reason = "La vista non mostra nessuno spigolo dritto sul lato «" + side + "» a cui attaccare l'annotazione.";
+                reason = "The view shows no straight edge on the side «" + side + "» to attach an annotation to.";
             return better;
         }
 
@@ -150,18 +150,18 @@ namespace Oce.Solid.Agent.Core
             drawing = model as IDrawingDoc;
             if (drawing == null)
             {
-                reason = "Il documento attivo non e' una tavola: le annotazioni stanno su una vista. Crea prima la " +
-                         "tavola con «create_drawing».";
+                reason = "The active document is not a drawing: annotations go on a view. First create the " +
+                         "drawing with «create_drawing».";
                 return null;
             }
             var names = ViewNames(drawing);
             if (names.Count == 0)
             {
-                reason = "La tavola non ha viste: metti prima le viste con «standard_views».";
+                reason = "The drawing has no views: first put the views with «standard_views».";
                 return null;
             }
             var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
-            if (reason == null && view == null) reason = "Non riesco a prendere la vista.";
+            if (reason == null && view == null) reason = "I cannot get the view.";
             return view;
         }
 
@@ -364,13 +364,13 @@ namespace Oce.Solid.Agent.Core
             if (!RequiredNum(a, "ra_um", out ra, out reason)) return Failed(reason);
             if (ra <= 0 || ra > 100)
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "«ra_um» e' la rugosita' Ra in micrometri, fra 0 e 100: {0:0.###} non lo e'.", ra));
+                    "«ra_um» is the surface roughness Ra in micrometers, between 0 and 100: {0:0.###} is not.", ra));
             string featureItem = Str(a, "process", "material_removal");
             int typ = featureItem == "material_removal" ? (int)swSFSymType_e.swSFMachining_Req
                      : featureItem == "any" ? (int)swSFSymType_e.swSFBasic
                      : featureItem == "no_removal" ? (int)swSFSymType_e.swSFDont_Machine : -1;
             if (typ < 0)
-                return Failed("«process» e' asportazione, qualsiasi o no_removal, non «" + featureItem + "».");
+                return Failed("«process» is material removal, any or no_removal, not «" + featureItem + "».");
             var side = SideEdge(view, Str(a, "side", "top"), out reason);
             if (side == null) return Failed(reason);
 
@@ -378,7 +378,7 @@ namespace Oce.Solid.Agent.Core
             double occupied = OccupiedBand(view, side);
             int before = DrawingAnnotations(drawing, "surface_finish");
             if (!SelectInView(model, view, side.Edge))
-                return Failed("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "top") + "».");
+                return Failed("I cannot select in the view the edge of the side «" + Str(a, "side", "top") + "».");
             object raw;
             try
             {
@@ -386,10 +386,10 @@ namespace Oce.Solid.Agent.Core
                     side.Midpoint[0], side.Midpoint[1], 0, (int)swSFLaySym_e.swSFNone, (int)swArrowStyle_e.swCLOSED_ARROWHEAD,
                     "", "", "", "", textRa, "", "");
             }
-            catch (Exception ex) { return Failed("Il simbolo di rugosita' non e' nato: " + ex.Message); }
+            catch (Exception ex) { return Failed("The surface finish symbol was not created: " + ex.Message); }
             model.ClearSelection2(true);
             var symbol = raw as ISFSymbol;
-            if (symbol == null) return Failed("SOLIDWORKS non ha creato il simbolo di rugosita' e non ha detto perche'.");
+            if (symbol == null) return Failed("SOLIDWORKS did not create the surface finish symbol and did not say why.");
             int after = DrawingAnnotations(drawing, "surface_finish");
             string read = null;
             try { read = symbol.GetText((int)swSurfaceFinishSymbolText_e.swSFSymbolMaximumRoughness); } catch { }
@@ -401,7 +401,7 @@ namespace Oce.Solid.Agent.Core
             try { attached = an.GetAttachedEntityCount3(); } catch { }
 
             if (!string.Equals((read ?? "").Trim(), textRa, StringComparison.Ordinal))
-                return Failed("Il simbolo e' nato ma dice Ra «" + read + "» invece di «" + textRa + "»: toglilo — " +
+                return Failed("The symbol was created but it says Ra «" + read + "» instead of «" + textRa + "»: remove it — " +
                                Sentences.HowToWithdrawIt + ".");
             var measurements = new Dictionary<string, object>
             {
@@ -415,8 +415,8 @@ namespace Oce.Solid.Agent.Core
                 ["attached_to_edge"] = attached > 0,
             };
             if (before >= 0 && after >= 0 && after != before + 1)
-                measurements["warning"] = "I simboli di rugosita' della tavola sono passati da " + before + " a " + after +
-                                       ": ne aspettavo uno in piu'.";
+                measurements["warning"] = "The surface finish symbols of the drawing went from " + before + " to " + after +
+                                       ": I expected one more.";
             return WithoutFeature(measurements);
         }
 
@@ -431,13 +431,13 @@ namespace Oce.Solid.Agent.Core
             if (view == null) return Failed(reason);
             string letter = (Str(a, "letter", "A") ?? "").Trim().ToUpperInvariant();
             if (letter.Length != 1 || letter[0] < 'A' || letter[0] > 'Z')
-                return Failed("«letter» e' una lettera sola, dalla A alla Z, non «" + Str(a, "letter", "") + "».");
+                return Failed("«letter» is a single letter, from A to Z, not «" + Str(a, "letter", "") + "».");
             // TWO DATUMS WITH THE SAME LETTER give no error, and every tolerance that
             // cites that letter becomes ambiguous (trap written in Z-E6).
             var already = DatumLetters(drawing);
             if (already.Contains(letter))
-                return Failed("In tavola c'e' gia' un datum «" + letter + "»: due riferimenti con la stessa lettera " +
-                               "rendono ambigua ogni tolleranza che lo cita. Usa un'altra lettera (ci sono gia': " +
+                return Failed("The drawing already has a datum «" + letter + "»: two references with the same letter " +
+                               "make every tolerance that cites it ambiguous. Use a different letter (already used: " +
                                string.Join(", ", already) + ").");
             var side = SideEdge(view, Str(a, "side", "bottom"), out reason);
             if (side == null) return Failed(reason);
@@ -445,13 +445,13 @@ namespace Oce.Solid.Agent.Core
             double occupied = OccupiedBand(view, side);
             int before = DrawingAnnotations(drawing, "datum");
             if (!SelectInView(model, view, side.Edge))
-                return Failed("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "bottom") + "».");
+                return Failed("I cannot select in the view the edge of the side «" + Str(a, "side", "bottom") + "».");
             object raw;
             try { raw = model.InsertDatumTag2(); }
-            catch (Exception ex) { return Failed("Il datum non e' nato: " + ex.Message); }
+            catch (Exception ex) { return Failed("The datum was not created: " + ex.Message); }
             model.ClearSelection2(true);
             var datum = raw as IDatumTag;
-            if (datum == null) return Failed("SOLIDWORKS non ha creato il datum e non ha detto perche'.");
+            if (datum == null) return Failed("SOLIDWORKS did not create the datum and did not say why.");
             bool labeled = false;
             try { labeled = datum.SetLabel(letter); } catch { }
             string read = null;
@@ -464,8 +464,8 @@ namespace Oce.Solid.Agent.Core
             try { attached = an.GetAttachedEntityCount3(); } catch { }
             int after = DrawingAnnotations(drawing, "datum");
             if (!string.Equals((read ?? "").Trim(), letter, StringComparison.OrdinalIgnoreCase))
-                return Failed("Il datum e' nato ma dice «" + read + "» invece di «" + letter + "»" +
-                               (labeled ? "" : " (SetLabel ha risposto no)") + ": toglilo — " + Sentences.HowToWithdrawIt + ".");
+                return Failed("The datum was created but it says «" + read + "» instead of «" + letter + "»" +
+                               (labeled ? "" : " (SetLabel answered no)") + ": remove it — " + Sentences.HowToWithdrawIt + ".");
             var measurements = new Dictionary<string, object>
             {
                 ["letter"] = letter,
@@ -515,30 +515,30 @@ namespace Oce.Solid.Agent.Core
             string characteristic = Str(a, "characteristic", "");
             int code;
             if (!Characteristics.TryGetValue(characteristic, out code))
-                return Failed("«characteristic» e' una fra " + string.Join(", ", Characteristics.Keys) +
-                               ", non «" + characteristic + "».");
+                return Failed("«characteristic» is one of " + string.Join(", ", Characteristics.Keys) +
+                               ", not «" + characteristic + "».");
             double val;
             if (!RequiredNum(a, "value_mm", out val, out reason)) return Failed(reason);
-            if (val <= 0) return Failed("«value_mm» e' l'ampiezza della zona di tolleranza: deve essere maggiore di zero.");
+            if (val <= 0) return Failed("«value_mm» is the width of the tolerance zone: it must be greater than zero.");
             string valueText = val.ToString("0.###", CultureInfo.InvariantCulture);
 
             var references = new List<string>();
             foreach (var r in StringList(a, "references")) if (!string.IsNullOrWhiteSpace(r)) references.Add(r.Trim().ToUpperInvariant());
             if (references.Count > 3)
-                return Failed("Una cornice cita al massimo tre riferimenti (primario, secondario, terziario).");
+                return Failed("A frame cites at most three references (primary, secondary, tertiary).");
             if (IsOfShape(characteristic) && references.Count > 0)
-                return Failed("La tolleranza di " + characteristic + " e' di FORMA: non si riferisce a nessun datum " +
-                               "(ISO 1101). Togli «references», oppure scegli una tolleranza di orientamento o di " +
-                               "posizione.");
+                return Failed("The tolerance of " + characteristic + " is a FORM tolerance: it does not refer to " +
+                               "any datum (ISO 1101). Remove «references», or choose an orientation or position " +
+                               "tolerance.");
             if (!IsOfShape(characteristic) && references.Count == 0)
-                return Failed("La tolleranza di " + characteristic + " si misura rispetto a un riferimento: dai almeno una lettera " +
-                               "in «references» (un datum messo con «datum»).");
+                return Failed("The tolerance of " + characteristic + " is measured against a reference: give at least one letter " +
+                               "in «references» (a datum put with «datum»).");
             var already = DatumLetters(drawing);
             foreach (var r in references)
                 if (!already.Contains(r))
-                    return Failed("La tolleranza cita il datum «" + r + "» e in tavola non c'e'" +
-                                   (already.Count == 0 ? " nessun datum" : " (ci sono: " + string.Join(", ", already) + ")") +
-                                   ". Mettilo prima con «datum».");
+                    return Failed("The tolerance cites the datum «" + r + "» and it is not on the drawing" +
+                                   (already.Count == 0 ? ", which has no datum at all" : " (it has: " + string.Join(", ", already) + ")") +
+                                   ". Place it first with «datum».");
             bool diameter = a != null && a.ContainsKey("diameter") && Convert.ToBoolean(a["diameter"], CultureInfo.InvariantCulture);
             var side = SideEdge(view, Str(a, "side", "right"), out reason);
             if (side == null) return Failed(reason);
@@ -546,13 +546,13 @@ namespace Oce.Solid.Agent.Core
             double occupied = OccupiedBand(view, side);
             int before = DrawingAnnotations(drawing, "gtol");
             if (!SelectInView(model, view, side.Edge))
-                return Failed("Non riesco a selezionare nella vista lo spigolo del lato «" + Str(a, "side", "right") + "».");
+                return Failed("I cannot select in the view the edge of the side «" + Str(a, "side", "right") + "».");
             object raw;
             try { raw = model.InsertGtol(); }
-            catch (Exception ex) { return Failed("La cornice di tolleranza non e' nata: " + ex.Message); }
+            catch (Exception ex) { return Failed("The tolerance frame was not created: " + ex.Message); }
             model.ClearSelection2(true);
             var gtol = raw as IGtol;
-            if (gtol == null) return Failed("SOLIDWORKS non ha creato la cornice di tolleranza e non ha detto perche'.");
+            if (gtol == null) return Failed("SOLIDWORKS did not create the tolerance frame and did not say why.");
             string r1 = references.Count > 0 ? references[0] : "", r2 = references.Count > 1 ? references[1] : "",
                    r3 = references.Count > 2 ? references[2] : "";
             try

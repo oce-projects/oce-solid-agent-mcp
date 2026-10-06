@@ -102,38 +102,38 @@ namespace Oce.Solid.Agent.Core
         private Outcome Rib(IModelDoc2 model, Dictionary<string, object> a)
         {
             if (!(model is IPartDoc))
-                return Failed("La nervatura si fa su un pezzo. Aprimi il pezzo.");
+                return Failed("The rib is made on a part. Open the part for me.");
 
             // ── THE ARGUMENTS, BEFORE TOUCHING THE PART ──────────────────
             string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
             if (plane != "front" && plane != "top" && plane != "right")
                 return Failed(
-                    "Dimmi «plane»: frontale, superiore o destro. E' il piano in cui sta la linea " +
-                    "e in cui la nervatura cresce; con «distance_mm» lo sposto parallelo a se stesso " +
-                    "(per esempio a meta' profondita' di una staffa).");
+                    "Tell me «plane»: front, top or right. It is the plane the line is on and " +
+                    "in which the rib grows; with «distance_mm» I move it parallel to itself " +
+                    "(for example to half the depth of a bracket).");
             // OPTIONAL, BUT IF IT IS THERE IT MUST BE A NUMBER: `Num` would swallow
             // «25mm» and return zero, that is the rib on the base plane.
             double distance = 0;
             if (a != null && a.TryGetValue("distance_mm", out var raw) && raw != null &&
                 !RequiredNum(a, "distance_mm", out distance, out string distanceError))
-                return Failed(distanceError + " Scrivila in mm, per esempio 25; senza, la nervatura sta " +
-                               "sul piano base.");
+                return Failed(distanceError + " Write it in mm, for example 25; without it, the rib is on " +
+                               "the base plane.");
 
             if (!RequiredNum(a, "thickness_mm", out double thickness, out string error))
-                return Failed(error + " E' lo spessore della nervatura: scrivilo in mm (si divide a " +
-                               "meta' dalle due parti del piano).");
+                return Failed(error + " It is the thickness of the rib: write it in mm " +
+                               "(it is split in half on the two sides of the plane).");
             if (thickness <= 0)
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "«thickness_mm» dev'essere piu' di zero: {0:0.###} non e' una nervatura. Per una " +
-                    "staffa di lamiera da 10 si usa di solito 4-6 mm.", thickness));
+                    "«thickness_mm» must be more than zero: {0:0.###} is not a rib. For a " +
+                    "bracket in 10 plate, 4-6 mm is the usual value.", thickness));
 
             var da = Triplet(a, "start_mm");
             var upTo = Triplet(a, "end_mm");
             if (da == null || upTo == null)
                 return Failed(
-                    "«start_mm» e «end_mm» sono i due estremi della linea della nervatura: punti [x, y, z] " +
-                    "in mm nel sistema del modello, tutti e due sul piano indicato. Per esempio, " +
-                    "nell'angolo di una L: da [10, 40, 25] a [40, 10, 25].");
+                    "«start_mm» and «end_mm» are the two ends of the line of the rib: points [x, y, z] in mm in " +
+                    "the coordinate system of the model, both on the indicated plane. For example, in " +
+                    "the corner of an L: from [10, 40, 25] to [40, 10, 25].");
 
             // DO THE TWO POINTS LIE ON THE PLANE? The base plane «front» is XY
             // (normal +Z), «top» XZ (+Y), «right» YZ (+X): the same
@@ -145,23 +145,23 @@ namespace Oce.Solid.Agent.Core
             double deviation = Math.Max(Math.Abs(dimension(da) - distance), Math.Abs(dimension(upTo) - distance));
             if (deviation > RibOffPlaneMm)
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "La linea non sta sul piano {0} a distanza {1:0.###} mm: un estremo ne dista " +
-                    "{2:0.###} mm. I due punti vanno presi sul piano della nervatura (sul {0} " +
-                    "sfalsato di {1:0.###}, la coordinata {3} di tutti e due e' {1:0.###}); oppure " +
-                    "cambia «distance_mm».",
+                    "The line is not on the plane {0} at distance {1:0.###} mm: one end is {2:0.###} " +
+                    "mm away from it. The two points must be taken on the plane of the rib " +
+                    "(on the {0} offset by {1:0.###}, the coordinate {3} of both is {1:0.###}), or " +
+                    "change «distance_mm».",
                     plane, distance, deviation, plane == "front" ? "z" : plane == "top" ? "y" : "x"));
             double span = Math.Sqrt(Math.Pow(upTo[0] - da[0], 2) + Math.Pow(upTo[1] - da[1], 2) + Math.Pow(upTo[2] - da[2], 2));
             if (span < 1)
-                return Failed("La linea della nervatura e' lunga meno di un millimetro: i due punti " +
-                               "coincidono. Indica due estremi distinti.");
+                return Failed("The line of the rib is shorter than a millimeter: the two points " +
+                               "coincide. Put the two ends at two different points.");
 
             // ── THE STARTING PART ────────────────────────────────────────
             var photo = SnapshotPart(model);
-            if (photo.Volume == null) return Failed(VolumeNotReadBefore("fare la nervatura"));
+            if (photo.Volume == null) return Failed(VolumeNotReadBefore("making the rib"));
             if (photo.Bodies == 0)
                 return Failed(
-                    "Nel pezzo non c'e' un corpo solido: la nervatura riempie lo spazio fra una linea e " +
-                    "pareti che ci sono gia'. Fai prima il pezzo (per esempio con «extrude_profile»).");
+                    "There is no solid body in the part: the rib fills the space between a line and walls " +
+                    "that are already there. First make the part (for example with «extrude_profile»).");
             var ribBefore = RibNamesOfType(model, "Rib");
             var sketchesBefore = RibNamesOfType(model, "ProfileFeature");
 
@@ -176,7 +176,7 @@ namespace Oce.Solid.Agent.Core
             {
                 sketchPlane = FindBasePlane(model, plane);
                 if (sketchPlane == null)
-                    return Failed("Non ho trovato il piano «" + plane + "» nell'albero.");
+                    return Failed("I did not find the plane «" + plane + "» in the tree.");
             }
             else
             {
@@ -192,7 +192,7 @@ namespace Oce.Solid.Agent.Core
             // `sketched_bend`.
             model.ClearSelection2(true);
             if (!sketchPlane.Select2(false, 0))
-                return Failed("Non sono riuscito a selezionare il piano dello schizzo." +
+                return Failed("I could not select the plane of the sketch." +
                                RibWithdraw(model, mie, photo));
             model.SketchManager.InsertSketch(true);
             var sk = model.SketchManager.ActiveSketch as ISketch;
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.Core
                 try { if (model.SketchManager.ActiveSketch != null) model.SketchManager.InsertSketch(true); } catch { }
                 // Everything born of that type goes back out, not just one.
                 mie.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
-                return Failed("Lo schizzo della nervatura non si e' aperto." + RibWithdraw(model, mie, photo));
+                return Failed("The sketch of the rib did not open." + RibWithdraw(model, mie, photo));
             }
             var tr = sk.ModelToSketchTransform;
             Func<double[], double[]> inSketch = p =>
@@ -224,7 +224,7 @@ namespace Oce.Solid.Agent.Core
             if (sketch != null) mie.Add(sketch);
             else mie.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
             if (line == null || sketch == null)
-                return Failed(SketchNotIdentified(sketchesBorn, "La linea della nervatura non e' nata nello schizzo.") +
+                return Failed(SketchNotIdentified(sketchesBorn, "The line of the rib was not created in the sketch.") +
                                RibWithdraw(model, mie, photo));
 
             // THE TREE AFTER THE SKETCH: it is as it must be before EVERY
@@ -246,7 +246,7 @@ namespace Oce.Solid.Agent.Core
                 try { model.EditRebuild3(); } catch { }
                 int ribsBorn;
                 var born = RibNewOfType(model, "Rib", ribBefore, out ribsBorn);
-                string facing = flip ? "materiale girato" : "materiale dritto";
+                string facing = flip ? "flipped material" : "straight material";
                 if (born == null && ribsBorn > 1)
                 {
                     // Two ribs from one call: which one is ours is not known, so
@@ -258,18 +258,18 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (born == null)
                 {
-                    outcomes.Add(facing + ": nessuna nervatura" + (alzato == null ? "" : " (" + alzato + ")"));
+                    outcomes.Add(facing + ": no rib" + (alzato == null ? "" : " (" + alzato + ")"));
                     var intruse = RibNewOfAll(model, namesAfterTheSketch);
                     if (intruse.Count > 0)
                     {
                         var intruderNames = new List<string>();
                         foreach (var f in intruse) { intruderNames.Add(RibName(f)); mie.Add(f); }
                         return Failed(
-                            "Col " + facing + " la nervatura non e' nata, ma l'albero e' cresciuto lo stesso («" +
-                            string.Join("», «", intruderNames) + "»): non provo l'altro verso sopra una " +
-                            "lavorazione che non ho chiesto. Di solito la linea non sta fra due pareti: " +
-                            "spostala nel vuoto, con gli estremi (o il loro prolungamento) sulle pareti da " +
-                            "unire; per un rilievo su una faccia piana usa «extrude_on_face»." +
+                            "With the " + facing + " the rib was not created, but the tree grew all the same («" +
+                            string.Join("», «", intruderNames) + "»): I do not try the other direction on " +
+                            "top of a feature that I did not ask for. Usually the line is not between two " +
+                            "walls: move it into the empty space, with the ends (or their extension) on the " +
+                            "walls to join; for a boss on a planar face use «extrude_on_face»." +
                             RibWithdraw(model, mie, photo));
                     }
                     continue;
@@ -283,28 +283,28 @@ namespace Oce.Solid.Agent.Core
                 double? after = VolumeMm3(model);
                 if (after == null || after.Value - photo.Volume.Value < RibMinimumGrowthMm3)
                     return Failed(string.Format(CultureInfo.InvariantCulture,
-                        "Con il {0} SOLIDWORKS ha fatto nascere «{1}», ma il volume del pezzo {2}: una " +
-                        "nervatura che non aggiunge materiale non irrigidisce niente. Di solito la linea " +
-                        "sta dentro il materiale invece che nel vuoto fra le pareti: prova a spostarla nel vuoto, " +
-                        "con gli estremi (o il loro prolungamento) sulle pareti da unire.{3}",
+                        "With the {0} SOLIDWORKS created «{1}», but the volume of the part {2}: a " +
+                        "rib that adds no material stiffens nothing. Usually the line is inside the " +
+                        "material instead of in the empty space between the walls: try a line in the empty " +
+                        "space, with the ends (or their extension) on the walls to join.{3}",
                         facing, RibName(born),
-                        after == null ? "non si rilegge" : "e' rimasto " + after.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3",
+                        after == null ? "cannot be read back" : "stayed " + after.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3",
                         RibWithdraw(model, mie, photo)));
                 rib = born;
                 hasRun = flip;
-                outcomes.Add(facing + ": nata «" + RibName(born) + "»");
+                outcomes.Add(facing + ": created «" + RibName(born) + "»");
                 break;
             }
 
             if (rib == null)
                 return Failed(
-                    "La nervatura non e' nata in nessuno dei due versi del materiale (" +
-                    string.Join("; ", outcomes) + "). Una nervatura riempie, nel piano dello schizzo, lo " +
-                    "spazio fra la linea e le pareti del pezzo che la linea prolungata incontra: " +
-                    "l'angolo di una L, il fondo e i fianchi di una scatola svuotata. Quando non nasce " +
-                    "in nessun verso, di solito dalla linea non c'e' niente da incontrare: una piastra " +
-                    "senza pareti (misurato), o una linea fuori dal pezzo. Per un rilievo su una faccia " +
-                    "piana usa «extrude_on_face»; oppure sposta la linea fra due pareti." +
+                    "The rib does not come out in either direction of the material (" +
+                    string.Join("; ", outcomes) + "). A rib fills, in the plane of the sketch, the space " +
+                    "between the line and the walls of the part that the extended line meets: " +
+                    "the corner of an L, the bottom and the sides of a hollowed box. When it " +
+                    "does not come out in either direction, usually there is nothing for the line to " +
+                    "meet: a plate without walls (measured), or a line outside the part. For a boss on " +
+                    "a planar face use «extrude_on_face»; or move the line between two walls." +
                     RibWithdraw(model, mie, photo));
 
             // ── THE GUARDS, ON THE PART AND NOT ON THE FEATURE ───────────
@@ -312,7 +312,7 @@ namespace Oce.Solid.Agent.Core
             try { rebuilt = model.EditRebuild3(); } catch { }
             string broken = WhatBroke(model, photo, rebuilt, aperture: false);
             if (broken != null)
-                return Failed("La nervatura «" + RibName(rib) + "» e' nata, ma " + broken + "." +
+                return Failed("The rib «" + RibName(rib) + "» was created, but " + broken + "." +
                                RibWithdraw(model, mie, photo));
 
             double? volumeAfter = VolumeMm3(model);
@@ -355,16 +355,16 @@ namespace Oce.Solid.Agent.Core
                 ["declared_flip_side"] = declaredFacing,
                 ["declared_parallel_to_sketch"] = declaredParallel,
                 ["not_checked"] =
-                    "Ho misurato che la nervatura e' nata e che il pezzo e' cresciuto, e che non ha rotto " +
-                    "niente; non ho guardato QUALI pareti ha unito. Il verso del materiale l'ho provato io " +
-                    "(prima dritto, poi girato) e ho tenuto il primo in cui nasce: se la linea sta fra " +
-                    "pareti da tutte e due le parti, il verso dritto vince anche se tu pensavi l'altro. " +
-                    "Nessuno sformo: la nervatura ha le facce dritte.",
+                    "I measured that the rib was created and that the part grew, and that it broke nothing; " +
+                    "I did not look at WHICH walls it joined. The direction of the material I tried myself " +
+                    "(first straight, then flipped) and I kept the first one in which it is created: if " +
+                    "the line is between walls on both sides, the straight direction wins even if you thought " +
+                    "the other one. No draft: the rib has straight faces.",
             };
             if (volumeAfter == null) measurements["volume_not_reread"] = NoteVolumeNotReread;
 
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] nervatura {0} su {1}{2}: {3}, volume {4} -> {5}",
+                "[agent] rib {0} on {1}{2}: {3}, volume {4} -> {5}",
                 RibName(rib), plane, planeMadeHere ? " a " + distance.ToString("0.###", CultureInfo.InvariantCulture) : "",
                 string.Join("; ", outcomes), ReadValue(photo.Volume), ReadValue(volumeAfter)));
 
@@ -393,7 +393,7 @@ namespace Oce.Solid.Agent.Core
                 bool taken = false;
                 try { taken = model.Extension.SelectByID2(itemName, "SKETCH", 0, 0, 0, false, 0, null, 0); } catch { }
                 if (!taken) taken = sketch.Select2(false, 0);
-                if (!taken) return "lo schizzo non si seleziona";
+                if (!taken) return "the sketch cannot be selected";
                 model.FeatureManager.InsertRib(
                     Is2Sided: true,                 // thickness split in half between the two parts of the plane
                     ReverseThicknessDir: false,     // holds only for a rib on one side
@@ -426,10 +426,10 @@ namespace Oce.Solid.Agent.Core
         {
             reason = null;
             var basePlane = FindBasePlane(model, plane);
-            if (basePlane == null) { reason = "Non ho trovato il piano «" + plane + "» nell'albero."; return null; }
+            if (basePlane == null) { reason = "I did not find the plane «" + plane + "» in the tree."; return null; }
             if (!ApiHelpers.SelectOffsetPlaneBase(model, basePlane))
             {
-                reason = "Non sono riuscito a selezionare il piano «" + plane + "»."; return null;
+                reason = "I could not select the plane «" + plane + "»."; return null;
             }
 
             int planesBefore = CountPlanes(model);
@@ -439,7 +439,7 @@ namespace Oce.Solid.Agent.Core
             {
                 returned = ApiHelpers.InsertOffsetPlane(model, distanceMm) as IFeature;
             }
-            catch (Exception ex) { reason = "Il piano della nervatura non e' nato: " + ex.Message; return null; }
+            catch (Exception ex) { reason = "The plane of the rib was not created: " + ex.Message; return null; }
             finally { try { model.ClearSelection2(true); } catch { } }
 
             // THE PLANE IS WHAT InsertRefPlane RETURNED, or else the ONE RefPlane
@@ -453,10 +453,10 @@ namespace Oce.Solid.Agent.Core
             try { typ = last?.GetTypeName2() ?? ""; } catch { }
             if (planesBefore < 0 || planesAfter != planesBefore + 1 || typ != "RefPlane")
             {
-                reason = "Il piano della nervatura, parallelo al " + plane + " a " +
+                reason = "The plane of the rib, parallel to the " + plane + " at " +
                          distanceMm.ToString("0.###", CultureInfo.InvariantCulture) +
-                         " mm, non e' nato (piani " + planesBefore + " -> " + planesAfter + "). Puoi farlo prima " +
-                         "con «create_plane» e guardare dove finisce.";
+                         " mm, was not created (planes " + planesBefore + " -> " + planesAfter + "). You can make it first " +
+                         "with «create_plane» and look where it ends up.";
                 return null;
             }
             return last;
@@ -474,7 +474,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private string RibWithdraw(IModelDoc2 model, List<IFeature> mie, PartPhoto before)
         {
-            if (mie.Count == 0) return " Non ho toccato il pezzo: e' com'era.";
+            if (mie.Count == 0) return " I did not touch the part: it is as it was.";
             bool everything = true;
             var names = new List<string>();
             // A SKETCH THAT A FAILED InsertRib HAS TOUCHED CANNOT BE DELETED, ONLY
@@ -520,7 +520,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch (Exception ex)
                 {
-                    _log("[agente] nervatura: non riesco a togliere «" + itemName + "»: " + ex.Message);
+                    _log("[agent] rib: I cannot remove «" + itemName + "»: " + ex.Message);
                     everything = false;
                 }
                 finally { try { model.ClearSelection2(true); } catch { } }
@@ -532,10 +532,10 @@ namespace Oce.Solid.Agent.Core
             names.Reverse();
             var removed = names.FindAll(n => !suppressedOnes.Contains(n));
             string queue = IsBackAsItWas(model, before, everything,
-                "il pezzo come l'avevo trovato" + (removed.Count > 0 ? " (tolti «" + string.Join("», «", removed) + "»)" : ""));
+                "the part as I found it" + (removed.Count > 0 ? " (removed «" + string.Join("», «", removed) + "»)" : ""));
             if (suppressedOnes.Count > 0)
-                queue += " Lo schizzo «" + string.Join("», «", suppressedOnes) + "» resta nell'albero, SOPPRESSO: dopo una " +
-                        "nervatura fallita SOLIDWORKS non lo lascia cancellare (misurato), solo sopprimere.";
+                queue += " The sketch «" + string.Join("», «", suppressedOnes) + "» stays in the tree, SUPPRESSED: after " +
+                        "a failed rib SOLIDWORKS does not let it be deleted (measured), only suppressed.";
             return queue;
         }
 

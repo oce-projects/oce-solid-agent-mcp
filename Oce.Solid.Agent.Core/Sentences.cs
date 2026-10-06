@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.Core
         /// It begins with a space: it is attached at the tail of a message.
         /// </summary>
         public const string HowToWithdrawIt =
-            "«undo» se stai parlando col ponte, Ctrl+Z se sei davanti allo schermo";
+            "«undo» if you are talking to the bridge, Ctrl+Z if you are in front of the screen";
 
         /// <summary>
         /// WHERE IT WAS AND WHERE IT IS, as a fraction of the bounding box — **and only in
@@ -116,15 +116,15 @@ namespace Oce.Solid.Agent.Core
             // that really moved with respect to the part.
             if (System.Math.Abs(uBefore - uNow) <= 0.01)
                 return string.Format(c,
-                    " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e ci sta " +
-                    "ancora — il lato e' passato da {3:0.##} a {4:0.##} mm. Puo' essere la " +
-                    "stessa faccia cresciuta col pezzo, ma questo non lo decido io: " +
-                    "l'identita' si misura in millimetri.",
+                    " For what it is worth: «{0}» was at {1:0.#}% of side {2} and is still " +
+                    "there — the side went from {3:0.##} to {4:0.##} mm. It may be the " +
+                    "same face grown with the part, but I do not decide that: " +
+                    "identity is measured in millimeters.",
                     uid, uBefore * 100.0, itemName, sideBefore, sideNow);
 
             return string.Format(c,
-                " Per quel che vale: «{0}» stava al {1:0.#}% del lato {2} e adesso e' al " +
-                "{3:0.#}% — il lato e' passato da {4:0.##} a {5:0.##} mm.",
+                " For what it is worth: «{0}» was at {1:0.#}% of the side {2} and now it is " +
+                "at {3:0.#}% — the side went from {4:0.##} to {5:0.##} mm.",
                 uid, uBefore * 100.0, itemName, uNow * 100.0, sideBefore, sideNow);
         }
     }

@@ -140,7 +140,7 @@ namespace Oce.Solid.Agent.Core
                 for (int j = i + 1; j < texts.Count; j++)
                     if (!(texts[i].View == texts[j].View && texts[i].Name == texts[j].Name && texts[i].Name.Length > 0) &&
                         TheyTouch(texts[i].Angles, texts[j].Angles, margin))
-                        outside.Add("«" + texts[i].Text + "» (" + texts[i].View + ") sopra «" + texts[j].Text + "» (" + texts[j].View + ")");
+                        outside.Add("«" + texts[i].Text + "» (" + texts[i].View + ") over «" + texts[j].Text + "» (" + texts[j].View + ")");
 
             // The edges of the view, brought onto the sheet as segments (the curves piecewise).
             string viewName = "";
@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.Core
                 foreach (var s in segments)
                     if (SegmentInRectangle(s, t.Angles, -margin))
                     {
-                        outside.Add("«" + t.Text + "» (" + t.View + ") sopra una linea del pezzo");
+                        outside.Add("«" + t.Text + "» (" + t.View + ") over a line of the part");
                         break;
                     }
             }

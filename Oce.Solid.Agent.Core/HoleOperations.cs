@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.Core
                 Element = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOScrewClearances,
                 ThroughAllType = (int)swWzdHoleTypes_e.swHoleThru,
                 BlindType = (int)swWzdHoleTypes_e.swHoleBlind,
-                Human = "di passaggio per vite",
+                Human = "clearance for a screw",
             },
             ["counterbore"] = new HoleKind
             {
@@ -102,7 +102,7 @@ namespace Oce.Solid.Agent.Core
                 Element = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOSocketHeadCap,
                 ThroughAllType = (int)swWzdHoleTypes_e.swCounterBoreThru,
                 BlindType = (int)swWzdHoleTypes_e.swCounterBoreBlind,
-                Human = "lamato per vite a testa cilindrica ISO 4762",
+                Human = "counterbore for a cylindrical-head screw ISO 4762",
             },
             ["countersink"] = new HoleKind
             {
@@ -110,7 +110,7 @@ namespace Oce.Solid.Agent.Core
                 Element = (int)swWzdHoleStandardFastenerTypes_e.swStandardISOSocketCTSKFlatHead,
                 ThroughAllType = (int)swWzdHoleTypes_e.swCounterSinkThru,
                 BlindType = (int)swWzdHoleTypes_e.swCounterSinkBlind,
-                Human = "svasato per vite a testa svasata piana ISO 10642",
+                Human = "countersink for a flat countersunk-head screw ISO 10642",
             },
         };
 
@@ -132,19 +132,19 @@ namespace Oce.Solid.Agent.Core
             HoleKind kind;
             if (!HoleKinds.TryGetValue(kindName, out kind))
                 return Failed(
-                    "Non conosco il tipo di foro «" + kindName + "». " +
-                    "So fare: filettato, passaggio, lamato, svasato.");
+                    "I do not know the hole type «" + kindName + "». " +
+                    "I can do: threaded, clearance, counterbore, countersink.");
 
             string size = (Str(a, "size", "") ?? "").Trim();
             if (size.Length == 0)
-                return Failed("Manca la taglia del foro (per esempio «M8»).");
+                return Failed("The size of the hole is missing (for example «M8»).");
 
             bool throughAll = Bool(a, "through_all", true);
             double depth = Num(a, "depth_mm", 0);
             if (!throughAll && depth <= 0)
                 return Failed(
-                    "Un foro cieco vuole la profondita'. Dimmela, oppure di' che " +
-                    "e' passante.");
+                    "A blind hole needs the depth. Tell me the depth, or say that it " +
+                    "is through.");
 
             var positions = HolePositions(a, out error);
             if (positions == null) return Failed(error);
@@ -164,7 +164,7 @@ namespace Oce.Solid.Agent.Core
             // ── 1. it is created THROUGH, always ─────────────────────────
             model.ClearSelection2(true);
             if (!SelectFace(face))
-                return Failed("Non sono riuscito a selezionare la faccia.");
+                return Failed("I could not select the face.");
 
             IFeature feature;
             try
@@ -185,15 +185,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("La creazione guidata fori non e' riuscita: " + ex.Message);
+                return Failed("The hole wizard did not succeed: " + ex.Message);
             }
 
             if (feature == null)
                 return Failed(
-                    "SolidWorks non ha accettato la taglia «" + size + "» per un foro " +
-                    kind.Human + " secondo ISO. Le taglie metriche si scrivono " +
+                    "SolidWorks did not accept the size «" + size + "» for a hole of type " +
+                    kind.Human + " according to ISO. Metric sizes are written " +
                     "«M3», «M4», «M5», «M6», «M8», «M10», «M12», «M14», «M16», «M20», " +
-                    "«M24» — con la M maiuscola e senza spazi.");
+                    "«M24» — with a capital M and no spaces.");
 
             // ── 2-4. the standard, the type, the modification ────────────
             if (!FixUpTheHole(model, feature, kind, size, kind.ThroughAllType,
@@ -214,7 +214,7 @@ namespace Oce.Solid.Agent.Core
             // reported if in the end the hole stays in error.
             string intermediateErrors = null;
             string inError = HoleInError(feature);
-            if (inError != null) intermediateErrors = "dopo la norma ISO: " + inError;
+            if (inError != null) intermediateErrors = "after the ISO standard: " + inError;
 
             // ── 5. the blind one, in a second pass ───────────────────────
             if (!throughAll &&
@@ -224,7 +224,7 @@ namespace Oce.Solid.Agent.Core
             inError = throughAll ? null : HoleInError(feature);
             if (inError != null)
                 intermediateErrors = (intermediateErrors == null ? "" : intermediateErrors + "; ") +
-                                  "portato a cieco: " + inError;
+                                  "brought to blind: " + inError;
 
             // ── 6. the positions ─────────────────────────────────────────
             if (!PositionHoles(model, feature, axes, offsetM, positions, out error))
@@ -243,18 +243,18 @@ namespace Oce.Solid.Agent.Core
             // real defect (entry MissingCopies, SwOperations.cs).
             inError = HoleInError(feature);
             if (inError != null)
-                return Failed("Il foro guidato non e' venuto: nelle posizioni chieste «" + feature.Name +
-                               "» e' in errore (" + inError + "). Controlla che ogni posizione stia sulla " +
-                               "faccia." +
-                               (intermediateErrors == null ? "" : " Era gia' in errore prima di posizionarlo (" +
+                return Failed("The wizard hole did not come out: in the requested positions «" + feature.Name +
+                               "» is in error (" + inError + "). Check that every position is on the " +
+                               "face." +
+                               (intermediateErrors == null ? "" : " It was already in error before positioning it (" +
                                                                intermediateErrors + ").") +
                                RemoveCut(model, feature, volumeBefore));
             double? drilledVolume = VolumeMm3(model);
             if (volumeBefore.HasValue && drilledVolume.HasValue && drilledVolume.Value > volumeBefore.Value - 0.01)
                 return Failed(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "Il foro guidato non e' venuto: «{0}» e' nell'albero ma il pezzo pesa come prima " +
-                    "({1:0.##} mm3), cioe' non ha tolto materiale. Controlla che ogni posizione stia " +
-                    "sulla faccia.", feature.Name, volumeBefore.Value) +
+                    "The wizard hole did not come out: «{0}» is in the tree but the part weighs as " +
+                    "before ({1:0.##} mm3), that is it removed no material. Check that every position " +
+                    "is on the face.", feature.Name, volumeBefore.Value) +
                     RemoveCut(model, feature, volumeBefore));
 
             var measurements = new Dictionary<string, object>
@@ -395,13 +395,13 @@ namespace Oce.Solid.Agent.Core
             error = null;
             IWizardHoleFeatureData2 d;
             try { d = feature.GetDefinition() as IWizardHoleFeatureData2; }
-            catch (Exception ex) { error = "Non riesco a leggere il foro: " + ex.Message; return false; }
-            if (d == null) { error = "Non riesco a leggere la definizione del foro."; return false; }
+            catch (Exception ex) { error = "I cannot read the hole: " + ex.Message; return false; }
+            if (d == null) { error = "I cannot read the definition of the hole."; return false; }
 
             bool access = false;
             try { access = d.AccessSelections(model, null); }
-            catch (Exception ex) { error = "Non riesco ad aprire il foro: " + ex.Message; return false; }
-            if (!access) { error = "SolidWorks non mi lascia modificare il foro appena creato."; return false; }
+            catch (Exception ex) { error = "I cannot open the hole: " + ex.Message; return false; }
+            if (!access) { error = "SolidWorks does not let me modify the hole just created."; return false; }
 
             try
             {
@@ -419,7 +419,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     try { d.ReleaseSelectionAccess(); } catch { }
                     error =
-                        "La taglia «" + size + "» non c'e' nella tabella ISO dei fori " +
+                        "The size «" + size + "» is not in the ISO table of the holes of type " +
                         kind.Human + ".";
                     return false;
                 }
@@ -450,7 +450,7 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 try { d.ReleaseSelectionAccess(); } catch { }
-                error = "Non riesco a impostare il foro: " + ex.Message;
+                error = "I cannot set up the hole: " + ex.Message;
                 return false;
             }
 
@@ -461,13 +461,13 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 try { d.ReleaseSelectionAccess(); } catch { }
-                error = "La modifica del foro non e' riuscita: " + ex.Message;
+                error = "The modification of the hole did not succeed: " + ex.Message;
                 return false;
             }
             if (!applied)
             {
                 try { d.ReleaseSelectionAccess(); } catch { }
-                error = "SolidWorks non ha applicato le misure di norma al foro.";
+                error = "SolidWorks did not apply the standard measures to the hole.";
                 return false;
             }
             return true;
@@ -505,9 +505,9 @@ namespace Oce.Solid.Agent.Core
             if (withAnchor == 0) return true;
             if (withAnchor != positions.Count)
             {
-                error = "L'ancora dei fori va data a TUTTE le posizioni o a nessuna: qui ce l'hanno " +
-                         withAnchor + " su " + positions.Count + ". I fori stanno in uno schizzo solo, e un " +
-                         "punto senza ancora lo lascerebbe libero di muoversi alla prima modifica.";
+                error = "The anchor of the holes must be given to ALL the positions or to none: here " +
+                         withAnchor + " of " + positions.Count + " have it. The holes are in a single sketch, and a " +
+                         "point without an anchor would be left free to move at the first change.";
                 return false;
             }
             anchors = new List<Anchoring>();
@@ -521,7 +521,7 @@ namespace Oce.Solid.Agent.Core
                 // The radius is not known yet (the table decides it): 0 here, and the
                 // check for overrun is redone once the hole is born.
                 var anc = ReadAnchor(its, docState, face, axes, offsetM, positions[i][0], positions[i][1], 0, 0, out reason);
-                if (anc == null) { error = "Foro " + (i + 1) + ": " + reason; anchors = null; return false; }
+                if (anc == null) { error = "Hole " + (i + 1) + ": " + reason; anchors = null; return false; }
                 anchors.Add(anc);
             }
             return true;
@@ -538,13 +538,13 @@ namespace Oce.Solid.Agent.Core
             if (a != null && a.TryGetValue("positions", out raw) && raw != null)
             {
                 var itemList = raw as System.Collections.IEnumerable;
-                if (itemList == null) { error = "Le posizioni dei fori non sono leggibili."; return null; }
+                if (itemList == null) { error = "The positions of the holes cannot be read."; return null; }
                 int i = 0;
                 foreach (var entry in itemList)
                 {
                     i++;
                     var m = entry as Dictionary<string, object>;
-                    if (m == null) { error = "La posizione " + i + " non e' leggibile."; return null; }
+                    if (m == null) { error = "The position " + i + " cannot be read."; return null; }
                     double x, y;
                     if (!RequiredNum(m, "x_mm", out x, out error)) return null;
                     if (!RequiredNum(m, "y_mm", out y, out error)) return null;
@@ -562,11 +562,11 @@ namespace Oce.Solid.Agent.Core
                 outside.Add(new[] { x, y });
             }
 
-            if (outside.Count == 0) { error = "Nessuna posizione: non c'e' foro da fare."; return null; }
+            if (outside.Count == 0) { error = "No position: there is no hole to make."; return null; }
             if (outside.Count > MaximumHoles)
             {
-                error = "Sono " + outside.Count + " fori in una feature sola: piu' di " +
-                         MaximumHoles + " non li faccio, meglio dividerli.";
+                error = "There are " + outside.Count + " holes in a single feature: I do not make more than " +
+                         MaximumHoles + " in one feature; split them into several.";
                 return null;
             }
 
@@ -577,8 +577,8 @@ namespace Oce.Solid.Agent.Core
                     if (Math.Abs(outside[i][0] - outside[j][0]) < 0.01 &&
                         Math.Abs(outside[i][1] - outside[j][1]) < 0.01)
                     {
-                        error = "I fori " + (i + 1) + " e " + (j + 1) +
-                                 " sono nello stesso punto.";
+                        error = "The holes " + (i + 1) + " and " + (j + 1) +
+                                 " are in the same point.";
                         return null;
                     }
             return outside;
@@ -604,11 +604,11 @@ namespace Oce.Solid.Agent.Core
             var featSketch = PositioningSketch(feature);
             if (featSketch == null)
             {
-                error = "Non trovo lo schizzo che tiene la posizione dei fori.";
+                error = "I cannot find the sketch that holds the position of the holes.";
                 return false;
             }
             var sketch = featSketch.GetSpecificFeature2() as ISketch;
-            if (sketch == null) { error = "Lo schizzo dei fori non e' leggibile."; return false; }
+            if (sketch == null) { error = "The sketch of the holes cannot be read."; return false; }
 
             IMathTransform transformation;
             IMathUtility math;
@@ -619,12 +619,12 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                error = "Non riesco a leggere l'orientamento dello schizzo: " + ex.Message;
+                error = "I cannot read the orientation of the sketch: " + ex.Message;
                 return false;
             }
             if (transformation == null || math == null)
             {
-                error = "SolidWorks non mi da' l'orientamento dello schizzo dei fori.";
+                error = "SolidWorks does not give me the orientation of the sketch of the holes.";
                 return false;
             }
 
@@ -638,7 +638,7 @@ namespace Oce.Solid.Agent.Core
                 model.ClearSelection2(true);
                 if (!featSketch.Select2(false, 0))
                 {
-                    error = "Non riesco a selezionare lo schizzo dei fori.";
+                    error = "I cannot select the sketch of the holes.";
                     return false;
                 }
                 model.EditSketch();
@@ -650,14 +650,14 @@ namespace Oce.Solid.Agent.Core
                 var points = (sketch.GetSketchPoints2() as object[]) ?? new object[0];
                 if (points.Length == 0)
                 {
-                    error = "Lo schizzo dei fori e' vuoto: non so dove metterli.";
+                    error = "The sketch of the holes is empty: I do not know where to put them.";
                     return false;
                 }
 
                 var first = InSketch(math, transformation, axes, offsetM, positions[0]);
                 if (first == null || !(points[0] as ISketchPoint).SetCoords(first[0], first[1], 0))
                 {
-                    error = "Non sono riuscito a mettere il primo foro dove chiesto.";
+                    error = "I could not put the first hole where requested.";
                     return false;
                 }
 
@@ -666,7 +666,7 @@ namespace Oce.Solid.Agent.Core
                     var p = InSketch(math, transformation, axes, offsetM, positions[i]);
                     if (p == null || handler.CreatePoint(p[0], p[1], 0) == null)
                     {
-                        error = "Non sono riuscito ad aggiungere il foro " + (i + 1) + ".";
+                        error = "I could not add the hole " + (i + 1) + ".";
                         return false;
                     }
                 }
@@ -674,7 +674,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                error = "Il posizionamento dei fori non e' riuscito: " + ex.Message;
+                error = "The positioning of the holes did not succeed: " + ex.Message;
                 return false;
             }
             finally
@@ -759,8 +759,8 @@ namespace Oce.Solid.Agent.Core
 
             if (diameterMm <= 0)
             {
-                cannot = "SOLIDWORKS non dichiara un diametro per questa lavorazione: " +
-                           "non ho un termine di confronto";
+                cannot = "SOLIDWORKS does not declare a diameter for this feature: " +
+                           "I have nothing to compare with";
                 return null;
             }
 
@@ -770,7 +770,7 @@ namespace Oce.Solid.Agent.Core
                 var faces = feature.GetFaces() as object[];
                 if (faces == null)
                 {
-                    cannot = "la lavorazione non espone le sue facce";
+                    cannot = "the feature does not expose its faces";
                     return null;
                 }
                 foreach (var o in faces)
@@ -785,7 +785,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                cannot = "non sono riuscito a leggere le facce della lavorazione: " + ex.Message;
+                cannot = "I could not read the faces of the feature: " + ex.Message;
                 return null;
             }
 

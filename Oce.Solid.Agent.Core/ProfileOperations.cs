@@ -65,16 +65,16 @@ namespace Oce.Solid.Agent.Core
             // problems and ask for two different actions.*
             if (folder == null)
                 return Failed(
-                    "Non so dove sia la libreria dei profili. E' una cartella di file " +
-                    ".sldlfp, uno per forma: dimmi dov'e' con la variabile d'ambiente " +
-                    "PROFILI_SALDATURA. Non c'e' un percorso predefinito, perche' " +
-                    "ogni officina tiene la propria libreria dove vuole.");
+                    "I do not know where the library of the profiles is. It is a folder of " +
+                    ".sldlfp files, one per shape: tell me where it is with the environment " +
+                    "variable PROFILI_SALDATURA. There is no default path, because every " +
+                    "workshop keeps its own library wherever it wants.");
 
             if (!Directory.Exists(folder))
                 return Failed(
-                    "Non trovo la cartella dei profili: «" + folder + "», che e' quello " +
-                    "che dice PROFILI_SALDATURA. La libreria e' una cartella di file " +
-                    ".sldlfp; controlla il percorso.");
+                    "I cannot find the profiles folder: «" + folder + "», which is what " +
+                    "PROFILI_SALDATURA says. The library is a folder of .sldlfp " +
+                    "files; check the path.");
 
             string searched = Str(a, "search", null);
             bool withMeasurements = Bool(a, "with_measurements", true);
@@ -83,13 +83,13 @@ namespace Oce.Solid.Agent.Core
             try { file = Directory.GetFiles(folder, "*.sldlfp", SearchOption.AllDirectories); }
             catch (Exception ex)
             {
-                return Failed("Non riesco a leggere la cartella dei profili: " + ex.Message);
+                return Failed("I cannot read the profiles folder: " + ex.Message);
             }
             if (file.Length == 0)
                 return Failed(
-                    "Nella cartella «" + folder + "» non c'e' nessun file .sldlfp. E' la " +
-                    "cartella giusta? I profili di saldatura sono file .sldlfp, uno per " +
-                    "forma, e ognuno contiene tutte le misure come configurazioni.");
+                    "In the folder «" + folder + "» there is no .sldlfp file. Is it the " +
+                    "right folder? The weldment profiles are .sldlfp files, one per " +
+                    "shape, and each one contains all the sizes as configurations.");
 
             var kept = file.AsEnumerable();
             if (!string.IsNullOrWhiteSpace(searched))
@@ -101,8 +101,8 @@ namespace Oce.Solid.Agent.Core
                                           StringComparer.OrdinalIgnoreCase).ToList();
             if (listed.Count == 0)
                 return Failed(
-                    "Nessun profilo si chiama come «" + searched + "». Ce ne sono " +
-                    file.Length + " in tutto: richiama senza «search» per vederli.");
+                    "No profile is named like «" + searched + "». There are " +
+                    file.Length + " in all: call again without «search» to see them.");
 
             int truncated = Math.Max(0, listed.Count - MaxProfiles);
             var entries = new List<Dictionary<string, object>>();
@@ -132,8 +132,8 @@ namespace Oce.Solid.Agent.Core
                         // both are different from one that is fine.
                         entry["measurements"] = null;
                         entry["note"] =
-                            "Non sono riuscito a leggere le misure di questo profilo: non " +
-                            "copiarne una a memoria.";
+                            "I could not read the sizes of this profile: do not " +
+                            "copy one from memory.";
                     }
                     else
                     {
@@ -153,26 +153,26 @@ namespace Oce.Solid.Agent.Core
                 ["profiles_listed"] = entries.Count,
                 ["profiles"] = entries.ToArray(),
                 ["how_to_use_it"] =
-                    "Copia «profile_path» e una delle «measurements» ALLA LETTERA dentro " +
-                    "«structural_member» o «rectangular_frame», in «profile_path» e " +
-                    "«configuration». Alla lettera davvero: maiuscole, spazi e virgole " +
-                    "contano, e una misura che non c'e' non da' errore -- SOLIDWORKS usa " +
-                    "quella attiva del profilo, e il pezzo esce con una parete diversa da " +
-                    "quella che credi.",
+                    "Copy «profile_path» and one of the «measurements» LITERALLY into " +
+                    "«structural_member» or «rectangular_frame», in «profile_path» and " +
+                    "«configuration». Literally for real: capitals, spaces and commas count, " +
+                    "and a size that does not exist raises no error -- SOLIDWORKS uses the " +
+                    "active one of the profile, and the part comes out with a wall different " +
+                    "from the one you think.",
             };
             if (truncated > 0)
             {
                 totalMeasurements["profiles_not_listed"] = truncated;
                 totalMeasurements["truncated"] = true;
                 totalMeasurements["how_to_see_them_all"] =
-                    "Ce ne sono altri " + truncated + ". Richiama con «search» e un pezzo del " +
-                    "nome, per esempio «tube» o «IPE».";
+                    "There are " + truncated + " more. Call again with «search» and a piece of " +
+                    "the name, for example «tube» or «IPE».";
             }
             if (!string.IsNullOrWhiteSpace(searched)) totalMeasurements["search"] = searched;
             if (withoutMeasurements > 0) totalMeasurements["profiles_without_readable_measurements"] = withoutMeasurements;
 
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] profili di saldatura: {0} in «{1}», elencati {2}",
+                "[agent] weldment profiles: {0} in «{1}», listed {2}",
                 file.Length, folder, entries.Count));
 
             return SucceededWithoutCreating(totalMeasurements);

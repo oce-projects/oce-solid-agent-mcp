@@ -47,21 +47,21 @@ namespace Oce.Solid.Agent.Core
             var assemblyDoc = model as IAssemblyDoc;
             if (assemblyDoc == null)
                 return Failed(
-                    "Questo non e' un assieme, e' un documento di tipo «" +
-                    DocumentTypeName(TypeOf(model)) + "». I componenti si " +
-                    "inseriscono solo in un assieme: aprine uno, oppure crealo, " +
-                    "e poi richiamami.");
+                    "This is not an assembly, it is a document of type «" +
+                    DocumentTypeName(TypeOf(model)) + "». Components are " +
+                    "inserted only in an assembly: open one, or create it, and " +
+                    "then call me again.");
 
             string filePath = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(filePath))
                 return Failed(
-                    "Non mi hai detto quale componente inserire: «path» e' il " +
-                    "percorso completo del file, e dev'essere uno dei documenti " +
-                    "gia' aperti. Li trovi in «documents_open» dello stato.");
+                    "You did not tell me which component to insert: «path» is the " +
+                    "full path of the file, and it must be one of the documents " +
+                    "already open. You find them in «documents_open» of the state.");
 
             if (!File.Exists(filePath))
                 return Failed(
-                    "Il file «" + filePath + "» non esiste. " + WhatIsOpen());
+                    "The file «" + filePath + "» does not exist. " + WhatIsOpen());
 
             // ── IS IT OPEN? ──────────────────────────────────────────────
             //
@@ -71,9 +71,9 @@ namespace Oce.Solid.Agent.Core
             // written another way.
             if (!IsOpen(filePath))
                 return Failed(
-                    "«" + Path.GetFileName(filePath) + "» non e' aperto in SOLIDWORKS, e " +
-                    "l'inserimento vuole un documento gia' aperto: se lo chiamo su un " +
-                    "file chiuso mi risponde «non fatto» senza dirmi perche'. " +
+                    "«" + Path.GetFileName(filePath) + "» is not open in SOLIDWORKS, and " +
+                    "the insertion wants a document that is already open: if I call it on " +
+                    "a closed file it answers «not done» without telling me why. " +
                     WhatIsOpen());
 
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0), z = Num(a, "z_mm", 0);
@@ -132,7 +132,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito a inserire il componente: " + ex.Message);
+                return Failed("I could not insert the component: " + ex.Message);
             }
 
             // THE NAME IS TAKEN BEFORE THE REBUILD, and it is needed to find
@@ -164,10 +164,10 @@ namespace Oce.Solid.Agent.Core
             int after = HowManyComponentsInAssembly(assemblyDoc);
             if (after != before + 1)
                 return Failed(
-                    "Ho chiesto di inserire «" + Path.GetFileName(filePath) + "» e " +
-                    (born == null ? "non mi e' stato risposto niente" : "mi e' stato risposto di si'") +
-                    ", ma l'assieme aveva " + before + " componenti e adesso ne ha " + after +
-                    ". Non l'ho considerato inserito.");
+                    "I asked to insert «" + Path.GetFileName(filePath) + "» and " +
+                    (born == null ? "got no answer" : "was told yes") +
+                    ", but the assembly had " + before + " components and now it has " + after +
+                    ". I did not consider it inserted.");
 
             // THE CONFIGURATION THE COMPONENT REALLY REFERENCES (Z-C21.4, L11-1),
             // read on the component found again after the rebuild. When one was
@@ -248,24 +248,24 @@ namespace Oce.Solid.Agent.Core
             // the same choice as `check_body_geometry`, which next to
             // `printable` writes `verdict`.
             string verdictValue =
-                "Inserito «" + (itemName ?? Path.GetFileName(filePath)) + "» a " +
+                "Inserted «" + (itemName ?? Path.GetFileName(filePath)) + "» at " +
                 AssemblyMm(x) + ", " + AssemblyMm(y) + ", " + AssemblyMm(z) + " mm. " +
                 (grounded
-                    ? "E' FISSO: non si muove perche' e' inchiodato, non perche' sia " +
-                      "accoppiato. Sono due cose diverse."
+                    ? "It is FIXED: it does not move because it is nailed down, not because it " +
+                      "is mated. They are two different things."
                     : resting
-                        ? "ATTENZIONE: non e' fisso e non ha nessun accoppiamento — e' " +
-                          "appoggiato li'. Si sposta se qualcuno lo trascina, e l'assieme " +
-                          "sembra montato senza esserlo."
+                        ? "WARNING: it is not fixed and it has no mate — it is just " +
+                          "laid down there. It moves if someone drags it, and the assembly " +
+                          "looks assembled without being so."
                         : mates > 0
-                            ? "Ha " + mates +
-                              (mates == 1 ? " accoppiamento" : " accoppiamenti") +
-                              ". Quanto sia ancora libero non te lo so dire: SOLIDWORKS " +
-                              "non fornisce i gradi di liberta' residui da qui."
-                            : "Non sono riuscito a dire se sia vincolato: non ho potuto " +
-                              "leggere ne' gli accoppiamenti ne' lo stato.");
+                            ? "It has " + mates +
+                              (mates == 1 ? " mate" : " mates") +
+                              ". How free it still is I cannot tell you: SOLIDWORKS does " +
+                              "not give the remaining degrees of freedom from here."
+                            : "I could not say whether it is constrained: I could " +
+                              "not read either the mates or the state.");
             measurements["verdict"] = verdictValue;
-            _log("[agente] " + verdictValue);
+            _log("[agent] " + verdictValue);
 
             return SucceededWithoutCreating(measurements);
         }
@@ -305,7 +305,7 @@ namespace Oce.Solid.Agent.Core
 
         internal static DegreesOfFreedomRead DegreesOfFreedom(IComponent2 component)
         {
-            var outside = new DegreesOfFreedomRead { State = "non letto", HowMany = -1 };
+            var outside = new DegreesOfFreedomRead { State = "not read", HowMany = -1 };
             if (component == null) return outside;
             try
             {
@@ -329,7 +329,7 @@ namespace Oce.Solid.Agent.Core
                     outside.HowMany = HowManyFree(s1, s2, s3, s4, s5, s6);
                 }
             }
-            catch { outside.State = "non letto"; }
+            catch { outside.State = "not read"; }
             return outside;
         }
 
@@ -385,9 +385,9 @@ namespace Oce.Solid.Agent.Core
                 case (int)swRemainingDofs_e.swRemainingDofs_Restricted: return "vincolato";
                 case (int)swRemainingDofs_e.swRemainingDofs_Unrestricted: return "libero";
                 case (int)swRemainingDofs_e.swRemainingDofs_Unavailable: return "unavailable";
-                case (int)swRemainingDofs_e.swRemainingDofs_Failed: return "non riuscito";
-                case (int)swRemainingDofs_e.swRemainingDofs_RootComponent: return "componente radice";
-                default: return "sconosciuto (" + outcome.ToString(CultureInfo.InvariantCulture) + ")";
+                case (int)swRemainingDofs_e.swRemainingDofs_Failed: return "failed";
+                case (int)swRemainingDofs_e.swRemainingDofs_RootComponent: return "root component";
+                default: return "unknown (" + outcome.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
 
@@ -623,10 +623,10 @@ namespace Oce.Solid.Agent.Core
             catch { }
 
             if (names.Count == 0)
-                return "Adesso non e' aperto nessun documento salvato su disco: " +
-                       "un componente mai salvato non si puo' inserire, perche' " +
-                       "l'inserimento lo cerca per percorso.";
-            return "Adesso sono aperti: " + string.Join("; ", names) + ".";
+                return "No document saved on disk is open now: a component " +
+                       "that was never saved cannot be inserted, because the " +
+                       "insertion looks for it by path.";
+            return "These are open now: " + string.Join("; ", names) + ".";
         }
 
         private static int TypeOf(IModelDoc2 model)

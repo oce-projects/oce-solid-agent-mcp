@@ -99,7 +99,7 @@ namespace Oce.Solid.Agent.Core
         /// with RemovedButTreeLonger or RemovedButVolumeChanged instead.
         /// </summary>
         private const string RemainsInPart =
-            " Il taglio pero' e' gia' stato fatto: ritiralo — " + Sentences.HowToWithdrawIt + ".";
+            " The cut has already been made, though: withdraw it — " + Sentences.HowToWithdrawIt + ".";
 
         /// <summary>
         /// Tail of the error messages that leave a sketch in the tree.
@@ -115,7 +115,7 @@ namespace Oce.Solid.Agent.Core
         /// did not succeed, and that something of ours has been left in the part.
         /// </summary>
         private const string LeftSketchBehind =
-            " Nel pezzo e' rimasto lo schizzo che avevo disegnato: puoi toglierlo — " +
+            " The sketch I had drawn stayed in the part: you can remove it — " +
             Sentences.HowToWithdrawIt + ".";
 
         /// <summary>
@@ -163,8 +163,8 @@ namespace Oce.Solid.Agent.Core
         /// did it.
         /// </summary>
         private const string SketchRemovedButNotOnlyIt =
-            " Ho tolto lo schizzo che avevo disegnato, ma togliendolo e' cambiato" +
-            " anche il pezzo: controllalo, e se non e' come lo vuoi ritiralo — " +
+            " I removed the sketch I had drawn, but removing it also changed the" +
+            " part: check it, and if it is not as you want it withdraw it — " +
             Sentences.HowToWithdrawIt + ".";
 
         /// <summary>
@@ -291,7 +291,7 @@ namespace Oce.Solid.Agent.Core
         /// if it changes, the check must notice instead of believing
         /// that all is well.
         /// </summary>
-        public const string UnknownOperation = "Operazione sconosciuta: ";
+        public const string UnknownOperation = "Unknown operation: ";
 
         public Outcome Run(
             IModelDoc2 model,
@@ -655,7 +655,7 @@ namespace Oce.Solid.Agent.Core
             // is the one born since (scheme S7), not the last of the tree.
             var sketchNamesBefore = FeatureNamesNow(model);
             if (!SelectPlane(model, plane))
-                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
+                return Failed($"I did not find the plane «{plane}» in the tree.");
 
             var sketches = model.SketchManager;
             sketches.InsertSketch(true);
@@ -682,7 +682,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed(selError + WithoutSketch(model));
 
             var feature = Extrude(model, thickness, merge: true);
-            if (feature == null) return Failed("L'estrusione non e' stata creata." + WithoutSketch(model));
+            if (feature == null) return Failed("The extrusion was not created." + WithoutSketch(model));
             return Succeeded(feature, new Dictionary<string, object>
             {
                 ["length_mm"] = length,
@@ -895,21 +895,21 @@ namespace Oce.Solid.Agent.Core
             double rawTeeth, module, thickness;
             string why;
             if (!RequiredNum(a, "teeth", out rawTeeth, out why))
-                return Failed("Per una ruota dentata serve «teeth»: " + why);
+                return Failed("A gear needs «teeth»: " + why);
             if (!RequiredNum(a, "module_mm", out module, out why))
-                return Failed("Per una ruota dentata serve «module_mm»: " + why);
+                return Failed("A gear needs «module_mm»: " + why);
             if (!RequiredNum(a, "thickness_mm", out thickness, out why))
-                return Failed("Per una ruota dentata serve «thickness_mm»: " + why);
+                return Failed("A gear needs «thickness_mm»: " + why);
 
             int teeth = (int)Math.Round(rawTeeth);
             if (Math.Abs(rawTeeth - teeth) > 1e-9)
                 return Failed(
-                    "I denti sono " + rawTeeth + ": un numero di denti e' " +
-                    "intero, e mezzo dente non si taglia.");
+                    "The teeth are " + rawTeeth + ": a number of teeth is a " +
+                    "whole number, and half a tooth cannot be cut.");
             if (teeth < 3)
-                return Failed("Una ruota da " + teeth + " denti non e' una ruota.");
+                return Failed("A wheel of " + teeth + " teeth is not a wheel.");
             if (module <= 0 || thickness <= 0)
-                return Failed("Modulo e spessore devono essere maggiori di zero.");
+                return Failed("Module and thickness must be greater than zero.");
 
             string reason;
             var contours = SpurGear.Contours(
@@ -973,7 +973,7 @@ namespace Oce.Solid.Agent.Core
             if (string.IsNullOrWhiteSpace(typ) ||
                 !Sections.Wanted.TryGetValue(typ.Trim(), out wanted))
                 return Failed(
-                    "Sezione «" + typ + "» sconosciuta. Ci sono: " +
+                    "Section «" + typ + "» unknown. There are: " +
                     string.Join(", ", Sections.Wanted.Keys) + ".");
 
             // THE DIMENSIONS THIS SECTION NEEDS, and only those.
@@ -989,14 +989,14 @@ namespace Oce.Solid.Agent.Core
                 string why;
                 if (!RequiredNum(a, q, out v, out why)) { missingItems.Add(q); continue; }
                 if (v <= 0) return Failed(
-                    "«" + q + "» e' " + v + ": una quota di una sezione non puo' " +
-                    "essere zero o negativa.");
+                    "«" + q + "» is " + v + ": a dimension of a section cannot " +
+                    "be zero or negative.");
                 m[q] = v;
             }
             if (missingItems.Count > 0)
                 return Failed(
-                    "Per una sezione «" + typ + "» " +
-                    (missingItems.Count == 1 ? "serve " : "servono ") +
+                    "A section «" + typ + "» " +
+                    (missingItems.Count == 1 ? "needs " : "need ") +
                     string.Join(", ", missingItems.ConvertAll(x => "«" + x + "»")) + ".");
 
             string reason;
@@ -1054,7 +1054,7 @@ namespace Oce.Solid.Agent.Core
             // extrusion, as the one sketch born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(model);
             if (!SelectPlane(model, plane))
-                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
+                return Failed($"I did not find the plane «{plane}» in the tree.");
 
             var sketches = model.SketchManager;
             bool addToDbBefore = false;
@@ -1082,7 +1082,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed(selError + WithoutSketch(model));
 
             var feature = Extrude(model, thickness, merge: true, symmetric: symmetric);
-            if (feature == null) return Failed("L'estrusione non e' stata creata." + WithoutSketch(model));
+            if (feature == null) return Failed("The extrusion was not created." + WithoutSketch(model));
 
             // The sketch is locked AFTER the extrusion: a FIXED relation added
             // while the sketch was still being drawn raised RPC_E_SERVERFAULT
@@ -1448,11 +1448,11 @@ namespace Oce.Solid.Agent.Core
             object raw;
             if (a == null || !a.TryGetValue("contours", out raw) || raw == null)
             {
-                reason = "Non mi e' arrivata nessuna sagoma da disegnare.";
+                reason = "No outline to draw arrived.";
                 return null;
             }
             var list = raw as System.Collections.IEnumerable;
-            if (list == null) { reason = "La sagoma non e' un elenco di contorni."; return null; }
+            if (list == null) { reason = "The outline is not a list of contours."; return null; }
 
             var outside = new List<Contour>();
             foreach (var c in list)
@@ -1501,7 +1501,7 @@ namespace Oce.Solid.Agent.Core
                         rawCenter != null ? new[] { rawCenter } : null, out reason);
                     if (center == null || center.Count != 1)
                     {
-                        reason = "Il centro del cerchio non e' [x, y]. Si scrive \"circle\": [x, y] oppure \"variant\": \"circle\" con \"center\": [x, y].";
+                        reason = "The center of the circle is not [x, y]. Write \"circle\": [x, y] or \"variant\": \"circle\" with \"center\": [x, y].";
                         return null;
                     }
 
@@ -1514,7 +1514,7 @@ namespace Oce.Solid.Agent.Core
                     object rawDiameter;
                     if (!entry.TryGetValue("diameter_mm", out rawDiameter) || rawDiameter == null)
                     {
-                        reason = "Un cerchio senza \"diameter_mm\": un centro da solo non dice quanto e' grande.";
+                        reason = "A circle without \"diameter_mm\": a center alone does not say how big it is.";
                         return null;
                     }
                     double diameter;
@@ -1523,10 +1523,10 @@ namespace Oce.Solid.Agent.Core
                         diameter = Convert.ToDouble(
                             rawDiameter, System.Globalization.CultureInfo.InvariantCulture);
                     }
-                    catch { reason = "Il diametro del cerchio non e' un numero."; return null; }
+                    catch { reason = "The diameter of the circle is not a number."; return null; }
                     if (diameter <= 0)
                     {
-                        reason = "Il diametro del cerchio e' " + diameter + ": un cerchio di diametro zero o negativo non si disegna.";
+                        reason = "The diameter of the circle is " + diameter + ": a circle of zero or negative diameter cannot be drawn.";
                         return null;
                     }
 
@@ -1538,14 +1538,14 @@ namespace Oce.Solid.Agent.Core
                 {
                     var contour = new Contour();
                     var strokes = entry.TryGetValue("strokes", out var tr) ? tr as System.Collections.IEnumerable : null;
-                    if (strokes == null) { reason = "Un contorno composito non ha tratti."; return null; }
+                    if (strokes == null) { reason = "A composite contour has no segments."; return null; }
                     foreach (var x in strokes)
                     {
                         var tt = x as Dictionary<string, object>;
-                        if (tt == null) { reason = "Un tratto non e' leggibile."; return null; }
+                        if (tt == null) { reason = "A segment is not readable."; return null; }
                         var points = Points(tt.TryGetValue("points", out var pp) ? pp : null, out reason);
                         if (points == null) return null;
-                        if (points.Count < 2) { reason = "Un tratto ha meno di due punti."; return null; }
+                        if (points.Count < 2) { reason = "A segment has fewer than two points."; return null; }
                         var itemName = Convert.ToString(tt.TryGetValue("stroke", out var nt) ? nt : "lines");
                         contour.Strokes.Add(new Stroke
                         {
@@ -1553,22 +1553,22 @@ namespace Oce.Solid.Agent.Core
                             Points = points,
                         });
                     }
-                    if (contour.Strokes.Count == 0) { reason = "Un contorno composito e' vuoto."; return null; }
+                    if (contour.Strokes.Count == 0) { reason = "A composite contour is empty."; return null; }
                     outside.Add(contour);
                     continue;
                 }
 
                 var vertices = Points(entry.TryGetValue("vertices", out var vv) ? vv : null, out reason);
                 if (vertices == null) return null;
-                if (vertices.Count < 3) { reason = "Un contorno ha meno di tre punti: non si chiude."; return null; }
+                if (vertices.Count < 3) { reason = "A contour has fewer than three points: it does not close."; return null; }
                 var polygonal = new Contour();
                 polygonal.Strokes.Add(new Stroke { Points = Close(vertices) });
                 outside.Add(polygonal);
             }
-            if (outside.Count == 0) { reason = "La sagoma non ha nessun contorno."; return null; }
+            if (outside.Count == 0) { reason = "The outline has no contour."; return null; }
             if (outside.Count > MaxContours)
             {
-                reason = outside.Count + " contorni sono troppi (al massimo " + MaxContours + ").";
+                reason = outside.Count + " contours are too many (at most " + MaxContours + ").";
                 return null;
             }
             if (!SensibleOutline(outside, maxVertices, out reason, out note)) return null;
@@ -1628,7 +1628,7 @@ namespace Oce.Solid.Agent.Core
             for (int i = 0; i < contours.Count; i++)
             {
                 var entry = contours[i];
-                string label = i == 0 ? "Il contorno esterno" : "Il vuoto n. " + i;
+                string label = i == 0 ? "The outer contour" : "Void no. " + i;
 
                 // A circle cannot cross itself and does not have zero
                 // area: sampling it to find out would be wasted work.
@@ -1647,10 +1647,10 @@ namespace Oce.Solid.Agent.Core
                     {
                         reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
-                            "{0}: il tratto {1} finisce in ({2:0.###}, {3:0.###}) e il " +
-                            "seguente comincia in ({4:0.###}, {5:0.###}): il contorno non " +
-                            "si chiude, e un contorno aperto non da' errore — non si " +
-                            "estrude e basta.",
+                            "{0}: segment {1} ends at ({2:0.###}, {3:0.###}) and the " +
+                            "next one starts at ({4:0.###}, {5:0.###}): the contour does " +
+                            "not close, and an open contour raises no error — it just " +
+                            "does not extrude.",
                             label, j + 1, fine[0], fine[1], after[0], after[1]);
                         return false;
                     }
@@ -1659,14 +1659,14 @@ namespace Oce.Solid.Agent.Core
                 var ring = PointsOf(entry);
                 if (ring.Count > maxVertices)
                 {
-                    reason = label + " ha " + ring.Count + " vertici (al massimo " +
+                    reason = label + " has " + ring.Count + " vertices (at most " +
                              maxVertices + ").";
                     return false;
                 }
                 if (ring.Count < 3)
                 {
-                    reason = label + " ha " + ring.Count + " vertici distinti: con " +
-                             "meno di tre non si chiude una sagoma.";
+                    reason = label + " has " + ring.Count + " distinct vertices: with " +
+                             "fewer than three an outline cannot be closed.";
                     return false;
                 }
 
@@ -1682,10 +1682,10 @@ namespace Oce.Solid.Agent.Core
                     // give the point, not to add a refusal.
                     reason = string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
-                        "{0} si incrocia da solo: il lato che parte da ({1:0.###}, " +
-                        "{2:0.###}) ne attraversa un altro. SOLIDWORKS si fermerebbe " +
-                        "comunque, ma direbbe soltanto «L'estrusione non e' stata " +
-                        "creata». Di solito e' l'ordine dei vertici.",
+                        "{0} intersects itself: the side that starts from " +
+                        "({1:0.###}, {2:0.###}) crosses another one. SOLIDWORKS would " +
+                        "stop anyway, but it would only say «The extrusion was not created». " +
+                        "Usually it is the order of the vertices.",
                         label, p[0], p[1]);
                     return false;
                 }
@@ -1693,8 +1693,8 @@ namespace Oce.Solid.Agent.Core
                 // 3. ZERO AREA?
                 if (ClosedShape.Area(ring) <= 0)
                 {
-                    reason = label + " ha area nulla: i suoi punti stanno tutti " +
-                             "sulla stessa retta.";
+                    reason = label + " has zero area: its points are all on the " +
+                             "same straight line.";
                     return false;
                 }
             }
@@ -1760,12 +1760,12 @@ namespace Oce.Solid.Agent.Core
                     {
                         reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
-                            "Il contorno n. {0} sta A CAVALLO del bordo esterno: il punto " +
-                            "({1:0.###}, {2:0.###}) e' fuori e altri sono dentro. Non e' " +
-                            "ne' un vuoto ne' una regione a se', e SOLIDWORKS si ferma " +
-                            "dicendo soltanto «L'estrusione non e' stata creata». " +
-                            "Spostalo tutto dentro se e' un vuoto, tutto fuori se e' un " +
-                            "pezzo a parte.",
+                            "Contour no. {0} STRADDLES the outer border: the point " +
+                            "({1:0.###}, {2:0.###}) is outside and others are inside. " +
+                            "It is neither a void nor a region on its own, and SOLIDWORKS " +
+                            "stops saying only «The extrusion was not created». " +
+                            "Move it all inside if it is a void, all outside if it is " +
+                            "a separate piece.",
                             i, firstOutside[0], firstOutside[1]);
                         return false;
                     }
@@ -1777,13 +1777,13 @@ namespace Oce.Solid.Agent.Core
                     {
                         reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
-                            "Il contorno n. {0} TOCCA il bordo esterno in {1} " +
-                            (onBorder == 1 ? "punto" : "punti") + ". Due contorni che si " +
-                            "toccano non delimitano una regione, e SOLIDWORKS si ferma " +
-                            "dicendo soltanto «L'estrusione non e' stata creata». " +
-                            "Se volevi un'asola aperta sul bordo, disegnala come UN " +
-                            "contorno solo: il bordo esterno che entra e rientra. Se " +
-                            "volevi un foro, spostalo dentro di almeno un decimo.",
+                            "Contour no. {0} TOUCHES the outer border in {1} " +
+                            (onBorder == 1 ? "point" : "points") + ". Two contours that " +
+                            "touch do not delimit a region, and SOLIDWORKS stops saying " +
+                            "only «The extrusion was not created». If you wanted " +
+                            "a slot open on the border, draw it as ONE contour only: " +
+                            "the outer border that goes in and comes back out. If you " +
+                            "wanted a hole, move it inside by at least a tenth.",
                             i, onBorder);
                         return false;
                     }
@@ -1795,12 +1795,12 @@ namespace Oce.Solid.Agent.Core
                 if (detached.Count > 0)
                     note =
                         (detached.Count == 1
-                            ? "Il contorno n. " + detached[0] + " non sta dentro il primo"
-                            : "I contorni n. " + string.Join(", ", detached) +
-                              " non stanno dentro il primo") +
-                        ": non sono vuoti, sono regioni a se'. Vengono estrusi lo stesso, " +
-                        "e il pezzo puo' avere piu' di un corpo — guarda «bodies_total». " +
-                        "Se volevi dei fori, vanno spostati dentro il contorno esterno.";
+                            ? "Contour no. " + detached[0] + " is not inside the first one"
+                            : "Contours no. " + string.Join(", ", detached) +
+                              " are not inside the first one") +
+                        ": not voids but regions of their own. They are extruded all the same, " +
+                        "and the part may have more than one body — look at «bodies_total». " +
+                        "If you wanted holes, they must be moved inside the outer contour.";
             }
             return true;
         }
@@ -1821,14 +1821,14 @@ namespace Oce.Solid.Agent.Core
         private static List<double[]> Points(object raw, out string reason)
         {
             reason = null;
-            if (raw == null) { reason = "Mancano i punti."; return null; }
+            if (raw == null) { reason = "The points are missing."; return null; }
             var list = raw as System.Collections.IEnumerable;
-            if (list == null) { reason = "I punti non sono un elenco."; return null; }
+            if (list == null) { reason = "The points are not a list."; return null; }
             var points = new List<double[]>();
             foreach (var p in list)
             {
                 var pair = p as System.Collections.IEnumerable;
-                if (pair == null) { reason = "Un punto non e' una coppia [x, y]."; return null; }
+                if (pair == null) { reason = "A point is not a pair [x, y]."; return null; }
                 var values = new List<double>();
                 foreach (var v in pair)
                 {
@@ -1836,15 +1836,15 @@ namespace Oce.Solid.Agent.Core
                     {
                         values.Add(Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture));
                     }
-                    catch { reason = "Un punto contiene un valore che non e' un numero: " + v; return null; }
+                    catch { reason = "A point contains a value that is not a number: " + v; return null; }
                 }
-                if (values.Count != 2) { reason = "Un punto non ha esattamente due coordinate."; return null; }
+                if (values.Count != 2) { reason = "A point does not have exactly two coordinates."; return null; }
                 if (double.IsNaN(values[0]) || double.IsNaN(values[1])
                     || double.IsInfinity(values[0]) || double.IsInfinity(values[1]))
-                { reason = "Un punto ha coordinate non utilizzabili."; return null; }
+                { reason = "A point has coordinates that cannot be used."; return null; }
                 points.Add(new[] { values[0], values[1] });
             }
-            if (points.Count == 0) { reason = "Un elenco di punti e' vuoto."; return null; }
+            if (points.Count == 0) { reason = "A list of points is empty."; return null; }
             return points;
         }
 
@@ -1857,7 +1857,7 @@ namespace Oce.Solid.Agent.Core
             // The names before the sketch (scheme S7): see ExtrudeRectangle.
             var sketchNamesBefore = FeatureNamesNow(model);
             if (!SelectPlane(model, plane))
-                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
+                return Failed($"I did not find the plane «{plane}» in the tree.");
 
             var sketches = model.SketchManager;
             sketches.InsertSketch(true);
@@ -1879,7 +1879,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed(selError + WithoutSketch(model));
 
             var feature = Extrude(model, height, merge: true);
-            if (feature == null) return Failed("L'estrusione non e' stata creata." + WithoutSketch(model));
+            if (feature == null) return Failed("The extrusion was not created." + WithoutSketch(model));
             return Succeeded(feature, new Dictionary<string, object>
             {
                 ["diameter_mm"] = diameter,
@@ -2028,9 +2028,9 @@ namespace Oce.Solid.Agent.Core
                 yMm + semiV < vMin || yMm - semiV > vMax)
             {
                 return string.Format(
-                    "{0} e' centrato a {1} = {2:0.##}, {3} = {4:0.##} mm, ma il pezzo su {1} " +
-                    "va da {5:0.##} a {6:0.##} e su {3} da {7:0.##} a {8:0.##}: il profilo cade " +
-                    "tutto fuori dal materiale, quindi non c'e' niente da togliere.",
+                    "{0} is centered at {1} = {2:0.##}, {3} = {4:0.##} mm, but the part goes on " +
+                    "{1} from {5:0.##} to {6:0.##} and on {3} from {7:0.##} to {8:0.##}: the profile " +
+                    "falls entirely outside the material, so there is nothing to remove.",
                     whatItIs, nameU, xMm, nameV, yMm, uMin, uMax, vMin, vMax);
             }
 
@@ -2049,9 +2049,9 @@ namespace Oce.Solid.Agent.Core
                 // negative number passed off as a measurement.
                 string straight = du > 0 && dv > 0 ? " " + advice(du, dv) : "";
                 return string.Format(
-                    "{0} centrato a {1} = {2:0.##}, {3} = {4:0.##} mm copre tutto il pezzo, che " +
-                    "qui occupa {5:0.##} x {6:0.##} mm: un taglio da parte a parte cosi' non " +
-                    "lascerebbe niente.{7}",
+                    "{0} centered at {1} = {2:0.##}, {3} = {4:0.##} mm covers the whole part, " +
+                    "which here occupies {5:0.##} x {6:0.##} mm: a cut right through like that " +
+                    "would leave nothing.{7}",
                     whatItIs, nameU, xMm, nameV, yMm, uMax - uMin, vMax - vMin, straight);
             }
 
@@ -2173,24 +2173,24 @@ namespace Oce.Solid.Agent.Core
             // «sulla faccia», not «su la faccia»: the preposition is contracted
             // in here, because all three sentences use it.
             string location = string.IsNullOrEmpty(uidFace)
-                ? "sulla faccia scelta"
-                : "sulla faccia «" + uidFace + "»";
+                ? "on the chosen face"
+                : "on the face «" + uidFace + "»";
             int howMany = samples.Count;
 
             if (onCount == 0)
-                return " Ho provato " + howMany + " punti sotto il profilo e nessuno cade " +
-                       location + ": li' il pezzo e' gia' aperto, e dove non c'e' materiale non " +
-                       "c'e' niente da togliere. Sposta il profilo sul pieno, oppure scegli " +
-                       "la faccia su cui il materiale c'e'.";
+                return " I tried " + howMany + " points under the profile and none falls " +
+                       location + ": there the part is already open, and where there is no material " +
+                       "there is nothing to remove. Move the profile onto solid material, or choose " +
+                       "the face on which the material is.";
 
             if (onCount == howMany)
-                return " Sotto il profilo il materiale c'e': tutti e " + howMany + " i punti " +
-                       "che ho provato cadono " + location + ". Quindi non e' la posizione — " +
-                       "restano la profondita' e il verso del taglio.";
+                return " Under the profile there is material: all " + howMany + " points " +
+                       "I tried fall " + location + ". So it is not the position — " +
+                       "the depth and the direction of the cut remain.";
 
-            return " Sotto il profilo il materiale c'e' solo in parte: " + onCount + " punti su " +
-                   howMany + " cadono " + location + ", gli altri no. Il profilo sta a cavallo " +
-                   "di un bordo o di un'apertura.";
+            return " Under the profile there is material only in part: " + onCount + " points out of " +
+                   howMany + " fall " + location + ", the others do not. The profile straddles " +
+                   "a border or an opening.";
         }
 
         /// <summary>
@@ -2281,17 +2281,17 @@ namespace Oce.Solid.Agent.Core
 
             string withoutHope = CutWithoutHope(
                 model, axes,
-                "Il foro da " + diameter.ToString("0.##") + " mm",
+                "The hole of " + diameter.ToString("0.##") + " mm",
                 x, y, holeRadius, holeRadius,
                 (u, v) => (u - x) * (u - x) + (v - y) * (v - y) <= holeRadius * holeRadius,
                 ThroughAll(model, axes, throughAll, depth),
-                (du, dv) => "Il piu' grande che ci sta, centrato li', e' da " +
+                (du, dv) => "The largest that fits, centered there, is " +
                             (2 * Math.Min(du, dv)).ToString("0.##") + " mm.");
             if (withoutHope != null) return Failed(withoutHope);
 
             // The names before the sketch (scheme S7): see ExtrudeRectangle.
             var sketchNamesBefore = FeatureNamesNow(model);
-            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            if (!SelectFace(face)) return Failed("I could not select the face.");
             var sketches = model.SketchManager;
             sketches.InsertSketch(true);
             var center = PointInSketch(model, axes, offsetM, x, y, out error);
@@ -2368,7 +2368,7 @@ namespace Oce.Solid.Agent.Core
                 string below = BelowProfile(
                     face, uidFace, axes, offsetM,
                     CircleSamples(x, y, holeRadius));
-                return Failed("Il taglio non e' stato creato." + below + WithoutSketch(model));
+                return Failed("The cut was not created." + below + WithoutSketch(model));
             }
 
             // A THROUGH HOLE ON AN EMPTY BOX MAKES TWO.
@@ -2387,10 +2387,10 @@ namespace Oce.Solid.Agent.Core
             int walls = DrilledWalls(feature, diameter);
             if (throughAll && walls > 1)
                 return Failed(
-                    "Il foro passante ha attraversato " + walls + " pareti, " +
-                    "non una: il pezzo e' cavo e il taglio e' uscito anche " +
-                    "dall'altra parte. Se volevi bucare solo questa parete, " +
-                    "chiedilo cieco con la profondita' dello spessore." +
+                    "The through hole went through " + walls + " walls, " +
+                    "not one: the part is hollow and the cut came out on the " +
+                    "other side too. If you wanted to drill only this wall, " +
+                    "ask for it blind with the depth of the thickness." +
                     RemainsInPart);
 
             // THE MOVEMENT TEST: an anchor that does not hold up under an edit is of no
@@ -2411,7 +2411,7 @@ namespace Oce.Solid.Agent.Core
             NoteOnVolume(
                 measurements, volumeBefore, VolumeMm3(model),
                 throughAll ? 0 : Math.PI * holeRadius * holeRadius * depth,
-                "Il foro da " + diameter.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " mm");
+                "The hole of " + diameter.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " mm");
 
             return Succeeded(feature, measurements, FaceNormal(face));
         }
@@ -2503,13 +2503,13 @@ namespace Oce.Solid.Agent.Core
 
             measurements["note_volume"] = string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,
-                "{0} ha tolto {1:0.##} mm³ invece dei {2:0.##} che ci si aspettava " +
-                "({3:0.#}% {4}). L'operazione e' riuscita, ma il pezzo non e' quello " +
-                "che il piano descriveva: di solito vuol dire che il profilo cade in " +
-                "parte fuori dalla faccia, o su materiale gia' tolto. Guarda il pezzo " +
-                "prima di andare avanti.",
+                "{0} removed {1:0.##} mm³ instead of the {2:0.##} that was expected " +
+                "({3:0.#}% {4}). The operation succeeded, but the part is not what " +
+                "the plan described: usually it means that the profile falls partly " +
+                "outside the face, or on material already removed. Look at the part " +
+                "before going on.",
                 what, removed, expectedMm3, offset * 100,
-                removed < expectedMm3 ? "in meno" : "in piu'");
+                removed < expectedMm3 ? "less" : "more");
         }
 
         private Outcome RectangularCut(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
@@ -2526,7 +2526,7 @@ namespace Oce.Solid.Agent.Core
             bool throughAll = Bool(a, "through_all", false);
             double depth = Num(a, "depth_mm", 0);
             if (!throughAll && depth <= 0)
-                return Failed("Tasca non passante senza profondita'.");
+                return Failed("A pocket that is not through needs a depth.");
 
             // WE MEASURE FIRST, because afterwards it is no longer possible.
             double? volumeBefore = VolumeMm3(model);
@@ -2540,17 +2540,17 @@ namespace Oce.Solid.Agent.Core
 
             string withoutHope = CutWithoutHope(
                 model, axes,
-                "La tasca " + length.ToString("0.##") + " x " + width.ToString("0.##") + " mm",
+                "The pocket " + length.ToString("0.##") + " x " + width.ToString("0.##") + " mm",
                 x, y, length / 2, width / 2,
                 (u, v) => Math.Abs(u - x) <= length / 2 && Math.Abs(v - y) <= width / 2,
                 ThroughAll(model, axes, throughAll, depth),
-                (du, dv) => "La piu' grande che ci sta, centrata li', e' " +
+                (du, dv) => "The largest that fits, centered there, is " +
                             (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm.");
             if (withoutHope != null) return Failed(withoutHope);
 
             // The names before the sketch (scheme S7): see ExtrudeRectangle.
             var sketchNamesBefore = FeatureNamesNow(model);
-            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            if (!SelectFace(face)) return Failed("I could not select the face.");
             var sketches = model.SketchManager;
             sketches.InsertSketch(true);
             var p1 = PointInSketch(model, axes, offsetM, x - length / 2, y - width / 2, out error);
@@ -2604,7 +2604,7 @@ namespace Oce.Solid.Agent.Core
             {
                 var centerPoint = RectangleCenter(model, cutSides, p1, p2);
                 string anchorError = centerPoint == null
-                    ? "Non sono riuscito a costruire il centro della tasca a cui attaccare l'ancora."
+                    ? "I could not build the center of the pocket to attach the anchor to."
                     : null;
                 if (anchorError != null ||
                     !ApplyAnchor(model, anchor, centerPoint, axes, offsetM, x, y, anchorMeasurements, out anchorError))
@@ -2627,7 +2627,7 @@ namespace Oce.Solid.Agent.Core
                 string below = BelowProfile(
                     face, uidFace, axes, offsetM,
                     RectangleSamples(x, y, length, width));
-                return Failed("Il taglio non e' stato creato." + below + WithoutSketch(model));
+                return Failed("The cut was not created." + below + WithoutSketch(model));
             }
 
             string doesNotHold = MovementTest(model, anchor, feature);
@@ -2649,7 +2649,7 @@ namespace Oce.Solid.Agent.Core
             NoteOnVolume(
                 pocketMeasurements, volumeBefore, VolumeMm3(model),
                 throughAll ? 0 : length * width * depth,
-                "La tasca " + length.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
+                "The pocket " + length.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
                 "x" + width.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
 
             return Succeeded(feature, pocketMeasurements, FaceNormal(face));
@@ -2733,13 +2733,13 @@ namespace Oce.Solid.Agent.Core
             // one of the two numbers is wrong.
             if (length <= width)
                 return Failed(
-                    "L'asola e' lunga " + length.ToString("0.##") + " e larga " +
-                    width.ToString("0.##") + " mm: la lunghezza si misura da " +
-                    "fuori a fuori e deve essere maggiore della larghezza. Se " +
-                    "volevi un foro tondo da " + width.ToString("0.##") +
-                    " mm usa il foro, non l'asola.");
+                    "The slot is " + length.ToString("0.##") + " long and " +
+                    width.ToString("0.##") + " wide (mm): the length is measured from " +
+                    "outside to outside and must be greater than the width. If you " +
+                    "wanted a round hole of " + width.ToString("0.##") +
+                    " mm use the hole, not the slot.");
             if (!throughAll && depth <= 0)
-                return Failed("Asola non passante senza profondita'.");
+                return Failed("A slot that is not through needs a depth.");
 
             // The stadium, in the face's system and before rotating it: half the
             // stroke between the two centers, and the radius of the ends.
@@ -2781,16 +2781,16 @@ namespace Oce.Solid.Agent.Core
                 Math.Abs(travel * cos) + radius, Math.Abs(travel * sin) + radius,
                 (u, v) => InsideStadium(u, v, x, y, cos, sin, travel, radius),
                 ThroughAll(model, axes, throughAll, depth),
-                (du, dv) => "Centrata li', ci sta dentro una sagoma fino a " +
-                            (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm.");
+                (du, dv) => "Centered there, a shape up to " +
+                            (2 * du).ToString("0.##") + " x " + (2 * dv).ToString("0.##") + " mm fits inside.");
             if (withoutHope != null) return Failed(withoutHope);
 
             // The names before the sketch (scheme S7): see ExtrudeRectangle.
             var sketchNamesBefore = FeatureNamesNow(model);
-            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            if (!SelectFace(face)) return Failed("I could not select the face.");
 
             double? volumeBefore = VolumeMm3(model);
-            if (volumeBefore == null) return Failed(VolumeNotReadBefore("tagliare l'asola"));
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("cutting the slot"));
             var sketches = model.SketchManager;
             sketches.InsertSketch(true);
 
@@ -2874,11 +2874,11 @@ namespace Oce.Solid.Agent.Core
                         face, uidFace, axes, offsetM,
                         StadiumSamples(x, y, cos, sin, travel, radius));
                 return Failed(
-                    "L'asola non e' stata tagliata. Lo schizzo ha " + segments +
-                    " segmenti sui quattro che servono (due linee e due archi): " +
+                    "The slot was not cut. The sketch has " + segments +
+                    " segments out of the four that are needed (two lines and two arcs): " +
                     (segments < 4
-                        ? "il contorno non e' completo, e un contorno aperto non si taglia."
-                        : "il contorno e' completo, quindi il problema non e' il disegno.") +
+                        ? "the contour is not complete, and an open contour cannot be cut."
+                        : "the contour is complete, so the problem is not the drawing.") +
                     below + WithoutSketch(model));
             }
 
@@ -2906,19 +2906,19 @@ namespace Oce.Solid.Agent.Core
             double removed = volumeBefore.Value - volumeAfter.Value;
             if (removed <= 0)
                 return Failed(
-                    "L'asola non ha tolto niente: il taglio e' riuscito ma il " +
-                    "materiale e' rimasto tutto. Di solito vuol dire che il " +
-                    "profilo era fuori dal pezzo." + RemainsInPart);
+                    "The slot removed nothing: the cut succeeded but all the " +
+                    "material is still there. Usually it means that the " +
+                    "profile was outside the part." + RemainsInPart);
 
             if (!throughAll)
             {
                 double expected = area * depth;
                 if (Math.Abs(removed - expected) > Math.Max(1.0, expected * 0.03))
                     return Failed(
-                        "L'asola e' stata tagliata ma ha tolto " + removed.ToString("0.#") +
-                        " mm3 invece di " + expected.ToString("0.#") + ": la forma " +
-                        "che e' uscita non e' quella chiesta. Non ti confermo un " +
-                        "pezzo che non torna." + RemainsInPart);
+                        "The slot was cut but it removed " + removed.ToString("0.#") +
+                        " mm3 instead of " + expected.ToString("0.#") + ": the shape " +
+                        "that came out is not the one asked for. I do not confirm a part " +
+                        "that does not add up." + RemainsInPart);
             }
             else
             {
@@ -2935,10 +2935,10 @@ namespace Oce.Solid.Agent.Core
                 double limit = area * maximumThickness * 1.02;
                 if (maximumThickness > 0 && removed > limit)
                     return Failed(
-                        "L'asola ha tolto " + removed.ToString("0.#") + " mm3, piu' " +
-                        "di quanto ne possa togliere un'asola di quelle misure (" +
-                        limit.ToString("0.#") + " al massimo): la forma che e' " +
-                        "uscita non e' quella chiesta." + RemainsInPart);
+                        "The slot removed " + removed.ToString("0.#") + " mm3, more " +
+                        "than a slot of those measures can remove (" +
+                        limit.ToString("0.#") + " at most): the shape that came " +
+                        "out is not the one asked for." + RemainsInPart);
 
                 // 2. THE CHECK THAT LOOKS FOR THE ERROR WE KNOW.
                 //
@@ -2959,12 +2959,12 @@ namespace Oce.Solid.Agent.Core
                     double suspicious = wrongArea * maximumThickness;
                     if (Math.Abs(removed - suspicious) <= Math.Max(1.0, suspicious * 0.03))
                         return Failed(
-                            "L'asola ha tolto " + removed.ToString("0.#") + " mm3, che e' " +
-                            "esattamente quanto ne toglie un'asola con i semicerchi " +
-                            "girati in DENTRO invece che in fuori: sarebbe lunga " +
-                            (length - width).ToString("0.##") + " mm invece di " +
-                            length.ToString("0.##") + ", con le estremita' morse a " +
-                            "mezzaluna. Non ti confermo un pezzo cosi'." + RemainsInPart);
+                            "The slot removed " + removed.ToString("0.#") + " mm3, which " +
+                            "is exactly what a slot removes with the semicircles " +
+                            "turned INWARD instead of outward: it would be " +
+                            (length - width).ToString("0.##") + " mm long instead of " +
+                            length.ToString("0.##") + ", with the ends bitten into a " +
+                            "crescent. I do not confirm a part like that." + RemainsInPart);
                 }
             }
 
@@ -3063,22 +3063,22 @@ namespace Oce.Solid.Agent.Core
             double distance = Math.Sqrt(dx * dx + dy * dy + dz * dz);
             if (distance < 1e-6)
                 return Failed(
-                    "Spostamento nullo: dx, dy e dz sono tutti a zero. Se " +
-                    "volevi lasciare i corpi dove sono, questa operazione non " +
-                    "serve; se volevi copiarli sul posto, due corpi sovrapposti " +
-                    "sono un pezzo sbagliato, non una copia.");
+                    "Zero move: dx, dy and dz are all zero. If you wanted " +
+                    "to leave the bodies where they are, this operation is not " +
+                    "needed; if you wanted to copy them in place, two overlapping " +
+                    "bodies are a wrong part, not a copy.");
 
             // The starting state: the whole part, and only the bodies to move.
             double totalVolume, movedVolume;
             double[] totalCenter, movedCenter;
             if (!MassOf(AllSolidBodies(model), out totalVolume, out totalCenter))
-                return Failed("Non riesco a misurare il pezzo prima di spostarlo.");
+                return Failed("I cannot measure the part before moving it.");
             if (!MassOf(bodies, out movedVolume, out movedCenter))
-                return Failed("Non riesco a misurare i corpi da spostare.");
+                return Failed("I cannot measure the bodies to move.");
             if (totalVolume <= 0 || movedVolume <= 0)
-                return Failed("I corpi indicati non hanno volume: non c'e' niente da spostare.");
+                return Failed("The bodies indicated have no volume: there is nothing to move.");
             int bodiesBefore = CountSolidBodies(model);
-            if (bodiesBefore < 0) return Failed("Non riesco a contare i corpi del pezzo prima di spostarli.");
+            if (bodiesBefore < 0) return Failed("I cannot count the bodies of the part before moving them.");
 
             // The bodies to move must be selected with MARK 1: it is the mark that
             // the feature reads. With the mark at zero the selection is there but the
@@ -3086,7 +3086,7 @@ namespace Oce.Solid.Agent.Core
             model.ClearSelection2(true);
             var handler = model.SelectionManager as ISelectionMgr;
             var mark = handler?.CreateSelectData();
-            if (mark == null) return Failed("SolidWorks non mi da' come marcare la selezione.");
+            if (mark == null) return Failed("SolidWorks does not give me a way to mark the selection.");
             mark.Mark = SelectionMarks.MoveCopyBodyBody;
             // A BODY IS NOT AN IEntity, AND THE DIFFERENCE DOES NOT SHOW UNTIL
             // IT IS TRIED. Measured on 10 September 2026 inside SolidWorks:
@@ -3103,7 +3103,7 @@ namespace Oce.Solid.Agent.Core
                 if (ent != null && ent.Select4(true, mark)) selected++;
             }
             if (selected == 0)
-                return Failed("I corpi indicati non si sono lasciati selezionare.");
+                return Failed("The bodies indicated could not be selected.");
 
             IFeature feature;
             try
@@ -3136,32 +3136,32 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Lo spostamento non e' riuscito: " + ex.Message);
+                return Failed("The move did not succeed: " + ex.Message);
             }
             if (feature == null)
-                return Failed("Lo spostamento non e' stato creato.");
+                return Failed("The move was not created.");
 
             // ── AND NOW WE MEASURE ───────────────────────────────────────────
             int bodiesAfter = CountSolidBodies(model);
             int expectedBodies = bodiesBefore + copies * selected;
             if (bodiesAfter >= 0 && bodiesAfter != expectedBodies)
                 return Failed(
-                    "Dopo lo spostamento il pezzo ha " + bodiesAfter + " corpi invece di " +
-                    expectedBodies + ". Non ti confermo un pezzo diverso da quello " +
-                    "che ti ho mostrato: ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "After the move the part has " + bodiesAfter + " bodies instead of " +
+                    expectedBodies + ". I do not confirm a part different from the " +
+                    "one I showed you: withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             double volumeAfter;
             double[] centerAfter;
             if (!MassOf(AllSolidBodies(model), out volumeAfter, out centerAfter))
-                return Failed("Non riesco a rimisurare il pezzo dopo lo spostamento.");
+                return Failed("I cannot measure the part again after the move.");
 
             double expectedVolume = totalVolume + copies * movedVolume;
             if (Math.Abs(volumeAfter - expectedVolume) > Math.Max(1.0, expectedVolume * 0.005))
                 return Failed(
-                    "Dopo lo spostamento il pezzo ha un volume di " +
-                    volumeAfter.ToString("0.#") + " mm3 invece di " +
-                    expectedVolume.ToString("0.#") + ": qualcosa si e' unito o " +
-                    "tagliato. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "After the move the part has a volume of " +
+                    volumeAfter.ToString("0.#") + " mm3 instead of " +
+                    expectedVolume.ToString("0.#") + ": something merged or was " +
+                    "cut. Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             // The expected center of gravity. Without a copy the fraction of moved volume
             // is shifted; with copies, the k-th copy sits at k*d, and the sum of the k
@@ -3188,11 +3188,11 @@ namespace Oce.Solid.Agent.Core
             double tolerance = Math.Max(0.05, distance * 0.002);
             if (deviation > tolerance)
                 return Failed(
-                    "I corpi non sono finiti dove dovevano: il baricentro del " +
-                    "pezzo e' fuori di " + deviation.ToString("0.###") + " mm da dove " +
-                    "lo mette uno spostamento di " + distance.ToString("0.##") +
-                    " mm. Quasi sempre vuol dire che la distanza applicata non e' " +
-                    "quella chiesta. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "The bodies did not end up where they should: the center of " +
+                    "mass of the part is " + deviation.ToString("0.###") + " mm away " +
+                    "from where a move of " + distance.ToString("0.##") +
+                    " mm puts it. Almost always it means that the distance applied is not " +
+                    "the one asked for. Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             return Succeeded(feature, new Dictionary<string, object>
             {
@@ -3276,7 +3276,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                error = "Lo schizzo dell'asola non e' riuscito: " + ex.Message;
+                error = "The sketch of the slot did not succeed: " + ex.Message;
                 return false;
             }
             finally
@@ -3287,9 +3287,9 @@ namespace Oce.Solid.Agent.Core
             if (segments < 4)
             {
                 error =
-                    "Lo schizzo dell'asola ha solo " + segments + " segmenti sui " +
-                    "quattro che servono: SolidWorks non ha costruito " +
-                    (segments < 2 ? "le linee" : "gli archi") + ".";
+                    "The sketch of the slot has only " + segments + " segments out " +
+                    "of the four that are needed: SolidWorks did not build " +
+                    (segments < 2 ? "the lines" : "the arcs") + ".";
                 return false;
             }
             return true;
@@ -3444,7 +3444,7 @@ namespace Oce.Solid.Agent.Core
 
             double height = Num(a, "height_mm");
             if (height <= 0)
-                return Failed("Un rialzo di altezza nulla o negativa non e' un rialzo.");
+                return Failed("A boss of zero or negative height is not a boss.");
             bool merge = Bool(a, "merge", true);
 
             // THE ANCHOR (entry E18). Here there are no x_mm/y_mm: the point is the
@@ -3466,11 +3466,11 @@ namespace Oce.Solid.Agent.Core
             int bodiesBefore = CountSolidBodies(model);
             double? volumeBefore = VolumeMm3(model);
             if (bodiesBefore < 0 || volumeBefore == null)
-                return Failed(VolumeNotReadBefore("fare il rialzo"));
+                return Failed(VolumeNotReadBefore("making the boss"));
 
             // The names before the sketch (scheme S7): see ExtrudeRectangle.
             var sketchNamesBefore = FeatureNamesNow(model);
-            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            if (!SelectFace(face)) return Failed("I could not select the face.");
 
             var sketches = model.SketchManager;
             bool addToDbBefore = false, displayBefore = false;
@@ -3500,7 +3500,7 @@ namespace Oce.Solid.Agent.Core
                 try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
                 try { sketches.InsertSketch(false); } catch { }
             }
-            if (!drawn) return Failed((error ?? "schizzo non riuscito") + WithoutSketch(model));
+            if (!drawn) return Failed((error ?? "sketch not successful") + WithoutSketch(model));
 
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
                 return Failed(selError + WithoutSketch(model));
@@ -3508,8 +3508,8 @@ namespace Oce.Solid.Agent.Core
             var feature = Extrude(model, height, merge: merge);
             if (feature == null)
                 return Failed(
-                    "Il rialzo non e' stato creato. Lo schizzo ha " + segments +
-                    " segmenti: se il contorno non e' chiuso, l'estrusione non parte." +
+                    "The boss was not created. The sketch has " + segments +
+                    " segments: if the contour is not closed, the extrusion does not start." +
                     WithoutSketch(model));
 
             // ── and now we count ────────────────────────────────────────
@@ -3533,17 +3533,17 @@ namespace Oce.Solid.Agent.Core
 
             if (merge && bodiesAfter != bodiesBefore)
                 return Failed(
-                    "Il rialzo doveva unirsi al pezzo e invece i corpi sono " +
-                    "passati da " + bodiesBefore + " a " + bodiesAfter + ": quasi " +
-                    "sempre vuol dire che il profilo non tocca il corpo. " +
-                    "Ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "The boss had to merge with the part and instead the bodies " +
+                    "went from " + bodiesBefore + " to " + bodiesAfter + ": almost " +
+                    "always it means that the profile does not touch the body. " +
+                    "Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             if (added <= 0)
                 return Failed(
-                    "Il rialzo non ha aggiunto materiale: il volume e' " +
-                    (added < 0 ? "calato" : "rimasto uguale") + ". Di solito " +
-                    "vuol dire che l'estrusione e' andata DENTRO il pezzo " +
-                    "invece che in fuori. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "The boss did not add material: the volume " +
+                    (added < 0 ? "went down" : "stayed the same") + ". Usually " +
+                    "it means that the extrusion went INTO the part " +
+                    "instead of outward. Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             var bossMeasurements = new Dictionary<string, object>
             {
@@ -3638,9 +3638,9 @@ namespace Oce.Solid.Agent.Core
             string dimensionName = Str(a, "dimension", "");
             if (string.IsNullOrWhiteSpace(dimensionName))
                 return Failed(
-                    "Non hai detto quale quota cambiare. I nomi delle quote " +
-                    "stanno nello stato del documento, dentro ogni lavorazione " +
-                    "(per esempio «D1@Schizzo1»).");
+                    "You did not say which dimension to change. The names of the " +
+                    "dimensions are in the state of the document, inside each feature " +
+                    "(for example «D1@Schizzo1»).");
 
             double val;
             string error;
@@ -3649,8 +3649,8 @@ namespace Oce.Solid.Agent.Core
             var dimension = FindDimension(model, dimensionName, out string location);
             if (dimension == null)
                 return Failed(
-                    "Non trovo la quota «" + dimensionName + "» in questo documento." +
-                    (location == null ? "" : " Ci sono: " + location + "."));
+                    "I cannot find the dimension «" + dimensionName + "» in this document." +
+                    (location == null ? "" : " There are: " + location + "."));
 
             // ── A READ-ONLY DIMENSION IS NOT OVERRIDDEN (entry Z-C21.2, M8) ──
             //
@@ -3666,18 +3666,18 @@ namespace Oce.Solid.Agent.Core
             try { isReadOnly = dimension.ReadOnly; } catch { }
             if (isReadOnly)
                 return Failed(
-                    "La quota «" + dimensionName + "» e' di sola lettura: qualcuno l'ha bloccata " +
-                    "apposta, e io non la scavalco anche se SOLIDWORKS me lo permetterebbe. " +
-                    "Se va cambiata, togli prima la sola lettura dalla quota in SOLIDWORKS. " +
-                    "Non ho toccato niente.");
+                    "The dimension «" + dimensionName + "» is read-only: someone locked it on purpose, " +
+                    "and I do not override it even if SOLIDWORKS would allow it. If it has to " +
+                    "be changed, first remove the read-only flag from the dimension in SOLIDWORKS. " +
+                    "I touched nothing.");
             const int Guided = 1;   // swDimensionDrivenState_e.swDimensionDriven
             int comeGuida = 0;
             try { comeGuida = dimension.DrivenState; } catch { }
             if (comeGuida == Guided)
                 return Failed(
-                    "La quota «" + dimensionName + "» e' guidata (di riferimento): misura il " +
-                    "pezzo, non lo comanda. Cambia invece la quota che la guida. Non ho " +
-                    "toccato niente.");
+                    "The dimension «" + dimensionName + "» is driven (reference): it measures the part, " +
+                    "it does not command it. Change the dimension that drives it instead. I " +
+                    "touched nothing.");
 
             // ── DEGREES OR MILLIMETERS: THE DIMENSION SAYS SO (entry Z-C21.2, M3) ─────
             //
@@ -3694,9 +3694,9 @@ namespace Oce.Solid.Agent.Core
             try { dimensionType = dimension.GetType(); } catch { }
             if (dimensionType == WholeDimension)
                 return Failed(
-                    "La quota «" + dimensionName + "» e' un numero intero (per esempio le copie " +
-                    "di una ripetizione), non una misura: con «value_mm» non la cambio. " +
-                    "Non ho toccato niente.");
+                    "The dimension «" + dimensionName + "» is a whole number (for example the copies of a pattern), " +
+                    "not a measurement: I do not change it with «value_mm». I touched " +
+                    "nothing.");
             bool angular = dimensionType == AngularDimension;
             Func<double, double> fromSystem = angular ? (Func<double, double>)Units.Degrees : Units.Mm;
             Func<double, double> toSystem = angular ? (Func<double, double>)Units.Rad : Units.M;
@@ -3707,8 +3707,8 @@ namespace Oce.Solid.Agent.Core
             int bodiesBefore = CountSolidBodies(model);
             if (bodiesBefore < 0)
                 return Failed(
-                    "Non riesco a contare i corpi del pezzo prima di cambiare la quota: " +
-                    "senza, non saprei dirti se la modifica lo spezza. Non ho toccato niente.");
+                    "I cannot count the bodies of the part before changing the dimension: without " +
+                    "that, I could not tell you whether the change breaks it. I touched nothing.");
 
             // swSetValueInConfiguration_e.swSetValue_InAllConfigurations = 2
             const int inAllConfigurations = 2;
@@ -3722,17 +3722,17 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("La quota non si e' lasciata cambiare: " + ex.Message);
+                return Failed("The dimension could not be changed: " + ex.Message);
             }
             if (outcome != 0)
                 return Failed(
-                    "SolidWorks ha rifiutato il valore " + val + " " + units + " per «" +
-                    dimensionName + "» (codice " + outcome + ": " + ErrorCodeDecoder.SetValueStatus(outcome) + "). " +
+                    "SolidWorks refused the value " + val + " " + units + " for «" +
+                    dimensionName + "» (code " + outcome + ": " + ErrorCodeDecoder.SetValueStatus(outcome) + "). " +
                     SetValueRefusalCause(outcome));
 
             bool rebuilt;
             try { rebuilt = model.EditRebuild3(); }
-            catch (Exception ex) { return Failed("La ricostruzione e' fallita: " + ex.Message); }
+            catch (Exception ex) { return Failed("The rebuild failed: " + ex.Message); }
 
             // ── and now we look whether it really happened ────────────────
             double after = fromSystem(ApiHelpers.ReadDimension(dimension));
@@ -3758,15 +3758,15 @@ namespace Oce.Solid.Agent.Core
                                Math.Abs(volumeAfter.Value - volumeBefore.Value) < 0.01;
             if (!rebuilt)
                 return Failed(
-                    "La quota e' cambiata ma la ricostruzione non e' riuscita: " +
-                    "il pezzo e' in errore. Guardalo prima di andare avanti." +
+                    "The dimension changed but the rebuild did not succeed: " +
+                    "the part is in error. Look at it before going on." +
                     RemainsInPart);
 
             if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
                 return Failed(
-                    "Dopo la modifica il pezzo ha " + bodiesAfter + " corpi invece " +
-                    "di " + bodiesBefore + ": la quota nuova ha spezzato o unito " +
-                    "qualcosa." + RemainsInPart);
+                    "After the change the part has " + bodiesAfter + " bodies instead " +
+                    "of " + bodiesBefore + ": the new dimension split or merged " +
+                    "something." + RemainsInPart);
 
             // AN OPENING THAT LEAVES THE MATERIAL (entry E18, part c).
             //
@@ -3792,12 +3792,12 @@ namespace Oce.Solid.Agent.Core
             {
                 string restored = PutBackDimension(model, dimension, before, volumeBefore, toSystem, units);
                 return Failed(
-                    "Con «" + dimensionName + "» a " + val.ToString("0.###") + " " + units + " un'apertura " +
-                    "esce dal materiale: le aperture chiuse sulle facce piane passano da " +
-                    openBefore + " a " + openAfter + ". Un foro o un'asola che stava dentro " +
-                    "il pezzo adesso ne apre il bordo, oppure due aperture si sono fuse in una." +
-                    restored + " Se e' proprio quello che vuoi, sposta prima l'apertura, poi " +
-                    "cambia la quota.");
+                    "With «" + dimensionName + "» at " + val.ToString("0.###") + " " + units + " an opening " +
+                    "goes out of the material: the closed openings on the planar faces go from " +
+                    openBefore + " to " + openAfter + ". A hole or a slot that was inside " +
+                    "the part now opens its border, or two openings merged into one." +
+                    restored + " If that is really what you want, first move the opening, then change " +
+                    "the dimension.");
             }
 
             // A CHAMFER OR A FILLET THAT NO LONGER FITS (26/9/2026, case r05
@@ -3828,11 +3828,11 @@ namespace Oce.Solid.Agent.Core
             {
                 string restored = PutBackDimension(model, dimension, before, volumeBefore, toSystem, units);
                 return Failed(
-                    "Con «" + dimensionName + "» a " + val.ToString("0.###") + " " + units + " " + whoDoesNotFit +
-                    ": non ci sta piu'. SOLIDWORKS non lo segnala come errore — ricostruisce e " +
-                    "cambia la forma da solo — ma il pezzo che esce non e' quello che la lavorazione " +
-                    "descrive." + restored + " Se vuoi quella misura, cambia o togli prima lo smusso " +
-                    "o il raccordo, poi la quota.");
+                    "With «" + dimensionName + "» at " + val.ToString("0.###") + " " + units + " " + whoDoesNotFit +
+                    ": it no longer fits. SOLIDWORKS does not report it as an error — it rebuilds " +
+                    "and changes the shape by itself — but the part that comes out is not what the feature " +
+                    "describes." + restored + " If you want that measure, first change or remove the chamfer or " +
+                    "the fillet, then the dimension.");
             }
 
             var measurements = new Dictionary<string, object>
@@ -3872,7 +3872,7 @@ namespace Oce.Solid.Agent.Core
                 featuresBefore, FacesPerFeature(model), measurements);
 
             measurements["note"] = unchangedVolume
-                ? "la quota e' cambiata ma il volume no: controlla che sia quella giusta"
+                ? "the dimension changed but the volume did not: check that it is the right one"
                 : changed;
 
             return Succeeded(null, measurements);
@@ -4161,13 +4161,13 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Lo smusso non e' riuscito: " + ex.Message);
+                return Failed("The chamfer did not succeed: " + ex.Message);
             }
             if (feature == null)
                 return Failed(
-                    "Lo smusso non e' stato creato. Di solito e' la misura: un " +
-                    "lato piu' grande del materiale che c'e' li' intorno non si " +
-                    "puo' togliere.");
+                    "The chamfer was not created. Usually it is the size: " +
+                    "a side bigger than the material around there cannot " +
+                    "be removed.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -4220,12 +4220,12 @@ namespace Oce.Solid.Agent.Core
             model.ClearSelection2(true);
             IFeature reference = FindBasePlane(model, plane);
             if (reference == null)
-                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
+                return Failed($"I did not find the plane «{plane}» in the tree.");
             // The PLANE is selected by name, with mark 0; the tree entry through
             // IFeature.Select2 is only the fallback (the probe's G3 measured it
             // working with InsertRefPlane too).
             if (!ApiHelpers.SelectOffsetPlaneBase(model, reference))
-                return Failed($"Non sono riuscito a selezionare il piano «{plane}».");
+                return Failed($"I could not select the plane «{plane}».");
 
             // WHAT SOLIDWORKS REALLY HOLDS WHEN WE CALL. InsertRefPlane works on
             // what is selected WITH THE RIGHT MARK, and with the wrong mark it
@@ -4240,8 +4240,8 @@ namespace Oce.Solid.Agent.Core
                 string itemName = "";
                 try { itemName = reference.Name; } catch { }
                 int typ = (sel != null && howMany > 0) ? sel.GetSelectedObjectType3(1, -1) : -1;
-                comEra = " [selezionati " + howMany + ", marca " + mark +
-                         ", tipo " + typ + ", piano «" + itemName + "»]";
+                comEra = " [selected " + howMany + ", mark " + mark +
+                         ", type " + typ + ", plane «" + itemName + "»]";
             }
             catch { }
 
@@ -4265,7 +4265,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il piano non e' stato creato: " + ex.Message + comEra);
+                return Failed("The plane was not created: " + ex.Message + comEra);
             }
             if (feature == null && planesBorn > 1)
                 return Failed(
@@ -4277,8 +4277,8 @@ namespace Oce.Solid.Agent.Core
                     "may have made. Look at the part before going on." + comEra);
             if (feature == null)
                 return Failed(
-                    "Il piano non e' stato creato, e nell'albero non ne e' " +
-                    "comparso nessuno." + comEra);
+                    "The plane was not created, and none appeared " +
+                    "in the tree." + comEra);
 
             return Succeeded(feature, new Dictionary<string, object>
             {
@@ -4322,19 +4322,19 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non riesco a leggere la faccia: " + ex.Message);
+                return Failed("I cannot read the face: " + ex.Message);
             }
             if (!round)
                 return Failed(
-                    "Questa faccia non e' cilindrica ne' conica: l'asse si fa " +
-                    "dal centro di un foro o di un albero. Per l'asse " +
-                    "all'intersezione di due piani questa versione non ha " +
-                    "un'operazione.");
+                    "This face is neither cylindrical nor conical: the axis is " +
+                    "made from the center of a hole or of a shaft. For " +
+                    "the axis at the intersection of two planes this version " +
+                    "has no operation.");
 
             model.ClearSelection2(true);
             var entity = face as IEntity;
             if (entity == null || !entity.SelectByMark(false, SelectionMarks.AxisFace))
-                return Failed("Non sono riuscito a selezionare la faccia.");
+                return Failed("I could not select the face.");
 
             var namesBefore = FeatureNamesNow(model);
             if (namesBefore == null)
@@ -4344,11 +4344,11 @@ namespace Oce.Solid.Agent.Core
 
             bool created;
             try { created = model.InsertAxis2(true); }
-            catch (Exception ex) { return Failed("L'asse non e' stato creato: " + ex.Message); }
+            catch (Exception ex) { return Failed("The axis was not created: " + ex.Message); }
             if (!created)
                 return Failed(
-                    "L'asse non e' stato creato. Di solito e' la faccia: non e' " +
-                    "abbastanza cilindrica, o e' quella sbagliata.");
+                    "The axis was not created. Usually it is the face: it is not " +
+                    "cylindrical enough, or it is the wrong one.");
 
             // The ONE axis born since the call, not the last feature of the tree
             // (finding L8-6, scheme S7).
@@ -4408,7 +4408,7 @@ namespace Oce.Solid.Agent.Core
             double? volumeBefore; int bodiesBefore, facesBefore;
             Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
             if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
-                return Failed(VolumeNotReadBefore("fare la copia"));
+                return Failed(VolumeNotReadBefore("making the copy"));
 
             double pitch1, instances1Raw;
             string error;
@@ -4426,14 +4426,14 @@ namespace Oce.Solid.Agent.Core
             {
                 double n2;
                 if (!RequiredNum(a, "instance_count2", out n2, out error))
-                    return Failed("Hai dato «axis2_uid» ma non «instance_count2»: " + error);
+                    return Failed("You gave «axis2_uid» but not «instance_count2»: " + error);
                 instances2 = (int)n2;
                 if (instances2 < 2)
                     return Failed(
-                        "«instance_count2» deve essere almeno 2. Per una fila sola " +
-                        "ometti «axis2_uid», invece di mettere 1.");
+                        "«instance_count2» must be at least 2. For a single row, " +
+                        "leave «axis2_uid» out instead of setting 1.");
                 if (!RequiredNum(a, "pitch2_mm", out pitch2, out error))
-                    return Failed("Hai dato «axis2_uid» ma non «pitch2_mm»: " + error);
+                    return Failed("You gave «axis2_uid» but not «pitch2_mm»: " + error);
             }
 
             model.ClearSelection2(true);
@@ -4443,7 +4443,7 @@ namespace Oce.Solid.Agent.Core
             // the direction can be an edge the two roads diverged —
             // a grid with direction 1 on an edge and direction 2 not.
             if (grid && !SelectAxis(model, a, "axis2", docState, SelectionMarks.LinearPatternDirection2, append: true, out error))
-                return Failed("Direzione 2: " + error);
+                return Failed("Direction 2: " + error);
 
             if (!SelectFeature(model, a, out error)) return Failed(error);
             // Before building: creating the pattern clears the selection.
@@ -4482,13 +4482,13 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("La ripetizione lineare non e' riuscita: " + ex.Message);
+                return Failed("The linear pattern did not succeed: " + ex.Message);
             }
             if (feature == null)
                 return Failed(
-                    "La ripetizione lineare non e' stata creata. Di solito e' il " +
-                    "passo o il numero: una serie che esce dal materiale, o che " +
-                    "si sovrappone a se stessa, non si costruisce.");
+                    "The linear pattern was not created. Usually it is the pitch " +
+                    "or the number: a series that goes out of the material, " +
+                    "or that overlaps itself, cannot be built.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -4503,15 +4503,15 @@ namespace Oce.Solid.Agent.Core
 
             var stopped = CompareCopy(
                 model, volumeBefore, bodiesBefore, facesBefore, measurements,
-                "La ripetizione lineare");
+                "The linear pattern");
             if (stopped != null) return Failed(stopped);
 
             var missingItems = MissingCopies(
                 measurements, feature, seed, instances1 * instances2 - 1,
-                "La ripetizione lineare",
-                "Se la fila esce dal pezzo da una parte sola, inverti il verso con " +
-                "«flip1» (o «flip2» per la seconda direzione); " +
-                "altrimenti riduci il passo o il numero di istanze.");
+                "The linear pattern",
+                "If the row leaves the part on one side only, reverse the direction with " +
+                "«flip1» (or «flip2» for the second direction); " +
+                "otherwise reduce the pitch or the number of instances.");
             if (missingItems != null) return Failed(missingItems);
 
             return Succeeded(feature, measurements);
@@ -4545,12 +4545,12 @@ namespace Oce.Solid.Agent.Core
         private Outcome Mirror(IModelDoc2 model, Dictionary<string, object> a)
         {
             string plane = Str(a, "plane", "");
-            if (string.IsNullOrEmpty(plane)) return Failed("Manca il piano di simmetria.");
+            if (string.IsNullOrEmpty(plane)) return Failed("The plane of symmetry is missing.");
 
             double? volumeBefore; int bodiesBefore, facesBefore;
             Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
             if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
-                return Failed(VolumeNotReadBefore("fare la copia"));
+                return Failed(VolumeNotReadBefore("making the copy"));
 
             model.ClearSelection2(true);
             var planeFeature = FindBasePlane(model, plane);
@@ -4559,7 +4559,7 @@ namespace Oce.Solid.Agent.Core
             // Up to 0.35.0 there were 1 and 4 here, that is those of the pattern, and
             // the mirror was not created.
             if (planeFeature == null || !planeFeature.Select2(false, SelectionMarks.MirrorFeaturePlane))
-                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
+                return Failed($"I did not find the plane «{plane}» in the tree.");
 
             string error;
             if (!SelectFeature(model, a, out error, mark: SelectionMarks.MirrorFeatureFeatures)) return Failed(error);
@@ -4577,17 +4577,17 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Lo specchio non e' riuscito: " + ex.Message);
+                return Failed("The mirror did not succeed: " + ex.Message);
             }
             if (feature == null)
                 return Failed(
-                    "Lo specchio non e' stato creato. Se il piano scelto taglia la " +
-                    "lavorazione invece di lasciarla tutta da un lato, o se la " +
-                    "copia uscirebbe fuori dal materiale, SolidWorks rifiuta.");
+                    "The mirror was not created. If the chosen plane cuts the " +
+                    "feature instead of leaving it all on one side, or if the " +
+                    "copy would come out of the material, SolidWorks refuses.");
 
             var measurements = new Dictionary<string, object> { ["plane"] = plane };
             var stopped = CompareCopy(
-                model, volumeBefore, bodiesBefore, facesBefore, measurements, "Lo specchio");
+                model, volumeBefore, bodiesBefore, facesBefore, measurements, "The mirror");
             if (stopped != null) return Failed(stopped);
 
             // HERE THE REFUSAL CANNOT FIRE, AND THAT IS RIGHT.
@@ -4601,7 +4601,7 @@ namespace Oce.Solid.Agent.Core
             // It is written down because a guard that seems to protect and cannot
             // fire is worse than an absent guard: the first time it is
             // read as a defense, the second one is not counted on.
-            MissingCopies(measurements, feature, seed, 1, "Lo specchio", "");
+            MissingCopies(measurements, feature, seed, 1, "The mirror", "");
 
             return Succeeded(feature, measurements);
         }
@@ -4648,20 +4648,20 @@ namespace Oce.Solid.Agent.Core
                 var planStep = CitedStep(a, refField, out number, out reason);
                 if (planStep == null)
                 {
-                    reason = reason ?? "Riferimento all'asse non risolto.";
+                    reason = reason ?? "Reference to the axis not resolved.";
                     return false;
                 }
                 if (planStep.Feature == null)
                 {
-                    reason = "Il passo " + number + " non ha lasciato nessun asse.";
+                    reason = "The step " + number + " left no axis.";
                     return false;
                 }
                 if (!planStep.Feature.Select2(append, mark))
                 {
-                    reason = "Non sono riuscito a selezionare l'asse del passo " + number + ".";
+                    reason = "I could not select the axis of the step " + number + ".";
                     return false;
                 }
-                _log("[agente] asse preso dal passo " + number);
+                _log("[agent] axis taken from the step " + number);
                 return true;
             }
 
@@ -4669,10 +4669,10 @@ namespace Oce.Solid.Agent.Core
             if (string.IsNullOrEmpty(uid))
             {
                 reason =
-                    "Non hai detto lungo o attorno a quale direzione. Indica «" +
-                    prefix + "_uid» con un asse OPPURE con uno spigolo dritto " +
-                    "dello stato del documento, oppure «" + refField + "» se " +
-                    "l'asse lo crea un passo precedente di questo piano con " +
+                    "You did not say along or around which direction. Give in «" +
+                    prefix + "_uid» an axis OR a straight edge of " +
+                    "the state of the document, or give «" + refField + "» if " +
+                    "the axis is created by a previous step of this plan with " +
                     "«create_axis».";
                 return false;
             }
@@ -4718,7 +4718,7 @@ namespace Oce.Solid.Agent.Core
                 wasAnEdge)
             {
                 signature = EdgeSignature(
-                    a, docState, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                    a, docState, uid, "The edge «" + uid + "» is no longer in this document.",
                     out reason);
                 if (signature == null) return false;
 
@@ -4733,19 +4733,19 @@ namespace Oce.Solid.Agent.Core
                 if (!straight)
                 {
                     reason =
-                        "Lo spigolo «" + uid + "» non e' dritto: non da' una " +
-                        "direzione. Per la ripetizione serve uno spigolo " +
-                        "rettilineo, oppure un asse fatto con «create_axis».";
+                        "The edge «" + uid + "» is not straight: it does not " +
+                        "give a direction. For the pattern you need a " +
+                        "rectilinear edge, or an axis made with «create_axis».";
                     return false;
                 }
 
                 var entity = edge as IEntity;
                 if (entity == null || !entity.SelectByMark(append, mark))
                 {
-                    reason = "Lo spigolo «" + uid + "» non si e' lasciato selezionare.";
+                    reason = "The edge «" + uid + "» could not be selected.";
                     return false;
                 }
-                _log("[agente] direzione presa dallo spigolo " + uid);
+                _log("[agent] direction taken from the edge " + uid);
                 return true;
             }
 
@@ -4764,9 +4764,9 @@ namespace Oce.Solid.Agent.Core
             if (!model.Extension.SelectByID2(uid, "AXIS", 0, 0, 0, append, mark, null, 0))
             {
                 reason =
-                    "Non ho trovato l'asse «" + uid + "». Gli assi si fanno con " +
-                    "«create_axis»; in alternativa indica uno spigolo dritto del " +
-                    "pezzo, che nello stato ha un identificativo come «E1».";
+                    "I did not find the axis «" + uid + "». Axes are made with " +
+                    "«create_axis»; or point to a straight edge of " +
+                    "the part, which in the state has an identifier like «E1».";
                 return false;
             }
             return true;
@@ -4799,28 +4799,28 @@ namespace Oce.Solid.Agent.Core
                 var planStep = CitedStep(a, "feature_ref", out number, out reason);
                 if (planStep == null)
                 {
-                    reason = reason ?? "Riferimento non risolto.";
+                    reason = reason ?? "Reference not resolved.";
                     return false;
                 }
                 if (planStep.Feature == null)
                 {
-                    reason = "Il passo " + number + " non ha lasciato una lavorazione.";
+                    reason = "The step " + number + " did not leave a feature.";
                     return false;
                 }
                 if (!planStep.Feature.Select2(true, mark))
                 {
-                    reason = "Non sono riuscito a selezionare la lavorazione del passo " +
+                    reason = "I could not select the feature of the step " +
                              number + ".";
                     return false;
                 }
-                _log("[agente] lavorazione presa dal passo " + number);
+                _log("[agent] feature taken from the step " + number);
                 return true;
             }
 
             string uid = Str(a, "feature_uid", "");
             if (string.IsNullOrEmpty(uid))
             {
-                reason = "Non hai detto quale lavorazione ripetere o specchiare.";
+                reason = "You did not say which feature to repeat or mirror.";
                 return false;
             }
             // IS IT STILL THAT ONE? See FeatureIsThatOne.
@@ -4828,7 +4828,7 @@ namespace Oce.Solid.Agent.Core
 
             if (!model.Extension.SelectByID2(uid, "BODYFEATURE", 0, 0, 0, true, mark, null, 0))
             {
-                reason = "Non ho trovato la lavorazione «" + uid + "».";
+                reason = "I did not find the feature «" + uid + "».";
                 return false;
             }
             return true;
@@ -4876,10 +4876,10 @@ namespace Oce.Solid.Agent.Core
                     try { now = f.GetID(); } catch { return true; }
                     if (now == expected) return true;
                     reason =
-                        "La lavorazione «" + uid + "» non e' piu' quella che avevi " +
-                        "guardato: qualcuno ha rinominato l'albero, e adesso quel nome " +
-                        "sta su un'altra lavorazione. Rileggi lo stato del documento e " +
-                        "nominala di nuovo.";
+                        "The feature «" + uid + "» is no longer the one you " +
+                        "looked at: someone renamed the tree, and now that name is " +
+                        "on another feature. Read the state of the document again " +
+                        "and name it again.";
                     return false;
                 }
                 f = f.GetNextFeature() as IFeature;
@@ -4968,17 +4968,17 @@ namespace Oce.Solid.Agent.Core
 
             object rawAxis;
             if (!a.TryGetValue("axis", out rawAxis) || rawAxis == null)
-                return Failed("Manca l'asse di rivoluzione.");
+                return Failed("The axis of revolution is missing.");
             var axisPoints = Points(rawAxis, out reason);
-            if (axisPoints == null) return Failed("Asse di rivoluzione: " + reason);
+            if (axisPoints == null) return Failed("Axis of revolution: " + reason);
             if (axisPoints.Count != 2)
                 return Failed(
-                    "L'asse di rivoluzione va dato come due punti [x_mm, y_mm], non " +
+                    "The axis of revolution must be given as two points [x_mm, y_mm], not " +
                     axisPoints.Count + ".");
             double dx = axisPoints[1][0] - axisPoints[0][0];
             double dy = axisPoints[1][1] - axisPoints[0][1];
             if (Math.Sqrt(dx * dx + dy * dy) < 1e-6)
-                return Failed("I due punti dell'asse coincidono: non definiscono una retta.");
+                return Failed("The two points of the axis coincide: they do not define a line.");
 
             double angle = Num(a, "angle_deg", 360);
             string plane = Str(a, "plane", "front");
@@ -4986,7 +4986,7 @@ namespace Oce.Solid.Agent.Core
             // revolve, as the one sketch born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(model);
             if (!SelectPlane(model, plane))
-                return Failed($"Non ho trovato il piano «{plane}» nell'albero.");
+                return Failed($"I did not find the plane «{plane}» in the tree.");
 
             var sketches = model.SketchManager;
             bool addToDbBefore = false, displayBefore = false;
@@ -5018,7 +5018,7 @@ namespace Oce.Solid.Agent.Core
             sketches.InsertSketch(false);
 
             if (!createdAxis)
-                return Failed("Non sono riuscito a disegnare l'asse di rivoluzione." + WithoutSketch(model));
+                return Failed("I could not draw the axis of revolution." + WithoutSketch(model));
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
                 return Failed(selError + WithoutSketch(model));
 
@@ -5049,21 +5049,21 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("La rivoluzione non e' riuscita: " + ex.Message + WithoutSketch(model));
+                return Failed("The revolve did not succeed: " + ex.Message + WithoutSketch(model));
             }
             if (feature == null)
                 return Failed(
-                    "La rivoluzione non e' stata creata. Di solito e' l'asse: deve " +
-                    "stare sul piano del profilo, e il profilo non deve " +
-                    "attraversarlo." + WithoutSketch(model));
+                    "The revolve was not created. Usually it is the axis: it " +
+                    "must lie on the plane of the profile, and " +
+                    "the profile must not cross it." + WithoutSketch(model));
 
             int nBodies = CountSolidBodies(model);
             if (nBodies >= 0 && nBodies != 1)
                 return Failed(
-                    "La rivoluzione ha creato la feature ma il documento ha " +
-                    nBodies + " corpi solidi invece di uno: molto probabilmente " +
-                    "il profilo attraversa l'asse. Non ti confermo un pezzo " +
-                    "diverso da quello che ti ho mostrato: ritiralo — " +
+                    "The revolve created the feature but the document has " +
+                    nBodies + " solid bodies instead of one: most probably the " +
+                    "profile crosses the axis. I do not confirm a part " +
+                    "different from the one I showed you: withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
             string noteBlock;
@@ -5137,19 +5137,19 @@ namespace Oce.Solid.Agent.Core
             else if (uid.Count > 0 && HasList(a, "faces_ref"))
             {
                 return Failed(
-                    "Il guscio ha sia «faces_uid» sia «faces_ref»: uno nomina facce " +
-                    "che ci sono gia', l'altro facce che le crea un passo di questo " +
-                    "piano. Scegline uno.");
+                    "The shell has both «faces_uid» and «faces_ref»: one names faces " +
+                    "that are already there, the other faces that a step of this plan " +
+                    "creates. Choose one.");
             }
 
             if (uid.Count == 0 && fromSteps == null && !allClosed)
                 return Failed(
-                    "Nessuna faccia indicata per il guscio. Se la faccia la crea un " +
-                    "passo precedente di questo piano, usa «faces_ref»: " +
-                    "[{\"step\": 1, \"kind\": \"top_face\"}]. Se serve davvero " +
-                    "un corpo cavo completamente chiuso, senza nessuna apertura, metti " +
-                    "«fully_closed: true» — di solito pero' e' una faccia dimenticata " +
-                    "nella richiesta.");
+                    "No face indicated for the shell. If the face is created by " +
+                    "a previous step of this plan, use «faces_ref»: " +
+                    "[{\"step\": 1, \"kind\": \"top_face\"}]. If you really " +
+                    "need a completely closed hollow body, with no opening at all, " +
+                    "put «fully_closed: true» — but usually it is a face forgotten " +
+                    "in the request.");
 
             model.ClearSelection2(true);
 
@@ -5179,12 +5179,12 @@ namespace Oce.Solid.Agent.Core
                     if ((f as IEntity)?.Select4(true, null) == true) { takenOnes++; continue; }
                     return Failed(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
-                        "La faccia n. {0} di «faces_ref» non si e' lasciata selezionare: " +
-                        "{1} su {2} erano pronte. Un guscio aperto su meno facce di quelle " +
-                        "chieste non e' quasi giusto, e' un pezzo diverso.{3}",
+                        "Face no. {0} of «faces_ref» could not be selected: {1} out of " +
+                        "{2} were ready. A shell open on fewer faces than the ones asked " +
+                        "for is not almost right, it is a different part.{3}",
                         takenOnes + 1, takenOnes, fromSteps.Count, RemainsInPart));
                 }
-                _log("[agente] " + takenOnes + " facce prese dai passi precedenti");
+                _log("[agent] " + takenOnes + " faces taken from the previous steps");
             }
             else if (uid.Count == 0)
             {
@@ -5194,12 +5194,12 @@ namespace Oce.Solid.Agent.Core
                 var partDoc = model as IPartDoc;
                 var bodies = partDoc?.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
                 if (bodies == null || bodies.Length == 0)
-                    return Failed("Non ho trovato nessun corpo solido da rendere cavo.");
+                    return Failed("I did not find any solid body to hollow out.");
                 if (bodies.Length > 1)
                     return Failed(
-                        "In questo documento ci sono " + bodies.Length + " corpi " +
-                        "solidi: un guscio chiuso senza facce indicate lavorerebbe " +
-                        "su uno scelto a caso. Indica le facce da togliere.");
+                        "In this document there are " + bodies.Length + " solid " +
+                        "bodies: a closed shell without faces indicated would work on " +
+                        "one chosen at random. Point to the faces to remove.");
                 // A BODY IS NOT AN IEntity, and this branch never
                 // knew it. `corpi[0] as IEntity` **always** returns null
                 // in the interop, so «fully_closed: true» answered «Non
@@ -5227,7 +5227,7 @@ namespace Oce.Solid.Agent.Core
                     taken = asEntity != null && asEntity.Select4(false, null);
                 }
                 if (!taken)
-                    return Failed("Non sono riuscito a selezionare il corpo solido.");
+                    return Failed("I could not select the solid body.");
             }
             else
             {
@@ -5242,12 +5242,12 @@ namespace Oce.Solid.Agent.Core
                     DocumentState.EntitySignature signature;
                     if (docState == null || !docState.Signatures.TryGetValue(u, out signature) ||
                         signature.Type != "FACE")
-                        return Failed("La faccia «" + u + "» non c'e' piu' in questo documento.");
+                        return Failed("The face «" + u + "» is no longer in this document.");
                     string offset;
                     if (!SignatureMatches(a, u, signature, out offset)) return Failed(offset);
                     var ent = signature.Entity as IEntity;
                     if (ent == null || !ent.Select4(true, null))
-                        return Failed("La faccia «" + u + "» non si e' lasciata selezionare.");
+                        return Failed("The face «" + u + "» could not be selected.");
                 }
             }
 
@@ -5255,7 +5255,7 @@ namespace Oce.Solid.Agent.Core
             int bodiesBefore = CountSolidBodies(model);
             double? volumeBefore = VolumeMm3(model);
             var namesBefore = FeatureNamesNow(model);
-            if (bodiesBefore < 0 || featureBefore < 0 || namesBefore == null) return Failed(VolumeNotReadBefore("fare il guscio").Replace("il volume del pezzo", "i corpi del pezzo"));
+            if (bodiesBefore < 0 || featureBefore < 0 || namesBefore == null) return Failed(VolumeNotReadBefore("making the shell").Replace("the volume of the part", "the bodies of the part"));
 
             try
             {
@@ -5263,26 +5263,26 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il guscio non e' riuscito: " + ex.Message);
+                return Failed("The shell did not succeed: " + ex.Message);
             }
 
             int featureAfter = CountFeature(model);
             if (featureAfter < 0)
                 return Failed(
-                    "Ho chiesto il guscio, ma poi non riesco a ricontare l'albero: non so dirti " +
-                    "se e' nato. Guarda il pezzo prima di andare avanti.");
+                    "I asked for the shell, but then I cannot count the tree again: I cannot tell you " +
+                    "whether it was created. Look at the part before going on.");
             if (featureAfter <= featureBefore)
                 return Failed(
-                    "Il guscio non e' stato creato. Di solito e' lo spessore: " +
-                    "piu' grande di meta' del corpo non ci sta, e vicino a uno " +
-                    "spigolo lascerebbe una parete di spessore negativo.");
+                    "The shell was not created. Usually it is the thickness: " +
+                    "bigger than half of the body does not fit, and near an " +
+                    "edge it would leave a wall of negative thickness.");
 
             int bodiesAfter = CountSolidBodies(model);
             if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
                 return Failed(
-                    "Il guscio ha cambiato il numero di corpi solidi (da " +
-                    bodiesBefore + " a " + bodiesAfter + "): non e' il corpo svuotato " +
-                    "che ci si aspettava. Non te lo lascio passare per buono.");
+                    "The shell changed the number of solid bodies (from " +
+                    bodiesBefore + " to " + bodiesAfter + "): it is not the hollowed " +
+                    "body that was expected. I do not let it pass as good.");
 
             // THE SHELL REMOVES MATERIAL. If the volume did not drop, that
             // feature is not a shell, whatever the tree says.
@@ -5290,8 +5290,8 @@ namespace Oce.Solid.Agent.Core
             if (volumeBefore > 0 && volumeAfter > 0 && volumeAfter >= volumeBefore - 0.001)
                 return Failed(string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
-                    "Il guscio non ha tolto niente: il volume era {0:0.#} mm3 ed " +
-                    "e' {1:0.#} mm3. Non e' il pezzo che ti ho promesso.",
+                    "The shell removed nothing: the volume was {0:0.#} mm3 and it " +
+                    "is {1:0.#} mm3. It is not the part I promised you.",
                     volumeBefore, volumeAfter));
 
             // THE SHELL IS THE ONE FEATURE BORN SINCE THE CALL (FeatureBorn,
@@ -5304,7 +5304,7 @@ namespace Oce.Solid.Agent.Core
                     "The shell seems made, but " + featuresBorn + " features were born in the tree and I do not " +
                     "pick one of them for you. Look at the part before going on.");
             if (feature == null)
-                return Failed("Il guscio sembra creato ma non ritrovo la feature nell'albero.");
+                return Failed("The shell seems created but I cannot find the feature in the tree.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -5590,11 +5590,11 @@ namespace Oce.Solid.Agent.Core
             bool unchangedVolume = Math.Abs(volumeAfter.Value - volumeBefore.Value) < 0.01;
             if (unchangedVolume && facesAfter == facesBefore && bodiesAfter == bodiesBefore)
                 return
-                    whatItWas + " dice di essere riuscito, ma il pezzo e' identico a prima: " +
-                    "stesso volume (" + Math.Round(volumeAfter.Value, 2) + " mm3), stesse " +
-                    facesAfter + " facce, stessi " + bodiesAfter + " corpi. Non e' stato copiato niente. " +
-                    "Di solito vuol dire che la lavorazione indicata non e' quella che credi, " +
-                    "oppure che la copia sarebbe caduta esattamente dove c'e' gia' l'originale.";
+                    whatItWas + " says it succeeded, but the part is identical to before: " +
+                    "same volume (" + Math.Round(volumeAfter.Value, 2) + " mm3), same " +
+                    facesAfter + " faces, same " + bodiesAfter + " bodies. Nothing was copied. Usually " +
+                    "it means that the indicated feature is not the one you think, or that " +
+                    "the copy would have fallen exactly where the original already is.";
 
             return null;
         }
@@ -5691,15 +5691,15 @@ namespace Oce.Solid.Agent.Core
             if (done >= requestedCopies) return null;
 
             return
-                whatItWas + " dice di essere riuscita, ma le copie non ci sono tutte: " +
-                "ne ho contate " + done + " delle " + requestedCopies + " chieste. " +
-                "Le conto dalle facce che la ripetizione possiede (" + patternFaces +
-                ") divise per quelle della lavorazione ripetuta (" + seedFaceList + "). " +
-                "SOLIDWORKS qui non segnala niente: costruisce quello che puo' e " +
-                "dice riuscito. Di solito le copie mancanti cadono fuori dal " +
-                "materiale" + (done > 1 ? ", oppure si sono fuse fra loro" : "") + ". " +
+                whatItWas + " says it succeeded, but the copies are not all there: " +
+                "I counted " + done + " of the " + requestedCopies + " requested. " +
+                "I count them from the faces that the pattern owns (" + patternFaces +
+                ") divided by those of the repeated feature (" + seedFaceList + "). " +
+                "SOLIDWORKS reports nothing here: it builds what it can and says " +
+                "it succeeded. Usually the missing copies fall outside the " +
+                "material" + (done > 1 ? ", or they merged with each other" : "") + ". " +
                 howToRepair +
-                " La ripetizione e' rimasta nel pezzo: ritirala — " +
+                " The pattern stayed in the part: withdraw it — " +
                 Sentences.HowToWithdrawIt + ".";
         }
 
@@ -5772,19 +5772,19 @@ namespace Oce.Solid.Agent.Core
                 model.EditRebuild3();
                 double? returned = VolumeMm3(model);
                 return returned == null || volumeBefore == null
-                    ? " Ho rimesso " + before.ToString("0.###") + " " + units + ", ma non ho potuto " +
-                      "rimisurare il volume per controllare che il pezzo sia com'era: guardalo."
+                    ? " I restored " + before.ToString("0.###") + " " + units + ", but I could not " +
+                      "measure the volume again to check that the part is as it was: look at it."
                     : Math.Abs(returned.Value - volumeBefore.Value) < 0.01
-                    ? " Non l'ho lasciato cosi': ho rimesso " + before.ToString("0.###") +
-                      " " + units + " e il pezzo e' com'era."
-                    : " Ho provato a rimettere " + before.ToString("0.###") + " " + units + ", ma il " +
-                      "volume adesso e' " + returned.Value.ToString("0.##") + " mm3 invece di " +
-                      volumeBefore.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+                    ? " I did not leave it like this: I restored " + before.ToString("0.###") +
+                      " " + units + " and the part is as it was."
+                    : " I tried to restore " + before.ToString("0.###") + " " + units + ", but " +
+                      "the volume is now " + returned.Value.ToString("0.##") + " mm3 instead of " +
+                      volumeBefore.Value.ToString("0.##") + ": look at the part before going on.";
             }
             catch (Exception ex)
             {
-                return " E non sono riuscito a rimettere " + before.ToString("0.###") +
-                       " " + units + " (" + ex.Message + "): il pezzo e' rimasto col valore nuovo.";
+                return " And I could not restore " + before.ToString("0.###") +
+                       " " + units + " (" + ex.Message + "): the part kept the new value.";
             }
         }
 
@@ -5828,9 +5828,9 @@ namespace Oce.Solid.Agent.Core
                         }
                         else if (loser != null && isChamferOrFillet)
                         {
-                            return (typ == "Chamfer" ? "lo smusso «" : "il raccordo «") + itemName +
-                                   "» si prende una faccia intera di «" + loser + "» (" + howMuch +
-                                   " facce)";
+                            return (typ == "Chamfer" ? "the chamfer «" : "the fillet «") + itemName +
+                                   "» takes a whole face of «" + loser + "» (" + howMuch +
+                                   " faces)";
                         }
                     }
                     f = f.GetNextFeature() as IFeature;
@@ -5866,15 +5866,15 @@ namespace Oce.Solid.Agent.Core
 
             var lines = new List<string>();
             if (disappeared.Count > 0)
-                lines.Add("non hanno piu' nessuna faccia: " + string.Join(", ", disappeared));
+                lines.Add("have no face left: " + string.Join(", ", disappeared));
             if (lost.Count > 0)
-                lines.Add("hanno perso facce: " + string.Join(", ", lost) +
-                          ". Un taglio cieco che perde una faccia di solito e' " +
-                          "diventato PASSANTE: il fondo non c'e' piu'");
+                lines.Add("lost faces: " + string.Join(", ", lost) +
+                          ". A blind cut that loses a face has usually " +
+                          "become THROUGH: the bottom is gone");
             if (taken.Count > 0)
-                lines.Add("hanno preso facce: " + string.Join(", ", taken));
+                lines.Add("took faces: " + string.Join(", ", taken));
 
-            return "La quota nuova ha cambiato l'albero, non solo le misure: " +
+            return "The new dimension changed the tree, not just the measures: " +
                    string.Join("; ", lines) + ".";
         }
 
@@ -5932,8 +5932,8 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string VolumeNotReadBefore(string what)
         {
-            return "Non riesco a misurare il volume del pezzo prima di " + what + ": senza quel " +
-                   "numero non saprei dirti cosa e' cambiato. Non ho toccato niente.";
+            return "I cannot measure the volume of the part before " + what + ": without that " +
+                   "number I could not tell you what changed. I touched nothing.";
         }
 
         /// <summary>
@@ -5945,9 +5945,9 @@ namespace Oce.Solid.Agent.Core
         /// said out loud.
         /// </summary>
         private const string NoteVolumeNotReread =
-            "Dopo la lavorazione non sono riuscito a rimisurare il volume del pezzo: la " +
-            "lavorazione c'e', ma i controlli sul materiale tolto o aggiunto non li ho potuti " +
-            "fare. Guarda il pezzo prima di andare avanti.";
+            "After the feature I could not measure the volume of the part again: " +
+            "the feature is there, but I could not do the checks on the material removed " +
+            "or added. Look at the part before going on.";
 
         /// <summary>
         /// The volume of all the solid bodies, in mm3, or **null if it could not
@@ -6037,7 +6037,7 @@ namespace Oce.Solid.Agent.Core
                 var planStep = CitedStep(a, "edges_ref", out number, out reason);
                 if (planStep == null)
                 {
-                    reason = reason ?? "Riferimento non risolto.";
+                    reason = reason ?? "Reference not resolved.";
                     return false;
                 }
 
@@ -6074,9 +6074,9 @@ namespace Oce.Solid.Agent.Core
                     {
                         reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
-                            "{0:0.##} mm e' troppo per gli spigoli del passo {1}: il piu' corto " +
-                            "e' lungo {2:0.##} mm, e non ci sta neanche meta'. " +
-                            "Il massimo che ci sta e' {3:0.##} mm.",
+                            "{0:0.##} mm is too much for the edges of step {1}: the shortest " +
+                            "is {2:0.##} mm long, and not even half of it fits. " +
+                            "The most that fits is {3:0.##} mm.",
                             maximumMeasure, number, shorter, shorter / 2);
                         return false;
                     }
@@ -6097,17 +6097,17 @@ namespace Oce.Solid.Agent.Core
                 catch { }
                 if (howMany == 0)
                 {
-                    reason = "Gli spigoli del passo " + number +
-                             " non si sono lasciati selezionare.";
+                    reason = "The edges of step " + number +
+                             " could not be selected.";
                     return false;
                 }
-                _log("[agente] " + howMany + " spigoli presi dal passo " + number);
+                _log("[agent] " + howMany + " edges taken from step " + number);
                 return true;
             }
 
             if (uid.Count == 0)
             {
-                reason = "Nessuno spigolo indicato.";
+                reason = "No edge indicated.";
                 return false;
             }
 
@@ -6120,13 +6120,13 @@ namespace Oce.Solid.Agent.Core
                 // different edge. Same check as the faces, and since entry E19
                 // the same search by signature.
                 var signature = EdgeSignature(
-                    a, docState, u, "Lo spigolo «" + u + "» non c'e' piu' in questo documento.",
+                    a, docState, u, "The edge «" + u + "» is no longer in this document.",
                     out reason);
                 if (signature == null) return false;
                 var edge = signature.Entity as IEntity;
                 if (edge == null)
                 {
-                    reason = "Lo spigolo «" + u + "» non e' piu' selezionabile.";
+                    reason = "The edge «" + u + "» can no longer be selected.";
                     return false;
                 }
 
@@ -6136,15 +6136,15 @@ namespace Oce.Solid.Agent.Core
                 if (maximumMeasure > 0 && signature.Measure > 0 && maximumMeasure > signature.Measure / 2)
                 {
                     reason = string.Format(
-                        "{0:0.##} mm e' troppo per lo spigolo «{1}», lungo {2:0.##} mm: " +
-                        "non ci sta neanche meta'.",
+                        "{0:0.##} mm is too much for the edge «{1}», which is {2:0.##} mm long: " +
+                        "not even half of it fits.",
                         maximumMeasure, u, signature.Measure);
                     return false;
                 }
 
                 if (!edge.Select4(true, null))
                 {
-                    reason = "Non sono riuscito a selezionare lo spigolo «" + u + "».";
+                    reason = "I could not select the edge «" + u + "».";
                     return false;
                 }
                 selected++;
@@ -6179,7 +6179,7 @@ namespace Oce.Solid.Agent.Core
                 PointDist2Array: null,
                 PointRhoArray: null) as IFeature;
 
-            if (feature == null) return Failed("Il raccordo non e' stato creato.");
+            if (feature == null) return Failed("The fillet was not created.");
             var measures = new Dictionary<string, object>
             {
                 ["radius_mm"] = radius,
@@ -6226,7 +6226,7 @@ namespace Oce.Solid.Agent.Core
             double? volumeBefore; int bodiesBefore, facesBefore;
             Snapshot(model, out volumeBefore, out bodiesBefore, out facesBefore);
             if (volumeBefore == null || bodiesBefore < 0 || facesBefore < 0)
-                return Failed(VolumeNotReadBefore("fare la copia"));
+                return Failed(VolumeNotReadBefore("making the copy"));
 
             int instances = (int)Num(a, "instance_count");
             double angle = Num(a, "total_angle_deg", 360);
@@ -6248,16 +6248,16 @@ namespace Oce.Solid.Agent.Core
             {
                 int number;
                 var previous = CitedStep(a, "feature_ref", out number, out why);
-                if (previous == null) return Failed(why ?? "Riferimento non risolto.");
+                if (previous == null) return Failed(why ?? "Reference not resolved.");
                 if (previous.Feature == null)
-                    return Failed($"Il passo {number} non ha lasciato una lavorazione da ripetere.");
+                    return Failed($"The step {number} did not leave a feature to repeat.");
                 if (!previous.Feature.Select2(true, SelectionMarks.CircularPatternFeatures))
-                    return Failed($"Non sono riuscito a selezionare la lavorazione del passo {number}.");
-                _log($"[agente] ripeto la lavorazione del passo {number}");
+                    return Failed($"I could not select the feature of step {number}.");
+                _log($"[agent] repeating the feature of step {number}");
             }
             else if (!model.Extension.SelectByID2(featureUid, "BODYFEATURE", 0, 0, 0, true, SelectionMarks.CircularPatternFeatures, null, 0))
             {
-                return Failed($"Non ho trovato la lavorazione «{featureUid}» da ripetere.");
+                return Failed($"I did not find the feature «{featureUid}» to repeat.");
             }
 
             var seed = SelectedSeed(model, SelectionMarks.CircularPatternFeatures);
@@ -6278,7 +6278,7 @@ namespace Oce.Solid.Agent.Core
                 DName2: "",
                 EqualSpacing2: false) as IFeature;
 
-            if (feature == null) return Failed("La ripetizione non e' stata creata.");
+            if (feature == null) return Failed("The pattern was not created.");
             var measurements = new Dictionary<string, object>
             {
                 ["instances"] = instances,
@@ -6286,14 +6286,14 @@ namespace Oce.Solid.Agent.Core
             };
             var stopped = CompareCopy(
                 model, volumeBefore, bodiesBefore, facesBefore, measurements,
-                "La ripetizione circolare");
+                "The circular pattern");
             if (stopped != null) return Failed(stopped);
 
             var missingItems = MissingCopies(
-                measurements, feature, seed, instances - 1, "La ripetizione circolare",
-                "Con un angolo minore del giro intero le copie si fermano dove " +
-                "finisce l'arco: controlla «total_angle_deg», oppure porta " +
-                "le istanze a quante ce ne stanno.");
+                measurements, feature, seed, instances - 1, "The circular pattern",
+                "With an angle smaller than the full turn the copies stop " +
+                "where the arc ends: check «total_angle_deg», or bring " +
+                "the instances down to how many fit.");
             if (missingItems != null) return Failed(missingItems);
 
             return Succeeded(feature, measurements);
@@ -6386,7 +6386,7 @@ namespace Oce.Solid.Agent.Core
             var sketch = JustCreatedSketch(model, namesBeforeSketch, out born);
             if (sketch == null)
             {
-                error = SketchNotIdentified(born, "Non ritrovo lo schizzo che ho appena creato.");
+                error = SketchNotIdentified(born, "I cannot find the sketch I just created.");
                 return false;
             }
             try
@@ -6394,13 +6394,13 @@ namespace Oce.Solid.Agent.Core
                 model.ClearSelection2(true);
                 if (!sketch.Select2(false, 0))
                 {
-                    error = "Non sono riuscito a selezionare lo schizzo appena creato.";
+                    error = "I could not select the sketch just created.";
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                error = "Selezione dello schizzo non riuscita: " + ex.Message;
+                error = "Selecting the sketch did not succeed: " + ex.Message;
                 return false;
             }
             return true;
@@ -6615,8 +6615,8 @@ namespace Oce.Solid.Agent.Core
             string uid = Str(a, "feature_uid", "");
             if (string.IsNullOrWhiteSpace(uid))
             {
-                reason = "Non hai detto quale lavorazione. I nomi stanno nello " +
-                         "stato del documento, dentro «feature» (per esempio " +
+                reason = "You did not say which feature. The names are in the " +
+                         "state of the document, inside «feature» (for example " +
                          "«Taglio-Estrusione2»).";
                 return null;
             }
@@ -6630,8 +6630,8 @@ namespace Oce.Solid.Agent.Core
             if (f == null)
             {
                 string ci = FeaturesThatExist(model);
-                reason = "Non trovo la lavorazione «" + uid + "» in questo documento." +
-                         (ci.Length > 0 ? " Ci sono: " + ci + "." : "");
+                reason = "I cannot find the feature «" + uid + "» in this document." +
+                         (ci.Length > 0 ? " There are: " + ci + "." : "");
                 return null;
             }
 
@@ -6641,8 +6641,8 @@ namespace Oce.Solid.Agent.Core
             try { typ = f.GetTypeName2(); } catch { }
             if (typ == PartOrigin)
             {
-                reason = "«" + uid + "» e' l'origine del pezzo: non e' una " +
-                         "lavorazione e togliendola non resta niente.";
+                reason = "«" + uid + "» is the origin of the part: it is not a " +
+                         "feature and with it removed nothing would be left.";
                 return null;
             }
             return f;
@@ -6695,12 +6695,12 @@ namespace Oce.Solid.Agent.Core
                 // nothing. But we do not just say «done», because then
                 // «done» would no longer tell a change from nothing.
                 return Failed(
-                    "«" + uid + "» e' gia' " +
-                    (wasSuppressed ? "soppressa" : "attiva") +
-                    ": non ho cambiato niente. Se volevi il contrario, " +
+                    "«" + uid + "» is already " +
+                    (wasSuppressed ? "suppressed" : "active") +
+                    ": I changed nothing. If you wanted the opposite, " +
                     (wasSuppressed
-                        ? "passa «reactivate»: true."
-                        : "togli «reactivate»."));
+                        ? "pass «reactivate»: true."
+                        : "remove «reactivate»."));
             }
 
             double? volumeBefore = VolumeMm3(model);
@@ -6719,14 +6719,14 @@ namespace Oce.Solid.Agent.Core
             try { done = f.SetSuppression2(action, inAllConfigurations, null); }
             catch (Exception ex)
             {
-                return Failed("SOLIDWORKS non ha " +
-                               (reactivate ? "riattivato" : "soppresso") +
+                return Failed("SOLIDWORKS did not " +
+                               (reactivate ? "reactivate" : "suppress") +
                                " «" + uid + "»: " + ex.Message);
             }
             if (!done)
-                return Failed("SOLIDWORKS non ha " +
-                               (reactivate ? "riattivato" : "soppresso") +
-                               " «" + uid + "», e non ha detto perche'.");
+                return Failed("SOLIDWORKS did not " +
+                               (reactivate ? "reactivate" : "suppress") +
+                               " «" + uid + "», and did not say why.");
 
             try { model.EditRebuild3(); } catch { }
 
@@ -6744,19 +6744,19 @@ namespace Oce.Solid.Agent.Core
                 // costliest defect of the project — a right operation done
                 // blind — and here the blindness is guaranteed.
                 ["note_identifiers"] =
-                    "Le facce sono cambiate: gli identificativi (F1, E4) di " +
-                    "prima non valgono piu'. Rileggi il pezzo prima del passo " +
-                    "seguente.",
+                    "The faces changed: the identifiers (F1, E4) from before " +
+                    "are no longer valid. Read the part again before the next " +
+                    "step.",
             };
             if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
                 measurements["note_bodies"] =
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter + ".";
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter + ".";
             if (children.Count > 0)
                 measurements["note_children"] =
-                    "Da «" + uid + "» dipendono " + string.Join(", ", children) +
-                    ": " + (reactivate ? "si sono riaccese con lei." : "si sono spente con lei.");
+                    "What depends on «" + uid + "»: " + string.Join(", ", children) +
+                    ": " + (reactivate ? "they came back on with it." : "they went off with it.");
 
-            _log("[agente] " + (reactivate ? "riattivata" : "soppressa") + " " + uid +
+            _log("[agent] " + (reactivate ? "reactivated" : "suppressed") + " " + uid +
                  ", volume " + ReadValue(volumeBefore) + " -> " + ReadValue(volumeAfter));
             return SucceededWithoutCreating(measurements);
         }
@@ -6812,17 +6812,17 @@ namespace Oce.Solid.Agent.Core
             try { howManyChildren = f.IGetChildCount(); } catch { howManyChildren = children.Count; }
             if (howManyChildren > 0)
                 return Failed(
-                    "Non elimino «" + uid + "»: da lei " +
-                    (howManyChildren == 1 ? "dipende" : "dipendono") + " " +
+                    "I do not delete «" + uid + "»: there " +
+                    (howManyChildren == 1 ? "is" : "are") + " " +
                     (children.Count > 0
                         ? string.Join(", ", children)
-                        : howManyChildren + " lavorazion" + (howManyChildren == 1 ? "e" : "i")) +
-                    ". Cancellandola sparirebbe" + (howManyChildren == 1 ? "" : "ro") +
-                    " anche quell" + (howManyChildren == 1 ? "a" : "e") +
-                    ", e SOLIDWORKS lo farebbe senza chiedere.\n\n" +
-                    "Se e' proprio lei che vuoi togliere, togli prima cio' che " +
-                    "ci sta sopra. Se ti serve solo vedere il pezzo senza, usa " +
-                    "«suppress_feature»: spegne anche i figli e si disfa.");
+                        : howManyChildren + " feature" + (howManyChildren == 1 ? "" : "s")) +
+                    " depending on it. If I deleted it, " + (howManyChildren == 1 ? "that feature" : "those features") +
+                    " would disappear too" + (howManyChildren == 1 ? "" : ", all of them") +
+                    ", and SOLIDWORKS would do it without asking.\n\n" +
+                    "If it really is that one you want to remove, " +
+                    "first remove what sits on top of it. If you only need to see the part without it, " +
+                    "use «suppress_feature»: it also turns off the children and it can be undone.");
 
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
@@ -6833,13 +6833,13 @@ namespace Oce.Solid.Agent.Core
             {
                 model.ClearSelection2(true);
                 if (!f.Select2(false, 0))
-                    return Failed("Non sono riuscito a selezionare «" + uid + "».");
+                    return Failed("I could not select «" + uid + "».");
                 removed = model.Extension.DeleteSelection2(
                     (int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
             catch (Exception ex)
             {
-                return Failed("SOLIDWORKS non ha cancellato «" + uid + "»: " + ex.Message);
+                return Failed("SOLIDWORKS did not delete «" + uid + "»: " + ex.Message);
             }
             finally
             {
@@ -6847,8 +6847,8 @@ namespace Oce.Solid.Agent.Core
             }
 
             if (!removed)
-                return Failed("SOLIDWORKS non ha cancellato «" + uid + "», e non ha " +
-                               "detto perche'. Il pezzo e' rimasto com'era.");
+                return Failed("SOLIDWORKS did not delete «" + uid + "», and did " +
+                               "not say why. The part stayed as it was.");
 
             try { model.EditRebuild3(); } catch { }
 
@@ -6860,10 +6860,10 @@ namespace Oce.Solid.Agent.Core
             // this project has been chasing for fifty entries.
             if (FindFeature(model, uid) != null)
                 return Failed(
-                    "Ho chiesto di cancellare «" + uid + "», SOLIDWORKS ha " +
-                    "risposto di si', e la lavorazione e' ancora nell'albero. " +
-                    "Non so dirti cos'e' successo: guarda il pezzo prima di " +
-                    "fare altro.");
+                    "I asked to delete «" + uid + "», SOLIDWORKS " +
+                    "answered yes, and the feature is still in the tree. I cannot " +
+                    "tell you what happened: look at the part before doing " +
+                    "anything else.");
 
             int featureAfter = CountFeature(model);
             double? volumeAfter = VolumeMm3(model);
@@ -6878,16 +6878,16 @@ namespace Oce.Solid.Agent.Core
                 ["features_after"] = NumberOrNull(featureAfter),
                 ["bodies"] = NumberOrNull(bodiesAfter),
                 ["note_identifiers"] =
-                    "Le facce sono cambiate: gli identificativi (F1, E4) di " +
-                    "prima non valgono piu'. Rileggi il pezzo prima del passo " +
-                    "seguente.",
+                    "The faces changed: the identifiers (F1, E4) from before " +
+                    "are no longer valid. Read the part again before the next " +
+                    "step.",
             };
             if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
                 measurements["note_bodies"] =
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
-                    ": togliere questa lavorazione ha spezzato o unito il pezzo.";
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
+                    ": removing this feature split or merged the part.";
 
-            _log("[agente] eliminata " + uid + ", lavorazioni " + featureBefore +
+            _log("[agent] deleted " + uid + ", features " + featureBefore +
                  " -> " + featureAfter + ", volume " + ReadValue(volumeBefore) +
                  " -> " + ReadValue(volumeAfter));
             return SucceededWithoutCreating(measurements);
@@ -6978,7 +6978,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                _log("[agente] non sono riuscito a togliere lo schizzo: " + ex.Message);
+                _log("[agent] I could not remove the sketch: " + ex.Message);
                 return LeftSketchBehind;
             }
             finally
@@ -6993,21 +6993,21 @@ namespace Oce.Solid.Agent.Core
             double? volumeAfter = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
             if (volumeAfter == null || bodiesAfter < 0 || featureAfter < 0)
-                return " Lo schizzo che avevo disegnato l'ho tolto, ma non ho potuto rimisurare " +
-                       "il pezzo per controllare che sia com'era: guardalo.";
+                return " The sketch I had drawn I removed, but I could not measure the part " +
+                       "again to check that it is as it was: look at it.";
             if (featureAfter != featureNow - 1
                 || bodiesAfter != bodiesBefore
                 || Math.Abs(volumeAfter.Value - volumeBefore.Value) > 1e-6)
             {
                 _log(string.Format(
-                    "[agente] tolto lo schizzo «{0}» ma il pezzo e' cambiato: " +
-                    "feature {1}->{2}, corpi {3}->{4}, volume {5:0.###}->{6:0.###} mm3",
+                    "[agent] removed the sketch «{0}» but the part changed: " +
+                    "features {1}->{2}, bodies {3}->{4}, volume {5:0.###}->{6:0.###} mm3",
                     itemName, featureNow, featureAfter, bodiesBefore, bodiesAfter,
                     volumeBefore, volumeAfter));
                 return SketchRemovedButNotOnlyIt;
             }
 
-            _log("[agente] tolto lo schizzo «" + itemName + "», che la feature non ha usato");
+            _log("[agent] removed the sketch «" + itemName + "», which the feature did not use");
             return "";
         }
 
@@ -7174,26 +7174,26 @@ namespace Oce.Solid.Agent.Core
                 if (!References.Face(
                         planStep, KindOf(arguments, "face_ref"), out fromStep, out reason))
                     return null;
-                _log($"[agente] faccia presa dal passo {number}");
+                _log($"[agent] face taken from step {number}");
                 return fromStep;
             }
 
             if (docState == null || string.IsNullOrEmpty(uid))
             {
                 reason =
-                    "Nessuna faccia indicata. Se la faccia la crea un passo " +
-                    "precedente di questo piano, va nominata con face_ref.";
+                    "No face indicated. If the face is created by a previous " +
+                    "step of this plan, it must be named with face_ref.";
                 return null;
             }
             if (!docState.Signatures.TryGetValue(uid, out var signature) || signature.Type != "FACE")
             {
-                reason = $"La faccia «{uid}» non c'e' piu' in questo documento.";
+                reason = $"The face «{uid}» is no longer in this document.";
                 return null;
             }
             var face = signature.Entity as IFace2;
             if (face == null)
             {
-                reason = $"La faccia «{uid}» non e' piu' utilizzabile.";
+                reason = $"The face «{uid}» is no longer usable.";
                 return null;
             }
             if (SignatureMatches(arguments, uid, signature, out reason)) return face;
@@ -7297,17 +7297,17 @@ namespace Oce.Solid.Agent.Core
                 // ID: two different roads to find again, only one to say it.
                 ReAnchored(
                     MoveSentence(expectedPersist, uid, refoundSignature, null)
-                    ?? "la faccia «" + uid + "» si era spostata ed e' stata ritrovata " +
-                       "dalla firma misurata.");
+                    ?? "the face «" + uid + "» had moved and was found again from the " +
+                       "measured signature.");
                 reason = null;
                 return foundAgain;
             }
             if (howMany > 1)
             {
                 reason =
-                    "La faccia «" + uid + "» si e' spostata e ce ne sono " + howMany +
-                    " che le somigliano tutte uguali: non scelgo io. Rileggi lo " +
-                    "stato del documento e nominala di nuovo.";
+                    "The face «" + uid + "» has moved and there are " + howMany +
+                    " that look exactly like it: I do not choose. Read the state " +
+                    "of the document again and name it again.";
             }
             else if (discardedBecause != null)
             {
@@ -7489,8 +7489,8 @@ namespace Oce.Solid.Agent.Core
                 if (howMuch > 0.05)
                     parts.Add(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
-                        "si e' spostata di {0:0.##} mm, da [{1:0.##}, {2:0.##}, {3:0.##}] " +
-                        "a [{4:0.##}, {5:0.##}, {6:0.##}]",
+                        "moved by {0:0.##} mm, from [{1:0.##}, {2:0.##}, {3:0.##}] to " +
+                        "[{4:0.##}, {5:0.##}, {6:0.##}]",
                         howMuch, pointBefore[0], pointBefore[1], pointBefore[2],
                         now.PointMm[0], now.PointMm[1], now.PointMm[2]));
             }
@@ -7508,7 +7508,7 @@ namespace Oce.Solid.Agent.Core
                 if (beforeArea > 0 && Math.Abs(now.Measure - beforeArea) > beforeArea * 0.001)
                     parts.Add(string.Format(
                         System.Globalization.CultureInfo.InvariantCulture,
-                        "l'area e' passata da {0:0.##} a {1:0.##} mm²", beforeArea, now.Measure));
+                        "the area went from {0:0.##} to {1:0.##} mm²", beforeArea, now.Measure));
             }
 
             if (parts.Count == 0) return null;
@@ -7518,11 +7518,11 @@ namespace Oce.Solid.Agent.Core
             // relative to the part. Saying so helps to understand; deciding it does not — and indeed
             // here nothing is decided: the face was already chosen by the
             // persistent reference, and the judgment was already given by Corroborates.
-            return "la faccia «" + uid + "» l'ha ritrovata SOLIDWORKS dal suo " +
-                   "riferimento persistente: " + string.Join(", ", parts) +
-                   ". Il pezzo e' cambiato da quando l'hai guardato, ma la faccia e' " +
-                   "quella giusta — se il piano contava sulle misure di prima, " +
-                   "ricontrolla il risultato." +
+            return "SOLIDWORKS found the face «" + uid + "» again from its persistent " +
+                   "reference: " + string.Join(", ", parts) +
+                   ". The part has changed since you looked at it, but the face is " +
+                   "the right one — if the plan relied on the earlier measures, " +
+                   "check the result again." +
                    Sentences.WhereItWasAndWhereItIs(
                        uid, pointBefore, now.PointMm,
                        Sextuple(expectation, "box_part_mm"), now.BoxPartMm) +
@@ -7554,13 +7554,13 @@ namespace Oce.Solid.Agent.Core
                     string fromWhom = expectation.TryGetValue("feature", out expectedName) &&
                                    expectedName != null
                         ? "«" + Convert.ToString(expectedName) + "»"
-                        : "un'altra lavorazione";
+                        : "another feature";
                     return
-                        "La faccia «" + uid + "» si e' spostata, e l'unica che combacia " +
-                        "per posizione viene da «" + (candidate.Feature ?? "?") +
-                        "» invece che da " + fromWhom + ": non e' la stessa faccia, e' " +
-                        "un'altra finita nello stesso posto. Rileggi lo stato del " +
-                        "documento e dimmi tu quale.";
+                        "The face «" + uid + "» has moved, and the only one that matches " +
+                        "by position comes from «" + (candidate.Feature ?? "?") +
+                        "» instead of from " + fromWhom + ": it is not the same face, it is " +
+                        "another one that ended up in the same place. Read the state of the " +
+                        "document again and tell me which one.";
                 }
             }
 
@@ -7583,21 +7583,21 @@ namespace Oce.Solid.Agent.Core
                     if (sameFeatureConfirmed)
                     {
                         note = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                            "La faccia «{0}» si era spostata ed e' anche CRESCIUTA: " +
-                            "{1:0.##} mm² contro {2:0.##} che il piano si aspettava. " +
-                            "L'ho presa lo stesso perche' viene dalla stessa lavorazione " +
-                            "«{3}», ma se il piano contava sulla misura di prima, " +
-                            "ricontrolla il risultato.",
+                            "The face «{0}» had moved and it also GREW: {1:0.##} " +
+                            "mm² against the {2:0.##} that the plan expected. I took " +
+                            "it all the same because it comes from the same feature " +
+                            "«{3}», but if the plan relied on the earlier measure, " +
+                            "check the result again.",
                             uid, candidate.Measure, expectedArea, candidate.Feature ?? "?");
                         return null;
                     }
 
                     return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                        "La faccia «{0}» si e' spostata, e l'unica che combacia per " +
-                        "posizione e' piu' GRANDE di quella che cercavo: {1:0.##} mm² " +
-                        "contro {2:0.##}. Una lavorazione toglie area a una faccia, non " +
-                        "gliene aggiunge: quella non e' la stessa faccia. Rileggi lo " +
-                        "stato del documento e dimmi tu quale.",
+                        "The face «{0}» has moved, and the only one that matches by " +
+                        "position is BIGGER than the one I was looking for: {1:0.##} " +
+                        "mm² against {2:0.##}. A feature removes area from a face, it does " +
+                        "not add any: that is not the same face. Read the state of the " +
+                        "document again and tell me which one.",
                         uid, candidate.Measure, expectedArea);
                 }
             }
@@ -7666,23 +7666,23 @@ namespace Oce.Solid.Agent.Core
                 // check that it is the same edge, and these are the numbers
                 // to do it.
                 ReAnchored(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "lo spigolo «{0}» adesso si chiama «{1}»: stessa lunghezza ({2:0.##} mm), " +
-                    "stesso punto [{3:0.##}, {4:0.##}, {5:0.##}]. Gli spigoli si rinumerano per " +
-                    "lunghezza quando il pezzo cambia: ho lavorato su quello che avevi visto.",
+                    "the edge «{0}» is now called «{1}»: same length ({2:0.##} mm), " +
+                    "same point [{3:0.##}, {4:0.##}, {5:0.##}]. Edges are renumbered by " +
+                    "length when the part changes: I worked on the one you had seen.",
                     uid, found, length, point[0], point[1], point[2]));
                 reason = null;
                 return foundAgain;
             }
             if (howMany > 1)
             {
-                reason = "Lo spigolo «" + uid + "» ha cambiato numero, e ce ne sono " + howMany +
-                         " con la sua lunghezza nel suo punto: non scelgo io. Rileggi lo stato " +
-                         "del documento e nominalo di nuovo.";
+                reason = "The edge «" + uid + "» changed number, and there are " + howMany +
+                         " with its length at its point: I do not choose. Read the state of the " +
+                         "document again and name it again.";
                 return null;
             }
             reason = refusal + string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                " E fra gli spigoli di adesso nessuno e' lungo {0:0.##} mm in [{1:0.##}, " +
-                "{2:0.##}, {3:0.##}] come quello che avevi visto: non scelgo il piu' vicino.",
+                " And among the edges as they are now none is {0:0.##} mm long at [{1:0.##}, " +
+                "{2:0.##}, {3:0.##}] like the one you had seen: I do not choose the closest one.",
                 length, point[0], point[1], point[2]);
             return null;
         }
@@ -7718,8 +7718,8 @@ namespace Oce.Solid.Agent.Core
                     double dot = Math.Abs(d[0] * e[0] + d[1] * e[1] + d[2] * e[2]);
                     if (dot < Math.Cos(Math.PI / 180.0))
                     {
-                        reason = "L'asse «" + uid + "» adesso e' orientato in un altro modo. Il pezzo " +
-                                 "e' cambiato da quando hai confermato: " + IDoNotWorkOn(now);
+                        reason = "The axis «" + uid + "» is now oriented in another way. The part " +
+                                 "has changed since you confirmed: " + IDoNotWorkOn(now);
                         return false;
                     }
                 }
@@ -7729,8 +7729,8 @@ namespace Oce.Solid.Agent.Core
                 if (dist > PointToleranceMm)
                 {
                     reason = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                        "L'asse «{0}» si e' spostato di {1:0.##} mm. Il pezzo e' cambiato da quando " +
-                        "hai confermato: {2}", uid, dist, IDoNotWorkOn(now));
+                        "The axis «{0}» has moved by {1:0.##} mm. The part has changed since you confirmed: " +
+                        "{2}", uid, dist, IDoNotWorkOn(now));
                     return false;
                 }
                 return true;
@@ -7754,8 +7754,8 @@ namespace Oce.Solid.Agent.Core
                     Math.Abs(now.Measure - expectedLength) > LengthToleranceMm)
                 {
                     reason = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                        "«{0}» adesso e' lungo {1:0.##} mm invece di {2:0.##}. Il pezzo e' " +
-                        "cambiato da quando hai confermato: {3}",
+                        "«{0}» is now {1:0.##} mm long instead of {2:0.##}. The part " +
+                        "has changed since you confirmed: {3}",
                         uid, now.Measure, expectedLength, IDoNotWorkOn(now));
                     return false;
                 }
@@ -7779,9 +7779,9 @@ namespace Oce.Solid.Agent.Core
                     // change the outcome even if someone wanted it to. See
                     // Sentences.WhereItWasAndWhereItIs (entry E10).
                     reason =
-                        $"«{uid}» adesso indica un'altra parte del pezzo (spostato di " +
-                        $"{deviation:0.##} mm). Il pezzo e' cambiato da quando hai " +
-                        $"confermato: {IDoNotWorkOn(now)}" +
+                        $"«{uid}» now points at another part of the piece (moved by " +
+                        $"{deviation:0.##} mm). The part " +
+                        $"has changed since you confirmed: {IDoNotWorkOn(now)}" +
                         Sentences.WhereItWasAndWhereItIs(
                             uid, expectedPoint, now.PointMm,
                             Sextuple(expectation, "box_part_mm"), now.BoxPartMm);
@@ -7798,8 +7798,8 @@ namespace Oce.Solid.Agent.Core
                 if (deviation > NormalTolerance)
                 {
                     reason =
-                        $"«{uid}» adesso e' orientata in un altro modo. Il pezzo e' " +
-                        "cambiato da quando hai confermato.";
+                        $"«{uid}» is now oriented in another way. The part " +
+                        "has changed since you confirmed.";
                     return false;
                 }
             }
@@ -7816,10 +7816,10 @@ namespace Oce.Solid.Agent.Core
         {
             switch (entity?.Type)
             {
-                case "BODY": return "non lavoro sul corpo sbagliato.";
-                case "AXIS": return "non lavoro sull'asse sbagliato.";
-                case "EDGE": return "non lavoro sullo spigolo sbagliato.";
-                default: return "non lavoro sulla faccia sbagliata.";
+                case "BODY": return "I do not work on the wrong body.";
+                case "AXIS": return "I do not work on the wrong axis.";
+                case "EDGE": return "I do not work on the wrong edge.";
+                default: return "I do not work on the wrong face.";
             }
         }
 
@@ -7889,7 +7889,7 @@ namespace Oce.Solid.Agent.Core
                 var surface = face.IGetSurface();
                 if (surface == null || !surface.IsPlane())
                 {
-                    error = "La faccia non e' piana: questa versione non ci lavora sopra.";
+                    error = "The face is not planar: this version does not work on it.";
                     return null;
                 }
                 var plane = surface.PlaneParams as double[];
@@ -7899,7 +7899,7 @@ namespace Oce.Solid.Agent.Core
                     // only the three of the normal we do not know WHERE the plane is, and
                     // the third coordinate of the point would end up at zero — that is
                     // on the plane through the origin, not on this face.
-                    error = "Non riesco a leggere la posizione della faccia.";
+                    error = "I cannot read the position of the face.";
                     return null;
                 }
                 double ax = Math.Abs(plane[0]), ay = Math.Abs(plane[1]), az = Math.Abs(plane[2]);
@@ -7911,14 +7911,14 @@ namespace Oce.Solid.Agent.Core
                 if (ay > almostOne) { offsetM = plane[4]; return new double[] { 0, 2, 1 }; } // normal Y
                 if (ax > almostOne) { offsetM = plane[3]; return new double[] { 1, 2, 0 }; } // normal X
                 error =
-                    "La faccia e' inclinata rispetto agli assi principali: in questa " +
-                    "versione non ci faccio lavorazioni, perche' le coordinate " +
-                    "finirebbero nel punto sbagliato senza dare errore.";
+                    "The face is tilted with respect to the main axes: in this version " +
+                    "I do not make features on it, because the coordinates would " +
+                    "end up in the wrong place without any error.";
                 return null;
             }
             catch (Exception ex)
             {
-                error = "Non riesco a leggere la faccia: " + ex.Message;
+                error = "I cannot read the face: " + ex.Message;
                 return null;
             }
         }
@@ -7967,13 +7967,13 @@ namespace Oce.Solid.Agent.Core
                 var sketch = model.SketchManager?.ActiveSketch;
                 if (sketch == null)
                 {
-                    error = "Nessuno schizzo aperto: non posso posizionare la lavorazione.";
+                    error = "No sketch open: I cannot position the feature.";
                     return null;
                 }
                 var transformation = sketch.ModelToSketchTransform;
                 if (transformation == null)
                 {
-                    error = "SolidWorks non mi da' l'orientamento dello schizzo.";
+                    error = "SolidWorks does not give me the orientation of the sketch.";
                     return null;
                 }
                 var math = _sw.GetMathUtility() as IMathUtility;
@@ -7982,14 +7982,14 @@ namespace Oce.Solid.Agent.Core
                 var outside = inSketch?.ArrayData as double[];
                 if (outside == null || outside.Length < 3)
                 {
-                    error = "Non sono riuscito a convertire le coordinate nello schizzo.";
+                    error = "I could not convert the coordinates into the sketch.";
                     return null;
                 }
                 return new[] { outside[0], outside[1], outside[2] };
             }
             catch (Exception ex)
             {
-                error = "Conversione delle coordinate non riuscita: " + ex.Message;
+                error = "The conversion of the coordinates did not succeed: " + ex.Message;
                 return null;
             }
         }
@@ -8001,7 +8001,7 @@ namespace Oce.Solid.Agent.Core
         {
             string itemName = "";
             try { itemName = feature.Name; } catch { }
-            _log($"[agente] creata feature {itemName}");
+            _log($"[agent] created feature {itemName}");
 
             // WHAT MOVED REACHES THE READER (entry E8).
             //
@@ -8065,7 +8065,7 @@ namespace Oce.Solid.Agent.Core
         private void ReAnchored(string sentence)
         {
             if (string.IsNullOrEmpty(sentence)) return;
-            _log("[agente] " + sentence);
+            _log("[agent] " + sentence);
             _reanchors.Add(sentence);
         }
 
@@ -8108,32 +8108,32 @@ namespace Oce.Solid.Agent.Core
             // finds «Mi sono fermato dopo 1 operazioni: » with nothing after the
             // colon. A failure without a written reason is a failure
             // that cannot be corrected.
-            reason = $"Il riferimento «{theField}» non si e' potuto risolvere.";
+            reason = $"The reference «{theField}» could not be resolved.";
             object raw;
             if (a == null || !a.TryGetValue(theField, out raw) || raw == null)
             {
                 reason =
-                    $"Il piano dice di usare «{theField}», ma quel riferimento e' " +
-                    "vuoto. Il passo non si puo' eseguire.";
+                    $"The plan says to use «{theField}», but that reference is " +
+                    "empty. The step cannot be executed.";
                 return null;
             }
 
             var map = raw as Dictionary<string, object>;
             if (map == null)
             {
-                reason = $"Il riferimento «{theField}» non e' leggibile.";
+                reason = $"The reference «{theField}» is not readable.";
                 return null;
             }
             object val;
             if (!map.TryGetValue("step", out val))
             {
-                reason = $"Il riferimento «{theField}» non dice a quale passo.";
+                reason = $"The reference «{theField}» does not say which step.";
                 return null;
             }
             try { number = Convert.ToInt32(val); }
             catch
             {
-                reason = $"Il riferimento «{theField}» ha un numero di passo illeggibile.";
+                reason = $"The reference «{theField}» has an unreadable step number.";
                 return null;
             }
 
@@ -8182,9 +8182,9 @@ namespace Oce.Solid.Agent.Core
             // nothing after the colon. Better a generic sentence than nothing.
             if (string.IsNullOrWhiteSpace(reason))
                 reason =
-                    "L'operazione non e' riuscita, e non ho una ragione da " +
-                    "darti: e' un difetto mio. Segnalalo insieme al log.";
-            _log("[agente] " + reason);
+                    "The operation did not succeed, and I do not have a reason to give " +
+                    "you: it is a defect of mine. Report it together with the log.";
+            _log("[agent] " + reason);
             return new Outcome { Succeeded = false, Error = reason };
         }
 
@@ -8212,7 +8212,7 @@ namespace Oce.Solid.Agent.Core
             object v = null;
             if (a == null || !a.TryGetValue(key, out v) || v == null)
             {
-                error = $"Manca il parametro «{key}».";
+                error = $"The parameter «{key}» is missing.";
                 return false;
             }
             try
@@ -8221,12 +8221,12 @@ namespace Oce.Solid.Agent.Core
             }
             catch
             {
-                error = $"«{key}» non e' un numero: {v}.";
+                error = $"«{key}» is not a number: {v}.";
                 return false;
             }
             if (double.IsNaN(val) || double.IsInfinity(val))
             {
-                error = $"«{key}» non e' un numero utilizzabile: {v}.";
+                error = $"«{key}» is not a usable number: {v}.";
                 return false;
             }
             return true;
@@ -8279,13 +8279,13 @@ namespace Oce.Solid.Agent.Core
             object raw;
             if (a == null || !a.TryGetValue(theField, out raw) || raw == null)
             {
-                reason = "«" + theField + "» e' vuoto.";
+                reason = "«" + theField + "» is empty.";
                 return false;
             }
             var list = raw as System.Collections.IEnumerable;
             if (list == null || raw is string)
             {
-                reason = "«" + theField + "» deve essere un elenco di riferimenti a passi.";
+                reason = "«" + theField + "» must be a list of references to steps.";
                 return false;
             }
 
@@ -8296,8 +8296,8 @@ namespace Oce.Solid.Agent.Core
                 var entry = v as Dictionary<string, object>;
                 if (entry == null)
                 {
-                    reason = "Il riferimento n. " + which + " di «" + theField +
-                             "» non e' un oggetto {passo, genere}.";
+                    reason = "Reference no. " + which + " of «" + theField +
+                             "» is not a {passo, genere} object.";
                     return false;
                 }
 
@@ -8310,16 +8310,16 @@ namespace Oce.Solid.Agent.Core
                 var planStep = CitedStep(one, theField, out number, out reason);
                 if (planStep == null)
                 {
-                    reason = "Riferimento n. " + which + ": " +
-                             (reason ?? "non risolto.");
+                    reason = "Reference no. " + which + ": " +
+                             (reason ?? "not resolved.");
                     return false;
                 }
 
                 IFace2 face;
                 if (!References.Face(planStep, KindOf(one, theField), out face, out reason))
                 {
-                    reason = "Riferimento n. " + which + ": " +
-                             (reason ?? "faccia non trovata.");
+                    reason = "Reference no. " + which + ": " +
+                             (reason ?? "face not found.");
                     return false;
                 }
                 faces.Add(face);
@@ -8327,7 +8327,7 @@ namespace Oce.Solid.Agent.Core
 
             if (faces.Count == 0)
             {
-                reason = "«" + theField + "» non ha nessun riferimento.";
+                reason = "«" + theField + "» has no reference.";
                 return false;
             }
             return true;

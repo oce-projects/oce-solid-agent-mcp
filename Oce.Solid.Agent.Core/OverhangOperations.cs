@@ -73,16 +73,16 @@ namespace Oce.Solid.Agent.Core
             double threshold = Num(a, "threshold_deg", 45);
             if (threshold <= 0 || threshold >= 90)
                 return Failed(
-                    "«threshold_deg» va fra 0 e 90 esclusi. E' l'angolo oltre il quale una " +
-                    "parete non si regge: 45 per una stampante a filamento normale, 30-35 " +
-                    "se vuoi stare largo, 60 se la macchina raffredda bene.");
+                    "«threshold_deg» must be between 0 and 90, both excluded. It is the angle beyond which a " +
+                    "wall does not hold itself up: 45 for a normal filament printer, 30-35 " +
+                    "if you want a safe margin, 60 if the machine cools well.");
 
             double[] su = Direction(a, "print_direction");
             if (su == null)
                 return Failed(
-                    "«print_direction» dev'essere tre numeri, per esempio [0, 0, 1]. " +
-                    "E' il verso in cui cresce la stampa: il piano della macchina sta sotto, " +
-                    "perpendicolare a questo.");
+                    "«print_direction» must be three numbers, for example [0, 0, 1]. It " +
+                    "is the direction in which the print grows: the plane of the machine is below, " +
+                    "perpendicular to this.");
 
             var bodies = BodiesToCheck(model, a, docState, out string reason);
             if (bodies == null) return Failed(reason);
@@ -106,7 +106,7 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             if (bedLevel == double.MaxValue)
-                return Failed("Non riesco a trovare il punto piu' basso del pezzo.");
+                return Failed("I cannot find the lowest point of the part.");
 
             double totalArea = 0, overhangingArea = 0, areaOnPlane = 0;
             double worse = 0;
@@ -229,11 +229,11 @@ namespace Oce.Solid.Agent.Core
             if (consistent + conflicting > 0 && conflicting > 0)
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "Non mi fido della mia stessa analisi: su {0} triangoli di facce piane, " +
-                    "{1} hanno il verso opposto a quello della faccia. Vuol dire che " +
-                    "l'avvolgimento della tassellazione qui non segue la regola che ho " +
-                    "verificato, e allora sulle facce curve direi il contrario del vero " +
-                    "senza che si veda. Non ti do un'analisi rovesciata.",
+                    "I do not trust my own analysis: out of {0} triangles of planar faces, {1} " +
+                    "have the direction opposite to that of the face. It means that the " +
+                    "winding of the tessellation here does not follow the rule I verified, " +
+                    "and then on curved faces I would say the opposite of the truth without " +
+                    "it showing. I do not give you a reversed analysis.",
                     consistent + conflicting, conflicting));
 
             list = list.OrderByDescending(v => Convert.ToDouble(v["overhang_deg"])).ToList();
@@ -280,8 +280,8 @@ namespace Oce.Solid.Agent.Core
             int curvedNotAnalysed = unanalyzedFaces - planarWithoutBox;
             string notChecked = curvedNotAnalysed == 0 ? "" : string.Format(
                 CultureInfo.InvariantCulture,
-                " ATTENZIONE: {0} facce curve ({1:0.##} mm2) non si sono lasciate tassellare " +
-                "e non le ho potute guardare: una faccia curva non ha una normale sola.",
+                " WARNING: {0} curved faces ({1:0.##} mm2) could not be tessellated and I " +
+                "could not look at them: a curved face does not have a single normal.",
                 curvedNotAnalysed, unanalyzedArea - planarWithoutBoxArea);
             if (planarWithoutBox > 0)
                 notChecked += string.Format(
@@ -291,30 +291,30 @@ namespace Oce.Solid.Agent.Core
                     planarWithoutBox, planarWithoutBoxArea);
             measurements["verdict"] = overhangingFaces > 0
                 ? string.Format(CultureInfo.InvariantCulture,
-                    "NON si stampa senza supporti: {0} facce pendono oltre {1:0.#} gradi, " +
-                    "la peggiore a {2:0.#}, per {3:0.##} mm2 su {4:0.##} di superficie. " +
-                    "Gira il pezzo, o mettici i supporti, o smussa quelle facce.",
+                    "It does NOT print without supports: {0} faces overhang beyond {1:0.#} " +
+                    "degrees, the worst at {2:0.#}, for {3:0.##} mm2 out of {4:0.##} of " +
+                    "surface. Turn the part, or add supports, or chamfer those faces.",
                     overhangingFaces, threshold, worse, overhangingArea, totalArea) + notChecked
                 : unanalyzedFaces > 0
                     ? string.Format(CultureInfo.InvariantCulture,
-                        "NON POSSO DIRE se si stampa senza supporti con la soglia di {0:0.#} " +
-                        "gradi: sulle facce che ho guardato non pende niente oltre.", threshold) +
+                        "I CANNOT SAY whether it can print without supports with the threshold of {0:0.#} " +
+                        "degrees: on the faces I looked at nothing overhangs beyond it.", threshold) +
                       notChecked +
-                      " Riprova dopo una ricostruzione, o guarda quelle facce a occhio."
+                      " Try again after a rebuild, or look at those faces by eye."
                     : string.Format(CultureInfo.InvariantCulture,
-                        "Si stampa senza supporti con la soglia di {0:0.#} gradi: non c'e' " +
-                        "nessuna superficie che pende oltre.", threshold);
+                        "It can print without supports with the threshold of {0:0.#} degrees: there " +
+                        "is no surface that overhangs beyond it.", threshold);
 
             measurements["what_it_does_not_check"] =
-                "Guardo l'angolo di ogni superficie rispetto alla direzione di stampa, e " +
-                "basta. NON guardo: i ponti fra due appoggi (una traversa corta si stampa " +
-                "anche se e' orizzontale), lo spessore delle pareti, le isole staccate che " +
-                "nascono a mezz'aria, e se il pezzo sta nel volume della macchina. E quello " +
-                "che appoggia sul piano non lo conto come sporgenza, perche' il piano lo " +
-                "regge.";
+                "I look at the angle of each surface with respect to the print direction, " +
+                "and that is all. I do NOT look at: bridges between two supports " +
+                "(a short crossbar prints even if it is horizontal), wall thickness, detached islands " +
+                "that form in mid-air, and whether the part fits in the volume of the machine. " +
+                "And what rests on the plane I do not count as an overhang, because the plane " +
+                "holds it.";
 
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] sporgenze oltre {0:0.#} gradi: {1} facce, peggiore {2:0.#}, " +
+                "[agent] overhangs beyond {0:0.#} degrees: {1} faces, worst {2:0.#}, " +
                 "{3:0.##} mm2", threshold, overhangingFaces, worse, overhangingArea));
 
             return SucceededWithoutCreating(measurements);
@@ -471,7 +471,7 @@ namespace Oce.Solid.Agent.Core
         {
             reason = null;
             var partDoc = model as IPartDoc;
-            if (partDoc == null) { reason = "Questo non e' un documento di parte."; return null; }
+            if (partDoc == null) { reason = "This is not a part document."; return null; }
             // ALL THE BODIES, EVEN THE HIDDEN ONES (entry Z-C21.2, finding L12-1).
             //
             // IPartDoc~GetBodies2.html, parameter BVisibleOnly: «True gets only
@@ -490,7 +490,7 @@ namespace Oce.Solid.Agent.Core
             // still to be run (entry Z-C21.2, CHANGELOG).
             var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             var all = (rawItems ?? new object[0]).Select(o => o as IBody2).Where(b => b != null).ToList();
-            if (all.Count == 0) { reason = "Il pezzo non ha corpi solidi da guardare."; return null; }
+            if (all.Count == 0) { reason = "The part has no solid bodies to look at."; return null; }
 
             string uid = Str(a, "body_uid", null);
             if (string.IsNullOrWhiteSpace(uid)) return all;

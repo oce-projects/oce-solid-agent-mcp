@@ -45,12 +45,12 @@ namespace Oce.Solid.Agent.Core
         {
             var drawing = model as IDrawingDoc;
             if (drawing == null)
-                return Failed("Il documento attivo non e' una tavola: la tabella fori sta su una vista. " +
-                               "Crea prima la tavola con «create_drawing».");
+                return Failed("The active document is not a drawing: the hole table goes on a view. First " +
+                               "create the drawing with «create_drawing».");
             var names = ViewNames(drawing);
             if (names.Count == 0)
-                return Failed("La tavola non ha viste: la tabella fori si aggancia a una vista del pezzo. " +
-                               "Metti prima le viste con «standard_views».");
+                return Failed("The drawing has no views: the hole table attaches to a view of the part. " +
+                               "First put the views with «standard_views».");
 
             string origin = Str(a, "origin", "bottom_left");
             int sx, sy;
@@ -61,14 +61,14 @@ namespace Oce.Solid.Agent.Core
                 case "top_left": sx = -1; sy = 1; break;
                 case "top_right": sx = 1; sy = 1; break;
                 default:
-                    return Failed("«origin» e' uno fra bottom_left, bottom_right, top_left, " +
-                                   "top_right, non «" + origin + "».");
+                    return Failed("«origin» is one of bottom_left, bottom_right, top_left, " +
+                                   "top_right, not «" + origin + "».");
             }
 
             string reason;
             IView view = ResolveView(drawing, names, Str(a, "view", null), out reason);
             if (reason != null) return Failed(reason);
-            if (view == null) return Failed("Non riesco a prendere la vista.");
+            if (view == null) return Failed("I cannot get the view.");
             string viewName = "";
             try { viewName = view.GetName2() ?? ""; } catch { }
 
@@ -76,7 +76,7 @@ namespace Oce.Solid.Agent.Core
             MathTransform tr = null;
             try { mu = _sw.GetMathUtility() as IMathUtility; tr = view.ModelToViewTransform; } catch { }
             if (mu == null || tr == null)
-                return Failed("Non riesco a leggere come la vista porta il modello sul foglio.");
+                return Failed("I cannot read how the view carries the model onto the sheet.");
             double scale = 1;
             try { scale = view.ScaleDecimal; } catch { }
             if (scale <= 0) scale = 1;
@@ -89,8 +89,8 @@ namespace Oce.Solid.Agent.Core
             var part = view.ReferencedDocument as IModelDoc2;
             var partDoc = part as IPartDoc;
             if (partDoc == null)
-                return Failed("Dietro la vista «" + viewName + "» non c'e' una parte: la tabella fori si fa " +
-                               "sui fori di un pezzo.");
+                return Failed("Behind the view «" + viewName + "» there is no part: the hole table is made on " +
+                               "the holes of a part.");
             Func<double[], double[]> onSheet = p =>
                 ((IMathPoint)((IMathPoint)mu.CreatePoint(p)).MultiplyTransform(tr)).ArrayData as double[];
             Func<double[], double[]> directionOnSheet = v =>
@@ -116,11 +116,11 @@ namespace Oce.Solid.Agent.Core
                     }
                 }
             }
-            catch (Exception ex) { return Failed("Non riesco a leggere le facce del pezzo: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot read the faces of the part: " + ex.Message); }
             if (face == null || holes.Count == 0)
-                return Failed("Nella vista «" + viewName + "» nessuna faccia con dei fori guarda verso chi legge: " +
-                               "la tabella fori si fa sulla vista in cui i fori si vedono come cerchi (di solito " +
-                               "quella dall'alto, V2).");
+                return Failed("In the view «" + viewName + "» no face with holes faces the reader: the hole " +
+                               "table is made on the view in which the holes are seen as circles " +
+                               "(usually the one from above, V2).");
 
             // ── THE ORIGIN: the vertex of the outer outline nearest the corner asked for ──
             IVertex vertex = null;
@@ -142,7 +142,7 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { }
-            if (vertex == null) return Failed("Non trovo un vertice d'angolo sulla faccia forata.");
+            if (vertex == null) return Failed("I cannot find a corner vertex on the face with the holes.");
 
             // ── WHERE THE TABLE GOES: top left of the sheet, if not told otherwise ──
             double sheetWidth = 0.420, sheetHeight = 0.297;
@@ -162,14 +162,14 @@ namespace Oce.Solid.Agent.Core
             var sel = model.SelectionManager as ISelectionMgr;
             var sdV = sel?.CreateSelectData() as SelectData;
             var sdF = sel?.CreateSelectData() as SelectData;
-            if (sdV == null || sdF == null) return Failed("Non riesco a preparare la selezione nella vista.");
+            if (sdV == null || sdF == null) return Failed("I cannot prepare the selection in the view.");
             sdV.Mark = SelectionMarks.HoleTableDatumOrigin; sdV.View = (View)view;
             sdF.Mark = SelectionMarks.HoleTableHoles; sdF.View = (View)view;
             bool okV = (vertex as IEntity).Select4(false, sdV);
             bool okF = (face as IEntity).Select4(true, sdF);
             if (!okV || !okF)
-                return Failed("Non riesco a selezionare nella vista l'origine e la faccia forata (vertice " + okV +
-                               ", faccia " + okF + ").");
+                return Failed("I cannot select in the view the origin and the face with the holes (vertex " + okV +
+                               ", face " + okF + ").");
 
             string tableModel = FirstTableModel((int)swUserPreferenceStringValue_e.swFileLocationsHoleTableTemplates, ".sldholtbt");
             // Z-C21.7 (L15-1): InsertHoleTable3, not the obsolete InsertHoleTable2
@@ -193,11 +193,11 @@ namespace Oce.Solid.Agent.Core
                     (int)swHoleTableTagOrder_e.swHoleTableTagOrder_XY,
                     (int)swHoleTableTagStyle_e.swHoleTable_AlphaNumericTags, null);
             }
-            catch (Exception ex) { return Failed("La tabella fori non e' nata: " + ex.Message); }
+            catch (Exception ex) { return Failed("The hole table was not created: " + ex.Message); }
             model.ClearSelection2(true);
             var table = raw as ITableAnnotation;
             if (table == null)
-                return Failed("SOLIDWORKS non ha creato la tabella fori e non ha detto perche'.");
+                return Failed("SOLIDWORKS did not create the hole table and did not say why.");
 
             int lines = -1;
             try { lines = table.RowCount; } catch { }
@@ -207,8 +207,8 @@ namespace Oce.Solid.Agent.Core
             {
                 string removed = RemoveTable(model, drawing, table, tablesBefore);
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "La tabella fori e' nata con {0} righe e i fori della faccia sono {1}: ne servivano {2} " +
-                    "(l'intestazione piu' un foro per riga).{3}", lines, holes.Count, holes.Count + 1, removed));
+                    "The hole table was created with {0} records and the holes of the face are {1}: {2} were needed " +
+                    "(the header plus one hole per record).{3}", lines, holes.Count, holes.Count + 1, removed));
             }
 
             // ── THE REREAD: every row against the model ─────────────────────
@@ -244,8 +244,8 @@ namespace Oce.Solid.Agent.Core
             {
                 string removed = RemoveTable(model, drawing, table, tablesBefore);
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "La tabella fori dice {0} posizioni e solo {1} corrispondono a un foro del pezzo misurato " +
-                    "dall'origine sulla vista: non e' la tabella di questi fori.{2}", holes.Count, match, removed));
+                    "The hole table says {0} positions and only {1} correspond to a hole of the part measured from " +
+                    "the origin on the view: it is not the table of these holes.{2}", holes.Count, match, removed));
             }
 
             var measurements = new Dictionary<string, object>
@@ -265,9 +265,9 @@ namespace Oce.Solid.Agent.Core
             // order — table first, then drawing_dimension — it does not happen, because
             // drawing_dimension leaves the holes to the table.
             if (calloutsBefore > 0)
-                measurements["warning"] = "Nella vista c'erano gia' " + calloutsBefore + " richiami di foro (e di solito le " +
-                                       "quote di posizione dei fori): con la tabella i fori sono quotati due volte. " +
-                                       "Metti la tabella PRIMA di «drawing_dimension», che allora lascia i fori alla tabella.";
+                measurements["warning"] = "In the view there were already " + calloutsBefore + " hole callouts " +
+                                       "(and usually the position dimensions of the holes): with the table the holes " +
+                                       "are dimensioned twice. Put the table BEFORE «drawing_dimension», which then leaves the holes to the table.";
             return WithoutFeature(measurements);
         }
 
@@ -381,8 +381,8 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
             int after = DrawingTables(drawing);
-            if (before >= 0 && after == before) return " L'ho tolta: la tavola e' com'era.";
-            return " Non sono riuscito a toglierla (tabelle " + before + " -> " + after + "): toglila a mano.";
+            if (before >= 0 && after == before) return " I removed it: the drawing is as it was.";
+            return " I could not remove it (tables " + before + " -> " + after + "): remove it by hand.";
         }
 
         private static string TableCell(ITableAnnotation t, int r, int c)

@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.Core
         {
             var partDoc = model as IPartDoc;
             if (partDoc == null)
-                return Failed("Il materiale si applica a una parte, e questo non e' un documento di parte.");
+                return Failed("The material applies to a part, and this is not a part document.");
 
             // ── THE DEFAULT OF THIS WORKSHOP (entry Z-G3) ────────────────
             //

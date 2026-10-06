@@ -77,8 +77,8 @@ namespace Oce.Solid.Agent.Core
             if (model is IAssemblyDoc) return AssemblyMassProperties(model, a);
             var partDoc = model as IPartDoc;
             if (partDoc == null)
-                return Failed("Questo documento non e' un pezzo ne' un assieme: non ha corpi da pesare. " +
-                               "Aprimi il pezzo o l'assieme.");
+                return Failed("This document is neither a part nor an assembly: it has no bodies to weigh. Open " +
+                               "the part or the assembly for me.");
 
             var bodies = ChosenBodies(partDoc, docState, a, Str(a, "body_uid", null), out string reason);
             if (bodies == null) return Failed(reason);
@@ -131,8 +131,8 @@ namespace Oce.Solid.Agent.Core
 
             if (m == null || d == null || v == null || s == null)
                 return Failed(
-                    "SOLIDWORKS non ha dato le proprieta' di massa: o non ha agganciato i " +
-                    "corpi, o la misura non e' riuscita. Non ti do numeri a meta'.");
+                    "SOLIDWORKS did not give the mass properties: either it did not pick up the " +
+                    "bodies, or the measurement failed. I do not give you half numbers.");
 
             double massKg = Convert.ToDouble(m);
             double density = Convert.ToDouble(d);
@@ -151,7 +151,7 @@ namespace Oce.Solid.Agent.Core
                 // THE UNITS IN THE ANSWER, not only in the field names. It is the
                 // same reason as the STL: whoever reads may never have seen
                 // the description of the operation.
-                ["units"] = "millimetri e chilogrammi; la densita' in kg/m3",
+                ["units"] = "millimeters and kilograms; the density in kg/m3",
             };
 
             // THE MASS WITHOUT MATERIAL IS NOT ZERO, IT IS «NOT KNOWN».
@@ -166,11 +166,11 @@ namespace Oce.Solid.Agent.Core
                 measurements["mass_kg"] = null;
                 measurements["density_kg_m3"] = null;
                 measurements["why_no_mass"] =
-                    "Al pezzo non e' stato dato nessun materiale, quindi la massa non si sa. " +
-                    "SOLIDWORKS risponderebbe lo stesso usando la densita' predefinita del " +
-                    "modello (di solito 1000 kg/m3, cioe' acqua): un numero credibile e " +
-                    "sbagliato di otto volte su un pezzo d'acciaio. Usa «apply_material» " +
-                    "e richiedimelo.";
+                    "There is no material set on the part, so the mass is not known. SOLIDWORKS " +
+                    "would answer all the same using the default density of the model " +
+                    "(usually 1000 kg/m3, that is water): a believable and wrong number, " +
+                    "eight times too low on a steel part. Use «apply_material» and ask " +
+                    "me again.";
             }
             else
             {
@@ -205,9 +205,9 @@ namespace Oce.Solid.Agent.Core
             // is worse than not having them. If one day they were needed, the route is
             // `GetMassProperties`, not the property.
 
-            _log("[agente] proprieta' di massa: volume " +
+            _log("[agent] mass properties: volume " +
                  (volumeM3 * 1e9).ToString("0.#") + " mm3" +
-                 (string.IsNullOrEmpty(material) ? ", senza materiale" : ", " + material +
+                 (string.IsNullOrEmpty(material) ? ", without material" : ", " + material +
                   ", " + massKg.ToString("0.###") + " kg"));
             return SucceededWithoutCreating(measurements);
         }
@@ -232,14 +232,14 @@ namespace Oce.Solid.Agent.Core
             if (model is IAssemblyDoc) return AssemblyBoundingBox(model, a);   // entry Z-D1
             var partDoc = model as IPartDoc;
             if (partDoc == null)
-                return Failed("Questo documento non e' un pezzo ne' un assieme: non ha corpi da misurare. " +
-                               "Aprimi il pezzo o l'assieme.");
+                return Failed("This document is neither a part nor an assembly: it has no bodies to measure. Open " +
+                               "the part or the assembly for me.");
 
             string askedUid = Str(a, "body_uid", null);
             var bodies = ChosenBodies(partDoc, docState, a, askedUid, out string reason);
             if (bodies == null) return Failed(reason);
             if (bodies.Count == 0)
-                return Failed("Il pezzo non ha nessun corpo solido da misurare.");
+                return Failed("The part has no solid body to measure.");
 
             var list = new List<object>();
             double[] everything = null;
@@ -248,8 +248,8 @@ namespace Oce.Solid.Agent.Core
                 var box = BodyBox(bodies[i] as IBody2);
                 if (box == null)
                     return Failed(
-                        "Non sono riuscito a leggere l'ingombro del corpo " + (i + 1) +
-                        ": GetExtremePoint non ha risposto.");
+                        "I could not read the bounding box of the body " + (i + 1) +
+                        ": GetExtremePoint did not answer.");
                 list.Add(new Dictionary<string, object>
                 {
                     // The body asked for keeps its own uid: numbering the list
@@ -283,19 +283,19 @@ namespace Oce.Solid.Agent.Core
                     Round(everything[4] - everything[1]),
                     Round(everything[5] - everything[2]),
                 },
-                ["units"] = "millimetri, nel sistema di coordinate del modello",
+                ["units"] = "millimeters, in the coordinate system of the model",
                 // THE DECLARED LIMIT: it is the AXIS-ALIGNED box. A
                 // long part placed diagonally has a box much larger
                 // than needed to pack it, and this measurement does not
                 // say how to turn it.
                 ["what_it_does_not_check"] =
-                    "E' la scatola allineata agli assi del modello, non la piu' piccola " +
-                    "possibile: un pezzo messo in diagonale ha un ingombro molto piu' " +
-                    "grande di quello che gli servirebbe girato bene.",
+                    "It is the box aligned with the axes of the model, not the smallest " +
+                    "possible one: a part placed diagonally has a much bigger bounding " +
+                    "box than the one it would need turned the right way.",
             };
-            _log("[agente] ingombro: " +
+            _log("[agent] bounding box: " +
                  string.Join(" x ", ((double[])measurements["bounding_box_mm"]).Select(x => x.ToString("0.##"))) +
-                 " mm su " + bodies.Count + " corpi");
+                 " mm on " + bodies.Count + " bodies");
             return SucceededWithoutCreating(measurements);
         }
 
@@ -329,12 +329,12 @@ namespace Oce.Solid.Agent.Core
             string uidB = Str(a, "end_uid", null);
             if (string.IsNullOrWhiteSpace(uidA) || string.IsNullOrWhiteSpace(uidB))
                 return Failed(
-                    "Mi servono due cose fra cui misurare: «start_uid» e «end_uid». Gli " +
-                    "identificativi di facce e spigoli stanno nello stato del documento.");
+                    "I need two things to measure between: «start_uid» and «end_uid». " +
+                    "The identifiers of faces and edges are in the state of the document.");
             if (string.Equals(uidA, uidB, StringComparison.OrdinalIgnoreCase))
                 return Failed(
-                    "«start_uid» e «end_uid» sono la stessa cosa (" + uidA + "): la distanza " +
-                    "di una faccia da se stessa e' zero, e non e' una misura.");
+                    "«start_uid» and «end_uid» are the same thing (" + uidA + "): the distance " +
+                    "of a face from itself is zero, and it is not a measurement.");
 
             string reason;
             object entA = EntityFromState(docState, uidA, out reason);
@@ -345,7 +345,7 @@ namespace Oce.Solid.Agent.Core
             double meters;
             object p1, p2;
             try { meters = model.ClosestDistance(entA, entB, out p1, out p2); }
-            catch (Exception ex) { return Failed("La misura non e' riuscita: " + ex.Message); }
+            catch (Exception ex) { return Failed("The measurement did not succeed: " + ex.Message); }
 
             // «NO SOLUTION» IS SAID AS SUCH (Z-C21.8, finding L12-9).
             // IModelDoc2~ClosestDistance.html: «Distance in meters between Point1
@@ -365,9 +365,9 @@ namespace Oce.Solid.Agent.Core
             var pointB = p2 as double[];
             if (pointA == null || pointB == null || pointA.Length < 3 || pointB.Length < 3)
                 return Failed(
-                    "SOLIDWORKS ha dato la distanza (" + (meters * 1000).ToString("0.###") +
-                    " mm) ma non i due punti fra cui l'ha misurata. Senza quelli il numero " +
-                    "non si puo' controllare, e non te lo do.");
+                    "SOLIDWORKS gave the distance (" + (meters * 1000).ToString("0.###") +
+                    " mm) but not the two points between which it measured it. Without those the number " +
+                    "cannot be checked, and I do not give it to you.");
 
             // THE INDEPENDENT CHECK, and it is not a scruple: if the value
             // says 0 and the points are 4 mm apart, the call has failed and
@@ -379,10 +379,10 @@ namespace Oce.Solid.Agent.Core
             double deviationMm = Math.Abs(betweenThePoints - meters) * 1000.0;
             if (deviationMm > 0.001)
                 return Failed(
-                    "SOLIDWORKS dice che la distanza e' " + (meters * 1000).ToString("0.####") +
-                    " mm, ma i due punti che ha dato ne distano " +
-                    (betweenThePoints * 1000).ToString("0.####") + ". Il numero e' smentito dai suoi " +
-                    "stessi punti: non te lo do.");
+                    "SOLIDWORKS says the distance is " + (meters * 1000).ToString("0.####") +
+                    " mm, but the distance between the two points it gave is " +
+                    (betweenThePoints * 1000).ToString("0.####") + ". The number is contradicted by its own " +
+                    "points: I do not give it to you.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -396,14 +396,14 @@ namespace Oce.Solid.Agent.Core
                 // deviation, instead of having to believe it.
                 ["distance_between_points_mm"] = Round(betweenThePoints * 1000.0),
                 ["deviation_of_check_mm"] = Round(deviationMm),
-                ["units"] = "millimetri; SOLIDWORKS li da' in metri e la conversione e' qui",
+                ["units"] = "millimeters; SOLIDWORKS gives them in meters and the conversion is here",
             };
             if (meters * 1000.0 < 0.001)
                 measurements["touch"] =
-                    "Le due cose si toccano o si intersecano: la distanza e' zero, e i due " +
-                    "punti sono lo stesso punto.";
+                    "The two things touch or intersect: the distance is zero, and the two " +
+                    "points are the same point.";
 
-            _log("[agente] distanza minima " + uidA + " -> " + uidB + ": " +
+            _log("[agent] minimum distance " + uidA + " -> " + uidB + ": " +
                  (meters * 1000).ToString("0.###") + " mm");
             return SucceededWithoutCreating(measurements);
         }
@@ -447,13 +447,13 @@ namespace Oce.Solid.Agent.Core
             }
             if (uid.Count == 0)
                 return Failed(
-                    "Mi serve almeno una cosa da misurare: «uid» (e «uid2» per misurare " +
-                    "FRA due). Gli identificativi di facce e spigoli stanno nello stato " +
-                    "del documento.");
+                    "I need at least one thing to measure: «uid» (and «uid2» to measure BETWEEN two). " +
+                    "The identifiers of faces and edges are in the state of the " +
+                    "document.");
             if (uid.Count > 2)
                 return Failed(
-                    "Ne hai date " + uid.Count + ": ne misuro una sola o due. Con piu' di " +
-                    "due, «distanza» e «fillet» non vogliono dire piu' niente.");
+                    "You gave " + uid.Count + ": I measure one or two. With more than " +
+                    "two, «distance» and «fillet» no longer mean anything.");
 
             string arcMeasure = (Str(a, "arc_measure", "centre") ?? "centre").Trim().ToLowerInvariant();
             int arcOption;
@@ -474,9 +474,9 @@ namespace Oce.Solid.Agent.Core
 
             IMeasure measure;
             try { measure = model.Extension.CreateMeasure() as IMeasure; }
-            catch (Exception ex) { return Failed("Non riesco a preparare la misura: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot prepare the measurement: " + ex.Message); }
             if (measure == null)
-                return Failed("Questa installazione non espone lo strumento di misura.");
+                return Failed("This installation does not expose the measurement tool.");
 
             // THE ARC OPTION IS SET, NEVER INHERITED (finding M29). Measured on
             // 28/9/2026 by probe_measure_arc_option (plate 100 x 60 x 10, holes
@@ -508,25 +508,25 @@ namespace Oce.Solid.Agent.Core
                     var ent = entity[i] as IEntity;
                     if (ent == null || !ent.Select4(i > 0, null))
                         return Failed(
-                            "Non sono riuscito a selezionare «" + uid[i] + "»: senza la " +
-                            "selezione la misura guarderebbe qualcos'altro.");
+                            "I could not select «" + uid[i] + "»: without the " +
+                            "selection the measurement would look at something else.");
                 }
                 succeeded = measure.Calculate(null);
             }
-            catch (Exception ex) { return Failed("La misura non e' riuscita: " + ex.Message); }
+            catch (Exception ex) { return Failed("The measurement did not succeed: " + ex.Message); }
             finally { try { model.ClearSelection2(true); } catch { } }
 
             if (!succeeded)
                 return Failed(
-                    "Lo strumento di misura ha risposto «no» su " +
+                    "The measurement tool answered «no» on " +
                     string.Join(" e ", uid.Select(u => "«" + u + "»")) +
-                    ". Non ti do i numeri che aveva dentro: sarebbero quelli di prima.");
+                    ". I do not give you the numbers it had inside: they would be the old ones.");
 
             var outside = new Dictionary<string, object>
             {
                 ["measured"] = uid.ToArray(),
-                ["units"] = "millimetri, millimetri quadri e gradi; SOLIDWORKS li da' in " +
-                            "metri e radianti, e la conversione e' qui",
+                ["units"] = "millimeters, square millimeters and degrees; SOLIDWORKS gives them in " +
+                            "meters and radians, and the conversion is here",
             };
             // ── `Area` AND `TotalArea` ARE NOT THE SAME THING, AND THEY ALTERNATE
             //
@@ -578,7 +578,7 @@ namespace Oce.Solid.Agent.Core
                 if (deg >= 0) outside["angle_deg"] = Round(deg);
             }
 
-            _log("[agente] misura fra " + string.Join(" e ", uid) +
+            _log("[agent] measurement between " + string.Join(" e ", uid) +
                  (outside.ContainsKey("distance_mm") ? ": " + outside["distance_mm"] + " mm" : ""));
             return SucceededWithoutCreating(outside);
         }
@@ -622,27 +622,27 @@ namespace Oce.Solid.Agent.Core
             reason = null;
             if (docState == null)
             {
-                reason = "Non ho lo stato del documento: senza, gli identificativi non " +
-                         "vogliono dire niente.";
+                reason = "I do not have the state of the document: without it, the " +
+                         "identifiers mean nothing.";
                 return null;
             }
             DocumentState.EntitySignature signature;
             if (!docState.Signatures.TryGetValue(uid, out signature))
             {
-                reason = "«" + uid + "» non c'e' in questo documento. Gli identificativi " +
-                         "delle facce e degli spigoli stanno nello stato, e si rinumerano " +
-                         "a ogni lettura: rileggi il pezzo prima di nominarli.";
+                reason = "«" + uid + "» is not in this document. The identifiers of faces " +
+                         "and edges are in the state, and they are renumbered at every " +
+                         "reading: read the part again before naming them.";
                 return null;
             }
             if (signature.Type != "FACE" && signature.Type != "EDGE")
             {
-                reason = "«" + uid + "» e' di tipo «" + signature.Type + "»: so misurare " +
-                         "facce e spigoli.";
+                reason = "«" + uid + "» is of type «" + signature.Type + "»: I can measure " +
+                         "faces and edges.";
                 return null;
             }
             if (signature.Entity == null)
             {
-                reason = "«" + uid + "» non e' piu' utilizzabile: rileggi il pezzo.";
+                reason = "«" + uid + "» is no longer usable: read the part again.";
                 return null;
             }
             return signature.Entity;
@@ -671,7 +671,7 @@ namespace Oce.Solid.Agent.Core
             var rawItems = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[];
             if (rawItems == null || rawItems.Length == 0)
             {
-                reason = "Il pezzo non ha nessun corpo solido. Fai prima un'estrusione.";
+                reason = "The part has no solid body. First make an extrusion.";
                 return null;
             }
             if (!string.IsNullOrWhiteSpace(uid))
@@ -718,8 +718,8 @@ namespace Oce.Solid.Agent.Core
             DocumentState.EntitySignature signature;
             if (docState == null || !docState.Signatures.TryGetValue(uid, out signature) || signature.Type != "BODY")
             {
-                reason = "Non trovo il corpo «" + uid + "». Gli identificativi dei corpi " +
-                         "stanno nello stato del documento, dentro «bodies».";
+                reason = "I cannot find the body «" + uid + "». The identifiers of the bodies " +
+                         "are in the state of the document, inside «bodies».";
                 return null;
             }
             var bodies = BodiesFromUid(docState, new List<string> { uid }, a, out string why);

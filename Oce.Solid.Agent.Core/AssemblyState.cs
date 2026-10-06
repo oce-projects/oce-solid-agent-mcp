@@ -148,7 +148,7 @@ namespace Oce.Solid.Agent.Core
             try { all = assemblyDoc.GetComponents(false) as object[]; } catch { }
             if (all == null)
             {
-                data["note"] = "l'assieme non ha risposto all'elenco dei componenti";
+                data["note"] = "the assembly did not answer the list of components";
                 return;
             }
 
@@ -436,15 +436,15 @@ namespace Oce.Solid.Agent.Core
                 if (free.Count > 0) data["components_still_free"] = free;
 
                 data["verdict_constraints"] = resting == 0
-                    ? "Tutti i " + counted + (counted == 1 ? " componente non fisso ha" : " componenti non fissi hanno") +
-                      " almeno un accoppiamento. Di QUANTO siano ancora liberi non " +
-                      "lo so: SOLIDWORKS non fornisce i gradi di liberta' residui da qui."
-                    : "NON e' montato: " + resting + " su " + counted +
-                      (counted == 1 ? " componente non fisso" : " componenti non fissi") +
-                      " non ha nessun accoppiamento" +
+                    ? "All " + counted + (counted == 1 ? " non-fixed component has" : " non-fixed components have") +
+                      " at least one mate. HOW MUCH freedom they still have I do not " +
+                      "know: SOLIDWORKS does not give the remaining degrees of freedom from here."
+                    : "It is NOT assembled: " + resting + " of " + counted +
+                      (counted == 1 ? " non-fixed component" : " non-fixed components") +
+                      " has no mate" +
                       (free.Count == 0 ? "" : " (" + string.Join(", ", free) + ")") +
-                      ". Sono appoggiati li': si spostano se qualcuno li trascina, e " +
-                      "l'assieme sembra montato senza esserlo.";
+                      ". They are just laid down there: they move if someone drags them, and " +
+                      "the assembly looks assembled without being so.";
                 if (nested > 0)
                     data["verdict_constraints"] += " The " + nested + " component(s) inside sub-assemblies are " +
                                                 "not in this count: each moves with its sub-assembly, counted " +
@@ -459,11 +459,11 @@ namespace Oce.Solid.Agent.Core
             // see them; «mate» measures them when it makes a mate (Z-C14).
             if (degreesReadFailed)
                 data["what_is_not_known_about_constraints"] =
-                    "SOLIDWORKS does not give the remaining degrees of freedom (it answers " +
-                    "«unavailable» on every component, fixed or free). So «vincolato» here " +
-                    "means «has at least one mate», not «does not move any more»: one " +
-                    "coincident mate leaves three of the six directions free (measured). " +
-                    "«mate» says which directions each mate blocks.";
+                    "SOLIDWORKS does not give the remaining degrees of freedom " +
+                    "(it answers «unavailable» on every component, fixed or free). So " +
+                    "«vincolato» here means «has at least one mate», not " +
+                    "«does not move any more»: one coincident mate leaves three of the six " +
+                    "directions free (measured). «mate» says which directions each mate blocks.";
 
             // ── THE EXPLODED VIEW, AND IT IS NOT A WHIM (entry GA8) ──────
             //
@@ -502,10 +502,10 @@ namespace Oce.Solid.Agent.Core
             // can only stop.
             data["solid_body"] = false;
             data["what_cannot_be_done_yet"] =
-                "Di questo assieme so dire com'e' fatto, non cambiarlo: inserire " +
-                "componenti, accoppiarli e leggerne i gradi di liberta' residui " +
-                "non sono ancora operazioni. Le posizioni dei componenti non " +
-                "sono in questo stato.";
+                "Of this assembly I can say how it is made, not change it: inserting " +
+                "components, mating them and reading their remaining degrees of " +
+                "freedom are not operations yet. The positions of the components " +
+                "are not in this state.";
         }
 
         /// <summary>
@@ -597,15 +597,15 @@ namespace Oce.Solid.Agent.Core
             switch (source)
             {
                 case (int)swBOMPartNumberSource_e.swBOMPartNumber_DocumentName:
-                    return "nome del documento";
+                    return "name of the document";
                 case (int)swBOMPartNumberSource_e.swBOMPartNumber_ConfigurationName:
-                    return "nome della configurazione";
+                    return "name of the configuration";
                 case (int)swBOMPartNumberSource_e.swBOMPartNumber_ParentName:
-                    return "nome del genitore";
+                    return "name of the parent";
                 case (int)swBOMPartNumberSource_e.swBOMPartNumber_UserSpecified:
-                    return "scritto a mano";
+                    return "written by hand";
                 default:
-                    return "sconosciuta (" +
+                    return "unknown (" +
                            source.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
@@ -674,11 +674,11 @@ namespace Oce.Solid.Agent.Core
                 case (int)swComponentSuppressionState_e.swComponentResolved:
                     return "risolto";
                 case (int)swComponentSuppressionState_e.swComponentFullyLightweight:
-                    return "leggero (tutto)";
+                    return "lightweight (all)";
                 case (int)swComponentSuppressionState_e.swComponentInternalIdMismatch:
-                    return "identificativo non corrispondente";
+                    return "identifier does not match";
                 default:
-                    return "sconosciuto (" +
+                    return "unknown (" +
                            docState.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
@@ -762,11 +762,11 @@ namespace Oce.Solid.Agent.Core
             data["exploded_view_max_move_mm"] = Math.Round(maxValue, 3);
             if (maxValue < 0.001)
                 data["what_is_not_known_about_exploded_view"] =
-                    "La vista esplosa c'e' ed e' mostrata, ma NESSUN componente si " +
-                    "sposta: lo scostamento massimo e' zero. Un esploso che non " +
-                    "separa niente non serve a una tavola di montaggio. Su questa " +
-                    "installazione non si e' trovato il modo di aggiungere passi di " +
-                    "esploso da codice (voce GA8).";
+                    "The exploded view is there and shown, but NO component " +
+                    "moves: the maximum offset is zero. An explosion that " +
+                    "separates nothing is of no use to an assembly drawing. " +
+                    "On this installation no way was found to add explode steps " +
+                    "from code (entry GA8).";
         }
 
         /// <summary>

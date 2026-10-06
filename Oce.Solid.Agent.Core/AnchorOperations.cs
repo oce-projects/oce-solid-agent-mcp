@@ -118,22 +118,22 @@ namespace Oce.Solid.Agent.Core
             var d = raw as Dictionary<string, object>;
             if (d == null)
             {
-                reason = "«anchor» dev'essere un oggetto con «x» e «y»: per ognuno " +
-                         "{\"edge_uid\": \"E7\", \"distance_mm\": 20} oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
+                reason = "«anchor» must be an object with «x» and «y»: for each " +
+                         "one {\"edge_uid\": \"E7\", \"distance_mm\": 20} or {\"centered_between\": [\"E3\", \"E5\"]}.";
                 return null;
             }
             foreach (var key in d.Keys)
                 if (key != "x" && key != "y")
                 {
-                    reason = "«anchor» non conosce «" + key + "»: le chiavi sono «x» e «y», una per asse.";
+                    reason = "«anchor» does not know «" + key + "»: the keys are «x» and «y», one per axis.";
                     return null;
                 }
             if (!d.ContainsKey("x") || !d.ContainsKey("y"))
             {
-                reason = "L'ancora vuole TUTTI E DUE gli assi, «x» e «y». Un asse senza ancora resterebbe " +
-                         "libero, e alla prima modifica del pezzo il profilo andrebbe dove lo mette il " +
-                         "risolutore, senza errore. Se su un asse vuoi la posizione di adesso, ancoralo allo " +
-                         "spigolo da cui la misureresti.";
+                reason = "The anchor wants BOTH axes, «x» and «y». An axis without an anchor would stay free, " +
+                         "and at the first change of the part the profile would go wherever the solver puts " +
+                         "it, with no error. If on one axis you want the position it has now, anchor it to the " +
+                         "edge you would measure it from.";
                 return null;
             }
 
@@ -146,10 +146,10 @@ namespace Oce.Solid.Agent.Core
             double[] normal = FaceNormal(face);
             if (normal == null || normal.Length < 3)
             {
-                reason = "La faccia su cui lavori non e' piana (o non riesco a leggerne la normale): " +
-                         "l'ancora misura le distanze dagli spigoli nel piano della faccia, e su una " +
-                         "faccia curva quel piano non c'e'. Togli «anchor» e dai la posizione con " +
-                         "x_mm e y_mm.";
+                reason = "The face you are working on is not planar (or I cannot read its normal): the " +
+                         "anchor measures distances from edges in the plane of the face, and on a curved " +
+                         "face that plane does not exist. Remove «anchor» and give the position with " +
+                         "x_mm and y_mm.";
                 return null;
             }
             var anc = new Anchoring();
@@ -161,8 +161,8 @@ namespace Oce.Solid.Agent.Core
                 var entry = d[itemName] as Dictionary<string, object>;
                 if (entry == null)
                 {
-                    reason = "«ancora." + itemName + "» dev'essere {\"edge_uid\": ..., \"distance_mm\": ...} " +
-                             "oppure {\"centered_between\": [..., ...]}.";
+                    reason = "«anchor." + itemName + "» must be {\"edge_uid\": ..., \"distance_mm\": ...} " +
+                             "or {\"centered_between\": [..., ...]}.";
                     return null;
                 }
                 var axis = new AnchorAxis { Name = itemName, Index = k };
@@ -175,7 +175,7 @@ namespace Oce.Solid.Agent.Core
                         foreach (var o in list) uid.Add(Convert.ToString(o, CultureInfo.InvariantCulture));
                     if (uid.Count != 2 || uid[0] == uid[1])
                     {
-                        reason = "«ancora." + itemName + ".centrata_fra» vuole DUE spigoli diversi, opposti, presi dallo stato.";
+                        reason = "«anchor." + itemName + ".centrata_fra» wants TWO different, opposite edges, taken from the state.";
                         return null;
                     }
                     axis.Fra1 = EdgeForAnchor(a, docState, uid[0], offsetM, axes, normal, out reason);
@@ -185,32 +185,32 @@ namespace Oce.Solid.Agent.Core
                     // TO CENTRE ALONG x the two edges run along y.
                     if (EdgeAxis(axis.Fra1, axes) != 1 - k || EdgeAxis(axis.Fra2, axes) != 1 - k)
                     {
-                        reason = "Per centrare lungo «" + itemName + "» i due spigoli devono correre lungo «" +
-                                 (k == 0 ? "y" : "x") + "» della faccia: «" + uid[0] + "» e «" + uid[1] + "» non lo fanno.";
+                        reason = "To center along «" + itemName + "» the two edges must run along «" +
+                                 (k == 0 ? "y" : "x") + "» of the face: «" + uid[0] + "» and «" + uid[1] + "» do not.";
                         return null;
                     }
                     double c1 = Coord(axis.Fra1.StartMm, axes, k), c2 = Coord(axis.Fra2.StartMm, axes, k);
                     if ((c1 - here) * (c2 - here) >= 0)
                     {
-                        reason = "Il punto non sta FRA «" + uid[0] + "» e «" + uid[1] + "» lungo «" + itemName +
-                                 "»: sono dalla stessa parte, e fra loro non c'e' niente in mezzo a cui centrare.";
+                        reason = "The point is not BETWEEN «" + uid[0] + "» and «" + uid[1] + "» along «" + itemName +
+                                 "»: they are on the same side, and there is nothing between them to center on.";
                         return null;
                     }
                     double center = (c1 + c2) / 2;
                     if (Math.Abs(center - here) > PointToleranceMm)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
-                            "Il punto che hai dato ha {0} = {1:0.##}, ma a meta' fra «{2}» e «{3}» c'e' {0} = {4:0.##}. " +
-                            "x_mm/y_mm dicono dove il punto sta ADESSO, l'ancora cosa lo tiene li': devono dire lo " +
-                            "stesso punto. Rifiuto invece di spostarlo in silenzio.",
+                            "The point you gave has {0} = {1:0.##}, but halfway between «{2}» and «{3}» there is {0} = {4:0.##}. " +
+                            "x_mm/y_mm say where the point is NOW, the anchor says what holds it there: they " +
+                            "must say the same point. I refuse rather than move it silently.",
                             itemName, here, uid[0], uid[1], center);
                         return null;
                     }
                     if (Math.Abs(center - c1) < half)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
-                            "Fra «{0}» e «{1}» ci sono {2:0.##} mm lungo «{3}», e il profilo ne e' largo {4:0.##}: " +
-                            "non ci sta.", uid[0], uid[1], Math.Abs(c2 - c1), itemName, 2 * half);
+                            "Between «{0}» and «{1}» there are {2:0.##} mm along «{3}», and the profile is {4:0.##} wide: it " +
+                            "does not fit.", uid[0], uid[1], Math.Abs(c2 - c1), itemName, 2 * half);
                         return null;
                     }
                 }
@@ -223,8 +223,8 @@ namespace Oce.Solid.Agent.Core
                         !double.TryParse(Convert.ToString(entry["distance_mm"], CultureInfo.InvariantCulture),
                                          NumberStyles.Any, CultureInfo.InvariantCulture, out distance))
                     {
-                        reason = "«ancora." + itemName + "» vuole {\"edge_uid\": \"E7\", \"distance_mm\": 20} " +
-                                 "oppure {\"centered_between\": [\"E3\", \"E5\"]}.";
+                        reason = "«anchor." + itemName + "» wants {\"edge_uid\": \"E7\", \"distance_mm\": 20} " +
+                                 "or {\"centered_between\": [\"E3\", \"E5\"]}.";
                         return null;
                     }
                     // THE DISTANCE IS FROM THE CENTRE of the hole or pocket, and it
@@ -234,8 +234,8 @@ namespace Oce.Solid.Agent.Core
                     if (distance + 1e-9 < half)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
-                            "«distance_mm» e' dal CENTRO del profilo allo spigolo, e {0:0.##} e' meno di meta' della " +
-                            "sua larghezza lungo «{1}» ({2:0.##}): il profilo scavalcherebbe lo spigolo «{3}».",
+                            "«distance_mm» is from the CENTER of the profile to the edge, and {0:0.##} is less than half " +
+                            "of its width along «{1}» ({2:0.##}): the profile would cross over the edge «{3}».",
                             distance, itemName, half, uid);
                         return null;
                     }
@@ -243,17 +243,17 @@ namespace Oce.Solid.Agent.Core
                     if (sp == null) return null;
                     if (EdgeAxis(sp, axes) != 1 - k)
                     {
-                        reason = "Per ancorare «" + itemName + "» serve uno spigolo che corre lungo «" + (k == 0 ? "y" : "x") +
-                                 "» della faccia (la distanza si misura lungo «" + itemName + "»): «" + uid + "» non lo fa.";
+                        reason = "To anchor «" + itemName + "» you need an edge that runs along «" + (k == 0 ? "y" : "x") +
+                                 "» of the face (the distance is measured along «" + itemName + "»): «" + uid + "» does not.";
                         return null;
                     }
                     double real = Math.Abs(here - Coord(sp.StartMm, axes, k));
                     if (Math.Abs(real - distance) > PointToleranceMm)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
-                            "Il punto che hai dato sta a {0:0.##} mm da «{1}», non a {2:0.##}. x_mm/y_mm dicono dove il " +
-                            "punto sta ADESSO, l'ancora cosa lo tiene li': devono dire lo stesso punto. Rifiuto invece " +
-                            "di spostare il profilo di {3:0.##} mm in silenzio.",
+                            "The point you gave is {0:0.##} mm from «{1}», not {2:0.##}. x_mm/y_mm say where the point " +
+                            "is NOW, the anchor says what holds it there: they must say the same point. I refuse rather " +
+                            "than move the profile by {3:0.##} mm silently.",
                             real, uid, distance, Math.Abs(real - distance));
                         return null;
                     }
@@ -282,16 +282,16 @@ namespace Oce.Solid.Agent.Core
             // that does not know which edge it meant.
             if (a != null && a.ContainsKey("_signatures") && ExpectedSignature(a, uid) == null)
             {
-                reason = "Il piano porta le firme delle entita' ma non quella dello spigolo «" + uid + "»: " +
-                         "senza, non so se «" + uid + "» e' ancora lo spigolo che avevi visto.";
+                reason = "The plan carries the signatures of the entities but not that of the edge «" + uid + "»: " +
+                         "without it, I do not know whether «" + uid + "» is still the edge you saw.";
                 return null;
             }
             // If the uid changed between the reading and now, the edge
             // is found again by signature (entry E19): same length, same point.
             var signature = EdgeSignature(
                 a, docState, uid,
-                "Lo spigolo «" + uid + "» non c'e' in questo documento: gli spigoli dell'ancora si " +
-                "prendono dallo stato (E1, E2...).", out reason);
+                "The edge «" + uid + "» is not in this document: the edges of an anchor are " +
+                "taken from the state (E1, E2...).", out reason);
             if (signature == null) return null;
             var edge = signature.Entity as IEdge;
             ICurve curva = null;
@@ -299,22 +299,22 @@ namespace Oce.Solid.Agent.Core
             try { par = ApiHelpers.EdgeParameters(edge, out curva); } catch { }
             if (curva == null || par == null || !curva.IsLine())
             {
-                reason = "Lo spigolo «" + uid + "» non e' dritto: l'ancora si prende da uno spigolo dritto.";
+                reason = "The edge «" + uid + "» is not straight: an anchor is taken from a straight edge.";
                 return null;
             }
             var p0 = par.StartPoint as double[];
             var p1 = par.EndPoint as double[];
             if (p0 == null || p1 == null || p0.Length < 3 || p1.Length < 3)
             {
-                reason = "Non riesco a leggere gli estremi dello spigolo «" + uid + "».";
+                reason = "I cannot read the ends of the edge «" + uid + "».";
                 return null;
             }
             int n = (int)axes[2];
             if (Math.Abs(p0[n] - offsetM) > 1e-6 || Math.Abs(p1[n] - offsetM) > 1e-6)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "Lo spigolo «{0}» non sta nel piano della faccia su cui lavori (e' a {1:0.##} mm da quel piano): " +
-                    "l'ancora si prende da uno spigolo della faccia stessa.",
+                    "The edge «{0}» is not in the plane of the face you are working on (it is {1:0.##} mm from that plane): " +
+                    "an anchor is taken from an edge of the face itself.",
                     uid, Math.Max(Math.Abs(p0[n] - offsetM), Math.Abs(p1[n] - offsetM)) * 1000.0);
                 return null;
             }
@@ -345,9 +345,9 @@ namespace Oce.Solid.Agent.Core
             {
                 var faces = edge.GetTwoAdjacentFaces2() as object[];
                 if (faces == null || faces.Length == 0)
-                    notChecked = "SOLIDWORKS non mi da' le facce dello spigolo";
+                    notChecked = "SOLIDWORKS does not give me the faces of the edge";
                 else if (faceNormal == null || faceNormal.Length < 3)
-                    notChecked = "non ho la normale della faccia su cui lavori";
+                    notChecked = "I do not have the normal of the face you are working on";
                 else
                     foreach (var o in faces)
                     {
@@ -385,8 +385,8 @@ namespace Oce.Solid.Agent.Core
                             : Math.Sqrt(nf[0] * nf[0] + nf[1] * nf[1] + nf[2] * nf[2]);
                         if (length < 1e-9)
                         {
-                            notChecked = "non riesco a leggere la normale di una faccia dello spigolo" +
-                                          (planar ? "" : " (non e' piana)");
+                            notChecked = "I cannot read the normal of a face of the edge" +
+                                          (planar ? "" : " (it is not planar)");
                             break;
                         }
                         double cosine = Math.Abs(nf[0] * faceNormal[0] + nf[1] * faceNormal[1] +
@@ -394,17 +394,17 @@ namespace Oce.Solid.Agent.Core
                         if (planar && cosine > 0.999) continue;          // the face itself, or a coplanar one
                         if (!planar && cosine > 0.999)
                         {
-                            reason = "Lo spigolo «" + uid + "» sta sul bordo di un raccordo (la sua altra faccia e' " +
-                                     "curva e tangente a questa): se il raccordo cambia, lo spigolo si sposta e il " +
-                                     "profilo con lui. Ancoralo a uno spigolo vivo del pezzo.";
+                            reason = "The edge «" + uid + "» is on the border of a fillet " +
+                                     "(its other face is curved and tangent to this one): if the fillet changes, " +
+                                     "the edge moves and the profile with it. Anchor it to a sharp edge of the part.";
                             return null;
                         }
                         if (cosine > 0.01)
                         {
-                            reason = "Lo spigolo «" + uid + "» sta sul bordo di uno smusso o di un raccordo (la sua " +
-                                     "altra faccia " + (planar ? "" : "e' curva e ") + "non e' perpendicolare a questa): " +
-                                     "se lo smusso o il raccordo cambia, il profilo si sposta con lui. Ancoralo " +
-                                     "a uno spigolo vivo del pezzo.";
+                            reason = "The edge «" + uid + "» is on the border of a chamfer or a fillet (its " +
+                                     "other face " + (planar ? "" : "is curved and ") + "is not perpendicular to this one): " +
+                                     "if the chamfer or the fillet changes, the profile moves with it. Anchor it " +
+                                     "to a sharp edge of the part.";
                             return null;
                         }
                     }
@@ -412,9 +412,9 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { notChecked = ex.Message; }
             if (notChecked != null)
             {
-                reason = "Non sono riuscito a guardare l'altra faccia dello spigolo «" + uid + "» (" + notChecked +
-                         "): non so se sta sul bordo di uno smusso o di un raccordo, e un'ancora presa li' " +
-                         "si sposterebbe con lui senza errore. Ancoralo a un altro spigolo vivo del pezzo.";
+                reason = "I could not look at the other face of the edge «" + uid + "» (" + notChecked +
+                         "): I do not know whether it is on the border of a chamfer or a fillet, and an anchor taken " +
+                         "there would move with it without any error. Anchor it to another sharp edge of the part.";
                 return null;
             }
             return new AnchorEdge
@@ -455,7 +455,7 @@ namespace Oce.Solid.Agent.Core
             if (anc == null || anc.Empty) return true;
             if (point == null)
             {
-                reason = "Non ho il punto di riferimento del profilo a cui attaccare l'ancora.";
+                reason = "I do not have the reference point of the profile to attach the anchor to.";
                 return false;
             }
             var said = new Dictionary<string, object>();
@@ -489,7 +489,7 @@ namespace Oce.Solid.Agent.Core
                     }
                     finally { sketches.AddToDB = addBefore; }
                     var line = centerline as ISketchLine;
-                    if (line == null) { reason = "La mezzeria fra «" + axis.Fra1.Uid + "» e «" + axis.Fra2.Uid + "» non e' nata."; return false; }
+                    if (line == null) { reason = "The midline between «" + axis.Fra1.Uid + "» and «" + axis.Fra2.Uid + "» was not created."; return false; }
 
                     // THE ENDS ARE CHECKED (Z-C21.8, finding N49): ISketchLine~
                     // GetStartPoint2.html, «Start sketch point or NULL if operation
@@ -513,9 +513,9 @@ namespace Oce.Solid.Agent.Core
                     // and a relation that is not born is not reported by anyone.
                     if (!r1 || !r2 || !r3 || !r4 || (relBefore >= 0 && relAfter - relBefore < 4))
                     {
-                        reason = "Non sono riuscito a centrare lungo «" + axis.Name + "» fra «" + axis.Fra1.Uid + "» e «" +
-                                 axis.Fra2.Uid + "» (relazioni nate: " +
-                                 (relBefore < 0 ? "?" : (relAfter - relBefore).ToString(CultureInfo.InvariantCulture)) + " su 4).";
+                        reason = "I could not center along «" + axis.Name + "» between «" + axis.Fra1.Uid + "» and «" +
+                                 axis.Fra2.Uid + "» (relations created: " +
+                                 (relBefore < 0 ? "?" : (relAfter - relBefore).ToString(CultureInfo.InvariantCulture)) + " of 4).";
                         return false;
                     }
                     said[axis.Name] = new Dictionary<string, object>
@@ -547,14 +547,14 @@ namespace Oce.Solid.Agent.Core
                     double reread = DimensionPointEdge(model, point, axis.Edge.Edge, text, verticalEdge, out born);
                     if (reread < 0)
                     {
-                        reason = "La quota fra il punto e lo spigolo «" + axis.Edge.Uid + "» non e' nata.";
+                        reason = "The dimension between the point and the edge «" + axis.Edge.Uid + "» was not created.";
                         return false;
                     }
                     if (Math.Abs(reread - axis.DistanceMm) > PointToleranceMm)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
-                            "La quota dallo spigolo «{0}» e' nata ma vale {1:0.###} mm invece di {2:0.###}: misura " +
-                            "un'altra cosa, e non la tengo.", axis.Edge.Uid, reread, axis.DistanceMm);
+                            "The dimension from the edge «{0}» was created but is {1:0.###} mm instead of {2:0.###}: it measures " +
+                            "something else, and I do not keep it.", axis.Edge.Uid, reread, axis.DistanceMm);
                         return false;
                     }
                     axis.CreatedDimension = born;
@@ -577,8 +577,8 @@ namespace Oce.Solid.Agent.Core
             // THE DRAWING (risk 15): a centred axis is held by a relation,
             // not by a dimension, and `model_dimensions` has nothing to report.
             if ((anc.X != null && anc.X.Centered) || (anc.Y != null && anc.Y.Centered))
-                said["note_drawing"] = "Lungo l'asse centrato la posizione la tiene una relazione, non una quota: " +
-                                       "model_dimensions non la riporta, drawing_dimension la misura dai bordi.";
+                said["note_drawing"] = "Along the centered axis the position is held by a relation, not by a dimension: " +
+                                       "model_dimensions does not report it, drawing_dimension measures it from the borders.";
             measurements["anchor"] = said;
             return true;
         }
@@ -609,7 +609,7 @@ namespace Oce.Solid.Agent.Core
             }
             if (unhealthy != null)
             {
-                reason = "Lo schizzo dell'ancora ha relazioni " + unhealthy + ": non taglio, si romperebbe alla prima modifica.";
+                reason = "The sketch of the anchor has relations that are not healthy: " + unhealthy + ". I do not cut, it would break at the first change.";
                 return false;
             }
             return true;
@@ -636,14 +636,14 @@ namespace Oce.Solid.Agent.Core
             reason = null;
             var featSketch = PositioningSketch(hole);
             var sketch = featSketch?.GetSpecificFeature2() as ISketch;
-            if (sketch == null) { reason = "Non trovo lo schizzo che tiene la posizione dei fori."; return false; }
+            if (sketch == null) { reason = "I cannot find the sketch that holds the position of the holes."; return false; }
             var handler = model.SketchManager;
             var called = new List<object>();
             bool beingEdited = false;
             try
             {
                 model.ClearSelection2(true);
-                if (!featSketch.Select2(false, 0)) { reason = "Non riesco a selezionare lo schizzo dei fori."; return false; }
+                if (!featSketch.Select2(false, 0)) { reason = "I cannot select the sketch of the holes."; return false; }
                 model.EditSketch();
                 // EDIT MODE IS READ BACK, NOT ASSUMED (Z-C21.8, finding N56).
                 // IModelDoc2~EditSketch.html returns nothing: «If the selection is
@@ -684,7 +684,7 @@ namespace Oce.Solid.Agent.Core
                     }
                     if (candidates.Count == 0)
                     {
-                        reason = "Non ritrovo nello schizzo il punto del foro " + (i + 1) + ".";
+                        reason = "I cannot find in the sketch the point of hole " + (i + 1) + ".";
                         return false;
                     }
                     // N23: MORE THAN ONE SKETCH POINT CAN ANSWER TO THE SAME
@@ -715,7 +715,7 @@ namespace Oce.Solid.Agent.Core
                     if (!ApplyAnchor(model, anchors[i], its, axes, offsetM, positions[i][0], positions[i][1],
                                        itsMeasure, out reason, expectDefined: false))
                     {
-                        reason = "Foro " + (i + 1) + ": " + reason;
+                        reason = "Hole " + (i + 1) + ": " + reason;
                         return false;
                     }
                     called.Add(itsMeasure.ContainsKey("anchor") ? itsMeasure["anchor"] : null);
@@ -725,7 +725,7 @@ namespace Oce.Solid.Agent.Core
                 measurements["hole_sketch"] = "fully defined";
                 return true;
             }
-            catch (Exception ex) { reason = "L'ancora dei fori non e' riuscita: " + ex.Message; return false; }
+            catch (Exception ex) { reason = "The anchor of the holes did not succeed: " + ex.Message; return false; }
             finally
             {
                 // THE SELECTION IS CLEARED BEFORE THE SKETCH IS CLOSED (Z-C21.8,
@@ -956,15 +956,15 @@ namespace Oce.Solid.Agent.Core
                     // The value is read back too: moved means moved.
                     int moveOutcome = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
                     if (moveOutcome != (int)swSetValueReturnStatus_e.swSetValue_Successful)
-                        stop = "SOLIDWORKS ha risposto " + moveOutcome.ToString(CultureInfo.InvariantCulture) +
-                                " a SetSystemValue3 (" + ErrorCodeDecoder.SetValueStatus(moveOutcome) + ")";
+                        stop = "SOLIDWORKS answered " + moveOutcome.ToString(CultureInfo.InvariantCulture) +
+                                " to SetSystemValue3 (" + ErrorCodeDecoder.SetValueStatus(moveOutcome) + ")";
                     else
                     {
                         model.EditRebuild3();
                         double moved = era;
                         try { moved = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
                         if (Math.Abs(moved - (era + 0.0001)) > 1e-9)
-                            stop = "rilette, la quota non si e' spostata";
+                            stop = "read back, the dimension did not move";
                         else
                             broken = FeatureInError(cut, out notVerified);
                     }
@@ -980,18 +980,18 @@ namespace Oce.Solid.Agent.Core
                     catch { }
                 }
                 if (stop != null)
-                    return "Non sono riuscito a spostare la quota d'ancora «" + axis.Name + "» di un decimo (" + stop +
-                           "): la prova di movimento non ha provato niente, e un'ancora che non so far muovere " +
-                           "non te la confermo.";
+                    return "I could not move the anchor dimension «" + axis.Name + "» by a tenth (" + stop +
+                           "): the movement check proved nothing, and I do not confirm an anchor that I " +
+                           "cannot make move.";
                 if (notVerified != null)
                     return MovementTestNotVerifiable(axis, "the anchor dimension moved, but " + notVerified);
                 if (broken != null)
-                    return "Spostando la quota d'ancora «" + axis.Name + "» di un decimo, il taglio va in errore (" + broken +
-                           "): lo schizzo non regge una modifica, e un'ancora che non regge una modifica non serve.";
+                    return "Moving the anchor dimension «" + axis.Name + "» by a tenth, the cut goes into error (" + broken +
+                           "): the sketch does not hold up to a change, and an anchor that does not hold up to a change is of no use.";
                 double returned = -1;
                 try { returned = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
                 if (Math.Abs(returned - era) > 1e-9)
-                    return "Dopo la prova di movimento la quota d'ancora «" + axis.Name + "» non e' tornata al suo valore.";
+                    return "After the movement check the anchor dimension «" + axis.Name + "» did not return to its value.";
             }
             return null;
         }
@@ -1046,7 +1046,7 @@ namespace Oce.Solid.Agent.Core
                     notVerified = "GetErrorCode2 did not answer on its sketch";
                     return null;
                 }
-                if (sketchError != null) return "schizzo: " + sketchError;
+                if (sketchError != null) return "sketch: " + sketchError;
             }
             catch (Exception ex)
             {
@@ -1080,17 +1080,17 @@ namespace Oce.Solid.Agent.Core
             try { model.EditRebuild3(); } catch { }
             int features = CountFeature(model);
             if (features < 0 || _featuresAtStepStart < 0)
-                return " L'ho tolto, con il suo schizzo, ma non ho potuto ricontare " +
-                       "l'albero per controllare che il pezzo sia com'era: guardalo.";
+                return " I removed it, with its sketch, but I could not recount " +
+                       "the tree to check that the part is as it was: look at it.";
             if (features > _featuresAtStepStart)
                 return RemovedButTreeLonger(features - _featuresAtStepStart);
             double? volumeAfter = VolumeMm3(model);
             if (volumeBefore == null || volumeAfter == null)
-                return " L'ho tolto, con il suo schizzo, ma non ho potuto rimisurare il " +
-                       "volume per controllare che il pezzo sia com'era: guardalo.";
+                return " I removed it, with its sketch, but I could not measure the " +
+                       "volume again to check that the part is as it was: look at it.";
             if (Math.Abs(volumeAfter.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) > 0.01)
                 return RemovedButVolumeChanged(volumeAfter.GetValueOrDefault(), volumeBefore.GetValueOrDefault());
-            return " L'ho tolto, con il suo schizzo: il pezzo e' com'era prima di questo passo.";
+            return " I removed it, with its sketch: the part is as it was before this step.";
         }
 
         /// <summary>
@@ -1213,7 +1213,7 @@ namespace Oce.Solid.Agent.Core
             error = null;
             if (stadium == null || stadium.Length < 4 || stadium.Any(s => s == null))
             {
-                error = "Lo stadio non ha i suoi quattro pezzi: non posso definirlo.";
+                error = "The stadium does not have its four pieces: I cannot define it.";
                 return 0;
             }
             ISketchSegment l1 = stadium[0], l2 = stadium[1], a1 = stadium[2], a2 = stadium[3];
@@ -1221,7 +1221,7 @@ namespace Oce.Solid.Agent.Core
             var arcA = a2 as ISketchArc;
             if (arcA == null || arcB == null)
             {
-                error = "Le estremita' dell'asola non sono archi: non posso definirla.";
+                error = "The ends of the slot are not arcs: I cannot define it.";
                 return 0;
             }
             var sketches = model.SketchManager;
@@ -1271,7 +1271,7 @@ namespace Oce.Solid.Agent.Core
             }
             finally { sketches.AddToDB = addBefore; }
             var line = centerline as ISketchLine;
-            if (line == null) { error = "La mezzeria fra i centri dell'asola non e' nata."; return 0; }
+            if (line == null) { error = "The midline between the centers of the slot was not created."; return 0; }
             // Drawn under AddToDB exactly on the centres, the midline
             // MERGES with them (measured: the coincidences add no relations). They are
             // asked for all the same, in case a rounding left them apart; the count that counts
@@ -1292,7 +1292,7 @@ namespace Oce.Solid.Agent.Core
             if (textR != null) toDimension.Add(Dimension.Su(a1, textR));
             if (textL != null) toDimension.Add(Dimension.Su(centerline, textL));
             int quote = DimensionSegments(model, toDimension);
-            if (quote < 2 && error == null) error = "Le quote dell'asola non sono nate tutte (" + quote + " su 2).";
+            if (quote < 2 && error == null) error = "The dimensions of the slot were not all created (" + quote + " of 2).";
 
             // THE ORIENTATION. Horizontal or vertical midline IN THE SKETCH:
             // a relation. Oblique: an angle against the first edge of
@@ -1327,8 +1327,8 @@ namespace Oce.Solid.Agent.Core
                 else quote++;
             }
             else
-                measurements["orientation"] = "libero: un'asola obliqua senza ancora non ha uno spigolo da cui " +
-                                         "misurare l'angolo, e dopo una modifica puo' ruotare.";
+                measurements["orientation"] = "free: a slanted slot without an anchor has no edge to measure " +
+                                         "the angle from, and after a change it can rotate.";
 
             // THE ANCHOR, on the point halfway along the midline.
             if (!anchor.Empty)
@@ -1346,7 +1346,7 @@ namespace Oce.Solid.Agent.Core
                 finally { sketches.AddToDB = addBefore; }
                 if (point == null || !Relation(model, point, centerline, "sgATMIDDLE"))
                 {
-                    error = "Non sono riuscito a mettere il punto al centro dell'asola.";
+                    error = "I could not put the point at the center of the slot.";
                     return quote;
                 }
                 string e5;
@@ -1372,13 +1372,13 @@ namespace Oce.Solid.Agent.Core
             cx = cy = halfU = halfV = 0;
             reason = null;
             const string Rule =
-                "L'ancora di un rialzo vale per UN contorno solo, tondo o rettangolare allineato " +
-                "agli assi della faccia: il punto che tiene e' il suo centro. ";
+                "The anchor of a boss holds ONE contour only, round or rectangular and aligned " +
+                "with the axes of the face: the point it holds is its center. ";
             int howMany = contours == null ? -1 : contours.Count;
             if (howMany != 1)
             {
-                reason = Rule + (howMany < 0 ? "Qui non ci sono contorni." : "Qui i contorni sono " + howMany +
-                         ": fai un rialzo per contorno, e ancora ciascuno.");
+                reason = Rule + (howMany < 0 ? "There are no contours here." : "Here the contours are " + howMany +
+                         ": make one boss per contour, and anchor each one.");
                 return false;
             }
             var c = contours[0];
@@ -1402,7 +1402,7 @@ namespace Oce.Solid.Agent.Core
             }
             if (!rectangle)
             {
-                reason = Rule + "Questo contorno non e' ne' un cerchio ne' un rettangolo allineato.";
+                reason = Rule + "This contour is neither a circle nor an aligned rectangle.";
                 return false;
             }
             double minX = points.Min(p => p[0]), maxX = points.Max(p => p[0]);
@@ -1428,12 +1428,12 @@ namespace Oce.Solid.Agent.Core
             if (contour.Circle)
             {
                 var circle = created.Count == 1 ? created[0] as ISketchArc : null;
-                if (circle == null) { error = "Il cerchio del rialzo non e' nato come ci si aspetta."; return false; }
+                if (circle == null) { error = "The circle of the boss was not created as expected."; return false; }
                 var text = PointInSketch(model, axes, offsetM,
                     cx + contour.Diameter * 0.7 + 5, cy + contour.Diameter * 0.7 + 5, out error);
                 if (text == null || DimensionSegments(model, new List<Dimension> { Dimension.Su(created[0], text) }) < 1)
                 {
-                    error = error ?? "Il diametro del rialzo non si e' lasciato quotare.";
+                    error = error ?? "The diameter of the boss could not be dimensioned.";
                     return false;
                 }
                 point = circle.GetCenterPoint2() as ISketchPoint;
@@ -1442,7 +1442,7 @@ namespace Oce.Solid.Agent.Core
             {
                 if (created.Count != 4 || created.Any(s => !(s is ISketchLine)))
                 {
-                    error = "Il rettangolo del rialzo non ha i suoi quattro lati.";
+                    error = "The rectangle of the boss does not have its four sides.";
                     return false;
                 }
                 // THE ENDS ARE CHECKED (Z-C21.8, finding N49): ISketchLine~
@@ -1475,13 +1475,13 @@ namespace Oce.Solid.Agent.Core
                 };
                 if (DimensionSegments(model, toDimension) < 2)
                 {
-                    error = "Le quote del rettangolo del rialzo non sono nate tutte.";
+                    error = "The dimensions of the rectangle of the boss were not all created.";
                     return false;
                 }
                 point = RectangleCenter(model, created.Cast<object>().ToArray(), angles[0], angles[2]);
                 if (point == null)
                 {
-                    error = "Non sono riuscito a costruire il centro del rettangolo a cui attaccare l'ancora.";
+                    error = "I could not build the center of the rectangle to attach the anchor to.";
                     return false;
                 }
             }
@@ -1641,13 +1641,13 @@ namespace Oce.Solid.Agent.Core
                 }
                 var called = new List<string>();
                 int n = handler.GetRelationsCount((int)swSketchRelationFilterType_e.swDangling);
-                if (n > 0) called.Add(n + " penzolant" + (n == 1 ? "e" : "i"));
+                if (n > 0) called.Add(n + " dangling relation" + (n == 1 ? "" : "s"));
                 int dangling = n;
                 n = handler.GetRelationsCount((int)swSketchRelationFilterType_e.swOverDefining);
-                if (n > 0) called.Add(n + " sovravincolant" + (n == 1 ? "e" : "i"));
+                if (n > 0) called.Add(n + " over-defining relation" + (n == 1 ? "" : "s"));
                 int overDefining = n;
                 n = handler.GetRelationsCount((int)swSketchRelationFilterType_e.swBroken);
-                if (n > 0) called.Add(n + " rott" + (n == 1 ? "a" : "e"));
+                if (n > 0) called.Add(n + " broken relation" + (n == 1 ? "" : "s"));
                 if (dangling < 0 || overDefining < 0 || n < 0)
                 {
                     notRead = string.Format(CultureInfo.InvariantCulture,

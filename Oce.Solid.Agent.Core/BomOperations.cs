@@ -38,18 +38,18 @@ namespace Oce.Solid.Agent.Core
         {
             var drawing = model as IDrawingDoc;
             if (drawing == null)
-                return Failed("Il documento attivo non e' una tavola: la distinta base sta su una vista di un assieme.");
+                return Failed("The active document is not a drawing: the bill of materials goes on a view of an assembly.");
             var names = ViewNames(drawing);
-            if (names.Count == 0) return Failed("La tavola non ha viste: metti prima le viste dell'assieme con «standard_views».");
+            if (names.Count == 0) return Failed("The drawing has no views: first put the views of the assembly with «standard_views».");
             string reason;
             var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
             if (reason != null) return Failed(reason);
-            if (view == null) return Failed("Non riesco a prendere la vista.");
+            if (view == null) return Failed("I cannot get the view.");
 
             var assemblyDoc = view.ReferencedDocument as IAssemblyDoc;
             if (assemblyDoc == null)
-                return Failed("Dietro la vista «" + (view.GetName2() ?? "") + "» non c'e' un assieme: la distinta base e' " +
-                               "l'elenco dei componenti di un assieme. Per un saldato usa «drawing_cut_list».");
+                return Failed("Behind the view «" + (view.GetName2() ?? "") + "» there is no assembly: the bill of materials " +
+                               "is the list of the components of an assembly. For a weldment use «drawing_cut_list».");
 
             string requestedType = (Str(a, "variant", "top_level") ?? "top_level").Trim().ToLowerInvariant();
             int bomType;
@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.Core
                 case "parts_only": bomType = (int)swBomType_e.swBomType_PartsOnly; break;
                 case "indented": bomType = (int)swBomType_e.swBomType_Indented; break;
                 default:
-                    return Failed("«variant» e' uno fra «top_level» (predefinito), «parts_only», «indented», non «" + requestedType + "».");
+                    return Failed("«variant» is one of «top_level» (the default), «parts_only», «indented», not «" + requestedType + "».");
             }
 
             // ── THE ASSEMBLY, READ FIRST, IN THE CONFIGURATION OF THE VIEW ───
@@ -85,7 +85,7 @@ namespace Oce.Solid.Agent.Core
             var expectations = ComponentsInViewConfiguration(assemblyDoc, bomType, configuration,
                                                       out activeAfterReading, out readProblem);
             if (readProblem != null) return Failed(readProblem);
-            if (expectations == null) return Failed("Non riesco a leggere i componenti dell'assieme: senza, non posso confrontare la distinta.");
+            if (expectations == null) return Failed("I cannot read the components of the assembly: without them, I cannot check the bill of materials.");
             if (expectations.Count == 0)
                 return Failed(
                     "In the configuration «" + configuration + "» of the view the assembly has no component for the " +
@@ -120,10 +120,10 @@ namespace Oce.Solid.Agent.Core
                                             bomType, configuration, tableModel ?? "", false,
                                             (int)swNumberingType_e.swNumberingType_Detailed, false) as IBomTableAnnotation;
             }
-            catch (Exception ex) { return Failed("La distinta base non e' nata: " + ex.Message); }
+            catch (Exception ex) { return Failed("The bill of materials was not created: " + ex.Message); }
             var table = bom as ITableAnnotation;
             if (bom == null || table == null)
-                return Failed("SOLIDWORKS non ha creato la distinta base e non ha detto perche' (modello di tabella «" +
+                return Failed("SOLIDWORKS did not create the bill of materials and did not say why (table template «" +
                                (tableModel ?? "") + "»).");
 
             // ── THE ROWS, READ ──────────────────────────────────────────────
@@ -180,14 +180,14 @@ namespace Oce.Solid.Agent.Core
             };
 
             string crooked = null;
-            if (entries != expectations.Count) crooked = "la distinta ha " + entries + " voci e l'assieme " + expectations.Count + " componenti distinti";
-            else if (!quantityRead) crooked = "la colonna delle quantita' non si legge";
-            else if (totalQuantity != instances) crooked = "la distinta somma " + totalQuantity + " pezzi e l'assieme ne ha " + instances;
+            if (entries != expectations.Count) crooked = "the bill of materials has " + entries + " entries and the assembly has " + expectations.Count + " distinct components";
+            else if (!quantityRead) crooked = "the quantity column cannot be read";
+            else if (totalQuantity != instances) crooked = "the bill of materials adds up to " + totalQuantity + " parts and the assembly has " + instances;
             if (crooked != null)
             {
                 bool removed = RemoveCutTable(model, table);
-                return Failed("La distinta base non combacia con l'assieme: " + crooked + ". " +
-                               (removed ? "L'ho tolta." : "Toglila: " + Sentences.HowToWithdrawIt + "."));
+                return Failed("The bill of materials does not match the assembly: " + crooked + ". " +
+                               (removed ? "I removed it." : "Remove it: " + Sentences.HowToWithdrawIt + "."));
             }
             measurements["match"] = true;
 
@@ -208,8 +208,8 @@ namespace Oce.Solid.Agent.Core
             {
                 bool removed = RemoveCutTable(model, table);
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "Sul foglio non c'e' un posto libero per la distinta base ({0:0} x {1:0} mm) fuori dalle viste e dal cartiglio. " +
-                    "Usa un foglio piu' grande. {2}", w * 1000, h * 1000, removed ? "L'ho tolta." : ""));
+                    "On the sheet there is no free place for the bill of materials ({0:0} x {1:0} mm) outside the views and the title " +
+                    "block. Use a bigger sheet. {2}", w * 1000, h * 1000, removed ? "I removed it." : ""));
             }
             try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(down[0], down[1] + h, 0); } catch { }
             measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
@@ -690,19 +690,19 @@ namespace Oce.Solid.Agent.Core
         private Outcome Balloons(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
-            if (drawing == null) return Failed("Il documento attivo non e' una tavola: la bollatura sta su una vista di un assieme.");
+            if (drawing == null) return Failed("The active document is not a drawing: the balloons go on a view of an assembly.");
             var names = ViewNames(drawing);
-            if (names.Count == 0) return Failed("La tavola non ha viste: metti prima le viste dell'assieme.");
+            if (names.Count == 0) return Failed("The drawing has no views: first put the views of the assembly.");
             string reason;
             var view = ResolveView(drawing, names, Str(a, "view", null), out reason);
             if (reason != null) return Failed(reason);
-            if (view == null) return Failed("Non riesco a prendere la vista.");
+            if (view == null) return Failed("I cannot get the view.");
             var assemblyDoc = view.ReferencedDocument as IAssemblyDoc;
             if (assemblyDoc == null)
-                return Failed("Dietro la vista non c'e' un assieme: la bollatura numera i componenti di un assieme.");
+                return Failed("Behind the view there is no assembly: the balloons number the components of an assembly.");
             if (AllDrawingTables(drawing) <= 0 || !HasBom(drawing))
-                return Failed("In tavola non c'e' una distinta base: la bollatura porta il numero di voce della distinta. " +
-                               "Metti prima «drawing_bom».");
+                return Failed("There is no bill of materials in the drawing: a balloon carries the entry number of the bill of materials. " +
+                               "Put the bill of materials in first, with «drawing_bom».");
 
             string arrangement = (Str(a, "layout", "square") ?? "square").Trim().ToLowerInvariant();
             int layout;
@@ -712,7 +712,7 @@ namespace Oce.Solid.Agent.Core
                 case "circle": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Circle; break;
                 case "above": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Top; break;
                 case "below": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Bottom; break;
-                default: return Failed("«layout» e' una fra «square», «circle», «above», «below», non «" + arrangement + "».");
+                default: return Failed("«layout» is one of «square», «circle», «above», «below», not «" + arrangement + "».");
             }
 
             int before = ViewBalloons(view);
@@ -747,7 +747,7 @@ namespace Oce.Solid.Agent.Core
                 opt.UpperTextContent = (int)swBalloonTextContent_e.swBalloonTextItemNumber;
                 born = drawing.AutoBalloon5(opt);
             }
-            catch (Exception ex) { model.ClearSelection2(true); return Failed("La bollatura non e' nata: " + ex.Message); }
+            catch (Exception ex) { model.ClearSelection2(true); return Failed("The balloons were not created: " + ex.Message); }
             model.ClearSelection2(true);
             int after = ViewBalloons(view);
             var visible = VisibleComponents(view);
@@ -769,7 +769,7 @@ namespace Oce.Solid.Agent.Core
             string countNote = BalloonCountNote(returnedNotes, before, after);
             if (countNote != null) measurements["balloons_count_note"] = countNote;
             if (before < 0 || after < 0)
-                return Failed("Non riesco a contare i palloncini della vista: non so se la bollatura e' nata. Guarda la tavola.");
+                return Failed("I cannot count the balloons of the view: I do not know whether the balloons were created. Look at the drawing.");
             if (after <= before)
             {
                 // NOTHING NEW IS NOT ALWAYS AN ERROR: if every entry of the
@@ -782,10 +782,10 @@ namespace Oce.Solid.Agent.Core
                     measurements["bom_entries"] = already.Count;
                     measurements["entries_without_balloon"] = new string[0];
                     measurements["how_many_entries_without_balloon"] = 0;
-                    measurements["verdict"] = "Ogni voce della distinta ha gia' il suo palloncino in tavola: niente da aggiungere in questa vista.";
+                    measurements["verdict"] = "Every entry of the bill of materials already has its balloon in the drawing: nothing to add in this view.";
                     return SucceededWithoutCreating(measurements);
                 }
-                return Failed("SOLIDWORKS non ha messo nessun palloncino (erano " + before + ", sono " + after + ").");
+                return Failed("SOLIDWORKS did not put any balloon (there were " + before + ", there are " + after + ").");
             }
 
             // DOES EVERY ENTRY OF THE BILL OF MATERIALS HAVE ITS BALLOON? (seen on the
@@ -803,10 +803,10 @@ namespace Oce.Solid.Agent.Core
                 measurements["how_many_entries_without_balloon"] = without.Count;
                 if (without.Count > 0)
                     measurements["warning"] = (without.Count == 1
-                        ? "La voce " + without[0] + " della distinta non ha palloncino in tavola: in questa vista quel componente " +
-                          "non si vede. Fai la bollatura anche su un'altra vista, dove si vede."
-                        : "Le voci " + string.Join(", ", without) + " della distinta non hanno palloncino in tavola: in questa " +
-                          "vista quei componenti non si vedono. Fai la bollatura anche su un'altra vista, dove si vedono.");
+                        ? "The entry " + without[0] + " of the bill of materials has no balloon in the drawing: in this view that component " +
+                          "is NOT visible. Put the balloons on another view too, where it is visible."
+                        : "The entries " + string.Join(", ", without) + " of the bill of materials have no balloon in the drawing: in " +
+                          "this view those components are not visible. Put the balloons on another view too, where they are visible.");
             }
             else measurements["how_many_entries_without_balloon"] = null;   // the column of the item numbers cannot be read
             return SucceededWithoutCreating(measurements);

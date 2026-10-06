@@ -89,8 +89,8 @@ namespace Oce.Solid.Agent.Core
             }
             b = t2 = 0;
             reason = string.Format(CultureInfo.InvariantCulture,
-                "Non ho la cava normalizzata per un albero da {0:0.###} mm: la tabella " +
-                "che conosco arriva a {1:0.###} mm. Dimmi tu larghezza e profondita'.",
+                "I do not have the standard keyway for a shaft of {0:0.###} mm: the " +
+                "table I know goes up to {1:0.###} mm. Tell me the width and the depth yourself.",
                 diameterMm, Keyways[Keyways.Length - 1][0]);
             return false;
         }
@@ -115,14 +115,14 @@ namespace Oce.Solid.Agent.Core
             if (rf <= 0)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "Con z={0} e m={1:0.###} il fondo del dente cadrebbe nel centro " +
-                    "della ruota: i due numeri non stanno insieme.", teeth, module);
+                    "With z={0} and m={1:0.###} the root of the tooth would fall in the center " +
+                    "of the wheel: the two numbers do not go together.", teeth, module);
                 return null;
             }
             if (ra <= rb)
             {
-                reason = "Con questi dati il dente non esce dal cerchio di base: " +
-                         "non c'e' profilo da disegnare.";
+                reason = "With these data the tooth does not leave the base circle: " +
+                         "there is no profile to draw.";
                 return null;
             }
 
@@ -140,10 +140,10 @@ namespace Oce.Solid.Agent.Core
             if (teeth < minValue)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "Con un angolo di pressione di {0:0.###} gradi, sotto {1} denti " +
-                    "serve la correzione di profilo per evitare l'intaglio del piede, " +
-                    "e questo generatore non la sa fare. Chiedi piu' denti, oppure un " +
-                    "angolo di pressione maggiore.", pressureAngleDeg, minValue);
+                    "With a pressure angle of {0:0.###} degrees, under {1} " +
+                    "teeth the profile shift is needed to avoid undercutting the " +
+                    "root, and this generator cannot do it. Ask for more teeth, " +
+                    "or a bigger pressure angle.", pressureAngleDeg, minValue);
                 return null;
             }
 
@@ -195,17 +195,17 @@ namespace Oce.Solid.Agent.Core
             if (cavityAtBottom <= 0.01 * module)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "Con z={0}, m={1:0.###} e un angolo di pressione di {2:0.###} gradi " +
-                    "fra un dente e l'altro resterebbero {3:0.####} mm di fondo: i denti " +
-                    "si toccherebbero alla base. Servono meno denti oppure un angolo di " +
-                    "pressione piu' piccolo.", teeth, module, pressureAngleDeg, cavityAtBottom);
+                    "With z={0}, m={1:0.###} and a pressure angle of {2:0.###} degrees " +
+                    "between one tooth and the next there would be {3:0.####} mm of root: " +
+                    "the teeth would touch at the base. Fewer teeth or a smaller pressure " +
+                    "angle are needed.", teeth, module, pressureAngleDeg, cavityAtBottom);
                 return null;
             }
             if (deviationMax >= psi)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "Con z={0} e m={1:0.###} il dente si chiuderebbe a punta prima del " +
-                    "diametro esterno. Servono meno denti oppure un modulo diverso.",
+                    "With z={0} and m={1:0.###} the tooth would close to a point before the " +
+                    "outside diameter. Fewer teeth or a different module are needed.",
                     teeth, module);
                 return null;
             }
@@ -303,8 +303,8 @@ namespace Oce.Solid.Agent.Core
                 if (holeRadius >= rf * 0.95)
                 {
                     reason = string.Format(CultureInfo.InvariantCulture,
-                        "Un foro da {0:0.###} mm su una ruota con fondo dente a {1:0.#} mm " +
-                        "di diametro non lascia materiale sotto i denti.", holeMm, 2 * rf);
+                        "A hole of {0:0.###} mm on a wheel with the tooth root at {1:0.#} mm " +
+                        "of diameter leaves no material under the teeth.", holeMm, 2 * rf);
                     return null;
                 }
                 if (keyway)
@@ -356,7 +356,7 @@ namespace Oce.Solid.Agent.Core
             if (half >= r)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "La cava da {0:0.###} mm non sta su un foro da {1:0.###} mm.", b, holeMm);
+                    "The keyway of {0:0.###} mm does not fit on a hole of {1:0.###} mm.", b, holeMm);
                 return null;
             }
 

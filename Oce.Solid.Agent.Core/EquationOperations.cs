@@ -81,17 +81,17 @@ namespace Oce.Solid.Agent.Core
         private Outcome GlobalVariable(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
-                return Failed("Le variabili globali le metto su un pezzo (le parti le quotano). Aprimi il pezzo.");
+                return Failed("I put global variables on a part (parts dimension them). Open the part for me.");
             string itemName = (Str(a, "name", "") ?? "").Trim();
             if (!GoodVariableName(itemName))
-                return Failed("«name» e' il nome della variabile: lettere, cifre e «_», comincia con una lettera " +
-                               "(per esempio «parete», «gioco», «raggio_angolo»), non «" + itemName + "».");
+                return Failed("«name» is the name of the variable: letters, digits and «_», it starts with a letter " +
+                               "(for example «wall», «clearance», «raggio_angolo»), not «" + itemName + "».");
             double val; string error;
             string expression = Str(a, "expression", null);
             bool number = a != null && a.ContainsKey("value_mm");
             if (number == !string.IsNullOrWhiteSpace(expression))
-                return Failed("Dimmi O «value_mm» (un numero in millimetri) O «expression» (per esempio " +
-                               "«2 * \"parete\" + 1mm»), uno dei due.");
+                return Failed("Tell me EITHER «value_mm» (a number in millimeters) OR «expression» " +
+                               "(for example «2 * \"wall\" + 1mm»), one of the two.");
             string right;
             if (number)
             {
@@ -101,14 +101,14 @@ namespace Oce.Solid.Agent.Core
             else { val = double.NaN; right = expression.Trim(); }
 
             var em = model.GetEquationMgr() as IEquationMgr;
-            if (em == null) return Failed("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
+            if (em == null) return Failed("I cannot read the equations of this part (GetEquationMgr does not answer).");
             // THE GUARDS OF set_dimension (adversarial review of 27/9/2026):
             // a variable that drives dimensions changes the geometry like a
             // dimension, and a linked dimension set_dimension no longer changes.
             var photo = SnapshotPart(model);
             if (photo.Bodies < 0)
-                return Failed("Non riesco a contare i corpi del pezzo prima di cambiare la variabile: senza, non " +
-                               "saprei dirti se la modifica lo spezza. Non ho toccato niente.");
+                return Failed("I cannot count the bodies of the part before changing the variable: without that, I " +
+                               "could not tell you whether the change breaks it. I touched nothing.");
             double? volumeBefore = photo.Volume;
             int existing = EquationOf(em, itemName);
             bool newOne = existing < 0;
@@ -117,31 +117,31 @@ namespace Oce.Solid.Agent.Core
             int i = WriteEquation(em, itemName, right);
             if (i < 0)
                 return Failed(
-                    "SOLIDWORKS non accetta «\"" + itemName + "\" = " + right + "». Se il nome e' gia' preso — per il " +
-                    "SOLIDWORKS in italiano «spessore» lo e' (misurato) — scegline un altro, per esempio «parete»; " +
-                    "se e' un'espressione, controlla che i nomi fra virgolette esistano.");
+                    "SOLIDWORKS does not accept «\"" + itemName + "\" = " + right + "». If the name is already taken — in " +
+                    "an Italian SOLIDWORKS «spessore» is taken (measured) — choose another one, for example «wall»; if " +
+                    "it is an expression, check that the names between quotes exist.");
             try { em.EvaluateAll(); } catch { }
             bool rebuilt = false;
             try { rebuilt = model.ForceRebuild3(false); } catch { }
             i = EquationOf(em, itemName);
             double read = double.NaN;
             try { if (i >= 0) read = em.get_Value(i); } catch { }
-            string what = newOne ? "le equazioni senza «" + itemName + "»" : "«" + old + "»";
+            string what = newOne ? "the equations without «" + itemName + "»" : "«" + old + "»";
             if (i < 0 || double.IsNaN(read))
-                return Failed("La variabile «" + itemName + "» non si rilegge dopo averla scritta: non so che valore ha." +
+                return Failed("The variable «" + itemName + "» cannot be read back after writing it: I do not know what value it has." +
                                IsBackAsItWas(model, photo, PutBackEquation(model, em, itemName, old, null), what));
             // THE VALUE IS IN THE UNITS OF THE DOCUMENT: it is compared in millimetres.
             double factor = MmPerDocumentUnit(model);
             double readMm = double.IsNaN(factor) ? double.NaN : read * factor;
             if (number && !double.IsNaN(readMm) && Math.Abs(readMm - val) > 1e-6)
-                return Failed("Ho scritto «" + itemName + "» = " + val.ToString("0.###", Inv) + " mm e rileggendola vale " +
-                               readMm.ToString("0.###", Inv) + " mm: non e' la variabile che volevi." +
+                return Failed("I wrote «" + itemName + "» = " + val.ToString("0.###", Inv) + " mm and reading it back it is " +
+                               readMm.ToString("0.###", Inv) + " mm: it is not the variable you wanted." +
                                IsBackAsItWas(model, photo, PutBackEquation(model, em, itemName, old, null), what));
             string broken = WhatBroke(model, photo, rebuilt, true);
             if (broken != null)
-                return Failed("Con «" + itemName + "» = " + right + " " + broken + "." +
+                return Failed("With «" + itemName + "» = " + right + " " + broken + "." +
                                IsBackAsItWas(model, photo, PutBackEquation(model, em, itemName, old, null), what) +
-                               " Se vuoi proprio quel valore, sistema prima la lavorazione che non ci sta, poi cambia la variabile.");
+                               " If you really want that value, first fix the feature that does not fit, then change the variable.");
             double? volumeAfter = VolumeMm3(model);
             var measurements = new Dictionary<string, object>
             {
@@ -152,11 +152,11 @@ namespace Oce.Solid.Agent.Core
                 ["driven_dimensions"] = DimensionsDrivenBy(em, itemName),
                 ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
                 ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
-                ["units"] = "millimetri (il valore di una variabile di lunghezza, riletto nelle unita' del documento e portato in mm)",
+                ["units"] = "millimeters (the value of a length variable, read back in the units of the document and brought to mm)",
             };
             if (double.IsNaN(readMm))
-                measurements["warning"] = "Non so in che unita' e' il documento: la variabile vale " + read.ToString("0.######", Inv) +
-                                       " nelle sue unita', e non l'ho confrontata col valore chiesto.";
+                measurements["warning"] = "I do not know what units the document is in: the variable is " + read.ToString("0.######", Inv) +
+                                       " in its units, and I did not compare it with the requested value.";
             return SucceededWithoutCreating(measurements);
         }
 
@@ -164,26 +164,26 @@ namespace Oce.Solid.Agent.Core
         private Outcome LinkDimension(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
-                return Failed("Lego le quote di un pezzo. Aprimi il pezzo.");
+                return Failed("I link the dimensions of a part. Open the part for me.");
             string dimensionName = (Str(a, "dimension", "") ?? "").Trim();
             string expression = (Str(a, "expression", "") ?? "").Trim();
             if (string.IsNullOrWhiteSpace(dimensionName))
-                return Failed("Dimmi «dimension»: il nome della quota dallo stato del documento (per esempio «D1@Schizzo1»).");
+                return Failed("Tell me «dimension»: the name of the dimension from the state of the document (for example «D1@Schizzo1»).");
             if (string.IsNullOrWhiteSpace(expression))
-                return Failed("Dimmi «expression»: a cosa legarla, per esempio «\"parete\"» o «2 * \"parete\"».");
+                return Failed("Tell me «expression»: what to link it to, for example «\"wall\"» or «2 * \"wall\"».");
             var dimension = FindDimension(model, dimensionName, out string location);
             if (dimension == null)
-                return Failed("Non trovo la quota «" + dimensionName + "» in questo documento." + (location == null ? "" : " Ci sono: " + location + "."));
+                return Failed("I cannot find the dimension «" + dimensionName + "» in this document." + (location == null ? "" : " There are: " + location + "."));
             // THE NAME FOR THE EQUATION: the FullName without the part at the tail.
             string complete = "";
             try { complete = dimension.FullName ?? ""; } catch { }
             var parts = complete.Split('@');
             if (parts.Length < 2)
-                return Failed("Non leggo il nome completo della quota «" + dimensionName + "» («" + complete + "»): senza, " +
-                               "l'equazione non saprei scriverla.");
+                return Failed("I cannot read the full name of the dimension «" + dimensionName + "» («" + complete + "»): without it, " +
+                               "I would not know how to write the equation.");
             string eqName = parts[0] + "@" + parts[1];
             var em = model.GetEquationMgr() as IEquationMgr;
-            if (em == null) return Failed("Non leggo le equazioni di questo pezzo (GetEquationMgr non risponde).");
+            if (em == null) return Failed("I cannot read the equations of this part (GetEquationMgr does not answer).");
             // AN ANGULAR DIMENSION is read in degrees, a linear one in mm: SystemValue is
             // in radians or metres, and the comparison with the equation (in the units
             // of the document) is made with GetValue3, which is in the same units.
@@ -193,16 +193,16 @@ namespace Oce.Solid.Agent.Core
             double systemBefore = ApiHelpers.ReadDimension(dimension);
             var photo = SnapshotPart(model);
             if (photo.Bodies < 0)
-                return Failed("Non riesco a contare i corpi del pezzo prima di legare la quota: senza, non saprei " +
-                               "dirti se il legame lo spezza. Non ho toccato niente.");
+                return Failed("I cannot count the bodies of the part before linking the dimension: without that, I could " +
+                               "not tell you whether the link breaks it. I touched nothing.");
             double? volumeBefore = photo.Volume;
             int existing = EquationOf(em, eqName);
             string old = null;
             if (existing >= 0) { try { old = em.get_Equation(existing); } catch { } }
             int i = WriteEquation(em, eqName, expression);
             if (i < 0)
-                return Failed("SOLIDWORKS non accetta «\"" + eqName + "\" = " + expression + "». Controlla che le " +
-                               "variabili fra virgolette esistano (le crei con «global_variable»).");
+                return Failed("SOLIDWORKS does not accept «\"" + eqName + "\" = " + expression + "». Check that the " +
+                               "variables between quotes exist (you create them with «global_variable»).");
             try { em.EvaluateAll(); } catch { }
             bool rebuilt = false;
             try { rebuilt = model.ForceRebuild3(false); } catch { }
@@ -215,12 +215,12 @@ namespace Oce.Solid.Agent.Core
             // because an unlinked dimension keeps the last value the equation gave it.
             Func<bool> putBack = () => PutBackEquation(model, em, eqName, old,
                 old != null ? null : new Action(() => dimension.SetSystemValue3(systemBefore, 2, null)));
-            string what = old != null ? "«" + old + "»" : "la quota slegata, col suo valore di prima";
+            string what = old != null ? "«" + old + "»" : "the dimension unlinked, with its previous value";
             if (double.IsNaN(expected) || double.IsNaN(afterDoc) || Math.Abs(afterDoc - expected) > 0.001)
-                return Failed("Ho legato «" + eqName + "» a «" + expression + "», ma la quota dice " +
-                               (double.IsNaN(afterDoc) ? "?" : afterDoc.ToString("0.###", Inv)) + " e l'equazione " +
-                               (double.IsNaN(expected) ? "non si rilegge" : expected.ToString("0.###", Inv)) +
-                               " (nelle unita' del documento): il legame non ha preso." +
+                return Failed("I linked «" + eqName + "» to «" + expression + "», but the dimension says " +
+                               (double.IsNaN(afterDoc) ? "?" : afterDoc.ToString("0.###", Inv)) + " and the equation " +
+                               (double.IsNaN(expected) ? "cannot be read back" : expected.ToString("0.###", Inv)) +
+                               " (in the units of the document): the link did not take." +
                                IsBackAsItWas(model, photo, putBack(), what));
             string broken = WhatBroke(model, photo, rebuilt, true);
             if (broken != null)
@@ -234,8 +234,8 @@ namespace Oce.Solid.Agent.Core
                 ["equation"] = em.get_Equation(i),
                 ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
                 ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
-                ["verdict"] = "La quota «" + eqName + "» adesso la guida «" + expression + "»: cambiando la variabile " +
-                               "cambia lei. Con «set_dimension» non si cambia piu' (e' guidata).",
+                ["verdict"] = "The dimension «" + eqName + "» is now driven by «" + expression + "»: changing the variable changes " +
+                               "it. With «set_dimension» it cannot be changed any more (it is driven).",
             };
             if (angular)
             {

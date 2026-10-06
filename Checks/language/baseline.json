@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 51096,
+  "strings": 31918,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 829,
+  "protocol": 749,
   "paths": 0,
   "transition": 2192
  },
@@ -1228,7 +1228,6 @@
    "comments": 1
   },
   "Oce.Solid.Agent.Core/AnchorOperations.cs": {
-   "strings": 808,
    "comments": 6
   },
   "Oce.Solid.Agent.Core/ApiHelpers.Drawing.cs": {
@@ -1236,23 +1235,20 @@
   },
   "Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs": {
    "comments": 9,
-   "strings": 167
+   "strings": 1
   },
   "Oce.Solid.Agent.Core/AssemblyOperations.cs": {
-   "strings": 198,
    "comments": 3
   },
   "Oce.Solid.Agent.Core/AssemblyState.cs": {
    "comments": 16,
-   "strings": 140
+   "strings": 1
   },
   "Oce.Solid.Agent.Core/BodyOperations.cs": {
-   "comments": 7,
-   "strings": 613
+   "comments": 7
   },
   "Oce.Solid.Agent.Core/BomOperations.cs": {
-   "comments": 2,
-   "strings": 286
+   "comments": 2
   },
   "Oce.Solid.Agent.Core/Catalog/Node.cs": {
    "strings": 22
@@ -1262,242 +1258,141 @@
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
-   "strings": 219,
    "comments": 14
   },
   "Oce.Solid.Agent.Core/CheckOperations.cs": {
-   "comments": 10,
-   "strings": 123
+   "comments": 10
   },
   "Oce.Solid.Agent.Core/ClosedShape.cs": {
    "comments": 12
   },
-  "Oce.Solid.Agent.Core/DependencyOperations.cs": {
-   "strings": 37
-  },
-  "Oce.Solid.Agent.Core/DimXpertOperations.cs": {
-   "strings": 49
-  },
-  "Oce.Solid.Agent.Core/DimensionTextOperations.cs": {
-   "strings": 6
-  },
-  "Oce.Solid.Agent.Core/DimensionToleranceOperations.cs": {
-   "strings": 110
-  },
   "Oce.Solid.Agent.Core/DocumentState.cs": {
-   "comments": 32,
-   "strings": 37
-  },
-  "Oce.Solid.Agent.Core/DraftOperations.cs": {
-   "strings": 289
-  },
-  "Oce.Solid.Agent.Core/DrawingAnnotationOperations.cs": {
-   "strings": 260
+   "comments": 32
   },
   "Oce.Solid.Agent.Core/DrawingCutListOperations.cs": {
-   "comments": 3,
-   "strings": 328
-  },
-  "Oce.Solid.Agent.Core/DrawingDetailOperations.cs": {
-   "strings": 195
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/DrawingDimensionOperations.cs": {
-   "strings": 668,
    "comments": 14
   },
   "Oce.Solid.Agent.Core/DrawingFlatPatternOperations.cs": {
-   "comments": 2,
-   "strings": 158
-  },
-  "Oce.Solid.Agent.Core/DrawingLabelOperations.cs": {
-   "strings": 26
+   "comments": 2
   },
   "Oce.Solid.Agent.Core/DrawingNoteOperations.cs": {
-   "strings": 215,
    "comments": 4
   },
   "Oce.Solid.Agent.Core/DrawingOperations.cs": {
-   "strings": 756,
    "comments": 26
   },
   "Oce.Solid.Agent.Core/DrawingRoundOperations.cs": {
-   "strings": 98,
    "comments": 3
   },
   "Oce.Solid.Agent.Core/DrawingSectionOperations.cs": {
-   "comments": 2,
-   "strings": 291
-  },
-  "Oce.Solid.Agent.Core/DrawingState.cs": {
-   "strings": 130
-  },
-  "Oce.Solid.Agent.Core/DrawingWeldOperations.cs": {
-   "strings": 203
-  },
-  "Oce.Solid.Agent.Core/EditExtrusionOperations.cs": {
-   "strings": 173
+   "comments": 2
   },
   "Oce.Solid.Agent.Core/EquationOperations.cs": {
    "comments": 2,
-   "strings": 266
-  },
-  "Oce.Solid.Agent.Core/ExportOperations.cs": {
-   "strings": 478
+   "strings": 1
   },
   "Oce.Solid.Agent.Core/FaceFilletOperations.cs": {
-   "strings": 530,
    "comments": 2
   },
   "Oce.Solid.Agent.Core/FeatureErrors.cs": {
-   "comments": 9,
-   "strings": 200
+   "comments": 9
   },
   "Oce.Solid.Agent.Core/FillPatternOperations.cs": {
-   "comments": 6,
-   "strings": 418
-  },
-  "Oce.Solid.Agent.Core/FixComponentOperations.cs": {
-   "strings": 68
+   "comments": 6
   },
   "Oce.Solid.Agent.Core/GuardOperations.cs": {
-   "comments": 3,
-   "strings": 99
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/HoleOperations.cs": {
-   "comments": 5,
-   "strings": 306
+   "comments": 5
   },
   "Oce.Solid.Agent.Core/HoleTableOperations.cs": {
-   "comments": 1,
-   "strings": 222
+   "comments": 1
   },
   "Oce.Solid.Agent.Core/InstanceOperations.cs": {
-   "comments": 4,
-   "strings": 194
+   "comments": 4
   },
   "Oce.Solid.Agent.Core/InterferenceOperations.cs": {
-   "strings": 153,
    "comments": 5
   },
   "Oce.Solid.Agent.Core/MateOperations.cs": {
-   "strings": 217,
+   "strings": 6,
    "comments": 1
-  },
-  "Oce.Solid.Agent.Core/MaterialOperations.cs": {
-   "strings": 13
   },
   "Oce.Solid.Agent.Core/MeasureOperations.cs": {
    "comments": 8,
-   "strings": 416
+   "strings": 1
   },
   "Oce.Solid.Agent.Core/MirrorComponentOperations.cs": {
-   "strings": 207
-  },
-  "Oce.Solid.Agent.Core/OverhangOperations.cs": {
-   "strings": 227
-  },
-  "Oce.Solid.Agent.Core/PartView.cs": {
-   "strings": 57
-  },
-  "Oce.Solid.Agent.Core/PathOperations.cs": {
-   "strings": 364
-  },
-  "Oce.Solid.Agent.Core/PdfDimensionOperations.cs": {
-   "strings": 3
+   "strings": 1
   },
   "Oce.Solid.Agent.Core/PlanExecutor.cs": {
-   "comments": 14,
-   "strings": 132
+   "comments": 14
   },
   "Oce.Solid.Agent.Core/PlaneOperations.cs": {
-   "comments": 3,
-   "strings": 110
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/PositionsVerdict.cs": {
-   "comments": 5,
-   "strings": 42
+   "comments": 5
   },
   "Oce.Solid.Agent.Core/ProfileOperations.cs": {
-   "comments": 5,
-   "strings": 142
+   "comments": 5
   },
   "Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs": {
-   "strings": 9,
    "comments": 11
   },
   "Oce.Solid.Agent.Core/PropertyOperations.cs": {
-   "comments": 13,
-   "strings": 243
+   "comments": 13
   },
   "Oce.Solid.Agent.Core/References.cs": {
-   "comments": 3,
-   "strings": 247
-  },
-  "Oce.Solid.Agent.Core/ReorderOperations.cs": {
-   "strings": 121
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/ReplaceOperations.cs": {
-   "strings": 162,
    "comments": 4
   },
   "Oce.Solid.Agent.Core/RetraceOperations.cs": {
-   "comments": 1,
-   "strings": 124
+   "comments": 1
   },
   "Oce.Solid.Agent.Core/RibOperations.cs": {
-   "strings": 492
-  },
-  "Oce.Solid.Agent.Core/SectionProfile.cs": {
-   "strings": 65
+   "strings": 2
   },
   "Oce.Solid.Agent.Core/Sections.cs": {
-   "comments": 3,
-   "strings": 85
+   "comments": 3
   },
   "Oce.Solid.Agent.Core/SelectionMarks.cs": {
    "comments": 1
   },
   "Oce.Solid.Agent.Core/Sentences.cs": {
-   "strings": 50,
    "comments": 6
   },
   "Oce.Solid.Agent.Core/ShapeToWords.cs": {
-   "comments": 17,
-   "strings": 34
+   "comments": 17
   },
   "Oce.Solid.Agent.Core/SheetMetalOperations.cs": {
-   "strings": 716,
    "comments": 4
   },
-  "Oce.Solid.Agent.Core/SheetOperations.cs": {
-   "strings": 214
-  },
-  "Oce.Solid.Agent.Core/SheetPlacementOperations.cs": {
-   "strings": 27
-  },
   "Oce.Solid.Agent.Core/SolidWorksMaterials.cs": {
-   "comments": 5,
-   "strings": 59
+   "comments": 5
   },
   "Oce.Solid.Agent.Core/SpurGear.cs": {
-   "comments": 8,
-   "strings": 130
+   "comments": 8
   },
   "Oce.Solid.Agent.Core/SwOperations.cs": {
    "comments": 150,
-   "strings": 3253
+   "strings": 2
   },
   "Oce.Solid.Agent.Core/TextOperations.cs": {
-   "comments": 5,
-   "strings": 265
+   "comments": 5
   },
   "Oce.Solid.Agent.Core/TitleBlockOperations.cs": {
-   "comments": 11,
-   "strings": 233
+   "comments": 11
   },
   "Oce.Solid.Agent.Core/WeldmentOperations.cs": {
-   "strings": 1218,
-   "comments": 53
+   "comments": 53,
+   "strings": 1
   },
   "Program.cs": {
    "comments": 7
@@ -3405,7 +3300,6 @@
    "DATI",
    "DESCRIZIONE",
    "Descrizione",
-   "Direzione",
    "Disegno",
    "Disinstalla",
    "Disinstallare",
@@ -3432,12 +3326,8 @@
    "Fermato",
    "FileVersione",
    "Foglio",
-   "Foro",
    "Frontale",
    "IGNORATO",
-   "INTERFERENZA",
-   "INTERFERENZE",
-   "Ingombro",
    "Installa",
    "Intero",
    "LAVORO",
@@ -3446,7 +3336,6 @@
    "MINORE",
    "MODELLI_SOLIDWORKS",
    "Materiale",
-   "Messe",
    "Metti",
    "NATA",
    "NIENTE",
@@ -3461,7 +3350,6 @@
    "OperazioniMateriale",
    "OperazioniSaldatura",
    "OperazioniTavola",
-   "PRIMO",
    "PROFILI",
    "PROFILI_SALDATURA",
    "PROVA123",
@@ -3501,12 +3389,9 @@
    "Sessione",
    "Sfoglia",
    "Sommario",
-   "Sono",
    "Spigolo",
-   "Spostata",
    "Strumenti",
    "Superiore",
-   "TERZO",
    "TRATTAMENTO",
    "TUBO",
    "Taglio",
@@ -3514,7 +3399,6 @@
    "Testo",
    "TestoDi",
    "Tipo",
-   "Toglila",
    "VERDE",
    "VERDETTO",
    "Verifica",
@@ -3529,16 +3413,11 @@
    "_slegata",
    "a_asola_foro_taglio_piano",
    "accoppia",
-   "accoppiamenti",
-   "accoppiamento",
    "acqua",
    "adesso",
-   "agente",
    "aggiorna",
    "aggiungi",
-   "aggiunto",
    "aiuto",
-   "ala",
    "albero",
    "allineato",
    "allora",
@@ -3548,7 +3427,6 @@
    "altro",
    "alza",
    "ambigua",
-   "ancora",
    "ancorato_a_assoluto",
    "ancorato_a_bordo",
    "angolare",
@@ -3560,7 +3438,6 @@
    "annullamenti",
    "annullamento",
    "annullare",
-   "apertura",
    "api_sw_array_tipizzati",
    "api_sw_che_aprono_finestre",
    "applicazione",
@@ -3569,7 +3446,6 @@
    "apri_la_tavola",
    "archivi",
    "archivio",
-   "arco",
    "argomenti",
    "asola",
    "asole",
@@ -3586,11 +3462,6 @@
    "attenzione",
    "attesa",
    "atteso",
-   "attiva",
-   "attive",
-   "attraversano",
-   "attraversarlo",
-   "attraverserebbe",
    "ausiliaria",
    "avviso",
    "bMetti",
@@ -3598,8 +3469,6 @@
    "banco",
    "banco-modelli",
    "baricentro",
-   "barra",
-   "barre",
    "basso",
    "bene",
    "bloccato",
@@ -3608,8 +3477,6 @@
    "bonifica",
    "bonifica-storia",
    "bordi",
-   "cadono",
-   "calato",
    "caratteri",
    "caratteristiche",
    "carica",
@@ -3620,21 +3487,16 @@
    "catalogo",
    "catalogo_che_non_esiste_",
    "ce",
-   "centri",
-   "centro",
-   "cercate",
    "cercavo",
    "cerniera",
    "chiamala",
    "chiedi",
-   "chieste",
    "chilogrammi",
    "chiudi",
    "chiudi-gli-scarti",
    "chiusi",
    "chiuso",
    "ciechi",
-   "cieco",
    "cilindro",
    "cinquanta",
    "cinque",
@@ -3644,18 +3506,14 @@
    "comeTrovata",
    "compilo",
    "compiti",
-   "componente",
    "componenti",
    "con-inferenze",
    "concentrico",
    "condizione",
-   "confermato",
    "configurazioni",
-   "confrontarlo",
    "cono",
    "conta",
    "contenitore_c",
-   "contorni",
    "contorno",
    "contro",
    "controlla",
@@ -3680,12 +3538,10 @@
    "dati",
    "davanti",
    "della",
-   "delle",
    "densita",
    "denti",
    "dentro",
    "descritta",
-   "descrive",
    "descrizione",
    "destinazione",
    "destra",
@@ -3698,12 +3554,9 @@
    "diciassette",
    "diciotto",
    "dieci",
-   "difetti",
    "difetto",
    "dimmela",
    "dimmi",
-   "dipende",
-   "dipendono",
    "disegna",
    "disegno",
    "disinstalla",
@@ -3753,8 +3606,6 @@
    "falso",
    "famiglia",
    "famiglie",
-   "fessura",
-   "fessure",
    "filo",
    "fingi",
    "fingi-senza-solidworks",
@@ -3762,10 +3613,6 @@
    "finto",
    "finto-per-la-prova",
    "firma",
-   "fissare",
-   "fissato",
-   "fisso",
-   "fogli",
    "foglio",
    "fondi",
    "fonte",
@@ -3787,7 +3634,6 @@
    "generale",
    "generico",
    "geometria",
-   "gia",
    "giro",
    "gli",
    "gomiti",
@@ -3807,8 +3653,6 @@
    "guscio",
    "il-null-ha-un-nome",
    "in-corso",
-   "incisa",
-   "incisione",
    "indica",
    "inferenze",
    "ingombro",
@@ -3832,12 +3676,9 @@
    "lavorazione",
    "lavorazioni",
    "lavoro",
-   "legato",
    "leggero",
    "lento",
    "letto",
-   "liberare",
-   "liberato",
    "libero",
    "libreria",
    "libreria-di-allora",
@@ -3876,7 +3717,6 @@
    "muta",
    "mutazioni",
    "muto",
-   "nascosta",
    "nato",
    "nel",
    "nessuna",
@@ -3911,11 +3751,9 @@
    "originale",
    "ottanta",
    "otto",
-   "pagine",
    "papillon",
    "parallelo",
    "parete",
-   "pareti",
    "parte",
    "parziale",
    "passa",
@@ -3951,8 +3789,6 @@
    "prodotto",
    "profili",
    "profilo",
-   "profonda",
-   "profondo",
    "proiezione",
    "pronto",
    "proporzional",
@@ -3990,7 +3826,6 @@
    "quota_in_tavola",
    "raccogli_viste",
    "raccordi",
-   "raccordo",
    "radice",
    "rebuilt_cover_keeps_the_constraints_but_broken_coperchio2",
    "regge",
@@ -4004,10 +3839,7 @@
    "rettangolo",
    "rialzo",
    "riattiva",
-   "riattivata",
-   "riattivato",
    "ricalco",
-   "richiamo",
    "riempitivo",
    "rif",
    "rifai",
@@ -4021,7 +3853,6 @@
    "righello",
    "rilascio",
    "rimandi",
-   "rimesse",
    "ripeterla",
    "ripeti",
    "ripiega_lamiera",
@@ -4061,17 +3892,14 @@
    "scuro",
    "sedici",
    "segmenti",
-   "seguente",
    "sei",
    "selezionati",
    "selezionato",
    "selezione",
    "selezioni",
-   "sempre",
    "senza",
    "senza-attesa",
    "senza-client",
-   "servono",
    "sessanta",
    "sessione",
    "settanta",
@@ -4085,14 +3913,12 @@
    "simili",
    "simmetrico",
    "sinistro",
-   "slegato",
    "smusso",
    "soglia",
    "solidworks_documento_attivo",
    "sommario",
    "sonda",
    "sono",
-   "soppressa",
    "soppresso",
    "sostituzioni",
    "sotto",
@@ -4105,7 +3931,6 @@
    "sporgenza",
    "sposta",
    "sposta-corpi",
-   "spostata",
    "squadrate",
    "staccata",
    "staffa",
@@ -4120,7 +3945,6 @@
    "strumento_che_non_esiste",
    "suArgomenti",
    "suo",
-   "svuotato",
    "tabella",
    "tacciono",
    "taglia",
@@ -4142,10 +3966,8 @@
    "tipo",
    "tipo_foro",
    "titolo",
-   "toccano",
    "togli",
    "togliere",
-   "tolte",
    "tolto",
    "tondo",
    "totale",
@@ -4154,7 +3976,6 @@
    "tre",
    "tredici",
    "trenta",
-   "triangoli",
    "triangolo",
    "trovate",
    "trovati",
@@ -4177,8 +3998,6 @@
    "utensili",
    "v4-guscio-intero",
    "v4-guscio-sezione",
-   "vale",
-   "valido",
    "vede",
    "venti",
    "verdi",
@@ -4191,9 +4010,6 @@
    "vertice",
    "vicini",
    "vincolato",
-   "vincoli",
-   "vincolo",
-   "visibile",
    "vista",
    "viste",
    "vite",
@@ -4202,7 +4018,6 @@
    "volta",
    "volte",
    "vuole",
-   "vuota",
    "vuoto",
    "x_qualunque",
    "z_c21_2_faccia_selezionata",

@@ -76,14 +76,14 @@ namespace Oce.Solid.Agent.Core
         {
             double diameter = Num(a, "diameter_mm", 0);
             if (diameter <= 0)
-                return Failed("Manca «diameter_mm», o e' zero: un tubo di diametro nullo non e' un tubo.");
+                return Failed("«diameter_mm» is missing, or it is zero: a tube of zero diameter is not a tube.");
 
             var points = Points(a, "path_mm");
             if (points == null || points.Count < 2)
                 return Failed(
-                    "«path_mm» dev'essere un elenco di almeno due punti, ognuno tre " +
-                    "numeri in millimetri: per esempio [[0,0,0], [100,0,0]]. E' la linea " +
-                    "lungo cui corre il tubo.");
+                    "«path_mm» must be a list of at least two points, each three " +
+                    "numbers in millimeters: for example [[0,0,0], [100,0,0]]. It is the " +
+                    "line the tube runs along.");
 
             // ── THE PATH MUST NOT DOUBLE BACK ON ITSELF ─────────────────
             //
@@ -95,14 +95,14 @@ namespace Oce.Solid.Agent.Core
                 double d = DistanceBetweenPoints(points[i - 1], points[i]);
                 if (d < 1e-6)
                     return Failed(
-                        "I punti " + i + " e " + (i + 1) + " del percorso sono lo stesso " +
-                        "punto: un tratto di lunghezza zero non fa strada.");
+                        "Points " + i + " and " + (i + 1) + " of the path are the same " +
+                        "point: a segment of length zero makes no way.");
                 length += d;
             }
 
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
-            if (volumeBefore == null) return Failed(VolumeNotReadBefore("fare il tubo"));
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("making the tube"));
 
             // THE PATH IS THE ONE 3D SKETCH BORN SINCE HERE (scheme S7, Z-C21.5):
             // the names of the tree are taken before the sketch is opened, and
@@ -133,7 +133,7 @@ namespace Oce.Solid.Agent.Core
                         Units.M(q[0]), Units.M(q[1]), Units.M(q[2]));
                     if (line == null)
                         throw new InvalidOperationException(
-                            "il tratto " + i + " del percorso non e' stato disegnato");
+                            "segment " + i + " of the path was not drawn");
                 }
                 drawn = true;
             }
@@ -141,18 +141,18 @@ namespace Oce.Solid.Agent.Core
             finally { try { sketches.Insert3DSketch(false); } catch { } }
 
             if (!drawn)
-                return Failed("Il percorso non e' stato disegnato: " + error + WithoutSketch(model));
+                return Failed("The path was not drawn: " + error + WithoutSketch(model));
 
             int pathsBorn;
             IFeature filePath = FeatureBorn(model, pathNamesBefore, "3DProfileFeature", out pathsBorn);
             if (filePath == null)
-                return Failed(SketchNotIdentified(pathsBorn, "Non ritrovo lo schizzo del percorso appena fatto.") +
+                return Failed(SketchNotIdentified(pathsBorn, "I cannot find the sketch of the path I just made.") +
                                WithoutSketch(model));
 
             model.ClearSelection2(true);
             // MARK 4: the path. See the table in the note at the top.
             if (!filePath.Select2(true, SelectionMarks.SweepPath))
-                return Failed("Non sono riuscito a selezionare il percorso." + WithoutSketch(model));
+                return Failed("I could not select the path." + WithoutSketch(model));
 
             IFeature feature;
             try
@@ -170,15 +170,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Lo sweep non e' riuscito: " + ex.Message + WithoutSketch(model));
+                return Failed("The sweep did not succeed: " + ex.Message + WithoutSketch(model));
             }
 
             if (feature == null)
                 return Failed(
-                    "Lo sweep non e' stato creato, e SOLIDWORKS non dice perche'. Di solito " +
-                    "e' il percorso che gira troppo stretto per il diametro chiesto: in una " +
-                    "curva di raggio minore del raggio del tubo la superficie si " +
-                    "attraverserebbe." + WithoutSketch(model));
+                    "The sweep was not created, and SOLIDWORKS does not say why. Usually the " +
+                    "path turns too tightly for the requested diameter: in a curve with a " +
+                    "radius smaller than the radius of the tube the surface would " +
+                    "cross itself." + WithoutSketch(model));
 
             double? volumeAfter = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
@@ -196,8 +196,8 @@ namespace Oce.Solid.Agent.Core
 
             if (added <= 0)
                 return Failed(
-                    "Lo sweep non ha aggiunto materiale: il volume e' rimasto quello di " +
-                    "prima. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "The sweep did not add material: the volume stayed what it was before. " +
+                    "Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             // ── THE CALCULATION THAT CAN BE DONE BY HAND ────────────────
             //
@@ -224,25 +224,25 @@ namespace Oce.Solid.Agent.Core
                 if (deviation > 1e-4)
                     return Failed(string.Format(
                         CultureInfo.InvariantCulture,
-                        "Il tubo e' nato ma non e' quello: su un percorso dritto il volume " +
-                        "dev'essere area per lunghezza, cioe' {0:0.###} mm3, e invece e' " +
-                        "{1:0.###}. Ritiralo — " + Sentences.HowToWithdrawIt + ".",
+                        "The tube was created but it is not right: on a straight path the volume " +
+                        "must be area times length, that is {0:0.###} mm3, and instead it is " +
+                        "{1:0.###}. Withdraw it — " + Sentences.HowToWithdrawIt + ".",
                         theoretical, added));
             }
             else
             {
                 measurements["note_on_volume"] =
-                    "Il percorso ha dei gomiti: nei gomiti il materiale si sovrappone, " +
-                    "quindi il volume vero e' MINORE di area per lunghezza. Il teorico qui " +
-                    "sopra e' il limite superiore, non la risposta.";
+                    "The path has elbows: at the elbows the material overlaps, so " +
+                    "the true volume is SMALLER than area times length. The theoretical " +
+                    "one above is the upper limit, not the answer.";
             }
             if (bodiesAfter >= 0 && bodiesBefore > 0 && bodiesAfter != bodiesBefore)
                 measurements["warning_bodies"] =
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
-                    ": il tubo non si e' unito a quello che c'era.";
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
+                    ": the tube did not merge with what was there.";
 
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] sweep Ø{0:0.##} su {1:0.##} mm di percorso: {2:0.##} mm3",
+                "[agent] sweep Ø{0:0.##} on {1:0.##} mm of path: {2:0.##} mm3",
                 diameter, length, added));
 
             return Succeeded(feature, measurements);
@@ -259,8 +259,8 @@ namespace Oce.Solid.Agent.Core
             double distance = Num(a, "distance_mm", 0);
             if (d1 <= 0 || d2 <= 0)
                 return Failed(
-                    "Servono «diameter1_mm» e «diameter2_mm», tutti e due maggiori di zero. " +
-                    "Per una transizione da tondo a punta non c'e' questa operazione.");
+                    "«diameter1_mm» and «diameter2_mm» are needed, both greater than zero. " +
+                    "There is no operation for a transition from a round to a point.");
             // N12 (Z-C21.9): the catalogue promised «negative for the other side»
             // while this refused it as "missing". The catalogue now says what the
             // code does: greater than zero, on the side the plane faces.
@@ -277,7 +277,7 @@ namespace Oce.Solid.Agent.Core
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
             int planesBefore = CountPlanes(model);
-            if (volumeBefore == null) return Failed(VolumeNotReadBefore("fare il loft"));
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("making the loft"));
 
             var sketches = model.SketchManager;
             IFeature s1, s2;
@@ -285,7 +285,7 @@ namespace Oce.Solid.Agent.Core
             {
                 // first circle, on the chosen plane
                 if (!SelectPlane(model, plane))
-                    return Failed("Non ho trovato il piano «" + plane + "» nell'albero.");
+                    return Failed("I did not find the plane «" + plane + "» in the tree.");
                 // EACH OF THE THREE FEATURES IS THE ONE BORN SINCE ITS OWN CALL
                 // (Z-C21.5, finding N13, scheme S7): the first sketch, the plane
                 // (what InsertRefPlane returned, else the RefPlane born) and the
@@ -308,23 +308,23 @@ namespace Oce.Solid.Agent.Core
                 // numbers in ApiHelpers.InsertOffsetPlane.
                 var basePlane = FindBasePlane(model, plane);
                 if (basePlane == null || !ApiHelpers.SelectOffsetPlaneBase(model, basePlane))
-                    return Failed("Non ho trovato il piano «" + plane + "» nell'albero.");
+                    return Failed("I did not find the plane «" + plane + "» in the tree.");
                 var beforePlane = FeatureNamesNow(model);
                 var planeReturned = ApiHelpers.InsertOffsetPlane(model, distance) as IFeature;
                 int planesNow = CountPlanes(model);
                 if (planesBefore < 0 || planesNow < 0)
                     return Failed(
-                        "Non riesco a contare i piani dell'albero, e senza non so dire se il " +
-                        "piano del secondo cerchio e' nato." + WithoutSketch(model));
+                        "I cannot count the planes of the tree, and without that I cannot tell whether the " +
+                        "plane of the second circle was created." + WithoutSketch(model));
                 if (planesNow <= planesBefore)
                     return Failed(
-                        "Il piano del secondo cerchio non e' stato creato, e nell'albero non " +
-                        "ne e' comparso nessuno.");
+                        "The plane of the second circle was not created, and none " +
+                        "appeared in the tree.");
                 IFeature newPlane = planeReturned ?? FeatureBorn(model, beforePlane, "RefPlane", out _);
                 var beforeSecondSketch = FeatureNamesNow(model);
                 model.ClearSelection2(true);
                 if (newPlane == null || !newPlane.Select2(false, 0))
-                    return Failed("Non sono riuscito a selezionare il piano appena creato.");
+                    return Failed("I could not select the plane just created.");
                 sketches.InsertSketch(true);
                 sketches.CreateCircleByRadius(Units.M(offsets2), 0, 0, Units.M(d2 / 2));
                 sketches.InsertSketch(false);
@@ -333,16 +333,16 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("I due cerchi non sono stati disegnati: " + ex.Message);
+                return Failed("The two circles were not drawn: " + ex.Message);
             }
             if (s1 == null || s2 == null)
-                return Failed("Non ritrovo i due schizzi appena fatti.");
+                return Failed("I cannot find the two sketches I just made.");
 
             model.ClearSelection2(true);
             // MARK 1 FOR BOTH PROFILES, and the ORDER matters: the loft goes
             // from the first selected to the second.
             if (!s1.Select2(true, SelectionMarks.LoftProfile) || !s2.Select2(true, SelectionMarks.LoftProfile))
-                return Failed("Non sono riuscito a selezionare i due profili.");
+                return Failed("I could not select the two profiles.");
 
             IFeature feature;
             try
@@ -357,13 +357,13 @@ namespace Oce.Solid.Agent.Core
                     Merge: true, UseFeatScope: true, UseAutoSelect: true,
                     GuideCurveInfluence: 0) as IFeature;
             }
-            catch (Exception ex) { return Failed("Il loft non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The loft did not succeed: " + ex.Message); }
 
             if (feature == null)
                 return Failed(
-                    "Il loft non e' stato creato, e SOLIDWORKS non dice perche'. Di solito e' " +
-                    "uno dei due profili che non si chiude, o due profili che si " +
-                    "attraversano.");
+                    "The loft was not created, and SOLIDWORKS does not say why. Usually one " +
+                    "of the two profiles does not close, or two profiles cross " +
+                    "each other.");
 
             // The bodies are read ONCE (before, three calls for the same
             // number), and the volume after may be unreadable (entry Z-C8).
@@ -383,7 +383,7 @@ namespace Oce.Solid.Agent.Core
             double added = volumeAfter.Value - volumeBefore.Value;
             if (added <= 0)
                 return Failed(
-                    "Il loft non ha aggiunto materiale. Ritiralo — " + Sentences.HowToWithdrawIt + ".");
+                    "The loft did not add material. Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             // The truncated cone: pi*h/3*(R^2 + R*r + r^2). It holds only if the two
             // circles are coaxial; offsetting them gives an oblique truncated cone, which
@@ -405,29 +405,29 @@ namespace Oce.Solid.Agent.Core
                 ["planes_added"] = AddedPlanes(model, planesBefore),
                 // IT IS NOT A CONE, AND IT IS MEASURED. See the note at the top.
                 ["note_on_volume"] =
-                    "La superficie di un loft fra due cerchi e' un'APPROSSIMAZIONE A SPLINE " +
-                    "della conica, non una conica: il volume si scosta dalla formula del " +
-                    "tronco di cono di qualche millesimo di per cento, sempre in difetto. " +
-                    "Se ti serve il cono esatto, usa «revolve» su un trapezio.",
+                    "The surface of a loft between two circles is a SPLINE APPROXIMATION " +
+                    "of the cone, not a cone: the volume deviates from the frustum " +
+                    "formula by a few thousandths of a percent, always on the low side. " +
+                    "If you need the exact cone, use «revolve» on a trapezoid.",
             };
             if (deviation > 0.005)
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "Il loft e' nato ma il volume non torna: dal tronco di cono verrebbe " +
-                    "{0:0.###} mm3 e ne sono stati aggiunti {1:0.###}, cioe' {2:0.###}% di " +
-                    "scarto. Un loft si scosta dalla formula di qualche millesimo di per " +
-                    "cento, non di tanto: qui c'e' dell'altro. Ritiralo — " +
+                    "The loft was created but the volume does not add up: from the frustum it " +
+                    "would be {0:0.###} mm3 and {1:0.###} were added, that is {2:0.###}% of deviation. " +
+                    "A loft deviates from the formula by a few thousandths of a percent, not by " +
+                    "that much: there is something else here. Withdraw it — " +
                     Sentences.HowToWithdrawIt + ".",
                     theoretical, added, deviation * 100));
 
             if (bodiesBefore > 0 && bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
                 measurements["warning_bodies"] =
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
-                    ": il loft non si e' unito a quello che c'era.";
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
+                    ": the loft did not merge with what was there.";
 
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] loft Ø{0:0.##} -> Ø{1:0.##} su {2:0.##} mm: {3:0.##} mm3 " +
-                "(tronco di cono {4:0.##})", d1, d2, distance, added, theoretical));
+                "[agent] loft Ø{0:0.##} -> Ø{1:0.##} on {2:0.##} mm: {3:0.##} " +
+                "mm3 (frustum {4:0.##})", d1, d2, distance, added, theoretical));
 
             return Succeeded(feature, measurements);
         }

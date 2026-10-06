@@ -87,11 +87,11 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 model, string which, int width, int height, out string reason)
         {
             reason = null;
-            if (model == null) { reason = "Nessun documento aperto."; return null; }
+            if (model == null) { reason = "No open document."; return null; }
 
             if (which != null && !Conosciuta(which))
             {
-                reason = "Non conosco la vista «" + which + "». Ci sono: " +
+                reason = "I do not know the view «" + which + "». There are: " +
                          string.Join(", ", ViewNames) + ".";
                 return null;
             }
@@ -241,7 +241,7 @@ namespace Oce.Solid.Agent.Core
 
                 if (!model.SaveBMP(temporary, lw, lh) || !File.Exists(temporary))
                 {
-                    reason = "SOLIDWORKS non ha scritto l'immagine.";
+                    reason = "SOLIDWORKS did not write the image.";
                     return null;
                 }
 
@@ -249,7 +249,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                reason = "Non sono riuscito a fotografare il pezzo: " + ex.Message;
+                reason = "I could not photograph the part: " + ex.Message;
                 return null;
             }
             finally
@@ -327,12 +327,12 @@ namespace Oce.Solid.Agent.Core
             int width, int height, out string reason)
         {
             reason = null;
-            if (model == null) { reason = "Nessun documento aperto."; return null; }
+            if (model == null) { reason = "No open document."; return null; }
 
             var handler = model.ModelViewManager;
             if (handler == null)
             {
-                reason = "Questo documento non sa fare le sezioni.";
+                reason = "This document cannot do sections.";
                 return null;
             }
 
@@ -361,8 +361,8 @@ namespace Oce.Solid.Agent.Core
                 // read (N21: never the self-contradiction of a list).
                 reason = Array.IndexOf(References.BasePlaneNames, plane) >= 0
                     ? "I cannot find the «" + plane + "» plane: " + planeProblem
-                    : "Non trovo il piano «" + plane + "». Ci sono: " +
-                      "frontale, superiore, destro.";
+                    : "I cannot find the plane «" + plane + "». There " +
+                      "are: front, top, right.";
                 return null;
             }
 
@@ -372,7 +372,7 @@ namespace Oce.Solid.Agent.Core
                 var data = handler.CreateSectionViewData();
                 if (data == null)
                 {
-                    reason = "SOLIDWORKS non ha preparato la sezione.";
+                    reason = "SOLIDWORKS did not prepare the section.";
                     return null;
                 }
                 data.FirstPlane = onWhich;
@@ -385,7 +385,7 @@ namespace Oce.Solid.Agent.Core
                 sectionOn = handler.CreateSectionView(data);
                 if (!sectionOn)
                 {
-                    reason = "SOLIDWORKS non ha aperto la sezione sul piano «" +
+                    reason = "SOLIDWORKS did not open the section on the plane «" +
                              plane + "».";
                     return null;
                 }
@@ -394,7 +394,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                reason = "Non sono riuscito a sezionare il pezzo: " + ex.Message;
+                reason = "I could not section the part: " + ex.Message;
                 return null;
             }
             finally
@@ -650,7 +650,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                reason = "L'immagine non si e' lasciata convertire: " + ex.Message;
+                reason = "The image could not be converted: " + ex.Message;
                 return null;
             }
         }

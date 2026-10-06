@@ -66,19 +66,19 @@ namespace Oce.Solid.Agent.Core
             var assemblyDoc = model as IAssemblyDoc;
             if (assemblyDoc == null)
                 return Failed(
-                    "Questo non e' un assieme, e' un documento di tipo «" +
-                    DocumentTypeName(TypeOf(model)) + "». Le interferenze si " +
-                    "cercano fra i componenti di un assieme: su una parte sola non " +
-                    "c'e' niente che possa compenetrare qualcos'altro.");
+                    "This is not an assembly, it is a document of type «" +
+                    DocumentTypeName(TypeOf(model)) + "». Interferences are " +
+                    "looked for between the components of an assembly: in a single part " +
+                    "there is nothing that can penetrate something else.");
 
             object[] rawItems = null;
             try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
             var components = DocumentState.ComponentsInOrder(rawItems);
             if (components.Count < 2)
                 return Failed(
-                    "L'assieme ha " + components.Count +
-                    (components.Count == 1 ? " componente" : " componenti") +
-                    ": ce ne vogliono almeno due perche' uno possa toccare l'altro.");
+                    "The assembly has " + components.Count +
+                    (components.Count == 1 ? " component" : " components") +
+                    ": at least two are needed for one to touch the other.");
 
             bool touchCount = Bool(a, "touching_counts", false);
             bool insideTheParts = Bool(a, "inside_parts", false);
@@ -87,12 +87,12 @@ namespace Oce.Solid.Agent.Core
             try { handler = assemblyDoc.InterferenceDetectionManager as IInterferenceDetectionMgr; }
             catch (Exception ex)
             {
-                return Failed("Non riesco ad aprire il rilevamento interferenze: " + ex.Message);
+                return Failed("I cannot open the interference detection: " + ex.Message);
             }
             if (handler == null)
                 return Failed(
-                    "SOLIDWORKS non mi da' il rilevamento interferenze su questo " +
-                    "documento, e non dice perche'.");
+                    "SOLIDWORKS does not give me the interference detection on this " +
+                    "document, and does not say why.");
 
             var foundOnes = new List<object>();
             int howMany = 0;
@@ -137,7 +137,7 @@ namespace Oce.Solid.Agent.Core
                         "Ask again; if it repeats, check with Interference Detection in SOLIDWORKS.");
 
                 try { howMany = handler.GetInterferenceCount(); }
-                catch (Exception ex) { return Failed("Non riesco a contare le interferenze: " + ex.Message); }
+                catch (Exception ex) { return Failed("I cannot count the interferences: " + ex.Message); }
 
                 // THE LIST MUST BE AS LONG AS THE COUNT (Z-C21.10, finding N34).
                 //
@@ -292,9 +292,9 @@ namespace Oce.Solid.Agent.Core
                     "so I left it out instead of writing one smaller than the truth.";
             else if (howMany > 0 && !readVolumes)
                 measurements["what_is_not_known"] =
-                    "Di almeno una interferenza non sono riuscito a leggere il volume: " +
-                    "il conteggio e' giusto, la somma no. Non l'ho scritta, invece di " +
-                    "scriverne una piu' piccola del vero.";
+                    "Of at least one interference I could not read the volume: the " +
+                    "count is right, the sum is not. I did not write it, instead of " +
+                    "writing one smaller than the true one.";
 
             // A ZERO COUNT WITH INTERFERENCES IN THE LIST is not «none» (N34):
             // the two calls disagree, and «Nessuna interferenza» with
@@ -310,20 +310,20 @@ namespace Oce.Solid.Agent.Core
             if (howMany == 0)
             {
                 measurements["verdict"] =
-                    "Nessuna interferenza fra i " + (lookedAt >= 0 ? lookedAt : components.Count) + " componenti" +
+                    "No interference between the " + (lookedAt >= 0 ? lookedAt : components.Count) + " components" +
                     (touchCount
-                        ? ", e le facce che si toccano erano contate come interferenza."
-                        : ". ATTENZIONE a cosa vuol dire: le facce che si TOCCANO non " +
-                          "sono state contate. Un albero in un foro dello stesso " +
-                          "diametro risulta a posto qui, e in officina non entra: se e' " +
-                          "quello che ti interessa, richiedimelo con «touching_counts».");
-                _log("[agente] " + measurements["verdict"]);
+                        ? ", and the faces that touch were counted as interference."
+                        : ". WARNING about what it means: the faces that TOUCH were not " +
+                          "counted. A shaft in a hole of the same diameter comes " +
+                          "out fine here, and in the workshop it does not go in: if that " +
+                          "is what interests you, ask me again with «touching_counts».");
+                _log("[agent] " + measurements["verdict"]);
                 return SucceededWithoutCreating(measurements);
             }
 
             measurements["verdict"] = InterferenceVerdict(
                 howMany, possible, readVolumes, totalVolume, possibleVolume, involved);
-            _log("[agente] " + measurements["verdict"]);
+            _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
         }
 
@@ -362,16 +362,16 @@ namespace Oce.Solid.Agent.Core
                        "them with Interference Detection in SOLIDWORKS before you decide.";
 
             string head =
-                "ATTENZIONE: " + certain + (certain == 1 ? " INTERFERENZA" : " INTERFERENZE") +
+                "WARNING: " + certain + (certain == 1 ? " INTERFERENCE" : " INTERFERENCES") +
                 (volumesRead
-                    ? ", per " + Math.Round(certainVolume, 2).ToString(CultureInfo.InvariantCulture) +
-                      " mm3 in tutto"
+                    ? ", for " + Math.Round(certainVolume, 2).ToString(CultureInfo.InvariantCulture) +
+                      " mm3 in total"
                     : "") +
-                (among != null ? " fra: " + among : "") +
-                ". I pezzi occupano lo stesso spazio: l'assieme si apre, si ricostruisce " +
-                "e si esporta lo stesso — **non c'e' nessun errore da nessuna parte**, e " +
-                "in officina non entrano. Guarda il volume: pochi centesimi di mm3 sono " +
-                "due facce che si sfiorano, migliaia sono un pezzo dentro l'altro.";
+                (among != null ? " between: " + among : "") +
+                ". The parts occupy the same space: the assembly opens, rebuilds and exports " +
+                "all the same — **there is no error anywhere**, and in the workshop they " +
+                "do not fit. Look at the volume: a few hundredths of mm3 are two faces " +
+                "that graze each other, thousands are one part inside the other.";
             if (!possible.HasValue)
                 return head + " Whether some of them are only POSSIBLE interferences I could not read " +
                        "(IsPossibleInterference): they are all counted as certain here.";

@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Core
                 _list = new List<Material>();
                 string[] archives = null;
                 try { archives = sw.GetMaterialDatabases() as string[]; }
-                catch (Exception ex) { log("[materiali] archivi non leggibili: " + ex.Message); }
+                catch (Exception ex) { log("[materials] archives not readable: " + ex.Message); }
                 if (archives == null) return _list;
 
                 foreach (var filePath in archives)
@@ -100,11 +100,11 @@ namespace Oce.Solid.Agent.Core
                     }
                     catch (Exception ex)
                     {
-                        log("[materiali] archivio illeggibile «" + filePath + "»: " + ex.Message);
+                        log("[materials] archive unreadable «" + filePath + "»: " + ex.Message);
                     }
                 }
-                log("[materiali] letti " + _list.Count + " materiali da " +
-                    archives.Length + " archivi");
+                log("[materials] read " + _list.Count + " materials from " +
+                    archives.Length + " archives");
                 return _list;
             }
         }
@@ -130,14 +130,14 @@ namespace Oce.Solid.Agent.Core
         {
             why = null;
             string searched = (requested ?? "").Trim();
-            if (searched.Length == 0) { why = "Manca il nome del materiale."; return null; }
+            if (searched.Length == 0) { why = "The name of the material is missing."; return null; }
 
             var all = All(sw, log);
             if (all.Count == 0)
             {
                 why =
-                    "Su questa postazione non riesco a leggere nessun archivio di " +
-                    "materiali di SolidWorks, quindi non posso applicarne uno.";
+                    "On this workstation I cannot read any SolidWorks " +
+                    "materials archive, so I cannot apply one.";
                 return null;
             }
 
@@ -168,11 +168,11 @@ namespace Oce.Solid.Agent.Core
                 if (foundItems.Count > 1)
                 {
                     why =
-                        "«" + searched + "» corrisponde a " + foundItems.Count +
-                        " materiali diversi, e non sono lo stesso acciaio: " +
+                        "«" + searched + "» matches " + foundItems.Count +
+                        " different materials, and they are not the same steel: " +
                         string.Join(", ", foundItems.Take(8).Select(m => "«" + m.Name + "»")) +
-                        (foundItems.Count > 8 ? ", e altri" : "") +
-                        ". Dimmi quale.";
+                        (foundItems.Count > 8 ? ", and more" : "") +
+                        ". Tell me which one.";
                     return null;
                 }
             }
@@ -184,11 +184,11 @@ namespace Oce.Solid.Agent.Core
                 .Take(8)
                 .ToList();
             why =
-                "Negli archivi di questa postazione non c'e' nessun materiale " +
+                "In the archives of this workstation there is no material " +
                 "«" + searched + "»." +
                 (similar.Count > 0
-                    ? " Ci sono: " + string.Join(", ", similar) + "."
-                    : " Chiedi all'utente quale materiale usare fra quelli che ha in libreria.");
+                    ? " There are: " + string.Join(", ", similar) + "."
+                    : " Ask the user which material to use among those they have in their library.");
             return null;
         }
 

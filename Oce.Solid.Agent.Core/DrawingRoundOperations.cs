@@ -113,7 +113,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     if (border == "cono" || border == "toro")
                     {
-                        string said = (border == "cono" ? "smusso" : "raccordo") + " sul Ø" + p.Item2.DiameterMm.ToString("0.##", Ci);
+                        string said = (border == "cono" ? "chamfer" : "fillet") + " on Ø" + p.Item2.DiameterMm.ToString("0.##", Ci);
                         if (!chamfers.Contains(said)) chamfers.Add(said);
                     }
                     continue;
@@ -121,10 +121,10 @@ namespace Oce.Solid.Agent.Core
                 if (faces.Count == 0 || Math.Abs(p.Item1 - faces[faces.Count - 1].Item1) > 1e-6) faces.Add(p);
             }
             foreach (var sm in chamfers)
-                outcome.Note.Add(sm + " (non e' una faccia del tondo: la sua misura va con la quota da smusso o " +
-                                       "da raccordo, che questa vista non mette)");
+                outcome.Note.Add(sm + " " +
+                                       "(it is not a face of the round part: its measure goes with the chamfer or fillet dimension, which this view does not put)");
             if (faces.Count < 2)
-                outcome.Note.Add("lunghezze (meno di due facce piane di testa o di spallamento viste di taglio)");
+                outcome.Note.Add("lengths (fewer than two planar end or shoulder faces seen edge-on)");
 
             var selMgr = model.SelectionManager as ISelectionMgr;
             // ── THE LENGTHS, IN PARALLEL FROM THE FIRST FACE ───────────────────
@@ -135,7 +135,7 @@ namespace Oce.Solid.Agent.Core
                 double expectedValueMm = Math.Round(Math.Abs(f.Item1 - zero.Item1) * 1000.0, 3);
                 string key = RoundKey(zero.Item2.ModelCenter, f.Item2.ModelCenter);
                 string what = "lunghezza " + expectedValueMm.ToString("0.##", Ci);
-                if (already.Contains(key)) { elsewhere.Add(what + " (gia' quotata in questa tavola)"); continue; }
+                if (already.Contains(key)) { elsewhere.Add(what + " (already dimensioned in this drawing)"); continue; }
                 double x, y;
                 if (horizontal)
                 {
@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.Core
                                     e => (zero.Item2.Edge as IEntity).Select4(false, e) &&
                                          (f.Item2.Edge as IEntity).Select4(true, e), x, y, horizontal,
                                     out bornWithoutObject);
-                if (q == null && !bornWithoutObject) { failed.Add(what + " (la quota non e' nata)"); continue; }
+                if (q == null && !bornWithoutObject) { failed.Add(what + " (the dimension was not created)"); continue; }
                 // BORN WITHOUT ITS OBJECT (finding N80, the site Z-C21.8/9 left
                 // out): the dimension is on the sheet and its value cannot be read
                 // back. It keeps its place (the next length goes one step
@@ -201,7 +201,7 @@ namespace Oce.Solid.Agent.Core
                 done.Add(choice);
                 var m = readOnes.Meta[choice];
                 double expectedValueMm = Math.Round(m[0] * 2000.0, 3);
-                string what = "diametro Ø" + expectedValueMm.ToString("0.##", Ci);
+                string what = "diameter Ø" + expectedValueMm.ToString("0.##", Ci);
                 string key = "foro|" + Math.Round(expectedValueMm, 2).ToString("0.00", Ci);
                 // HALFWAY ALONG THE FACE, on the axis: the measurement line crosses its
                 // cylinder, the way a shaft is dimensioned. The same point makes the
@@ -210,14 +210,14 @@ namespace Oce.Solid.Agent.Core
                 double tm = (m[1] + m[2]) / 2;
                 string cylinder = CylinderKey(m[0] * 2000.0, new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] });
                 if (already.Contains(cylinder) || already.Contains("cil?|" + key.Substring(5)))
-                { elsewhere.Add(what + " (gia' quotato in questa tavola)"); continue; }
+                { elsewhere.Add(what + " (already dimensioned in this drawing)"); continue; }
                 var half = OnSheet(new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] }, mu, tr);
-                if (half == null) { failed.Add(what + " (non so dove sta sul foglio)"); continue; }
+                if (half == null) { failed.Add(what + " (I do not know where it is on the sheet)"); continue; }
                 var a = readOnes.Groups[choice][0]; var b = readOnes.Groups[choice][1];
                 bool bornWithoutObject;
                 var q = DimensionBetweenTwo(model, drawing, view, selMgr, e => a.Select2(false, e) && b.Select2(true, e),
                                     half[0], half[1], horizontalDiameterDimension, out bornWithoutObject);
-                if (q == null && !bornWithoutObject) { failed.Add(what + " (la quota non e' nata)"); continue; }
+                if (q == null && !bornWithoutObject) { failed.Add(what + " (the dimension was not created)"); continue; }
                 // BORN WITHOUT ITS OBJECT (N80), as the lengths above: the row
                 // with the value unknown, not in `round_diameters_mm` (which lists
                 // the diameters read back with their Ø), and the keys of this
@@ -296,7 +296,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     // A TRUE DIAMETER, but already dimensioned elsewhere: it is removed and stated.
                     RemoveDimension(model, q);
-                    string said = "diametro Ø" + read.ToString("0.##", Ci) + " (gia' quotato in questa tavola)";
+                    string said = "diameter Ø" + read.ToString("0.##", Ci) + " (already dimensioned in this drawing)";
                     if (!elsewhere.Contains(said)) elsewhere.Add(said);
                     continue;
                 }
@@ -304,7 +304,7 @@ namespace Oce.Solid.Agent.Core
                 var half = OnSheet(its.Meta, mu, tr);
                 try { if (half != null) (q.GetAnnotation() as IAnnotation)?.SetPosition2(half[0], half[1], 0); } catch { }
                 var described = DescribeDimension(q, -1);
-                described["orientation"] = "diametro del tondo (generatrici senza faccia, riconosciuto dal valore)";
+                described["orientation"] = "diameter of the round part (silhouette edges with no face, recognized by the value)";
                 described["position_mm"] = WhereItEnded(q);
                 born.Add(described);
                 outcome.Diameters.Add(Math.Round(its.DiameterMm, 3));
@@ -320,8 +320,8 @@ namespace Oce.Solid.Agent.Core
             {
                 string itemName = "Ø" + Math.Round(c.DiameterMm, 2).ToString("0.##", Ci);
                 if (DimensionedCylinder(already, c) || !called.Add(c.Key)) continue;
-                outcome.NotReached.Add(itemName + " (non raggiunto da questa vista: generatrici nascoste, o che SOLIDWORKS " +
-                                       "non da'. Se e' un foro, quotalo dalla vista in cui e' un cerchio)");
+                outcome.NotReached.Add(itemName + " " +
+                                       "(not reached by this view: hidden silhouette edges, or ones that SOLIDWORKS does not give. If it is a hole, dimension it from the view where it is a circle)");
             }
             return outcome;
         }
@@ -507,10 +507,10 @@ namespace Oce.Solid.Agent.Core
                           (!diameter || prefix.Contains("<MOD-DIAM>"));
             if (correct) return true;
             bool removed = RemoveDimension(model, q);
-            failed.Add(what + " (SOLIDWORKS ha scritto " +
+            failed.Add(what + " (SOLIDWORKS wrote " +
                         (double.IsNaN(read) ? "?" : Math.Round(read, 3).ToString("0.###", Ci)) +
-                        (diameter && !prefix.Contains("<MOD-DIAM>") ? " senza Ø" : "") +
-                        (removed ? ": l'ho tolta)" : ": toglila)"));
+                        (diameter && !prefix.Contains("<MOD-DIAM>") ? " without Ø" : "") +
+                        (removed ? ": I removed it)" : ": remove it)"));
             return false;
         }
 

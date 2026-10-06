@@ -275,8 +275,8 @@ namespace Oce.Solid.Agent.Core
                 if (!string.Equals(here, expectedPath, StringComparison.OrdinalIgnoreCase))
                 {
                     result.Error =
-                        "Il piano era per «" + expectedPath + "», ma davanti c'e' «" +
-                        here + "». Non ho toccato niente.";
+                        "The plan was for «" + expectedPath + "», but «" +
+                        here + "» is in front. I touched nothing.";
                     result.StoppedBeforeWriting = true;
                     return result;
                 }
@@ -346,7 +346,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     if (undo.IsCancellationRequested)
                     {
-                        result.Error = "Fermato da te.";
+                        result.Error = "Stopped by you.";
                         break;
                     }
 
@@ -365,9 +365,9 @@ namespace Oce.Solid.Agent.Core
                     if (next == null)
                     {
                         result.Error =
-                            "La fonte del piano non ha risposto niente: non so se il " +
-                            "piano sia finito o se sia caduto qualcosa. Mi fermo qui, " +
-                            "dopo " + result.ExecutedSteps + " passi.";
+                            "The source of the plan answered nothing: I do not know whether " +
+                            "the plan finished or something was dropped. I stop here, " +
+                            "after " + result.ExecutedSteps + " steps.";
                         break;
                     }
                     if (next.Done)
@@ -380,14 +380,14 @@ namespace Oce.Solid.Agent.Core
                     if (planStep == null)
                     {
                         result.Error =
-                            "La fonte dice che il piano non e' finito ma non mi da' " +
-                            "nessun passo da fare.";
+                            "The source says the plan is not finished but gives " +
+                            "me no step to do.";
                         break;
                     }
-                    _log($"[agente] passo {planStep.Order}: {planStep.Summary}");
+                    _log($"[agent] step {planStep.Order}: {planStep.Summary}");
                     if (undo.IsCancellationRequested)
                     {
-                        result.Error = "Fermato da te.";
+                        result.Error = "Stopped by you.";
                         break;
                     }
 
@@ -405,10 +405,10 @@ namespace Oce.Solid.Agent.Core
                             {
                                 Succeeded = false,
                                 Error =
-                                    "Il documento attivo e' cambiato mentre eseguivo: " +
-                                    "il piano era per «" + expectedPath + "», adesso " +
-                                    "davanti c'e' «" + Identity(model) + "». " +
-                                    "Non ho toccato niente.",
+                                    "The active document changed while I was running: " +
+                                    "the plan was for «" + expectedPath + "», " +
+                                    "now «" + Identity(model) + "» is " +
+                                    "in front. I touched nothing.",
                             };
                         }
 
@@ -475,7 +475,7 @@ namespace Oce.Solid.Agent.Core
                                 }
                                 expectedDocument = e.NewDocument;
                                 result.FinalDocument = expectedDocument;
-                                _log("[agente] from here on the plan works on «" +
+                                _log("[agent] from here on the plan works on «" +
                                      Identity(expectedDocument) + "», with its own undo entry");
                             }
                         }
@@ -505,7 +505,7 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 result.Error = ex.Message;
-                _log("[agente] esecuzione interrotta: " + ex.Message);
+                _log("[agent] run interrupted: " + ex.Message);
             }
             finally
             {
@@ -602,7 +602,7 @@ namespace Oce.Solid.Agent.Core
             try { ended = recordedOn.Extension.FinishRecordingUndoObject(_undoName); }
             catch (Exception ex) { failure = ex.Message; }
             if (!ended)
-                _log("[agente] the undo entry «" + _undoName + "» on «" + Identity(recordedOn) +
+                _log("[agent] the undo entry «" + _undoName + "» on «" + Identity(recordedOn) +
                      "» did not close (FinishRecordingUndoObject " +
                      (failure == null ? "answered false" : "threw: " + failure) + ")");
             if (failure != null) return null;
@@ -739,7 +739,7 @@ namespace Oce.Solid.Agent.Core
                         // read any more.
                         if (report == said) continue;
                         said = report;
-                        try { Console.Error.WriteLine("[ponte] " + report); }
+                        try { Console.Error.WriteLine("[bridge] " + report); }
                         catch { }
                     }
                 });
@@ -749,7 +749,7 @@ namespace Oce.Solid.Agent.Core
         }
         private string PreliminaryChecks(IModelDoc2 model)
         {
-            if (model == null) return "Non c'e' nessun documento aperto.";
+            if (model == null) return "There is no open document.";
             int typ = model.GetType();
             bool allowed = typ == (int)swDocumentTypes_e.swDocPART
                 || (AlsoOnDrawings && typ == (int)swDocumentTypes_e.swDocDRAWING)
@@ -761,16 +761,16 @@ namespace Oce.Solid.Agent.Core
                 // even when assemblies were allowed and the document was
                 // something else: a message that lists yesterday's world sends
                 // the reader to look for the problem where it is not.
-                var go = new System.Collections.Generic.List<string> { "una parte" };
-                if (AlsoOnDrawings) go.Add("una tavola");
-                if (AlsoOnAssemblies) go.Add("un assieme");
-                return "Si lavora su " + string.Join(" o ", go) +
-                       ": questo documento non e' niente di tutto cio'.";
+                var go = new System.Collections.Generic.List<string> { "a part" };
+                if (AlsoOnDrawings) go.Add("a drawing");
+                if (AlsoOnAssemblies) go.Add("an assembly");
+                return "I work on " + string.Join(" o ", go) +
+                       ": this document is none of those.";
             }
 
             var filePath = model.GetPathName();
             if (string.IsNullOrEmpty(filePath) && !DocumentWithoutFile)
-                return "Il documento non e' mai stato salvato: salvalo su disco prima.";
+                return "The document has never been saved: save it on disk first.";
 
             // A READ-ONLY FILE IS NOT TOUCHED, and it is not a detail.
             // The SOLIDWORKS APIs modify it in memory all the same: the
@@ -782,7 +782,7 @@ namespace Oce.Solid.Agent.Core
             {
                 var info = new System.IO.FileInfo(filePath);
                 if (info.Exists && info.IsReadOnly)
-                    return "Il file e' in sola lettura: toglila (o fai il check-out) prima di chiedere modifiche.";
+                    return "The file is read-only: remove the read-only flag (or check it out) before asking for changes.";
             }
             catch { /* if we cannot read it, the APIs will say so afterwards*/ }
 
@@ -836,9 +836,9 @@ namespace Oce.Solid.Agent.Core
         /// for word: a sentence written in two places diverges.
         /// </summary>
         public const string ModalSentence =
-            "SOLIDWORKS ha una finestra aperta che aspetta una risposta (la sua finestra " +
-            "principale e' disabilitata): chiudila e riprova. Lavorarci sopra adesso " +
-            "vorrebbe dire restare appesi finche' qualcuno non clicca.";
+            "SOLIDWORKS has a window open that is waiting for an answer (its main window " +
+            "is disabled): close it and try again. Working on top of it now " +
+            "would mean hanging until someone clicks.";
 
         [DllImport("user32.dll")]
         private static extern bool IsWindowEnabled(IntPtr window);

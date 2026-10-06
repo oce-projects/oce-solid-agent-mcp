@@ -127,32 +127,32 @@ namespace Oce.Solid.Agent.Core
         private Outcome SketchPicture(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
-                return Failed("Metto l'immagine in uno schizzo di un pezzo. Aprimi un pezzo (anche vuoto).");
+                return Failed("I put the image in a sketch of a part. Open a part for me (even an empty one).");
             string filePath = (Str(a, "path", "") ?? "").Trim();
             if (filePath.Length == 0)
-                return Failed("Dimmi «path»: il file dell'immagine da ricalcare (PNG, JPG, BMP, TIF).");
+                return Failed("Tell me «path»: the file of the image to trace (PNG, JPG, BMP, TIF).");
             string est = (Path.GetExtension(filePath) ?? "").ToLowerInvariant();
             if (est == ".pdf")
-                return Failed("Un PDF in uno schizzo non entra (misurato: InsertSketchPicture risponde null). " +
-                               "Converti la pagina in un'immagine (PNG) e dammi quella.");
+                return Failed("A PDF does not go into a sketch (measured: InsertSketchPicture answers null). " +
+                               "Convert the page to an image (PNG) and give me that.");
             if (Array.IndexOf(Images, est) < 0)
-                return Failed("«" + filePath + "» non e' un'immagine che so mettere: PNG, JPG, BMP, GIF o TIF.");
+                return Failed("«" + filePath + "» is not an image that I can put: PNG, JPG, BMP, GIF or TIF.");
             if (!File.Exists(filePath))
-                return Failed("Il file «" + filePath + "» non c'e'.");
+                return Failed("The file «" + filePath + "» is not there.");
             string plane = (Str(a, "plane", "") ?? "").Trim().ToLowerInvariant();
             if (plane != "front" && plane != "top" && plane != "right")
-                return Failed("«plane» e' «front», «top» o «right», non «" + plane + "».");
+                return Failed("«plane» is «front», «top» or «right», not «" + plane + "».");
             double width; string error;
             if (!RequiredNum(a, "width_mm", out width, out error)) return Failed(error);
             if (width <= 0)
-                return Failed("«width_mm» e' la larghezza VERA dell'immagine in millimetri (una misura nota " +
-                               "divisa per i suoi pixel, per tutta la larghezza): deve essere positiva.");
+                return Failed("«width_mm» is the TRUE width of the image in millimeters " +
+                               "(a known measurement divided by its pixels, for the whole width): it must be positive.");
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0);
             int fileWidth, fileHeight;
             bool fileSizeKnown = FilePixelSize(filePath, out fileWidth, out fileHeight);
 
             if (!SelectPlane(model, plane))
-                return Failed("Non riesco a selezionare il piano " + plane + ".");
+                return Failed("I cannot select the plane " + plane + ".");
             // Z-C21.7 (L8-4): InsertSketchPicture2(file, false), not the obsolete
             // InsertSketchPicture (ISketchManager~InsertSketchPicture.html:
             // «Obsolete. Superseded by ISketchManager::InsertSketchPicture2»).
@@ -171,13 +171,13 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 try { model.SketchManager.InsertSketch(true); } catch { }
-                return Failed("L'immagine non e' entrata: " + ex.Message);
+                return Failed("The image did not go in: " + ex.Message);
             }
             if (photo == null)
             {
                 try { model.SketchManager.InsertSketch(true); } catch { }
-                return Failed("SOLIDWORKS non ha messo l'immagine (InsertSketchPicture2 ha risposto null): il file " +
-                               "c'e' ma forse non e' un'immagine vera. Prova a risalvarla in PNG.");
+                return Failed("SOLIDWORKS did not put the image (InsertSketchPicture2 answered null): the file is " +
+                               "there but maybe it is not a real image. Try saving it again as a PNG.");
             }
             int w = 0, h = 0;
             double lw = 0, lh = 0, ox = 0, oy = 0;
@@ -217,8 +217,8 @@ namespace Oce.Solid.Agent.Core
             try { featureName = (photo.GetFeature() as IFeature)?.Name; } catch { }
             try { model.SketchManager.InsertSketch(true); } catch { }
             if (w <= 0 || h <= 0)
-                return Failed("L'immagine e' nello schizzo ma non ne leggo i pixel: non so darle la scala. Toglila (" +
-                               (featureName ?? "l'immagine nello schizzo") + ") e riprova con un PNG.");
+                return Failed("The image is in the sketch but I cannot read its pixels: I cannot give it the scale. Remove it (" +
+                               (featureName ?? "the image in the sketch") + ") and retry with a PNG.");
 
             // THE PIXELS THE CALLER COUNTS ARE THE FILE'S (finding M11, see the
             // class comment). SOLIDWORKS may hold fewer, never more, and with the
@@ -260,9 +260,9 @@ namespace Oce.Solid.Agent.Core
             // pixels GetPointOnSketchFromPixel takes.
             double expectation = (w - 1) * (width / w);
             if (!measure || Math.Abs(distance - expectation) > expectation * 0.01)
-                return Failed("L'immagine e' larga " + readWidth.ToString("0.###") + " mm, ma il primo e l'ultimo pixel " +
-                               "della prima riga, nello schizzo, distano " + (measure ? distance.ToString("0.###") : "?") +
-                               " mm invece di " + expectation.ToString("0.###") + ": la scala non e' quella che dice.");
+                return Failed("The image is " + readWidth.ToString("0.###") + " mm wide, but the first and the last " +
+                               "pixel of the first row, in the sketch, are " + (measure ? distance.ToString("0.###") : "?") +
+                               " mm apart instead of " + expectation.ToString("0.###") + ": the scale is not what it says.");
             var measurements = new Dictionary<string, object>
             {
                 ["picture"] = featureName,
@@ -286,7 +286,7 @@ namespace Oce.Solid.Agent.Core
                     PictureSideKeptInPart + " px when it inserts it in a part (ISketchManager~InsertSketchPicture2.html). " +
                     "The file is " + fileWidth + " x " + fileHeight + ": «pixel» and «mm_per_pixel» are the FILE's, " +
                     "which is what you count in the image; the picture in the sketch has less detail than the file.";
-            _log("[agente] picture " + pixelWidth + "x" + pixelHeight + " px (SOLIDWORKS " + w + "x" + h + ") at " +
+            _log("[agent] picture " + pixelWidth + "x" + pixelHeight + " px (SOLIDWORKS " + w + "x" + h + ") at " +
                  mmPerPixel.ToString("0.####") + " mm/px on the plane " + plane);
             return SucceededWithoutCreating(measurements);
         }

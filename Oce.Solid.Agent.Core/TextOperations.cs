@@ -97,7 +97,7 @@ namespace Oce.Solid.Agent.Core
         {
             string text = Str(a, "text", null);
             if (string.IsNullOrEmpty(text))
-                return Failed("Manca il «text» da incidere.");
+                return Failed("The «text» to engrave is missing.");
 
             var face = ResolveFace(docState, a, Str(a, "face_uid", ""), out string reason);
             if (face == null) return Failed(reason);
@@ -107,12 +107,12 @@ namespace Oce.Solid.Agent.Core
 
             double height = Num(a, "height_mm", 5);
             if (height <= 0)
-                return Failed("Un testo di altezza nulla o negativa non e' un testo.");
+                return Failed("A text of zero or negative height is not a text.");
             double depth = Num(a, "depth_mm", 0.5);
             if (depth <= 0)
                 return Failed(
-                    "Una marcatura di profondita' nulla non lascia segno. Se volevi solo " +
-                    "un'annotazione e non una lavorazione, questa non e' l'operazione.");
+                    "A marking of zero depth leaves no mark. If you only wanted " +
+                    "an annotation and not a feature, this is not the operation.");
 
             bool embossed = Bool(a, "raised", false);
             double xMm = Num(a, "x_mm", 0);
@@ -123,7 +123,7 @@ namespace Oce.Solid.Agent.Core
             int bodiesBefore = CountSolidBodies(model);
             double? volumeBefore = VolumeMm3(model);
             if (bodiesBefore < 0 || volumeBefore == null)
-                return Failed(VolumeNotReadBefore("marcare la faccia"));
+                return Failed(VolumeNotReadBefore("marking the face"));
 
             // The FACE's box, to know where the lettering may sit.
             double[] faceBox = FaceBox(face);
@@ -142,7 +142,7 @@ namespace Oce.Solid.Agent.Core
             // is the one born since (scheme S7, SwOperations.JustCreatedSketch),
             // not the last sketch of the tree.
             var sketchNamesBefore = FeatureNamesNow(model);
-            if (!SelectFace(face)) return Failed("Non sono riuscito a selezionare la faccia.");
+            if (!SelectFace(face)) return Failed("I could not select the face.");
 
             var sketches = model.SketchManager;
             bool addToDbBefore = false, displayBefore = false;
@@ -172,19 +172,19 @@ namespace Oce.Solid.Agent.Core
                 ) as ISketchText;
                 if (written == null)
                     throw new InvalidOperationException(
-                        "SOLIDWORKS non ha creato il testo di schizzo, e non dice perche'.");
+                        "SOLIDWORKS did not create the sketch text, and does not say why.");
 
                 var sheetFormat = written.GetTextFormat() as ITextFormat;
                 if (sheetFormat == null)
                     throw new InvalidOperationException(
-                        "Non riesco a leggere il formato del testo: senza, l'altezza " +
-                        "resterebbe quella predefinita e tu crederesti di averla scelta.");
+                        "I cannot read the format of the text: without it, the height " +
+                        "would stay the default one and you would think you had chosen it.");
                 sheetFormat.CharHeight = Units.M(height);
                 sheetFormat.Bold = bold;
                 if (!string.IsNullOrWhiteSpace(font)) sheetFormat.TypeFaceName = font;
                 if (!written.SetTextFormat(false, sheetFormat))
                     throw new InvalidOperationException(
-                        "SOLIDWORKS ha rifiutato il formato del testo (altezza " + height +
+                        "SOLIDWORKS refused the text format (height " + height +
                         " mm" + (font == null ? "" : ", font «" + font + "»") + ").");
 
                 // AND IT IS REREAD. `CharHeight` is the only thing that tells a
@@ -194,9 +194,9 @@ namespace Oce.Solid.Agent.Core
                 if (Math.Abs(trueHeight - height) > 0.001)
                     throw new InvalidOperationException(string.Format(
                         CultureInfo.InvariantCulture,
-                        "Ho chiesto lettere alte {0:0.###} mm e rileggendo trovo {1}.",
+                        "I asked for letters {0:0.###} mm high and on reading back I find {1}.",
                         height,
-                        trueHeight < 0 ? "niente"
+                        trueHeight < 0 ? "nothing"
                             : trueHeight.ToString("0.###", CultureInfo.InvariantCulture) + " mm"));
 
                 textBox = CurvesBox(written, out contours);
@@ -208,7 +208,7 @@ namespace Oce.Solid.Agent.Core
                 try { sketches.InsertSketch(false); } catch { }
             }
             if (written == null)
-                return Failed((error ?? "il testo non e' stato creato") + WithoutSketch(model));
+                return Failed((error ?? "the text was not created") + WithoutSketch(model));
 
             // ── AND HERE WE LOOK WHETHER IT FITS, BEFORE CUTTING ─────────────
             //
@@ -217,18 +217,18 @@ namespace Oce.Solid.Agent.Core
             // orphan sketch that nobody sees is worse than a refusal.
             if (textBox == null)
                 return Failed(
-                    "Non riesco a leggere dove finisce la scritta (" + contours + " contorni " +
-                    "letti). Senza, non posso dirti se ci sta sulla faccia, e una scritta " +
-                    "tagliata a meta' non da' nessun errore." + WithoutSketch(model));
+                    "I cannot read where the lettering ends (" + contours + " contours " +
+                    "read). Without that, I cannot tell you whether it fits on the face, and " +
+                    "a lettering cut in half gives no error." + WithoutSketch(model));
 
             string location = SpillsOutside(textBox, faceBox, axes);
             if (location != null)
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "«{0}» alto {1:0.###} mm occupa {2:0.##} x {3:0.##} mm e {4} Non lo " +
-                    "incido: la parte che esce sparirebbe senza che niente dia errore, e " +
-                    "nel pezzo resterebbe una scritta monca. Sposta l'ancora, abbassa " +
-                    "«height_mm», o accorcia il testo.{5}",
+                    "«{0}» {1:0.###} mm tall occupies {2:0.##} x {3:0.##} mm and {4} I do not engrave it: " +
+                    "the part that sticks out would disappear without anything giving an error, and " +
+                    "a truncated lettering would remain in the part. Move the anchor, lower " +
+                    "«height_mm», or shorten the text.{5}",
                     text, height,
                     textBox[3] - textBox[0],
                     textBox[4] - textBox[1],
@@ -247,15 +247,15 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 return Failed(
-                    (embossed ? "Il rilievo" : "L'incisione") + " non e' riuscita: " +
+                    (embossed ? "The embossing" : "The engraving") + " did not succeed: " +
                     ex.Message + WithoutSketch(model));
             }
 
             if (feature == null)
                 return Failed(
-                    (embossed ? "Il rilievo" : "L'incisione") + " non e' stata creata, e " +
-                    "SOLIDWORKS non dice perche'. Con un testo che sta tutto fuori dalla " +
-                    "faccia risponde cosi'." + WithoutSketch(model));
+                    (embossed ? "The embossing" : "The engraving") + " was not created, and " +
+                    "SOLIDWORKS does not say why. With a text that is entirely outside the " +
+                    "face it answers like this." + WithoutSketch(model));
 
             // ── and now we count ────────────────────────────────────────
             double? after = VolumeMm3(model);
@@ -278,18 +278,18 @@ namespace Oce.Solid.Agent.Core
 
             if (moved <= 0)
                 return Failed(
-                    "La marcatura non ha " + (embossed ? "aggiunto" : "tolto") +
-                    " materiale: il volume e' " +
-                    (Math.Abs(moved) < 1e-9 ? "rimasto uguale" : "andato dall'altra parte") +
+                    "The marking did not " + (embossed ? "add" : "remove") +
+                    " material: the volume " +
+                    (Math.Abs(moved) < 1e-9 ? "stayed the same" : "went the other way") +
                     ". " + (embossed
-                        ? "Di solito vuol dire che il rilievo e' cresciuto DENTRO il pezzo."
-                        : "Di solito vuol dire che l'incisione e' andata in fuori.") +
-                    " Ritirala — " + Sentences.HowToWithdrawIt + ".");
+                        ? "Usually it means that the embossing grew INTO the part."
+                        : "Usually it means that the engraving went outward.") +
+                    " Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
             if (bodiesAfter != bodiesBefore)
                 return Failed(
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
-                    ": una marcatura non deve spezzare ne' staccare niente. Ritirala — " +
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
+                    ": a marking must not split or detach anything. Withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
             double lettersArea = moved / depth;
@@ -324,23 +324,23 @@ namespace Oce.Solid.Agent.Core
             bool fullFace = boxArea > 0 && Math.Abs(faceArea - boxArea) / boxArea < 0.01;
             measurements["what_it_does_not_check"] = string.Format(
                 CultureInfo.InvariantCulture,
-                "Ho controllato che la scritta stia dentro la SCATOLA della faccia{0} E non " +
-                "guardo se la scritta finisce sopra un'altra lavorazione.",
+                "I checked that the lettering stays inside the BOX of the face{0} And I do not " +
+                "look at whether the lettering ends up over another feature.",
                 fullFace
                     ? string.Format(CultureInfo.InvariantCulture,
-                        ", e questa faccia la riempie tutta (area {0:0.##} mm2 contro " +
-                        "{1:0.##} di scatola), quindi il controllo e' completo.",
+                        ", and this face fills it entirely " +
+                        "(area {0:0.##} mm2 against {1:0.##} of box), so the check is complete.",
                         faceArea, boxArea)
                     : string.Format(CultureInfo.InvariantCulture,
-                        ", ma questa faccia NON riempie la sua scatola (area {0:0.##} mm2 " +
-                        "contro {1:0.##} di scatola): ha un foro o un contorno rientrante, " +
-                        "e una lettera potrebbe cadere li' sopra senza che io me ne " +
-                        "accorga. Guarda il materiale tolto.",
+                        ", but this face does NOT fill its box " +
+                        "(area {0:0.##} mm2 against {1:0.##} of box): it has a hole " +
+                        "or a re-entrant contour, and a letter could fall there " +
+                        "without my noticing. Look at the material removed.",
                         faceArea, boxArea));
 
-            _log("[agente] «" + text + "» " + (embossed ? "in rilievo " : "incisa ") +
-                 depth + " mm: " + Round(moved) + " mm3, scritta " +
-                 Round(textBox[3] - textBox[0]) + " mm larga");
+            _log("[agent] «" + text + "» " + (embossed ? "embossed " : "engraved ") +
+                 depth + " mm: " + Round(moved) + " mm3, lettering " +
+                 Round(textBox[3] - textBox[0]) + " mm wide");
 
             return Succeeded(feature, measurements, FaceNormal(face));
         }
@@ -454,15 +454,15 @@ namespace Oce.Solid.Agent.Core
                 int axis = (int)axes[i];
                 if (text[axis] < face[axis] - ToleratedSpill)
                     outside.Add(string.Format(CultureInfo.InvariantCulture,
-                        "esce di {0:0.##} mm dal bordo {1} basso",
+                        "sticks out by {0:0.##} mm past the bottom {1} edge",
                         face[axis] - text[axis], names[axis]));
                 if (text[3 + axis] > face[3 + axis] + ToleratedSpill)
                     outside.Add(string.Format(CultureInfo.InvariantCulture,
-                        "esce di {0:0.##} mm dal bordo {1} alto",
+                        "sticks out by {0:0.##} mm past the top {1} edge",
                         text[3 + axis] - face[3 + axis], names[axis]));
             }
             if (outside.Count == 0) return null;
-            return string.Join(", ", outside) + " della faccia.";
+            return string.Join(", ", outside) + " of the face.";
         }
 
         private static double Round(double v, int digits = 2)

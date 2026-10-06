@@ -97,17 +97,17 @@ namespace Oce.Solid.Agent.Core
         private Outcome ReorderFeature(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
-                return Failed("Riordino l'albero di un pezzo. Aprimi il pezzo.");
+                return Failed("I reorder the tree of a part. Open the part for me.");
             string uid = (Str(a, "feature_uid", "") ?? "").Trim();
             string comparedTo = (Str(a, "relative_to_uid", "") ?? "").Trim();
             string location = (Str(a, "placement", "") ?? "").Trim().ToLowerInvariant();
             if (uid.Length == 0 || comparedTo.Length == 0)
-                return Failed("Dimmi «feature_uid» (la lavorazione da spostare) e «relative_to_uid» (quella accanto a " +
-                               "cui metterla): i nomi stanno nello stato, dentro «feature».");
+                return Failed("Tell me «feature_uid» (the feature to move) and «relative_to_uid» (the one to put it next to): " +
+                               "the names are in the state, inside «feature».");
             if (location != "before" && location != "after")
-                return Failed("«placement» e' «before» o «after» di «" + comparedTo + "», non «" + location + "».");
+                return Failed("«placement» is «before» or «after», relative to «" + comparedTo + "», not «" + location + "».");
             if (string.Equals(uid, comparedTo, StringComparison.OrdinalIgnoreCase))
-                return Failed("«" + uid + "» non si sposta rispetto a se stessa: indica un'altra lavorazione.");
+                return Failed("«" + uid + "» does not move relative to itself: point to another feature.");
             string reason;
             if (!FeatureIsThatOne(model, uid, a, out reason)) return Failed(reason);
             if (!FeatureIsThatOne(model, comparedTo, a, out reason)) return Failed(reason);
@@ -116,8 +116,8 @@ namespace Oce.Solid.Agent.Core
             if (f == null || g == null)
             {
                 string ci = FeaturesThatExist(model);
-                return Failed("Non trovo «" + (f == null ? uid : comparedTo) + "» in questo documento." +
-                               (ci.Length > 0 ? " Ci sono: " + ci + "." : ""));
+                return Failed("I cannot find «" + (f == null ? uid : comparedTo) + "» in this document." +
+                               (ci.Length > 0 ? " There are: " + ci + "." : ""));
             }
             string nameF = f.Name, nameG = g.Name;
             var orderBefore = FeatureOrder(model);
@@ -136,7 +136,7 @@ namespace Oce.Solid.Agent.Core
                 done = model.Extension.ReorderFeature(nameF, nameG,
                     location == "before" ? (int)swMoveLocation_e.swMoveBefore : (int)swMoveLocation_e.swMoveAfter);
             }
-            catch (Exception ex) { return Failed("Lo spostamento non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The move did not succeed: " + ex.Message); }
             if (!done)
             {
                 // «NOTHING TOUCHED» IS READ BACK FIRST (Z-C21.8, finding M42): the
@@ -148,10 +148,10 @@ namespace Oce.Solid.Agent.Core
                     return Failed("SOLIDWORKS did not move «" + nameF + "» " + (location == "before" ? "before" : "after") + " «" + nameG +
                                    "» (ReorderFeature answered false), and reading the part back it is not as it was: " + changed +
                                    ". Look at the tree, and undo the step (" + Sentences.HowToWithdrawIt + ").");
-                return Failed("SOLIDWORKS non sposta «" + nameF + "» " + location + " di «" + nameG + "» (misurato: succede " +
-                               "quando la lavorazione dipende da una che verrebbe dopo, per esempio un foro sulla " +
-                               "faccia di un'estrusione messo prima dell'estrusione). Non ho toccato niente: spostala " +
-                               "rispetto a una lavorazione che viene dopo quelle da cui dipende.");
+                return Failed("SOLIDWORKS does not move «" + nameF + "» " + location + " «" + nameG + "» " +
+                               "(measured: it happens when the feature depends on one that would come later, for example a hole on the face of an extrusion put before the extrusion). " +
+                               "I touched nothing: move it relative to a feature that comes after the ones it depends " +
+                               "on.");
             }
             try { model.ForceRebuild3(false); } catch { }
             int errorsAfter = FeaturesInError(model);
@@ -180,21 +180,21 @@ namespace Oce.Solid.Agent.Core
                                     " instead of " + errorsBefore;
                 }
                 string tail = !restored
-                    ? "Non sono riuscito a rimetterla: " + Sentences.HowToWithdrawIt + "."
+                    ? "I could not put it back: " + Sentences.HowToWithdrawIt + "."
                     : backFault == null
-                        ? "L'ho rimessa dov'era."
+                        ? "I put it back where it was."
                         : "I moved it back, but reading the part back it is not as it was: " + backFault +
                           ". Undo the step (" + Sentences.HowToWithdrawIt + ").";
-                return Failed("Spostata " + location + " di «" + nameG + "», «" + nameF + "» ha rotto " + (errorsAfter - errorsBefore) +
-                               " lavorazioni (" + errorsAfter + " in errore invece di " + errorsBefore + "). " + tail +
-                               " Di solito una lavorazione a valle si appoggiava a una faccia che adesso non c'e' ancora.");
+                return Failed("Moved " + location + " «" + nameG + "», «" + nameF + "» broke " + (errorsAfter - errorsBefore) +
+                               " features (" + errorsAfter + " in error instead of " + errorsBefore + "). " + tail +
+                               " Usually a downstream feature rested on a face that is not there yet.");
             }
             var orderAfter = FeatureOrder(model);
             int iF = orderAfter.IndexOf(nameF), iG = orderAfter.IndexOf(nameG);
             bool inPlace = iF >= 0 && iG >= 0 && (location == "before" ? iF < iG : iF > iG);
             if (!inPlace)
-                return Failed("SOLIDWORKS dice di aver spostato «" + nameF + "», ma nell'albero sta ancora " +
-                               (iF < iG ? "prima" : "dopo") + " di «" + nameG + "». Non e' successo quello che volevi.");
+                return Failed("SOLIDWORKS says it moved «" + nameF + "», but in the tree it is still " +
+                               (iF < iG ? "before" : "after") + " «" + nameG + "». What you wanted did not happen.");
             double? volumeAfter = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
             var measurements = new Dictionary<string, object>
@@ -215,7 +215,7 @@ namespace Oce.Solid.Agent.Core
             if (volumeBefore != null && volumeAfter != null && Math.Abs(volumeBefore.Value - volumeAfter.Value) < 0.01 && bodiesBefore == bodiesAfter)
                 measurements["warning"] = "The order changed but the part did not (same volume, same bodies): those two " +
                                        "features do not touch, and the order between them does not matter.";
-            _log("[agente] " + nameF + " spostata " + location + " di " + nameG);
+            _log("[agent] " + nameF + " moved " + location + " " + nameG);
             return SucceededWithoutCreating(measurements);
         }
     }

@@ -165,7 +165,7 @@ namespace Oce.Solid.Agent.Core
             // throwing away someone else's work.
             if (comEra == ComEra.OpenDirty)
             {
-                log("[agente] the library «" + itemName + "» was already open AND " +
+                log("[agent] the library «" + itemName + "» was already open AND " +
                     "modified before this insertion: I do not touch it. " +
                     "ATTENTION: saving it would rewrite it, and it is not " +
                     "this operation's doing.");
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.Core
 
             if (wasOpen && !dirtyNow)
             {
-                log("[agente] the library «" + docTitle + "» was already open and " +
+                log("[agent] the library «" + docTitle + "» was already open and " +
                     "the insertion did not modify it: I leave it where it was.");
                 return null;
             }
@@ -394,7 +394,7 @@ namespace Oce.Solid.Agent.Core
             string profile = Str(a, "profile_path", "");
             string configuration = Str(a, "configuration", "");
             if (string.IsNullOrWhiteSpace(profile))
-                return Failed("Manca il percorso del profilo di saldatura.");
+                return Failed("The path of the weldment profile is missing.");
             // An empty size is no longer refused here (Z-C21.3, finding N25):
             // the guide gives the empty string as THE value for a
             // SOLIDWORKS-supplied profile, and whether it can be accepted
@@ -412,9 +412,9 @@ namespace Oce.Solid.Agent.Core
             // problem.
             if (!File.Exists(profile))
                 return Failed(
-                    "Il profilo «" + profile + "» non esiste su questa postazione. " +
-                    "O il percorso e' sbagliato, o la libreria dei profili non e' " +
-                    "raggiungibile da qui.");
+                    "The profile «" + profile + "» does not exist on this workstation. " +
+                    "Either the path is wrong, or the library of the profiles cannot " +
+                    "be reached from here.");
 
             // And the configuration? Same story, worse: if the size is
             // not there, SolidWorks does NOT fail — it uses the active configuration of the
@@ -450,7 +450,7 @@ namespace Oce.Solid.Agent.Core
                 string refusal = EmptyProfileSizeRefusal(fileName, sizes, whyUnread);
                 if (refusal != null) return Failed(refusal);
                 onlySize = sizes[0];
-                _log("[agente] empty profile size accepted: «" + fileName +
+                _log("[agent] empty profile size accepted: «" + fileName +
                      "» has one size only, «" + onlySize + "».");
             }
             else try
@@ -463,13 +463,13 @@ namespace Oce.Solid.Agent.Core
                         var similar = available.FirstOrDefault(
                             x => string.Equals(x, configuration, StringComparison.OrdinalIgnoreCase));
                         string help = similar != null
-                            ? " Nel file quella misura si scrive «" + similar + "»: " +
-                              "maiuscole e virgole contano."
-                            : " Misure disponibili: " +
+                            ? " In the file that size is written «" + similar + "»: " +
+                              "capitals and commas count."
+                            : " Available sizes: " +
                               string.Join(", ", available.Take(12)) +
                               (available.Length > 12 ? " ..." : "");
                         return Failed(
-                            "Il profilo non ha la misura «" + configuration + "»." + help);
+                            "The profile does not have the size «" + configuration + "»." + help);
                     }
                 }
             }
@@ -477,7 +477,7 @@ namespace Oce.Solid.Agent.Core
             {
                 // Not being able to check is not the same as having checked: we go
                 // on, but we write in the log that the check was skipped.
-                _log("[agente] non ho potuto verificare le misure del profilo: " + ex.Message);
+                _log("[agent] I could not verify the sizes of the profile: " + ex.Message);
             }
 
             // THE SEGMENTS CAN BE OMITTED, IF THERE IS A FRAME.
@@ -597,20 +597,20 @@ namespace Oce.Solid.Agent.Core
                 string planeAxis = Str(frame, "plane", "front");
                 int aU, aV;
                 if (!PlaneAxes(planeAxis, out aU, out aV))
-                    return Failed("Non conosco il piano «" + planeAxis + "» per un telaio.");
+                    return Failed("I do not know the plane «" + planeAxis + "» for a frame.");
 
                 double axisLength = Num(frame, "length_mm", 0);
                 double axisWidth = Num(frame, "width_mm", 0);
                 if (axisLength <= 0 || axisWidth <= 0)
-                    return Failed("Il telaio non ha due quote utilizzabili.");
+                    return Failed("The frame does not have two usable dimensions.");
 
                 segments = FrameSegments(
                     axisLength, axisWidth, aU, aV,
                     Bool(frame, "centered", true), new[] { 0.0, 0.0 });
                 _log(string.Format(
-                    "[agente] telaio a interasse {0:0.#}x{1:0.#}: il percorso e' " +
-                    "quello, e l'ingombro finito sara' piu' grande di quanto " +
-                    "sporge il profilo.", axisLength, axisWidth));
+                    "[agent] frame with center distance {0:0.#}x{1:0.#}: the path is that " +
+                    "one, and the finished bounding box will be bigger by how far the " +
+                    "profile sticks out.", axisLength, axisWidth));
             }
 
             if (frame != null &&
@@ -618,12 +618,12 @@ namespace Oce.Solid.Agent.Core
             {
                 string plane = Str(frame, "plane", "front");
                 if (!PlaneAxes(plane, out axisU, out axisV))
-                    return Failed("Non conosco il piano «" + plane + "» per un telaio.");
+                    return Failed("I do not know the plane «" + plane + "» for a frame.");
 
                 double along = Num(frame, "length_mm", 0);
                 double wide = Num(frame, "width_mm", 0);
                 if (along <= 0 || wide <= 0)
-                    return Failed("Il telaio non ha due quote utilizzabili.");
+                    return Failed("The frame does not have two usable dimensions.");
 
                 int angleCode;
                 if (!CornerTreatments.TryGetValue(treatment ?? "", out angleCode))
@@ -636,11 +636,11 @@ namespace Oce.Solid.Agent.Core
                     profile, configuration, probeU, probeV, rotation, angleCode, gap, _log);
                 if (overhangs == null)
                     return Failed(
-                        "Non sono riuscito a misurare quanto sporge il profilo «" +
+                        "I could not measure the overhang of the profile «" +
                         Path.GetFileNameWithoutExtension(profile) + "» " + configuration +
-                        ", e senza quella misura non so di quanto arretrare il percorso: " +
-                        "un telaio costruito lo stesso uscirebbe piu' grande di quanto " +
-                        "promesso. Meglio fermarsi.");
+                        ", and without that measure I do not know by how much to pull the " +
+                        "path back: a frame built all the same would come out bigger than " +
+                        "promised. Better to stop.");
 
                 // A section wider than the frame is not a frame: the bars
                 // would interpenetrate and the path would have zero or negative
@@ -648,9 +648,9 @@ namespace Oce.Solid.Agent.Core
                 // SolidWorks with a message that explains nothing.
                 if (overhangs[0] >= along - 0.01 || overhangs[1] >= wide - 0.01)
                     return Failed(string.Format(
-                        "Con questo profilo il telaio sporge di {0:0.#}x{1:0.#} mm oltre " +
-                        "il percorso: un telaio di {2:0.#}x{3:0.#} mm di ingombro esterno " +
-                        "non ci sta. Serve un telaio piu' grande o un profilo piu' piccolo.",
+                        "With this profile the frame sticks out by {0:0.#}x{1:0.#} mm " +
+                        "beyond the path: a frame of {2:0.#}x{3:0.#} mm of outer bounding " +
+                        "box does not fit. A bigger frame or a smaller profile is needed.",
                         overhangs[0], overhangs[1], along, wide));
 
                 segments = FrameSegments(
@@ -658,8 +658,8 @@ namespace Oce.Solid.Agent.Core
                     axisU, axisV, Bool(frame, "centered", true), overhangs);
                 promisedBoundingBox = new[] { along, wide };
                 _log(string.Format(
-                    "[agente] telaio a quote esterne {0:0.#}x{1:0.#}: sporgenza misurata " +
-                    "{2:0.##}x{3:0.##}, percorso arretrato a {4:0.##}x{5:0.##}",
+                    "[agent] frame with outer dimensions {0:0.#}x{1:0.#}: measured overhang " +
+                    "{2:0.##}x{3:0.##}, path pulled back to {4:0.##}x{5:0.##}",
                     along, wide, overhangs[0], overhangs[1],
                     along - overhangs[0], wide - overhangs[1]));
             }
@@ -670,10 +670,10 @@ namespace Oce.Solid.Agent.Core
             // percorso»: whoever wrote a frame asked for a frame.
             if (segments == null)
                 return Failed(
-                    "Hai chiesto un telaio ma non ho potuto ricavarne il " +
-                    "percorso, e non mi hai dato dei segmenti su cui ripiegare. " +
-                    "Un telaio vuole «length_mm», «width_mm» e «plane»; " +
-                    "se invece vuoi dare tu il percorso, passa «segments».");
+                    "You asked for a frame but I could not derive its path " +
+                    "from it, and you did not give me segments to fall back on. A " +
+                    "frame wants «length_mm», «width_mm» and «plane»; if " +
+                    "instead you want to give the path yourself, pass «segments».");
 
             // ── the 3D sketch of the path ───────────────────────────────
             model.ClearSelection2(true);
@@ -691,8 +691,8 @@ namespace Oce.Solid.Agent.Core
                     {
                         try { sketches.Insert3DSketch(true); } catch { }
                         return Failed(
-                            "Non sono riuscito a disegnare il segmento da (" +
-                            Triplet(s.Da) + ") a (" + Triplet(s.A) + ")." + WithoutSketch(model));
+                            "I could not draw the segment from (" +
+                            Triplet(s.Da) + ") to (" + Triplet(s.A) + ")." + WithoutSketch(model));
                     }
                     created.Add(seg);
                 }
@@ -701,11 +701,11 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 try { sketches.Insert3DSketch(true); } catch { }
-                return Failed("Lo schizzo del percorso non e' riuscito: " + ex.Message);
+                return Failed("The sketch of the path did not succeed: " + ex.Message);
             }
 
             if (created.Count == 0)
-                return Failed("Nessun segmento disegnato: non c'e' percorso su cui mettere le barre.");
+                return Failed("No segment drawn: there is no path to put the bars on.");
 
             // ── the group ────────────────────────────────────────────────
             IStructuralMemberGroup theGroup;
@@ -716,10 +716,10 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito a creare il gruppo: " + ex.Message + WithoutSketch(model));
+                return Failed("I could not create the group: " + ex.Message + WithoutSketch(model));
             }
             if (theGroup == null)
-                return Failed("Non sono riuscito a creare il gruppo di membri." + WithoutSketch(model));
+                return Failed("I could not create the group of members." + WithoutSketch(model));
 
             try
             {
@@ -752,7 +752,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito a impostare il gruppo: " + ex.Message + WithoutSketch(model));
+                return Failed("I could not set up the group: " + ex.Message + WithoutSketch(model));
             }
 
             // ── the structural member ────────────────────────────────────
@@ -792,7 +792,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il membro strutturale non e' riuscito: " + ex.Message + WithoutSketch(model));
+                return Failed("The structural member did not succeed: " + ex.Message + WithoutSketch(model));
             }
 
             // The profile library that this insertion opened is closed again
@@ -863,7 +863,7 @@ namespace Oce.Solid.Agent.Core
                 if (box == null)
                 {
                     measurements["bounding_box_checked"] = false;
-                    _log("[agente] non ho potuto misurare l'ingombro del telaio appena fatto.");
+                    _log("[agent] I could not measure the bounding box of the frame just made.");
                 }
                 else
                 {
@@ -884,11 +884,11 @@ namespace Oce.Solid.Agent.Core
                     if (wrongFrame)
                         return Failed(string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
-                            "Il telaio doveva essere {0:0.#}x{1:0.#} mm di ingombro esterno " +
-                            "ed e' venuto {2:0.##}x{3:0.##}. Non te lo lascio passare per " +
-                            "buono: ritiralo — " + Sentences.HowToWithdrawIt +
-                            ". (Sporgenza misurata del " +
-                            "profilo: {4:0.##}x{5:0.##} mm.)",
+                            "The frame had to be {0:0.#}x{1:0.#} mm of outer bounding box " +
+                            "and it came out {2:0.##}x{3:0.##}. I do not let it pass as " +
+                            "good: withdraw it — " + Sentences.HowToWithdrawIt +
+                            ". " +
+                            "(Measured overhang of the profile: {4:0.##}x{5:0.##} mm.)",
                             promisedBoundingBox[0], promisedBoundingBox[1], seenU, seenV,
                             overhangs[0], overhangs[1]) +
                             OverhangNote(overhangSource, overhangDropped));
@@ -1006,12 +1006,12 @@ namespace Oce.Solid.Agent.Core
             }
             catch (InvalidCastException)
             {
-                return Failed("Fra i corpi indicati c'e' qualcosa che non e' un corpo solido.");
+                return Failed("Among the bodies indicated there is something that is not a solid body.");
             }
 
             double? volumeBefore = VolumeMm3(model);
             int featureBefore = CountTreeFeatures(model);
-            if (volumeBefore == null || featureBefore < 0) return Failed(VolumeNotReadBefore("tagliare le barre"));
+            if (volumeBefore == null || featureBefore < 0) return Failed(VolumeNotReadBefore("cutting the bars"));
 
             IFeature feature;
             try
@@ -1025,12 +1025,12 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il taglio fra le barre non e' riuscito: " + ex.Message);
+                return Failed("The cut between the bars did not succeed: " + ex.Message);
             }
             if (feature == null)
                 return Failed(
-                    "Il taglio non e' stato creato. Di solito le barre da " +
-                    "tagliare e quelle di taglio non si incontrano davvero.");
+                    "The cut was not created. Usually the bars to " +
+                    "cut and the cutting ones do not really meet.");
 
             // THE FEATURE RETURNED IS NOT ENOUGH: it must be in the tree and the
             // part must have changed. It is the guard that would have caught the
@@ -1048,10 +1048,10 @@ namespace Oce.Solid.Agent.Core
                 // parallel ones 200 mm apart, or a far-away bar. It is SOLIDWORKS's
                 // answer to «there is nothing to cut».
                 return Failed(
-                    "SOLIDWORKS ha risposto con una feature «" + feature.Name + "» che " +
-                    "nell'albero non c'e', e il pezzo e' quello di prima: di solito vuol " +
-                    "dire che le barre da tagliare non incontrano quelle di taglio. Non " +
-                    "ti dico che le barre sono tagliate.");
+                    "SOLIDWORKS answered with a feature «" + feature.Name + "» that " +
+                    "is not in the tree, and the part is the one from before: usually " +
+                    "it means that the bars to cut do not meet the cutting ones. I do " +
+                    "not tell you that the bars are cut.");
             if (volumeAfter == null)
                 return Succeeded(feature, new Dictionary<string, object>
                 {
@@ -1065,11 +1065,11 @@ namespace Oce.Solid.Agent.Core
             double variation = volumeAfter.Value - volumeBefore.Value;
             if (Math.Abs(variation) < 0.01)
                 return Failed(
-                    "Il taglio e' nell'albero ma non ha cambiato niente: volume " +
+                    "The cut is in the tree but it changed nothing: volume " +
                     volumeBefore.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
-                    " mm3 prima e dopo. Le barre da tagliare non entrano in quelle di " +
-                    "taglio, o gia' ci arrivano esatte. Non ti confermo un pezzo diverso " +
-                    "da quello che ti ho mostrato — " + Sentences.HowToWithdrawIt + ".");
+                    " mm3 before and after. The bars to cut do not fit into the cutting " +
+                    "ones, or they already arrive exactly. I do not confirm a part different " +
+                    "from the one I showed you — " + Sentences.HowToWithdrawIt + ".");
 
             return Succeeded(feature, new Dictionary<string, object>
             {
@@ -1129,26 +1129,26 @@ namespace Oce.Solid.Agent.Core
         {
             bool update = Bool(a, "update_if_exists", true);
             var partDoc = model as IPartDoc;
-            if (partDoc == null) return Failed("La distinta di taglio si fa su una parte.");
+            if (partDoc == null) return Failed("The cut list is made on a part.");
 
             // A SECOND CUT LIST IS NOT AN INNOCENT DUPLICATE: the existing one is
             // updated, or refused if one does not want that.
             bool alreadyExisted = CutListFolders(model).Count > 0;
             if (alreadyExisted && !update)
                 return Failed(
-                    "Nel pezzo c'e' gia' una distinta di taglio. Crearne una " +
-                    "seconda vorrebbe dire due elenchi della stessa " +
-                    "carpenteria: se vuoi ricalcolare quella che c'e', " +
-                    "chiedi «update_if_exists».");
+                    "There is already a cut list in the part. Creating a " +
+                    "second one would mean two lists of the same " +
+                    "metalwork: if you want to recompute the existing " +
+                    "one, ask for «update_if_exists».");
 
             object[] solidBodies;
             try { solidBodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false) as object[]; }
-            catch (Exception ex) { return Failed("Non riesco a leggere i corpi del pezzo: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot read the bodies of the part: " + ex.Message); }
             if (solidBodies == null || solidBodies.Length == 0)
                 return Failed(
-                    "Nel pezzo non c'e' nessun corpo solido: non c'e' niente da " +
-                    "mettere in distinta. Se le barre le doveva fare un passo " +
-                    "prima, quel passo non e' riuscito.");
+                    "There is no solid body in the part: there is nothing to put in " +
+                    "the cut list. If the bars were supposed to be made by a previous " +
+                    "step, that step did not succeed.");
 
             // ── 1. THE PART BECOMES A WELDMENT, if it is not one ────────────
             bool? wasWelded = null;
@@ -1178,9 +1178,9 @@ namespace Oce.Solid.Agent.Core
             try { welded = partDoc.IsWeldment(); } catch { }
             if (!welded)
                 return refuse(
-                    "Non riesco a fare del pezzo un saldato (la lavorazione «Saldatura» non nasce): senza, " +
-                    "SOLIDWORKS non separa le barre per lunghezza, e una distinta con tutte le barre in una " +
-                    "voce sola manderebbe in officina le lunghezze sbagliate.");
+                    "I cannot make a weldment out of the part (the «Weldment» feature does not come out): without " +
+                    "it, SOLIDWORKS does not separate the bars by length, and a cut list with all the bars in a " +
+                    "single entry would send the wrong lengths to the workshop.");
 
             // ── 2. THE AUTOMATIC CUT LIST ───────────────────────────────────
             //
@@ -1251,7 +1251,7 @@ namespace Oce.Solid.Agent.Core
             // ── 3. THE ENTRIES, READ ────────────────────────────────────────
             var folders = CutListFolders(model);
             if (folders.Count == 0)
-                return refuse("La distinta automatica e' accesa ma non ha prodotto nessuna voce.");
+                return refuse("The automatic cut list is on but it produced no entry.");
             int? bodiesInCutList = 0;
             int? totalQuantity = 0;
             var entries = new List<object>();
@@ -1328,8 +1328,8 @@ namespace Oce.Solid.Agent.Core
             // is missing or is counted twice, and we say so.
             var warnings = new List<string>();
             if (totalQuantity.HasValue && totalQuantity.Value != solidBodies.Length)
-                warnings.Add("La distinta dice " + totalQuantity.GetValueOrDefault() + " barre in tutto e il pezzo ha " +
-                             solidBodies.Length + " corpi: prima di andare in officina, controlla.");
+                warnings.Add("The cut list says " + totalQuantity.GetValueOrDefault() + " bars in all and the part has " +
+                             solidBodies.Length + " bodies: check it before it goes to the workshop.");
             // N15: the bodies the item folders hold, against the bodies of the
             // part (a body in no item, or in two, does not show in the sum of
             // the quantities if the QUANTITY of an item is wrong the other way).
@@ -1362,7 +1362,7 @@ namespace Oce.Solid.Agent.Core
             if (faces == null) return Failed(why);
 
             double thickness = Num(a, "thickness_mm", 0);
-            if (thickness <= 0) return Failed("Il tappo non ha spessore.");
+            if (thickness <= 0) return Failed("The cap has no thickness.");
             double inset = Num(a, "inset_mm", 0);
             double chamfer = Num(a, "chamfer_mm", 0);
 
@@ -1374,7 +1374,7 @@ namespace Oce.Solid.Agent.Core
                 if (ent != null && ent.Select4(true, null)) selected++;
             }
             if (selected == 0)
-                return Failed("Le estremita' indicate non si sono lasciate selezionare.");
+                return Failed("The ends indicated could not be selected.");
 
             IFeature feature;
             try
@@ -1393,13 +1393,13 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il tappo non e' riuscito: " + ex.Message);
+                return Failed("The cap did not succeed: " + ex.Message);
             }
             if (feature == null)
                 return Failed(
-                    "Il tappo non e' stato creato. Le facce indicate devono " +
-                    "essere estremita' APERTE di una barra cava: su un profilo " +
-                    "pieno non c'e' niente da tappare.");
+                    "The cap was not created. The faces indicated " +
+                    "must be OPEN ends of a hollow bar: on a solid " +
+                    "profile there is nothing to cap.");
 
             return Succeeded(feature, new Dictionary<string, object>
             {
@@ -1498,7 +1498,7 @@ namespace Oce.Solid.Agent.Core
         private const double ChamferD6 = 0.0125;
 
         private const string GussetRemainsInPart =
-            " Il fazzoletto pero' e' rimasto nel pezzo: ritiralo — " + Sentences.HowToWithdrawIt + ".";
+            " The gusset stayed in the part, though: withdraw it — " + Sentences.HowToWithdrawIt + ".";
 
         private Outcome Gusset(
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
@@ -1517,17 +1517,17 @@ namespace Oce.Solid.Agent.Core
             var uid = StringList(a, "faces_uid");
             if (uid.Count != 2)
                 return Failed(
-                    "Il fazzoletto va appoggiato su DUE facce, una per barra. " +
-                    "Ne hai indicate " + uid.Count + ": indica in «faces_uid» esattamente due " +
-                    "identificativi presi dallo stato del documento (F1, F2...).");
+                    "The gusset must be laid down on TWO faces, one per bar. " +
+                    "You indicated " + uid.Count + ": give in «faces_uid» exactly two " +
+                    "identifiers taken from the state of the document (F1, F2...).");
 
             double thickness = Num(a, "thickness_mm", 0);
             double side1 = Num(a, "leg1_mm", 0);
             double side2 = Num(a, "leg2_mm", 0);
             if (thickness <= 0)
-                return Failed("Il fazzoletto non ha spessore: indica «thickness_mm» maggiore di zero, per esempio 5.");
+                return Failed("The gusset has no thickness: set «thickness_mm» to more than zero, for example 5.");
             if (side1 <= 0 || side2 <= 0)
-                return Failed("Il fazzoletto non ha i due lati: indica «leg1_mm» e «leg2_mm» maggiori di zero, per esempio 60 e 60.");
+                return Failed("The gusset does not have its two legs: set «leg1_mm» and «leg2_mm» to more than zero, for example 60 and 60.");
 
             // ── THE PROFILE: triangular, or polygonal NON degenerate ─────────
             string profile = (Str(a, "profile", "triangular") ?? "").Trim().ToLowerInvariant();
@@ -1544,9 +1544,9 @@ namespace Oce.Solid.Agent.Core
                 // An input that is not used is not swallowed (finding C1-1).
                 if (given("side3_mm") || given("side4_mm"))
                     return Failed(
-                        "«side3_mm» e «side4_mm» valgono solo col profilo «polygonal»: col " +
-                        "triangolare li butterei via senza dirtelo. Toglili, oppure chiedi " +
-                        "«profile»: «polygonal».");
+                        "«side3_mm» and «side4_mm» only apply with the «polygonal» profile: with the " +
+                        "triangular one I would throw them away without telling you. Remove them, or " +
+                        "ask for «profile»: «polygonal».");
             }
             else if (profile == "polygonal")
             {
@@ -1555,24 +1555,24 @@ namespace Oce.Solid.Agent.Core
                 side4 = Num(a, "side4_mm", 0);
                 if (side3 <= 0 || side4 <= 0)
                     return Failed(
-                        "Un profilo «polygonal» senza «side3_mm» e «side4_mm», o con uno dei due a zero, " +
-                        "e' degenere: il poligono si chiude su se stesso e SOLIDWORKS non crea niente, " +
-                        "senza dire perche'. This is the defect that kept this operation from ever " +
-                        "creating a gusset up to library 0.139.0 (entry GP20). Dai i due lati corti, " +
-                        "oppure usa «profile»: «triangular».");
+                        "A «polygonal» profile without «side3_mm» and «side4_mm», or with one of the two at " +
+                        "zero, is degenerate: the polygon closes on itself and SOLIDWORKS creates nothing, " +
+                        "without saying why. This is the defect that kept this operation from ever " +
+                        "creating a gusset up to library 0.139.0 (entry GP20). Give the two short sides, " +
+                        "or use «profile»: «triangular».");
                 double shorter = Math.Min(side1, side2);
                 if (side3 >= shorter || side4 >= shorter)
                     return Failed(
-                        "«side3_mm» e «side4_mm» sono i due lati CORTI del poligono, quelli che tagliano " +
-                        "la punta: devono essere piu' corti di «leg1_mm» e «leg2_mm» (qui " +
-                        shorter.ToString("0.###", CultureInfo.InvariantCulture) + " mm), se no il " +
-                        "poligono non e' piu' un fazzoletto. Se lo vuoi pieno fino in punta, usa " +
+                        "«side3_mm» and «side4_mm» are the two SHORT sides of the polygon, the ones that cut " +
+                        "the tip: they must be shorter than «leg1_mm» and «leg2_mm» (here " +
+                        shorter.ToString("0.###", CultureInfo.InvariantCulture) + " mm), otherwise " +
+                        "the polygon is no longer a gusset. If you want it full up to the tip, use " +
                         "«profile»: «triangular».");
             }
             else
                 return Failed(
-                    "«profile» e' «triangular» o «polygonal», non «" + profile + "»: usa il " +
-                    "triangolare (il predefinito), oppure il poligonale con «side3_mm» e «side4_mm».");
+                    "«profile» is «triangular» or «polygonal», not «" + profile + "»: use the " +
+                    "triangular one (the default), or the polygonal one with «side3_mm» and «side4_mm».");
 
             // ── THE POSITION ALONG THE EDGE (finding C1-1) ──────────────────
             // Up to library 0.139.0 (N69) an unknown value went to the centre
@@ -1586,9 +1586,9 @@ namespace Oce.Solid.Agent.Core
                 case "end": location = (int)swGussetProfileLocationType_e.swGussetProfileLocationEnd; break;
                 default:
                     return Failed(
-                        "«position» e' «start», «center» o «end» lungo lo spigolo fra le due facce, " +
-                        "non «" + position + "». Non la metto al centro di nascosto: usa uno dei tre, " +
-                        "oppure togli «position» e vale il centro.");
+                        "«position» is «start», «center» or «end» along the edge between the two faces, " +
+                        "not «" + position + "». I do not put it at the center behind your back: use one of the " +
+                        "three, or remove «position» and the center applies.");
             }
 
             // ── THE TWO FACES, from the state ───────────────────────────────
@@ -1599,15 +1599,15 @@ namespace Oce.Solid.Agent.Core
                 DocumentState.EntitySignature signature;
                 if (docState == null || !docState.Signatures.TryGetValue(u, out signature) || signature.Type != "FACE")
                     return Failed(
-                        "La faccia «" + u + "» non c'e' piu' in questo documento: rileggi lo stato e " +
-                        "indica di nuovo le due facce.");
+                        "The face «" + u + "» is no longer in this document: read the state again and " +
+                        "point to the two faces again.");
                 string offset;
                 if (!SignatureMatches(a, u, signature, out offset)) return Failed(offset);
                 faces[i] = signature.Entity as IFace2;
                 if (faces[i] == null)
                     return Failed(
-                        "La faccia «" + u + "» non si lascia leggere: indica un'altra faccia della " +
-                        "stessa barra, presa dallo stato.");
+                        "The face «" + u + "» cannot be read: point to another face of the " +
+                        "same bar, taken from the state.");
             }
 
             // ── AND THE GEOMETRY A GUSSET WANTS, checked HERE ───────────────
@@ -1621,9 +1621,9 @@ namespace Oce.Solid.Agent.Core
                 normali[i] = FaceNormal(faces[i]);
                 if (normali[i] == null || normali[i].Length < 3)
                     return Failed(
-                        "La faccia «" + uid[i] + "» non e' piana: il fazzoletto si appoggia su due " +
-                        "facce PIANE, una per barra (su un tubo tondo non c'e' un piano su cui " +
-                        "posarlo). Indica una faccia piana della barra.");
+                        "The face «" + uid[i] + "» is not planar: the gusset rests on two PLANAR " +
+                        "faces, one per bar (on a round tube there is no plane to put it on). " +
+                        "Point to a planar face of the bar.");
             }
             double[] n1 = normali[0], n2 = normali[1];
             double cosine = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
@@ -1643,8 +1643,8 @@ namespace Oce.Solid.Agent.Core
             double t1 = LengthThatLiesOn(faces[0], faces[1]), t2 = LengthThatLiesOn(faces[1], faces[0]);
             if (Math.Max(t1, t2) < 0.01 && (t1 < 0 || t2 < 0))
                 return Failed(
-                    "Non riesco a leggere gli spigoli delle due facce, e senza non so dirti se si " +
-                    "toccano. Non ho messo il fazzoletto: prova con un'altra faccia della stessa barra.");
+                    "I cannot read the edges of the two faces, and without them I cannot tell you " +
+                    "whether they touch. I did not put the gusset: try a different face of the same bar.");
             double contact = Math.Max(t1, t2);
             if (contact < 0.01)
                 return Failed(
@@ -1658,8 +1658,8 @@ namespace Oce.Solid.Agent.Core
             int featureBefore = CountFeature(model);
             int brokenBefore = FeaturesInError(model);
             if (volumeBefore == null || bodiesBefore < 0 || featureBefore < 0)
-                return Failed(VolumeNotReadBefore("mettere il fazzoletto") +
-                               " Prova a ricostruire il pezzo (Ctrl+Q) e a ripetere il passo.");
+                return Failed(VolumeNotReadBefore("putting the gusset in") +
+                               " Rebuild the part (Ctrl+Q) and try the step again.");
             var namesBefore = SolidBodyNames(model);
 
             // ── THE TWO FACES WITH MARK 1, then the call ────────────────────
@@ -1671,13 +1671,13 @@ namespace Oce.Solid.Agent.Core
                 var handler = model.SelectionManager as ISelectionMgr;
                 if (handler == null)
                     return Failed(
-                        "Il gestore della selezione non risponde: non riesco a marcare le due facce. " +
-                        "Non ho toccato niente: prova a ripetere il passo.");
+                        "The selection manager does not answer: I cannot mark the two faces. " +
+                        "I touched nothing: try the step again.");
                 for (int i = 0; i < 2; i++)
                     if (!Select(handler, faces[i], SelectionMarks.GussetSupportFaces))
                         return Failed(
-                            "La faccia «" + uid[i] + "» non si e' lasciata selezionare. Non ho toccato " +
-                            "niente: rileggi lo stato e indica di nuovo le due facce.");
+                            "The face «" + uid[i] + "» could not be selected. I touched nothing: " +
+                            "read the state again and point to the two faces again.");
 
                 feature = model.FeatureManager.InsertGussetFeature3(
                     Depth: Units.M(thickness),
@@ -1729,11 +1729,11 @@ namespace Oce.Solid.Agent.Core
             {
                 int now = CountFeature(model);
                 string queue = now > featureBefore
-                    ? " Pero' l'albero e' cresciuto lo stesso: guarda il pezzo — " + Sentences.HowToWithdrawIt + "."
+                    ? " But the tree grew all the same: look at the part — " + Sentences.HowToWithdrawIt + "."
                     : "";
                 return Failed(
                     (exception != null
-                        ? "Il fazzoletto non e' riuscito: " + exception + "."
+                        ? "The gusset did not succeed: " + exception + "."
                         : "SOLIDWORKS did not create the gusset and gives no reason. The two causes measured " +
                           "so far are ruled out before the call: the profile is not a degenerate polygon, and " +
                           "the two faces were selected with mark 1 (entry GP20). The faces are planar, meet " +
@@ -1751,8 +1751,8 @@ namespace Oce.Solid.Agent.Core
             int featureAfter = CountFeature(model);
             if (featureAfter >= 0 && featureAfter <= featureBefore)
                 return Failed(
-                    "SOLIDWORKS ha risposto con una feature «" + GussetName(feature) + "» che nell'albero " +
-                    "non c'e': non ti dico che il fazzoletto e' messo." + alternativa);
+                    "SOLIDWORKS answered with a feature «" + GussetName(feature) + "» that is not in the tree: " +
+                    "I do not tell you that the gusset is in place." + alternativa);
 
             // 2. it is a gusset: the TYPE measured by the probe («Gusset», like
             //    «Fillet», «APattern» and «Rib» in the other three of this entry), and
@@ -1760,33 +1760,33 @@ namespace Oce.Solid.Agent.Core
             string createdType = GussetType(feature);
             if (!string.Equals(createdType, GussetTypeValue, StringComparison.Ordinal))
                 return Failed(
-                    "E' nata una lavorazione «" + GussetName(feature) + "» di tipo «" + createdType +
-                    "», non un fazzoletto («" + GussetTypeValue + "», misurato): non ti confermo una cosa " +
-                    "diversa da quella che hai chiesto." +
+                    "A feature «" + GussetName(feature) + "» of type «" + createdType +
+                    "» was created, not a gusset («" + GussetTypeValue + "», measured): I do not confirm something " +
+                    "different from what you asked for." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore) + alternativa);
             IGussetFeatureData data = null;
             try { data = feature.GetDefinition() as IGussetFeatureData; } catch { }
             if (data == null)
                 return Failed(
-                    "La lavorazione nata («" + GussetName(feature) + "», tipo «" + GussetType(feature) + "») non " +
-                    "si rilegge come fazzoletto, e non posso controllare cosa ho messo." +
+                    "The feature that was created («" + GussetName(feature) + "», type «" + GussetType(feature) + "») cannot " +
+                    "be read back as a gusset, and I cannot check what I put in." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
             // 3. nothing broken in the tree.
             int brokenAfter = FeaturesInError(model);
             if (brokenBefore >= 0 && brokenAfter > brokenBefore)
                 return Failed(
-                    "Col fazzoletto " + (brokenAfter - brokenBefore) +
-                    (brokenAfter - brokenBefore > 1 ? " lavorazioni sono andate" : " lavorazione e' andata") +
-                    " in errore (" + brokenAfter + " invece di " + brokenBefore + ")." +
+                    "With the gusset " + (brokenAfter - brokenBefore) +
+                    (brokenAfter - brokenBefore > 1 ? " features went" : " feature went") +
+                    " into error (" + brokenAfter + " instead of " + brokenBefore + ")." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
             // 4. one extra body: the gusset is a body of its own (measured 2 -> 3).
             int bodiesAfter = CountSolidBodies(model);
             if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore + 1)
                 return Failed(
-                    "Il fazzoletto e' un corpo a se' (misurato: da 2 corpi a 3), e qui il pezzo e' " +
-                    "passato da " + bodiesBefore + " a " + bodiesAfter + " corpi." +
+                    "The gusset is a separate body (measured: from 2 bodies to 3), and here the part " +
+                    "went from " + bodiesBefore + " to " + bodiesAfter + " bodies." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
             // 5. the material added, against the hand calculation.
@@ -1813,19 +1813,19 @@ namespace Oce.Solid.Agent.Core
                     expected = best;
                     if (Math.Abs(added.Value - best) > Math.Max(0.5, best * 1e-4))
                         return Failed(
-                            "Il fazzoletto e' nato ma ha aggiunto " + GussetDigits(added.Value) + " mm3, e il conto " +
-                            "a mano ne vuole " + GussetDigits(best) + " (" +
-                            (polygon ? "il poligono dei quattro lati" : "lato1 x lato2 / 2") +
-                            " x spessore): la piastra non e' quella chiesta, forse i lati non ci stanno " +
-                            "sulle facce." + RemoveGusset(model, feature, volumeBefore, featureBefore));
+                            "The gusset was created but it added " + GussetDigits(added.Value) + " mm3, and the hand " +
+                            "calculation wants " + GussetDigits(best) + " (" +
+                            (polygon ? "the polygon of the four sides" : "lato1 x lato2 / 2") +
+                            " x thickness): the plate is not the one asked for, maybe the legs do not fit " +
+                            "on the faces." + RemoveGusset(model, feature, volumeBefore, featureBefore));
                 }
                 else
                 {
                     expected = triangleArea * thickness;
                     if (added.Value < expected.Value - Math.Max(0.5, expected.Value * 1e-4))
                         return Failed(
-                            "Il fazzoletto e' nato ma ha aggiunto " + GussetDigits(added.Value) + " mm3, meno del " +
-                            "triangolo che il poligono contiene (" + GussetDigits(expected.Value) + " mm3)." +
+                            "The gusset was created but it added " + GussetDigits(added.Value) + " mm3, less than " +
+                            "the triangle that the polygon contains (" + GussetDigits(expected.Value) + " mm3)." +
                             RemoveGusset(model, feature, volumeBefore, featureBefore));
                 }
             }
@@ -1839,17 +1839,17 @@ namespace Oce.Solid.Agent.Core
             try { readPosition = PositionName(data.ProfileLocation); } catch { }
             string wrong = null;
             if (readThickness.HasValue && Math.Abs(readThickness.Value - thickness) > 0.001)
-                wrong = "lo spessore riletto e' " + readThickness.Value.ToString("0.###", CultureInfo.InvariantCulture) +
-                            " mm invece di " + thickness.ToString("0.###", CultureInfo.InvariantCulture);
+                wrong = "the re-read thickness is " + readThickness.Value.ToString("0.###", CultureInfo.InvariantCulture) +
+                            " mm instead of " + thickness.ToString("0.###", CultureInfo.InvariantCulture);
             else if (readProfile != null && readProfile != profile)
-                wrong = "il profilo riletto e' «" + readProfile + "» invece di «" + profile + "»";
+                wrong = "the re-read profile is «" + readProfile + "» instead of «" + profile + "»";
             else if (readArrangement != null && readArrangement != "both_sides")
-                wrong = "lo spessore riletto sta «" + readArrangement + "» invece che da tutte e due le parti";
+                wrong = "the re-read thickness lies «" + readArrangement + "» instead of on both sides";
             else if (readPosition != null && readPosition != position)
-                wrong = "la posizione riletta e' «" + readPosition + "» invece di «" + position + "»";
+                wrong = "the re-read position is «" + readPosition + "» instead of «" + position + "»";
             if (wrong != null)
                 return Failed(
-                    "Il fazzoletto e' nato, ma " + wrong + ": non te lo lascio passare per buono." +
+                    "The gusset was created, but " + wrong + ": I do not let it pass as good." +
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
             // 7. the faces on which SOLIDWORKS says it rested it.
@@ -1860,9 +1860,9 @@ namespace Oce.Solid.Agent.Core
                 for (int i = 0; i < 2; i++)
                     if (Math.Abs(readAreas[i] - requestedAreas[i]) > Math.Max(0.5, requestedAreas[i] * 1e-4))
                         return Failed(
-                            "Il fazzoletto e' nato, ma SOLIDWORKS dice di averlo appoggiato su facce da " +
-                            GussetDigits(readAreas[0]) + " e " + GussetDigits(readAreas[1]) + " mm2, e tu hai indicato facce da " +
-                            GussetDigits(requestedAreas[0]) + " e " + GussetDigits(requestedAreas[1]) + " mm2." +
+                            "The gusset was created, but SOLIDWORKS says it was laid down on faces of " +
+                            GussetDigits(readAreas[0]) + " and " + GussetDigits(readAreas[1]) + " mm2, and you indicated faces of " +
+                            GussetDigits(requestedAreas[0]) + " and " + GussetDigits(requestedAreas[1]) + " mm2." +
                             RemoveGusset(model, feature, volumeBefore, featureBefore));
             }
 
@@ -1896,7 +1896,7 @@ namespace Oce.Solid.Agent.Core
             };
             if (!added.HasValue) measurements["volume_not_reread"] = NoteVolumeNotReread;
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] fazzoletto {0} {1:0.###}x{2:0.###} sp {3:0.###}: volume {4}, corpi {5} -> {6}",
+                "[agent] gusset {0} {1:0.###}x{2:0.###} thk {3:0.###}: volume {4}, bodies {5} -> {6}",
                 profile, side1, side2, thickness, added.HasValue ? GussetDigits(added.Value) : "?", bodiesBefore, bodiesAfter));
             return Succeeded(feature, measurements);
         }
@@ -1924,18 +1924,18 @@ namespace Oce.Solid.Agent.Core
             try { model.EditRebuild3(); } catch { }
             int features = CountFeature(model);
             if (features < 0)
-                return " L'ho tolto, ma non ho potuto ricontare l'albero per controllare che il pezzo " +
-                       "sia com'era: guardalo.";
+                return " I removed it, but I could not count the tree again to check that the part is " +
+                       "as it was: look at it.";
             // Removed by DeleteSelection2: from here the gusset is gone, and
             // «still in the part» would be false (Z-C21.9, finding C9-6).
             if (features > featureBefore) return RemovedButTreeLonger(features - featureBefore);
             double? volumeAfter = VolumeMm3(model);
             if (volumeBefore == null || volumeAfter == null)
-                return " L'ho tolto, ma non ho potuto rimisurare il volume per controllare che il pezzo " +
-                       "sia com'era: guardalo.";
+                return " I removed it, but I could not measure the volume again to check that the part is " +
+                       "as it was: look at it.";
             if (Math.Abs(volumeAfter.GetValueOrDefault() - volumeBefore.GetValueOrDefault()) > 0.01)
                 return RemovedButVolumeChanged(volumeAfter.GetValueOrDefault(), volumeBefore.GetValueOrDefault());
-            return " L'ho tolto: il pezzo e' com'era prima di questo passo.";
+            return " I removed it: the part is as it was before this step.";
         }
 
         /// <summary>
@@ -2084,7 +2084,7 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             double side = Num(a, "leg_mm", 0);
-            if (side <= 0) return Failed("Il cordone non ha lato.");
+            if (side <= 0) return Failed("The bead has no leg.");
 
             var faces = new IFace2[2];
             var names = new[] { "start_face_uid", "end_face_uid" };
@@ -2093,23 +2093,23 @@ namespace Oce.Solid.Agent.Core
                 string u = Str(a, names[i], "");
                 if (u.Length == 0)
                     return Failed(
-                        "Manca «" + names[i] + "». Il cordone va fra DUE facce, una per " +
-                        "corpo, prese dallo stato del documento (F1, F2...).");
+                        "«" + names[i] + "» is missing. The bead goes between TWO faces, " +
+                        "one per body, taken from the state of the document (F1, F2...).");
                 DocumentState.EntitySignature signature;
                 if (docState == null || !docState.Signatures.TryGetValue(u, out signature) || signature.Type != "FACE")
-                    return Failed("La faccia «" + u + "» non c'e' piu' in questo documento.");
+                    return Failed("The face «" + u + "» is no longer in this document.");
                 string offset;
                 if (!SignatureMatches(a, u, signature, out offset)) return Failed(offset);
                 faces[i] = signature.Entity as IFace2;
                 if (faces[i] == null)
-                    return Failed("La faccia «" + u + "» non si lascia leggere.");
+                    return Failed("The face «" + u + "» cannot be read.");
             }
 
             string fromBody = BodyName(faces[0]), bodyA = BodyName(faces[1]);
             if (fromBody != null && fromBody == bodyA)
                 return Failed(
-                    "Le due facce sono dello stesso corpo («" + fromBody + "»). Un " +
-                    "cordone unisce DUE corpi: indica una faccia per parte.");
+                    "The two faces are of the same body («" + fromBody + "»). A " +
+                    "bead joins TWO bodies: point to one face on each body.");
 
             // S17: a curved face gives null (it used to give 0,0,0, a zero
             // cosine): either way it is not "parallel", as before.
@@ -2129,8 +2129,8 @@ namespace Oce.Solid.Agent.Core
             double l1 = LengthThatLiesOn(faces[0], faces[1]), l2 = LengthThatLiesOn(faces[1], faces[0]);
             if (Math.Max(l1, l2) < 0.01 && (l1 < 0 || l2 < 0))
                 return Failed(
-                    "Non riesco a leggere gli spigoli delle due facce, e senza non so dirti " +
-                    "se si toccano. Non ho messo il cordone.");
+                    "I cannot read the edges of the two faces, and without them I cannot tell you " +
+                    "whether they touch. I did not put the bead.");
             double contact = Math.Max(l1, l2);
             if (contact < 0.01)
                 return Failed(
@@ -2167,7 +2167,7 @@ namespace Oce.Solid.Agent.Core
                     return Failed("I could not prepare the selection of the two faces (CreateSelectData).");
                 selectData.Mark = marks[i];
                 if (!(faces[i] as IEntity).Select4(true, selectData))
-                    return Failed("La faccia «" + Str(a, names[i], "") + "» non si e' lasciata selezionare.");
+                    return Failed("The face «" + Str(a, names[i], "") + "» could not be selected.");
             }
 
             var beadsBefore = new HashSet<string>(StringComparer.Ordinal);
@@ -2192,15 +2192,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il cordone non e' riuscito: " + ex.Message);
+                return Failed("The bead did not succeed: " + ex.Message);
             }
             finally { try { model.ClearSelection2(true); } catch { } }
             if (feature == null)
                 return Failed(
-                    "Il cordone non e' stato creato, e SOLIDWORKS non dice perche'. " +
-                    "Le due facce si toccano per " +
+                    "The bead was not created, and SOLIDWORKS does not say why. " +
+                    "The two faces touch for " +
                     contact.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) +
-                    " mm: il lato potrebbe essere troppo grande per le facce.");
+                    " mm: the leg could be too big for the faces.");
 
             // REREAD, NOT BELIEVED: it is the side that SOLIDWORKS wrote into the
             // feature, and it is the measure that came out different between distant faces.
@@ -2213,10 +2213,10 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (readSide >= 0 && Math.Abs(readSide - side) > 0.001)
                 return Failed(
-                    "Il cordone e' stato creato con un lato di " +
+                    "The bead was created with a leg of " +
                     readSide.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
-                    " mm invece di " + side.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
-                    ". Non te lo lascio passare per buono — " + Sentences.HowToWithdrawIt + ".");
+                    " mm instead of " + side.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    ". I do not let it pass as good — " + Sentences.HowToWithdrawIt + ".");
 
             return Succeeded(feature, new Dictionary<string, object>
             {
@@ -2816,13 +2816,13 @@ namespace Oce.Solid.Agent.Core
             object raw;
             if (a == null || !a.TryGetValue("segments", out raw) || raw == null)
             {
-                reason = "Il piano non porta nessun segmento: non c'e' percorso.";
+                reason = "The plan carries no segment: there is no path.";
                 return null;
             }
             var itemList = raw as System.Collections.IEnumerable;
             if (itemList == null)
             {
-                reason = "I segmenti del piano non sono leggibili.";
+                reason = "The segments of the plan are not readable.";
                 return null;
             }
 
@@ -2834,7 +2834,7 @@ namespace Oce.Solid.Agent.Core
                 var map = entry as Dictionary<string, object>;
                 if (map == null)
                 {
-                    reason = "Il segmento " + i + " non e' leggibile.";
+                    reason = "Segment " + i + " is not readable.";
                     return null;
                 }
                 double[] da = Point(map, "start", i, out reason);
@@ -2843,14 +2843,14 @@ namespace Oce.Solid.Agent.Core
                 if (b == null) return null;
                 if (Distance(da, b) < 0.001)
                 {
-                    reason = "Il segmento " + i + " ha i due estremi nello stesso punto.";
+                    reason = "Segment " + i + " has its two ends at the same point.";
                     return null;
                 }
                 outside.Add(new Segment { Da = da, A = b });
             }
             if (outside.Count == 0)
             {
-                reason = "Il percorso e' vuoto.";
+                reason = "The path is empty.";
                 return null;
             }
             return outside;
@@ -2863,13 +2863,13 @@ namespace Oce.Solid.Agent.Core
             object raw;
             if (!map.TryGetValue(key, out raw) || raw == null)
             {
-                reason = "Al segmento " + i + " manca «" + key + "».";
+                reason = "Segment " + i + " is missing «" + key + "».";
                 return null;
             }
             var itemList = (raw as System.Collections.IEnumerable);
             if (itemList == null)
             {
-                reason = "Al segmento " + i + " il punto «" + key + "» non e' leggibile.";
+                reason = "In segment " + i + " the point «" + key + "» is not readable.";
                 return null;
             }
             var values = new List<double>();
@@ -2878,14 +2878,14 @@ namespace Oce.Solid.Agent.Core
                 try { values.Add(Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture)); }
                 catch
                 {
-                    reason = "Al segmento " + i + ", punto «" + key +
-                             "», una coordinata non e' un numero.";
+                    reason = "In segment " + i + ", point «" + key +
+                             "», a coordinate is not a number.";
                     return null;
                 }
             }
             if (values.Count != 3)
             {
-                reason = "Al segmento " + i + " il punto «" + key + "» non ha tre coordinate.";
+                reason = "In segment " + i + " the point «" + key + "» does not have three coordinates.";
                 return null;
             }
             return values.ToArray();
@@ -2927,7 +2927,7 @@ namespace Oce.Solid.Agent.Core
                 howMany = fromStep.Count;
                 if (howMany == 0)
                 {
-                    reason = "Il passo " + number + " non ha lasciato nessun corpo da usare.";
+                    reason = "The step " + number + " left no body to use.";
                     return null;
                 }
                 return fromStep.Cast<object>().ToArray();
@@ -2940,10 +2940,10 @@ namespace Oce.Solid.Agent.Core
             if (uid.Count == 0)
             {
                 reason =
-                    "Non hai detto su quali corpi lavorare. Indica «" + fieldUid +
-                    "» con gli identificativi dello stato del documento (C1, C2...), " +
-                    "oppure «" + theField + "» se le barre le crea un passo precedente " +
-                    "di questo stesso piano.";
+                    "You did not say which bodies to work on. Give in «" + fieldUid +
+                    "» the identifiers of the state of the document (C1, C2...), " +
+                    "or give «" + theField + "» if the bars are created by a previous " +
+                    "step of this same plan.";
                 return null;
             }
 
@@ -2981,8 +2981,8 @@ namespace Oce.Solid.Agent.Core
             reason = null;
             if (docState == null)
             {
-                reason = "Non ho lo stato del documento: non so a cosa corrisponda «" +
-                         string.Join(", ", uid) + "».";
+                reason = "I do not have the state of the document: I do not know what «" +
+                         string.Join(", ", uid) + "» corresponds to.";
                 return null;
             }
 
@@ -2992,13 +2992,13 @@ namespace Oce.Solid.Agent.Core
                 DocumentState.EntitySignature signature;
                 if (!docState.Signatures.TryGetValue(u, out signature) || signature.Type != "BODY")
                 {
-                    reason = "Il corpo «" + u + "» non c'e' piu' in questo documento.";
+                    reason = "The body «" + u + "» is no longer in this document.";
                     return null;
                 }
                 var body = signature.Entity as IBody2;
                 if (body == null)
                 {
-                    reason = "Il corpo «" + u + "» non e' piu' utilizzabile.";
+                    reason = "The body «" + u + "» is no longer usable.";
                     return null;
                 }
 
@@ -3011,7 +3011,7 @@ namespace Oce.Solid.Agent.Core
             }
             if (outside.Count == 0)
             {
-                reason = "Nessun corpo indicato.";
+                reason = "No body indicated.";
                 return null;
             }
             return outside;
@@ -3051,10 +3051,10 @@ namespace Oce.Solid.Agent.Core
                 if (uid.Count == 0)
                 {
                     reason =
-                        "Non hai detto quali barre tappare. Indica «bodies_uid» con " +
-                        "gli identificativi dello stato (C1, C2...), oppure " +
-                        "«" + theField + "» se le barre le crea un passo precedente " +
-                        "di questo stesso piano.";
+                        "You did not say which bars to cap. Give in «bodies_uid» " +
+                        "the identifiers of the state (C1, C2...), or give " +
+                        "«" + theField + "» if the bars are created by a previous " +
+                        "step of this same plan.";
                     return null;
                 }
                 var bodies = BodiesFromUid(docState, uid, a, out reason);

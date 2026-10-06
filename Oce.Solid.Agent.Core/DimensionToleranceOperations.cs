@@ -69,28 +69,28 @@ namespace Oce.Solid.Agent.Core
         {
             string dimensionName = Str(a, "dimension", "");
             if (string.IsNullOrWhiteSpace(dimensionName))
-                return Failed("Non hai detto quale quota. I nomi stanno nello stato del documento, dentro ogni " +
-                               "lavorazione (per esempio «D1@Schizzo2»).");
+                return Failed("You did not say which dimension. The names are in the state of the document, inside " +
+                               "each feature (for example «D1@Schizzo2»).");
             string typ = (Str(a, "variant", "") ?? "").Trim().ToLowerInvariant();
             var dimension = FindDimension(model, dimensionName, out string location);
             if (dimension == null)
-                return Failed("Non trovo la quota «" + dimensionName + "» in questo documento." +
-                               (location == null ? "" : " Ci sono: " + location + "."));
+                return Failed("I cannot find the dimension «" + dimensionName + "» in this document." +
+                               (location == null ? "" : " There are: " + location + "."));
             // LINEAR DIMENSIONS ONLY: on an angular dimension SystemValue and the limits are
             // in RADIANS, and «0.5 mm» would become ±0.0005 rad read back the same
             // (review of 26/9/2026).
             int dimensionType = -1;
             try { dimensionType = dimension.GetType(); } catch { }
             if (dimensionType == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular)
-                return Failed("«" + dimensionName + "» e' una quota ANGOLARE: le tolleranze che so mettere e riscontrare " +
-                               "sono in millimetri. Scegli una quota lineare.");
+                return Failed("«" + dimensionName + "» is an ANGULAR dimension: the tolerances I can put and check are " +
+                               "in millimeters. Choose a linear dimension.");
             if (dimensionType != (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear)
-                return Failed("Non riesco a dire se «" + dimensionName + "» e' una quota lineare (tipo " + dimensionType +
-                               "): una tolleranza in mm su una quota di altro tipo sarebbe un numero sbagliato. Scegli " +
-                               "una quota lineare.");
+                return Failed("I cannot tell whether «" + dimensionName + "» is a linear dimension (type " + dimensionType +
+                               "): a tolerance in mm on a dimension of another type would be a wrong number. Choose a " +
+                               "linear dimension.");
             double nominal = Units.Mm(ApiHelpers.ReadDimension(dimension));
             var tol = dimension.Tolerance;
-            if (tol == null) return Failed("La quota «" + dimensionName + "» non espone la tolleranza.");
+            if (tol == null) return Failed("The dimension «" + dimensionName + "» does not expose the tolerance.");
 
             // As it was, to put it back if the cross-check does not add up.
             int typeBefore = tol.Type;
@@ -107,7 +107,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     double v;
                     if (!RequiredNum(a, "value_mm", out v, out string m)) return Failed(m);
-                    if (v <= 0) return Failed("«value_mm» di una tolleranza simmetrica e' maggiore di zero (±" + v + ").");
+                    if (v <= 0) return Failed("«value_mm» of a symmetric tolerance is greater than zero (±" + v + ").");
                     tol.Type = (int)swTolType_e.swTolSYMMETRIC;
                     tol.SetValues2(-Units.M(v), Units.M(v), all, null);
                     decimals = Math.Max(Decimals(Num(a, "value_mm", 0)), 1);
@@ -119,8 +119,8 @@ namespace Oce.Solid.Agent.Core
                     if (!RequiredNum(a, "upper_mm", out su, out string m1)) return Failed(m1);
                     if (!RequiredNum(a, "lower_mm", out down, out string m2)) return Failed(m2);
                     if (su <= down)
-                        return Failed("Lo scostamento superiore (" + su + ") deve essere maggiore dell'inferiore (" + down +
-                                       "): con «upper_mm» 0,1 e «lower_mm» -0,05 la quota sta fra -0,05 e +0,1.");
+                        return Failed("The upper deviation (" + su + ") must be greater than the lower (" + down +
+                                       "): with «upper_mm» 0.1 and «lower_mm» -0.05 the dimension is between -0.05 and +0.1.");
                     tol.Type = (int)swTolType_e.swTolBILAT;
                     tol.SetValues2(Units.M(down), Units.M(su), all, null);
                     decimals = Math.Max(Math.Max(Decimals(su), Decimals(down)), 1);
@@ -131,16 +131,16 @@ namespace Oce.Solid.Agent.Core
                     fitClass = (Str(a, "fit_class", "") ?? "").Trim();
                     var mc = Regex.Match(fitClass, @"^([A-Za-z]{1,2})(\d{1,2})$");
                     if (!mc.Success)
-                        return Failed("«fit_class» e' una classe ISO come «H7» (foro, maiuscola) o «g6» (albero, " +
-                                       "minuscola), non «" + fitClass + "».");
+                        return Failed("«fit_class» is an ISO class like «H7» (hole, uppercase) or «g6» " +
+                                       "(shaft, lowercase), not «" + fitClass + "».");
                     isHole = char.IsUpper(mc.Groups[1].Value[0]);
                     degree = int.Parse(mc.Groups[2].Value, CultureInfo.InvariantCulture);
                     if (!ItGrades.ContainsKey(degree))
-                        return Failed("Il grado IT" + degree + " non lo so riscontrare (so da IT5 a IT11): senza riscontro " +
-                                       "non te lo metto. Scegli un grado fra 5 e 11.");
+                        return Failed("I cannot check grade IT" + degree + " (I know IT5 to IT11): without a check I do not put " +
+                                       "it. Choose a grade between 5 and 11.");
                     if (ItMicron(degree, nominal) < 0)
-                        return Failed("La quota misura " + nominal.ToString("0.###", CultureInfo.InvariantCulture) +
-                                       " mm: la tabella ISO 286 che so riscontrare va fino a 500 mm.");
+                        return Failed("The dimension measures " + nominal.ToString("0.###", CultureInfo.InvariantCulture) +
+                                       " mm: the ISO 286 table I can check goes up to 500 mm.");
                     tol.Type = (int)swTolType_e.swTolFITWITHTOL;
                     if (isHole) tol.SetFitValues(fitClass, ""); else tol.SetFitValues("", fitClass);
                     decimals = 3;
@@ -151,8 +151,8 @@ namespace Oce.Solid.Agent.Core
                     decimals = -1;
                     break;
                 default:
-                    return Failed("«variant» e' uno fra «symmetric» (±value_mm), «bilateral» (upper_mm / " +
-                                   "lower_mm), «fit» (classe, es. H7 o g6) o «none», non «" + typ + "».");
+                    return Failed("«variant» is one of «symmetric» (±value_mm), «bilateral» (upper_mm / lower_mm), " +
+                                   "«fit» (class, e.g. H7 or g6) or «none», not «" + typ + "».");
             }
             try { model.EditRebuild3(); } catch { }
 

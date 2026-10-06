@@ -75,8 +75,8 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: una vista di sezione sta " +
-                    "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
+                    "The active document is not a drawing: a section view goes on a " +
+                    "sheet of a drawing. First create the drawing with «create_drawing».");
 
             // ── THE VIEW TO SECTION ─────────────────────────────────────
             //
@@ -107,15 +107,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non riesco a scorrere le viste del foglio: " + ex.Message);
+                return Failed("I cannot go through the views of the sheet: " + ex.Message);
             }
 
             if (target == null)
                 return Failed(requested == null
-                    ? "Sul foglio non c'e' nessuna vista da sezionare: mettici prima " +
-                      "le viste con «standard_views»."
-                    : "Non trovo la vista «" + requested + "». Sul foglio ci sono: " +
-                      (viewNames.Count == 0 ? "nessuna vista" : string.Join(", ", viewNames)) + ".");
+                    ? "There is no view to section on the sheet: first put the views " +
+                      "there with «standard_views»."
+                    : "I cannot find the view «" + requested + "». On the sheet there are: " +
+                      (viewNames.Count == 0 ? "no view" : string.Join(", ", viewNames)) + ".");
 
             string targetName = "";
             try { targetName = target.GetName2() ?? ""; } catch { }
@@ -123,9 +123,9 @@ namespace Oce.Solid.Agent.Core
             var outline = target.GetOutline() as double[];
             if (outline == null || outline.Length < 4)
                 return Failed(
-                    "Non riesco a leggere l'ingombro della vista «" + targetName +
-                    "», e senza quello non so dove tracciare la linea di taglio: una " +
-                    "linea che sfiora la vista da' una sezione vuota senza dire niente.");
+                    "I cannot read the bounding box of the view «" + targetName +
+                    "», and without it I do not know where to draw the cutting line: a " +
+                    "line that grazes the view gives an empty section without saying anything.");
 
             // ── WHERE TO CUT ────────────────────────────────────────────
             //
@@ -136,8 +136,8 @@ namespace Oce.Solid.Agent.Core
             string facing = (Str(a, "orientation", "vertical") ?? "vertical").Trim().ToLowerInvariant();
             if (facing != "vertical" && facing != "horizontal")
                 return Failed(
-                    "«orientation» dice come corre la linea di taglio e vale «vertical» o " +
-                    "«horizontal»: ho letto «" + facing + "».");
+                    "«orientation» says how the cutting line runs and is «vertical» or " +
+                    "«horizontal»: I read «" + facing + "».");
 
             double offsetM = Num(a, "offset_mm", 0) / 1000.0;
             string label = Str(a, "label", "A");
@@ -159,11 +159,11 @@ namespace Oce.Solid.Agent.Core
                 double x = (xMin + xMax) / 2.0 + offsetM;
                 if (x <= xMin || x >= xMax)
                     return Failed(
-                        "Con «offset_mm» = " + Num(a, "offset_mm", 0) + " la linea di taglio cade " +
-                        "FUORI dalla vista, e una sezione tagliata fuori dal materiale " +
-                        "esce vuota senza dare nessun errore. La vista e' larga " +
-                        Math.Round(wide * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
-                        "fra " + Math.Round(-wide * 500, 1) + " e " +
+                        "With «offset_mm» = " + Num(a, "offset_mm", 0) + " the cutting line falls " +
+                        "OUTSIDE the view, and a section cut outside the material " +
+                        "comes out empty without any error. The view is " +
+                        Math.Round(wide * 1000, 1) + " mm wide on the sheet, so «offset_mm» is " +
+                        "between " + Math.Round(-wide * 500, 1) + " and " +
                         Math.Round(wide * 500, 1) + ".");
                 x1 = x; y1 = yMin - up * 0.1;
                 x2 = x; y2 = yMax + up * 0.1;
@@ -173,11 +173,11 @@ namespace Oce.Solid.Agent.Core
                 double y = (yMin + yMax) / 2.0 + offsetM;
                 if (y <= yMin || y >= yMax)
                     return Failed(
-                        "Con «offset_mm» = " + Num(a, "offset_mm", 0) + " la linea di taglio cade " +
-                        "FUORI dalla vista, e una sezione tagliata fuori dal materiale " +
-                        "esce vuota senza dare nessun errore. La vista e' alta " +
-                        Math.Round(up * 1000, 1) + " mm sul foglio, quindi «offset_mm» sta " +
-                        "fra " + Math.Round(-up * 500, 1) + " e " +
+                        "With «offset_mm» = " + Num(a, "offset_mm", 0) + " the cutting line falls " +
+                        "OUTSIDE the view, and a section cut outside the material " +
+                        "comes out empty without any error. The view is " +
+                        Math.Round(up * 1000, 1) + " mm tall on the sheet, so «offset_mm» is " +
+                        "between " + Math.Round(-up * 500, 1) + " and " +
                         Math.Round(up * 500, 1) + ".");
                 x1 = xMin - wide * 0.1; y1 = y;
                 x2 = xMax + wide * 0.1; y2 = y;
@@ -198,13 +198,13 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito a tracciare la linea di taglio: " + ex.Message);
+                return Failed("I could not draw the cutting line: " + ex.Message);
             }
             if (line == null)
                 return Failed(
-                    "«CreateLine» non ha prodotto nessun segmento sul foglio, e senza " +
-                    "la linea non c'e' niente da selezionare: «CreateSectionViewAt5» " +
-                    "non prende il taglio in firma, lo prende dalla selezione.");
+                    "«CreateLine» produced no segment on the sheet, and without the line " +
+                    "there is nothing to select: «CreateSectionViewAt5» does not take " +
+                    "the cut as a signature, it takes it from the selection.");
 
             // THE SKETCH IS CLOSED FIRST. See the docstring: with an open sketch
             // the APIs that create views behave differently.
@@ -338,15 +338,15 @@ namespace Oce.Solid.Agent.Core
             bool emptyOneRemoved = hatching == 0 && !viewNames.Contains(sectionName) && RemoveNewView(model, sectionName);
             if (hatching == 0)
                 return Failed(
-                    (emptyOneRemoved ? "Ho tolto la vista «" + sectionName + "»: " : "") +
-                    "La vista «" + sectionName + "» e' nata ma NON HA TRATTEGGIO " +
-                    "(campiture di faccia: 0), e " +
-                    "una sezione senza tratteggio e' una linea di taglio caduta fuori " +
-                    "dal materiale: sul foglio c'e' una vista che sembra buona e non " +
-                    "mostra niente. La linea l'ho tracciata " +
-                    (facing == "vertical" ? "in verticale a x=" : "in orizzontale a y=") +
-                    Math.Round((facing == "vertical" ? x1 : y1) * 1000, 2) + " mm di foglio. " +
-                    "Sposta il taglio con «offset_mm».");
+                    (emptyOneRemoved ? "I removed the view «" + sectionName + "»: " : "") +
+                    "The view «" + sectionName + "» was created but HAS NO " +
+                    "HATCHING (face hatches: 0), " +
+                    "and a section without hatching is a cutting line that fell " +
+                    "outside the material: on the sheet there is a view that looks " +
+                    "good and shows nothing. I drew the line " +
+                    (facing == "vertical" ? "vertically at x=" : "horizontally at y=") +
+                    Math.Round((facing == "vertical" ? x1 : y1) * 1000, 2) + " mm of sheet. " +
+                    "Move the cut with «offset_mm».");
 
             // THE ACTUAL LETTER, read back from the view (Z-C13).
             string readLetter = ViewLetter(sectionView);
@@ -378,20 +378,20 @@ namespace Oce.Solid.Agent.Core
                 ["hatches_solids"] = solids,
                 ["depth_mm"] = Math.Round(depthM * 1000, 2),
                 ["what_it_does_not_check"] =
-                    "SE QUELLA E' LA SEZIONE CHE SERVIVA. So dirti che il taglio ha " +
-                    "incontrato materiale (il tratteggio c'e'), non che passa per la " +
-                    "cavita' che volevi mostrare: una sezione tagliata dieci millimetri " +
-                    "piu' in la' e' altrettanto valida e non fa vedere il foro. " +
-                    "Scegli «offset_mm» guardando il pezzo, non a caso.\n" +
-                    "Non guardo se la vista di sezione si accavalla con le altre o col " +
-                    "cartiglio, ne' se la scala del foglio la fa uscire dal formato. " +
-                    "Non guardo le frecce e l'etichetta sulla vista di partenza: " +
-                    "SOLIDWORKS le mette, io non le rileggo. E non decido se una " +
-                    "sezione serva: quello dipende da cosa il pezzo ha dentro.",
+                    "IF THAT IS THE SECTION THAT WAS NEEDED. I can tell you that the cut " +
+                    "met material (the hatching is there), not that it passes through the " +
+                    "cavity you wanted to show: a section cut ten millimeters further on is " +
+                    "just as valid and does not show the hole. Choose «offset_mm» by " +
+                    "looking at the part, not at random.\nI do not look at " +
+                    "whether the section view overlaps the others or the title block, nor " +
+                    "whether the scale of the sheet makes it go out of the format. I do " +
+                    "not look at the arrows and the label on the starting view: SOLIDWORKS " +
+                    "puts them, I do not read them again. And I do not decide whether " +
+                    "a section is needed: that depends on what the part has inside.",
             };
 
-            _log("[agente] sezione «" + sectionName + "» da «" + targetName + "»: " +
-                 hatching + " tratteggi, viste " + viewsBefore + " -> " + viewsAfter);
+            _log("[agent] section «" + sectionName + "» from «" + targetName + "»: " +
+                 hatching + " hatches, views " + viewsBefore + " -> " + viewsAfter);
             return WithoutFeature(outside);
         }
 

@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.Core
             reason = null;
             if (string.IsNullOrWhiteSpace(typ))
             {
-                reason = "Non hai detto che sezione: " + Items() + ".";
+                reason = "You did not say which section: " + Items() + ".";
                 return null;
             }
 
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.Core
                 case "angle":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
-                    reason = ThicknessIsInside(t, Math.Min(b, h), "un'ala", "un piatto");
+                    reason = ThicknessIsInside(t, Math.Min(b, h), "a flange", "a flat bar");
                     if (reason != null) return null;
                     // Origin on the INNER CORNER: it is a point that exists on the
                     // part and that in the workshop can be measured. The flanges grow toward
@@ -142,8 +142,8 @@ namespace Oce.Solid.Agent.Core
                 case "u":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
-                    reason = ThicknessIsInside(2 * t, b, "l'anima", "un piatto")
-                             ?? ThicknessIsInside(t, h, "un'ala", "un piatto");
+                    reason = ThicknessIsInside(2 * t, b, "the web", "a flat bar")
+                             ?? ThicknessIsInside(t, h, "a flange", "a flat bar");
                     if (reason != null) return null;
                     // Origin on the outer bottom-left corner: the two
                     // flanges go up.
@@ -166,8 +166,8 @@ namespace Oce.Solid.Agent.Core
                 case "t":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["thickness_mm"];
-                    reason = ThicknessIsInside(t, b, "l'ala", "un piatto")
-                             ?? ThicknessIsInside(t, h, "l'anima", "un piatto");
+                    reason = ThicknessIsInside(t, b, "the flange", "a flat bar")
+                             ?? ThicknessIsInside(t, h, "the web", "a flat bar");
                     if (reason != null) return null;
                     // Origin at the centre of the top flange: the web goes down
                     // toward -Y.
@@ -194,8 +194,8 @@ namespace Oce.Solid.Agent.Core
                     if (b <= h)
                     {
                         reason = string.Format(CultureInfo.InvariantCulture,
-                            "Un'asola {0:0.###}x{1:0.###}: la lunghezza deve essere " +
-                            "maggiore della larghezza, altrimenti e' un cerchio.", b, h);
+                            "A slot {0:0.###}x{1:0.###}: the length must be " +
+                            "greater than the width, otherwise it is a circle.", b, h);
                         return null;
                     }
                     double r = h / 2.0;
@@ -221,7 +221,7 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
-            reason = "Sezione «" + typ + "» sconosciuta. Ci sono: " + Items() + ".";
+            reason = "Section «" + typ + "» unknown. There are: " + Items() + ".";
             return null;
         }
 
@@ -254,11 +254,11 @@ namespace Oce.Solid.Agent.Core
         {
             if (shorterSide - 2.0 * wall > 0.001) return null;
             return string.Format(CultureInfo.InvariantCulture,
-                "Parete {0:0.###} mm su un {1} da {2:0.###} mm: non resta cavita'. " +
-                "La parete deve stare STRETTAMENTE sotto la meta', cioe' sotto " +
-                "{3:0.###} mm. A meta' esatta il vuoto ha area zero, SOLIDWORKS non " +
-                "lo segnala ed estrude una barra piena — che pesa quattro volte " +
-                "tanto ed e' verde come quella giusta.",
+                "Wall {0:0.###} mm on a {1} of {2:0.###} mm: no cavity is left. " +
+                "The wall must be STRICTLY under half, that is under {3:0.###} " +
+                "mm. At exactly half the void has area zero, SOLIDWORKS does not " +
+                "report it and extrudes a solid bar — which weighs four times " +
+                "as much and is green like the right one.",
                 wall, what, shorterSide, shorterSide / 2.0);
         }
 
@@ -274,8 +274,8 @@ namespace Oce.Solid.Agent.Core
         {
             if (thickness < side) return null;
             return string.Format(CultureInfo.InvariantCulture,
-                "Spessore {0:0.###} mm su {1} da {2:0.###} mm: non e' piu' un profilo, " +
-                "viene fuori {3}. Lo spessore deve stare sotto il lato.",
+                "Thickness {0:0.###} mm on {1} of {2:0.###} mm: it is no longer a profile, " +
+                "what comes out is {3}. The thickness must be under the side.",
                 thickness, which, side, becomes);
         }
 

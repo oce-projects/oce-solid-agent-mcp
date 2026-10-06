@@ -30,8 +30,8 @@ namespace Oce.Solid.Agent.Core
         {
             var drawing = model as IDrawingDoc;
             if (drawing == null)
-                return Failed("Il documento attivo non e' una tavola: la vista dello sviluppo si mette in una " +
-                               "tavola. Creala con «create_drawing».");
+                return Failed("The active document is not a drawing: the flat pattern view goes in a drawing. " +
+                               "Create it with «create_drawing».");
 
             string modelPath = Str(a, "model", null);
             if (string.IsNullOrWhiteSpace(modelPath))
@@ -42,7 +42,7 @@ namespace Oce.Solid.Agent.Core
             }
             var swPath = CanonicalPath(modelPath);
             if (swPath == null)
-                return Failed("«" + modelPath + "» non risulta aperto: la vista nascerebbe vuota.");
+                return Failed("«" + modelPath + "» does not appear to be open: the view would be created empty.");
             // A part loaded hidden (no window of its own) answers here as well:
             // the C4-4 probe of 28/9/2026 read, on the object GetOpenDocumentByName
             // gave for a hidden part, the same IPartDoc, configuration, features,
@@ -50,10 +50,10 @@ namespace Oce.Solid.Agent.Core
             // own window» did not matter).
             var part = _sw.GetOpenDocumentByName(swPath) as IModelDoc2;
             if (!(part is IPartDoc))
-                return Failed("«" + swPath + "» non e' una parte: lo sviluppo e' di una parte di lamiera.");
+                return Failed("«" + swPath + "» is not a part: the flat pattern belongs to a sheet metal part.");
             if (SheetMetalData(part) == null)
-                return Failed("«" + System.IO.Path.GetFileName(swPath) + "» non e' di lamiera (non ha la " +
-                               "lavorazione «SheetMetal»): non c'e' uno sviluppo da mettere in tavola.");
+                return Failed("«" + System.IO.Path.GetFileName(swPath) + "» is not sheet metal " +
+                               "(it does not have the «SheetMetal» feature): there is no flat pattern to put in the drawing.");
 
             string configuration = Str(a, "configuration", null);
             if (string.IsNullOrWhiteSpace(configuration))
@@ -78,11 +78,11 @@ namespace Oce.Solid.Agent.Core
                 raw = drawing.CreateFlatPatternViewFromModelView3(
                     swPath, configuration ?? "", x, y, 0, hideBends, false);
             }
-            catch (Exception ex) { return Failed("La vista dello sviluppo non e' nata: " + ex.Message); }
+            catch (Exception ex) { return Failed("The flat pattern view was not created: " + ex.Message); }
             var view = raw as IView;
             if (view == null)
-                return Failed("SOLIDWORKS non ha creato la vista dello sviluppo e non ha detto perche' " +
-                               "(configurazione «" + configuration + "»).");
+                return Failed("SOLIDWORKS did not create the flat pattern view and did not say why " +
+                               "(configuration «" + configuration + "»).");
             string itemName = "";
             try { itemName = view.GetName2() ?? ""; } catch { }
 
@@ -159,9 +159,9 @@ namespace Oce.Solid.Agent.Core
                 // WITHOUT THE FLAT PATTERN OF THE PART THERE IS NO CROSS-CHECK (review of
                 // 26/9/2026): the view could be of something else.
                 bool removed = RemoveNewView(model, itemName);
-                return Failed("Non riesco a misurare lo sviluppo del pezzo (la lavorazione «FlatPattern» non si lascia " +
-                               "misurare), e senza non so dire se la vista mostra lo sviluppo giusto. " +
-                               (removed ? "Ho tolto la vista." : "Togli la vista: " + Sentences.HowToWithdrawIt + "."));
+                return Failed("I cannot measure the flat pattern of the part (the «FlatPattern» feature cannot be measured), " +
+                               "and without it I cannot say whether the view shows the right flat pattern. " +
+                               (removed ? "I removed the view." : "Remove the view: " + Sentences.HowToWithdrawIt + "."));
             }
             measurements["matches_with_part"] = true;
             return WithoutFeature(measurements);
@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.Core
             var p = view.Position as double[];
             if (o == null || o.Length < 4 || p == null || p.Length < 2)
             {
-                reason = "La vista dello sviluppo e' nata ma non riesco a leggere dove sta sul foglio.";
+                reason = "The flat pattern view was created but I cannot read where it is on the sheet.";
                 return false;
             }
             double w = o[2] - o[0], h = o[3] - o[1];
@@ -245,19 +245,19 @@ namespace Oce.Solid.Agent.Core
                 if (why != null)
                 {
                     reason = string.Format(CultureInfo.InvariantCulture,
-                        "La vista dello sviluppo ({0:0} x {1:0} mm sul foglio) dove l'hai chiesta {2}. Togli «x_mm» e " +
-                        "«y_mm» e la metto io in un posto libero.", w * 1000, h * 1000, why);
+                        "The flat pattern view ({0:0} x {1:0} mm on the sheet) where you asked for it {2}. Remove «x_mm» " +
+                        "and «y_mm» and I put it in a free place.", w * 1000, h * 1000, why);
                     return false;
                 }
-                location = "dove chiesto";
+                location = "where requested";
                 return true;
             }
             var down = FreePlace(sheet, w, h, out location);
             if (down == null)
             {
                 reason = string.Format(CultureInfo.InvariantCulture,
-                    "Sul foglio non c'e' un posto libero per la vista dello sviluppo ({0:0} x {1:0} mm) fuori dalle altre " +
-                    "viste e dal cartiglio: usa un foglio piu' grande o un'altra scala.", w * 1000, h * 1000);
+                    "On the sheet there is no free place for the flat pattern view ({0:0} x {1:0} mm) outside the other " +
+                    "views and the title block: use a bigger sheet or another scale.", w * 1000, h * 1000);
                 return false;
             }
             // The position of the view is not necessarily the centre of the outline:
@@ -275,10 +275,10 @@ namespace Oce.Solid.Agent.Core
             // judges the outline where the view actually is, so even then it
             // would judge the place it landed in, not the one asked.
             var o2 = view.GetOutline() as double[];
-            string anchor = o2 == null ? "non si legge" : sheet.Touches(o2[0], o2[1], o2[2], o2[3]);
+            string anchor = o2 == null ? "cannot be read" : sheet.Touches(o2[0], o2[1], o2[2], o2[3]);
             if (anchor != null)
             {
-                reason = "Ho spostato la vista dello sviluppo " + location + " ma " + anchor + ".";
+                reason = "I moved the flat pattern view " + location + " but " + anchor + ".";
                 return false;
             }
             return true;

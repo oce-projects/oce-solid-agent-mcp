@@ -69,25 +69,25 @@ namespace Oce.Solid.Agent.Core
             if (before.Broken >= 0 && broken > before.Broken)
             {
                 int newOnes = broken - before.Broken;
-                return newOnes + (newOnes > 1 ? " lavorazioni sono andate" : " lavorazione e' andata") +
-                       " in errore (" + broken + " invece di " + before.Broken + ")";
+                return newOnes + (newOnes > 1 ? " features" : " feature") +
+                       " went into error (" + broken + " instead of " + before.Broken + ")";
             }
             // A REBUILD THAT ANSWERS FALSE on a part that was sound (no
             // broken feature, counted: not «I do not know»). On an already broken part the
             // answer is false anyway, and the number of broken ones counts, above.
             bool wasHealthy = before.Broken >= 0 && before.Broken < 1;
             if (!rebuilt && wasHealthy)
-                return "la ricostruzione non e' riuscita";
+                return "the rebuild did not succeed";
             int bodies = CountSolidBodies(model);
             if (before.Bodies >= 0 && bodies >= 0 && bodies != before.Bodies)
-                return "il pezzo ha " + bodies + " corpi invece di " + before.Bodies + ": qualcosa si e' spezzato o unito";
+                return "the part has " + bodies + " bodies instead of " + before.Bodies + ": something split or merged";
             int open = aperture ? ClosedOpenings(model) : -1;
             if (aperture && before.OpenCount >= 0 && open >= 0 && open < before.OpenCount)
-                return "un'apertura esce dal materiale (le aperture chiuse sulle facce piane passano da " + before.OpenCount +
-                       " a " + open + ": un foro o un'asola adesso apre il bordo, o due aperture si sono fuse)";
+                return "an opening goes out of the material (the closed openings on the planar faces go from " + before.OpenCount +
+                       " to " + open + ": a hole or a slot now opens the border, or two openings merged)";
             string chamfer = ChamferThatDoesNotFit(model, before.Features, FacesPerFeature(model));
             if (chamfer != null)
-                return chamfer + ": non ci sta piu' (SOLIDWORKS non lo segnala come errore, cambia la forma da solo)";
+                return chamfer + ": it no longer fits (SOLIDWORKS does not report it as an error, it changes the shape by itself)";
             return null;
         }
 
@@ -97,15 +97,15 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string IsBackAsItWas(IModelDoc2 model, PartPhoto before, bool restored, string what)
         {
-            if (!restored) return " E non sono riuscito a rimettere " + what + ": " + Sentences.HowToWithdrawIt + ".";
+            if (!restored) return " And I could not restore " + what + ": " + Sentences.HowToWithdrawIt + ".";
             double? now = VolumeMm3(model);
             if (now == null || before.Volume == null)
-                return " Ho rimesso " + what + ", ma non ho potuto rimisurare il volume per controllare che il " +
-                       "pezzo sia com'era: guardalo.";
+                return " I restored " + what + ", but I could not measure the volume again to check that the " +
+                       "part is as it was: look at it.";
             if (Math.Abs(now.Value - before.Volume.Value) < 0.01)
-                return " Non l'ho lasciato cosi': ho rimesso " + what + " e il pezzo e' com'era.";
-            return " Ho rimesso " + what + ", ma il volume adesso e' " + now.Value.ToString("0.##") + " mm3 invece di " +
-                   before.Volume.Value.ToString("0.##") + ": guarda il pezzo prima di andare avanti.";
+                return " I did not leave it like this: I restored " + what + " and the part is as it was.";
+            return " I restored " + what + ", but the volume is now " + now.Value.ToString("0.##") + " mm3 instead of " +
+                   before.Volume.Value.ToString("0.##") + ": look at the part before going on.";
         }
 
         /// <summary>

@@ -102,15 +102,15 @@ namespace Oce.Solid.Agent.Core
         /// «e' anche il corpo principale» would sound like a choice of whoever asks.
         /// </summary>
         private const string DefaultMain =
-            ", il predefinito: il primo corpo, preso per posizione perche' non l'hai " +
-            "nominato. Nominalo con «main_body_uid» o «main_body_ref»";
+            ", the default: the first body, taken by position because you did not " +
+            "name it. Name it with «main_body_uid» or «main_body_ref»";
 
         private Outcome CombineBodies(
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             var partDoc = model as IPartDoc;
             if (partDoc == null)
-                return Failed("Questo documento non e' un pezzo: le booleane si fanno fra corpi.");
+                return Failed("This document is not a part: booleans are done between bodies.");
 
             // ── THE DEFAULT (entry Z-G3) ─────────────────────────────────
             //
@@ -140,9 +140,9 @@ namespace Oce.Solid.Agent.Core
             // handle raises and does not get this far — so null is «no body».
             if (rawItems == null || rawItems.Length < 2)
                 return Failed(
-                    "Per una booleana ci vogliono almeno due corpi, e questo pezzo ne ha " +
-                    (rawItems == null ? 0 : rawItems.Length) + ". I corpi separati nascono con " +
-                    "«move_bodies» e la copia, o con un'estrusione che non si fonde.");
+                    "A boolean needs at least two bodies, and this part has " +
+                    (rawItems == null ? 0 : rawItems.Length) + ". Separate bodies come from " +
+                    "«move_bodies» and the copy, or from an extrusion that does not merge.");
 
             // ── WHO IS THE MAIN ONE, AND WHO GOES ON TOP OF IT ───────────
             //
@@ -196,8 +196,8 @@ namespace Oce.Solid.Agent.Core
                     foreach (var kv in docState.Signatures)
                         if (kv.Value != null && kv.Value.Type == "BODY" && same(kv.Value.Entity, body))
                             return kv.Key;
-                return position < 0 ? "(corpo senza nome nello stato)"
-                                     : "C" + (position + 1) + " (per posizione)";
+                return position < 0 ? "(unnamed body in the state)"
+                                     : "C" + (position + 1) + " (by position)";
             };
 
             bool hasMainRef = HasReference(a, "main_body_ref");
@@ -205,11 +205,11 @@ namespace Oce.Solid.Agent.Core
             string mainUid = Str(a, "main_body_uid", null);
             var requested = StringList(a, "tool_bodies_uid");
             if (hasMainRef && !string.IsNullOrWhiteSpace(mainUid))
-                return Failed("Hai dato sia «main_body_uid» sia «main_body_ref»: uno nomina " +
-                               "un corpo dello stato, l'altro il corpo di un passo. Togli uno dei due.");
+                return Failed("You gave both «main_body_uid» and «main_body_ref»: one names a " +
+                               "body of the state, the other the body of a step. Remove one of the two.");
             if (hasToolsRef && requested != null && requested.Count > 0)
-                return Failed("Hai dato sia «tool_bodies_uid» sia «tool_bodies_ref»: uno nomina " +
-                               "corpi dello stato, l'altro quelli di un passo. Togli uno dei due.");
+                return Failed("You gave both «tool_bodies_uid» and «tool_bodies_ref»: one names " +
+                               "bodies of the state, the other those of a step. Remove one of the two.");
 
             object main;
             string mainName;
@@ -220,9 +220,9 @@ namespace Oce.Solid.Agent.Core
                 var fromStep = BodiesFromReference(a, "main_body_ref", docState, out howMany, out bodyReason);
                 if (fromStep == null) return Failed(bodyReason);
                 if (fromStep.Length != 1)
-                    return Failed("Il passo di «main_body_ref» ha lasciato " + fromStep.Length +
-                                   " corpi, e il principale e' uno solo: nominalo con «main_body_uid» " +
-                                   "dopo aver riletto il pezzo.");
+                    return Failed("The step of «main_body_ref» left " + fromStep.Length +
+                                   " bodies, and there can be only one main body: name it with «main_body_uid» " +
+                                   "after reading the part again.");
                 main = fromStep[0];
                 mainName = nameOf(main, Array.FindIndex(rawItems, g => same(g, main)));
             }
@@ -252,9 +252,9 @@ namespace Oce.Solid.Agent.Core
                 foreach (var c in fromStep)
                 {
                     if (same(c, main))
-                        return Failed("Fra i corpi di «tool_bodies_ref» c'e' anche il corpo principale (" +
+                        return Failed("Among the bodies of «tool_bodies_ref» there is also the main body (" +
                                        mainName + (mainByPosition ? DefaultMain : "") +
-                                       "): un corpo non si combina con se stesso.");
+                                       "): a body is not combined with itself.");
                     toolBodies.Add(c);
                     toolNames.Add(nameOf(c, Array.FindIndex(rawItems, g => same(g, c))));
                 }
@@ -268,9 +268,9 @@ namespace Oce.Solid.Agent.Core
                     if (foundItems == null) return Failed(bodyReason);
                     if (same(foundItems[0], main))
                         return Failed(
-                            "«" + u + "» e' anche il corpo principale (" + mainName +
+                            "«" + u + "» is also the main body (" + mainName +
                             (mainByPosition ? DefaultMain : "") +
-                            "): un corpo non si combina con se stesso.");
+                            "): a body is not combined with itself.");
                     toolBodies.Add(foundItems[0]);
                     toolNames.Add(u);
                 }
@@ -285,12 +285,12 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             if (toolBodies.Count == 0)
-                return Failed("Non e' rimasto nessun corpo da combinare col principale.");
+                return Failed("No body is left to combine with the main one.");
 
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
             if (volumeBefore == null || bodiesBefore < 0)
-                return Failed(VolumeNotReadBefore("combinare i corpi"));
+                return Failed(VolumeNotReadBefore("combining the bodies"));
 
             IFeature feature;
             try
@@ -309,7 +309,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("La booleana non e' riuscita: " + ex.Message);
+                return Failed("The boolean did not succeed: " + ex.Message);
             }
 
             // NULL WITHOUT AN EXCEPTION AND WITHOUT A CODE: it is all that
@@ -352,9 +352,9 @@ namespace Oce.Solid.Agent.Core
 
             if (reread && volumeAfter <= 0)
                 return Failed(
-                    "Dopo la booleana il pezzo non ha piu' volume: «" + asRequested +
-                    "» ha consumato tutto. Di solito e' l'ordine — nella sottrazione il " +
-                    "corpo principale e' quello che RESTA.");
+                    "After the boolean the part has no volume left: «" + asRequested +
+                    "» consumed everything. Usually it is the order — in a subtraction " +
+                    "the main body is the one that REMAINS.");
 
             var measurements = new Dictionary<string, object>
             {
@@ -374,11 +374,11 @@ namespace Oce.Solid.Agent.Core
                 // THE IDENTIFIERS NO LONGER HOLD, and this is always said: a
                 // boolean redoes the faces from scratch.
                 ["note_identifiers"] =
-                    "I corpi e le facce sono cambiati: gli identificativi (C2, F1, E4) di " +
-                    "prima non valgono piu'. Rileggi il pezzo prima del passo seguente.",
+                    "The bodies and faces changed: the identifiers (C2, F1, E4) from before " +
+                    "are no longer valid. Read the part again before the next step.",
             };
             if (!reread) measurements["volume_not_reread"] = NoteVolumeNotReread;
-            _log("[agente] " + asRequested + ": corpi " + bodiesBefore + " -> " + bodiesAfter +
+            _log("[agent] " + asRequested + ": bodies " + bodiesBefore + " -> " + bodiesAfter +
                  ", volume " + ReadValue(volumeBefore) + " -> " + ReadValue(volumeAfter));
             return Succeeded(feature, measurements);
         }
@@ -425,26 +425,26 @@ namespace Oce.Solid.Agent.Core
             string uid = Str(a, "edge_uid", null);
             if (string.IsNullOrWhiteSpace(uid))
                 return Failed(
-                    "Non hai detto su quale spigolo. Gli identificativi degli spigoli " +
-                    "stanno nello stato del documento, e somigliano a «E7».");
+                    "You did not say on which edge. The identifiers of the edges " +
+                    "are in the state of the document, and look like «E7».");
 
             double r1 = Num(a, "start_radius_mm");
             double r2 = Num(a, "end_radius_mm");
             if (r1 <= 0 || r2 <= 0)
                 return Failed(
-                    "I due raggi devono essere tutti e due maggiori di zero: hai chiesto " +
-                    r1.ToString("0.##") + " e " + r2.ToString("0.##") + ". Per un raccordo " +
-                    "uguale da capo a fondo c'e' «fillet_edges».");
+                    "The two radii must both be greater than zero: you asked " +
+                    r1.ToString("0.##") + " and " + r2.ToString("0.##") + ". For a fillet that " +
+                    "is equal from end to end there is «fillet_edges».");
 
             string offset;
             var signature = EdgeSignature(
-                a, docState, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                a, docState, uid, "The edge «" + uid + "» is no longer in this document.",
                 out offset);
             if (signature == null) return Failed(offset);
 
             var edge = signature.Entity as IEdge;
             if (edge == null)
-                return Failed("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
+                return Failed("The edge «" + uid + "» is no longer usable.");
 
             // THE LARGEST RADIUS MUST FIT, and it is measured now: between the
             // proposal and the execution the part may have changed. It is the
@@ -452,19 +452,19 @@ namespace Oce.Solid.Agent.Core
             double maxValue = Math.Max(r1, r2);
             if (signature.Measure > 0 && maxValue > signature.Measure / 2)
                 return Failed(string.Format(
-                    "{0:0.##} mm e' troppo per lo spigolo «{1}», lungo {2:0.##} mm: non ci " +
-                    "sta neanche meta'.", maxValue, uid, signature.Measure));
+                    "{0:0.##} mm is too much for the edge «{1}», which is {2:0.##} mm long: " +
+                    "not even half of it fits.", maxValue, uid, signature.Measure));
 
             var v1 = edge.GetStartVertex() as IEntity;
             var v2 = edge.GetEndVertex() as IEntity;
             if (v1 == null || v2 == null)
                 return Failed(
-                    "Lo spigolo «" + uid + "» non ha due vertici: e' chiuso su se stesso " +
-                    "(un cerchio), e un raccordo variabile ha bisogno di due estremi fra " +
-                    "cui variare.");
+                    "The edge «" + uid + "» does not have two vertices: it is " +
+                    "closed on itself (a circle), and a variable fillet needs two ends " +
+                    "to vary between.");
 
             double? volumeBefore = VolumeMm3(model);
-            if (volumeBefore == null) return Failed(VolumeNotReadBefore("fare il raccordo"));
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("making the fillet"));
 
             IFeature feature;
             try
@@ -473,11 +473,11 @@ namespace Oce.Solid.Agent.Core
                 // THE EDGE FIRST, THEN THE TWO VERTICES. Without the edge the
                 // call returns null: measured.
                 if (!(edge as IEntity).Select4(true, null))
-                    return Failed("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
+                    return Failed("I could not select the edge «" + uid + "».");
                 if (!v1.Select4(true, null) || !v2.Select4(true, null))
                     return Failed(
-                        "Non sono riuscito a selezionare i due vertici dello spigolo «" +
-                        uid + "»: senza di loro il raggio non ha dove variare.");
+                        "I could not select the two vertices of the edge «" +
+                        uid + "»: without them the radius has nowhere to vary.");
 
                 feature = model.FeatureManager.FeatureFillet3(
                     Options: (int)(swFeatureFilletOptions_e.swFeatureFilletVarRadiusType |
@@ -510,13 +510,13 @@ namespace Oce.Solid.Agent.Core
                     PointDist2Array: null,
                     PointRhoArray: null) as IFeature;
             }
-            catch (Exception ex) { return Failed("Il raccordo variabile non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The variable fillet did not succeed: " + ex.Message); }
 
             if (feature == null)
                 return Failed(
-                    "Il raccordo variabile non e' stato creato, e SOLIDWORKS non dice " +
-                    "perche'. Di solito e' il raggio: anche se ci sta sullo spigolo, puo' " +
-                    "non starci sulle facce che gli stanno intorno.");
+                    "The variable fillet was not created, and SOLIDWORKS does " +
+                    "not say why. Usually it is the radius: even if it fits on the " +
+                    "edge, it may not fit on the faces around it.");
 
             try { model.EditRebuild3(); } catch { }
             double? volumeAfter = VolumeMm3(model);
@@ -527,10 +527,10 @@ namespace Oce.Solid.Agent.Core
             // only from a volume read back (entry Z-C8).
             if (removed <= 0)
                 return Failed(
-                    "Il raccordo e' stato creato ma non ha tolto niente (volume " +
-                    volumeBefore.Value.ToString("0.##") + " mm3 prima e dopo). Lo spigolo e' " +
-                    "ancora vivo: non ti confermo un pezzo diverso da quello che ti ho " +
-                    "mostrato — " + Sentences.HowToWithdrawIt + ".");
+                    "The fillet was created but it removed nothing (volume " +
+                    volumeBefore.Value.ToString("0.##") + " mm3 before and after). The edge " +
+                    "is still alive: I do not confirm a part different from the one I " +
+                    "showed you — " + Sentences.HowToWithdrawIt + ".");
 
             return Succeeded(feature, new Dictionary<string, object>
             {
@@ -548,9 +548,9 @@ namespace Oce.Solid.Agent.Core
                         signature.Measure * ((r1 * r1 + r1 * r2 + r2 * r2) / 3.0) * (1 - Math.PI / 4), 2)
                     : null,
                 ["how_it_is_counted"] =
-                    "lunghezza per la media di r^2 fra i due raggi, per (1 - pi/4). E' un " +
-                    "ordine di grandezza: il raccordo vero non e' esattamente una spazzata " +
-                    "lineare del raggio.",
+                    "length times the mean of r^2 between the two radii, times (1 - pi/4). " +
+                    "It is an order of magnitude: the real fillet is not exactly a linear sweep " +
+                    "of the radius.",
             });
         }
 
@@ -598,28 +598,28 @@ namespace Oce.Solid.Agent.Core
             string uid = Str(a, "edge_uid", null);
             if (string.IsNullOrWhiteSpace(uid))
                 return Failed(
-                    "Non hai detto su quale spigolo. Il filetto cosmetico si attacca allo " +
-                    "spigolo CIRCOLARE di un cilindro o di un foro — non alla faccia — e " +
-                    "gli identificativi degli spigoli stanno nello stato del documento.");
+                    "You did not say on which edge. The cosmetic thread attaches to the " +
+                    "CIRCULAR edge of a cylinder or of a hole — not to the face — and " +
+                    "the identifiers of the edges are in the state of the document.");
 
             string designation = Str(a, "designation", null);
             if (string.IsNullOrWhiteSpace(designation))
                 return Failed(
-                    "Manca la «designation», per esempio «M6x1». Un filetto cosmetico " +
-                    "senza denominazione e' un'annotazione che non dice niente: sulla " +
-                    "tavola comparirebbe un filetto senza misura, e chi lo legge dovrebbe " +
-                    "indovinarla. Il testo lo scrivo come me lo dai: SOLIDWORKS non lo " +
-                    "ricava da una tabella.");
+                    "The «designation» is missing, for example «M6x1». A cosmetic thread " +
+                    "without a designation is an annotation that says nothing: on the drawing " +
+                    "there would be a thread with no size, and whoever reads it would have to " +
+                    "guess it. I write the text as you give it to me: SOLIDWORKS " +
+                    "does not work it out from a table.");
 
             string offset;
             var signature = EdgeSignature(
-                a, docState, uid, "Lo spigolo «" + uid + "» non c'e' piu' in questo documento.",
+                a, docState, uid, "The edge «" + uid + "» is no longer in this document.",
                 out offset);
             if (signature == null) return Failed(offset);
 
             var edge = signature.Entity as IEdge;
             if (edge == null)
-                return Failed("Lo spigolo «" + uid + "» non e' piu' utilizzabile.");
+                return Failed("The edge «" + uid + "» is no longer usable.");
 
             double diameter = 0;
             bool round = false;
@@ -637,9 +637,9 @@ namespace Oce.Solid.Agent.Core
 
             if (!round)
                 return Failed(
-                    "Lo spigolo «" + uid + "» non e' un cerchio: un filetto cosmetico si " +
-                    "attacca al bordo tondo di un cilindro o di un foro. Su uno spigolo " +
-                    "dritto non c'e' niente da filettare.");
+                    "The edge «" + uid + "» is not a circle: a cosmetic thread attaches " +
+                    "to the round border of a cylinder or of a hole. On a straight " +
+                    "edge there is nothing to thread.");
 
             // THE DIAMETER IS SAID BY THE EDGE, not by the caller: it is the border on
             // which the thread attaches, and a diameter different from that one
@@ -648,29 +648,29 @@ namespace Oce.Solid.Agent.Core
             if (requestedDiameter > 0 && diameter > 0 &&
                 Math.Abs(requestedDiameter - diameter) > 0.01)
                 return Failed(string.Format(
-                    "Hai chiesto un filetto da {0:0.##} mm, ma lo spigolo «{1}» e' un " +
-                    "cerchio da {2:0.##}. Il filetto si attacca a quel bordo: o e' quello " +
-                    "giusto, o e' l'altro spigolo.", requestedDiameter, uid, diameter));
+                    "You asked for a thread of {0:0.##} mm, but the edge «{1}» is a circle " +
+                    "of {2:0.##}. The thread attaches to that border: either it is the right " +
+                    "one, or it is the other edge.", requestedDiameter, uid, diameter));
             if (diameter <= 0) diameter = requestedDiameter;
             if (diameter <= 0)
-                return Failed("Non riesco a misurare il diametro dello spigolo «" + uid + "».");
+                return Failed("I cannot measure the diameter of the edge «" + uid + "».");
 
             double depth = Num(a, "depth_mm", 0);
             bool throughAll = Bool(a, "through_all", false);
             if (!throughAll && depth <= 0)
                 return Failed(
-                    "Dimmi quanto e' profondo il filetto («depth_mm») oppure che e' " +
+                    "Tell me how deep the thread is («depth_mm») or that it is " +
                     "«through_all».");
 
             double? volumeBefore = VolumeMm3(model);
-            if (volumeBefore == null) return Failed(VolumeNotReadBefore("mettere il filetto"));
+            if (volumeBefore == null) return Failed(VolumeNotReadBefore("putting the thread on"));
 
             IFeature feature;
             try
             {
                 model.ClearSelection2(true);
                 if (!(edge as IEntity).Select4(false, null))
-                    return Failed("Non sono riuscito a selezionare lo spigolo «" + uid + "».");
+                    return Failed("I could not select the edge «" + uid + "».");
 
                 feature = model.FeatureManager.InsertCosmeticThread3(
                     // Standard and size ARE IGNORED by this call
@@ -686,13 +686,13 @@ namespace Oce.Solid.Agent.Core
                     Depth: throughAll ? 0 : Units.M(depth),
                     Note: designation) as IFeature;
             }
-            catch (Exception ex) { return Failed("Il filetto cosmetico non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The cosmetic thread did not succeed: " + ex.Message); }
 
             if (feature == null)
                 return Failed(
-                    "Il filetto cosmetico non e' stato creato, e SOLIDWORKS non dice " +
-                    "perche'. Controlla che lo spigolo «" + uid + "» sia il bordo di una " +
-                    "faccia cilindrica.");
+                    "The cosmetic thread was not created, and SOLIDWORKS does " +
+                    "not say why. Check that the edge «" + uid + "» is the border of a " +
+                    "cylindrical face.");
 
             try { model.EditRebuild3(); } catch { }
 
@@ -700,9 +700,9 @@ namespace Oce.Solid.Agent.Core
             double? volumeAfter = VolumeMm3(model);
             if (volumeAfter.HasValue && Math.Abs(volumeAfter.Value - volumeBefore.Value) > 0.01)
                 return Failed(string.Format(
-                    "Il filetto doveva essere COSMETICO e il volume e' cambiato: {0:0.##} " +
-                    "mm3 prima, {1:0.##} dopo. Qualcosa ha tagliato davvero, e non e' " +
-                    "quello che hai chiesto — ritiralo: " + Sentences.HowToWithdrawIt + ".",
+                    "The thread had to be COSMETIC and the volume changed: {0:0.##} mm3 " +
+                    "before, {1:0.##} after. Something really cut, and it is not " +
+                    "what you asked for — withdraw it: " + Sentences.HowToWithdrawIt + ".",
                     volumeBefore, volumeAfter));
 
             string featureType = "";
@@ -719,8 +719,8 @@ namespace Oce.Solid.Agent.Core
             // feature would be there, the drawing would show a mute thread.
             if (string.IsNullOrEmpty(callout))
                 return Failed(
-                    "Il filetto e' stato creato ma la sua denominazione e' rimasta vuota: " +
-                    "sulla tavola comparirebbe un filetto senza misura. Ritiralo — " +
+                    "The thread was created but its designation stayed empty: on the " +
+                    "drawing there would be a thread with no size. Withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
             return Succeeded(feature, new Dictionary<string, object>
@@ -733,14 +733,14 @@ namespace Oce.Solid.Agent.Core
                 ["feature_kind"] = featureType,
                 ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
                 ["cuts_nothing"] = volumeAfter.HasValue
-                    ? "E' un'annotazione: il volume del pezzo e' lo stesso di prima. Se ti " +
-                      "serve il filetto VERO, tagliato, questa non e' l'operazione."
+                    ? "It is an annotation: the volume of the part is the same as before. " +
+                      "If you need the REAL thread, cut, this is not the operation."
                     : NoteVolumeNotReread,
                 // THE ORIGIN OF THE TEXT IS DECLARED. See the comment at the head.
                 ["designation_is_yours"] =
-                    "«" + callout + "» e' il testo che mi hai dato, non uno ricavato da una " +
-                    "tabella di filettature: questa chiamata ignora lo standard e la taglia. " +
-                    "Se e' sbagliato, sulla tavola finisce sbagliato.",
+                    "«" + callout + "» is the text you gave me, not one worked out from " +
+                    "a table of threads: this call ignores the standard and the size. If " +
+                    "it is wrong, it ends up wrong on the drawing.",
             });
         }
 

@@ -71,9 +71,9 @@ namespace Oce.Solid.Agent.Core
                 var p = TripletMm(a, key);
                 if (p == null)
                     return Failed(
-                        "«" + key + "» dev'essere tre numeri in millimetri, per esempio " +
-                        "[0, 0, 20]. Servono tutti e tre i punti: un piano per due punti non " +
-                        "e' uno, sono infiniti.");
+                        "«" + key + "» must be three numbers in millimeters, for example [0, " +
+                        "0, 20]. All three points are needed: a plane through two points is not one, " +
+                        "there are infinitely many.");
                 points.Add(p);
             }
 
@@ -88,12 +88,12 @@ namespace Oce.Solid.Agent.Core
             double lu = Math.Sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
             double lv = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
             if (lu < 1e-9 || lv < 1e-9)
-                return Failed("Due dei tre punti sono lo stesso punto: cosi' non fanno un piano.");
+                return Failed("Two of the three points are the same point: like that they do not make a plane.");
             if (module / (lu * lv) < 1e-6)
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "I tre punti sono in fila: ({0}), ({1}) e ({2}) stanno sulla stessa " +
-                    "retta, e per una retta passano infiniti piani. Spostane uno fuori.",
+                    "The three points are in a line: ({0}), ({1}) and ({2}) are on the same straight " +
+                    "line, and through a line pass infinitely many planes. Move one of them off it.",
                     Write(points[0]), Write(points[1]), Write(points[2])));
 
             var expectation = new[] { n[0] / module, n[1] / module, n[2] / module };
@@ -112,7 +112,7 @@ namespace Oce.Solid.Agent.Core
                     // plane's own X axis (see the note at the top, L8-3).
                     true);
             }
-            catch (Exception ex) { return Failed("Il piano non e' stato creato: " + ex.Message); }
+            catch (Exception ex) { return Failed("The plane was not created: " + ex.Message); }
 
             int planesAfter = CountPlanes(model);
             // «No plane appeared» is said of two counts that were read; with
@@ -120,8 +120,8 @@ namespace Oce.Solid.Agent.Core
             if ((planesBefore >= 0 && planesAfter >= 0 && planesAfter == planesBefore) ||
                 ((planesBefore < 0 || planesAfter < 0) && raw == null))
                 return Failed(
-                    "Il piano non e' stato creato, e nell'albero non ne e' comparso nessuno. " +
-                    "SOLIDWORKS non dice perche'.");
+                    "The plane was not created, and none appeared in the tree. " +
+                    "SOLIDWORKS does not say why.");
 
             // THE PLANE IS WHAT THE CALL RETURNED, or else the ONE RefPlane born
             // since the call (FeatureBorn, scheme S7, Z-C21.5). Until then the
@@ -155,8 +155,8 @@ namespace Oce.Solid.Agent.Core
             {
                 measurements["normal_reread"] = null;
                 measurements["warning"] =
-                    "Il piano c'e' ma non sono riuscito a rileggerne l'orientamento, quindi " +
-                    "non ti posso garantire che sia quello dei tre punti che mi hai dato.";
+                    "The plane is there but I could not read its orientation back, so I " +
+                    "cannot guarantee that it is the one of the three points you gave me.";
             }
             else
             {
@@ -171,14 +171,14 @@ namespace Oce.Solid.Agent.Core
                 if (deviation > 0.01)
                     return Failed(string.Format(
                         CultureInfo.InvariantCulture,
-                        "Il piano e' nato ma non e' quello che ho chiesto: dai tre punti la " +
-                        "normale viene ({0}), e il piano dice ({1}) — {2:0.###} gradi di " +
-                        "scarto. Non ti confermo un piano su cui disegneresti storto. " +
-                        "Ritiralo — " + Sentences.HowToWithdrawIt + ".",
+                        "The plane was created but it is not what I asked for: from the three points " +
+                        "the normal comes out ({0}), and the plane says ({1}) — {2:0.###} degrees " +
+                        "of deviation. I do not confirm a plane on which you would draw crooked. " +
+                        "Withdraw it — " + Sentences.HowToWithdrawIt + ".",
                         Write(expectation), Write(read), deviation));
             }
 
-            _log("[agente] piano per tre punti, normale (" + Write(expectation) + ")");
+            _log("[agent] plane through three points, normal (" + Write(expectation) + ")");
 
             return feature != null
                 ? Succeeded(feature, measurements, expectation)

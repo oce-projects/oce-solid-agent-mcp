@@ -313,16 +313,17 @@ namespace Oce.Solid.Agent.Core
                     if (concave.Count == 0)
                     {
                         reason = convex > 0
-                            ? "Il passo «" + planStep.Operation + "» ha lasciato " +
-                              convex + " fac" + (convex == 1 ? "cia" : "ce") +
-                              " cilindric" + (convex == 1 ? "a" : "he") +
-                              ", ma convess" + (convex == 1 ? "a" : "e") + ": " +
-                              "sono superfici di raccordo o di un cilindro pieno, " +
-                              "non pareti di foro. La parete di un foro e' " +
-                              "concava — il materiale sta fuori."
-                            : "Il passo «" + planStep.Operation + "» non ha lasciato " +
-                              "nessuna faccia cilindrica: non c'e' nessuna parete " +
-                              "di foro da prendere.";
+                            ? "The step «" + planStep.Operation + "» left " +
+                              convex + " cylindrical " + (convex == 1 ? "face" : "faces") +
+                              ", but convex" + (convex == 1 ? ": it is" : ": they are") + " " +
+                              (convex == 1 ? "a fillet surface or part of a solid cylinder" : "fillet surfaces or parts of solid cylinders") +
+                              ", " +
+                              "not hole walls. The wall of a hole is " +
+                              "concave — " +
+                              "the material is outside."
+                            : "The step «" + planStep.Operation + "» left no " +
+                              "cylindrical face: there is no hole " +
+                              "wall to take.";
                         return false;
                     }
 
@@ -343,10 +344,10 @@ namespace Oce.Solid.Agent.Core
                     if (concave.Count > 1)
                     {
                         reason =
-                            "Il passo «" + planStep.Operation + "» ha lasciato " +
-                            concave.Count + " pareti di foro (" + Diameters(concave) +
-                            "): «la» parete del foro non esiste. Rileggi il pezzo e " +
-                            "indica quale, per identificativo.";
+                            "Step «" + planStep.Operation + "» left " +
+                            concave.Count + " hole walls (" + Diameters(concave) +
+                            "): «the» hole wall does not exist. Read the part again and " +
+                            "name the one you mean, by identifier.";
                         return false;
                     }
                     face = concave[0];
@@ -363,8 +364,8 @@ namespace Oce.Solid.Agent.Core
                     if (planStep.Direction == null)
                     {
                         reason =
-                            "Del passo «" + planStep.Operation + "» non conosco la " +
-                            "direzione del taglio, quindi non so dire qual e' il fondo.";
+                            "Of the step «" + planStep.Operation + "» I do not know " +
+                            "the direction of the cut, so I cannot tell which is the bottom.";
                         return false;
                     }
                     var planar = new List<IFace2>();
@@ -377,11 +378,11 @@ namespace Oce.Solid.Agent.Core
                     if (planar.Count != 1)
                     {
                         reason = planar.Count == 0
-                            ? "La tasca del passo «" + planStep.Operation + "» non ha " +
-                              "un fondo: e' passante."
-                            : "La tasca del passo «" + planStep.Operation + "» ha " +
-                              planar.Count + " facce che potrebbero essere il fondo: " +
-                              "indica la faccia per identificativo.";
+                            ? "The pocket of the step «" + planStep.Operation + "» has no " +
+                              "bottom: it is through."
+                            : "The pocket of the step «" + planStep.Operation + "» has " +
+                              planar.Count + " faces that could be the bottom: " +
+                              "name the face by its identifier.";
                         return false;
                     }
                     face = planar[0];
@@ -389,7 +390,7 @@ namespace Oce.Solid.Agent.Core
                 }
 
                 default:
-                    reason = "Genere di faccia sconosciuto: «" + kind + "».";
+                    reason = "Unknown face kind: «" + kind + "».";
                     return false;
             }
         }
@@ -440,9 +441,9 @@ namespace Oce.Solid.Agent.Core
                 if (planStep.Direction == null)
                 {
                     reason =
-                        "Del passo «" + planStep.Operation + "» non conosco la " +
-                        "direzione di estrusione, quindi non so dire quali " +
-                        "spigoli siano i laterali.";
+                        "Of the step «" + planStep.Operation + "» I do not know " +
+                        "the direction of extrusion, so I cannot tell which " +
+                        "edges are the lateral ones.";
                     return false;
                 }
                 // An edge is «lateral» if it runs along the direction of
@@ -466,15 +467,15 @@ namespace Oce.Solid.Agent.Core
             }
             else
             {
-                reason = "Genere di spigoli sconosciuto: «" + kind + "».";
+                reason = "Unknown edge kind: «" + kind + "».";
                 return false;
             }
 
             if (edges.Count == 0)
             {
                 reason =
-                    "Il passo «" + planStep.Operation + "» non ha lasciato nessuno " +
-                    "spigolo del genere «" + kind + "».";
+                    "The step «" + planStep.Operation + "» left no edge " +
+                    "of the kind «" + kind + "».";
                 return false;
             }
             return true;
@@ -521,8 +522,8 @@ namespace Oce.Solid.Agent.Core
             if (bodies.Count == 0)
             {
                 reason =
-                    "Il passo «" + planStep.Operation + "» non ha lasciato nessun " +
-                    "corpo: non ci sono barre su cui lavorare.";
+                    "The step «" + planStep.Operation + "» left no body: " +
+                    "there are no bars to work on.";
                 return null;
             }
             return bodies;
@@ -614,7 +615,7 @@ namespace Oce.Solid.Agent.Core
             }
             if (faces.Count == 0)
             {
-                reason = "I corpi indicati non hanno facce leggibili.";
+                reason = "The bodies indicated have no readable faces.";
                 return null;
             }
             return OpenEndsOnly(faces, out machinedFaces, out reason);
@@ -880,22 +881,22 @@ namespace Oce.Solid.Agent.Core
             if (planStep == null || planStep.Feature == null)
             {
                 reason =
-                    "Il passo a cui ti riferisci non ha lasciato nessuna " +
-                    "geometria da nominare.";
+                    "The step you refer to left no " +
+                    "geometry to name.";
                 return null;
             }
             object[] raw;
             try { raw = planStep.Feature.GetFaces() as object[]; }
             catch (Exception ex)
             {
-                reason = "Non riesco a leggere le facce del passo precedente: " + ex.Message;
+                reason = "I cannot read the faces of the previous step: " + ex.Message;
                 return null;
             }
             if (raw == null || raw.Length == 0)
             {
                 reason =
-                    "Il passo «" + planStep.Operation + "» non ha lasciato facce " +
-                    "proprie: non c'e' niente da nominare.";
+                    "The step «" + planStep.Operation + "» left no faces of " +
+                    "its own: there is nothing to name.";
                 return null;
             }
             var faces = new List<IFace2>();
@@ -906,7 +907,7 @@ namespace Oce.Solid.Agent.Core
             }
             if (faces.Count == 0)
             {
-                reason = "Le facce del passo precedente non sono leggibili.";
+                reason = "The faces of the previous step are not readable.";
                 return null;
             }
             return faces.ToArray();
@@ -924,9 +925,9 @@ namespace Oce.Solid.Agent.Core
             if (planStep.Direction == null)
             {
                 reason =
-                    "Del passo «" + planStep.Operation + "» non conosco la direzione " +
-                    "di estrusione, quindi non so dire quale faccia sia in cima. " +
-                    "Indica la faccia per identificativo.";
+                    "Of the step «" + planStep.Operation + "» I do not know the direction " +
+                    "of extrusion, so I cannot tell which face is on top. " +
+                    "Name the face by its identifier.";
                 return false;
             }
 
@@ -961,9 +962,9 @@ namespace Oce.Solid.Agent.Core
             if (choice == null)
             {
                 reason =
-                    "Il passo «" + planStep.Operation + "» non ha lasciato nessuna " +
-                    "faccia piana perpendicolare alla direzione di estrusione: " +
-                    (facing > 0 ? "non c'e' una faccia in cima." : "non c'e' un fondo.");
+                    "The step «" + planStep.Operation + "» did not leave a planar face " +
+                    "perpendicular to the direction of extrusion: " +
+                    (facing > 0 ? "there is no face on top." : "there is no bottom.");
                 return false;
             }
             return true;
@@ -1017,12 +1018,12 @@ namespace Oce.Solid.Agent.Core
             try { loop = face.GetLoops() as object[]; }
             catch (Exception ex)
             {
-                reason = "Non riesco a leggere i bordi della faccia: " + ex.Message;
+                reason = "I cannot read the borders of the face: " + ex.Message;
                 return false;
             }
             if (loop == null || loop.Length == 0)
             {
-                reason = "La faccia non ha bordi leggibili.";
+                reason = "The face has no readable borders.";
                 return false;
             }
 
@@ -1053,9 +1054,9 @@ namespace Oce.Solid.Agent.Core
                 // Here we do not fall back on «take all the edges»: it would be
                 // exactly the defect that this method exists to close.
                 reason =
-                    "Non ho trovato il bordo esterno della faccia, quindi non " +
-                    "so distinguerlo dai bordi dei fori. Indica gli spigoli " +
-                    "per identificativo.";
+                    "I did not find the outer border of the face, so I cannot " +
+                    "tell it from the borders of the holes. Name the " +
+                    "edges by their identifiers.";
                 return false;
             }
             return true;
@@ -1146,7 +1147,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch { }
             }
-            return seen.Count == 0 ? "diametri non leggibili" : string.Join(", ", seen);
+            return seen.Count == 0 ? "diameters cannot be read" : string.Join(", ", seen);
         }
 
         /// <summary>The direction of a STRAIGHT edge, or null if it is not one.</summary>

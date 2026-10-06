@@ -71,9 +71,9 @@ namespace Oce.Solid.Agent.Core
                     try
                     {
                         if (typ == (int)swDrawingViewTypes_e.swDrawingSectionView)
-                        { letter = (v.GetSection() as IDrSection)?.GetLabel(); what = "la sezione"; }
+                        { letter = (v.GetSection() as IDrSection)?.GetLabel(); what = "the section"; }
                         else if (typ == (int)swDrawingViewTypes_e.swDrawingDetailView)
-                        { letter = (v.GetDetail() as IDetailCircle)?.GetLabel(); what = "il dettaglio"; }
+                        { letter = (v.GetDetail() as IDetailCircle)?.GetLabel(); what = "the detail"; }
                     }
                     catch { }
                     if (!string.IsNullOrWhiteSpace(letter))
@@ -109,8 +109,8 @@ namespace Oce.Solid.Agent.Core
             string k = (letter ?? "").Trim().ToUpperInvariant();
             string chi;
             if (!already.TryGetValue(k, out chi)) return null;
-            return "In tavola la lettera «" + k + "» e' gia' di " + chi + ": due tagli o due dettagli con la stessa " +
-                   "lettera sembrano lo stesso (UNI EN ISO 128). Usa un'altra lettera — ci sono gia': " +
+            return "On the drawing the letter «" + k + "» already belongs to " + chi + ": two sections or two details with the same " +
+                   "letter look like the same one (UNI EN ISO 128). Use a different letter — already used: " +
                    string.Join(", ", already.Keys) + ".";
         }
     }

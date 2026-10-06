@@ -25,12 +25,12 @@ namespace Oce.Solid.Agent.Core
         {
             var assemblyDoc = model as IAssemblyDoc;
             if (assemblyDoc == null)
-                return Failed("Questo non e' un assieme: fissare o liberare vale per un componente di un " +
-                               "assieme. Aprimi l'assieme.");
+                return Failed("This is not an assembly: fixing or freeing applies to a component of an assembly. " +
+                               "Open the assembly for me.");
             object rawFixed;
             if (a == null || !a.TryGetValue("grounded", out rawFixed) || !(rawFixed is bool))
-                return Failed("Dimmi «grounded»: true per fissarlo (non si muove piu'), false per liberarlo. " +
-                               "Non c'e' un verso d'ufficio: sono due cose opposte.");
+                return Failed("Tell me «grounded»: true to fix it (it does not move any more), false to free it. There " +
+                               "is no default direction: they are two opposite things.");
             bool want = (bool)rawFixed;
             object[] rawItems = null;
             try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
@@ -55,7 +55,7 @@ namespace Oce.Solid.Agent.Core
                     ["name"] = NameOf(c),
                     ["grounded_before"] = before,
                     ["grounded_after"] = before,
-                    ["verdict"] = "«" + NameOf(c) + "» era gia' " + (want ? "fisso" : "libero") + ": niente da cambiare.",
+                    ["verdict"] = "«" + NameOf(c) + "» was already " + (want ? "fixed" : "free") + ": nothing to change.",
                 });
             bool taken = false;
             try
@@ -67,15 +67,15 @@ namespace Oce.Solid.Agent.Core
                     if (want) assemblyDoc.FixComponent(); else assemblyDoc.UnfixComponent();
                 }
             }
-            catch (Exception ex) { try { model.ClearSelection2(true); } catch { } return Failed("Non ci sono riuscito: " + ex.Message); }
+            catch (Exception ex) { try { model.ClearSelection2(true); } catch { } return Failed("I did not manage: " + ex.Message); }
             try { model.ClearSelection2(true); } catch { }
-            if (!taken) return Failed("«" + NameOf(c) + "» non si lascia selezionare: non l'ho toccato.");
+            if (!taken) return Failed("«" + NameOf(c) + "» cannot be selected: I did not touch it.");
             try { model.EditRebuild3(); } catch { }
             // IT IS READ BACK: FixComponent and UnfixComponent answer nothing.
             bool after = IsFixed(c);
             if (after != want)
-                return Failed("Ho chiesto di " + (want ? "fissare" : "liberare") + " «" + NameOf(c) + "», e " +
-                               "rileggendolo e' ancora " + (after ? "fisso" : "libero") + ". Non e' successo niente.");
+                return Failed("I asked to " + (want ? "fix" : "free") + " «" + NameOf(c) + "», and " +
+                               "reading it back it is still " + (after ? "fixed" : "free") + ". Nothing happened.");
             int acc = MatesOf(c);
             var measurements = new Dictionary<string, object>
             {
@@ -84,10 +84,10 @@ namespace Oce.Solid.Agent.Core
                 ["grounded_before"] = before,
                 ["grounded_after"] = after,
                 ["mates"] = acc >= 0 ? (object)acc : null,
-                ["verdict"] = "«" + NameOf(c) + "» adesso e' " + (after ? "FISSO: non si muove piu', qualunque accoppiamento abbia." :
-                    "LIBERO: lo tengono solo i suoi accoppiamenti" + (acc == 0 ? " — e non ne ha: e' appoggiato, si muove." : ".")),
+                ["verdict"] = "«" + NameOf(c) + "» is now " + (after ? "FIXED: it does not move any more, whatever mates it has." :
+                    "FREE: only its mates hold it" + (acc == 0 ? " — and it has none: it is laid down, it moves." : ".")),
             };
-            _log("[agente] " + NameOf(c) + (after ? " fissato" : " liberato"));
+            _log("[agent] " + NameOf(c) + (after ? " fixed" : " freed"));
             return SucceededWithoutCreating(measurements);
         }
 

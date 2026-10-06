@@ -319,8 +319,8 @@ namespace Oce.Solid.Agent.Core
                     }
                     if (!entry.ContainsKey("uid"))
                         entry["note"] =
-                            "selezionata, ma non e' fra quelle che ho descritto: " +
-                            "non posso nominarla.";
+                            "selected, but it is not among those I described: " +
+                            "I cannot name it.";
 
                     if (entry.Count > 0) outside.Add(entry);
                 }
@@ -597,8 +597,8 @@ namespace Oce.Solid.Agent.Core
                 // nobody looked at.
                 data["solid_body"] = false;
                 data["note"] =
-                    "documento di tipo «" + SwOperations.DocumentTypeName(docType) +
-                    "»: non lo so leggere.";
+                    "document of type «" + SwOperations.DocumentTypeName(docType) +
+                    "»: I cannot read it.";
                 docState.Data = data;
                 return docState;
             }
@@ -1844,15 +1844,15 @@ namespace Oce.Solid.Agent.Core
         {
             switch (code)
             {
-                case (int)swEndConditions_e.swEndCondBlind: return "profondita' data";
+                case (int)swEndConditions_e.swEndCondBlind: return "given depth";
                 case (int)swEndConditions_e.swEndCondThroughAll: return "through_all";
-                case (int)swEndConditions_e.swEndCondThroughAllBoth: return "passante nei due versi";
-                case (int)swEndConditions_e.swEndCondMidPlane: return "simmetrica sul piano";
-                case (int)swEndConditions_e.swEndCondUpToVertex: return "fino a un vertice";
-                case (int)swEndConditions_e.swEndCondUpToSurface: return "fino a una superficie";
-                case (int)swEndConditions_e.swEndCondOffsetFromSurface: return "sfalsata da una superficie";
-                case (int)swEndConditions_e.swEndCondUpToBody: return "fino a un corpo";
-                case (int)swEndConditions_e.swEndCondUpToNext: return "fino al successivo";
+                case (int)swEndConditions_e.swEndCondThroughAllBoth: return "through in both directions";
+                case (int)swEndConditions_e.swEndCondMidPlane: return "symmetric on the plane";
+                case (int)swEndConditions_e.swEndCondUpToVertex: return "up to a vertex";
+                case (int)swEndConditions_e.swEndCondUpToSurface: return "up to a surface";
+                case (int)swEndConditions_e.swEndCondOffsetFromSurface: return "offset from a surface";
+                case (int)swEndConditions_e.swEndCondUpToBody: return "up to a body";
+                case (int)swEndConditions_e.swEndCondUpToNext: return "up to the next";
                 default: return "condizione " + code;
             }
         }

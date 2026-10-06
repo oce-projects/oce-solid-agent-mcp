@@ -45,20 +45,20 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: le croci di centro stanno " +
-                    "su una vista di disegno. Crea prima la tavola con «create_drawing».");
+                    "The active document is not a drawing: the center marks go on " +
+                    "a drawing view. First create the drawing with «create_drawing».");
 
             var names = ViewNames(drawing);
             if (names.Count == 0)
                 return Failed(
-                    "La tavola non ha viste: le croci non avrebbero dove attaccarsi. " +
-                    "Metti prima le viste con «standard_views» o «model_view».");
+                    "The drawing has no views: the center marks would have nowhere to attach. " +
+                    "First put the views with «standard_views» or «model_view».");
 
             string wanted = ViewRequestedByName(drawing, Str(a, "view", null));
             if (!string.IsNullOrWhiteSpace(wanted) && !KnownViewName(names, wanted))
                 return Failed(
-                    "Non c'e' nessuna vista «" + wanted + "». Ci sono: " + string.Join(", ", names) +
-                    " (o V1..V" + names.Count + ").");
+                    "There is no view «" + wanted + "». There are: " + string.Join(", ", names) +
+                    " (or V1..V" + names.Count + ").");
 
             // ONLY THE HOLES (whole circles). Measured on 26/9/2026 (`prova0089
             // croci6`): `AddCenterMark` on a fillet ARC selected in the
@@ -71,14 +71,14 @@ namespace Oce.Solid.Agent.Core
                 case "": case "holes": break;
                 case "raccordi":
                 case "tutti":
-                    return Failed("Sui raccordi la croce da codice non nasce: misurato, AddCenterMark su un arco " +
-                                   "selezionato nella vista non mette niente (4 archi su 4). Chiedi «holes»; i centri " +
-                                   "dei raccordi, se servono, vanno messi a mano in SOLIDWORKS.");
+                    return Failed("On fillets the center mark does not come out from code: measured, AddCenterMark on an " +
+                                   "arc selected in the view puts nothing (4 arcs out of 4). Ask for «holes»; the centers of " +
+                                   "the fillets, if you need them, must be put by hand in SOLIDWORKS.");
                 case "asole":
-                    return Failed("Le asole non le so: un'asola ha due archi e una croce sola in mezzo, e una croce " +
-                                   "per arco sarebbe sbagliata. Chiedi «holes».");
+                    return Failed("I do not do slots: a slot has two arcs and a single center mark in the middle, and a center " +
+                                   "mark per arc would be wrong. Ask for «holes».");
                 default:
-                    return Failed("«su» puo' essere solo «holes», non «" + su + "».");
+                    return Failed("The «applies to» parameter can only be «holes», not «" + su + "».");
             }
 
             // WITHOUT `size_mm` the size of the document: it is a
@@ -86,7 +86,7 @@ namespace Oce.Solid.Agent.Core
             bool itsDimension = a != null && a.ContainsKey("size_mm");
             double markSize = Units.M(Num(a, "size_mm", DefaultCentreMarkSizeMm));
             if (!itsDimension) markSize = DocumentCentreMarkSize(model, markSize);
-            if (markSize <= 0) return Failed("«size_mm» deve essere maggiore di zero.");
+            if (markSize <= 0) return Failed("«size_mm» must be greater than zero.");
             bool lines = Bool(a, "extended_lines", false);
 
             IMathUtility mu = null;
@@ -116,11 +116,11 @@ namespace Oce.Solid.Agent.Core
                 int before = marks.Before;
                 if (before < 0)
                     return Failed(
-                        "Non riesco a contare le croci di centro della vista «" + (itemName ?? "?") +
-                        "» prima di cominciare: senza quel numero non saprei dirti quali ho " +
-                        "messo io. Non ho toccato niente.");
+                        "I cannot count the center marks of the view «" + (itemName ?? "?") +
+                        "» before starting: without that number I could not tell you which " +
+                        "ones I put. I touched nothing.");
                 foreach (bool notSelectable in marks.LeftWithoutMark)
-                    notCreated.Add((itemName ?? "?") + ": un cerchio" + (notSelectable ? " (non si e' lasciato selezionare)" : ""));
+                    notCreated.Add((itemName ?? "?") + ": a circle" + (notSelectable ? " (it would not let itself be selected)" : ""));
 
                 int after = marks.After;
                 totalBefore += before;
@@ -128,7 +128,7 @@ namespace Oce.Solid.Agent.Core
                 already += marks.AlreadyMarked;
                 perView.Add(new Dictionary<string, object>
                 {
-                    ["view"] = itemName ?? "(senza nome)",
+                    ["view"] = itemName ?? "(no name)",
                     ["circles"] = marks.Holes,
                     ["circles_not_holes"] = marks.CirclesThatAreNotHoles,
                     ["marks_before"] = before,
@@ -157,33 +157,33 @@ namespace Oce.Solid.Agent.Core
             if (notCreated.Count > 0)
             {
                 measurements["circles_without_mark"] = notCreated.ToArray();
-                return Failed(notCreated.Count + (notCreated.Count == 1 ? " foro e'" : " fori sono") +
-                               " senza croce di centro (" + string.Join("; ", notCreated) + ") e da codice la croce non " +
-                               "nasce (misurato: AddCenterMark non la mette). La mette SOLIDWORKS creando la vista, se " +
-                               "l'opzione del documento «Croci di centro sui fori» e' accesa: accendila nel modello di " +
-                               "tavola e rifai la vista. Una tavola con qualche foro senza centro sembra finita e non lo e'.");
+                return Failed(notCreated.Count + (notCreated.Count == 1 ? " hole is" : " holes are") +
+                               " without a center mark (" + string.Join("; ", notCreated) + ") and from code the center mark " +
+                               "does not come out (measured: AddCenterMark does not put it). SOLIDWORKS puts it when it creates " +
+                               "the view, if the document option «Center marks-holes» (Detailing, Auto insert on view creation) is on: turn it on in the drawing template " +
+                               "and redo the view. A drawing with some holes without a center looks finished and is not.");
             }
 
             // ── ZERO MARKS IS NOT A SILENT SUCCESS ──────────────────────
             if (additions == 0)
             {
                 measurements["verdict"] =
-                    "NESSUNA CROCE AGGIUNTA. " +
+                    "NO CENTER MARK ADDED. " +
                     (already > 0
-                        ? already + (already == 1 ? " cerchio aveva" : " cerchi avevano") + " gia' la croce: niente di nuovo da mettere."
-                        : "Su " + perView.Count + (perView.Count == 1 ? " vista" : " viste") +
-                          " non c'e' nessun " + (allWhole ? "foro" : "arco") + " visibile: e' la vista sbagliata " +
-                          "(i fori si vedono come cerchi dall'alto, di solito V2), oppure il pezzo non ne ha.") +
-                    " Il numero e' zero e te lo dico.";
-                _log("[agente] " + measurements["verdict"]);
+                        ? already + (already == 1 ? " circle" : " circles") + " already had the mark: nothing new to put."
+                        : "On " + perView.Count + (perView.Count == 1 ? " view" : " views") +
+                          " there is no " + (allWhole ? "foro" : "arc") + " visible: it is the wrong view " +
+                          "(holes are seen as circles from above, usually V2), or the part has none.") +
+                    " The number is zero and I am telling you so.";
+                _log("[agent] " + measurements["verdict"]);
                 return SucceededWithoutCreating(measurements);
             }
 
             measurements["verdict"] =
-                "Messe " + additions + (additions == 1 ? " croce di centro" : " croci di centro") +
-                " su " + perView.Count + (perView.Count == 1 ? " vista" : " viste") +
-                " (" + totalBefore + " -> " + totalAfter + "), una per cerchio, contate sulla tavola.";
-            _log("[agente] " + measurements["verdict"]);
+                "Added " + additions + (additions == 1 ? " center mark" : " center marks") +
+                " of " + perView.Count + (perView.Count == 1 ? " view" : " views") +
+                " (" + totalBefore + " -> " + totalAfter + "), one per circle, counted on the drawing.";
+            _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
         }
 

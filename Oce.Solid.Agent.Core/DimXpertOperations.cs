@@ -35,16 +35,16 @@ namespace Oce.Solid.Agent.Core
             var uid = StringList(a, "references_uid");
             if (uid.Count != 3)
                 return Failed(
-                    "«references_uid» vuole TRE facce piane, in ordine: il riferimento primario " +
-                    "(di solito la faccia d'appoggio), il secondario e il terziario (due fianchi " +
-                    "fra loro perpendicolari). Ne ho ricevute " + uid.Count + ".");
+                    "«references_uid» wants THREE planar faces, in order: the primary reference " +
+                    "(usually the face it rests on), the secondary and the tertiary " +
+                    "(two sides perpendicular to each other). I received " + uid.Count + ".");
 
             var faces = new List<IFace2>();
             foreach (var u in uid)
             {
                 string reason;
                 var f = ResolveFace(docState, a, u, out reason);
-                if (f == null) return Failed("Riferimento «" + u + "»: " + reason);
+                if (f == null) return Failed("Reference «" + u + "»: " + reason);
                 faces.Add(f);
             }
 
@@ -56,8 +56,8 @@ namespace Oce.Solid.Agent.Core
                 var handler = model.Extension.get_DimXpertManager(config, true) as IDimXpertManager;
                 partDoc = handler?.DimXpertPart as IDimXpertPart;
             }
-            catch (Exception ex) { return Failed("DimXpert non risponde: " + ex.Message); }
-            if (partDoc == null) return Failed("DimXpert non ha dato la parte da quotare.");
+            catch (Exception ex) { return Failed("DimXpert does not answer: " + ex.Message); }
+            if (partDoc == null) return Failed("DimXpert did not give the part to dimension.");
 
             int before = partDoc.GetAnnotationCount();
 
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Core
             int[] marks = { 1, 2, 4 };
             for (int i = 0; i < 3; i++)
                 if (!Select(selection, faces[i], marks[i]))
-                    return Failed("Non sono riuscito a selezionare «" + uid[i] + "».");
+                    return Failed("I could not select «" + uid[i] + "».");
 
             var options = partDoc.GetAutoDimSchemeOption();
             options.PartType = (int)swDimXpertAutoDimSchemePartType_e.swDimXpertAutoDimSchemePartType_Prismatic;
@@ -78,14 +78,14 @@ namespace Oce.Solid.Agent.Core
 
             bool response;
             try { response = partDoc.AutoDimensionScheme(options); }
-            catch (Exception ex) { return Failed("Lo schema di quote non e' partito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The dimension scheme did not start: " + ex.Message); }
             finally { model.ClearSelection2(true); }
 
             int after = partDoc.GetAnnotationCount();
             if (after <= before)
                 return Failed(
-                    "Lo schema non ha messo nessuna quota (" + before + " -> " + after + "). Di " +
-                    "solito i tre riferimenti non sono tre facce piane fra loro perpendicolari.");
+                    "The scheme put no dimension (" + before + " -> " + after + "). " +
+                    "Usually the three references are not three planar faces perpendicular to each other.");
 
             var quote = new List<object>();
             var values = new List<object>();

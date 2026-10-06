@@ -75,8 +75,8 @@ namespace Oce.Solid.Agent.Core
             var partDoc = model as IPartDoc;
             if (partDoc == null)
                 return Failed(
-                    "Questo documento non e' un pezzo: lo STL si esporta da una parte. Per mandare un " +
-                    "assieme usa «export_step», che lo porta intero.");
+                    "This document is not a part: the STL is exported from a part. To send an assembly " +
+                    "use «export_step», which carries it whole.");
 
             // ── 1. THE CHECK COMES FIRST, and it can stop everything ──────
             //
@@ -109,20 +109,20 @@ namespace Oce.Solid.Agent.Core
                 try { its = model.GetPathName() ?? ""; } catch { }
                 if (string.IsNullOrWhiteSpace(its))
                     return Failed(
-                        "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
-                        "lo STL. Dimmi «path», oppure salva prima il pezzo.");
+                        "The part has never been saved and you did not tell me where to put " +
+                        "the STL. Tell me «path», or save the part first.");
                 location = Path.ChangeExtension(its, ".stl");
             }
             if (!".stl".Equals(Path.GetExtension(location), StringComparison.OrdinalIgnoreCase))
                 return Failed(
-                    "Il percorso «" + location + "» non finisce in .stl. L'estensione NON e' " +
-                    "un dettaglio: e' l'unica cosa che dice a SaveAs3 che formato scrivere.");
+                    "The path «" + location + "» does not end in .stl. The extension is NOT " +
+                    "a detail: it is the only thing that tells SaveAs3 which format to write.");
 
             string folder;
             try { folder = Path.GetDirectoryName(Path.GetFullPath(location)); }
-            catch (Exception ex) { return Failed("Percorso che non so leggere: " + ex.Message); }
+            catch (Exception ex) { return Failed("A path I cannot read: " + ex.Message); }
             if (!Directory.Exists(folder))
-                return Failed("La cartella «" + folder + "» non esiste: non la creo io.");
+                return Failed("The folder «" + folder + "» does not exist: I do not create it.");
 
             bool binary = Bool(a, "binary", true);
             string requestedQuality = (Str(a, "quality", "fine") ?? "fine").Trim().ToLowerInvariant();
@@ -130,7 +130,7 @@ namespace Oce.Solid.Agent.Core
             if (requestedQuality == "fine") quality = (int)swSTLQuality_e.swSTLQuality_Fine;
             else if (requestedQuality == "coarse") quality = (int)swSTLQuality_e.swSTLQuality_Coarse;
             else return Failed(
-                "Qualita' «" + requestedQuality + "» sconosciuta: ci sono «fine» e «coarse».");
+                "Quality «" + requestedQuality + "» unknown: there are «fine» and «coarse».");
 
             // ── 3. THE PREFERENCES: read, set, put back ──────────────────
             var before = ReadStlPreferences();
@@ -148,8 +148,8 @@ namespace Oce.Solid.Agent.Core
                     catch (Exception ex)
                     {
                         return Failed(
-                            "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
-                            "): probabilmente e' aperto in un altro programma.");
+                            "There is already a file there and I cannot replace it (" + ex.Message +
+                            "): it is probably open in another program.");
                     }
                 }
 
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.Core
                         (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
                         null, null, ref errors, ref warnings);
                 }
-                catch (Exception ex) { return Failed("STL non scritto: " + ex.Message); }
+                catch (Exception ex) { return Failed("STL not written: " + ex.Message); }
                 placed = location;
             }
             finally
@@ -194,8 +194,8 @@ namespace Oce.Solid.Agent.Core
 
             if (!ok || !File.Exists(placed))
                 return Failed(
-                    "Lo STL non e' stato scritto (codice " + errors + SaveErrorNames(errors) + "). " +
-                    "Il file non c'e': " + placed + SaveWarningsTail(warnings));
+                    "The STL was not written (code " + errors + SaveErrorNames(errors) + "). " +
+                    "The file is not there: " + placed + SaveWarningsTail(warnings));
 
             long howMuchItWeighs = new FileInfo(placed).Length;
 
@@ -239,17 +239,17 @@ namespace Oce.Solid.Agent.Core
                 long expectation = 84L + 50L * trianglesInFile;
                 if (expectation != howMuchItWeighs)
                     return Failed(
-                        "Lo STL dice " + trianglesInFile + " triangoli, che fanno " + expectation +
-                        " byte, e il file ne pesa " + howMuchItWeighs + ". Il file c'e' e non " +
-                        "torna: guardalo prima di mandarlo alla stampante. (" + placed + ")");
+                        "The STL says " + trianglesInFile + " triangles, which make " + expectation +
+                        " bytes, and the file weighs " + howMuchItWeighs + ". The file is there and it " +
+                        "does not add up: look at it before sending it to the printer. (" + placed + ")");
             }
             if (trianglesInFile == 0)
                 return Failed(
-                    "Lo STL e' stato scritto ma non ha nessun triangolo: e' un file vuoto " +
-                    "con l'intestazione. (" + placed + ")");
+                    "The STL was written but it has no triangle: it is an empty file " +
+                    "with the header. (" + placed + ")");
 
-            _log("[agente] STL: " + trianglesInFile + " triangoli, " + howMuchItWeighs +
-                 " byte, mm, " + placed);
+            _log("[agent] STL: " + trianglesInFile + " triangles, " + howMuchItWeighs +
+                 " bytes, mm, " + placed);
             return WithoutFeature(measurements);
         }
 
@@ -469,13 +469,13 @@ namespace Oce.Solid.Agent.Core
             {
                 if (binary)
                 {
-                    if (howMuchItWeighs < 84) { howIKnow = "il file e' piu' corto dell'intestazione"; return -1; }
+                    if (howMuchItWeighs < 84) { howIKnow = "the file is shorter than the header"; return -1; }
                     using (var f = File.OpenRead(filePath))
                     {
                         var head = new byte[84];
                         if (f.Read(head, 0, 84) != 84)
-                        { howIKnow = "non sono riuscito a leggere l'intestazione"; return -1; }
-                        howIKnow = "dai quattro byte dopo l'intestazione del file binario";
+                        { howIKnow = "I could not read the header"; return -1; }
+                        howIKnow = "from the four bytes after the header of the binary file";
                         return BitConverter.ToInt32(head, 80);
                     }
                 }
@@ -483,12 +483,12 @@ namespace Oce.Solid.Agent.Core
                 foreach (var line in File.ReadLines(filePath))
                     if (line.TrimStart().StartsWith("facet ", StringComparison.OrdinalIgnoreCase))
                         howMany++;
-                howIKnow = "contando le righe «facet» del file ASCII";
+                howIKnow = "counting the «facet» records of the ASCII file";
                 return howMany;
             }
             catch (Exception ex)
             {
-                howIKnow = "non ho potuto leggere il file: " + ex.Message;
+                howIKnow = "I could not read the file: " + ex.Message;
                 return -1;
             }
         }
@@ -615,13 +615,13 @@ namespace Oce.Solid.Agent.Core
             int lightweightBeforeExport = -1;
             if (partDoc == null && assemblyDoc == null)
                 return Failed(
-                    "Questo documento non e' un pezzo ne' un assieme: STEP e IGES si esportano da una " +
-                    "parte o da un assieme. Aprimi quello da mandare.");
+                    "This document is neither a part nor an assembly: STEP and IGES are exported from a part " +
+                    "or from an assembly. Open the one to send for me.");
             if (assemblyDoc != null && Bool(a, "reopen_and_compare", false))
                 return Failed(
-                    "Su un assieme «reopen_and_compare» non lo faccio: rileggere lo STEP di un assieme apre " +
-                    "la finestra «Nuovo documento» e la chiamata non torna (misurato). Il controllo che faccio " +
-                    "e' il conto dei solidi nel file contro quelli dei pezzi: toglilo e richiedimelo.");
+                    "On an assembly I do not do «reopen_and_compare»: reading back the STEP of an assembly opens " +
+                    "the window «New Document» and the call does not return (measured). The check I do is the count " +
+                    "of the solids in the file against those of the parts: remove it and ask me again.");
 
             bool iges = operation == "export_iges";
             // THE ASSEMBLY IGES IS NOT (adversarial review of 27/9/2026): it does not have the
@@ -631,9 +631,9 @@ namespace Oce.Solid.Agent.Core
             // not contain the whole assembly. Until it is measured, it refuses.
             if (iges && assemblyDoc != null)
                 return Failed(
-                    "L'IGES di un assieme non lo scrivo: non so verificare che dentro ci sia l'assieme intero (con " +
-                    "certe impostazioni SOLIDWORKS scrive un file per componente). Per mandare l'assieme usa " +
-                    "«export_step», che lo porta intero e lo controllo; per un pezzo solo, aprilo e chiedimi l'IGES li'.");
+                    "I do not write the IGES of an assembly: I cannot verify that the whole assembly is inside " +
+                    "(with certain settings SOLIDWORKS writes one file per component). To send the assembly use " +
+                    "«export_step», which carries it whole and I check it; for a single part, open it and ask me for the IGES there.");
 
             // THE PROTOCOL BEFORE THE PATH (Z-C21.13, C5-7): AP242 decides which
             // extension the path may have.
@@ -651,9 +651,9 @@ namespace Oce.Solid.Agent.Core
                 else if (requestedRepresentation == "surfaces")
                     representation = (int)swIGESRepresentation_e.swIGES_TRMSRF;
                 else return Failed(
-                    "Rappresentazione «" + requestedRepresentation + "» sconosciuta: ci sono " +
-                    "«solids» (BREP, quella che serve a chi deve lavorare il pezzo) e " +
-                    "«surfaces».");
+                    "Representation «" + requestedRepresentation + "» unknown: there are " +
+                    "«solids» (BREP, the one needed by whoever has to machine the part) " +
+                    "and «surfaces».");
             }
             else
             {
@@ -666,8 +666,8 @@ namespace Oce.Solid.Agent.Core
                 // writes it, further down.
                 else if (requestedProtocol == "AP242") ap242 = true;
                 else return Failed(
-                    "Protocollo «" + requestedProtocol + "» sconosciuto: ci sono AP203, " +
-                    "AP214 (predefinito) e AP242.");
+                    "Protocol «" + requestedProtocol + "» unknown: there are AP203, " +
+                    "AP214 (the default) and AP242.");
             }
 
             string[] goodExtensions = iges
@@ -684,7 +684,7 @@ namespace Oce.Solid.Agent.Core
                 if (check.Succeeded && check.Measurements != null && check.Measurements.ContainsKey("verdict"))
                     verdictValue = Convert.ToString(check.Measurements["verdict"]);
             }
-            else verdictValue = "assieme: la verifica dei corpi si fa sui pezzi, uno per uno";
+            else verdictValue = "assembly: the check of the bodies is done on the parts, one by one";
 
             string location = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(location))
@@ -693,8 +693,8 @@ namespace Oce.Solid.Agent.Core
                 try { its = model.GetPathName() ?? ""; } catch { }
                 if (string.IsNullOrWhiteSpace(its))
                     return Failed(
-                        "Il pezzo non e' mai stato salvato e non mi hai detto dove mettere " +
-                        "il file. Dimmi «path», oppure salva prima il pezzo.");
+                        "The part has never been saved and you did not tell me where to put " +
+                        "the file. Tell me «path», or save the part first.");
                 location = Path.ChangeExtension(its, goodExtensions[0]);
             }
 
@@ -708,16 +708,16 @@ namespace Oce.Solid.Agent.Core
             string ext = (Path.GetExtension(location) ?? "").ToLowerInvariant();
             if (Array.IndexOf(goodExtensions, ext) < 0)
                 return Failed(
-                    "Il percorso «" + location + "» finisce in «" + ext + "», e per «" +
-                    operation + "» ci vuole " + string.Join(" oppure ", goodExtensions) +
-                    ". L'estensione NON e' un dettaglio: e' l'unica cosa che dice a " +
-                    "SaveAs3 che formato scrivere.");
+                    "The path «" + location + "» ends in «" + ext + "», and for «" +
+                    operation + "» you need " + string.Join(" or ", goodExtensions) +
+                    ". The extension is NOT a detail: it is the only thing that tells " +
+                    "SaveAs3 which format to write.");
 
             string folder;
             try { folder = Path.GetDirectoryName(Path.GetFullPath(location)); }
-            catch (Exception ex) { return Failed("Percorso che non so leggere: " + ex.Message); }
+            catch (Exception ex) { return Failed("A path I cannot read: " + ex.Message); }
             if (!Directory.Exists(folder))
-                return Failed("La cartella «" + folder + "» non esiste: non la creo io.");
+                return Failed("The folder «" + folder + "» does not exist: I do not create it.");
 
             var before = ReadExchangePreferences();
             List<string> preferencesNotRestored = null;
@@ -749,8 +749,8 @@ namespace Oce.Solid.Agent.Core
                         catch (Exception ex)
                         {
                             return Failed(
-                                "C'e' gia' un file li' e non riesco a sostituirlo (" + ex.Message +
-                                "): probabilmente e' aperto in un altro programma.");
+                                "There is already a file there and I cannot replace it (" + ex.Message +
+                                "): it is probably open in another program.");
                         }
                     }
 
@@ -768,13 +768,13 @@ namespace Oce.Solid.Agent.Core
                             (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
                             null, null, ref errors, ref warnings);
                     }
-                    catch (Exception ex) { return Failed("File non scritto: " + ex.Message); }
+                    catch (Exception ex) { return Failed("File not written: " + ex.Message); }
                 }
             }
             finally { preferencesNotRestored = RestorePreferences(before); }   // only what was read (N17)
 
             if (!ok || !File.Exists(location))
-                return Failed("Il file non e' stato scritto (codice " + errors + SaveErrorNames(errors) + "): " + location +
+                return Failed("The file was not written (code " + errors + SaveErrorNames(errors) + "): " + location +
                                SaveWarningsTail(warnings));
 
             long howMuchItWeighs = new FileInfo(location).Length;
@@ -808,8 +808,8 @@ namespace Oce.Solid.Agent.Core
                 measurements["how_known"] = why;
                 if (record == 0)
                     return Failed(
-                        "L'IGES e' stato scritto ma non ha nessun record di parametri: e' " +
-                        "un file con le intestazioni e niente dentro. (" + location + ")");
+                        "The IGES was written but it has no parameter record: it is a " +
+                        "file with the headers and nothing inside. (" + location + ")");
 
                 // WHAT IS IN THE FILE, NOT ONLY HOW MUCH (N59). The record count
                 // does not tell a solid from its wireframe: both have records.
@@ -859,17 +859,17 @@ namespace Oce.Solid.Agent.Core
 
                 if (schema == null)
                     return Failed(
-                        "Il file non comincia per «ISO-10303-21» o non ha un FILE_SCHEMA: " +
-                        "non e' uno STEP, qualunque cosa dica l'estensione. (" + location + ")");
+                        "The file has no «ISO-10303-21» at its start or no FILE_SCHEMA: " +
+                        "it is not a STEP file, whatever the extension says. (" + location + ")");
                 if (entity == 0)
                     return Failed(
-                        "Lo STEP e' stato scritto ma la sua sezione DATA e' vuota: e' un " +
-                        "file con le intestazioni e niente dentro. (" + location + ")");
+                        "The STEP was written but its DATA section is empty: it is a " +
+                        "file with the headers and nothing inside. (" + location + ")");
                 if (exited != null && exited != requestedProtocol)
                     return Failed(
-                        "Hai chiesto " + requestedProtocol + " ed e' uscito " + exited +
-                        " (FILE_SCHEMA «" + schema + "»). Il file c'e' e non e' il " +
-                        "protocollo che serve: certi fornitori accettano solo il 203. (" +
+                        "You asked for " + requestedProtocol + " and " + exited +
+                        " came out (FILE_SCHEMA «" + schema + "»). The file is there and it is " +
+                        "not the protocol that is needed: some suppliers accept only 203. (" +
                         location + ")");
                 // THE WHOLE ASSEMBLY IN THE FILE (entry Z-D6): one MANIFOLD_SOLID_BREP per
                 // body, against the bodies of the unsuppressed parts. Rereading it is not
@@ -892,8 +892,8 @@ namespace Oce.Solid.Agent.Core
                             "export and SOLIDWORKS resolved them to write the file; they stay resolved.";
                     if (expectedValues >= 0 && inFile >= 0 && inFile < expectedValues)
                         return Failed(
-                            "Lo STEP dell'assieme ha " + inFile + " solidi e i pezzi non soppressi ne hanno " +
-                            expectedValues + ": qualcosa non e' arrivato nel file. (" + location + ")");
+                            "The STEP of the assembly has " + inFile + " solids and the parts that are not suppressed have " +
+                            expectedValues + ": something did not make it into the file. (" + location + ")");
                 }
             }
 
@@ -917,12 +917,12 @@ namespace Oce.Solid.Agent.Core
                 measurements["how_the_reread_went"] = comE;
                 if (its < 0)
                     return Failed(
-                        "Il file e' scritto ma non sono riuscito a rileggerlo per " +
-                        "confrontarlo: " + comE + " (" + location + ")");
+                        "The file is written but I could not read it back to " +
+                        "compare it: " + comE + " (" + location + ")");
                 if (myRead == null)
                     return Failed(
-                        "Il file e' scritto e riletto, ma non riesco a misurare il volume del " +
-                        "pezzo di partenza: senza, il confronto non si fa. (" + location + ")");
+                        "The file is written and read back, but I cannot measure the volume of the " +
+                        "starting part: without it, the comparison cannot be made. (" + location + ")");
                 double myOwn = myRead.Value;
 
                 // ONE THOUSANDTH, not «about». A translation that loses a
@@ -932,13 +932,13 @@ namespace Oce.Solid.Agent.Core
                 measurements["deviation_relative"] = Math.Round(deviation, 6);
                 if (deviation > 0.001)
                     return Failed(
-                        "Il file riaperto ha volume " + its.ToString("0.##") + " mm3 e il " +
-                        "pezzo ne ha " + myOwn.ToString("0.##") + ": uno scarto del " +
-                        (deviation * 100).ToString("0.###") + "%. La traduzione ha perso " +
-                        "qualcosa. (" + location + ")");
+                        "The reopened file has volume " + its.ToString("0.##") + " mm3 and " +
+                        "the part has " + myOwn.ToString("0.##") + ": a deviation of " +
+                        (deviation * 100).ToString("0.###") + "%. The translation lost " +
+                        "something. (" + location + ")");
             }
 
-            _log("[agente] " + (iges ? "IGES" : "STEP") + ": " + howMuchItWeighs + " byte, " + location);
+            _log("[agent] " + (iges ? "IGES" : "STEP") + ": " + howMuchItWeighs + " bytes, " + location);
             return WithoutFeature(measurements);
         }
 
@@ -1295,16 +1295,16 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (!goodStart)
                 {
-                    why = "il file non comincia per «ISO-10303-21»";
+                    why = "the file has no «ISO-10303-21» at its start";
                     return null;
                 }
                 entity = howMany;
-                why = "letto dal file: il FILE_SCHEMA e le righe «#» della sezione DATA";
+                why = "read from the file: the FILE_SCHEMA and the «#» records of the DATA section";
                 return schema;
             }
             catch (Exception ex)
             {
-                why = "non ho potuto leggere il file: " + ex.Message;
+                why = "I could not read the file: " + ex.Message;
                 return null;
             }
         }
@@ -1339,12 +1339,12 @@ namespace Oce.Solid.Agent.Core
                 int howMany = 0;
                 foreach (var line in File.ReadLines(filePath))
                     if (line.Length >= 73 && (line[72] == 'P' || line[72] == 'p')) howMany++;
-                why = "contando i record con «P» nella colonna 73 del file IGES";
+                why = "counting the records with «P» in column 73 of the IGES file";
                 return howMany;
             }
             catch (Exception ex)
             {
-                why = "non ho potuto leggere il file: " + ex.Message;
+                why = "I could not read the file: " + ex.Message;
                 return -1;
             }
         }
@@ -1452,22 +1452,22 @@ namespace Oce.Solid.Agent.Core
                 reopened = _sw.LoadFile4(filePath, "", null, ref errors) as IModelDoc2;
                 if (reopened == null)
                 {
-                    comE = "LoadFile4 non ha aperto niente (codice " + errors + ")";
+                    comE = "LoadFile4 opened nothing (code " + errors + ")";
                     return -1;
                 }
                 double? v = VolumeMm3(reopened);
                 if (v == null)
                 {
-                    comE = "riaperto, ma il volume della geometria tradotta non si e' lasciato leggere";
+                    comE = "reopened, but the volume of the translated geometry could not be read";
                     return -1;
                 }
-                comE = "riaperto come pezzo e richiuso; volume letto dalla geometria tradotta";
+                comE = "reopened as a part and closed again; volume read from the translated geometry";
                 volumeRead = true;
                 return v.Value;
             }
             catch (Exception ex)
             {
-                comE = "eccezione riaprendo: " + ex.Message;
+                comE = "exception while reopening: " + ex.Message;
                 return -1;
             }
             finally

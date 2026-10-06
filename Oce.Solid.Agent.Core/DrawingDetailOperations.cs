@@ -61,8 +61,8 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: una vista di dettaglio sta " +
-                    "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
+                    "The active document is not a drawing: a detail view goes on a " +
+                    "sheet of a drawing. First create the drawing with «create_drawing».");
 
             // ── THE VIEW TO DETAIL ──────────────────────────────────────
             //
@@ -92,15 +92,15 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non riesco a scorrere le viste del foglio: " + ex.Message);
+                return Failed("I cannot go through the views of the sheet: " + ex.Message);
             }
 
             if (target == null)
                 return Failed(requested == null
-                    ? "Sul foglio non c'e' nessuna vista da dettagliare: mettici prima " +
-                      "le viste con «standard_views»."
-                    : "Non trovo la vista «" + requested + "». Sul foglio ci sono: " +
-                      (viewNames.Count == 0 ? "nessuna vista" : string.Join(", ", viewNames)) + ".");
+                    ? "There is no view to detail on the sheet: first put the views " +
+                      "there with «standard_views»."
+                    : "I cannot find the view «" + requested + "». On the sheet there are: " +
+                      (viewNames.Count == 0 ? "no view" : string.Join(", ", viewNames)) + ".");
 
             string targetName = "";
             try { targetName = target.GetName2() ?? ""; } catch { }
@@ -108,8 +108,8 @@ namespace Oce.Solid.Agent.Core
             var outline = target.GetOutline() as double[];
             if (outline == null || outline.Length < 4)
                 return Failed(
-                    "Non riesco a leggere l'ingombro della vista «" + targetName +
-                    "», e senza quello non so dove mettere il cerchio del dettaglio.");
+                    "I cannot read the bounding box of the view «" + targetName +
+                    "», and without that I do not know where to put the circle of the detail.");
 
             double xMin = outline[0], yMin = outline[1], xMax = outline[2], yMax = outline[3];
             double wide = xMax - xMin, up = yMax - yMin;
@@ -127,7 +127,7 @@ namespace Oce.Solid.Agent.Core
 
             double radiusMm = Num(a, "radius_mm", Math.Min(wide, up) / 4.0 * 1000.0);
             if (radiusMm <= 0)
-                return Failed("«radius_mm» dev'essere maggiore di zero: ho letto " + radiusMm + ".");
+                return Failed("«radius_mm» must be greater than zero: I read " + radiusMm + ".");
             double radius = radiusMm / 1000.0;
 
             // THE CIRCLE MUST BE INSIDE THE VIEW. One that overruns enlarges
@@ -135,17 +135,17 @@ namespace Oce.Solid.Agent.Core
             if (cx - radius < xMin || cx + radius > xMax ||
                 cy - radius < yMin || cy + radius > yMax)
                 return Failed(
-                    "Il cerchio del dettaglio non sta dentro la vista «" + targetName +
-                    "»: centro (" + Math.Round((cx - (xMin + xMax) / 2.0) * 1000, 1) + ", " +
-                    Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 1) + ") mm dal centro, raggio " +
-                    Math.Round(radiusMm, 1) + " mm, su una vista " +
+                    "The circle of the detail does not fit inside the view «" + targetName +
+                    "»: center (" + Math.Round((cx - (xMin + xMax) / 2.0) * 1000, 1) + ", " +
+                    Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 1) + ") mm from the center, radius " +
+                    Math.Round(radiusMm, 1) + " mm, on a view " +
                     Math.Round(wide * 1000, 1) + " x " + Math.Round(up * 1000, 1) +
-                    " mm di foglio. Un cerchio che sborda ingrandisce del vuoto, e il " +
-                    "vuoto ingrandito e' comunque una vista che sembra buona.");
+                    " mm of sheet. A circle that sticks out enlarges empty space, and " +
+                    "the enlarged empty space is still a view that looks good.");
 
             double scale1 = Num(a, "scale", 2);
             if (scale1 <= 0)
-                return Failed("«scale» dev'essere maggiore di zero: ho letto " + scale1 + ".");
+                return Failed("«scale» must be greater than zero: I read " + scale1 + ".");
             string label = Str(a, "label", "B");
             if (string.IsNullOrWhiteSpace(label)) label = "B";
             // A DETAIL «B» NEXT TO A SECTION «B-B» (entry Z-C13): it is refused beforehand.
@@ -174,13 +174,13 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito a tracciare il cerchio del dettaglio: " + ex.Message);
+                return Failed("I could not draw the circle of the detail: " + ex.Message);
             }
             if (circle == null)
                 return Failed(
-                    "«CreateCircleByRadius» non ha prodotto nessun cerchio sul foglio, e " +
-                    "senza il cerchio non c'e' niente da selezionare: " +
-                    "«CreateDetailViewAt4» non prende la zona in firma, la prende dalla " +
+                    "«CreateCircleByRadius» produced no circle on the sheet, and without " +
+                    "the circle there is nothing to select: «CreateDetailViewAt4» " +
+                    "does not take the area as a signature, it takes it from the " +
                     "selection.");
 
             // The sketch is closed first, as for the section.
@@ -315,20 +315,20 @@ namespace Oce.Solid.Agent.Core
                 ["circles_before"] = circlesBefore,
                 ["circles_after"] = circlesAfter,
                 ["what_it_does_not_check"] =
-                    "SE QUELLO E' IL PARTICOLARE CHE SERVIVA. So dirti che il cerchio e' " +
-                    "diventato un dettaglio e che sta dentro la vista, non che dentro ci " +
-                    "sia la gola che volevi mostrare: un cerchio spostato di dieci " +
-                    "millimetri ingrandisce un pezzo di piano liscio, ed e' altrettanto " +
-                    "valido.\n" +
-                    "Non guardo se la scala scelta rende il particolare leggibile, ne' se " +
-                    "il dettaglio si accavalla con le altre viste o col cartiglio. E non " +
-                    "decido se un dettaglio serva: quello dipende da quanto e' piccolo " +
-                    "cio' che va quotato.",
+                    "IF THAT IS THE DETAIL THAT WAS NEEDED. I can tell you that the circle " +
+                    "became a detail and that it is inside the view, not that inside it there " +
+                    "is the groove you wanted to show: a circle moved by ten millimeters " +
+                    "enlarges a piece of smooth surface, and it is just as valid.\nI do not " +
+                    "look at " +
+                    "whether the chosen scale makes the detail readable, nor whether the detail " +
+                    "overlaps the other views or the title block. And I do not decide whether " +
+                    "a detail is needed: that depends on how small the thing to be dimensioned " +
+                    "is.",
             };
 
-            _log("[agente] dettaglio «" + detailName + "» da «" + targetName +
-                 "»: circonferenze " + circlesBefore + " -> " + circlesAfter +
-                 ", viste " + viewsBefore + " -> " + viewsAfter);
+            _log("[agent] detail «" + detailName + "» from «" + targetName +
+                 "»: circles " + circlesBefore + " -> " + circlesAfter +
+                 ", views " + viewsBefore + " -> " + viewsAfter);
             return WithoutFeature(outside);
         }
     }

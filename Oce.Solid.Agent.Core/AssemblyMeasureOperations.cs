@@ -107,8 +107,8 @@ namespace Oce.Solid.Agent.Core
         {
             if (!string.IsNullOrWhiteSpace(Str(a, "body_uid", null)))
                 return Failed(
-                    "Su un assieme «body_uid» non vale: peso l'assieme intero, cioe' i componenti non " +
-                    "soppressi. Per un pezzo solo, aprilo e chiedimelo li'.");
+                    "On an assembly «body_uid» does not apply: I weigh the whole assembly, that is the components that " +
+                    "are not suppressed. For a single part, open it and ask me there.");
             var assemblyDoc = model as IAssemblyDoc;
             string refusal;
             var all = ComponentsOrRefusal(assemblyDoc, "mass", out refusal);
@@ -182,7 +182,7 @@ namespace Oce.Solid.Agent.Core
                 if (string.IsNullOrEmpty(PartMaterial(doc, other ? used : ""))) withoutMaterial.Add(item.Name);
                 if (other)
                 {
-                    otherConfiguration.Add(item.Name + " (usa «" + used + "», il pezzo e' aperto su «" + activate + "»)");
+                    otherConfiguration.Add(item.Name + " (uses «" + used + "», the part is open in configuration «" + activate + "»)");
                     readSum = false;
                     continue;
                 }
@@ -211,7 +211,7 @@ namespace Oce.Solid.Agent.Core
             object v0 = take(p => p.Volume);
             object c0 = take(p => p.CenterOfMass);
             if (m0 == null || v0 == null)
-                return RefuseAfterResolving(resolvedOnRequest, "SOLIDWORKS non ha dato le proprieta' di massa dell'assieme. Non ti do numeri a meta'.");
+                return RefuseAfterResolving(resolvedOnRequest, "SOLIDWORKS did not give the mass properties of the assembly. I do not give you half numbers.");
             double mass = Convert.ToDouble(m0);
 
             var measurements = new Dictionary<string, object>
@@ -237,10 +237,10 @@ namespace Oce.Solid.Agent.Core
                 measurements["mass_kg"] = null;
                 measurements["without_material"] = withoutMaterial.ToArray();
                 measurements["why_no_mass"] =
-                    "A " + string.Join(", ", withoutMaterial) + " non e' stato dato un materiale: la massa " +
-                    "dell'assieme non si sa. SOLIDWORKS risponderebbe lo stesso con la densita' predefinita " +
-                    "(1000 kg/m3, l'acqua): un numero credibile e sbagliato. Dai il materiale ai pezzi " +
-                    "(«apply_material» su ognuno) e richiedimelo.";
+                    "For " + string.Join(", ", withoutMaterial) + " no material was given: the mass of the " +
+                    "assembly is not known. SOLIDWORKS would answer all the same with the default density " +
+                    "(1000 kg/m3, water): a believable and wrong number. Give the material to the parts " +
+                    "(«apply_material» on each one) and ask me again.";
             }
             else
             {
@@ -256,10 +256,10 @@ namespace Oce.Solid.Agent.Core
                     measurements["deviation_on_sum"] = double.IsNaN(deviation) ? null : (object)Math.Round(deviation, 6);
                     if (double.IsNaN(deviation) || deviation > 0.001)
                         return RefuseAfterResolving(resolvedOnRequest,
-                            "La massa dell'assieme (" + mass.ToString("0.####") + " kg) e la somma dei suoi pezzi (" +
-                            sum.ToString("0.####") + " kg) non combaciano: una delle due letture non e' quella che " +
-                            "sembra (un materiale messo sul componente nell'assieme? un componente contato due volte?). " +
-                            "Non ti do un numero.");
+                            "The mass of the assembly (" + mass.ToString("0.####") + " kg) and the sum of its parts (" +
+                            sum.ToString("0.####") + " kg) do not match: one of the two readings is not what it " +
+                            "seems (a material put on the component in the assembly? a component counted twice?). I do " +
+                            "not give you a number.");
                 }
                 else measurements["sum_of_parts_kg"] = null;   // a part did not let itself be weighed, or uses another configuration: no check
             }
@@ -268,8 +268,8 @@ namespace Oce.Solid.Agent.Core
                 "leaves them out of the assembly mass (measured), and so does the sum. Hidden components weigh. A " +
                 "material set on the COMPONENT in the assembly, different from the part's, is not in the sum of the " +
                 "parts: if there is one, the gap says so and I stop.";
-            _log("[agente] massa dell'assieme: " + parts.Count + " pezzi, " +
-                 (withoutMaterial.Count > 0 ? "senza materiale" : mass.ToString("0.###") + " kg"));
+            _log("[agent] mass of the assembly: " + parts.Count + " parts, " +
+                 (withoutMaterial.Count > 0 ? "without material" : mass.ToString("0.###") + " kg"));
             return SucceededWithoutCreating(measurements);
         }
 
@@ -300,8 +300,8 @@ namespace Oce.Solid.Agent.Core
         {
             if (!string.IsNullOrWhiteSpace(Str(a, "body_uid", null)))
                 return Failed(
-                    "Su un assieme «body_uid» non vale: misuro l'ingombro dell'assieme intero. Per un pezzo " +
-                    "solo, aprilo e chiedimelo li'.");
+                    "On an assembly «body_uid» does not apply: I measure the bounding box of the whole assembly. For a " +
+                    "single part, open it and ask me there.");
             var assemblyDoc = model as IAssemblyDoc;
             string refusal;
             var all = ComponentsOrRefusal(assemblyDoc, "box", out refusal);
@@ -338,8 +338,8 @@ namespace Oce.Solid.Agent.Core
                 MathTransform tr = null;
                 try { tr = c.Transform2; } catch { }
                 if (tr == null)
-                    return Failed("Non leggo dove sta «" + item.Name + "» nell'assieme (Transform2): senza, la " +
-                                   "sua scatola starebbe nel posto sbagliato. Non ti do un ingombro.");
+                    return Failed("I cannot read where «" + item.Name + "» is in the assembly (Transform2): without " +
+                                   "it, its box would be in the wrong place. I do not give you a bounding box.");
                 double[] its = null;
                 foreach (var ob in bodies)
                 {
@@ -351,8 +351,8 @@ namespace Oce.Solid.Agent.Core
                     try { brought = copy != null && copy.ApplyTransform(tr); } catch { }
                     var sc = brought ? BodyBox(copy) : null;
                     if (sc == null)
-                        return Failed("Non riesco a portare nell'assieme un corpo di «" + item.Name + "» o a " +
-                                       "leggerne la scatola: non ti do un ingombro a meta'.");
+                        return Failed("I cannot bring a body of «" + item.Name + "» into " +
+                                       "the assembly or read its box: I do not give you half a bounding box.");
                     if (its == null) its = (double[])sc.Clone();
                     else { for (int k = 0; k < 3; k++) its[k] = Math.Min(its[k], sc[k]); for (int k = 3; k < 6; k++) its[k] = Math.Max(its[k], sc[k]); }
                 }
@@ -366,7 +366,7 @@ namespace Oce.Solid.Agent.Core
                 if (everything == null) everything = (double[])its.Clone();
                 else { for (int k = 0; k < 3; k++) everything[k] = Math.Min(everything[k], its[k]); for (int k = 3; k < 6; k++) everything[k] = Math.Max(everything[k], its[k]); }
             }
-            if (everything == null) return Failed("Nessun componente dell'assieme ha un corpo solido da misurare.");
+            if (everything == null) return Failed("No component of the assembly has a solid body to measure.");
             var measurements = new Dictionary<string, object>
             {
                 ["document"] = "assembly",
@@ -375,7 +375,7 @@ namespace Oce.Solid.Agent.Core
                 ["from_mm"] = new[] { Round(everything[0]), Round(everything[1]), Round(everything[2]) },
                 ["to_mm"] = new[] { Round(everything[3]), Round(everything[4]), Round(everything[5]) },
                 ["bounding_box_mm"] = new[] { Round(everything[3] - everything[0]), Round(everything[4] - everything[1]), Round(everything[5] - everything[2]) },
-                ["units"] = "millimetri, nel sistema di coordinate dell'assieme",
+                ["units"] = "millimeters, in the coordinate system of the assembly",
                 ["what_it_does_not_check"] =
                     "It is the box aligned to the assembly axes, not the smallest one. Suppressed components are " +
                     "not in it (they are listed). Lightweight parts are in it (their bodies are read without " +

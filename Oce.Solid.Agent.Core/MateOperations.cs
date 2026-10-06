@@ -77,18 +77,18 @@ namespace Oce.Solid.Agent.Core
             var assemblyDoc = model as IAssemblyDoc;
             if (assemblyDoc == null)
                 return Failed(
-                    "Questo non e' un assieme, e' un documento di tipo «" +
-                    DocumentTypeName(TypeOf(model)) + "». Gli accoppiamenti " +
-                    "stanno fra componenti di un assieme.");
+                    "This is not an assembly, it is a document of type «" +
+                    DocumentTypeName(TypeOf(model)) + "». Mates are between " +
+                    "components of an assembly.");
 
             object[] rawItems = null;
             try { rawItems = assemblyDoc.GetComponents(false) as object[]; } catch { }
             var components = DocumentState.ComponentsInOrder(rawItems);
             if (components.Count < 2)
                 return Failed(
-                    "Per accoppiare servono due componenti, e qui ce n'" +
-                    (components.Count == 1 ? "e' uno solo" : "e' nessuno") +
-                    ". Inseriscili con «insert_component».");
+                    "To mate you need two components, and here there" +
+                    (components.Count == 1 ? " is only one" : " is none") +
+                    ". Insert them with «insert_component».");
 
             string uidA = Str(a, "component_a", null);
             string uidB = Str(a, "component_b", null);
@@ -98,9 +98,9 @@ namespace Oce.Solid.Agent.Core
             if (compB == null) return Failed(NotFound(uidB, "component_b", components));
             if (ReferenceEquals(compA, compB))
                 return Failed(
-                    "«" + uidA + "» e «" + uidB + "» sono lo stesso componente. Un " +
-                    "pezzo non si accoppia con se stesso: non vincola niente e " +
-                    "l'assieme resterebbe libero come prima.");
+                    "«" + uidA + "» and «" + uidB + "» are the same component. A part " +
+                    "is not mated with itself: it constrains nothing and the " +
+                    "assembly would stay free as before.");
 
             // ── CONCENTRIC AND TANGENT CANNOT SUCCEED HERE (entry Z-C21.2,
             // finding M17) ────────────────────────────────────────────────────
@@ -116,11 +116,11 @@ namespace Oce.Solid.Agent.Core
             string requested = (Str(a, "variant", "coincidente") ?? "").Trim().ToLowerInvariant();
             if (requested == "concentrico" || requested == "tangente")
                 return Failed(
-                    "«" + requested + "» vuole almeno una faccia curva (un cilindro, un foro), e qui " +
-                    "le facce si scelgono per verso — alto, basso, davanti… — che vale solo per le " +
-                    "facce piane: fra due facce piane un «" + requested + "» non esiste. Con le facce " +
-                    "piane ci sono coincidente, parallelo, perpendicolare e distanza. Non ho toccato " +
-                    "niente.");
+                    "«" + requested + "» wants at least one curved face (a cylinder, a hole), and here " +
+                    "the faces are chosen by direction — up, down, front… — which only works for planar " +
+                    "faces: between two planar faces a «" + requested + "» does not exist. With planar " +
+                    "faces there are coincidente, parallelo, perpendicolare and distanza. I touched " +
+                    "nothing.");
 
             string facingA = Str(a, "face_a", null);
             string facingB = Str(a, "face_b", null);
@@ -139,15 +139,15 @@ namespace Oce.Solid.Agent.Core
             int typ = MateType(typeName);
             if (typ < 0)
                 return Failed(
-                    "Accoppiamento «" + typeName + "» sconosciuto. Ci sono: " +
+                    "Mate «" + typeName + "» unknown. There are: " +
                     string.Join(", ", KnownTypes) + ".");
 
             double distance = Num(a, "distance_mm", double.NaN);
             if (typ == (int)swMateType_e.swMateDISTANCE && double.IsNaN(distance))
                 return Failed(
-                    "Un accoppiamento «distanza» senza «distance_mm» non ha nessun " +
-                    "valore predefinito ragionevole: sceglierne uno vorrebbe dire " +
-                    "decidere al posto tuo di quanto stanno lontane due facce.");
+                    "A «distanza» mate without «distance_mm» has no " +
+                    "reasonable default value: choosing one would mean " +
+                    "deciding for you how far apart two faces are.");
             if (double.IsNaN(distance)) distance = 0;
 
             string alignment = Str(a, "alignment", "allineato");
@@ -220,16 +220,16 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Non sono riuscito ad accoppiare: " + ex.Message);
+                return Failed("I could not mate: " + ex.Message);
             }
             finally { try { model.ClearSelection2(true); } catch { } }
 
             // `NoError` IS WORTH 1. Zero is `ErrorUknown`.
             if (error != (int)swAddMateError_e.swAddMateError_NoError)
                 return Failed(
-                    "SOLIDWORKS ha rifiutato l'accoppiamento: " + MateErrorName(error) +
-                    ". Le due facce sono la «" + facingA + "» di " + uidA + " e la «" +
-                    facingB + "» di " + uidB + "; l'accoppiamento chiesto e' «" +
+                    "SOLIDWORKS refused the mate: " + MateErrorName(error) +
+                    ". The two faces are the «" + facingA + "» of " + uidA + " and the «" +
+                    facingB + "» of " + uidB + "; the mate requested is «" +
                     typeName + "»" +
                     (align == 0 ? " allineato" : " opposto") + ".");
 
@@ -250,10 +250,10 @@ namespace Oce.Solid.Agent.Core
 
             if (laterA <= priorA && laterB <= priorB)
                 return Failed(
-                    "Mi e' stato risposto di si' (" + (mate == null ? "senza oggetto" : "con l'oggetto") +
-                    ") ma gli accoppiamenti non sono aumentati: " + uidA + " ne aveva " +
-                    priorA + " e ne ha " + laterA + ", " + uidB + " ne aveva " + priorB +
-                    " e ne ha " + laterB + ". Non l'ho considerato fatto.");
+                    "It answered yes (" + (mate == null ? "without an object" : "with the object") +
+                    ") but the mates did not increase: " + uidA + " had " +
+                    priorA + " and has " + laterA + ", " + uidB + " had " + priorB +
+                    " and has " + laterB + ". I did not consider it done.");
 
             // ── WHAT IS BLOCKED AFTER IT, AND WHAT THE MATE REMOVED (Z-C14) ─
             //
@@ -297,7 +297,7 @@ namespace Oce.Solid.Agent.Core
                           "; the directions show that this mate adds nothing. ") +
                     HowDirectionsAreMeasured +
                     RemoveTheMateJustMade(model, assemblyDoc, mate, nameA, nameB, uidA, uidB, priorA, priorB);
-                _log("[agente] " + refusal);
+                _log("[agent] " + refusal);
                 return Failed(refusal);
             }
 
@@ -333,7 +333,7 @@ namespace Oce.Solid.Agent.Core
                 HowDirectionsAreMeasured;
             if (notStandard != null) measurements["not_judged_because"] = "the assembly has " + notStandard;
             measurements["verdict"] = verdictValue;
-            _log("[agente] " + verdictValue);
+            _log("[agent] " + verdictValue);
 
             return SucceededWithoutCreating(measurements);
         }
@@ -1128,19 +1128,19 @@ namespace Oce.Solid.Agent.Core
         {
             switch (e)
             {
-                case (int)swAddMateError_e.swAddMateError_NoError: return "nessun errore";
+                case (int)swAddMateError_e.swAddMateError_NoError: return "no error";
                 case (int)swAddMateError_e.swAddMateError_IncorrectMateType:
-                    return "tipo di accoppiamento non adatto a queste due facce";
+                    return "mate type not suitable for these two faces";
                 case (int)swAddMateError_e.swAddMateError_IncorrectAlignment:
-                    return "allineamento sbagliato: prova con «opposto»";
+                    return "wrong alignment: try «opposto»";
                 case (int)swAddMateError_e.swAddMateError_IncorrectSelections:
-                    return "le due facce non vanno bene per questo accoppiamento";
+                    return "the two faces are not right for this mate";
                 case (int)swAddMateError_e.swAddMateError_OverDefinedAssembly:
-                    return "l'assieme diventerebbe sovradefinito: questo vincolo e' gia' implicato dagli altri";
+                    return "the assembly would become over-defined: this constraint is already implied by the others";
                 case (int)swAddMateError_e.swAddMateError_IncorrectGearRatios:
-                    return "rapporti di ingranaggio sbagliati";
+                    return "wrong gear ratios";
                 default:
-                    return "errore sconosciuto (" + e.ToString(CultureInfo.InvariantCulture) + ")";
+                    return "unknown error (" + e.ToString(CultureInfo.InvariantCulture) + ")";
             }
         }
 
@@ -1182,9 +1182,9 @@ namespace Oce.Solid.Agent.Core
             var exist = string.Join(", ",
                 components.Select((v, i) => "C" + (i + 1) + " («" + v.Key + "»)"));
             return string.IsNullOrWhiteSpace(uid)
-                ? "Non mi hai detto quale componente: «" + theField + "» vuole un " +
-                  "identificativo dallo stato. Ci sono: " + exist + "."
-                : "Non trovo il componente «" + uid + "». Ci sono: " + exist + ".";
+                ? "You did not tell me which component: «" + theField + "» wants an " +
+                  "identifier from the state. There are: " + exist + "."
+                : "I cannot find the component «" + uid + "». There are: " + exist + ".";
         }
 
         /// <summary>
@@ -1217,14 +1217,14 @@ namespace Oce.Solid.Agent.Core
             why = null;
             if (string.IsNullOrWhiteSpace(facing))
             {
-                why = "non mi hai detto quale faccia. I versi sono: " +
+                why = "you did not tell me which face. The directions are: " +
                          string.Join(", ", KnownFacings) + ".";
                 return null;
             }
             var wanted = Direction(facing);
             if (wanted == null)
             {
-                why = "«" + facing + "» non e' un verso che conosco. Ci sono: " +
+                why = "«" + facing + "» is not a direction I know. There are: " +
                          string.Join(", ", KnownFacings) + ".";
                 return null;
             }
@@ -1241,7 +1241,7 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (bodies == null || bodies.Length == 0)
             {
-                why = "il componente non ha corpi solidi da cui prendere una faccia.";
+                why = "the component has no solid bodies to take a face from.";
                 return null;
             }
 

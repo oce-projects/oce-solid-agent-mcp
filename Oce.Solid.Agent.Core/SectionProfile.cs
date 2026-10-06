@@ -175,7 +175,7 @@ namespace Oce.Solid.Agent.Core
                     {
                         source = OverhangFromArchive;
                         log(string.Format(CultureInfo.InvariantCulture,
-                            "[sezione] overhang {0:0.##}/{1:0.##} remembered, not measured now " +
+                            "[section] overhang {0:0.##}/{1:0.##} remembered, not measured now " +
                             "(archive: {2})", known[0], known[1], ReadArchivePath()));
                         return new[] { known[0], known[1] };
                     }
@@ -184,7 +184,7 @@ namespace Oce.Solid.Agent.Core
 
             double[] measured = null;
             try { measured = measure == null ? null : measure(); }
-            catch (Exception ex) { log("[sezione] the trial frame failed: " + ex.Message); }
+            catch (Exception ex) { log("[section] the trial frame failed: " + ex.Message); }
 
             // A FAILURE IS NOT REMEMBERED: the next call measures again.
             if (measured == null || measured.Length < 2) return null;
@@ -232,7 +232,7 @@ namespace Oce.Solid.Agent.Core
                 if (!_memory.Remove(key)) return false;
                 Save(log);
             }
-            log("[sezione] overhang dropped from the archive, it will be measured again: " + key);
+            log("[section] overhang dropped from the archive, it will be measured again: " + key);
             return true;
         }
 
@@ -316,7 +316,7 @@ namespace Oce.Solid.Agent.Core
         {
             if (!File.Exists(profile))
             {
-                log("[sezione] il profilo non esiste: " + profile);
+                log("[section] the profile does not exist: " + profile);
                 return null;
             }
 
@@ -350,11 +350,11 @@ namespace Oce.Solid.Agent.Core
                     (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
                 if (string.IsNullOrWhiteSpace(model) || !File.Exists(model))
                 {
-                    log("[sezione] non c'e' un modello di parte predefinito.");
+                    log("[section] there is no default part template.");
                     return null;
                 }
                 doc = sw.NewDocument(model, 0, 0, 0) as IModelDoc2;
-                if (doc == null) { log("[sezione] documento di prova non creato."); return null; }
+                if (doc == null) { log("[section] trial document not created."); return null; }
 
                 double u = TEST_SIDE_U / 2000.0, v = TEST_SIDE_V / 2000.0;
                 var angles = new[]
@@ -375,14 +375,14 @@ namespace Oce.Solid.Agent.Core
                     var b = angles[(i + 1) % 4];
                     var seg = sketches.CreateLine(a[0], a[1], a[2], b[0], b[1], b[2])
                         as ISketchSegment;
-                    if (seg == null) { log("[sezione] segmento di prova non creato."); return null; }
+                    if (seg == null) { log("[section] trial segment not created."); return null; }
                     created.Add(seg);
                 }
                 sketches.Insert3DSketch(true);
 
                 var theGroup = doc.FeatureManager.CreateStructuralMemberGroup()
                     as IStructuralMemberGroup;
-                if (theGroup == null) { log("[sezione] gruppo di prova non creato."); return null; }
+                if (theGroup == null) { log("[section] trial group not created."); return null; }
                 theGroup.Segments = created.Cast<SketchSegment>().ToArray();
                 if (Math.Abs(rotationDeg) > 1e-9)
                     theGroup.Angle = rotationDeg * Math.PI / 180.0;
@@ -406,8 +406,8 @@ namespace Oce.Solid.Agent.Core
                     ConfigurationName: configuration) as IFeature;
                 if (feature == null)
                 {
-                    log("[sezione] il telaio di prova non e' nato: profilo «" + profile +
-                        "» misura «" + configuration + "».");
+                    log("[section] the trial frame was not created: profile «" + profile +
+                        "» size «" + configuration + "».");
                     return null;
                 }
                 try { doc.EditRebuild3(); } catch { }
@@ -431,13 +431,13 @@ namespace Oce.Solid.Agent.Core
                     protrudesU > TEST_SIDE_U || protrudesV > TEST_SIDE_V)
                 {
                     log(string.Format(CultureInfo.InvariantCulture,
-                        "[sezione] sporgenze fuori scala sul telaio di prova: {0:0.##} / {1:0.##}",
+                        "[section] overhangs out of scale on the trial frame: {0:0.##} / {1:0.##}",
                         protrudesU, protrudesV));
                     return null;
                 }
                 log(string.Format(CultureInfo.InvariantCulture,
-                    "[sezione] telaio di prova {0}x{1}: ingombro {2:0.##}x{3:0.##}, " +
-                    "sporgenze {4:0.##}/{5:0.##}",
+                    "[section] trial frame {0}x{1}: bounding box {2:0.##}x{3:0.##}, " +
+                    "overhangs {4:0.##}/{5:0.##}",
                     TEST_SIDE_U, TEST_SIDE_V, boundingBoxU, boundingBoxV, protrudesU, protrudesV));
                 return new[] { protrudesU, protrudesV };
             }
@@ -455,7 +455,7 @@ namespace Oce.Solid.Agent.Core
                         log("[section] trial frame: " + closing.Message);
                 }
                 string leftModified = SwOperations.CloseLibraryAgain(sw, profile, libraryBefore, log);
-                if (leftModified != null) log("[sezione] " + leftModified);
+                if (leftModified != null) log("[section] " + leftModified);
                 // BACK TO THE DOCUMENT THAT WAS IN FRONT, by its path, with
                 // swDontRebuildActiveDoc: this was ActivateDoc3(title, false, 0),
                 // and 0 is swUserDecision, a dialog the call waits on (N8).
@@ -566,7 +566,7 @@ namespace Oce.Solid.Agent.Core
                         v.Value[2].ToString("0.####", CultureInfo.InvariantCulture)));
                 File.WriteAllLines(f, lines, Encoding.UTF8);
             }
-            catch (Exception ex) { log("[sezione] non ho potuto salvare l'archivio: " + ex.Message); }
+            catch (Exception ex) { log("[section] I could not save the archive: " + ex.Message); }
         }
     }
 }

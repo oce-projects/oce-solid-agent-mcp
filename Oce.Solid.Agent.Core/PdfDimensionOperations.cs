@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.Core
             foreach (var kv in expectedValues)
             {
                 int foundItems = inPdf.TryGetValue(kv.Key, out int t) ? t : 0;
-                if (foundItems < kv.Value) areMissing.Add(kv.Key + " (sulla tavola " + kv.Value + ", nel PDF " + foundItems + ")");
+                if (foundItems < kv.Value) areMissing.Add(kv.Key + " (on the drawing " + kv.Value + ", in the PDF " + foundItems + ")");
             }
             return areMissing;
         }

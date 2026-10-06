@@ -66,20 +66,20 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: una nota di disegno sta " +
-                    "su un foglio di tavola. Crea prima la tavola con «create_drawing».");
+                    "The active document is not a drawing: a drawing note goes on a " +
+                    "sheet of a drawing. First create the drawing with «create_drawing».");
 
             string text = Str(a, "text", null);
             if (string.IsNullOrWhiteSpace(text))
                 return Failed(
-                    "«text» e' obbligatorio: una nota vuota e' un'annotazione che " +
-                    "occupa un posto sul foglio e non dice niente.");
+                    "«text» is required: an empty note is an annotation that takes " +
+                    "up a place on the sheet and says nothing.");
 
             // ── THE SHEET, AND HOW BIG IT IS ────────────────────────────
             ISheet sheet = null;
             try { sheet = drawing.GetCurrentSheet() as ISheet; } catch { }
             if (sheet == null)
-                return Failed("Non riesco a prendere il foglio attivo della tavola.");
+                return Failed("I cannot get the active sheet of the drawing.");
 
             string sheetName = "";
             try { sheetName = sheet.GetName() ?? ""; } catch { }
@@ -87,9 +87,9 @@ namespace Oce.Solid.Agent.Core
             double[] measurements = SheetMeasurements(sheet);
             if (measurements == null || measurements.Length < 2)
                 return Failed(
-                    "Non riesco a leggere la misura del foglio, e senza quella non " +
-                    "posso dire se la nota finirebbe dentro o fuori — e una nota " +
-                    "fuori foglio esiste, si conta, e sulla carta non c'e'.");
+                    "I cannot read the size of the sheet, and without it I cannot say " +
+                    "whether the note would end up inside or outside — and a note " +
+                    "outside the sheet exists, is counted, and on paper is not there.");
 
             double wideMm = measurements[0], topMm = measurements[1];
 
@@ -101,17 +101,17 @@ namespace Oce.Solid.Agent.Core
 
             if (xMm < 0 || yMm < 0 || xMm > wideMm || yMm > topMm)
                 return Failed(
-                    "La nota finirebbe fuori dal foglio: hai chiesto x=" + xMm +
-                    " y=" + yMm + " mm su un foglio " + wideMm + " x " + topMm +
-                    " mm. Fuori dal foglio la nota c'e' davvero e si conta, ma " +
-                    "stampando non compare — e nessun errore lo direbbe.");
+                    "The note would end up outside the sheet: you asked for x=" + xMm +
+                    " y=" + yMm + " mm on a sheet " + wideMm + " x " + topMm +
+                    " mm. Outside the sheet the note really exists and is counted, but " +
+                    "when printing it does not appear — and no error would say so.");
 
             int sheetBefore = CountSheetNotes(drawing);
             int viewsBefore = CountViewNotes(drawing);
             if (sheetBefore < 0 || viewsBefore < 0)
                 return Failed(
-                    "Non riesco a contare le note della tavola prima di cominciare: senza quel " +
-                    "numero non saprei dirti se la nota e' nata. Non ho toccato niente.");
+                    "I cannot count the notes of the drawing before starting: without that number " +
+                    "I could not tell you whether the note was created. I touched nothing.");
 
             object born = null;
             try
@@ -121,7 +121,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("«InsertNote» e' andata in errore: " + ex.Message);
+                return Failed("«InsertNote» went into error: " + ex.Message);
             }
 
             // ── WHERE TO PUT IT ─────────────────────────────────────────
@@ -148,8 +148,8 @@ namespace Oce.Solid.Agent.Core
             int viewsAfter = CountViewNotes(drawing);
             if (sheetAfter < 0 || viewsAfter < 0)
                 return Failed(
-                    "Ho scritto la nota, ma poi non riesco a ricontare le note della tavola: " +
-                    "non so dirti se e' nata ne' dove. Guarda la tavola prima di andare avanti.");
+                    "I wrote the note, but then I cannot count the notes of the drawing again: I cannot " +
+                    "tell you whether it was created nor where. Look at the drawing before going on.");
             int put = (sheetAfter - sheetBefore) + (viewsAfter - viewsBefore);
 
             // WE DO NOT LOOK AT WHETHER `InsertNote` ANSWERED: we look at whether the note
@@ -157,11 +157,11 @@ namespace Oce.Solid.Agent.Core
             // the thing is not the measurement of the thing.
             if (put <= 0)
                 return Failed(
-                    "Nessuna nota e' nata (sul foglio erano " + sheetBefore + ", sono " +
-                    sheetAfter + "; nelle viste erano " + viewsBefore + ", sono " +
+                    "No note was created (on the sheet there were " + sheetBefore + ", there are " +
+                    sheetAfter + "; in the views there were " + viewsBefore + ", there are " +
                     viewsAfter + "). `InsertNote` " +
-                    (born == null ? "non ha risposto un oggetto" : "ha risposto un oggetto") +
-                    ", e il conteggio non e' salito lo stesso.");
+                    (born == null ? "did not answer an object" : "answered an object") +
+                    ", and the count did not go up all the same.");
 
             // ── THE TEXT IS READ BACK ───────────────────────────────────
             string reread = null;
@@ -189,14 +189,14 @@ namespace Oce.Solid.Agent.Core
                 ["where_mm"] = whereMm,
                 ["position_set"] = moved,
                 ["what_it_does_not_check"] =
-                    "Che quello che c'e' scritto sia VERO. Una nota e' testo libero: " +
-                    "«materiale S355» su un pezzo che nelle proprieta' dice S275 passa " +
-                    "ogni conteggio e ogni rilettura. Qui si garantisce che la nota c'e' " +
-                    "e dice quello che hai scritto, non che sia giusto scriverlo. " +
-                    "E non si guarda se si accavalla col disegno o col cartiglio.",
+                    "That what is written is TRUE. A note is free text: «material S355» " +
+                    "on a part that says S275 in its properties passes every count and " +
+                    "every re-reading. What is guaranteed here is that the note is there and " +
+                    "says what you wrote, not that it is right to write it. And I do " +
+                    "not look at whether it overlaps the drawing or the title block.",
             };
 
-            _log("[agente] nota sul foglio «" + sheetName + "»: " +
+            _log("[agent] note on the sheet «" + sheetName + "»: " +
                  (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
             return WithoutFeature(outside);
         }

@@ -52,35 +52,35 @@ namespace Oce.Solid.Agent.Core
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
-                    "Il documento attivo non e' una tavola: i fogli stanno in una " +
-                    "tavola. Creala prima con «create_drawing».");
+                    "The active document is not a drawing: the sheets are in a " +
+                    "drawing. First create it with «create_drawing».");
 
             var namesBefore = SheetNames(drawing);
             if (namesBefore.Count == 0)
-                return Failed("Questa tavola non dichiara nessun foglio: non so da cosa partire.");
+                return Failed("This drawing does not declare any sheet: I do not know what to start from.");
 
             string itemName = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(itemName)) itemName = FreeName(namesBefore);
             if (namesBefore.Any(n => string.Equals(n, itemName, StringComparison.OrdinalIgnoreCase)))
                 return Failed(
-                    "C'e' gia' un foglio che si chiama «" + itemName + "». I nomi dei fogli " +
-                    "sono come si chiamano le pagine di una tavola: due uguali e non si " +
-                    "sa piu' quale si sta guardando. Ci sono: " +
+                    "There is already a sheet called «" + itemName + "». The sheet names are " +
+                    "what the pages of a drawing are called: two the same and you no longer " +
+                    "know which one you are looking at. There are: " +
                     string.Join(", ", namesBefore) + ".");
 
             // ── THE DIHEDRAL IS READ FROM THE CURRENT SHEET ──────────────
             ISheet current;
             try { current = drawing.GetCurrentSheet() as ISheet; }
-            catch (Exception ex) { return Failed("Non riesco a leggere il foglio corrente: " + ex.Message); }
-            if (current == null) return Failed("La tavola non ha un foglio attivo.");
+            catch (Exception ex) { return Failed("I cannot read the current sheet: " + ex.Message); }
+            if (current == null) return Failed("The drawing has no active sheet.");
 
             var property = SheetProperty(current);
             if (property == null || property.Length <= 4)
                 return Failed(
-                    "Non riesco a leggere il diedro del foglio corrente, e senza quello " +
-                    "il foglio nuovo nascerebbe con un diedro deciso da me. Un secondo " +
-                    "foglio specchiato rispetto al primo non da' nessun errore e manda " +
-                    "in officina un pezzo rovesciato: preferisco fermarmi.");
+                    "I cannot read the projection angle of the current sheet, and without it " +
+                    "the new sheet would be created with a projection angle decided by me. " +
+                    "A second sheet mirrored with respect to the first gives no error and " +
+                    "sends a reversed part to the workshop: I prefer to stop.");
             bool firstAngle = property[4] != 0;
 
             // The scale: if I am not told, that of the current sheet. Two
@@ -92,7 +92,7 @@ namespace Oce.Solid.Agent.Core
             double scaleDen = Num(a, "scale_denominator",
                 currentScale != null && currentScale.Length > 1 ? currentScale[1] : 1);
             if (scaleNum <= 0 || scaleDen <= 0)
-                return Failed("La scala deve avere due numeri positivi, per esempio 1:2.");
+                return Failed("The scale must have two positive numbers, for example 1:2.");
 
             string formatName = Str(a, "paper_size", null);
             int sheetFormat = string.IsNullOrWhiteSpace(formatName)
@@ -113,14 +113,14 @@ namespace Oce.Solid.Agent.Core
                     "",                        // PropertyViewName
                     0, 0, 0, 0, 0, 0);         // zones: not used
             }
-            catch (Exception ex) { return Failed("Foglio non creato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Sheet not created: " + ex.Message); }
 
             // ── IT IS COUNTED, NOT BELIEVED ─────────────────────────────
             var namesAfter = SheetNames(drawing);
             if (namesAfter.Count <= namesBefore.Count)
                 return Failed(
-                    "Mi e' stato risposto «" + (response ? "si'" : "no") + "» e i fogli sono " +
-                    "sempre " + namesBefore.Count + ". Non lo chiamo fatto.");
+                    "It answered «" + (response ? "yes" : "no") + "» and the sheets are " +
+                    "still " + namesBefore.Count + ". I do not call it done.");
 
             // AND THE DIHEDRAL OF THE NEW SHEET IS RE-READ FROM THE NEW SHEET.
             // It is the true defense of this operation: passing it is not having it.
@@ -133,11 +133,11 @@ namespace Oce.Solid.Agent.Core
 
             if (firstAngleAfter != firstAngle)
                 return Failed(
-                    "Il foglio e' nato ma col diedro sbagliato: ho chiesto il " +
-                    (firstAngle ? "PRIMO" : "TERZO") + " e il foglio dice il " +
-                    (firstAngleAfter ? "PRIMO" : "TERZO") + ". Due fogli con diedri diversi " +
-                    "nella stessa tavola sono un pezzo rovesciato che non da' nessun " +
-                    "errore: non dico che e' fatto.");
+                    "The sheet was created but with the wrong projection angle: I asked for the " +
+                    (firstAngle ? "FIRST" : "THIRD") + " projection and the sheet says the " +
+                    (firstAngleAfter ? "FIRST" : "THIRD") + ". Two sheets with different " +
+                    "projection angles in the same drawing are a reversed part that gives " +
+                    "no error: I do not say it is done.");
 
             var scaleAfter = newItem == null ? null : ReadScale(newItem);
             var sheetMeasurements = newItem == null ? null : SheetMeasurements(newItem);
@@ -150,8 +150,8 @@ namespace Oce.Solid.Agent.Core
                 ["sheets"] = namesAfter.ToArray(),
                 ["active"] = SheetName(newItem) ?? itemName,
                 ["projection_angle"] = firstAngleAfter ? "first" : "third",
-                ["projection_angle_source"] = "riletto dal foglio nuovo, dopo averlo copiato dal foglio " +
-                                     "corrente: non e' un valore scelto qui",
+                ["projection_angle_source"] = "read from the new sheet, after copying it from the current " +
+                                     "sheet: it is not a value chosen here",
                 ["scale"] = scaleAfter != null && scaleAfter.Length > 1
                     ? scaleAfter[0] + ":" + scaleAfter[1] : null,
                 ["width_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[0], 1) : null,
@@ -159,8 +159,8 @@ namespace Oce.Solid.Agent.Core
             };
 
             if (!firstAngleAfter)
-                _log("[agente] ATTENZIONE: questa tavola e' in TERZO diedro, e anche il foglio nuovo");
-            _log("[agente] foglio «" + itemName + "»: i fogli sono " + namesAfter.Count);
+                _log("[agent] WARNING: this drawing is in THIRD angle projection, and so is the new sheet");
+            _log("[agent] sheet «" + itemName + "»: the sheets are " + namesAfter.Count);
             return WithoutFeature(measurements);
         }
 
@@ -176,35 +176,35 @@ namespace Oce.Solid.Agent.Core
         private Outcome ActivateSheet(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
-            if (drawing == null) return Failed("Il documento attivo non e' una tavola.");
+            if (drawing == null) return Failed("The active document is not a drawing.");
 
             var names = SheetNames(drawing);
             string wanted = Str(a, "name", null);
             if (string.IsNullOrWhiteSpace(wanted))
                 return Failed(
-                    "Dimmi quale foglio: «name», come lo riporta lo stato. Ci sono: " +
+                    "Tell me which sheet: «name», as the state reports it. There are: " +
                     string.Join(", ", names) + ".");
 
             var its = names.FirstOrDefault(n => string.Equals(n, wanted, StringComparison.OrdinalIgnoreCase));
             if (its == null)
                 return Failed(
-                    "Non c'e' nessun foglio che si chiami «" + wanted + "». Ci sono: " +
+                    "There is no sheet called «" + wanted + "». There are: " +
                     string.Join(", ", names) + ".");
 
             string before = SheetName(CurrentSheet(drawing));
 
             bool response;
             try { response = drawing.ActivateSheet(its); }
-            catch (Exception ex) { return Failed("Foglio non attivato: " + ex.Message); }
+            catch (Exception ex) { return Failed("Sheet not activated: " + ex.Message); }
 
             // THE ANSWER IS NOT BELIEVED: the document is asked which sheet
             // it has in front of it now.
             string after = SheetName(CurrentSheet(drawing));
             if (!string.Equals(after, its, StringComparison.OrdinalIgnoreCase))
                 return Failed(
-                    "Mi e' stato risposto «" + (response ? "si'" : "no") + "» ma il foglio " +
-                    "attivo e' «" + (after ?? "(non leggibile)") + "», non «" + its + "». " +
-                    "Non lo chiamo fatto: i passi dopo lavorerebbero sul foglio sbagliato.");
+                    "It answered «" + (response ? "yes" : "no") + "» but the active " +
+                    "sheet is «" + (after ?? "(not readable)") + "», not «" + its + "». " +
+                    "I do not call it done: the steps after would work on the wrong sheet.");
 
             return WithoutFeature(new Dictionary<string, object>
             {

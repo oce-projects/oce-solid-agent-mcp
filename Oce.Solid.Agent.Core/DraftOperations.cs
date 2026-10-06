@@ -69,58 +69,58 @@ namespace Oce.Solid.Agent.Core
             double angle = Num(a, "angle_deg", 0);
             if (angle <= 0)
                 return Failed(
-                    "Manca «angle_deg», o e' zero: uno sformo di zero gradi non e' uno " +
-                    "sformo, e' una parete dritta.");
+                    "«angle_deg» is missing, or it is zero: a draft of zero degrees is not " +
+                    "a draft, it is a straight wall.");
             if (angle >= 90)
                 return Failed(
-                    "«angle_deg» dev'essere sotto i 90: a 90 gradi la parete si " +
-                    "sdraia sulla faccia neutra. Per uno stampo si usa 1-3 gradi.");
+                    "«angle_deg» must be under 90: at 90 degrees the wall lies " +
+                    "down on the neutral face. For a mold, use an angle of 1-3 degrees.");
 
             string neutralUid = Str(a, "neutral_face_uid", "");
             var neutral = ResolveFace(docState, a, neutralUid, out string reason);
-            if (neutral == null) return Failed("Faccia neutra: " + reason);
+            if (neutral == null) return Failed("Neutral face: " + reason);
 
             var uid = StringList(a, "faces_uid");
             if (uid.Count == 0)
                 return Failed(
-                    "Manca «faces_uid»: quali facce sformare. La faccia NEUTRA -- quella " +
-                    "che resta ferma -- si dice a parte, in «neutral_face_uid».");
+                    "«faces_uid» is missing: which faces to draft. The NEUTRAL face -- the one " +
+                    "that stays still -- is given separately, in «neutral_face_uid».");
             if (uid.Contains(neutralUid, StringComparer.OrdinalIgnoreCase))
                 return Failed(
-                    "«" + neutralUid + "» e' insieme la faccia neutra e una da sformare. " +
-                    "La neutra e' quella che NON si muove: e' il piano da cui si misura " +
-                    "l'angolo.");
+                    "«" + neutralUid + "» is both the neutral face and one to draft. The " +
+                    "neutral one is the one that does NOT move: it is the plane the angle is " +
+                    "measured from.");
 
             var faces = new List<IFace2>();
             foreach (var u in uid)
             {
                 var f = ResolveFace(docState, a, u, out reason);
-                if (f == null) return Failed("Faccia «" + u + "»: " + reason);
+                if (f == null) return Failed("Face «" + u + "»: " + reason);
                 faces.Add(f);
             }
 
             var neutralNormal = FaceNormal(neutral);
             if (neutralNormal == null)
-                return Failed("Non riesco a leggere l'orientamento della faccia neutra.");
+                return Failed("I cannot read the orientation of the neutral face.");
 
             bool flip = Bool(a, "flip", false);
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
             int inclinedBefore = HowManyInclinedFaces(model, neutralNormal, angle);
             if (bodiesBefore < 0 || inclinedBefore < 0)
-                return Failed(VolumeNotReadBefore("fare lo sformo").Replace("il volume del pezzo", "le facce del pezzo"));
+                return Failed(VolumeNotReadBefore("making the draft").Replace("the volume of the part", "the faces of the part"));
 
             model.ClearSelection2(true);
             var handler = model.SelectionManager as ISelectionMgr;
-            if (handler == null) return Failed("Non riesco a usare il gestore di selezione.");
+            if (handler == null) return Failed("I cannot use the selection manager.");
 
             // NEUTRAL MARK 1, FACES MARK 2. Swapped, the feature is born
             // all the same and drafts the wrong faces: see the note at the head.
             if (!Select(handler, neutral, SelectionMarks.DraftNeutralFace))
-                return Failed("Non sono riuscito a selezionare la faccia neutra.");
+                return Failed("I could not select the neutral face.");
             for (int i = 0; i < faces.Count; i++)
                 if (!Select(handler, faces[i], SelectionMarks.DraftFaces))
-                    return Failed("Non sono riuscito a selezionare la faccia «" + uid[i] + "».");
+                    return Failed("I could not select the face «" + uid[i] + "».");
 
             IFeature feature;
             try
@@ -133,13 +133,13 @@ namespace Oce.Solid.Agent.Core
                     IsStepDraft: false,
                     IsBodyDraft: false) as IFeature;
             }
-            catch (Exception ex) { return Failed("Lo sformo non e' riuscito: " + ex.Message); }
+            catch (Exception ex) { return Failed("The draft did not succeed: " + ex.Message); }
 
             if (feature == null)
                 return Failed(
-                    "Lo sformo non e' stato creato, e SOLIDWORKS non dice perche'. Di " +
-                    "solito e' l'angolo troppo grande per l'altezza della parete, o una " +
-                    "faccia che non tocca la neutra.");
+                    "The draft was not created, and SOLIDWORKS does not say why. " +
+                    "Usually the angle is too big for the height of the wall, or a face " +
+                    "does not touch the neutral one.");
 
             // ── AND NOW THE PART IS MEASURED, NOT THE FEATURE ────────────
             //
@@ -152,9 +152,9 @@ namespace Oce.Solid.Agent.Core
             int newOnes = inclinedAfter - inclinedBefore;
             if (inclinedAfter < 0)
                 return Failed(
-                    "Lo sformo e' nato, ma poi non riesco a ricontare le facce inclinate: " +
-                    "la feature dichiara l'angolo anche quando non ha inclinato niente, quindi " +
-                    "senza quel conto non posso dirti che ha funzionato. Guarda il pezzo — " +
+                    "The draft was created, but then I cannot count the tilted faces " +
+                    "again: the feature declares the angle even when it tilted nothing, so " +
+                    "without that count I cannot tell you that it worked. Look at the part — " +
                     Sentences.HowToWithdrawIt + ".");
 
             if (newOnes < faces.Count)
@@ -163,22 +163,22 @@ namespace Oce.Solid.Agent.Core
                     " Ritiralo — " + Sentences.HowToWithdrawIt + ".";
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "Ho chiesto di sformare {0} facce di {1:0.###} gradi e la lavorazione " +
-                    "e' nata, ma sul pezzo le facce a quell'angolo sono passate da {2} a " +
-                    "{3}: {4}. La feature dichiara l'angolo che le ho chiesto anche quando " +
-                    "non ha inclinato niente, quindi l'unico modo di saperlo e' misurare le " +
-                    "facce -- ed e' quello che ho fatto. Quasi sempre vuol dire che la " +
-                    "faccia neutra non e' quella giusta, o che le facce indicate non la " +
-                    "toccano.{5}",
+                    "I asked to draft {0} faces by {1:0.###} degrees and the feature was " +
+                    "created, but on the part the faces at that angle went from {2} to " +
+                    "{3}: {4}. The feature declares the angle I asked for even when it " +
+                    "tilted nothing, so the only way to know is to measure the faces -- " +
+                    "and that is what I did. Almost always it means that the neutral " +
+                    "face is not the right one, or that the faces indicated do not " +
+                    "touch it.{5}",
                     faces.Count, angle, inclinedBefore, inclinedAfter,
-                    newOnes <= 0 ? "non se n'e' inclinata nessuna" : "ne mancano " + (faces.Count - newOnes),
+                    newOnes <= 0 ? "none of them was tilted" : "missing: " + (faces.Count - newOnes),
                     howToWithdraw));
             }
 
             if (bodiesAfter >= 0 && bodiesAfter != bodiesBefore)
                 return Failed(
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
-                    ": uno sformo non deve spezzare il pezzo. Ritiralo — " +
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
+                    ": a draft must not split the part. Withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
             // The draft is not decided on the volume (the faces are counted): here the
@@ -198,15 +198,15 @@ namespace Oce.Solid.Agent.Core
                 // and with what it is written. It is not hidden: it is named.
                 ["angle_declared_by_feature"] = FeatureAngle(feature),
                 ["what_it_does_not_check"] =
-                    "Ho contato le facce che stanno all'angolo chiesto rispetto alla neutra, " +
-                    "non VERIFICATO UNA PER UNA che siano proprio quelle che mi hai " +
-                    "indicato: dopo uno sformo le facce si rinumerano. Se il conto torna e " +
-                    "il volume e' andato dalla parte giusta, il pezzo e' quello. E non " +
-                    "guardo se l'angolo basta per lo stampo che hai in mente.",
+                    "I counted the faces that are at the requested angle to the neutral one, I " +
+                    "did NOT VERIFY ONE BY ONE that they are the very ones you indicated: " +
+                    "after a draft the faces are renumbered. If the count matches and the " +
+                    "volume went the right way, the part is the one. And I do not check " +
+                    "whether the angle is enough for the mold you have in mind.",
             };
 
             _log(string.Format(CultureInfo.InvariantCulture,
-                "[agente] sformo di {0:0.###} gradi su {1} facce: all'angolo {2} -> {3}, " +
+                "[agent] draft of {0:0.###} degrees on {1} faces: at the angle {2} -> {3}, " +
                 "volume {4}", angle, faces.Count, inclinedBefore, inclinedAfter, ReadValue(moved)));
 
             return Succeeded(feature, measurements, neutralNormal);

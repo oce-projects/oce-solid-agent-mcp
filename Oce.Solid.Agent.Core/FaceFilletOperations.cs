@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             if (!(model is IPartDoc))
-                return Failed("Il raccordo di faccia si fa su un pezzo: apri il pezzo e chiedimelo li'.");
+                return Failed("The face fillet is done on a part: open the part and ask me there.");
 
             // TWO FACES, AND «face_ref» NAMES ONLY ONE. `ResolveFace`
             // looks at «face_ref» before the uid: with two faces to resolve the same
@@ -86,40 +86,40 @@ namespace Oce.Solid.Agent.Core
             // would be asked between a face and itself.
             if (HasReference(a, "face_ref"))
                 return Failed(
-                    "Qui servono due facce diverse, e «face_ref» ne nomina una sola: usa " +
-                    "«face_1_uid» e «face_2_uid» con gli identificativi dello stato. Se una " +
-                    "delle due la crea un passo di questo piano, rileggi lo stato dopo quel passo.");
+                    "Two different faces are needed here, and «face_ref» names only one: " +
+                    "use «face_1_uid» and «face_2_uid» with the identifiers of the state. If one of " +
+                    "the two is created by a step of this plan, read the state again after that step.");
 
             double radius;
             string error;
             if (!RequiredNum(a, "radius_mm", out radius, out error)) return Failed(error);
             if (radius <= 0)
                 return Failed(
-                    "«radius_mm» deve essere maggiore di zero: hai chiesto " +
-                    radius.ToString("0.##", CultureInfo.InvariantCulture) + ". Per esempio 5.");
+                    "«radius_mm» must be greater than zero: you asked " +
+                    radius.ToString("0.##", CultureInfo.InvariantCulture) + ". For example 5.");
 
             string uid1 = (Str(a, "face_1_uid", "") ?? "").Trim();
             string uid2 = (Str(a, "face_2_uid", "") ?? "").Trim();
             if (uid1.Length == 0 || uid2.Length == 0)
                 return Failed(
-                    "Dimmi le due facce: «face_1_uid» e «face_2_uid», con gli identificativi " +
-                    "dello stato del documento (per esempio «F1» e «F3»). Il raccordo si appoggia " +
-                    "a tutte e due.");
+                    "Tell me the two faces: «face_1_uid» and «face_2_uid», with the identifiers " +
+                    "of the state of the document (for example «F1» and «F3»). The fillet rests on " +
+                    "both of them.");
 
             // THE SAME FACE TWICE. It is stated before calling: it is the
             // confusion of someone who wanted to round the edges of ONE face, and for
             // that there is another operation.
             if (string.Equals(uid1, uid2, StringComparison.OrdinalIgnoreCase))
                 return Failed(
-                    "«" + uid1 + "» e' in tutti e due gli insiemi: un raccordo di faccia unisce DUE " +
-                    "facce diverse, appoggiandosi a tutte e due. Per arrotondare i bordi di una " +
-                    "faccia sola usa «fillet_edges» sui suoi spigoli.");
+                    "«" + uid1 + "» is in both sets: a face fillet joins TWO different " +
+                    "faces, resting on both of them. To round the borders of a single " +
+                    "face use «fillet_edges» on its edges.");
 
             string reason;
             var face1 = ResolveFace(docState, a, uid1, out reason);
-            if (face1 == null) return Failed("Faccia «" + uid1 + "»: " + reason);
+            if (face1 == null) return Failed("Face «" + uid1 + "»: " + reason);
             var face2 = ResolveFace(docState, a, uid2, out reason);
-            if (face2 == null) return Failed("Faccia «" + uid2 + "»: " + reason);
+            if (face2 == null) return Failed("Face «" + uid2 + "»: " + reason);
 
             // TWO UIDs, ONE FACE. After a recovery by signature two different
             // names can have ended up on the same face: SOLIDWORKS is asked
@@ -133,9 +133,9 @@ namespace Oce.Solid.Agent.Core
             }
             if (same)
                 return Failed(
-                    "«" + uid1 + "» e «" + uid2 + "» adesso sono la stessa faccia: una delle due si e' " +
-                    "spostata ed e' stata ritrovata sull'altra. Rileggi lo stato e indica di nuovo " +
-                    "le due facce.");
+                    "«" + uid1 + "» and «" + uid2 + "» are now the same face: one of the two moved and " +
+                    "was found again on the other. Read the state again and point to the two " +
+                    "faces again.");
 
             // ── TWO PARALLEL PLANAR FACES ────────────────────────────────
             //
@@ -175,11 +175,11 @@ namespace Oce.Solid.Agent.Core
 
             // ── THE SNAPSHOT FIRST (GuardOperations.cs) ────────────────
             var photo = SnapshotPart(model);
-            if (photo.Volume == null) return Failed(VolumeNotReadBefore("fare il raccordo di faccia"));
+            if (photo.Volume == null) return Failed(VolumeNotReadBefore("making the face fillet"));
             int featureBefore = CountFeature(model);
             if (featureBefore < 0 || photo.Bodies < 0)
-                return Failed(VolumeNotReadBefore("fare il raccordo di faccia")
-                    .Replace("il volume del pezzo", "l'albero e i corpi del pezzo"));
+                return Failed(VolumeNotReadBefore("making the face fillet")
+                    .Replace("the volume of the part", "the tree and the bodies of the part"));
 
             // ── THE RECIPE OF THE GUIDE, IN THE MEASURED ORDER ───────────
             IFeature feature;
@@ -190,24 +190,24 @@ namespace Oce.Solid.Agent.Core
                     (int)swFeatureNameID_e.swFmFillet) as SimpleFilletFeatureData2;
                 if (data == null)
                     return Failed(
-                        "SOLIDWORKS non mi ha dato la definizione di un raccordo (CreateDefinition). " +
-                        "Non ho toccato niente: prova «fillet_edges» sullo spigolo fra le due facce.");
+                        "SOLIDWORKS did not give me the definition of a fillet (CreateDefinition). " +
+                        "I touched nothing: try «fillet_edges» on the edge between the two faces.");
                 if (!data.Initialize((int)swSimpleFilletType_e.swFaceFillet))
                     return Failed(
-                        "SOLIDWORKS non accetta un raccordo di faccia su questa definizione " +
-                        "(Initialize ha risposto false). Non ho toccato niente: prova «fillet_edges» " +
-                        "sullo spigolo fra le due facce.");
+                        "SOLIDWORKS does not accept a face fillet on this definition " +
+                        "(Initialize answered false). I touched nothing: try «fillet_edges» on " +
+                        "the edge between the two faces.");
 
                 var handler = model.SelectionManager as ISelectionMgr;
                 if (handler == null)
-                    return Failed("Non riesco a usare il gestore di selezione. Non ho toccato niente.");
+                    return Failed("I cannot use the selection manager. I touched nothing.");
                 // SET 1 MARK 2, SET 2 MARK 4 (see the constants).
                 if (!Select(handler, face1, SelectionMarks.FaceFilletFaceSet1))
-                    return Failed("Non sono riuscito a selezionare la faccia «" + uid1 + "». Non ho toccato " +
-                                   "niente: rileggi lo stato e indica di nuovo le due facce.");
+                    return Failed("I could not select the face «" + uid1 + "». I touched nothing: " +
+                                   "read the state again and point to the two faces again.");
                 if (!Select(handler, face2, SelectionMarks.FaceFilletFaceSet2))
-                    return Failed("Non sono riuscito a selezionare la faccia «" + uid2 + "». Non ho toccato " +
-                                   "niente: rileggi lo stato e indica di nuovo le due facce.");
+                    return Failed("I could not select the face «" + uid2 + "». I touched nothing: " +
+                                   "read the state again and point to the two faces again.");
 
                 // The circular profile: the guide asks for it to «complete the type»
                 // (measured: without it, the fillet is born all the same; it is put in because the
@@ -220,8 +220,8 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
-                return Failed("Il raccordo di faccia non e' riuscito: " + ex.Message +
-                               ". Prova «fillet_edges» sullo spigolo fra le due facce.");
+                return Failed("The face fillet did not succeed: " + ex.Message +
+                               ". Try «fillet_edges» on the edge between the two faces.");
             }
             finally { try { model.ClearSelection2(true); } catch { } }
 
@@ -229,14 +229,14 @@ namespace Oce.Solid.Agent.Core
             {
                 int now = CountFeature(model);
                 string queue = now > featureBefore
-                    ? " Eppure l'albero e' cresciuto (" + featureBefore + " -> " + now + "): guardalo e " +
-                      "ritira quello che c'e' in piu' — " + Sentences.HowToWithdrawIt + "."
-                    : " Non ho toccato niente.";
+                    ? " And yet the tree grew (" + featureBefore + " -> " + now + "): look at it " +
+                      "and withdraw what is extra — " + Sentences.HowToWithdrawIt + "."
+                    : " I touched nothing.";
                 return Failed(
-                    "Il raccordo di faccia non e' stato creato, e SOLIDWORKS non dice perche'. Di " +
-                    "solito e' il raggio: la palla deve appoggiarsi a tutte e due le facce senza " +
-                    "uscirne. Prova un raggio piu' piccolo; se le due facce si toccano su uno " +
-                    "spigolo, lo stesso raccordo si fa con «fillet_edges» su quello spigolo." + queue);
+                    "The face fillet was not created, and SOLIDWORKS does not say why. " +
+                    "Usually it is the radius: the ball must rest on both faces without " +
+                    "leaving them. Try a smaller radius; if the two faces touch along " +
+                    "an edge, the same fillet is made with «fillet_edges» on that edge." + queue);
             }
 
             // ── AND NOW THE PART IS MEASURED ─────────────────────────────
@@ -255,17 +255,17 @@ namespace Oce.Solid.Agent.Core
             // THE NEW FEATURE BY TYPE: the probe saw it born «Fillet».
             if (!string.Equals(typ, "Fillet", StringComparison.Ordinal))
                 return Failed(
-                    "E' nata una lavorazione «" + itemName + "» di tipo «" + typ + "», non un raccordo " +
-                    "(«Fillet»): non e' quello che ho chiesto." +
+                    "A feature «" + itemName + "» of type «" + typ + "» was created, not a " +
+                    "fillet («Fillet»): it is not what I asked for." +
                     RemoveFaceFillet(model, feature, photo, featureBefore) +
-                    " Prova «fillet_edges» sullo spigolo fra le due facce.");
+                    " Try «fillet_edges» on the edge between the two faces.");
 
             string broken = WhatBroke(model, photo, rebuilt, false);
             if (broken != null)
                 return Failed(
-                    "Il raccordo di faccia «" + itemName + "» e' nato, ma " + broken + "." +
+                    "The face fillet «" + itemName + "» was created, but " + broken + "." +
                     RemoveFaceFillet(model, feature, photo, featureBefore) +
-                    " Prova un raggio piu' piccolo, oppure «fillet_edges» sullo spigolo fra le due facce.");
+                    " Try a smaller radius, or «fillet_edges» on the edge between the two faces.");
 
             double? volumeAfter = VolumeMm3(model);
             double? cambio = volumeAfter - photo.Volume;
@@ -276,10 +276,10 @@ namespace Oce.Solid.Agent.Core
             // (entry Z-C8).
             if (cambio.HasValue && Math.Abs(cambio.Value) < 0.01)
                 return Failed(
-                    "Il raccordo di faccia «" + itemName + "» e' nato ma il volume e' rimasto " +
-                    photo.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3: non ha " +
-                    "arrotondato niente." + RemoveFaceFillet(model, feature, photo, featureBefore) +
-                    " Prova «fillet_edges» sullo spigolo fra le due facce.");
+                    "The face fillet «" + itemName + "» was created but the volume stayed " +
+                    photo.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3: it " +
+                    "rounded nothing." + RemoveFaceFillet(model, feature, photo, featureBefore) +
+                    " Try «fillet_edges» on the edge between the two faces.");
 
             // THE HAND CALCULATION, COMPARED. Where there is one (see above), a fillet
             // that removes another quantity is not the one asked for: partial, or
@@ -289,10 +289,10 @@ namespace Oce.Solid.Agent.Core
             if (expected.HasValue && cambio.HasValue &&
                 Math.Abs(Math.Abs(cambio.Value) - expected.Value) > Math.Max(0.05, expected.Value * 1e-4))
                 return Failed(string.Format(CultureInfo.InvariantCulture,
-                    "Il raccordo di faccia «{0}» e' nato, ma ha cambiato il volume di {1:0.##} mm3 e il " +
-                    "conto a mano ne vuole {2:0.##} (spigolo comune {3:0.##} mm x r² x (1 − π/4)): non " +
-                    "si e' appoggiato come chiesto sulle due facce.{4} Per lo stesso raccordo sullo " +
-                    "spigolo fra le due facce usa «fillet_edges».",
+                    "The face fillet «{0}» was created, but it changed the volume by {1:0.##} mm3 and the " +
+                    "hand calculation wants {2:0.##} (common edge {3:0.##} mm x r² x (1 − π/4)): it did " +
+                    "not end up laid down on the two faces as requested.{4} For the same fillet on the " +
+                    "edge between the two faces use «fillet_edges».",
                     itemName, Math.Abs(cambio.Value), expected.Value, edge,
                     RemoveFaceFillet(model, feature, photo, featureBefore)));
 
@@ -335,8 +335,8 @@ namespace Oce.Solid.Agent.Core
             };
             if (!cambio.HasValue) measurements["volume_not_read_again"] = NoteVolumeNotReread;
 
-            _log("[agente] raccordo di faccia r=" + radius.ToString("0.##", CultureInfo.InvariantCulture) +
-                 " fra " + uid1 + " e " + uid2 + ": «" + itemName + "», volume " + ReadValue(photo.Volume) +
+            _log("[agent] face fillet r=" + radius.ToString("0.##", CultureInfo.InvariantCulture) +
+                 " between " + uid1 + " and " + uid2 + ": «" + itemName + "», volume " + ReadValue(photo.Volume) +
                  " -> " + ReadValue(volumeAfter));
             return Succeeded(feature, measurements);
         }
@@ -355,10 +355,10 @@ namespace Oce.Solid.Agent.Core
             if (Math.Abs(cosine) < FaceFilletAlmostParallel) return null;
 
             if (cosine > 0)
-                return "«" + uid1 + "» e «" + uid2 + "» sono piane, parallele e guardano dalla stessa " +
-                       "parte (complanari, o separate da un gradino): nessuna palla le tocca tutte e due " +
-                       "dal lato dell'aria, e il raccordo non puo' nascere. Se c'e' un gradino fra loro, " +
-                       "usa «fillet_edges» sugli spigoli del gradino.";
+                return "«" + uid1 + "» and «" + uid2 + "» are planar, parallel and face the same way " +
+                       "(coplanar, or separated by a step): no ball touches both of them from the air " +
+                       "side, and the fillet cannot be created. If there is a step between them, use " +
+                       "«fillet_edges» on the edges of the step.";
 
             // Opposite normals: do they face each other or turn their backs? The point of the
             // plane of the second, seen from the normal of the first.
@@ -368,16 +368,16 @@ namespace Oce.Solid.Agent.Core
             double distanceMm = Units.Mm(
                 (p2[0] - p1[0]) * n1[0] + (p2[1] - p1[1]) * n1[1] + (p2[2] - p1[2]) * n1[2]);
             if (distanceMm <= 0)
-                return "«" + uid1 + "» e «" + uid2 + "» sono piane, parallele e si danno le spalle " +
-                       "(come il davanti e il dietro di un blocco): nessuna palla le tocca tutte e due " +
-                       "dal lato dell'aria, e il raccordo non puo' nascere. Per arrotondare gli spigoli " +
-                       "di una delle due usa «fillet_edges».";
+                return "«" + uid1 + "» and «" + uid2 + "» are planar, parallel and face away from each other " +
+                       "(like the front and the back of a block): no ball touches both of them from " +
+                       "the air side, and the fillet cannot be created. To round the edges of one of " +
+                       "the two use «fillet_edges».";
             if (Math.Abs(distanceMm - 2 * radiusMm) > 0.01)
                 return string.Format(CultureInfo.InvariantCulture,
-                    "«{0}» e «{1}» sono piane, parallele e si guardano a {2:0.##} mm: un raccordo di " +
-                    "raggio costante le tocca tutte e due solo se il raggio e' la meta' della distanza, " +
-                    "{3:0.##} mm, e hai chiesto {4:0.##}. Se vuoi arrotondare il fondo fra le due, " +
-                    "prova con «radius_mm»: {3:0.##}.",
+                    "«{0}» and «{1}» are planar, parallel and face each other at {2:0.##} mm: a " +
+                    "constant-radius fillet touches both of them only if the radius is half of the distance, " +
+                    "{3:0.##} mm, and you asked for {4:0.##}. If you want to round the bottom between " +
+                    "the two, try «radius_mm»: {3:0.##}.",
                     uid1, uid2, distanceMm, distanceMm / 2, radiusMm);
             return null;
         }
@@ -421,25 +421,25 @@ namespace Oce.Solid.Agent.Core
             catch { }
             finally { try { model.ClearSelection2(true); } catch { } }
             if (!removed)
-                return " E non sono riuscito a toglierlo: e' ancora nel pezzo, ritiralo — " + Sentences.HowToWithdrawIt + ".";
+                return " And I could not remove it: it is still in the part, withdraw it — " + Sentences.HowToWithdrawIt + ".";
             try { model.ForceRebuild3(false); } catch { }
             int features = CountFeature(model);
             if (features < 0)
-                return " L'ho tolto, ma non ho potuto ricontare l'albero per controllare che il pezzo sia " +
-                       "com'era: guardalo.";
+                return " I removed it, but I could not count the tree again to check that the part is as " +
+                       "it was: look at it.";
             if (features > featureBefore)
-                return " Ho provato a toglierlo, ma l'albero ha ancora " + (features - featureBefore) +
-                       " lavorazioni in piu': ritirale — " + Sentences.HowToWithdrawIt + ".";
+                return " I tried to remove it, but the tree still has " + (features - featureBefore) +
+                       " features more: withdraw them — " + Sentences.HowToWithdrawIt + ".";
             double? now = VolumeMm3(model);
             if (now == null || before.Volume == null)
-                return " L'ho tolto, ma non ho potuto rimisurare il volume per controllare che il pezzo sia " +
-                       "com'era: guardalo.";
+                return " I removed it, but I could not measure the volume again to check that the part is as " +
+                       "it was: look at it.";
             if (Math.Abs(now.Value - before.Volume.Value) > 0.01)
-                return " L'ho tolto, ma il volume adesso e' " +
-                       now.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3 invece di " +
+                return " I removed it, but the volume is now " +
+                       now.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3 instead of " +
                        before.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) +
-                       ": guarda il pezzo prima di andare avanti.";
-            return " Non l'ho lasciato: l'ho tolto e il pezzo e' com'era prima di questo passo.";
+                       ": look at the part before going on.";
+            return " I did not leave it: I removed it and the part is as it was before this step.";
         }
     }
 }

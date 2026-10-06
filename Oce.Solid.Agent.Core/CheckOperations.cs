@@ -85,7 +85,7 @@ namespace Oce.Solid.Agent.Core
         {
             var partDoc = model as IPartDoc;
             if (partDoc == null)
-                return Failed("Questo documento non e' un pezzo: non ha corpi da verificare.");
+                return Failed("This document is not a part: it has no bodies to check.");
 
             // ALL THE TYPES, not only the solids. A part that by mistake has a
             // sheet body is exactly the case that this operation exists
@@ -107,8 +107,8 @@ namespace Oce.Solid.Agent.Core
             var rawItems = partDoc.GetBodies2((int)swBodyType_e.swAllBodies, false) as object[];
             if (rawItems == null || rawItems.Length == 0)
                 return Failed(
-                    "Il pezzo non ha nessun corpo: non c'e' niente da verificare. " +
-                    "Fai prima un'estrusione.");
+                    "The part has no body: there is nothing to check. First " +
+                    "make an extrusion.");
 
             string thisOnly = Str(a, "body_uid", null);
 
@@ -192,11 +192,11 @@ namespace Oce.Solid.Agent.Core
                 list.Add(entry);
 
                 if (typ != (int)swBodyType_e.swSolidBody)
-                    reasons.Add("il corpo " + uid + " e' " + ABodyOf(whatItIsCalled) +
-                               ", non un solido: non racchiude un volume");
+                    reasons.Add("body " + uid + " is " + ABodyOf(whatItIsCalled) +
+                               ", not a solid: it does not enclose a volume");
                 if (gaps > 0)
-                    reasons.Add("il corpo " + uid + " ha " + gaps +
-                               (gaps == 1 ? " fessura" : " fessure") + ": non e' chiuso");
+                    reasons.Add("body " + uid + " has " + gaps +
+                               (gaps == 1 ? " gap" : " gaps") + ": it is not closed");
                 // NOT COUNTED IS NOT CLOSED (Z-C21.8, with N16): `Gaps` answers
                 // -1 when Diagnose gives nothing, and the closed field was already
                 // false, but no reason was added and the verdict could stay «can
@@ -207,21 +207,21 @@ namespace Oce.Solid.Agent.Core
                 if (defects == null)
                     reasons.Add("the defects of body " + uid + " could not be read: " + DefectsNotRead);
                 else if (defects.Count > 0)
-                    reasons.Add("il corpo " + uid + " ha " + defects.Count +
-                               (defects.Count == 1 ? " difetto: " : " difetti: ") +
+                    reasons.Add("body " + uid + " has " + defects.Count +
+                               (defects.Count == 1 ? " defect: " : " defects: ") +
                                string.Join(", ", defects));
                 if (check != CheckSaysHealthy)
-                    reasons.Add("il corpo " + uid + " ha Check() = " + check +
-                               " invece di " + CheckSaysHealthy);
+                    reasons.Add("body " + uid + " has Check() = " + check +
+                               " instead of " + CheckSaysHealthy);
                 if (check2 != Check2SaysHealthy)
-                    reasons.Add("il corpo " + uid + " ha Check2() = " + check2 +
-                               " invece di " + Check2SaysHealthy);
+                    reasons.Add("body " + uid + " has Check2() = " + check2 +
+                               " instead of " + Check2SaysHealthy);
             }
 
             if (list.Count == 0)
                 return Failed(
-                    "Non trovo il corpo «" + thisOnly + "». Gli identificativi dei " +
-                    "corpi stanno nello stato del documento, dentro «bodies».");
+                    "I cannot find the body «" + thisOnly + "». The identifiers of the " +
+                    "bodies are in the state of the document, inside «bodies».");
 
             // MORE THAN ONE BODY IS NOT A DEFECT, and it is another thing from
             // «broken»: a weldment has ten by construction. But for a
@@ -229,7 +229,7 @@ namespace Oce.Solid.Agent.Core
             // shells, and the printer does not know which of the two is the part.
             bool justOne = list.Count == 1;
             if (!justOne && string.IsNullOrEmpty(thisOnly))
-                reasons.Add("il pezzo ha " + list.Count + " corpi: per una stampa dev'essere uno solo");
+                reasons.Add("the part has " + list.Count + " bodies: for a print there must be only one");
 
             bool printable = reasons.Count == 0;
 
@@ -242,8 +242,8 @@ namespace Oce.Solid.Agent.Core
             // stays as it was. On a part of one body the verdict on the body
             // is the verdict on the part, and nothing changes.
             string verdictValue = printable
-                ? "Un solo corpo solido, chiuso e senza difetti: come geometria si puo' esportare."
-                : "Non lo esporterei cosi': " + string.Join("; ", reasons) + ".";
+                ? "A single solid body, closed and with no defects: as geometry it can be exported."
+                : "I would not export it like this: " + string.Join("; ", reasons) + ".";
             string verdictAbout = "part";
             if (!string.IsNullOrEmpty(thisOnly) && bodiesInPart > 1)
             {
@@ -279,9 +279,9 @@ namespace Oce.Solid.Agent.Core
                 // nor at the overhangs. A 0.3 mm shell passes here
                 // without a word.
                 ["what_it_does_not_check"] =
-                    "Lo spessore delle pareti e le sovrasporgenze non li guarda nessuno " +
-                    "ancora: qui si vede se il corpo e' chiuso e sano, non se e' stampabile " +
-                    "dalla macchina che hai.",
+                    "Wall thickness and overhanging parts are not looked at by anyone yet: " +
+                    "here you see whether the body is closed and sound, not whether it is printable " +
+                    "on the machine you have.",
             };
             return SucceededWithoutCreating(measurements);
         }
@@ -332,7 +332,7 @@ namespace Oce.Solid.Agent.Core
                     return ((swFaultEntityErrorCode_e)code).ToString() + " (" + code + ")";
             }
             catch { }
-            return "codice " + code + ", che swFaultEntityErrorCode_e non conosce";
+            return "code " + code + ", which swFaultEntityErrorCode_e does not know";
         }
 
         private static int Gaps(IBody2 body)
@@ -352,9 +352,9 @@ namespace Oce.Solid.Agent.Core
 
         private static string ABodyOf(string itemName)
         {
-            return itemName == "foglio" ? "una superficie" :
-                   itemName == "filo" ? "un filo" :
-                   itemName == "vuoto" ? "un corpo vuoto" : "un corpo «" + itemName + "»";
+            return itemName == "sheet" ? "a surface" :
+                   itemName == "wire" ? "a wire" :
+                   itemName == "empty" ? "an empty body" : "a body «" + itemName + "»";
         }
 
         /// <summary>

@@ -57,7 +57,7 @@ namespace Oce.Solid.Agent.Core
         {
             object raw = null;
             try { raw = model.Extension.GetDependencies(true, false, false, true, false); }   // L12-8: Searchflag false
-            catch (Exception ex) { return Failed("Non leggo le dipendenze del documento: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot read the dependencies of the document: " + ex.Message); }
             var entries = raw as object[];
             var file = new List<object>();
             var missingItems = new List<string>();
@@ -104,13 +104,13 @@ namespace Oce.Solid.Agent.Core
                 measurements["how_many_files"] = null;
                 measurements["missing"] = null;
                 measurements["how_many_missing"] = null;
-                measurements["warning"] = "GetDependencies non ha risposto: non so da quali file dipende il documento, " +
-                                       "ne' se ne manca qualcuno. Non prenderlo per un documento senza dipendenze.";
+                measurements["warning"] = "GetDependencies did not answer: I do not know which files the document depends on, " +
+                                       "nor whether any is missing. Do not take it for a document without dependencies.";
             }
             if (missingItems.Count > 0)
-                measurements["warning"] = missingItems.Count + (missingItems.Count == 1 ? " file manca" : " file mancano") + " sul disco: " +
-                    string.Join(", ", missingItems) + ". In un assieme quei componenti risultano soppressi: ritrova i file " +
-                    "(o sostituiscili con «replace_component») prima di misurare o esportare.";
+                measurements["warning"] = missingItems.Count + (missingItems.Count == 1 ? " file is missing" : " files are missing") + " on the disk: " +
+                    string.Join(", ", missingItems) + ". In an assembly those components show up as suppressed: find the files " +
+                    "again (or replace them with «replace_component») before measuring or exporting.";
             return SucceededWithoutCreating(measurements);
         }
     }

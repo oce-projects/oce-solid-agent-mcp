@@ -26,38 +26,38 @@ namespace Oce.Solid.Agent.Core
         {
             // The fillets, which are the most numerous family because they are the
             // feature that breaks most often when a dimension changes.
-            [10] = "il raccordo non trova un contorno chiuso su cui appoggiarsi",
-            [11] = "il raccordo non trova piu' la faccia su cui stava",
-            [12] = "il raggio del raccordo non va bene per questa geometria: " +
-                   "di solito vuol dire che e' piu' grande di quanto ci stia",
-            [13] = "il raccordo non trova piu' gli spigoli su cui stava",
-            [14] = "la geometria del modello non permette questo raccordo",
-            [15] = "il raggio del raccordo e' troppo piccolo",
-            [16] = "il raccordo non riesce a estendersi fino alle facce vicine",
-            [17] = "con questo raggio il raccordo farebbe sparire un pezzo di geometria",
-            [18] = "il raggio del raccordo e' troppo grande per gli spigoli scelti",
-            [19] = "il raggio del raccordo e' troppo grande per gli spigoli scelti",
+            [10] = "the fillet cannot find a closed contour to rest on",
+            [11] = "the fillet can no longer find the face it was on",
+            [12] = "the radius of the fillet is not right for this geometry: " +
+                   "usually it means that it is bigger than what fits",
+            [13] = "the fillet can no longer find the edges it was on",
+            [14] = "the geometry of the model does not allow this fillet",
+            [15] = "the radius of the fillet is too small",
+            [16] = "the fillet cannot extend as far as the neighboring faces",
+            [17] = "with this radius the fillet would make a piece of geometry disappear",
+            [18] = "the radius of the fillet is too big for the chosen edges",
+            [19] = "the radius of the fillet is too big for the chosen edges",
 
             // The extrusions.
-            [30] = "l'estrusione produrrebbe corpi staccati fra loro",
-            [31] = "l'estrusione non trova dove fermarsi: la condizione di fine " +
-                   "non esiste piu'",
-            [32] = "le condizioni geometriche dell'estrusione non tornano",
-            [33] = "il contorno del taglio e' in parte aperto e in parte chiuso",
-            [34] = "il contorno del taglio non e' valido",
-            [35] = "il contorno aperto del taglio non e' valido",
-            [36] = "il contorno dell'estrusione e' in parte aperto e in parte chiuso",
-            [37] = "il contorno dell'estrusione non e' valido",
+            [30] = "the extrusion would produce bodies detached from each other",
+            [31] = "the extrusion cannot find where to stop: the end condition " +
+                   "no longer exists",
+            [32] = "the geometric conditions of the extrusion do not add up",
+            [33] = "the contour of the cut is partly open and partly closed",
+            [34] = "the contour of the cut is not valid",
+            [35] = "the open contour of the cut is not valid",
+            [36] = "the contour of the extrusion is partly open and partly closed",
+            [37] = "the contour of the extrusion is not valid",
 
             // The dangling reference: the sketch was attached to a
             // geometry that is no longer there.
-            [51] = "un riferimento esterno dello schizzo non si risolve piu': " +
-                   "la geometria a cui era agganciato non c'e'",
+            [51] = "an external reference of the sketch no longer resolves: " +
+                   "the geometry it was attached to is not there",
 
-            [49] = "la lavorazione usa una funzione non piu' supportata",
-            [50] = "la lavorazione usa una funzione obsoleta",
+            [49] = "the feature uses a function that is no longer supported",
+            [50] = "the feature uses an obsolete function",
 
-            [1] = "SOLIDWORKS non dice quale sia il problema",
+            [1] = "SOLIDWORKS does not say what the problem is",
         };
 
         /// <summary>
@@ -73,9 +73,9 @@ namespace Oce.Solid.Agent.Core
             // The name of the enum when there is one: it says at least which family it
             // is, and it can be looked up in the documentation.
             if (Enum.IsDefined(typeof(swFeatureError_e), code))
-                return "SOLIDWORKS segnala «" + (swFeatureError_e)code +
-                       "» (codice " + code + ")";
-            return "SOLIDWORKS segnala il codice di errore " + code;
+                return "SOLIDWORKS reports «" + (swFeatureError_e)code +
+                       "» (code " + code + ")";
+            return "SOLIDWORKS reports the error code " + code;
         }
     }
 }

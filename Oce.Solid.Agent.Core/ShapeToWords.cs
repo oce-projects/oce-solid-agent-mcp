@@ -82,15 +82,15 @@ namespace Oce.Solid.Agent.Core
                 if (volume > 0 && box > 0)
                 {
                     int full = (int)Math.Round(volume / box * 100.0);
-                    parts.Add("Ingombro " + measurements + ", volume " + Mm(volume) +
-                              " mm3 (il " + full + "% dell'ingombro)");
+                    parts.Add("Bounding box " + measurements + ", volume " + Mm(volume) +
+                              " mm3 (that is " + full + "% of the bounding box)");
                 }
-                else parts.Add("Ingombro " + measurements);
+                else parts.Add("Bounding box " + measurements);
             }
             else if (volume > 0) parts.Add("Volume " + Mm(volume) + " mm3");
 
             int bodies = (int)Number(docState, "bodies_total");
-            if (bodies > 1) parts.Add(bodies + " corpi separati");
+            if (bodies > 1) parts.Add(bodies + " separate bodies");
 
             // ── 2. WHAT HAS BEEN DONE ON IT ─────────────────────────────
             //
@@ -99,7 +99,7 @@ namespace Oce.Solid.Agent.Core
             var feature = Entries(docState, "feature").ToList();
             if (feature.Any(f => Text(f, "kind") == "Revolution"))
             {
-                parts.Add("pezzo di rivoluzione");
+                parts.Add("part of revolution");
                 string profile = TurnedProfile(docState, ing, volume);
                 if (profile != null) parts.Add(profile);
             }
@@ -109,8 +109,8 @@ namespace Oce.Solid.Agent.Core
             {
                 double wall = FirstDimension(shell);
                 parts.Add(wall > 0
-                    ? "svuotato, parete " + Mm(wall) + " mm"
-                    : "svuotato");
+                    ? "hollowed, wall " + Mm(wall) + " mm"
+                    : "hollowed");
             }
 
             // ── 3. THE HOLES, with the centre already calculated ─────────
@@ -123,11 +123,11 @@ namespace Oce.Solid.Agent.Core
             // omission: whoever reads would believe they have the whole part.
             int outside = (int)Number(docState, "feature_not_listed");
             if (outside > 0)
-                parts.Add("piu' altre " + outside + " lavorazioni che non sono nell'elenco");
+                parts.Add("plus " + outside + " more features that are not in the list");
             int inError = (int)Number(docState, "features_in_error");
             if (inError > 0)
-                parts.Add(inError + " lavorazion" + (inError == 1 ? "e" : "i") +
-                          " IN ERRORE: il pezzo non e' quello che l'albero dice");
+                parts.Add(inError + " feature" + (inError == 1 ? "" : "s") +
+                          " IN ERROR: the part is not what the tree says");
 
             if (parts.Count == 0) return null;
             return string.Join(", ", parts) + ".";
@@ -224,8 +224,8 @@ namespace Oce.Solid.Agent.Core
             double rebuilt = strokes.Sum(t => Math.PI * (t[1] / 2) * (t[1] / 2) * t[2]);
             if (Math.Abs(rebuilt - volume) > Math.Max(0.5, volume * 0.005)) return null;
 
-            return "profilo " + string.Join(", ",
-                strokes.Select(t => Diam(Mm(t[1])) + " per " + Mm(t[2]))) + " mm";
+            return "profile " + string.Join(", ",
+                strokes.Select(t => Diam(Mm(t[1])) + " for " + Mm(t[2]))) + " mm";
         }
 
         /// <summary>
@@ -262,17 +262,17 @@ namespace Oce.Solid.Agent.Core
             foreach (var g in perDiameter.OrderByDescending(x => Convert.ToDouble(x.Key, Point)))
             {
                 int howMany = g.Value.Count;
-                string entry = howMany + (howMany == 1 ? " foro" : " fori") + " " + Diam(g.Key);
+                string entry = howMany + (howMany == 1 ? " hole" : " holes") + " " + Diam(g.Key);
 
                 // IF THEY LIE ON A CIRCLE, IT IS SAID.
                 // It is the datum needed by whoever has to bolt, and it is precisely
                 // the one that the list of faces alone led people to get wrong.
                 double rimDiameter;
                 if (howMany >= 3 && OnCircumference(g.Value, out rimDiameter))
-                    entry += " su una circonferenza " + Diam(Mm(rimDiameter)) +
-                            " a passo " + Mm(360.0 / howMany) + " gradi";
+                    entry += " on a circle " + Diam(Mm(rimDiameter)) +
+                            " at a pitch of " + Mm(360.0 / howMany) + " degrees";
                 else if (howMany <= 6)
-                    entry += (howMany == 1 ? " (centro " : " (centri ") + string.Join("; ",
+                    entry += (howMany == 1 ? " (center " : " (centers ") + string.Join("; ",
                         g.Value.Select(c => Mm(c[0]) + "," + Mm(c[1]) + "," + Mm(c[2]))) + ")";
 
                 yield return entry;

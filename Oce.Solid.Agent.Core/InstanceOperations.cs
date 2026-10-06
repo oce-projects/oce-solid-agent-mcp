@@ -81,8 +81,8 @@ namespace Oce.Solid.Agent.Core
             var copies = Integers(a, "copies");
             if (copies.Count == 0)
                 return Failed(
-                    "Manca «copies»: quali copie togliere, per numero. La prima copia " +
-                    "dopo l'originale e' la 1.");
+                    "«copies» is missing: which copies to remove, by number. The first copy " +
+                    "after the original is 1.");
             if (copies.Any(c => c < 1))
                 // ZERO IS NOT A COPY, AND IT IS WORSE THAN AN OUT-OF-RANGE
                 // NUMBER: for SOLIDWORKS `{0}` means «no copy
@@ -90,12 +90,12 @@ namespace Oce.Solid.Agent.Core
                 // all the copies removed before, silently and answering that it
                 // went well. See `ToWrite`.
                 return Failed(
-                    "Le copie si contano da 1, e lo ZERO non e' una copia: e' " +
-                    "l'originale, quello da cui la ripetizione e' nata. E dall'altra " +
-                    "parte lo zero vuol dire «rimettile tutte», per cui passarlo qui " +
-                    "cancellerebbe le copie tolte prima invece di toglierne una. " +
-                    "L'originale non si toglie da qui — si sopprime la lavorazione, " +
-                    "oppure si cancella la ripetizione.");
+                    "The copies are counted from 1, and ZERO is not a copy: " +
+                    "it is the original, the one the pattern came from. And on the " +
+                    "other side zero means «put them all back», so passing it here " +
+                    "would bring back the copies removed before instead of removing " +
+                    "one. The original is not removed from here — suppress the " +
+                    "feature, or delete the pattern.");
 
             bool reactivate = Bool(a, "reactivate", false);
 
@@ -120,10 +120,10 @@ namespace Oce.Solid.Agent.Core
             string grid = port.Grid(data);
             if (grid != null)
                 return Failed(
-                    "«" + uid + "» e' una griglia a due direzioni (" + grid + "): un numero di copia " +
-                    "solo non dice quale posizione togliere, perche' SOLIDWORKS le numera riga per " +
-                    "riga. Non indovino. Se ti serve togliere una posizione, fai la ripetizione con " +
-                    "una direzione sola e togli la copia da quella fila. Non ho toccato niente.");
+                    "«" + uid + "» is a two-direction grid (" + grid + "): a single copy number " +
+                    "does not say which position to remove, because SOLIDWORKS numbers them row by " +
+                    "row. I do not guess. If you need to remove a position, make the pattern with a " +
+                    "single direction and remove the copy from that row. I touched nothing.");
 
             // THE SEEDS, to know how many faces a copy is worth (finding L6-5).
             // Read before AccessSelections; if they cannot be read, the check
@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.Core
 
             int[] alreadySkipped;
             try { alreadySkipped = port.Read(data) ?? new int[0]; }
-            catch (Exception ex) { return Failed("Non riesco a leggere le copie gia' tolte: " + ex.Message); }
+            catch (Exception ex) { return Failed("I cannot read the copies already removed: " + ex.Message); }
 
             var newOnes = reactivate
                 ? alreadySkipped.Where(x => !copies.Contains(x)).ToArray()
@@ -154,10 +154,10 @@ namespace Oce.Solid.Agent.Core
                 // ALREADY AS ASKED. It is not an error but it is not «done»:
                 // same rule as `suppress_feature`.
                 return Failed(
-                    "Le copie " + Items(copies) + " di «" + uid + "» sono gia' " +
-                    (reactivate ? "attive" : "tolte") + ": non ho cambiato niente. " +
-                    "Quelle tolte adesso sono " +
-                    (alreadySkipped.Length == 0 ? "nessuna" : Items(alreadySkipped)) + ".");
+                    "The copies " + Items(copies) + " of «" + uid + "» are already " +
+                    (reactivate ? "active" : "removed") + ": I changed nothing. The " +
+                    "ones removed now are " +
+                    (alreadySkipped.Length == 0 ? "none" : Items(alreadySkipped)) + ".");
 
             int facesBefore = FeatureFaces(repetition);
             double? volumeBefore = VolumeMm3(model);
@@ -185,12 +185,12 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex)
             {
                 try { port.Close(data); } catch { }
-                return Failed("SOLIDWORKS non ha accettato la modifica: " + ex.Message);
+                return Failed("SOLIDWORKS did not accept the change: " + ex.Message);
             }
             if (!done)
                 return Failed(
-                    "SOLIDWORKS ha rifiutato di togliere le copie " + Items(copies) +
-                    " da «" + uid + "», e non dice perche'.");
+                    "SOLIDWORKS refused to remove the copies " + Items(copies) +
+                    " from «" + uid + "», and does not say why.");
 
             int facesAfter = FeatureFaces(repetition);
             double? volumeAfter = VolumeMm3(model);
@@ -209,7 +209,7 @@ namespace Oce.Solid.Agent.Core
             if (repetitionInError != null)
             {
                 string restored = PutBack(model, repetition, port, alreadySkipped);
-                return Failed("Dopo aver tolto le copie " + Items(copies) + " «" + uid + "» e' in errore (" +
+                return Failed("After removing the copies " + Items(copies) + " «" + uid + "» is in error (" +
                                repetitionInError + "). " + restored);
             }
 
@@ -224,8 +224,8 @@ namespace Oce.Solid.Agent.Core
             if (!reactivate && facesBefore > 0 && facesAfter == 0)
             {
                 string restored = PutBack(model, repetition, port, alreadySkipped);
-                return Failed("Dopo aver tolto le copie " + Items(copies) + " «" + uid + "» non ha piu' " +
-                               "nessuna faccia: e' sparita tutta la ripetizione, non una copia. " + restored);
+                return Failed("After removing the copies " + Items(copies) + " «" + uid + "» has no face " +
+                               "left: the whole pattern disappeared, not one copy. " + restored);
             }
             if (seedFaces > 0 && facesBefore >= 0 && facesAfter >= 0 &&
                 Math.Abs(facesAfter - facesBefore) != 0 &&
@@ -292,11 +292,11 @@ namespace Oce.Solid.Agent.Core
             // the zero said the part had broken.
             if (bodiesBefore >= 0 && bodiesAfter >= 0 && bodiesBefore != bodiesAfter)
                 measurements["warning_bodies"] =
-                    "I corpi sono passati da " + bodiesBefore + " a " + bodiesAfter +
-                    ": togliere una copia ha spezzato il pezzo.";
+                    "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
+                    ": removing a copy split the part.";
 
-            _log("[agente] «" + uid + "»: copie " + (reactivate ? "rimesse " : "tolte ") +
-                 Items(copies) + ", facce " + facesBefore + " -> " + facesAfter);
+            _log("[agent] «" + uid + "»: copies " + (reactivate ? "put back " : "removed ") +
+                 Items(copies) + ", faces " + facesBefore + " -> " + facesAfter);
 
             return Succeeded(repetition, measurements);
         }
@@ -313,7 +313,7 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 var d = repetition.GetDefinition();
-                if (d == null) return "Non sono riuscito a rimettere le cose com'erano.";
+                if (d == null) return "I could not put things back as they were.";
                 // The access is read (Z-C21.8, rule of L5-5): refused, nothing
                 // can be written back.
                 if (!port.Open(d, model))
@@ -339,7 +339,7 @@ namespace Oce.Solid.Agent.Core
                     int[] now = null;
                     try { now = port.Read(repetition.GetDefinition()); } catch { now = null; }
                     if (now != null && now.OrderBy(x => x).SequenceEqual((comEra ?? new int[0]).OrderBy(x => x)))
-                        return "Ho rimesso la ripetizione com'era.";
+                        return "I put the pattern back as it was.";
                     return "I put the pattern definition back, but reading it back the skipped copies are " +
                            (now == null ? "not readable" : "[" + Items(now) + "]") + " instead of [" +
                            Items(comEra ?? new int[0]) + "]: check the pattern.";
@@ -347,7 +347,7 @@ namespace Oce.Solid.Agent.Core
                 port.Close(d);
             }
             catch { }
-            return "Non sono riuscito a rimettere le cose com'erano: guarda la ripetizione.";
+            return "I could not put things back as they were: look at the pattern.";
         }
 
         /// <summary>
@@ -423,7 +423,7 @@ namespace Oce.Solid.Agent.Core
                     n2 = symmetric ? n1 : c.TotalInstances2;
                 }
                 catch { return null; }
-                return n2 > 1 ? n1 + " x " + n2 + (symmetric ? ", simmetrica" : "") : null;
+                return n2 > 1 ? n1 + " x " + n2 + (symmetric ? ", symmetric" : "") : null;
             }
         }
 
