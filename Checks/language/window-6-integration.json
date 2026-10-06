@@ -125,6 +125,24 @@
    "unit": "All:s3727",
    "quoted_ok": true,
    "why": "a word between guillemets in the Italian that is prose, not a name of the protocol (the English says it without them or with another word); the translator and the reviewer read it so (cat-features.2 i0104)"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/Catalog/Operations.cs",
+   "unit": "All:s1937",
+   "quoted_ok": true,
+   "why": "a word between guillemets in the Italian that is prose, not a name of the protocol (the English says it without them or with another word); the translator and the reviewer read it so (cat-drawing.1 i0017)"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/Catalog/Operations.cs",
+   "unit": "All:s1957",
+   "quoted_ok": true,
+   "why": "a word between guillemets in the Italian that is prose, not a name of the protocol (the English says it without them or with another word); the translator and the reviewer read it so (cat-drawing.1 i0022)"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/Catalog/Operations.cs",
+   "unit": "All:s1990",
+   "quoted_ok": true,
+   "why": "a word between guillemets in the Italian that is prose, not a name of the protocol (the English says it without them or with another word); the translator and the reviewer read it so (cat-drawing.1 i0029)"
   }
  ],
  "examples": [],

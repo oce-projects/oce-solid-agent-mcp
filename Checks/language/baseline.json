@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 10060,
+  "strings": 5929,
   "markdown": 11388,
-  "json_values": 11022,
-  "identifiers": 1686,
+  "json_values": 6855,
+  "identifiers": 1677,
   "json_keys": 14,
-  "protocol": 676,
+  "protocol": 675,
   "paths": 0,
   "transition": 2188
  },
@@ -328,7 +328,7 @@
    "strings": 22
   },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "strings": 9518,
+   "strings": 5387,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
@@ -569,7 +569,7 @@
    "json_values": 7
   },
   "Tools/catalog.json": {
-   "json_values": 10447
+   "json_values": 6280
   },
   "Tools/update.md": {
    "markdown": 491
@@ -1774,28 +1774,19 @@
    "moduli-di-solidworks",
    "muta",
    "mutazioni",
-   "nANCHE",
    "nATTENZIONE",
    "nDOPO",
-   "nDOVE",
-   "nDopo",
    "nEsempio",
-   "nFORI",
    "nGLI",
    "nGeneri",
    "nOgni",
    "nPERCHE",
    "nPRIMA",
    "nPerche",
-   "nPoi",
    "nQUELLO",
-   "nQUESTA",
    "nQuello",
    "nQuesta",
    "nRifiuta",
-   "nSenza",
-   "nSimbolo",
-   "nTUTTI",
    "nUNA",
    "nUna",
    "nervatura",
@@ -2891,7 +2882,6 @@
    "tabella",
    "tacciono",
    "taglia",
-   "tagliate",
    "taglio",
    "tangente",
    "tavola",

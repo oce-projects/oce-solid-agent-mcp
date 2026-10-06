@@ -2561,18 +2561,18 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Apre la tavola del pezzo che stai guardando.",
+                        "Opens the drawing of the part you are looking at.",
                     Description =
-                        "Crea il documento di DISEGNO del pezzo aperto e lo mette davanti. "
-                        + "Il pezzo resta aperto: una vista di tavola si aggancia al "
-                        + "PERCORSO di un documento aperto, non a un file.\n\nIL PEZZO DEVE "
-                        + "ESSERE GIA' SALVATO. Se non lo e', salvalo prima con "
-                        + "«save_document».\n\nIl modello di tavola NON si sceglie: si usa "
-                        + "quello di questa installazione, che porta il cartiglio "
-                        + "dell'officina e il diedro giusto. Da qui in poi il documento "
-                        + "attivo e' la TAVOLA, e le operazioni di disegno del pezzo non "
-                        + "valgono piu' finche' non torni sul pezzo.",
-                    Precondition = "un pezzo o un assieme SALVATO su disco",
+                        "Creates the DRAWING document of the open part and brings it to the "
+                        + "front. The part stays open: a drawing view attaches to the "
+                        + "PATH of an open document, not to a file.\n\nTHE PART MUST ALREADY "
+                        + "BE SAVED. If it is not, save it first with «save_document»."
+                        + "\n\nThe drawing template is NOT chosen: the one of this "
+                        + "installation is used, which carries the shop's title block "
+                        + "and the right projection angle. From here on the active document "
+                        + "is the DRAWING, and the operations that work on the part no "
+                        + "longer apply until you go back to the part.",
+                    Precondition = "a part or an assembly SAVED to disk",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2585,7 +2585,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "A2",
                                     "A1",
                                     "A0"),
-                                "description", "formato del foglio; A3 se non dici niente")),
+                                "description", "sheet size; A3 if you say nothing")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2595,14 +2595,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Il PDF di TUTTI i fogli, con le pagine contate.",
+                        "The PDF of ALL the sheets, with the pages counted.",
                     Description =
-                        "Scrive il PDF della tavola.\n\nTUTTI i fogli, non solo quello che "
-                        + "stai guardando: l'esportazione di serie prende il foglio "
-                        + "corrente, e una tavola da tre fogli esce in officina come una "
-                        + "pagina sola senza dare nessun errore. Dopo aver scritto il file "
-                        + "si CONTANO le pagine e si confrontano con i fogli: se non "
-                        + "tornano, te lo dico.\n\nI REFUSE when SOLIDWORKS does not accept "
+                        "Writes the PDF of the drawing.\n\nALL the sheets, not only the one "
+                        + "you are looking at: the standard export takes the current "
+                        + "sheet, and a three-sheet drawing reaches the shop as a single "
+                        + "page without any error. After writing the file the pages are "
+                        + "COUNTED and compared with the sheets: if they do not match, I "
+                        + "tell you.\n\nI REFUSE IF SOLIDWORKS does not accept "
                         + "the request for every sheet (IExportPdfData.SetSheets answers false), "
                         + "before writing anything; and when the pages of the written file "
                         + "cannot be counted, saying where the file is: without that count, the "
@@ -2610,23 +2610,23 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "save_warnings (the swFileSaveWarning_e names, or «none») and "
                         + "save_warnings_note when the drawing needed a rebuild, had rebuild "
                         + "errors, or had views needing an update. A failed save gives the error "
-                        + "and warning names next to the raw codes.\n\nCon «search» il PDF si RILEGGE: dimmi le "
-                        + "scritte che devono esserci (il numero di disegno, il nome del "
-                        + "pezzo) e ti dico quali ci sono («found») e quali no "
-                        + "(«not_found»). Il testo nel PDF e' scritto come indici di "
-                        + "glifo, e una ricerca nei byte non lo trova: qui si decodifica.",
-                    Precondition = "una tavola aperta",
+                        + "and warning names next to the raw codes.\n\nWith «search» the PDF is READ BACK: tell me the texts that "
+                        + "must be there (the drawing number, the part name) and I tell "
+                        + "you which are there («found») and which are not "
+                        + "(«not_found»). The text in the PDF is written as glyph indices, "
+                        + "and a search in the bytes does not find it: here it is decoded.",
+                    Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "path", O(
                                 "type", "string",
-                                "description", "dove scrivere il PDF. Se non lo dici, accanto alla tavola con lo "
-                                    + "stesso nome."),
+                                "description", "where to write the PDF. If you do not say, next to the drawing, with "
+                                    + "the same name."),
                             "search", O(
                                 "type", "array",
                                 "items", O("type", "string"),
-                                "description", "scritte che il PDF deve contenere: si rilegge il file e si dice quali ci sono")),
+                                "description", "texts the PDF must contain: the file is read back and I say which ones are there")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2636,16 +2636,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Formato e scala del foglio.",
+                        "Sheet size and scale.",
                     Description =
-                        "Cambia FORMATO e SCALA del foglio attivo, e rilegge per "
-                        + "controllare.\n\nIL DIEDRO NON SI TOCCA e non e' un parametro. Una "
-                        + "tavola in terzo diedro ha la vista destra e la sinistra "
-                        + "scambiate, non da' nessun errore, e il pezzo che ne esce e' "
-                        + "specchiato: si legge quello che il modello di tavola "
-                        + "dell'officina ha gia' deciso e si riscrive uguale. Nelle misure "
-                        + "trovi qual e'.",
-                    Precondition = "una tavola aperta",
+                        "Changes the SIZE and the SCALE of the active sheet, and reads "
+                        + "back to check.\n\nTHE PROJECTION ANGLE IS NOT TOUCHED and is not a parameter. "
+                        + "A drawing in third-angle projection has the right and left "
+                        + "views swapped, gives no error, and the part that comes out of it "
+                        + "is mirrored: what the shop's drawing template has already "
+                        + "decided is read and written back unchanged. You find which one it is in "
+                        + "the measurements.",
+                    Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -2658,13 +2658,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "A2",
                                     "A1",
                                     "A0"),
-                                "description", "formato del foglio"),
+                                "description", "sheet size"),
                             "scale_numerator", O(
                                 "type", "number",
-                                "description", "il primo numero della scala: 1 in «1:2»"),
+                                "description", "the first number of the scale: the 1 in «1:2»"),
                             "scale_denominator", O(
                                 "type", "number",
-                                "description", "il secondo numero della scala: 2 in «1:2»")),
+                                "description", "the second number of the scale: the 2 in «1:2»")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2674,43 +2674,43 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Porta in tavola le quote che il pezzo ha gia'.",
+                        "Brings onto the drawing the dimensions the part already has.",
                     Description =
-                        "Prende le quote dal MODELLO e le mette sulle viste.\n\nThe import "
-                        + "works from this bridge, out of process: measured on 26/9/2026 (7 "
+                        "Takes the dimensions from the MODEL and puts them on the views.\n\n"
+                        + "The import works from this bridge, out of process: measured on 26/9/2026 (7 "
                         + "dimensions on a plate) and again on 28/9/2026. To put on the drawing "
                         + "a dimension the model does not have, «drawing_dimension» CREATES it on "
                         + "the edges the view shows.\n\nEach model dimension comes in once: I "
                         + "ask SOLIDWORKS to eliminate duplicates (DuplicateDims true), so a "
                         + "dimension already shown in one view is not repeated in another "
-                        + "(measured: 4 dimensions on a plate that got 7 before).\n\nPerche' "
-                        + "esiste lo stesso: una quota che viene dal modello non puo' portare "
-                        + "un numero diverso dalla geometria, mentre l'API di SolidWorks "
-                        + "permette di scrivere in tavola un testo che la geometria non ha."
-                        + "\n\nDi serie arrivano solo le quote "
-                        + "MARCATE per il disegno, cioe' quelle scelte per essere mostrate: "
-                        + "con «all_dimensions» arrivano anche le altre, e la tavola diventa "
-                        + "parecchio piu' fitta.\n\nBy default only the dimensions MARKED for "
+                        + "(measured: 4 dimensions on a plate that got 7 before).\n\nWhy it "
+                        + "exists all the same: a dimension that comes from the model cannot "
+                        + "carry a number different from the geometry, while the SolidWorks "
+                        + "API lets you write on the drawing a text the geometry does not have."
+                        + "\n\nBy default only the dimensions "
+                        + "MARKED for the drawing come in, that is, the ones chosen to be shown: "
+                        + "with «all_dimensions» the others come in too, and the drawing "
+                        + "becomes quite a lot denser.\n\nBy default only the dimensions MARKED for "
                         + "drawing come in, fallbacks included. If the part has dimensions and "
                         + "none is marked, I refuse and say so: pass all_dimensions=true to "
                         + "import them all, or mark on the model the ones the drawing must show."
-                        + "\n\nMI RIFIUTO se la tavola non ha viste (le quote "
-                        + "non avrebbero dove attaccarsi) e se non arriva nessuna quota: te lo dico "
-                        + "con quante il pezzo ne ha marcate, invece di rispondere «fatto».",
-                    Precondition = "una tavola con almeno una vista",
+                        + "\n\nI REFUSE IF the drawing has no views (the dimensions "
+                        + "would have nothing to attach to) and if no dimension comes in: I tell you, "
+                        + "with how many the part has marked, instead of answering «done».",
+                    Precondition = "a drawing with at least one view",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "all_dimensions", O(
                                 "type", "boolean",
-                                "description", "anche le quote non marcate per il disegno. Rende la tavola piu' "
-                                    + "fitta: usalo quando quelle marcate non bastano. Without it, "
-                                    + "a part where no dimension is marked for drawing is refused, not "
+                                "description", "also the dimensions not marked for the drawing. It makes the drawing "
+                                    + "denser: use it when the marked ones are not enough. Without "
+                                    + "it, a part where no dimension is marked for drawing is refused, not "
                                     + "imported."),
                             "hole_callouts", O(
                                 "type", "boolean",
-                                "description", "anche le indicazioni dei fori guidati (M8, profondita', filetto). "
-                                    + "Attive se non dici niente.")),
+                                "description", "also the annotations of Hole Wizard holes (M8, depth, thread). "
+                                    + "On if you say nothing.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2730,48 +2730,48 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // by enumerating and refuses the holes without a mark. See entry W2.11.
                     Tested = true,
                     Summary =
-                        "Controlla che ogni foro delle viste abbia la croce di centro, contandole davvero, e rifiuta se ne manca.",
+                        "Checks that every hole in the views has its centre mark, really counting them, and refuses if one is missing.",
                     Description =
-                        "CONTROLLA che ogni foro visibile nelle viste abbia la croce di centro, e "
-                        + "prova a metterla dove manca. SOLIDWORKS le mette da se' creando la vista, "
-                        + "se l'opzione del documento «Croci di centro sui fori» e' accesa: quei fori "
-                        + "li riconosco («circles_already_marked»). Da codice una croce "
-                        + "nuova non nasce (misurato): un foro senza croce e' un rifiuto, con la "
-                        + "strada — l'opzione accesa e la vista rifatta.\n\nPERCHE' SERVE. Una tavola con dodici fori e "
-                        + "nessuna croce di centro si stampa e sembra completa. In officina manca "
-                        + "la cosa che serve per forare: **dove sta il centro.**\n\nTI DICO "
-                        + "QUANTE NE SONO NATE, contate sulla vista: ogni croce deve far salire il "
-                        + "conto di uno, e un cerchio rimasto senza croce e' un rifiuto. Se il "
-                        + "numero e' **zero** te lo dico invece di dire «fatto» — quasi sempre la "
-                        + "vista e' quella sbagliata (i fori come cerchi si vedono dall'alto, di "
-                        + "solito V2).\n\nLA DIMENSIONE, se non me la dici, e' quella del "
-                        + "documento: e' una convenzione di studio.\n\nSenza «view» le guardo "
-                        + "tutte. Raccordi e asole no: misurato, sugli archi la croce da codice "
-                        + "non nasce.\n\nLE CROCI SI CONTANO ENUMERANDOLE: il contatore di "
-                        + "SOLIDWORKS (GetCenterMarkCount) non vede quelle messe alla creazione "
-                        + "della vista, e diceva zero su un foglio che ne aveva tre."
+                        "CHECKS that every hole visible in the views has its centre mark, and tries "
+                        + "to add it where it is missing. SOLIDWORKS puts them in by itself when it creates "
+                        + "the view, if the document option «Croci di centro sui fori» (the one that "
+                        + "puts centre marks on holes) is on: those holes I recognise "
+                        + "(«circles_already_marked»). A new mark cannot be made from code (measured): a "
+                        + "hole without a mark is a refusal, with the way out — the option on and the view rebuilt.\n\nWHY IT "
+                        + "IS NEEDED. A drawing with twelve holes and no centre mark prints and looks "
+                        + "complete. In the shop, the thing needed to drill is missing: "
+                        + "**where the centre is.**\n\nI TELL YOU HOW MANY WERE BORN, counted on the view: "
+                        + "every mark must raise the count by one, and a circle left without a mark "
+                        + "is a refusal. If the number is **zero** I tell you instead of saying «done» "
+                        + "— almost always the view is the wrong one (holes seen as circles are "
+                        + "seen from above, usually V2).\n\nTHE SIZE, if you do not tell me, "
+                        + "is the document's: it is a house convention.\n\nWithout «view» I look "
+                        + "at all of them. Not fillets or slots: measured, on arcs the mark is not "
+                        + "born from code.\n\nCENTRE MARKS ARE COUNTED BY ENUMERATING THEM: the "
+                        + "SOLIDWORKS counter (GetCenterMarkCount) does not see the ones put in "
+                        + "when the view is created, and said zero on a sheet that had three."
                         + "\n\nThe walk over the holes is the one standard_views also uses on views "
                         + "left with no mark.",
-                    Precondition = "una tavola con almeno una vista",
+                    Precondition = "a drawing with at least one view",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O(
                                 "type", "string",
-                                "description", "UNA vista, come la chiama lo stato della tavola (V1, V2...) "
-                                    + "o per nome. Vuoto = tutte le viste."),
+                                "description", "ONE view, as the state of the drawing calls it (V1, V2...) "
+                                    + "or by name. Empty = all the views."),
                             "applies_to", O(
                                 "type", "string",
                                 "enum", A("holes"),
-                                "description", "«holes», i cerchi interi (l'unico: sui raccordi la croce da codice non nasce, misurato)."),
+                                "description", "«holes», the whole circles (the only value accepted: raccordi, fillets, is refused, because on a fillet arc the mark is not born from code, measured)."),
                             "size_mm", O(
                                 "type", "number",
-                                "description", "quanto e' grande la croce. Se non lo dici uso le "
-                                    + "impostazioni del documento, che e' quasi sempre la cosa giusta."),
+                                "description", "how big the mark is. If you do not say, I use "
+                                    + "the document's settings, which is almost always the right thing."),
                             "extended_lines", O(
                                 "type", "boolean",
-                                "description", "le linee d'asse che escono dalla croce fino al bordo "
-                                    + "del cerchio. Spente se non dici niente.")),
+                                "description", "the axis lines that go out from the mark to the edge "
+                                    + "of the circle. Off if you say nothing.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2795,24 +2795,24 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // would NOT have been enough to mark it proven.
                     Tested = true,
                     Summary =
-                        "Mette le quote sugli spigoli di una vista, e RILEGGE quanto misurano.",
+                        "Puts dimensions on the edges of a view, and READS BACK how much they measure.",
                     Description =
-                        "Mette quote di riferimento sugli spigoli di una vista di tavola, e "
-                        + "per ognuna ti dice **quanti millimetri misura**, riletti da "
-                        + "SOLIDWORKS dopo averla messa.\n\nQUESTA E' L'OPERAZIONE CHE "
-                        + "QUOTA. «model_dimensions» fa un'altra cosa: IMPORTA le quote "
-                        + "che il pezzo ha gia', e su questa installazione non ne porta "
-                        + "nessuna (misurato su otto modelli di tavola diversi). Se ti "
-                        + "serve una tavola quotata, usa questa.\n\nGLI SPIGOLI HANNO UN "
-                        + "NUMERO, e te lo dico io: la vista espone il suo elenco, e senza "
-                        + "«edges» quoto i primi «count». Chiedimi uno spigolo che non "
-                        + "c'e' e ti rispondo quanti ne ha la vista, invece di quotarne un "
-                        + "altro.\n\nTI DICO QUANTE NE SONO NATE, non che ho chiamato "
-                        + "l'API: le quote si contano prima e dopo, una per una. Se non ne "
-                        + "nasce nessuna te lo dico, e ti dico quali spigoli ho provato."
-                        + "\n\nDOVE FINISCONO: fuori dalla vista — le orizzontali sotto, le "
-                        + "verticali di lato, dentro la cornice del foglio — dalle piu' piccole "
-                        + "alle piu' grandi."
+                        "Puts reference dimensions on the edges of a drawing view, and for each "
+                        + "one tells you **how many millimetres it measures**, read back "
+                        + "from SOLIDWORKS after placing it.\n\nTHIS IS THE OPERATION THAT "
+                        + "DIMENSIONS. «model_dimensions» does something else: it IMPORTS "
+                        + "the dimensions the part already has, and on this installation it "
+                        + "brings in none (measured on eight different drawing templates). "
+                        + "If you need a dimensioned drawing, use this one.\n\nTHE EDGES "
+                        + "HAVE A NUMBER, and I give it to you: the view exposes its list, and "
+                        + "without «edges» I dimension the first «count». Ask me for an "
+                        + "edge that does not exist and I answer how many the view has, instead "
+                        + "of dimensioning another one.\n\nI TELL YOU HOW MANY WERE BORN, "
+                        + "not that I called the API: the dimensions are counted before and "
+                        + "after, one by one. If none is born I tell you, and I tell you which edges I tried."
+                        + "\n\nWHERE THEY END UP: outside the view — the "
+                        + "horizontal ones below, the vertical ones at the side, inside the sheet frame "
+                        + "— from the smallest to the largest."
                         + "\n\nOVERLAPS ARE CHECKED AND REPORTED, not avoided: the true rectangle of "
                         + "every dimension text, read back from SOLIDWORKS, against the other texts of "
                         + "the whole drawing and against the lines of the part in this view. "
@@ -2822,31 +2822,31 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "before the end, so overlaps are unknown. Dimension lines, "
                         + "extension lines and the title block are not checked. The dimensions are "
                         + "correct; a well laid out drawing is still a trade."
-                        + "\n\nFORI E SMUSSI LI QUOTO DA SOLO, in ogni vista che li mostra, anche "
-                        + "se non li chiedi: i fori col RICHIAMO DEL FORO («4× Ø8 PASSANTE», one "
-                        + "callout per diameter AND depth: two through Ø8 and two blind Ø8 get two "
-                        + "callouts, never one «4×») e la posizione dai due bordi di riferimento, quello a "
-                        + "sinistra e quello in basso; gli smussi con la QUOTA DA SMUSSO («5 x "
-                        + "45°»), non coi loro spigoli — l'ipotenusa e i tratti accorciati "
-                        + "dallo smusso non si quotano. Un foro cieco porta la profondita' "
-                        + "(«Ø8 ↧5»); se il richiamo non nasce, la scrivo io dalla geometria."
+                        + "\n\nI DIMENSION HOLES AND CHAMFERS BY MYSELF, in every view that shows them, even if "
+                        + "you do not ask: holes with the HOLE CALLOUT («4× Ø8 PASSANTE» as an Italian "
+                        + "SOLIDWORKS writes it, one callout per diameter AND depth: two through Ø8 and two blind Ø8 get two "
+                        + "callouts, never one «4×») and the position from the two "
+                        + "reference edges, the left one and the bottom one; chamfers with the CHAMFER "
+                        + "DIMENSION («5 x 45°»), not with their edges — the hypotenuse and the "
+                        + "segments shortened by the chamfer are not dimensioned. A blind hole "
+                        + "carries the depth («Ø8 ↧5»); if the callout is not born, I write it myself from the geometry."
                         + "\n\nTHE «4×» IS READ BACK: after writing the count in front of the "
                         + "callout I read its prefix again (fori[].prefix_read). If the count did "
                         + "not stick, the holes are listed in edges_not_dimensioned and the count "
                         + "must be written by hand; «how_many» is the number of holes, not the text."
-                        + "\n\nUN CERCHIO NON E' SEMPRE UN FORO: il contorno di un pezzo tondo "
-                        + "visto di fronte ha una quota di diametro (outer_diameters)."
-                        + "\n\nIL PEZZO TONDO VISTO DI FIANCO (albero, boccola, perno) lo quoto "
-                        + "cosi': le LUNGHEZZE fra le facce in parallelo dalla faccia di "
-                        + "un'estremita' (round_lengths_mm) e i DIAMETRI dalle due generatrici "
-                        + "di ogni cilindro, col Ø (round_diameters_mm), ognuno riletto. SOLIDWORKS "
-                        + "non sempre espone le generatrici di un cilindro: quei diametri te li "
-                        + "dico in round_diameters_not_reached, e vanno quotati a mano (un foro "
-                        + "interno si quota dalla vista in cui e' un cerchio)."
-                        + "\n\nUNA QUOTA SOLA PER ELEMENTO IN TUTTA LA TAVOLA: se la stessa "
-                        + "estensione del pezzo e' gia' quotata in un'altra vista, qui la salto "
-                        + "e te lo dico (UNI ISO 129-1). Quindi quota le viste una alla volta, e "
-                        + "non aspettarti in ogni vista le misure che ha gia' un'altra."
+                        + "\n\nA CIRCLE IS NOT ALWAYS A HOLE: the outline of a round "
+                        + "part seen from the front has a diameter dimension (outer_diameters)."
+                        + "\n\nA ROUND PART SEEN FROM THE SIDE (shaft, bushing, pin) I dimension "
+                        + "like this: the LENGTHS between faces, in parallel from the face "
+                        + "of one end (round_lengths_mm), and the DIAMETERS from the two generatrices "
+                        + "of each cylinder, with the Ø (round_diameters_mm), each one read back. "
+                        + "SOLIDWORKS does not always expose the generatrices of a cylinder: those "
+                        + "diameters I tell you in round_diameters_not_reached, and they must be "
+                        + "dimensioned by hand (an internal hole is dimensioned from the view in which it is a circle)."
+                        + "\n\nONLY ONE DIMENSION PER FEATURE "
+                        + "ON THE WHOLE DRAWING: if the same extent of the part is already "
+                        + "dimensioned in another view, here I skip it and tell you (UNI ISO 129-1). So "
+                        + "dimension the views one at a time, and do not expect in each view the measurements another one already has."
                         + "\n\nON EVERY SHEET: «already dimensioned» is read from the views of "
                         + "all the sheets, only from views of the same part and configuration, "
                         + "and a dimension hidden by hand does not count (one on a hidden layer, "
@@ -2865,36 +2865,36 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "another view and is not reported as not reached; one born between two "
                         + "silhouette edges without a face cannot be matched to a cylinder, so no further "
                         + "pair is tried, and its line in edges_not_dimensioned says so."
-                        + "\n\nMI RIFIUTO SE LO SPIGOLO CHIESTO NON ESISTE nella vista, e ti dico "
-                        + "quanti ne mostra. Un indice che non c'e' e' l'errore piu' facile da "
-                        + "fare quotando alla cieca. E rifiuto una vista in cui non resta niente "
-                        + "da quotare perche' e' tutto gia' quotato altrove: zero quote non sono "
-                        + "una risposta «fatto».",
-                    Precondition = "una tavola con almeno una vista che mostri spigoli",
+                        + "\n\nI REFUSE IF THE EDGE ASKED FOR DOES NOT EXIST in the view, and I tell you how many it "
+                        + "shows. An index that is not there is the easiest mistake to make when "
+                        + "dimensioning blind. And I refuse a view where nothing is left to dimension "
+                        + "because everything is already dimensioned elsewhere: zero dimensions are "
+                        + "not an answer of «done».",
+                    Precondition = "a drawing with at least one view that shows edges",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O(
                                 "type", "string",
-                                "description", "UNA vista: il suo identificativo nello stato della "
-                                    + "tavola (V1, V2...) oppure il suo nome. Vuoto = la prima vista vera."),
+                                "description", "ONE view: its identifier in the state of the "
+                                    + "drawing (V1, V2...) or its name. Empty = the first real view."),
                             "edges", O(
                                 "type", "array",
                                 "items", O("type", "integer"),
-                                "description", "i numeri degli spigoli da quotare, dall'elenco che la "
-                                    + "vista espone (il primo e' 0). Vuoto = i primi «count»."),
+                                "description", "the numbers of the edges to dimension, from the list the "
+                                    + "view exposes (the first is 0). Empty = the first «count»."),
                             "count", O(
                                 "type", "integer",
-                                "description", "quante quote mettere quando non dici quali spigoli. "
-                                    + "Predefinito 4."),
+                                "description", "how many dimensions to put when you do not say which "
+                                    + "edges. Default 4."),
                             "offset_mm", O(
                                 "type", "number",
-                                "description", "quanto sotto l'ingombro della vista mettere la prima "
-                                    + "quota. Predefinito 12."),
+                                "description", "how far below the extent of the view to put the first "
+                                    + "dimension. Default 12."),
                             "pitch_mm", O(
                                 "type", "number",
-                                "description", "la distanza fra una quota e la successiva. "
-                                    + "Predefinito 10.")),
+                                "description", "the distance between one dimension and the "
+                                    + "next. Default 10.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2904,36 +2904,36 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "La tabella fori su una vista: un tag per foro, la posizione dall'origine e la misura.",
+                        "The hole table on a view: a tag per hole, the position from the origin and the size.",
                     Description =
-                        "Mette in tavola la TABELLA FORI della faccia forata che si vede in una vista: "
-                        + "per ogni foro un tag (A1, A2...), la posizione X e Y da un vertice d'angolo "
-                        + "del pezzo, e la misura («Ø8 PASSANTE»). E' la tabella che serve a chi fora "
-                        + "una piastra con tanti fori, al posto di una quota per foro.\n\nLa vista e' "
-                        + "quella in cui i fori si vedono come cerchi (di solito V2, dall'alto): la "
-                        + "faccia la sceglie l'operazione fra quelle che guardano verso chi legge, la "
-                        + "piu' forata. «origin» dice da quale angolo di quella faccia si misura "
-                        + "(predefinito bottom_left).\n\nLa tabella si RILEGGE: le righe devono "
-                        + "essere i fori piu' l'intestazione, e ogni posizione scritta deve "
-                        + "corrispondere a un foro del pezzo misurato sulla vista. Misurato: con "
-                        + "l'origine e la faccia selezionate male SOLIDWORKS fa nascere una tabella "
-                        + "VUOTA senza errore.\n\nMI RIFIUTO se nessuna faccia con dei fori guarda "
-                        + "verso chi legge in quella vista, e se la tabella nasce vuota o dice "
-                        + "posizioni che il pezzo non ha: in quei casi la tolgo.",
-                    Precondition = "una tavola con una vista del pezzo in cui i fori si vedono come cerchi",
+                        "Puts on the drawing the HOLE TABLE of the drilled face seen in a view: for each "
+                        + "hole a tag (A1, A2...), the X and Y position from a corner vertex of the "
+                        + "part, and the size («Ø8 PASSANTE»). It is the table needed by whoever drills "
+                        + "a plate with many holes, in place of one dimension per hole.\n\nThe view is "
+                        + "the one in which the holes are seen as circles (usually V2, from above): "
+                        + "the operation chooses the face among those that look toward the reader, the "
+                        + "one with the most holes. «origin» says from which corner of that face it "
+                        + "is measured (default bottom_left).\n\nThe table is READ BACK: the rows "
+                        + "must be the holes plus the header, and every position written "
+                        + "must correspond to a hole of the part measured on the view. Measured: "
+                        + "with the origin and the face badly selected SOLIDWORKS produces an EMPTY "
+                        + "table without an error.\n\nI REFUSE IF no face with holes looks toward the "
+                        + "reader in that view, and if the table is born empty or states positions "
+                        + "the part does not have: in those cases I remove it.",
+                    Precondition = "a drawing with a view of the part in which the holes are seen as circles",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O(
                                 "type", "string",
-                                "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
+                                "description", "the view, as the state of the drawing calls it (V1, V2...) or by name. Default the first."),
                             "origin", O(
                                 "type", "string",
                                 "enum", A("bottom_left", "bottom_right", "top_left", "top_right"),
-                                "description", "da quale angolo della faccia forata si misurano le posizioni. Predefinito bottom_left."),
-                            "x_mm", O("type", "number", "description", "dove va l'angolo in alto a sinistra della tabella sul foglio, in mm. Predefinito 15."),
-                            "y_mm", O("type", "number", "description", "idem in verticale. Predefinito 15 sotto il bordo alto del foglio."),
-                            "tag_start", O("type", "string", "description", "la lettera dei tag. Predefinito «A».")),
+                                "description", "from which corner of the drilled face the positions are measured. Default bottom_left."),
+                            "x_mm", O("type", "number", "description", "where the top-left corner of the table goes on the sheet, in mm. Default 15."),
+                            "y_mm", O("type", "number", "description", "same, vertically. Default 15 below the top edge of the sheet."),
+                            "tag_start", O("type", "string", "description", "the letter of the tags. Default «A».")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2942,32 +2942,32 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "La vista dello SVILUPPO di una lamiera in tavola, misurata contro il pezzo.",
+                    Summary = "The FLAT PATTERN view of a sheet-metal part on the drawing, measured against the part.",
                     Description =
-                        "Mette in tavola la vista dello SVILUPPO di un pezzo di lamiera: la lamiera "
-                        + "distesa, con le linee di piega, com'e' prima di andare in pressa. E' la "
-                        + "vista che serve a chi taglia il lamierino.\n\nLa vista si MISURA: "
-                        + "l'ingombro si legge dagli spigoli visibili (non dal contorno della vista, "
-                        + "che comprende la nota di piega e un margine — misurato: 92,6 mm per uno "
-                        + "sviluppo di 80,7) e si confronta con lo sviluppo del pezzo misurato prima "
-                        + "di mettere la vista. La risposta porta l'ingombro, le linee di piega e la "
-                        + "lunghezza dello sviluppo. La vista va in un posto libero del foglio (misurata "
-                        + "a scala 2:1 a 300/90 mm cadeva nel cartiglio).\n\nMI RIFIUTO se il pezzo non e' di lamiera, se "
-                        + "la vista nasce ma non e' uno sviluppo, o se misura un'altra cosa dallo "
-                        + "sviluppo del pezzo: in those cases I remove it, and say so only after "
+                        "Puts on the drawing the FLAT PATTERN view of a sheet-metal part: the sheet laid "
+                        + "flat, with the bend lines, as it is before going to the press. It is the "
+                        + "view needed by whoever cuts the sheet.\n\nThe view is MEASURED. The "
+                        + "overall size is read from the visible edges (not from the outline of the view, "
+                        + "which includes the bend note and a margin — measured: 92.6 mm for a flat pattern "
+                        + "of 80.7) and is compared with the flat pattern of the part measured before "
+                        + "placing the view. The answer carries the overall size, the bend lines and the "
+                        + "length of the flat pattern. The view goes in a free spot of the sheet (measured "
+                        + "at scale 2:1 at 300/90 mm it fell in the title block).\n\nI REFUSE IF the part is not sheet metal, if "
+                        + "the view is born but is not a flat pattern, or if it measures something "
+                        + "other than the flat pattern of the part: in those cases I remove it, and say so only after "
                         + "reading the views of the drawing again; if it is still there, I ask you to "
                         + "remove it. I also refuse, before placing any view, when the flat pattern of the "
                         + "part does not unsuppress (or suppress again) while I measure its flat length: "
                         + "the part may then be left flattened, and the message says so.",
-                    Precondition = "una tavola e, aperto, un pezzo di lamiera salvato su disco",
+                    Precondition = "a drawing and, open, a sheet-metal part saved to disk",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "model", O("type", "string", "description", "il percorso del pezzo di lamiera. Vuoto = quello della tavola."),
-                            "configuration", O("type", "string", "description", "la configurazione del pezzo. Vuota = quella attiva."),
-                            "x_mm", O("type", "number", "description", "dove va il centro della vista sul foglio, in mm. Vuoto = un posto libero fuori dalle viste e dal cartiglio."),
-                            "y_mm", O("type", "number", "description", "idem in verticale."),
-                            "hide_bends", O("type", "boolean", "description", "senza le linee di piega. Predefinito falso: chi piega le vuole.")),
+                            "model", O("type", "string", "description", "the path of the sheet-metal part. Empty = the one of the drawing."),
+                            "configuration", O("type", "string", "description", "the configuration of the part. Empty = the active one."),
+                            "x_mm", O("type", "number", "description", "where the centre of the view goes on the sheet, in mm. Empty = a free spot outside the views and the title block."),
+                            "y_mm", O("type", "number", "description", "same, vertically."),
+                            "hide_bends", O("type", "boolean", "description", "without the bend lines. Default false: whoever bends wants them.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -2976,35 +2976,35 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "Il simbolo di saldatura ISO sul giunto fra due corpi, in una vista.",
+                    Summary = "The ISO weld symbol on the joint between two bodies, in a view.",
                     Description =
-                        "Mette in tavola il SIMBOLO DI SALDATURA (ISO 2553) sul giunto fra due corpi "
-                        + "di un saldato: la freccia sulla linea del giunto, il simbolo del cordone "
-                        + "(angolo, V, mezza V, testa), la gola «a» a sinistra e, se la dai, la "
-                        + "lunghezza a destra.\n\nIL GIUNTO LO TROVO IO: fra gli spigoli che la vista "
-                        + "mostra, quello in cui un corpo tocca l'altro (il piu' lungo). Il simbolo "
-                        + "si sposta fuori dal pezzo, dalla parte di «side», oltre le quote gia' "
-                        + "messe.\n\nSI RILEGGE: simbolo, gola, lunghezza, «tutto attorno». The "
-                        + "count of its texts is checked too: a code the library does not draw leaves "
-                        + "one text (the throat) instead of two, and that symbol is refused. Il "
-                        + "codice del simbolo e' quello della libreria di SOLIDWORKS («<WELD-FILL>» "
-                        + "per l'angolo): misurato, con un codice sbagliato il simbolo nasce lo "
-                        + "stesso, si rilegge uguale, e non disegna il triangolo.\n\nMI RIFIUTO se "
-                        + "il pezzo ha un corpo solo, se nella vista non si vede nessun giunto, e se "
-                        + "il simbolo nato non e' quello chiesto (in that case I remove it, and say "
+                        "Puts on the drawing the WELD SYMBOL (ISO 2553) on the joint between two bodies "
+                        + "of a weldment: the arrow on the joint line, the bead symbol (fillet, V, "
+                        + "half V, butt), the throat «a» on the left and, if you give it, the "
+                        + "length on the right.\n\nI FIND THE JOINT MYSELF: among the edges the view shows, "
+                        + "the one where one body touches the other (the longest). The symbol is "
+                        + "moved out of the part, on the side of «side», beyond the dimensions "
+                        + "already placed.\n\nIT IS READ BACK: symbol, throat, length, «all around». "
+                        + "The count of its texts is checked too: a code the library does not draw leaves "
+                        + "one text (the throat) instead of two, and that symbol is refused. "
+                        + "The code of the symbol is the one of the SOLIDWORKS library («<WELD-FILL>» "
+                        + "for the fillet): measured, with a wrong code the symbol is born all "
+                        + "the same, reads back the same, and does not draw the triangle.\n\nI REFUSE "
+                        + "IF the part has only one body, if no joint is seen in the view, and if "
+                        + "the symbol born is not the one asked for (in that case I remove it, and say "
                         + "so only after counting the weld symbols of the drawing again).",
-                    Precondition = "una tavola con una vista di un saldato in cui si vede il giunto fra due corpi",
+                    Precondition = "a drawing with a view of a weldment in which the joint between two bodies is seen",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "la vista, come la chiama lo stato della tavola (V1, V2...) o per nome. Predefinita la prima."),
-                            "variant", O("type", "string", "enum", A("fillet", "v", "half_v", "butt"), "description", "il cordone. Predefinito fillet."),
-                            "throat_mm", O("type", "number", "description", "la gola del cordone in mm (ISO 2553, «a»). Da 0 a 50."),
-                            "length_mm", O("type", "number", "description", "la lunghezza del cordone, a destra del simbolo. Vuota = tutto il giunto."),
-                            "all_around", O("type", "boolean", "description", "il cerchio del cordone tutto attorno. Predefinito falso."),
-                            "field_weld", O("type", "boolean", "description", "la bandierina della saldatura in opera (in cantiere). Predefinito falso."),
-                            "both_sides", O("type", "boolean", "description", "il cordone dai due lati del giunto. Predefinito falso."),
-                            "side", O("type", "string", "enum", A("top", "bottom", "left", "right"), "description", "da che parte della vista va il simbolo. Predefinito top.")),
+                            "view", O("type", "string", "description", "the view, as the state of the drawing calls it (V1, V2...) or by name. Default the first."),
+                            "variant", O("type", "string", "enum", A("fillet", "v", "half_v", "butt"), "description", "the bead. Default fillet."),
+                            "throat_mm", O("type", "number", "description", "the throat of the bead in mm (ISO 2553, «a»). From 0 to 50."),
+                            "length_mm", O("type", "number", "description", "the length of the bead, to the right of the symbol. Empty = the whole joint."),
+                            "all_around", O("type", "boolean", "description", "the all-around circle of the bead. Default false."),
+                            "field_weld", O("type", "boolean", "description", "the flag of the weld made in the field (on site). Default false."),
+                            "both_sides", O("type", "boolean", "description", "the bead on both sides of the joint. Default false."),
+                            "side", O("type", "string", "enum", A("top", "bottom", "left", "right"), "description", "on which side of the view the symbol goes. Default top.")),
                         "required", A("throat_mm")),
                 },
                 new OperationSpec
@@ -3013,16 +3013,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "La distinta base di un assieme in tavola, confrontata coi componenti dell'assieme.",
+                    Summary = "The BOM of an assembly on the drawing, compared with the components of the assembly.",
                     Description =
-                        "Mette in tavola la DISTINTA BASE dell'assieme che sta dietro una vista: numero di "
-                        + "voce, componente, quantita'. Di serie il primo livello; «parts_only» o "
-                        + "«indented» per le altre.\n\nLA CONFRONTO: l'assieme sa per conto suo quali "
-                        + "componenti ha e quanti; le voci e la somma delle quantita' devono combaciare. Se non "
-                        + "combaciano la tolgo e te lo dico.\n\nPoi la misuro e la metto in un posto libero "
-                        + "del foglio, fuori dalle viste e dal cartiglio.\n\nMI RIFIUTO se dietro la vista non "
-                        + "c'e' un assieme (per un saldato c'e' «drawing_cut_list») o se sul foglio non "
-                        + "c'e' posto."
+                        "Puts on the drawing the BOM of the assembly behind a view: item number, component, "
+                        + "quantity. By default the first level; «parts_only» or «indented» for "
+                        + "the others.\n\nI COMPARE IT: the assembly knows by itself which components it "
+                        + "has and how many; the items and the sum of the quantities must match. If they do not "
+                        + "match I remove it and tell you.\n\nThen I measure it and put it in a free spot of "
+                        + "the sheet, outside the views and the title block.\n\nI REFUSE IF there is no assembly "
+                        + "behind the view (for a weldment there is «drawing_cut_list») or if there is "
+                        + "no room on the sheet."
                         + "\n\nThe count on the assembly side follows how each sub-assembly shows its "
                         + "children in the BOM (ChildComponentDisplayInBOM): in a top-level table a "
                         + "sub-assembly that promotes its children is replaced by them; in a parts-only "
@@ -3048,13 +3048,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "configuration cannot be activated, or the active one cannot be put back, I refuse "
                         + "before inserting the table and say where the assembly stayed. The exclusion from "
                         + "the BOM is read in the configuration of the assembly that holds each component.",
-                    Precondition = "una tavola con una vista di un assieme salvato",
+                    Precondition = "a drawing with a view of a saved assembly",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "la vista dell'assieme (V1, V2...) o per nome. Predefinita la prima."),
-                            "variant", O("type", "string", "enum", A("top_level", "parts_only", "indented"), "description", "che distinta. Predefinito top_level."),
-                            "template", O("type", "string", "description", "il modello di tabella. Vuoto = il primo della cartella dei modelli di distinta.")),
+                            "view", O("type", "string", "description", "the view of the assembly (V1, V2...) or by name. Default the first."),
+                            "variant", O("type", "string", "enum", A("top_level", "parts_only", "indented"), "description", "which BOM. Default top_level."),
+                            "template", O("type", "string", "description", "the table template. Empty = the first one in the folder of the BOM templates.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3063,26 +3063,26 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "La bollatura: i palloncini coi numeri di voce della distinta sui componenti di una vista, contati.",
+                    Summary = "Ballooning: the balloons with the BOM item numbers on the components of a view, counted.",
                     Description =
-                        "Fa la BOLLATURA: mette i palloncini sui componenti dell'assieme in una vista, col numero di voce della "
-                        + "distinta base (AutoBalloon5). Li conta sulla vista prima e dopo, e ti dice i numeri "
-                        + "scritti. Poi confronta le voci della distinta coi palloncini di TUTTA la tavola e ti "
-                        + "dice quali voci restano senza (quel componente in questa vista non si vede: bolla "
-                        + "un'altra vista). Se ogni voce ha gia' il suo palloncino altrove, non ne mette e "
-                        + "risponde «niente da aggiungere».\n\nMI RIFIUTO se in tavola non c'e' ancora una distinta base (la bollatura "
-                        + "porta il suo numero di voce: mettila prima con «drawing_bom») o se "
-                        + "dietro la vista non c'e' un assieme."
+                        "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item "
+                        + "number (AutoBalloon5). It counts them on the view before and after, and tells you the "
+                        + "numbers written. Then it compares the items of the BOM with the balloons of the WHOLE "
+                        + "drawing and tells you which items are left without one (that component is not seen in "
+                        + "this view: balloon another view). If every item already has its balloon elsewhere, "
+                        + "it adds none and answers «nothing to add in this view».\n\nI REFUSE IF there is no BOM on the drawing yet "
+                        + "(ballooning carries its item number: put it first with «drawing_bom») or "
+                        + "if there is no assembly behind the view."
                         + "\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 "
                         + "runs. balloons_returned is the number of notes AutoBalloon5 returned (null "
                         + "when it returned no array), and balloons_count_note appears when it disagrees "
                         + "with the count in the view.",
-                    Precondition = "una tavola con la distinta base e una vista dell'assieme",
+                    Precondition = "a drawing with the BOM and a view of the assembly",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "la vista (V1, V2...) o per nome. Predefinita la prima."),
-                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "come disporre i palloncini attorno alla vista. Predefinito square.")),
+                            "view", O("type", "string", "description", "the view (V1, V2...) or by name. Default the first."),
+                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "how to arrange the balloons around the view. Default square.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3091,29 +3091,29 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "Il simbolo di rugosita' (Ra in micrometri) su uno spigolo di bordo di una vista.",
+                    Summary = "The surface roughness symbol (Ra in micrometres) on an outline edge of a view.",
                     Description =
-                        "Mette il simbolo di RUGOSITA' (UNI EN ISO 1302) con la linea di richiamo sullo spigolo "
-                        + "di bordo di una vista, dal «side» chiesto, e lo porta fuori dal pezzo. «process»: "
-                        + "asportazione (la barretta, predefinito), qualsiasi, no_removal (il cerchietto)."
-                        + "\n\nIl Ra si RILEGGE dal simbolo. Misurato: senza spostarlo, SOLIDWORKS mette il simbolo "
-                        + "fuori cornice ignorando le coordinate; per questo la posizione si imposta e si rilegge."
-                        + "\n\nMI RIFIUTO se Ra non sta fra 0 e 100 micrometri, se la vista non ha uno spigolo dritto "
-                        + "su quel lato, e se il simbolo nato dice un Ra diverso.",
-                    Precondition = "una tavola con una vista",
+                        "Puts the ROUGHNESS symbol (UNI EN ISO 1302) with its leader line on the outline edge of "
+                        + "a view, from the «side» asked for, and moves it outside the part. «process»: material "
+                        + "removal (the bar, default), any, no_removal (the little circle)."
+                        + "\n\nThe Ra is READ BACK from the symbol. Measured: without moving it, SOLIDWORKS puts the symbol outside "
+                        + "the frame, ignoring the coordinates; for this reason the position is set and read back."
+                        + "\n\nI REFUSE IF Ra is not between 0 and 100 micrometres, if the view has no straight edge on "
+                        + "that side, and if the symbol born says a different Ra.",
+                    Precondition = "a drawing with a view",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "view", O("type", "string", "description", "the view, V1, V2... or by name. Default the first."),
                             "side", O(
                                 "type", "string",
                                 "enum", A("top", "bottom", "left", "right"),
-                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «top»."),
-                            "ra_um", O("type", "number", "description", "la rugosita' Ra in micrometri, per esempio 3.2"),
+                                "description", "on which side of the view the edge it attaches to is. Default «top»."),
+                            "ra_um", O("type", "number", "description", "the Ra roughness in micrometres, for example 3.2"),
                             "process", O(
                                 "type", "string",
                                 "enum", A("material_removal", "any", "no_removal"),
-                                "description", "come si ottiene la superficie. Predefinito «material_removal».")),
+                                "description", "how the surface is obtained. Default «material_removal».")),
                         "required", A("ra_um")),
                 },
                 new OperationSpec
@@ -3122,25 +3122,25 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "Un riferimento (datum A, B...) su uno spigolo di bordo di una vista.",
+                    Summary = "A datum (A, B...) on an outline edge of a view.",
                     Description =
-                        "Mette un DATUM (UNI EN ISO 5459): il triangolo sullo spigolo di bordo della vista dal "
-                        + "«side» chiesto, e la bandierina con la «letter» fuori dal pezzo, dalla stessa parte. "
-                        + "E' il riferimento che le tolleranze geometriche citano.\n\nLa lettera si RILEGGE. "
-                        + "Misurato: lasciato dove nasce, SOLIDWORKS mette la bandierina dall'altra parte dello "
-                        + "spigolo e la linea attraversa il pezzo; per questo si sposta.\n\nMI RIFIUTO se la "
-                        + "lettera c'e' gia' in tavola — due datum con la stessa lettera non danno errore e rendono "
-                        + "ambigua ogni tolleranza — e se la vista non ha uno spigolo dritto su quel lato.",
-                    Precondition = "una tavola con una vista",
+                        "Puts a DATUM (UNI EN ISO 5459): the triangle on the outline edge of the view from the "
+                        + "«side» asked for, and the flag with the «letter» outside the part, on the same side. "
+                        + "It is the reference that geometric tolerances cite.\n\nThe letter is READ BACK. "
+                        + "Measured: left where it is born, SOLIDWORKS puts the flag on the other side of the edge "
+                        + "and the line crosses the part; for this reason it is moved.\n\nI REFUSE IF the "
+                        + "letter is already on the drawing — two datums with the same letter give no error and make "
+                        + "every tolerance ambiguous — and if the view has no straight edge on that side.",
+                    Precondition = "a drawing with a view",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "view", O("type", "string", "description", "the view, V1, V2... or by name. Default the first."),
                             "side", O(
                                 "type", "string",
                                 "enum", A("top", "bottom", "left", "right"),
-                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «bottom»."),
-                            "letter", O("type", "string", "description", "la lettera del riferimento, dalla A alla Z. Predefinita «A».")),
+                                "description", "on which side of the view the edge it attaches to is. Default «bottom»."),
+                            "letter", O("type", "string", "description", "the letter of the datum, from A to Z. Default «A».")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3149,41 +3149,41 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
-                    Summary = "Una cornice di tolleranza geometrica (planarita', perpendicolarita', posizione...) su uno spigolo.",
+                    Summary = "A geometric tolerance frame (flatness, perpendicularity, position...) on an edge.",
                     Description =
-                        "Mette una CORNICE DI TOLLERANZA GEOMETRICA (UNI EN ISO 1101) con la freccia sullo spigolo "
-                        + "di bordo della vista dal «side» chiesto: la «characteristic», l'ampiezza della zona in mm "
-                        + "e i «references» (fino a tre lettere di datum, nell'ordine primario, secondario, "
-                        + "terziario). «diameter» mette il Ø davanti al valore (una zona cilindrica, per la "
-                        + "posizione di un asse).\n\nSimbolo, valore e riferimenti si RILEGGONO dalla cornice, "
-                        + "and so does the Ø (diameter_read, from IGtol.GetFrameDiameterSymbols)."
-                        + "\n\nMI RIFIUTO se una tolleranza di forma (rettilineita', planarita', circolarita', "
-                        + "cilindricita') cita un datum, se una di orientamento o di posizione non ne cita nessuno, "
-                        + "se un datum citato non c'e' in tavola (mettilo prima con «datum»), e se la "
-                        + "cornice nata non dice cio' che si e' chiesto, Ø included: such a frame, or one "
+                        "Puts a GEOMETRIC TOLERANCE FRAME (UNI EN ISO 1101) with the arrow on the outline edge "
+                        + "of the view from the «side» asked for: the «characteristic», the width of the zone in mm "
+                        + "and the «references» (up to three datum letters, in the order primary, secondary, "
+                        + "tertiary). «diameter» puts the Ø before the value (a cylindrical zone, for "
+                        + "the position of an axis).\n\nSymbol, value and references are READ BACK from the "
+                        + "frame, and so does the Ø (diameter_read, from IGtol.GetFrameDiameterSymbols)."
+                        + "\n\nI REFUSE IF a form tolerance (straightness, flatness, circularity, "
+                        + "cylindricity) cites a datum, if an orientation or position one cites none, if a cited "
+                        + "datum is not on the drawing (put it first with «datum»), and if the frame "
+                        + "born does not say what was asked for, Ø included: such a frame, or one "
                         + "that cannot be filled, is removed from the sheet, and said removed only after "
                         + "the frames of the drawing are counted again.",
-                    Precondition = "una tavola con una vista, e i datum che si citano gia' messi",
+                    Precondition = "a drawing with a view, and the datums to be cited already placed",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "la vista, V1, V2... o per nome. Predefinita la prima."),
+                            "view", O("type", "string", "description", "the view, V1, V2... or by name. Default the first."),
                             "side", O(
                                 "type", "string",
                                 "enum", A("top", "bottom", "left", "right"),
-                                "description", "su quale lato della vista sta lo spigolo a cui si attacca. Predefinito «right»."),
+                                "description", "on which side of the view the edge it attaches to is. Default «right»."),
                             "characteristic", O(
                                 "type", "string",
                                 "enum", A("straightness", "flatness", "circularity", "cylindricity", "profile_of_line",
                                           "profile_of_surface", "angularity", "perpendicularity", "parallelism",
                                           "position", "concentricity", "symmetry", "circular_runout",
                                           "total_runout"),
-                                "description", "la caratteristica geometrica"),
-                            "value_mm", O("type", "number", "description", "l'ampiezza della zona di tolleranza, in mm"),
+                                "description", "the geometric characteristic"),
+                            "value_mm", O("type", "number", "description", "the width of the tolerance zone, in mm"),
                             "references", O(
                                 "type", "array", "items", O("type", "string"),
-                                "description", "le lettere dei datum, fino a tre, nell'ordine primario, secondario, terziario"),
-                            "diameter", O("type", "boolean", "description", "zona cilindrica: il Ø davanti al valore")),
+                                "description", "the datum letters, up to three, in the order primary, secondary, tertiary"),
+                            "diameter", O("type", "boolean", "description", "cylindrical zone: the Ø before the value")),
                         "required", A("characteristic", "value_mm")),
                 },
                 new OperationSpec
@@ -3203,41 +3203,41 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // count and every re-reading.
                     Tested = true,
                     Summary =
-                        "Scrive una nota di testo sul foglio della tavola, e RILEGGE "
-                        + "quello che c'e' scritto.",
+                        "Writes a text note on the sheet of the drawing, and READS "
+                        + "BACK what is written.",
                     Description =
-                        "Mette una nota di testo sul foglio di una tavola — le note "
-                        + "generali: «smussare tutti gli spigoli vivi», «zincare dopo "
-                        + "saldatura», «tolleranze non indicate ISO 2768-mK».\n\n"
-                        + "TI DICO SE E' NATA, non che ho chiamato l'API: le note si "
-                        + "contano prima e dopo. E te le conto in DUE posti separati — "
-                        + "sul foglio e dentro le viste — perche' sono due cose diverse "
-                        + "e sommarle farebbe sembrare piena una tavola vuota.\n\n"
-                        + "IL TESTO TORNA RILETTO da SOLIDWORKS, non ricopiato da quello "
-                        + "che hai chiesto: una nota che compare con un testo diverso si "
-                        + "legge come una nota giusta finche' nessuno la confronta.\n\n"
-                        + "DOVE FINISCE: coordinate del FOGLIO, in millimetri, di serie "
-                        + "in alto a sinistra. Se chiedi un punto fuori dal foglio mi "
-                        + "rifiuto — fuori dal foglio la nota c'e' davvero e si conta, ma "
-                        + "stampando non compare, e nessun errore lo direbbe.\n\n"
-                        + "QUELLO CHE NON POSSO SAPERE e' se quello che scrivi e' VERO. "
-                        + "Garantisco che la nota c'e' e dice quello che hai scritto.",
-                    Precondition = "una tavola aperta, con un foglio attivo",
+                        "Puts a text note on the sheet of a drawing — the general "
+                        + "notes: «break all sharp edges», «galvanise after welding», "
+                        + "«general tolerances ISO 2768-mK».\n\n"
+                        + "I TELL YOU IF IT WAS BORN, not that I called the API: the notes are counted before "
+                        + "and after. And I count them for you in TWO separate places "
+                        + "— on the sheet and inside the views — because they are two "
+                        + "different things and adding them would make an empty drawing look full.\n\n"
+                        + "THE TEXT COMES BACK READ by SOLIDWORKS, not "
+                        + "copied from what you asked: a note that appears with a different "
+                        + "text reads as a right note until someone compares it.\n\n"
+                        + "WHERE IT GOES: SHEET coordinates, in millimetres, by default at the "
+                        + "top left. If you ask for a point outside the sheet I refuse "
+                        + "— outside the sheet the note really exists and is counted, but "
+                        + "when printing it does not appear, and no error would say so.\n\n"
+                        + "WHAT I CANNOT KNOW is whether what you write is TRUE. "
+                        + "I guarantee that the note is there and says what you wrote.",
+                    Precondition = "an open drawing, with an active sheet",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "text", O(
                                 "type", "string",
-                                "description", "il testo della nota. Obbligatorio: una nota vuota "
-                                    + "occupa un posto sul foglio e non dice niente."),
+                                "description", "the text of the note. Required: an empty note "
+                                    + "takes up a place on the sheet and says nothing."),
                             "x_mm", O(
                                 "type", "number",
-                                "description", "distanza dal bordo sinistro del foglio, in "
-                                    + "millimetri. Predefinito 20."),
+                                "description", "distance from the left edge of the sheet, "
+                                    + "in millimetres. Default 20."),
                             "y_mm", O(
                                 "type", "number",
-                                "description", "altezza dal bordo inferiore del foglio, in "
-                                    + "millimetri. Predefinito 20 mm sotto il bordo alto.")),
+                                "description", "height from the bottom edge of the sheet, "
+                                    + "in millimetres. Default 20 mm below the top edge.")),
                         "required", A("text")),
                 },
                 new OperationSpec
@@ -3261,67 +3261,67 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // on is just as valid and does not show the hole.
                     Tested = true,
                     Summary =
-                        "Crea una vista di sezione su una tavola, e controlla che "
-                        + "il taglio abbia incontrato materiale.",
+                        "Creates a section view on a drawing, and checks "
+                        + "that the cut met material.",
                     Description =
-                        "Taglia una vista della tavola e mette la sezione a fianco. "
-                        + "E' la prima cosa che manca per una tavola d'officina vera: "
-                        + "un pezzo con una cavita' interna, senza sezione, non si "
-                        + "legge — le linee nascoste dicono che c'e' un vuoto, non che "
-                        + "forma ha.\n\n"
-                        + "LA LINEA DI TAGLIO LA TRACCIO IO, da parte a parte della "
-                        + "vista: una linea che la sfiora da' una sezione vuota senza "
-                        + "dire niente. Di serie taglio in mezzo; con «offset_mm» sposti il "
-                        + "taglio, in millimetri **di foglio** — non del modello, "
-                        + "perche' sul foglio la vista e' in scala.\n\n"
-                        + "TI DICO SE E' NATA contando le viste prima e dopo, non "
-                        + "perche' l'API ha risposto un oggetto: puo' rispondere senza "
-                        + "aver fatto niente. The view I then read (hatch, letter) is the "
+                        "Cuts a view of the drawing and puts the section beside it. It "
+                        + "is the first thing that is missing for a real shop drawing: "
+                        + "a part with an internal cavity, without a section, cannot "
+                        + "be read — the hidden lines say there is a void, not what "
+                        + "shape it has.\n\n"
+                        + "I DRAW THE CUTTING LINE MYSELF, from side to side of the "
+                        + "view: a line that only grazes it gives an empty section without "
+                        + "saying anything. By default I cut in the middle; with «offset_mm» "
+                        + "you move the cut, in **sheet** millimetres — not of "
+                        + "the model, because on the sheet the view is scaled.\n\n"
+                        + "I TELL YOU IF IT WAS BORN by counting the views "
+                        + "before and after, not because the API answered with an object: "
+                        + "it can answer without having done anything. The view I then read (hatch, letter) is the "
                         + "one the call returned; the last view of the sheet only when it "
                         + "returned none, and view_read_from says which. When the section "
                         + "is not born, or the cutting line cannot be selected, the line I "
                         + "drew is removed from the sheet, said removed only after the "
                         + "sheet sketch is counted again.\n\n"
-                        + "E MI RIFIUTO SE NON C'E' TRATTEGGIO. Una sezione senza "
-                        + "tratteggio e' una linea di taglio caduta fuori dal "
-                        + "materiale: sul foglio resta una vista che sembra buona e non "
-                        + "mostra niente, e nessun errore lo direbbe. Preferisco "
-                        + "fallire e dirti dove ho tagliato.\n\n"
-                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «label» e' gia' di "
-                        + "un'altra sezione o di un dettaglio mi rifiuto e ti dico quelle "
-                        + "usate — due «A-A» sembrano lo stesso taglio. La lettera che la "
-                        + "vista ha davvero te la rileggo («label_reread»).\n\n"
-                        + "QUELLO CHE NON POSSO SAPERE e' se quella e' la sezione che "
-                        + "serviva. So dirti che il taglio ha incontrato materiale, non "
-                        + "che passa per la cavita' che volevi mostrare.",
-                    Precondition = "una tavola aperta con almeno una vista di modello",
+                        + "AND I REFUSE IF THERE IS NO HATCHING. A "
+                        + "section without hatching is a cutting line that fell "
+                        + "outside the material: on the sheet there remains a view that "
+                        + "looks good and shows nothing, and no error would say so. "
+                        + "I prefer to fail and tell you where I cut.\n\n"
+                        + "THE LETTER IS ONE PER DRAWING: if «label» already "
+                        + "belongs to another section or to a detail I refuse and tell you "
+                        + "the ones used — two «A-A» look like the same cut. The letter the "
+                        + "view really has I read back to you («label_reread»).\n\n"
+                        + "WHAT I CANNOT KNOW is whether that is the section that "
+                        + "was needed. I can tell you that the cut met material, not that it "
+                        + "passes through the cavity you wanted to show.",
+                    Precondition = "an open drawing with at least one model view",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O(
                                 "type", "string",
-                                "description", "quale vista sezionare, per nome. Senza, "
-                                    + "la prima vista di modello del foglio."),
+                                "description", "which view to section, by name. Without "
+                                    + "it, the first model view of the sheet."),
                             "orientation", O(
                                 "type", "string",
                                 "enum", A("vertical", "horizontal"),
-                                "description", "come corre la linea di taglio. "
-                                    + "Predefinito «vertical»."),
+                                "description", "how the cutting line runs. "
+                                    + "Default «vertical»."),
                             "offset_mm", O(
                                 "type", "number",
-                                "description", "di quanto spostare il taglio dal centro "
-                                    + "della vista, in millimetri DI FOGLIO. Positivo "
-                                    + "verso destra (o verso l'alto). Predefinito 0, "
-                                    + "cioe' in mezzo."),
+                                "description", "how far to move the cut from the centre "
+                                    + "of the view, in SHEET millimetres. Positive "
+                                    + "to the right (or upward). Default 0, that is, "
+                                    + "in the middle."),
                             "label", O(
                                 "type", "string",
-                                "description", "la lettera della sezione: «A» da' "
-                                    + "«Vista in sezione A-A». Predefinito «A»."),
+                                "description", "the letter of the section: «A» gives the title «Vista in "
+                                    + "sezione A-A» (in the language of the installation). Default «A»."),
                             "depth_mm", O(
                                 "type", "number",
-                                "description", "profondita' del taglio per una sezione "
-                                    + "parziale. Predefinito 0, che taglia da parte a "
-                                    + "parte.")),
+                                "description", "depth of the cut for a partial "
+                                    + "section. Default 0, which cuts all the way "
+                                    + "through.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3344,66 +3344,66 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // always refuses.
                     Tested = true,
                     Summary =
-                        "Crea una vista di dettaglio ingrandita su una tavola, e "
-                        + "controlla che il cerchio sia diventato un dettaglio.",
+                        "Creates an enlarged detail view on a drawing, "
+                        + "and checks that the circle became a detail.",
                     Description =
-                        "Ingrandisce un pezzo di una vista. E' l'altra meta' di cio' "
-                        + "che manca a una tavola d'officina: la sezione fa vedere cosa "
-                        + "c'e' dentro, il dettaglio fa vedere cio' che e' troppo "
-                        + "piccolo per leggersi alla scala del disegno — una gola, uno "
-                        + "smusso, un raccordo con la sua quota.\n\n"
-                        + "IL CERCHIO LO TRACCIO IO, dentro la vista. Di serie al centro "
-                        + "con raggio un quarto del lato minore; con «x_mm» e «y_mm» lo "
-                        + "sposti e con «radius_mm» lo cambi, in millimetri **di foglio** "
-                        + "— non del modello, perche' sul foglio la vista e' in scala.\n\n"
-                        + "MI RIFIUTO SE IL CERCHIO SBORDA dalla vista: un cerchio fuori "
-                        + "ingrandisce del vuoto, e il vuoto ingrandito e' comunque una "
-                        + "vista che sembra buona.\n\n"
-                        + "E TI DICO SE IL CERCHIO E' DIVENTATO UN DETTAGLIO, contando le "
-                        + "circonferenze di dettaglio sulla vista di partenza prima e "
-                        + "dopo. If it does not go up I refuse, and remove both the new view "
+                        "Enlarges a piece of a view. It is the other half of what "
+                        + "a shop drawing lacks: the section shows what is inside, the "
+                        + "detail shows what is too small to read at the scale of "
+                        + "the drawing — a groove, a chamfer, a fillet with its "
+                        + "dimension.\n\n"
+                        + "I DRAW THE CIRCLE MYSELF, inside the view. By default at the centre with a radius of a "
+                        + "quarter of the shorter side; with «x_mm» and «y_mm» you move it "
+                        + "and with «radius_mm» you change it, in **sheet** millimetres "
+                        + "— not of the model, because on the sheet the view is scaled.\n\n"
+                        + "I REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle "
+                        + "outside enlarges empty space, and the enlarged empty space is "
+                        + "still a view that looks good.\n\n"
+                        + "AND I TELL YOU IF THE CIRCLE BECAME A DETAIL, counting "
+                        + "the detail circles on the source view before and after. "
+                        + "If it does not go up I refuse, and remove both the new view "
                         + "and the circle, each said removed only after a reread: left there, "
                         + "they would be a hand-drawn circle next to a view tied to nothing, "
                         + "and no error would say so. The view I read is the one the call "
                         + "returned (view_read_from); when the detail is not born, the "
                         + "circle I drew is removed.\n\n"
-                        + "LA LETTERA E' UNA SOLA PER TAVOLA: se «label» e' gia' di una "
-                        + "sezione o di un altro dettaglio mi rifiuto e ti dico quelle usate. "
-                        + "La lettera vera te la rileggo («label_reread»).\n\n"
-                        + "QUELLO CHE NON POSSO SAPERE e' se quello e' il particolare che "
-                        + "serviva: un cerchio spostato di dieci millimetri ingrandisce un "
-                        + "pezzo di piano liscio, ed e' altrettanto valido.",
-                    Precondition = "una tavola aperta con almeno una vista di modello",
+                        + "THE LETTER IS ONE PER DRAWING: if «label» already belongs "
+                        + "to a section or to another detail I refuse and tell you the "
+                        + "ones used. The real letter I read back to you («label_reread»).\n\n"
+                        + "WHAT I CANNOT KNOW is whether that is the detail "
+                        + "that was needed: a circle moved by ten millimetres enlarges "
+                        + "a piece of smooth plane, and is just as valid.",
+                    Precondition = "an open drawing with at least one model view",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O(
                                 "type", "string",
-                                "description", "quale vista dettagliare, per nome. Senza, "
-                                    + "la prima vista di modello del foglio."),
+                                "description", "which view to detail, by name. Without "
+                                    + "it, the first model view of the sheet."),
                             "x_mm", O(
                                 "type", "number",
-                                "description", "di quanto spostare il centro del cerchio "
-                                    + "dal centro della vista, in millimetri DI FOGLIO. "
-                                    + "Positivo verso destra. Predefinito 0."),
+                                "description", "how far to move the centre of the circle "
+                                    + "from the centre of the view, in SHEET millimetres. "
+                                    + "Positive to the right. Default 0."),
                             "y_mm", O(
                                 "type", "number",
-                                "description", "di quanto spostarlo in verticale, in "
-                                    + "millimetri DI FOGLIO. Positivo verso l'alto. "
-                                    + "Predefinito 0."),
+                                "description", "how far to move it vertically, "
+                                    + "in SHEET millimetres. Positive upward. "
+                                    + "Default 0."),
                             "radius_mm", O(
                                 "type", "number",
-                                "description", "il raggio del cerchio, in millimetri di "
-                                    + "foglio. Predefinito: un quarto del lato minore "
-                                    + "della vista."),
+                                "description", "the radius of the circle, in sheet "
+                                    + "millimetres. Default: a quarter of the shorter side "
+                                    + "of the view."),
                             "scale", O(
                                 "type", "number",
-                                "description", "quante volte ingrandire. Predefinito 2, "
-                                    + "cioe' 2:1."),
+                                "description", "how many times to enlarge. Default 2, that "
+                                    + "is, 2:1."),
                             "label", O(
                                 "type", "string",
-                                "description", "la lettera del dettaglio. Predefinito «B», "
-                                    + "perche' «A» di solito se la prende la sezione.")),
+                                "description", "the letter of the detail. Default «B», "
+                                    + "because «A» is usually taken by the section.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3537,53 +3537,53 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // of the TODO for where to restart.
                     Tested = true,
                     Summary =
-                        "Mette in tavola la distinta di taglio del saldato, e la confronta "
-                        + "con quella del pezzo.",
+                        "Puts the cut list of the weldment on the drawing, and compares it with "
+                        + "the one of the part.",
                     Description =
-                        "Inserisce nella tavola la DISTINTA DI TAGLIO del saldato che sta "
-                        + "dietro una vista: l'elenco delle barre con lunghezze e "
-                        + "quantita'.\n\nE LA CONFRONTO. Il pezzo sa gia', per conto suo, "
-                        + "quanti corpi ha in distinta; la tabella in tavola dice la sua. "
-                        + "Sono **due letture indipendenti dello stesso fatto**: se non "
-                        + "combaciano te lo dico e non scelgo a quale credere. Una tavola "
-                        + "che dichiara una quantita' diversa dal modello manda in officina "
-                        + "il numero sbagliato di barre, e nessuno dei due lati da' "
-                        + "errore.\n\nDi solito vuol dire che il pezzo e' cambiato dopo "
-                        + "l'ultimo «cut_list»: si rifa' quello e si rimette la "
-                        + "tabella.\n\nLa colonna delle quantita' non la indovino per "
-                        + "posizione: la chiedo al modello di tabella, prima per tipo e poi per "
-                        + "nome della proprieta'. Se non la trovo il confronto non si fa, e la "
-                        + "risposta lo dice in «comparison_done» (false) invece che in una frase "
-                        + "in fondo.\n\nLE COLONNE E IL POSTO: "
-                        + "tengo quelle che in officina servono per tagliare (numero, quantita', "
-                        + "lunghezza, i due angoli, descrizione) e nascondo le altre — il modello "
-                        + "di tabella di casa ne ha 17, e la tabella usciva dal foglio. «columns» "
-                        + "ne sceglie altre per intestazione, o «all». Poi misuro la tabella e "
-                        + "la metto in un posto libero dentro la cornice, fuori dalle viste e dal "
-                        + "cartiglio; se non c'e' posto la tolgo e lo dico."
+                        "Inserts into the drawing the CUT LIST of the weldment behind a "
+                        + "view: the list of bars with lengths and quantities.\n\nAND "
+                        + "I COMPARE IT. The part already knows, by itself, how many "
+                        + "bodies it has in the list; the table on the drawing says its own. "
+                        + "They are **two independent readings of the same fact**: if "
+                        + "they do not match I tell you and I do not choose which one to "
+                        + "believe. A drawing that declares a quantity different from the "
+                        + "model sends the wrong number of bars to the shop, and "
+                        + "neither side gives an error.\n\nIt usually means that the part "
+                        + "changed after the last «cut_list»: redo that one and "
+                        + "put the table back.\n\nI do not guess the quantity column by "
+                        + "position: I ask the table template for it, first by type and then "
+                        + "by property name. If I do not find it the comparison is not made, and "
+                        + "the answer says so in «comparison_done» (false) instead of in a "
+                        + "sentence at the bottom.\n\nTHE COLUMNS "
+                        + "AND THE PLACE: I keep the ones the shop needs to cut (number, quantity, "
+                        + "length, the two angles, description) and hide the others — the house "
+                        + "table template has 17, and the table ran off the sheet. «columns» "
+                        + "chooses others by header, or «all». Then I measure the table and put it "
+                        + "in a free spot inside the frame, outside the views and the title block; "
+                        + "if there is no room I remove it and say so."
                         + "\n\nWHAT THE COMPARISON COUNTS: the bodies of the cut-list folders at the top "
                         + "of the part's tree, in the part's active configuration. The folders of a "
                         + "sub-weldment are not descended into, and the view's configuration is not "
                         + "activated for the count (finding M32, open): on a part with sub-weldments, or "
                         + "with the view on another configuration, a mismatch can be the count's and not "
                         + "the table's.",
-                    Precondition = "una tavola con una vista di un saldato che ha gia' la distinta di taglio",
+                    Precondition = "a drawing with a view of a weldment that already has the cut list",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O(
                                 "type", "string",
-                                "description", "quale vista. Vuoto = la prima della tavola."),
+                                "description", "which view. Empty = the first of the drawing."),
                             "x_mm", O(
                                 "type", "number",
-                                "description", "dove mettere l'angolo in alto a sinistra della tabella. Vuoto = un posto libero che trovo io."),
+                                "description", "where to put the top-left corner of the table. Empty = a free spot that I find myself."),
                             "y_mm", O(
                                 "type", "number",
-                                "description", "idem, in verticale."),
+                                "description", "same, vertically."),
                             "columns", O(
                                 "type", "array",
                                 "items", O("type", "string"),
-                                "description", "le intestazioni delle colonne da tenere, o [\"all\"]. Vuoto = numero, quantita', lunghezza, angoli, descrizione."),
+                                "description", "the headers of the columns to keep, or [\"all\"]. Empty = number, quantity, length, angles, description."),
                             "configuration", O(
                                 "type", "string",
                                 "description", "which configuration of the part: the guide asks for the "
@@ -3592,7 +3592,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "measured, and it is not necessarily the view's (finding M32, open)."),
                             "template", O(
                                 "type", "string",
-                                "description", "il modello di tabella. Vuoto = quello dell'installazione.")),
+                                "description", "the table template. Empty = the one of the installation.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3603,37 +3603,37 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Aggiunge un foglio alla tavola, con lo stesso diedro del primo.",
+                        "Adds a sheet to the drawing, with the same projection angle as the first.",
                     Description =
-                        "Aggiunge un FOGLIO alla tavola aperta e lo attiva.\n\n"
-                        + "IL DIEDRO NON TE LO CHIEDO, e non e' una semplificazione: lo "
-                        + "leggo dal foglio corrente e lo ripasso uguale. Se il foglio 2 "
-                        + "nascesse in un diedro diverso dal foglio 1, la stessa tavola "
-                        + "avrebbe due fogli specchiati in modo diverso -- **nessuno dei "
-                        + "due da' errore**, e chi taglia il pezzo del foglio 2 lo taglia "
-                        + "rovesciato.\n\nE lo rileggo dal foglio nuovo dopo averlo "
-                        + "creato: passarlo non e' averlo. Se non combacia mi fermo.\n\n"
-                        + "Anche formato e scala, se non li dici, sono quelli del foglio "
-                        + "corrente: due fogli a scale diverse si possono volere, ma non "
-                        + "per distrazione.\n\nIl nome, se non lo dici, e' il primo "
-                        + "«FoglioN» libero. Un nome gia' usato lo rifiuto: due fogli con "
-                        + "lo stesso nome e non si sa piu' quale si sta guardando.",
-                    Precondition = "una tavola aperta",
+                        "Adds a SHEET to the open drawing and activates it.\n\n"
+                        + "I DO NOT ASK YOU FOR THE PROJECTION ANGLE, and it is not a simplification: "
+                        + "I read it from the current sheet and pass it on unchanged. If sheet 2 "
+                        + "were born in a different angle from sheet 1, the same drawing would "
+                        + "have two sheets mirrored differently -- **neither of them gives an "
+                        + "error**, and whoever cuts the part from sheet 2 cuts it flipped.\n\nAnd I read "
+                        + "it back from the new sheet after creating it: passing it is "
+                        + "not having it. If it does not match I stop.\n\n"
+                        + "Size and scale too, if you do not say, are those of the current sheet: two sheets at different "
+                        + "scales can be wanted, but not through distraction.\n\nThe name, if "
+                        + "you do not say, is the first free «FoglioN» (that is how the "
+                        + "bridge names a sheet). A name already used I refuse: two sheets with the "
+                        + "same name and you no longer know which one you are looking at.",
+                    Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "name", O(
                                 "type", "string",
-                                "description", "come chiamarlo. Vuoto = il primo «FoglioN» libero."),
+                                "description", "what to call it. Empty = the first free «FoglioN»."),
                             "paper_size", O(
                                 "type", "string",
-                                "description", "A0, A1, A2, A3, A4, A4V. Vuoto = quello del foglio corrente."),
+                                "description", "A0, A1, A2, A3, A4, A4V. Empty = the one of the current sheet."),
                             "scale_numerator", O(
                                 "type", "number",
-                                "description", "il primo numero della scala. Vuoto = quella del foglio corrente."),
+                                "description", "the first number of the scale. Empty = the one of the current sheet."),
                             "scale_denominator", O(
                                 "type", "number",
-                                "description", "il secondo numero della scala. 1:2 si scrive 1 e 2.")),
+                                "description", "the second number of the scale. 1:2 is written as 1 and 2.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3644,27 +3644,27 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Mette davanti un foglio della tavola, per nome.",
+                        "Brings a sheet of the drawing to the front, by name.",
                     Description =
-                        "Attiva un FOGLIO della tavola: da li' in poi le viste e le "
-                        + "annotazioni vanno su quello.\n\nSI CHIEDE PER NOME, non per "
-                        + "numero. Un indice sarebbe l'occasione perfetta per lavorare sul "
-                        + "foglio sbagliato senza nessun errore.\n\nNon credo alla "
-                        + "risposta: dopo averlo attivato richiedo alla tavola quale "
-                        + "foglio ha davanti, e se non e' quello che hai chiesto mi fermo "
-                        + "-- altrimenti i passi dopo lavorerebbero altrove.\n\nI nomi "
-                        + "dei fogli stanno in «inspect_part», sotto «sheets»."
-                        + "\n\nMI RIFIUTO SE IL FOGLIO NON C'E', e ti elenco quelli che ci sono col "
-                        + "loro nome. Su una tavola a piu' fogli sbagliare foglio non da' nessun "
-                        + "errore: le viste finiscono su quello attivo, e in officina arriva un "
-                        + "foglio con sopra roba di un altro.",
-                    Precondition = "una tavola aperta con piu' di un foglio",
+                        "Activates a SHEET of the drawing: from then on the views and "
+                        + "the annotations go on that one.\n\nIT IS ASKED FOR BY NAME, "
+                        + "not by number. An index would be the perfect occasion to work on "
+                        + "the wrong sheet without any error.\n\nI do not believe the "
+                        + "answer: after activating it I ask the drawing which sheet it "
+                        + "has in front, and if it is not the one you asked for I stop -- "
+                        + "otherwise the following steps would work elsewhere.\n\nThe names "
+                        + "of the sheets are in «inspect_part», under «sheets»."
+                        + "\n\nI REFUSE IF THE SHEET DOES NOT EXIST, and I list the ones that do with "
+                        + "their names. On a multi-sheet drawing getting the sheet wrong gives no "
+                        + "error: the views end up on the active one, and the shop receives a "
+                        + "sheet with someone else's stuff on it.",
+                    Precondition = "an open drawing with more than one sheet",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "name", O(
                                 "type", "string",
-                                "description", "il nome esatto del foglio, come lo riporta lo stato The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is.")),
+                                "description", "the exact name of the sheet, as the state reports it. The name is the one SOLIDWORKS gives, in the language of its installation: the example is from an English one; copy the name from the state as it is.")),
                         "required", A("name")),
                 },
                 new OperationSpec
@@ -3674,13 +3674,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "any",
                     Tested = true,
                     Summary =
-                        "Salva il documento aperto.",
+                        "Saves the open document.",
                     Description =
-                        "Salva su disco il documento attivo — pezzo o tavola.\n\nServe anche "
-                        + "come PRIMO PASSO di una tavola: una vista si aggancia al percorso "
-                        + "del pezzo, quindi un pezzo mai salvato non si puo' mettere in "
-                        + "tavola.\n\nIl file scritto si rilegge: percorso e dimensione stanno "
-                        + "nelle misure."
+                        "Saves the active document to disk — part or drawing.\n\nIt also "
+                        + "serves as the FIRST STEP of a drawing: a view attaches to the path "
+                        + "of the part, so a part never saved cannot be put on a drawing."
+                        + "\n\nThe file written is read back: path and size are in the "
+                        + "measurements."
                         + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
                         + "«none») and save_warnings_note when the model needed a rebuild, had "
                         + "rebuild errors, or had views needing an update. A failed save gives the "
@@ -3691,8 +3691,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "path", O(
                                 "type", "string",
-                                "description", "dove salvare. Se non lo dici si salva dov'era gia'; un documento "
-                                    + "mai salvato senza percorso e' un errore.")),
+                                "description", "where to save. If you do not say, it is saved where it already was; a "
+                                    + "never-saved document without a path is an error.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3702,15 +3702,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Una vista con nome: isometrica, fronte, sopra...",
+                        "A named view: isometric, front, top...",
                     Description =
-                        "Aggiunge al foglio una VISTA CON NOME del pezzo, nel punto che "
-                        + "dici.\n\nLa piu' utile e' l'ISOMETRICA: da sola fa capire il pezzo "
-                        + "a chi guarda la tavola, e le tre viste standard da sole spesso "
-                        + "no.\n\nx_mm e y_mm sono la posizione SUL FOGLIO, con l'origine in "
-                        + "basso a sinistra: su un A3 (420x297) l'angolo in alto a destra e' "
-                        + "intorno a 320, 220.",
-                    Precondition = "una tavola aperta e il pezzo aperto accanto",
+                        "Adds to the sheet a NAMED VIEW of the part, at the point you say.\n\n"
+                        + "The most useful is the ISOMETRIC one: on its own it makes whoever looks "
+                        + "at the drawing understand the part, and the three standard views on "
+                        + "their own often do not.\n\nx_mm and y_mm are the position ON THE SHEET, "
+                        + "with the origin at the bottom left: on an A3 (420x297) the top right corner "
+                        + "is around 320, 220.",
+                    Precondition = "an open drawing and the part open beside it",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -3726,16 +3726,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "bottom",
                                     "right",
                                     "left"),
-                                "description", "quale vista; isometric se non dici niente"),
+                                "description", "which view; isometric if you say nothing"),
                             "x_mm", O(
                                 "type", "number",
-                                "description", "posizione sul foglio da sinistra, in mm"),
+                                "description", "position on the sheet from the left, in mm"),
                             "y_mm", O(
                                 "type", "number",
-                                "description", "posizione sul foglio dal basso, in mm"),
+                                "description", "position on the sheet from the bottom, in mm"),
                             "model", O(
                                 "type", "string",
-                                "description", "il percorso del pezzo. Se non lo dici si usa il primo pezzo aperto.")),
+                                "description", "the path of the part. If you do not say, the first open part is used.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3745,16 +3745,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "drawing",
                     Tested = true,
                     Summary =
-                        "Le tre viste standard, in primo diedro.",
+                        "The three standard views, in first-angle projection.",
                     Description =
-                        "Mette sul foglio le TRE VISTE STANDARD del pezzo, in PRIMO diedro "
-                        + "— quello che si usa in Europa.\n\nIl terzo diedro non esiste in "
-                        + "questo catalogo, di proposito: e' una chiamata gemella che non "
-                        + "fallisce mai e produce una tavola con destra e sinistra "
-                        + "scambiate. Nessuna misura se ne accorge, e il pezzo si taglia "
-                        + "specchiato.\n\nLe viste si contano prima e dopo: se non ne nasce "
-                        + "nessuna l'operazione fallisce, invece di lasciarti una tavola "
-                        + "vuota che sembra riuscita."
+                        "Puts on the sheet the THREE STANDARD VIEWS of the part, in FIRST-angle "
+                        + "projection — the one used in Europe.\n\nThird-angle projection "
+                        + "does not exist in this catalogue, on purpose: it is a twin "
+                        + "call that never fails and produces a drawing with right "
+                        + "and left swapped. No measurement notices, and the part is cut "
+                        + "mirrored.\n\nThe views are counted before and after: if none is "
+                        + "born the operation fails, instead of leaving you an empty drawing "
+                        + "that looks successful."
                         + "\n\nCENTRE MARKS ON HOLES. After the views are made the drawing is rebuilt, "
                         + "and the answer gives centre_marks_after_rebuild: the marks SOLIDWORKS put "
                         + "(null when a view cannot be counted). A view made by this call that shows holes "
@@ -3766,14 +3766,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "option that inserts them, null when it cannot be read). A hole the bridge could "
                         + "not mark is counted in holes_left_without_centre_mark, with centre_marks_note "
                         + "saying what to do.",
-                    Precondition = "una tavola aperta e il pezzo aperto accanto",
+                    Precondition = "an open drawing and the part open beside it",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "model", O(
                                 "type", "string",
-                                "description", "il percorso del pezzo da mettere in vista. Se non lo dici si usa "
-                                    + "il primo pezzo aperto. Lo trovi in «documents_open» nello stato.")),
+                                "description", "the path of the part to put in view. If you do not say, the first "
+                                    + "open part is used. You find it in «documents_open» in the state.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -4320,23 +4320,23 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Scrive lo STL per la stampa 3D, in millimetri. Verifica il pezzo "
-                        + "prima, e rifiuta se non e' un solido chiuso.",
+                        "Writes the STL for 3D printing, in millimetres. It checks the part "
+                        + "first, and refuses if it is not a closed solid.",
                     Description =
-                        "Scrive il pezzo come STL, il formato che gli slicer delle stampanti "
-                        + "3D leggono.\n\nPRIMA DI SCRIVERE chiama «check_body_geometry» e "
-                        + "SI RIFIUTA se il pezzo non e' un solo corpo solido chiuso senza "
-                        + "difetti. Non e' prudenza: un STL non porta con se' niente che dica "
-                        + "che il pezzo era a posto -- si apre, si affetta e si stampa lo "
-                        + "stesso, e il buco si vede quando il pezzo e' in mano. Se sai quello "
-                        + "che fai, «export_anyway»: true lo scrive lo stesso e te lo dice "
-                        + "nella risposta.\n\nLE UNITA' SONO SEMPRE MILLIMETRI, imposte a mano "
-                        + "prima di scrivere e rimesse com'erano dopo. Il file non le porta "
-                        + "con se' e lo slicer assume i millimetri: esportato in pollici, il "
-                        + "pezzo esce 25,4 volte piu' piccolo e nessun errore lo dice.\n\nDopo "
-                        + "aver scritto RILEGGE IL FILE: quanti triangoli dice di avere e se "
-                        + "la sua dimensione torna con quel numero. Un STL che non torna e' un "
-                        + "file che si apre e non e' il pezzo."
+                        "Writes the part as STL, the format that the slicers of 3D printers "
+                        + "read.\n\nBEFORE WRITING I call «check_body_geometry» and I REFUSE "
+                        + "IF the part is not a single closed solid body without defects. "
+                        + "It is not caution: an STL carries nothing that says the part was "
+                        + "right -- it opens, slices and prints all the same, and the hole "
+                        + "shows when the part is in your hand. If you know what you are doing, "
+                        + "«export_anyway»: true writes it all the same and tells you so in "
+                        + "the answer.\n\nTHE UNITS ARE ALWAYS MILLIMETRES, forced by hand before "
+                        + "writing and put back as they were after. The file does not carry "
+                        + "them and the slicer assumes millimetres: exported in inches, the "
+                        + "part comes out 25.4 times smaller and no error says so.\n\nAfter "
+                        + "writing I READ THE FILE BACK: how many triangles it says it has and "
+                        + "whether its size matches that number. An STL that does not match is a "
+                        + "file that opens and is not the part."
                         + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
                         + "«none») and save_warnings_note when the model needed a rebuild or had "
                         + "rebuild errors; preferences_not_restored names any user preference that "
@@ -4348,22 +4348,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "path", O(
                                 "type", "string",
-                                "description", "dove scrivere il file, estensione .stl compresa. Se non lo dici "
-                                    + "si usa il percorso del pezzo con l'estensione cambiata, e allora il "
-                                    + "pezzo dev'essere gia' stato salvato."),
+                                "description", "where to write the file, .stl extension included. If you do not "
+                                    + "say, the path of the part with the extension changed is used, and then "
+                                    + "the part must already have been saved."),
                             "quality", O(
                                 "type", "string",
                                 "enum", A("fine", "coarse"),
-                                "description", "«fine» (predefinito) fa piu' triangoli e segue meglio le "
-                                    + "curve; «coarse» fa un file piu' piccolo e sfaccetta i tondi."),
+                                "description", "«fine» (default) makes more triangles and follows the curves "
+                                    + "better; «coarse» makes a smaller file and facets the round parts."),
                             "binary", O(
                                 "type", "boolean",
-                                "description", "vero (predefinito): file binario, molto piu' piccolo. Falso: "
-                                    + "ASCII, leggibile ma dieci volte piu' grosso."),
+                                "description", "true (default): binary file, much smaller. False: "
+                                    + "ASCII, readable but ten times bigger."),
                             "export_anyway", O(
                                 "type", "boolean",
-                                "description", "scrive il file anche se la verifica dice di no. Predefinito: "
-                                    + "falso. Usalo solo sapendo che cosa non andava.")),
+                                "description", "writes the file even if the check says no. Default: "
+                                    + "false. Use it only knowing what was wrong.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -4373,28 +4373,28 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Scrive lo STEP per chi deve lavorare il pezzo, e rilegge dal file "
-                        + "quale protocollo e' uscito davvero.",
+                        "Writes the STEP for whoever has to machine the part, and reads back from "
+                        + "the file which protocol actually came out.",
                     Description =
-                        "Scrive il pezzo come STEP: e' il formato con cui si manda un pezzo a "
-                        + "un fornitore, a un cliente, o lo si porta in un altro CAD.\n\nA "
-                        + "differenza dello STL NON SI RIFIUTA se il pezzo ha piu' corpi o "
-                        + "delle superfici: uno STEP li porta, e un saldato si manda al "
-                        + "fornitore proprio cosi'. La verifica gira lo stesso e il suo "
-                        + "giudizio torna nella risposta, cosi' sai com'era il pezzo che hai "
-                        + "mandato.\n\nDOPO AVER SCRITTO RILEGGE IL FILE e dice quale "
-                        + "protocollo e' uscito DAVVERO, non quale hai chiesto: il valore che "
-                        + "governa la cosa e' un numero senza nome nell'API, e l'unica prova "
-                        + "e' il FILE_SCHEMA scritto dentro il file. Se non combacia, "
-                        + "fallisce -- certi fornitori accettano solo l'AP203.\n\nCon "
-                        + "«reopen_and_compare» il file viene riaperto in SOLIDWORKS e il suo "
-                        + "volume confrontato col pezzo: e' l'unica misura che dice che la "
-                        + "GEOMETRIA e' sopravvissuta alla traduzione. Costa un'apertura di "
-                        + "documento, quindi non e' il predefinito."
-                        + "\n\nANCHE UN ASSIEME: lo scrivo intero e conto i solidi nel file contro "
-                        + "quelli dei pezzi non soppressi. «reopen_and_compare» su un assieme lo "
-                        + "rifiuto: rileggere lo STEP di un assieme apre una finestra e la chiamata "
-                        + "non torna. An instance changed in the assembly (a cut: user bodies in "
+                        "Writes the part as STEP: it is the format in which a part is sent to "
+                        + "a supplier, to a customer, or taken to another CAD.\n\nUnlike the "
+                        + "STL it does NOT REFUSE if the part has several bodies or surfaces: "
+                        + "a STEP carries them, and a weldment is sent to the supplier "
+                        + "exactly like that. The check runs all the same and its "
+                        + "verdict comes back in the answer, so you know what the part you sent "
+                        + "was like.\n\nAFTER WRITING I READ THE FILE BACK and say which "
+                        + "protocol REALLY came out, not which you asked for: the value that "
+                        + "governs it is a number with no name in the API, and the only proof "
+                        + "is the FILE_SCHEMA written inside the file. If it does "
+                        + "not match, it fails -- some suppliers accept only AP203.\n\n"
+                        + "With «reopen_and_compare» the file is reopened in SOLIDWORKS and its "
+                        + "volume compared with the part: it is the only measurement that "
+                        + "says the GEOMETRY survived the translation. It costs a document "
+                        + "opening, so it is not the default."
+                        + "\n\nALSO AN ASSEMBLY: I write it whole and count the solids in the file against "
+                        + "those of the unsuppressed parts. I refuse «reopen_and_compare» on an "
+                        + "assembly: reading back the STEP of an assembly opens a window and the call "
+                        + "does not return. An instance changed in the assembly (a cut: user bodies in "
                         + "GetBodies3's BodiesInfo) is a shape of its own and counts all its bodies; "
                         + "the other instances count once per file and configuration."
                         + " WHICH COMPONENTS THE FILE HOLDS (measured): HIDDEN components are not written "
@@ -4434,10 +4434,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "already at the path stays as it was."),
                             "reopen_and_compare", O(
                                 "type", "boolean",
-                                "description", "riapre il file appena scritto e confronta il volume col pezzo, "
-                                    + "fallendo oltre un millesimo di scarto. Predefinito: falso, perche' "
-                                    + "costa un'apertura di documento."
-                                    + " The reopened file is closed by "
+                                "description", "reopens the file just written and compares the volume with the "
+                                    + "part, failing beyond a thousandth of difference. Default: false, "
+                                    + "because it costs a document opening. "
+                                    + "The reopened file is closed by "
                                     + "reference, never by its title (with the default path its title is the part's own "
                                     + "stem); if it cannot be closed safely it stays open and the answer "
                                     + "says so. The document that was in front is brought back by its path.")),
@@ -4450,15 +4450,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Scrive l'IGES, per i CAD e le macchine che lo STEP non lo leggono.",
+                        "Writes the IGES, for the CADs and machines that do not read STEP.",
                     Description =
-                        "Scrive il pezzo come IGES. Serve quando dall'altra parte c'e' un CAD "
-                        + "o una macchina che lo STEP non lo legge: e' un formato piu' vecchio "
-                        + "e meno preciso, e fra i due lo STEP e' sempre la prima scelta."
-                        + "\n\nCome lo STEP, non si rifiuta per piu' corpi o superfici, e la "
-                        + "verifica del pezzo torna nella risposta.\n\nDopo aver scritto "
-                        + "conta i record di parametri del file: un IGES con le sole "
-                        + "intestazioni e niente dentro esiste, pesa e si apre."
+                        "Writes the part as IGES. It is for when on the other side there is a "
+                        + "CAD or a machine that does not read STEP: it is an older and less precise "
+                        + "format, and between the two STEP is always the first choice."
+                        + "\n\nLike the STEP, it does not refuse for several bodies or surfaces, "
+                        + "and the check of the part comes back in the answer.\n\nAfter "
+                        + "writing I count the parameter records of the file: an IGES "
+                        + "with only the headers and nothing inside exists, weighs something and opens."
                         + "\n\nThree IGES options of the SOLIDWORKS profile would add curves to "
                         + "the file or turn the solid into curves: «IGES wireframe (3D curves)», "
                         + "«Export 3D Curve features» and «Export sketch entities». I turn them "
@@ -4481,19 +4481,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "path", O(
                                 "type", "string",
-                                "description", "dove scrivere il file, estensione .iges o .igs compresa. Se non "
-                                    + "lo dici si usa il percorso del pezzo con l'estensione cambiata."),
+                                "description", "where to write the file, .iges or .igs extension included. If you do "
+                                    + "not say, the path of the part with the extension changed is used."),
                             "representation", O(
                                 "type", "string",
                                 "enum", A("solids", "surfaces"),
-                                "description", "«solids» (predefinito) scrive i corpi come BREP, ed e' quello "
-                                    + "che serve a chi deve lavorare il pezzo; «surfaces» scrive facce "
-                                    + "tagliate."),
+                                "description", "«solids» (default) writes the bodies as BREP, and it is what "
+                                    + "whoever has to machine the part needs; «surfaces» writes trimmed "
+                                    + "faces."),
                             "reopen_and_compare", O(
                                 "type", "boolean",
-                                "description", "riapre il file appena scritto e confronta il volume col pezzo. "
-                                    + "Predefinito: falso."
-                                    + " The reopened file is closed by "
+                                "description", "reopens the file just written and compares the volume with the "
+                                    + "part. Default: false. "
+                                    + "The reopened file is closed by "
                                     + "reference, never by its title (with the default path its title is the part's own "
                                     + "stem); if it cannot be closed safely it stays open and the answer "
                                     + "says so. The document that was in front is brought back by its path.")),
