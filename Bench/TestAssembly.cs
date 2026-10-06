@@ -119,7 +119,7 @@ namespace Oce.Solid.Agent.Bench
                 int thereAre = 0;
                 foreach (var f in file) if (File.Exists(f)) thereAre++;
                 Check("the component files are there, while they are needed",
-                      thereAre == file.Count, thereAre + " su " + file.Count);
+                      thereAre == file.Count, thereAre + " of " + file.Count);
             }
             finally { ThrowAwayPreparation(p); }
 

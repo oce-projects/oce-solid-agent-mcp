@@ -274,7 +274,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── AN EXPECTATION ON A SENTENCE ──────────────────────────────
             //
-            // `non_contiene` is the half that counts: a sentence that declares «the
+            // `does_not_include` is the half that counts: a sentence that declares «the
             // Ø30 by 40 profile» on a part that no longer has that profile
             // is the defect that gives no error.
             var withShape = new Dictionary<string, object>
@@ -296,11 +296,11 @@ namespace Oce.Solid.Agent.ContractTests
                   !Expectations.Matches(sentence(new List<object> { "D99 for 1" }, null),
                                    null, withShape, measurements, out d) &&
                   d.IndexOf("does not say", StringComparison.Ordinal) >= 0, d);
-            Check("sentence RED: «non_contiene» fails if the word is still there",
+            Check("sentence RED: «does_not_include» fails if the word is still there",
                   !Expectations.Matches(sentence(null, new List<object> { "profile" }),
                                    null, withShape, measurements, out d) &&
                   d.IndexOf("still says", StringComparison.Ordinal) >= 0, d);
-            Check("sentence: «non_contiene» passes when the word is gone",
+            Check("sentence: «does_not_include» passes when the word is gone",
                   Expectations.Matches(sentence(null, new List<object> { "shell" }),
                                   null, withShape, measurements, out d), d);
             Check("sentence: both can be asked together",
@@ -349,10 +349,10 @@ namespace Oce.Solid.Agent.ContractTests
                                    null, docState, withList, out d) &&
                   d.IndexOf("System.String[]", StringComparison.Ordinal) < 0 &&
                   d.IndexOf("80X80X5", StringComparison.Ordinal) >= 0, d);
-            Check("list: «non_contiene» passes if no entry says it",
+            Check("list: «does_not_include» passes if no entry says it",
                   Expectations.Matches(list("measurements", null, new List<object> { "999X999X9" }),
                                   null, docState, withList, out d), d);
-            Check("list RED: «non_contiene» fails if an entry says it",
+            Check("list RED: «does_not_include» fails if an entry says it",
                   !Expectations.Matches(list("measurements", null, new List<object> { "40X40X3" }),
                                    null, docState, withList, out d) &&
                   d.IndexOf("still says", StringComparison.Ordinal) >= 0, d);

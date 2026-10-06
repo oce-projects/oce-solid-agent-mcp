@@ -131,7 +131,7 @@ if (Test-Path $close) {
     $countLine = @($cleanup | Where-Object { "$_" -match ':\s*(\d+)\s*$' }) | Select-Object -Last 1
     if ($countLine -and ("$countLine" -match ':\s*(\d+)\s*$')) { $openAfterCleanup = [int]$Matches[1] }
 } else {
-    Write-Output "ChiudiScarti is missing: the open documents stay open, and the state lists them."
+    Write-Output "CloseLeftovers is missing: the open documents stay open, and the state lists them."
 }
 
 # --- 3b. a fresh SOLIDWORKS for a full run (entry Z-C24) ---------------------

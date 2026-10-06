@@ -89,7 +89,7 @@ namespace Oce.Solid.Agent.ContractTests
             foreach (var r in mustFire)
                 if (Forbidden.Keys.Any(k => Regex.IsMatch(r, k))) taken++;
             Check("the rule recognizes the forbidden calls", taken == mustFire.Length,
-                  taken + " su " + mustFire.Length);
+                  taken + " of " + mustFire.Length);
 
             // ── AND IT DOES NOT CATCH THE RIGHT ONE ───────────────────────
             //

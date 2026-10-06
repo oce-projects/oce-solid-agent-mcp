@@ -288,7 +288,7 @@ namespace Oce.Solid.Agent.Bench
                 }
                 Check("census of what the model sees", true,
                       json.Length + " caratteri, " + (feature == null ? 0 : feature.Count) +
-                      " lavorazioni, " + (faces == null ? 0 : faces.Count) + " facce");
+                      " features, " + (faces == null ? 0 : faces.Count) + " faces");
             }
             catch (Exception ex) { Check("census of what the model sees", false, Why(ex)); }
             finally { Close(doc); }

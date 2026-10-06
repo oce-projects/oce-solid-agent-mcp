@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.Core
                 var f = faces[i];
                 double expectedValueMm = Math.Round(Math.Abs(f.Item1 - zero.Item1) * 1000.0, 3);
                 string key = RoundKey(zero.Item2.ModelCenter, f.Item2.ModelCenter);
-                string what = "lunghezza " + expectedValueMm.ToString("0.##", Ci);
+                string what = "length " + expectedValueMm.ToString("0.##", Ci);
                 if (already.Contains(key)) { elsewhere.Add(what + " (already dimensioned in this drawing)"); continue; }
                 double x, y;
                 if (horizontal)

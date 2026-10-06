@@ -161,7 +161,7 @@ namespace Oce.Solid.Agent.ContractTests
                   p != null && Convert.ToString(p["progressToken"]) == "g1" &&
                   Convert.ToDouble(p["progress"]) == 2 &&
                   Convert.ToDouble(p["total"]) == 5,
-                  "g1, 2 su 5");
+                  "g1, 2 of 5");
             Check("and the message, which is what a person reads",
                   p != null && Convert.ToString(p["message"]).Contains("step 2"),
                   Convert.ToString(p["message"]));

@@ -625,7 +625,7 @@ namespace Oce.Solid.Agent.Bench
             // nothing. Here we only look that the count is there and is not stuck at
             // zero — the true number is written by the run's summary.
             Check("F4: the expectations are counted", _expectations > 0 && _verifiedExpectations > 0,
-                  _verifiedExpectations + " su " + _expectations);
+                  _verifiedExpectations + " of " + _expectations);
         }
 
         /// <summary>The result, or null if it raised.</summary>

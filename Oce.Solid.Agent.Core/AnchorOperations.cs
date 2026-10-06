@@ -175,7 +175,7 @@ namespace Oce.Solid.Agent.Core
                         foreach (var o in list) uid.Add(Convert.ToString(o, CultureInfo.InvariantCulture));
                     if (uid.Count != 2 || uid[0] == uid[1])
                     {
-                        reason = "«anchor." + itemName + ".centrata_fra» wants TWO different, opposite edges, taken from the state.";
+                        reason = "«anchor." + itemName + ".centered_between» wants TWO different, opposite edges, taken from the state.";
                         return null;
                     }
                     axis.Fra1 = EdgeForAnchor(a, docState, uid[0], offsetM, axes, normal, out reason);

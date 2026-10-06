@@ -519,7 +519,7 @@ namespace Oce.Solid.Agent.Core
             if (!succeeded)
                 return Failed(
                     "The measurement tool answered «no» on " +
-                    string.Join(" e ", uid.Select(u => "«" + u + "»")) +
+                    string.Join(" and ", uid.Select(u => "«" + u + "»")) +
                     ". I do not give you the numbers it had inside: they would be the old ones.");
 
             var outside = new Dictionary<string, object>
@@ -578,7 +578,7 @@ namespace Oce.Solid.Agent.Core
                 if (deg >= 0) outside["angle_deg"] = Round(deg);
             }
 
-            _log("[agent] measurement between " + string.Join(" e ", uid) +
+            _log("[agent] measurement between " + string.Join(" and ", uid) +
                  (outside.ContainsKey("distance_mm") ? ": " + outside["distance_mm"] + " mm" : ""));
             return SucceededWithoutCreating(outside);
         }

@@ -27,7 +27,7 @@
       },
       "expect": [
         { "what": "measurements.components_before", "equal_to": 1,
-          "why": "the preparation inserted only one: «coperchio» has «da_inserire: false» on purpose, otherwise I would measure the work of the preparation believing I am measuring the operation" },
+          "why": "the preparation inserted only one: «coperchio» has «to_insert: false» on purpose, otherwise I would measure the work of the preparation believing I am measuring the operation" },
         { "what": "measurements.components_after", "equal_to": 2 },
 
         { "what": "state.how_many_components", "equal_to": 2,

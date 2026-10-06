@@ -608,7 +608,7 @@ namespace Oce.Solid.Agent.Core
             if (v.Length == 0) return "none";
             if (v.Length == 1) return v[0].ToString(CultureInfo.InvariantCulture);
             return string.Join(", ", v.Take(v.Length - 1).Select(x => x.ToString(CultureInfo.InvariantCulture))) +
-                   " e " + v[v.Length - 1].ToString(CultureInfo.InvariantCulture);
+                   " and " + v[v.Length - 1].ToString(CultureInfo.InvariantCulture);
         }
     }
 }

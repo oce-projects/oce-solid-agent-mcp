@@ -2,7 +2,7 @@
   "name": "stl_does_not_export_the_selected_face",
   "family": "export",
   "why": "ENTRY Z-C21.2, finding L13-1. IModelDocExtension~SaveAs3.html, Remarks: «Exports the entire model, unless faces or bodies are selected, in which case, it exports only those. Call IModelDoc2::ClearSelection2 before calling this method». Up to library 0.136.0 export_stl did not clear the selection: a face left selected from a step before, or by hand, made an STL come out with that face alone, and the check on the file (84 + 50 per triangle) compared it with itself and found it right.",
-  "defect_caught": "The same box as `box_twelve_triangles`, with the front face left SELECTED by the bench before the step («prima_seleziona»). The whole part makes twelve triangles and 684 bytes; the face alone would make two, that is 84 + 50*2 = 184 bytes. On the old library the step says «triangles: 2», and the file is consistent with itself: it is the defect that gives no error.",
+  "defect_caught": "The same box as `box_twelve_triangles`, with the front face left SELECTED by the bench before the step («select_first»). The whole part makes twelve triangles and 684 bytes; the face alone would make two, that is 84 + 50*2 = 184 bytes. On the old library the step says «triangles: 2», and the file is consistent with itself: it is the defect that gives no error.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

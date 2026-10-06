@@ -764,7 +764,7 @@ namespace Oce.Solid.Agent.Core
                 var go = new System.Collections.Generic.List<string> { "a part" };
                 if (AlsoOnDrawings) go.Add("a drawing");
                 if (AlsoOnAssemblies) go.Add("an assembly");
-                return "I work on " + string.Join(" o ", go) +
+                return "I work on " + string.Join(" or ", go) +
                        ": this document is none of those.";
             }
 

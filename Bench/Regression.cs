@@ -110,9 +110,9 @@ namespace Oce.Solid.Agent.Bench
 
             // THE THREE NUMBERS, and they add up to the number of cases. They are written as
             // bench outcomes so that the report takes them from there.
-            Check("regression: they hold", true, holds + " su " + outcomes.Count);
-            Check("regression: they come loose and say so", true, noisy + " su " + outcomes.Count);
-            Check("regression: THEY COME LOOSE IN SILENCE", true, silent + " su " + outcomes.Count);
+            Check("regression: they hold", true, holds + " of " + outcomes.Count);
+            Check("regression: they come loose and say so", true, noisy + " of " + outcomes.Count);
+            Check("regression: THEY COME LOOSE IN SILENCE", true, silent + " of " + outcomes.Count);
             Check("regression: the three numbers add up to the cases",
                   holds + noisy + silent == outcomes.Count,
                   holds + " + " + noisy + " + " + silent + " = " + outcomes.Count);
@@ -182,7 +182,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 BenchError(itemName, "«intent_why» is missing: an intent without the reason " +
                                     "gets copied from the case next to it");
-                outside.Why = "perche_intento missing"; return outside;
+                outside.Why = "intent_why missing"; return outside;
             }
 
             IModelDoc2 doc = null;
@@ -294,7 +294,7 @@ namespace Oce.Solid.Agent.Bench
                         if (!before.TryGetValue(Text(expectation, "what") ?? "", out era) || era == null)
                         {
                             BenchError(itemName, "«same_as_before» but the earlier measurement is not there");
-                            outside.Why = "come_prima without the earlier measurement"; return outside;
+                            outside.Why = "same_as_before without the earlier measurement"; return outside;
                         }
                         expectation["equal_to"] = era;
                     }

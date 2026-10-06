@@ -1,8 +1,8 @@
 {
   "name": "drilled_shaft_no_longer_declares_profile",
   "family": "sentence",
-  "why": "IT IS THE REAL RED OF THE SENTENCE, and it is all in «non_contiene». The same shaft, with a through axial hole: the INTERNAL cylindrical face that it creates breaks the formula that rebuilds the profile from a solid of revolution. The description must keep saying that it is a part of revolution -- that is true -- and must STOP declaring the profile, which is no longer that one.",
-  "_why_it_is_the_defect_that_gives_no_error": "a sentence that declares «Ø30 for 40, Ø20 for 30, Ø34 for 20» on a part that no longer has that profile fails nothing: it is a right description of another part, and the model builds on it. It is caught only by demanding that a word DISAPPEAR, and that is why the operator «non_contiene» exists.",
+  "why": "IT IS THE REAL RED OF THE SENTENCE, and it is all in «does_not_include». The same shaft, with a through axial hole: the INTERNAL cylindrical face that it creates breaks the formula that rebuilds the profile from a solid of revolution. The description must keep saying that it is a part of revolution -- that is true -- and must STOP declaring the profile, which is no longer that one.",
+  "_why_it_is_the_defect_that_gives_no_error": "a sentence that declares «Ø30 for 40, Ø20 for 30, Ø34 for 20» on a part that no longer has that profile fails nothing: it is a right description of another part, and the model builds on it. It is caught only by demanding that a word DISAPPEAR, and that is why the operator «does_not_include» exists.",
   "_why_that_face": "@face(area~=907.92) is the Ø34 end face, the only planar face of 907.92 mm2 of the part: the others are the Ø30 end face (706.86) and the two annular shoulders (392.70 and 593.76). It is chosen by measurement and not by direction because on a solid of revolution the direction of the two ends depends on how the axis was born.",
   "start": { "new_part": true },
   "steps": [
@@ -20,7 +20,7 @@
         { "what": "volume_mm3", "equal_to": 48788.95, "tolerance": 0.5,
           "tolerance_why": "55857.53 minus pi*5^2*90: the calculation has pi inside" },
         { "what": "state.shape",
-          "includes": ["revolution", "1 hole"],
+          "includes": ["revolution", "1 hole "],
           "does_not_include": ["profile "] } ] }
   ]
 }

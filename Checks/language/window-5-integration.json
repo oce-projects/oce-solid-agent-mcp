@@ -90,6 +90,230 @@
    "before": "Write-Host 'Fatti. Le tre Prova* non aprono SOLIDWORKS; ChiudiScarti e NewPart si.'",
    "after": "Write-Host 'Done. GearTest, OutlineTest and PositionsTest do not open SOLIDWORKS; the others (CloseLeftovers, NewPart...) do.'",
    "why": "the message named the probes by the names they had before window 3: they are called GearTest, OutlineTest, PositionsTest and CloseLeftovers now. The tool refuses to change a code-like name inside a message, so the line is renamed here, by name, and the text is English"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/AnchorOperations.cs",
+   "before": "centrata_fra",
+   "after": "centered_between",
+   "why": "the refusal names the key of the anchor the model has to write: the key is «centered_between» (the other refusals of the file already say so), and the Italian name told the model a key that does not exist. The tool refuses to change a code-like name inside a message, so it is changed here, by name"
+  },
+  {
+   "file": "Bench/Regression.cs",
+   "before": "perche_intento",
+   "after": "intent_why",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/Regression.cs",
+   "before": "come_prima",
+   "after": "same_as_before",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Tests/LimitsTests.cs",
+   "before": "deve_fallire",
+   "after": "must_fail",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Tests/ExpectationsTests.cs",
+   "before": "non_contiene",
+   "after": "does_not_include",
+   "count": 5,
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/bench.ps1",
+   "before": "ChiudiScarti",
+   "after": "CloseLeftovers",
+   "why": "the line names the probe by the name it had before window 3, and the script three lines above runs Checks\\CloseLeftovers\\bin\\CloseLeftovers.exe: the message says the name of the program that is missing. The tool refuses to change a code-like name inside a message, so it is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/assemblies/inserting_is_not_mating.json",
+   "before": "da_inserire",
+   "after": "to_insert",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/bodies/limit_combine_with_body_read_before_the_cut.json",
+   "before": "uid_dal_passo",
+   "after": "uid_from_step",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/reanchor/fillet_finds_the_renumbered_edge_again.json",
+   "before": "uid_dal_passo",
+   "after": "uid_from_step",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/check/hidden_hanging_body_is_visible.json",
+   "before": "prima_nascondi",
+   "after": "hide_first",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/drawing/the_second_sheet_does_not_repeat_the_dimensions.json",
+   "before": "la_differenza_e_il_pezzo",
+   "after": "difference_is_the_part",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/features/limit_rib_on_a_plate_without_walls.json",
+   "before": "la_differenza_e_il_pezzo",
+   "after": "difference_is_the_part",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/export/stl_does_not_export_the_selected_face.json",
+   "before": "prima_seleziona",
+   "after": "select_first",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/regression/r14_hole_wizard_and_the_pilot_hole.json",
+   "before": "come_prima",
+   "after": "same_as_before",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/regression/r18_linear_pattern_pitch_unchanged.json",
+   "before": "come_prima",
+   "after": "same_as_before",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/drawing/title_block_says_what_it_wants.json",
+   "before": "non_contiene",
+   "after": "does_not_include",
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Bench/cases/sentence/drilled_shaft_no_longer_declares_profile.json",
+   "before": "non_contiene",
+   "after": "does_not_include",
+   "count": 2,
+   "why": "the key of the cases has an English name since the earlier windows; the text, translated in this window, still named the Italian one, and the tool refuses to change a code-like name inside a text, so the name is changed here, by name"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/InstanceOperations.cs",
+   "before": "\" e \" + v[v.Length - 1]",
+   "after": "\" and \" + v[v.Length - 1]",
+   "why": "a lone Italian joining word inside a message the window translated, below what the detector reads and in no chunk: the model reads «A e B» in an English sentence. Changed here, by name"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/MeasureOperations.cs",
+   "before": "string.Join(\" e \", uid.Select(u => \"«\" + u + \"»\"))",
+   "after": "string.Join(\" and \", uid.Select(u => \"«\" + u + \"»\"))",
+   "why": "a lone Italian joining word inside a message the window translated, below what the detector reads and in no chunk: the model reads «A e B» in an English sentence. Changed here, by name"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/MeasureOperations.cs",
+   "before": "string.Join(\" e \", uid) +",
+   "after": "string.Join(\" and \", uid) +",
+   "why": "a lone Italian joining word inside a message the window translated, below what the detector reads and in no chunk: the model reads «A e B» in an English sentence. Changed here, by name"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/PlanExecutor.cs",
+   "before": "string.Join(\" o \", go)",
+   "after": "string.Join(\" or \", go)",
+   "why": "a lone Italian joining word inside a message the window translated, below what the detector reads and in no chunk: the model reads «A e B» in an English sentence. Changed here, by name"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/PropertyOperations.cs",
+   "before": "string.Join(\" e \", resembling.Select(",
+   "after": "string.Join(\" and \", resembling.Select(",
+   "why": "a lone Italian joining word inside a message the window translated, below what the detector reads and in no chunk: the model reads «A e B» in an English sentence. Changed here, by name"
+  },
+  {
+   "file": "Bench/DeclaredCases.cs",
+   "before": "_verifiedExpectations + \" su \" + _expectations",
+   "after": "_verifiedExpectations + \" of \" + _expectations",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/Program.cs",
+   "before": "nFaces + \" facce\" +",
+   "after": "nFaces + \" faces\" +",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/Program.cs",
+   "before": "? \" su \" + docState[\"faces_total\"]",
+   "after": "? \" of \" + docState[\"faces_total\"]",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/Program.cs",
+   "before": "done + \" su \" + HowMany",
+   "after": "done + \" of \" + HowMany",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/Regression.cs",
+   "before": "holds + \" su \" + outcomes.Count",
+   "after": "holds + \" of \" + outcomes.Count",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/Regression.cs",
+   "before": "noisy + \" su \" + outcomes.Count",
+   "after": "noisy + \" of \" + outcomes.Count",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/Regression.cs",
+   "before": "silent + \" su \" + outcomes.Count",
+   "after": "silent + \" of \" + outcomes.Count",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/TestAssembly.cs",
+   "before": "thereAre + \" su \" + file.Count",
+   "after": "thereAre + \" of \" + file.Count",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Bench/NewOperationsTests.cs",
+   "before": "\" lavorazioni, \" + (faces == null ? 0 : faces.Count) + \" facce\"",
+   "after": "\" features, \" + (faces == null ? 0 : faces.Count) + \" faces\"",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Tests/ErrorEnumTests.cs",
+   "before": "taken + \" su \" + mustFire.Length",
+   "after": "taken + \" of \" + mustFire.Length",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Tests/ForbiddenSignaturesTests.cs",
+   "before": "taken + \" su \" + mustFire.Length",
+   "after": "taken + \" of \" + mustFire.Length",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Tests/ProgressTests.cs",
+   "before": "\"g1, 2 su 5\"",
+   "after": "\"g1, 2 of 5\"",
+   "why": "a lone Italian word in a line of the output the window translated, below what the detector reads and in no chunk. Changed here, by name"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/CenterMarkOperations.cs",
+   "before": "(allWhole ? \"foro\" : \"arco\")",
+   "after": "(allWhole ? \"hole\" : \"arc\")",
+   "why": "the refusal of center marks on a view without holes named the hole with the Italian word: that literal is also the kind of a circle in the dimension code, and the tool froze it here too, where it is a word of the message"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/SwOperations.cs",
+   "before": "\"L'asola \" + length",
+   "after": "\"The slot \" + length",
+   "why": "the subject of the refusal of a slot outside the part was the Italian word for slot, inside an English sentence: the hole and the pocket already say «The hole of...», «The pocket...»; a lone word below what the detector reads, in no chunk"
+  },
+  {
+   "file": "Oce.Solid.Agent.Core/DrawingRoundOperations.cs",
+   "before": "\"lunghezza \" + expectedValueMm",
+   "after": "\"length \" + expectedValueMm",
+   "why": "the name of a length of a turned part in the list of what is dimensioned elsewhere was the Italian word for length: a lone word below what the detector reads, in no chunk"
   }
  ],
  "forced_units": [

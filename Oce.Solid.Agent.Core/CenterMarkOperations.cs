@@ -172,7 +172,7 @@ namespace Oce.Solid.Agent.Core
                     (already > 0
                         ? already + (already == 1 ? " circle" : " circles") + " already had the mark: nothing new to put."
                         : "On " + perView.Count + (perView.Count == 1 ? " view" : " views") +
-                          " there is no " + (allWhole ? "foro" : "arc") + " visible: it is the wrong view " +
+                          " there is no " + (allWhole ? "hole" : "arc") + " visible: it is the wrong view " +
                           "(holes are seen as circles from above, usually V2), or the part has none.") +
                     " The number is zero and I am telling you so.";
                 _log("[agent] " + measurements["verdict"]);

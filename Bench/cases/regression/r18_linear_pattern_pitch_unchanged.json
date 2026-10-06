@@ -3,7 +3,7 @@
   "family": "regression",
   "why": "Five holes at pitch 30 along a plate that gets longer. The pitch is a feature dimension -- the holes are 30 mm from one another because the drawing says so -- and it has nothing to do with the length of the part. If lengthening the plate changes the pitch, the pattern followed the wrong thing.",
   "intent": "ancorato_a_assoluto",
-  "intent_why": "pitch 30 and first instance where the designer put it: lengthening the plate leaves all five holes where they are. The invariant is written «come_prima» and not as numbers, because the DIRECTION of the pattern is chosen by SOLIDWORKS from the edge, and computing it by hand would mean guessing which way it goes -- a wrong calculation here would turn the case into a false silence.",
+  "intent_why": "pitch 30 and first instance where the designer put it: lengthening the plate leaves all five holes where they are. The invariant is written «same_as_before» and not as numbers, because the DIRECTION of the pattern is chosen by SOLIDWORKS from the edge, and computing it by hand would mean guessing which way it goes -- a wrong calculation here would turn the case into a false silence.",
   "build": [
     {
       "operation": "extrude_rectangle",

@@ -2776,7 +2776,7 @@ namespace Oce.Solid.Agent.Core
             // length/2 and width/2, as it should.
             string withoutHope = CutWithoutHope(
                 model, axes,
-                "L'asola " + length.ToString("0.##") + " x " + width.ToString("0.##") + " mm",
+                "The slot " + length.ToString("0.##") + " x " + width.ToString("0.##") + " mm",
                 x, y,
                 Math.Abs(travel * cos) + radius, Math.Abs(travel * sin) + radius,
                 (u, v) => InsideStadium(u, v, x, y, cos, sin, travel, radius),

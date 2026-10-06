@@ -403,7 +403,7 @@ namespace Oce.Solid.Agent.Core
             {
                 why =
                     "«" + requested + "» is not a full name. The document declares " +
-                    string.Join(" e ", resembling.Select(n => "«" + n + "»")) +
+                    string.Join(" and ", resembling.Select(n => "«" + n + "»")) +
                     ": the piece between angle brackets is part of the name, and must " +
                     "be copied. Asked as it is, SOLIDWORKS answers no in silence.";
                 return null;

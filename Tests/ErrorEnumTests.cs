@@ -110,7 +110,7 @@ namespace Oce.Solid.Agent.ContractTests
             foreach (var r in mustFire) if (Suspicious.IsMatch(r)) taken++;
             Check("the guard recognizes the comparisons with a digit",
                   taken == mustFire.Length,
-                  taken + " su " + mustFire.Length);
+                  taken + " of " + mustFire.Length);
 
             // AND IT MUST NOT SHOUT AT EVERYTHING. A guard that flags even what
             // is fine gets switched off, and it is the most common way in which a

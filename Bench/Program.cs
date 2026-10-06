@@ -2045,8 +2045,8 @@ namespace Oce.Solid.Agent.Bench
 
                 int nFaces = (docState["faces"] as System.Collections.IList).Count;
                 Check("faces: ceiling on the total, not per body", nFaces <= 60,
-                      nFaces + " facce" +
-                      (docState.ContainsKey("faces_total") ? " su " + docState["faces_total"] : ""));
+                      nFaces + " faces" +
+                      (docState.ContainsKey("faces_total") ? " of " + docState["faces_total"] : ""));
                 var f0 = (docState["faces"] as System.Collections.IList)[0] as Dictionary<string, object>;
                 Check("face: says which body it belongs to", f0.ContainsKey("body"), Line(f0));
 
@@ -2382,7 +2382,7 @@ namespace Oce.Solid.Agent.Bench
                     done++;
                 }
                 Check("ceiling: " + HowMany + " features built", done == HowMany,
-                      done + " su " + HowMany + (done < HowMany ? " -- " + Short(error) : ""));
+                      done + " of " + HowMany + (done < HowMany ? " -- " + Short(error) : ""));
                 if (done < HowMany) return;
 
                 var final = ReadState(doc);

@@ -402,7 +402,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             Check("every refusal demands a message", withoutMessage.Count == 0,
                   withoutMessage.Count == 0
-                      ? "no «deve_fallire» that accepts any error"
+                      ? "no «must_fail» that accepts any error"
                       : string.Join(" | ", withoutMessage));
 
             // ── AND THE DESCRIPTIONS? (Z-G5) ─────────────────────────────
