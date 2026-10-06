@@ -1,0 +1,14 @@
+{
+ "about": "What the integrator of window 6 (W3.1-bis.9, the descriptions of the catalogue) did by hand, each with its reason, so that window-6-catalogue.js --check holds it like the rest. forced_units: units the gate does not read as Italian that the window still changes (the English paragraphs of the descriptions that declare a limit in another form than the keyword); code_changes: the few changes of code, as a snippet of the tree before the window and what it becomes; overrides: a translation accepted with a flag the translator gave (length_ok, keywords_ok, quoted_ok, protocol_ok), by file and unit; examples: operations whose example changes (a name of the SOLIDWORKS tree, D12).",
+ "forced_units": [],
+ "code_changes": [
+  {
+   "file": "Tests/Program.cs",
+   "before": "            DescriptionValuesContract.RunAll();\n",
+   "after": "            DescriptionValuesContract.RunAll();\n            RefusalKeywordsContract.RunAll();\n",
+   "why": "the new contract of the refusal keyword (Tests/RefusalKeywordsContract.cs) is a group of the run like the others; the file is new, and this is the one line that runs it"
+  }
+ ],
+ "overrides": [],
+ "examples": []
+}

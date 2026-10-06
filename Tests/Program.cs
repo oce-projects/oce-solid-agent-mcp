@@ -406,6 +406,7 @@ namespace Oce.Solid.Agent.ContractTests
             DocumentByPathContract.RunAll();
             AliasLayerContract.RunAll();
             DescriptionValuesContract.RunAll();
+            RefusalKeywordsContract.RunAll();
             Zc2189WeldAssemblyContract.RunAll();
             Zc2189DrawingContract.RunAll();
             Zc2189MachiningContract.RunAll();

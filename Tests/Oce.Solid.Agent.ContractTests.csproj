@@ -101,6 +101,7 @@
     <Compile Include="DocumentByPathContract.cs" />
     <Compile Include="AliasLayerContract.cs" />
     <Compile Include="DescriptionValuesContract.cs" />
+    <Compile Include="RefusalKeywordsContract.cs" />
     <Compile Include="Zc2189WeldAssemblyContract.cs" />
     <Compile Include="Zc2189DrawingContract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />

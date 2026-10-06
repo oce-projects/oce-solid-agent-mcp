@@ -3524,38 +3524,38 @@
   {
    "name": "mate",
    "family": "assemblies",
-   "summary": "Vincola due componenti fra loro prendendo una faccia per uno. E' la differenza fra un assieme e un mucchio ordinato.",
-   "details": "Mette un accoppiamento fra due componenti dell'assieme aperto.\n\nLE FACCE SI NOMINANO PER VERSO, non per identificativo: «la faccia in basso di C2 sulla faccia in alto di C1». I componenti sono quelli che «inspect_part» elenca come C1, C2, ... e quegli identificativi sono STABILI (al contrario di quelli delle facce di una parte, che si rinumerano a ogni lettura).\n\nTHE DIRECTIONS ARE THE ASSEMBLY'S: the faces come from the component's bodies in the part's own coordinates, and each normal is turned with the component's placement in the assembly (Transform2) before it is compared, so on a turned or mirrored component «up» is the face that looks up in the assembly. If no flat face looks that way I say so instead of taking one at random; if the placement of the component cannot be read, I refuse without touching anything.\n\nFra piu' facce nello stesso verso prendo LA PIU' GRANDE: su un coperchio o una piastra e' quella che vuoi.\n\nWHAT THE MATE BLOCKS IS MEASURED (Z-C14). SOLIDWORKS gives no remaining degrees of freedom from here, so before the mate and after it each non-fixed component of the pair is moved 5 mm along X, Y and Z and turned 5 degrees about X, Y and Z of the assembly, one move at a time with a rebuild after each: a direction the mates put back is blocked, one where the component stays is free. The answer gives, per component in the order of the two ids, blocked_directions_before and blocked_directions_after (TX, TY, TZ, RX, RY, RZ), degrees_removed and direction_test; a fixed component is not moved (fully blocked by definition), and neither is one inside a sub-assembly (unknown). After the test each component is set back where it started, and so is any other component the rebuilds carried along; a slide the rebuild leaves is reported in residual_drift_mm and in the answer, not hidden.\n\nA REDUNDANT MATE IS REFUSED: when the mate blocks nothing that was not already blocked, on a pair where one component is fixed or already fully blocked, I take out the mate I have just made (the object AddMate5 returned, never a name) and refuse, saying which directions were already blocked. SOLIDWORKS itself reports nothing wrong on such a mate (AddMate5 answers NoError, GetWhatsWrongCount stays 0): this test is the only place it shows. When a position cannot be set or read, a move comes back only in part (neither blocked nor free), the assembly does not rebuild cleanly (a feature or mate in error makes every rebuild answer false), or neither component is fixed or fully blocked, I say so and keep the mate: a mate is never called redundant from a reading that could not be made.\n\nTHE COST: 13 rebuilds per non-fixed component for each reading (two per direction and one to put it back), and two readings per mate: 26 for the usual pair of a fixed and a free component, 52 when both move. On a large assembly this takes a while.\n\nNon conto sulla risposta: conto gli accoppiamenti dei due componenti prima e dopo, e se non sono aumentati te lo dico invece di dichiarare fatto.\n\nIf one of the two faces cannot be selected, the step is refused and AddMate5 is not called.",
+   "summary": "Constrains two components to each other, taking one face from each. It is the difference between an assembly and a tidy heap.",
+   "details": "Puts a mate between two components of the open assembly.\n\nFACES ARE NAMED BY DIRECTION, not by identifier: «the lower face of C2 on the upper face of C1». The components are the ones «inspect_part» lists as C1, C2, ... and those identifiers are STABLE (unlike the identifiers of the faces of a part, which are renumbered at every reading).\n\nTHE DIRECTIONS ARE THE ASSEMBLY'S: the faces come from the component's bodies in the part's own coordinates, and each normal is turned with the component's placement in the assembly (Transform2) before it is compared, so on a turned or mirrored component «up» is the face that looks up in the assembly. If no flat face looks that way I say so instead of taking one at random; if the placement of the component cannot be read, I refuse without touching anything.\n\nAmong several faces that look the same way I take THE LARGEST: on a cover or a plate that is the one you want.\n\nWHAT THE MATE BLOCKS IS MEASURED (Z-C14). SOLIDWORKS gives no remaining degrees of freedom from here, so before the mate and after it each non-fixed component of the pair is moved 5 mm along X, Y and Z and turned 5 degrees about X, Y and Z of the assembly, one move at a time with a rebuild after each: a direction the mates put back is blocked, one where the component stays is free. The answer gives, per component in the order of the two ids, blocked_directions_before and blocked_directions_after (TX, TY, TZ, RX, RY, RZ), degrees_removed and direction_test; a fixed component is not moved (fully blocked by definition), and neither is one inside a sub-assembly (unknown). After the test each component is set back where it started, and so is any other component the rebuilds carried along; a slide the rebuild leaves is reported in residual_drift_mm and in the answer, not hidden.\n\nA REDUNDANT MATE IS REFUSED: when the mate blocks nothing that was not already blocked, on a pair where one component is fixed or already fully blocked, I take out the mate I have just made (the object AddMate5 returned, never a name) and refuse, saying which directions were already blocked. SOLIDWORKS itself reports nothing wrong on such a mate (AddMate5 answers NoError, GetWhatsWrongCount stays 0): this test is the only place it shows. When a position cannot be set or read, a move comes back only in part (neither blocked nor free), the assembly does not rebuild cleanly (a feature or mate in error makes every rebuild answer false), or neither component is fixed or fully blocked, I say so and keep the mate: a mate is never called redundant from a reading that could not be made.\n\nTHE COST: 13 rebuilds per non-fixed component for each reading (two per direction and one to put it back), and two readings per mate: 26 for the usual pair of a fixed and a free component, 52 when both move. On a large assembly this takes a while.\n\nI do not rely on the answer of the call: I count the mates of the two components before and after, and if they did not increase I tell you instead of declaring it done.\n\nIf one of the two faces cannot be selected, the step is refused and AddMate5 is not called.",
    "schema": {
     "type": "object",
     "properties": {
      "component_a": {
       "type": "string",
-      "description": "l'identificativo del primo componente, da «inspect_part»: «C1», «C2», ..."
+      "description": "the identifier of the first component, from «inspect_part»: «C1», «C2», ..."
      },
      "face_a": {
       "type": "string",
-      "description": "quale sua faccia, per verso: up, down, right, left, front, back. Directions of the assembly: on a turned component, the face that looks that way after the rotation."
+      "description": "which of its faces, by direction: up, down, right, left, front, back. Directions of the assembly: on a turned component, the face that looks that way after the rotation."
      },
      "component_b": {
       "type": "string",
-      "description": "l'identificativo del secondo componente."
+      "description": "the identifier of the second component."
      },
      "face_b": {
       "type": "string",
-      "description": "quale sua faccia, per verso."
+      "description": "which of its faces, by direction."
      },
      "variant": {
       "type": "string",
-      "description": "coincidente (predefinito), parallelo, perpendicolare, distanza. Concentrico e tangente li rifiuto: vogliono una faccia curva, e le facce qui si scelgono per verso, che vale solo per quelle piane."
+      "description": "coincidente (default), parallelo, perpendicolare, distanza: the values are written in Italian, as the operation takes them (coincident, parallel, perpendicular, distance). I refuse concentric and tangent: they want a curved face, and here faces are chosen by direction, which holds only for flat ones."
      },
      "distance_mm": {
       "type": "number",
-      "description": "solo per «distanza»: quanto stanno lontane. Senza, mi rifiuto -- non c'e' nessun valore predefinito ragionevole."
+      "description": "only for «distanza»: how far apart they are. Without it I refuse -- there is no reasonable default value."
      },
      "alignment": {
       "type": "string",
-      "description": "«allineato» (predefinito) o «opposto». Se SOLIDWORKS rifiuta per allineamento, prova l'altro: due facce che si guardano vogliono «opposto»."
+      "description": "«allineato» (aligned, the default) or «opposto» (opposite). If SOLIDWORKS refuses for alignment, try the other: two faces that look at each other want «opposto»."
      }
     },
     "required": [
@@ -3565,21 +3565,21 @@
      "face_b"
     ]
    },
-   "precondition": "un assieme aperto con almeno due componenti",
+   "precondition": "an open assembly with at least two components",
    "document": "assembly",
    "example": null
   },
   {
    "name": "mirror_component",
    "family": "assemblies",
-   "summary": "Specchia un componente su un piano dell'assieme: la staffa destra e la sinistra.",
-   "details": "Specchia un componente su un piano dell'assieme (frontale, superiore, destro). DEVI SCEGLIERE COME, perche' sono tre pezzi diversi:\n- «instance»: lo stesso file, specchiato. Giusto per un pezzo simmetrico.\n- «opposite_linked»: un file nuovo che SEGUE l'originale. Cambi la destra e cambia anche la sinistra.\n- «opposite_unlinked»: un file nuovo INDIPENDENTE. Correggi la destra e la sinistra resta com'era, senza che niente te lo dica.\n\nDopo lo verifico: il centro del pezzo nuovo contro lo specchio del centro dell'originale, e per gli opposti l'albero del file nuovo (legato o no). Il file nuovo prende il nome dell'originale col «suffix» (predefinito «_spec»), nella stessa cartella.\n\nMI RIFIUTO se non mi dici «mode» (ti spiego i tre), se il piano non e' uno dei tre dell'assieme o se il componente non c'e' (ti dico quali ci sono).\n\nThe three planes are recognised by their geometry (the plane's normal through the origin), not by their place in the tree nor by their name: if no plane of the assembly has that normal through the origin, I refuse and say what I read.\n\nFor an instance of the same file the orientation of the new instance is SET («orientation», default mirrored_x_mirrored_y) and then CHECKED on the axes of the instance (Transform2): the centre is the same in all four orientations and cannot tell them apart. The answer carries «orientation» and «new_axes» (x, y, z unit vectors). «orientation» with an opposite-hand mode is refused, and so is a value that is not one of the four.\n\nA mirror born with a rebuild error (GetErrorCode2) is refused and removed. Whenever a refusal removes the mirror it made, it says so only after reading the tree again and not finding it there; otherwise it asks you to remove it.",
+   "summary": "Mirrors a component on a plane of the assembly: the right and the left bracket.",
+   "details": "Mirrors a component on a plane of the assembly (front, top, right). YOU MUST CHOOSE HOW, because they are three different parts:\n- «instance»: the same file, mirrored. Right for a symmetrical part.\n- «opposite_linked»: a new file that FOLLOWS the original. Change the right one and the left one changes too.\n- «opposite_unlinked»: an INDEPENDENT new file. Fix the right one and the left one stays as it was, and nothing tells you.\n\nAfterwards I verify it: the centre of the new part against the mirror of the centre of the original, and for the opposites the feature tree of the new file (linked or not). The new file takes the name of the original with the «suffix» (default «_spec»), in the same folder.\n\nI REFUSE IF you do not give me «mode» (I explain the three), if the plane is not one of the three of the assembly or if the component is not there (I tell you which ones there are).\n\nThe three planes are recognised by their geometry (the plane's normal through the origin), not by their place in the tree nor by their name: if no plane of the assembly has that normal through the origin, I refuse and say what I read.\n\nFor an instance of the same file the orientation of the new instance is SET («orientation», default mirrored_x_mirrored_y) and then CHECKED on the axes of the instance (Transform2): the centre is the same in all four orientations and cannot tell them apart. The answer carries «orientation» and «new_axes» (x, y, z unit vectors). «orientation» with an opposite-hand mode is refused, and so is a value that is not one of the four.\n\nA mirror born with a rebuild error (GetErrorCode2) is refused and removed. Whenever a refusal removes the mirror it made, it says so only after reading the tree again and not finding it there; otherwise it asks you to remove it.",
    "schema": {
     "type": "object",
     "properties": {
      "component": {
       "type": "string",
-      "description": "l'identificativo del componente, dallo stato: «C1», «C2», ..."
+      "description": "the identifier of the component, from the state: «C1», «C2», ..."
      },
      "orientation": {
       "type": "string",
@@ -3598,7 +3598,7 @@
        "top",
        "right"
       ],
-      "description": "il piano dell'assieme su cui specchiare."
+      "description": "the plane of the assembly to mirror on."
      },
      "mode": {
       "type": "string",
@@ -3607,11 +3607,11 @@
        "opposite_linked",
        "opposite_unlinked"
       ],
-      "description": "instance (stesso file), opposite_linked (file nuovo che segue l'originale), opposite_unlinked (file nuovo indipendente)."
+      "description": "instance (same file), opposite_linked (new file that follows the original), opposite_unlinked (new independent file)."
      },
      "suffix": {
       "type": "string",
-      "description": "per gli opposti: cosa aggiungere al nome del file. Predefinito «_spec»."
+      "description": "for the opposites: what to add to the file name. Default «_spec»."
      }
     },
     "required": [
@@ -3620,21 +3620,21 @@
      "mode"
     ]
    },
-   "precondition": "un assieme aperto con almeno un componente",
+   "precondition": "an open assembly with at least one component",
    "document": "assembly",
    "example": "{\"component\":\"C2\",\"plane\":\"right\",\"mode\":\"instance\"}"
   },
   {
    "name": "fix_component",
    "family": "assemblies",
-   "summary": "Fissa o libera un componente dell'assieme, e lo rilegge.",
-   "details": "Fissa un componente (non si muove piu', qualunque accoppiamento abbia) o lo libera (lo tengono solo i suoi accoppiamenti). E' l'unico stato di un componente che cambia come l'assieme si ricostruisce.\n\nFISSO NON VUOL DIRE ACCOPPIATO: il primo componente inserito SOLIDWORKS lo fissa da solo, e un assieme che sta fermo solo per quello non e' montato. Dopo averlo cambiato lo rileggo, e ti dico quanti accoppiamenti ha: un componente libero con zero accoppiamenti e' appoggiato, si muove.\n\nMI RIFIUTO se non mi dici «grounded» (true o false: sono due cose opposte, non c'e' un verso d'ufficio) o se il componente non c'e' (ti dico quali ci sono).\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly («top_level»: false in the state) is refused, and the refusal names the sub-assembly that holds it and its uid; IsFixed and FixComponent work on the top level only. Open the sub-assembly to fix one of its parts, or fix the sub-assembly itself.",
+   "summary": "Fixes or frees a component of the assembly, and reads it back.",
+   "details": "Fixes a component (it no longer moves, whatever mates it has) or frees it (only its mates hold it). It is the only state of a component that changes how the assembly rebuilds.\n\nFIXED DOES NOT MEAN MATED: SOLIDWORKS fixes the first component inserted by itself, and an assembly that stays still only because of that is not assembled. After changing it I read it back, and I tell you how many mates it has: a free component with zero mates is resting, it moves.\n\nI REFUSE IF you do not give me «grounded» (true or false: they are two opposite things, no direction is assumed) or if the component is not there (I tell you which ones there are).\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly («top_level»: false in the state) is refused, and the refusal names the sub-assembly that holds it and its uid; IsFixed and FixComponent work on the top level only. Open the sub-assembly to fix one of its parts, or fix the sub-assembly itself.",
    "schema": {
     "type": "object",
     "properties": {
      "component": {
       "type": "string",
-      "description": "l'identificativo del componente, dallo stato: «C1», «C2», ..."
+      "description": "the identifier of the component, from the state: «C1», «C2», ..."
      },
      "grounded": {
       "type": "boolean",
@@ -3646,25 +3646,25 @@
      "grounded"
     ]
    },
-   "precondition": "un assieme aperto con almeno un componente",
+   "precondition": "an open assembly with at least one component",
    "document": "assembly",
    "example": "{\"component\":\"C2\",\"grounded\":true}"
   },
   {
    "name": "replace_component",
    "family": "assemblies",
-   "summary": "Cambia il file di un componente gia' montato, e ti dice se i vincoli sono sopravvissuti SANI o solo sopravvissuti.",
-   "details": "«Il coperchio va rifatto»: cambia il file di un componente gia' montato.\n\nGUARDA SEMPRE COSA TI RISPONDO SUGLI ACCOPPIAMENTI. Misurato: i vincoli del pezzo vecchio **restano** -- non si perdono -- ma restare non vuol dire funzionare. Un vincolo che puntava a una faccia del pezzo vecchio sopravvive nell'albero e puo' andare in ERRORE, e allora il conteggio lo vede ancora e sembra tutto a posto.\n\n**Un vincolo rotto e' peggio di un vincolo assente**: assente si vede, rotto sembra che tenga. Percio' ti dico due cose, non una: quanti accoppiamenti ci sono prima e dopo, E quanti problemi ha il documento prima e dopo. Se i problemi sono aumentati te lo grido, e la cosa da fare e' togliere quei vincoli e rimetterli con «mate».\n\nIL FILE NUOVO DEV'ESSERE GIA' APERTO in SOLIDWORKS, come per «insert_component»: copia il percorso da «documents_open».\n\nSe gli dai lo stesso file che c'e' gia' mi rifiuto: riuscirebbe e non cambierebbe niente, e tu crederesti di aver cambiato il pezzo.\n\nTHE CONFIGURATION IS CHECKED, NOT YET CHOSEN. A «configuration» the new file does not have is refused before the swap, and nothing changes. The swap asks SOLIDWORKS to match the configuration of the old component with one of the new file (its «match name» choice); the choice that uses the named configuration waits for a probe that shows it opens no window. So after the swap I read back the configuration the new component references and give it in the answer («configuration»), and, when you asked for one, «configuration_as_asked»: false means SOLIDWORKS took another one, the verdict opens with a WARNING, and the swap stays (undo it if the size matters).\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly is refused before the call (ReplaceComponents2 wants a top-level component). The swap counts as done only when a component took up the new file that was not on it before AND the chosen component no longer uses its old file: another component already mounted on the new file does not count. «took_its_place» names the component(s) that took it; the C1..Cn numbers follow the names, so read the state again before naming one by uid.",
+   "summary": "Changes the file of a component that is already mounted, and tells you whether the constraints survived SOUND or merely survived.",
+   "details": "«The cover has to be redone»: changes the file of a component that is already mounted.\n\nALWAYS LOOK AT WHAT I ANSWER ABOUT THE MATES. Measured: the constraints of the old part **stay** -- they are not lost -- but staying does not mean working. A constraint that pointed at a face of the old part survives in the tree and may go into ERROR, and then the count still sees it and everything looks fine.\n\n**A broken constraint is worse than a missing one**: a missing one shows, a broken one seems to hold. So I tell you two things, not one: how many mates there are before and after, AND how many problems the document has before and after. If the problems increased I shout it, and the thing to do is to remove those constraints and put them back with «mate».\n\nTHE NEW FILE MUST ALREADY BE OPEN in SOLIDWORKS, as for «insert_component»: copy the path from «documents_open».\n\nIf you give it the same file that is already there, I refuse: it would succeed and change nothing, and you would believe you had changed the part.\n\nTHE CONFIGURATION IS CHECKED, NOT YET CHOSEN. A «configuration» the new file does not have is refused before the swap, and nothing changes. The swap asks SOLIDWORKS to match the configuration of the old component with one of the new file (its «match name» choice); the choice that uses the named configuration waits for a probe that shows it opens no window. So after the swap I read back the configuration the new component references and give it in the answer («configuration»), and, when you asked for one, «configuration_as_asked»: false means SOLIDWORKS took another one, the verdict opens with a WARNING, and the swap stays (undo it if the size matters).\n\nTOP-LEVEL COMPONENTS ONLY: a component inside a sub-assembly is refused before the call (ReplaceComponents2 wants a top-level component). The swap counts as done only when a component took up the new file that was not on it before AND the chosen component no longer uses its old file: another component already mounted on the new file does not count. «took_its_place» names the component(s) that took it; the C1..Cn numbers follow the names, so read the state again before naming one by uid.",
    "schema": {
     "type": "object",
     "properties": {
      "component": {
       "type": "string",
-      "description": "l'identificativo del componente da sostituire, da «inspect_part»: «C1», «C2», ..."
+      "description": "the identifier of the component to replace, from «inspect_part»: «C1», «C2», ..."
      },
      "path": {
       "type": "string",
-      "description": "percorso completo del file NUOVO, gia' aperto in SOLIDWORKS."
+      "description": "full path of the NEW file, already open in SOLIDWORKS."
      },
      "configuration": {
       "type": "string",
@@ -3672,7 +3672,7 @@
      },
      "all_instances": {
       "type": "boolean",
-      "description": "vero (predefinito): se lo stesso pezzo e' montato piu' volte, le sostituisce tutte. Falso: solo quella."
+      "description": "true (default): if the same part is mounted several times, it replaces all of them. False: only that one."
      }
     },
     "required": [
@@ -3680,33 +3680,33 @@
      "path"
     ]
    },
-   "precondition": "un assieme aperto, e il file nuovo gia' aperto",
+   "precondition": "an open assembly, and the new file already open",
    "document": "assembly",
    "example": null
   },
   {
    "name": "insert_component",
    "family": "assemblies",
-   "summary": "Mette un pezzo gia' aperto dentro l'assieme aperto, e ti dice se e' vincolato o solo appoggiato li'.",
-   "details": "Inserisce un componente in un assieme.\n\nQUELLO CHE DEVI SAPERE PRIMA DI TUTTO IL RESTO: inserire NON e' accoppiare. Il pezzo appare, l'albero si riempie, la ricostruzione e' pulita -- e il componente e' appoggiato li', libero. Quattro componenti liberi sembrano un assieme, si aprono, si ruotano, si esportano, e si montano sbagliati.\n\nPercio' ti rispondo con «grounded», «mates» e «resting». Non fisso piu' zero accoppiamenti vuol dire APPOGGIATO: il pezzo sta li' e basta, e finche' e' cosi' l'assieme non e' montato, e' un mucchio ordinato.\n\nQUELLO CHE NON TI SO DIRE, e te lo dico: **di quanto** un componente sia ancora libero. SOLIDWORKS non mi da' i gradi di liberta' residui da qui -- risponde «non disponibile» su ogni componente, fisso o libero che sia -- e un numero inventato sarebbe peggio di nessun numero. Quindi «resting: false» vuol dire «ha almeno un accoppiamento», NON «non si muove piu'». One coincident mate leaves three of the six directions free (measured), and «mate» says which directions each mate blocks.\n\nIL COMPONENTE DEV'ESSERE GIA' APERTO in SOLIDWORKS: io lo cerco per percorso, e su un file chiuso l'inserimento risponde «non fatto» senza dire perche'. I percorsi che puoi usare sono quelli in «documents_open» dello stato: copiali da li'.\n\n«configuration» chooses the configuration of the part to mount. The name is checked against the configurations of the open file BEFORE inserting, compared whole (the part in angle brackets included): a name the file does not have is refused and nothing is inserted. Then SOLIDWORKS is asked for it (UseConfigForPartReferences true) and the configuration the new component really references is read back: if it is another one, the component is taken out again and the step is refused, and the refusal says whether the removal was confirmed by counting the components. Without a name the component comes in with the file's last saved configuration (swAddComponentConfigOptions_CurrentSelectedConfig), and the answer's «configuration» says which one.\n\nATTENZIONE SULLE COORDINATE, perche' i due numeri non tornano e non e' un errore: «x_mm, y_mm, z_mm» posizionano il **centro dell'ingombro**; «origin_mm», che ti rispondo io e che rileggerai nello stato, e' dove e' finita l'**origine** del pezzo. Se il pezzo ha l'origine su una faccia -- cioe' quasi sempre -- i due punti distano meta' ingombro. Chiedi z=30 su un pezzo spesso 4 e l'origine esce a z=30 ma y=-2: nessuno dei due numeri e' sbagliato, sono due cose diverse.\n\nNon conto sulla risposta dell'inserimento: conto i componenti prima e dopo, e se non sono aumentati di uno te lo dico invece di dichiarare fatto.",
+   "summary": "Puts an already open part into the open assembly, and tells you whether it is constrained or merely resting there.",
+   "details": "Inserts a component into an assembly.\n\nWHAT YOU MUST KNOW BEFORE ANYTHING ELSE: inserting is NOT mating. The part appears, the tree fills up, the rebuild is clean -- and the component is resting there, free. Four free components look like an assembly, they open, they turn, they export, and they are put together wrong.\n\nSo I answer with «grounded», «mates» and «resting». Not fixed and zero mates means RESTING: the part is just sitting there, and as long as it is so the assembly is not assembled, it is a tidy heap.\n\nWHAT I CANNOT TELL YOU, and I say so: **how much** a component is still free. SOLIDWORKS does not give me the residual degrees of freedom from here -- it answers «not available» on every component, fixed or free -- and an invented number would be worse than no number. So «resting: false» means «it has at least one mate», NOT «it no longer moves». One coincident mate leaves three of the six directions free (measured), and «mate» says which directions each mate blocks.\n\nTHE COMPONENT MUST ALREADY BE OPEN in SOLIDWORKS: I look for it by path, and on a closed file the insertion answers «not done» without saying why. The paths you can use are the ones in «documents_open» of the state: copy them from there.\n\n«configuration» chooses the configuration of the part to mount. The name is checked against the configurations of the open file BEFORE inserting, compared whole (the part in angle brackets included): a name the file does not have is refused and nothing is inserted. Then SOLIDWORKS is asked for it (UseConfigForPartReferences true) and the configuration the new component really references is read back: if it is another one, the component is taken out again and the step is refused, and the refusal says whether the removal was confirmed by counting the components. Without a name the component comes in with the file's last saved configuration (swAddComponentConfigOptions_CurrentSelectedConfig), and the answer's «configuration» says which one.\n\nWATCH THE COORDINATES, because the two numbers do not match and it is not an error: «x_mm, y_mm, z_mm» place the **centre of the bounding box**; «origin_mm», which I answer and which you will read back in the state, is where the part's **origin** ended up. If the part has its origin on a face -- that is, almost always -- the two points are half the extent apart. Ask for z=30 on a part 4 thick and the origin comes out at z=30 but y=-2: neither number is wrong, they are two different things.\n\nI do not rely on the answer of the insertion: I count the components before and after, and if they did not increase by one I tell you instead of declaring it done.",
    "schema": {
     "type": "object",
     "properties": {
      "path": {
       "type": "string",
-      "description": "percorso completo del file da inserire, copiato da «documents_open». Dev'essere gia' aperto in SOLIDWORKS."
+      "description": "full path of the file to insert, copied from «documents_open». It must already be open in SOLIDWORKS."
      },
      "x_mm": {
       "type": "number",
-      "description": "dove va il CENTRO dell'ingombro del componente, in mm. Predefinito 0. Non e' un accoppiamento: e' solo dove appoggiarlo. E NON e' dove finisce la sua origine: se il pezzo ha l'origine su una faccia, l'origine si sposta di meta' ingombro. Ti rispondo con «origin_mm» per questo."
+      "description": "where the CENTRE of the component's bounding box goes, in mm. Default 0. It is not a mate: it is only where to rest it. And it is NOT where its origin ends up: if the part has its origin on a face, the origin moves by half the extent. I answer with «origin_mm» for this."
      },
      "y_mm": {
       "type": "number",
-      "description": "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."
+      "description": "where the CENTRE of the bounding box goes, in mm. Default 0."
      },
      "z_mm": {
       "type": "number",
-      "description": "dove va il CENTRO dell'ingombro, in mm. Predefinito 0."
+      "description": "where the CENTRE of the bounding box goes, in mm. Default 0."
      },
      "configuration": {
       "type": "string",
@@ -3717,7 +3717,7 @@
      "path"
     ]
    },
-   "precondition": "un assieme aperto, e il componente da inserire gia' aperto",
+   "precondition": "an open assembly, and the component to insert already open",
    "document": "assembly",
    "example": null
   },

@@ -3,10 +3,10 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 18511,
+  "strings": 17653,
   "markdown": 11388,
-  "json_values": 18803,
-  "identifiers": 1704,
+  "json_values": 17933,
+  "identifiers": 1702,
   "json_keys": 14,
   "protocol": 679,
   "paths": 0,
@@ -334,7 +334,7 @@
    "strings": 22
   },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "strings": 17174,
+   "strings": 16316,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
@@ -579,7 +579,7 @@
    "json_values": 7
   },
   "Tools/catalog.json": {
-   "json_values": 18228
+   "json_values": 17358
   },
   "Tools/update.md": {
    "markdown": 491
@@ -1792,10 +1792,8 @@
    "nDistanza",
    "nDopo",
    "nEsempio",
-   "nFISSO",
    "nFORI",
    "nGLI",
-   "nGUARDA",
    "nGeneri",
    "nNELLA",
    "nOgni",
