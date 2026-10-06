@@ -43,14 +43,21 @@ wrong are gone, and a reader who compares a number across versions must see it.
 
 1. **`cut_list` counted only the structural members.** The tube stand has 17
    bodies and 6 distinct entries; the bridge read 9 bodies and 4 rows, with no
-   error: a plausible wrong number. Measured (`D9Defects tree`): the item
+   error: a plausible wrong number (the only signal was the warning «the cut list
+   folders hold 9 bodies and the part has 15», one line among the answer's
+   fields, in the live proof). Measured (`D9Defects tree`): the item
    folders of the gussets and of the end caps are `Type` 5 like the others but
    answer `GetCutListType` 1 (`swSolidBodyCutList`; the structural members 3), and
    `WeldmentOperations.Recognize` kept only 3. It now keeps 1, 2 and 3 (page
    `swCutListType_e.html`). Those items have a quantity and a material but no
    length and no description, so every row now carries `item_type`
    (`weldment_member`, `solid_body`, `sheet_metal`) and `first_body`, or a gusset
-   would be a row of nulls. Bench case `cut_list_counts_the_gussets_and_the_caps`;
+   would be a row of nulls. Bench case `cut_list_counts_the_gussets_and_the_caps`
+   (5 bodies, 4 rows, quantity 5, and the `item_type` and quantity of every row:
+   red on 0.150.1 with `bodies_in_cut_list` 2). A frame of structural members
+   only has no item of type 1 or 2, so its rows are the same as before plus the
+   two new fields; the warning on the sum now says «bodies in all (bars, gussets,
+   caps)» instead of «bars in all»;
 2. **`gusset` refused the faces of a foot at the END of its bar segment.** It
    was the corner, not the segment: the contact test evaluates the curve of each
    edge at `UMinValue`, the midpoint and `UMaxValue` of `GetCurveParams3`, and
@@ -58,10 +65,15 @@ wrong are gone, and a reader who compares a number across versions must see it.
    space (page `ICurveParamData~UMinValue.html`), so the curve was evaluated 32 mm
    off the edge (measured: distances 32, 16, 0 mm for an edge that lies on the
    face). New helper `ApiHelpers.EdgeRangeOnCurve` tries `(UMin, UMax)` and the
-   normalized `(-UMax, -UMin)` and takes the one whose ends evaluate to
-   `StartPoint` and `EndPoint`; an edge that matches neither counts as not read,
-   it is not guessed. `weld_bead` shares the contact test and gets the same
-   repair. Which way the curve of an edge runs depends on how the bar and the
+   normalized `(-UMax, -UMin)` and takes the one whose ends evaluate CLOSER to
+   `StartPoint` and `EndPoint`, the first on a tie, so an edge whose range was
+   right reads exactly as before; an edge whose closer candidate still misses its
+   ends by more than 0.01 mm counts as not read, it is not guessed (review: the
+   first version demanded 1 µm on both ends, which could turn a spline or an
+   intersection edge a few microns off its vertices from «evaluated as before»
+   into «not read»). `weld_bead` and `face_fillet` (its hand calculation of the
+   volume) share the contact test `LengthThatLiesOn` and get the same repair.
+   Which way the curve of an edge runs depends on how the bar and the
    foot were drawn, not on where the foot is: on the stand the corners at the
    start of the segment were taken and the ones at the end refused, and on
    straight feet (the bench case) the old reading refuses the first gusset
@@ -94,6 +106,20 @@ by their area and a selector, which the 60-face list can hide: propose, do not
 change the truncation); the other places that close a document by title
 (`Bench/`, `Checks/*`) close a document they just made and whose title they just
 read.
+
+Adversarial review (same day): the probe subcommands `tree` and `gusset` read the
+part as `ActiveDoc`, against the rule that a shared SOLIDWORKS is never read
+through the document in front; they now take the document by name
+(`D9Defects tree DOC`, `gusset DOC X Z`, `ISldWorks~GetOpenDocumentByName.html`),
+and `build-stand.js` prints the title to pass. `EdgeRangeOnCurve` takes the closer
+candidate instead of demanding 1 µm (above). Reproved: the three new cases red on
+0.150.1 for the defect itself (`bodies_in_cut_list` 2; «the two faces do not
+touch»; «the assembly had -1 components»), and green on 0.151.0 with the families
+weldments and assemblies, the three face-fillet cases and the two drawing cut-list
+cases (421 tests, 349 of 349 expectations), but for one check that is red on
+0.150.1 too and is not this branch's: `cut_list_in_the_drawing` expects the column
+«quantity column» where the Italian template prints its own header, a literal that
+window 5 (a7108a5) translated in the assertion though SOLIDWORKS prints it.
 
 ---
 

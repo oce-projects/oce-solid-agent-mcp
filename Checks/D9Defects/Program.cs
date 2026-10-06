@@ -15,10 +15,11 @@ namespace Checks.D9Defects
     /// probe measures the real behaviour BEFORE the code changes, replicating the ORDER
     /// and the POINT of the reads the bridge does. Every subcommand below replicates one.
     ///
-    ///   D9Defects.exe tree                  defect 1: the cut list folders of the part
-    ///                                       in front, with the two answers the library
-    ///                                       reads to recognise them (Type, GetCutListType)
-    ///   D9Defects.exe gusset X Z            defect 2: the two faces of the foot at (X, Z)
+    ///   D9Defects.exe tree DOC              defect 1: the cut list folders of the open part
+    ///                                       DOC (title or path; never the one in front),
+    ///                                       with the two answers the library reads to
+    ///                                       recognise them (Type, GetCutListType)
+    ///   D9Defects.exe gusset DOC X Z        defect 2: the two faces of the foot at (X, Z)
     ///                                       and the three-point contact test of
     ///                                       WeldmentOperations.LengthThatLiesOn, edge by edge
     ///   D9Defects.exe names                 defect 4, the other half: what CloseDoc matches when it is given a name without
@@ -60,10 +61,12 @@ namespace Checks.D9Defects
             string what = args.Length > 0 ? args[0] : "";
             switch (what)
             {
-                case "tree": return Tree();
+                case "tree":
+                    if (args.Length < 2) { Console.Error.WriteLine("tree <title or path of the open part>"); return 2; }
+                    return Tree(args[1]);
                 case "gusset":
-                    if (args.Length < 3) { Console.Error.WriteLine("gusset X Z (mm)"); return 2; }
-                    return GussetContact(double.Parse(args[1], Inv), double.Parse(args[2], Inv));
+                    if (args.Length < 4) { Console.Error.WriteLine("gusset <title or path of the open part> X Z (mm)"); return 2; }
+                    return GussetContact(args[1], double.Parse(args[2], Inv), double.Parse(args[3], Inv));
                 case "count": return Count();
                 case "close": return Close();
                 case "names": return Names();
@@ -71,7 +74,7 @@ namespace Checks.D9Defects
                     if (args.Length < 2) { Console.Error.WriteLine("closing <path of CloseLeftovers.exe>"); return 2; }
                     return Closing(args[1]);
                 default:
-                    Console.Error.WriteLine("tree | gusset X Z | count | close");
+                    Console.Error.WriteLine("tree DOC | gusset DOC X Z | count | close | names | closing TOOL.exe");
                     return 2;
             }
         }
@@ -80,10 +83,24 @@ namespace Checks.D9Defects
         // DEFECT 1 — which folders does the cut list have, and what do they answer?
         // ─────────────────────────────────────────────────────────────────
 
-        private static int Tree()
+        /// <summary>
+        /// The document the probe reads, BY NAME, never ActiveDoc (review of 6/10/2026,
+        /// memory rule «SOLIDWORKS: never the active document»): the session is shared,
+        /// and the document in front may be another session's. The bridge holds its own
+        /// reference; the probe asks for the one it was told
+        /// (ISldWorks~GetOpenDocumentByName.html: «Name of the open document», title or path).
+        /// </summary>
+        private static IModelDoc2 OpenByName(string name)
         {
-            var model = (IModelDoc2)_sw.ActiveDoc;
-            if (model == null) { Console.Error.WriteLine("no document in front"); return 2; }
+            var model = _sw.GetOpenDocumentByName(name) as IModelDoc2;
+            if (model == null) Console.Error.WriteLine("no open document named «" + name + "»");
+            return model;
+        }
+
+        private static int Tree(string name)
+        {
+            var model = OpenByName(name);
+            if (model == null) return 2;
             Console.WriteLine("document: " + model.GetTitle());
             var part = model as IPartDoc;
             Console.WriteLine("IsWeldment: " + part.IsWeldment());
@@ -183,9 +200,10 @@ namespace Checks.D9Defects
         // DEFECT 2 — the contact test of the gusset, edge by edge
         // ─────────────────────────────────────────────────────────────────
 
-        private static int GussetContact(double x, double z)
+        private static int GussetContact(string name, double x, double z)
         {
-            var model = (IModelDoc2)_sw.ActiveDoc;
+            var model = OpenByName(name);
+            if (model == null) return 2;
             var part = model as IPartDoc;
             // THE BAR AND THE FOOT, as the plan of the stand names them: the wall of the foot
             // toward the middle of the bar (flat along z), and the underside of the bar.

@@ -2,7 +2,7 @@
   "name": "cut_list_counts_the_gussets_and_the_caps",
   "family": "weldments",
   "why": "D9 DEFECT 1, found on 6/10/2026 by the live proof of the prerequisites. `cut_list` read the cut-list items that are structural members and no others, so the gussets and the end caps of a weldment were never counted: the tube stand of task 07, 17 bodies and 6 distinct entries, read 9 bodies and 4 rows. A plausible number, wrong, and with no error: the worst kind. This case builds the smallest part that has the three kinds of item (two bars, a gusset in the corner between them, a cap at each free end of the long bar) and asks the cut list to count every body. It uses the T and the good gusset of gusset_sits_in_the_corner, which the old library makes, so that it is the cut list and nothing else that is red on the old library.",
-  "defect_caught": "The cut list that says bodies_in_cut_list 2 of a part that has 5 bodies, and 2 rows where there are 4. The cause, measured with Checks/D9Defects (subcommand tree): the item folders of the gussets and of the end caps are Type 5 like the others but answer GetCutListType 1 (swSolidBodyCutList), and the library kept only 3 (swWeldmentCutlist). The new fields item_type and first_body of every row are checked too, because a row of a gusset has neither a description nor a length and would be a row of nulls.",
+  "defect_caught": "The cut list that says bodies_in_cut_list 2 of a part that has 5 bodies, and 2 rows where there are 4. The cause, measured with Checks/D9Defects (subcommand tree): the item folders of the gussets and of the end caps are Type 5 like the others but answer GetCutListType 1 (swSolidBodyCutList), and the library kept only 3 (swWeldmentCutlist). The new field item_type of every row is checked too, with the quantity of the gusset row and of the caps row, because a row of a gusset has neither a description nor a length and would be a row of nulls (review of 6/10/2026: the first version said it checked them and did not; the order of the rows, members first, is the one measured on 0.151.0).",
   "start": { "new_part": true },
   "steps": [
     { "operation": "structural_member",
@@ -52,7 +52,13 @@
           "why": "four rows: the long bar, the short bar, the gusset, the two caps. The old reading said 2" },
         { "what": "measurements.quantity_total", "equal_to": 5,
           "why": "the sum of the quantities of the rows is the number of bodies: 1 + 1 + 1 + 2" },
-        { "what": "measurements.already_existed", "equal_to": false }
+        { "what": "measurements.already_existed", "equal_to": false },
+        { "what": "measurements.entries[0].item_type", "equal_to": "weldment_member" },
+        { "what": "measurements.entries[1].item_type", "equal_to": "weldment_member" },
+        { "what": "measurements.entries[2].item_type", "equal_to": "solid_body" },
+        { "what": "measurements.entries[2].quantity", "equal_to": 1 },
+        { "what": "measurements.entries[3].item_type", "equal_to": "solid_body" },
+        { "what": "measurements.entries[3].quantity", "equal_to": 2 }
       ] }
   ]
 }

@@ -1,8 +1,9 @@
 // Builds, through the MCP bridge, the part the three probes of D9Defects read:
 // the short bars of the tube stand of task 07 (Bench/tasks/07_tube_stand.md), the four
 // feet drawn 20 short of the frame and extended to it by trim_members, capped at the
-// bottom by end_cap on the step of the feet. It LEAVES THE PART OPEN and in front, so
-// that Checks\D9Defects\bin\D9Defects.exe can read it from inside the same SOLIDWORKS.
+// bottom by end_cap on the step of the feet. It LEAVES THE PART OPEN and prints its
+// title, which Checks\D9Defects\bin\D9Defects.exe (tree DOC, gusset DOC X Z) takes to
+// read it by name from inside the same SOLIDWORKS, never as the document in front.
 //
 //   node Checks/D9Defects/build-stand.js <bridge.exe> <log-folder> [feet|one-gusset]
 //

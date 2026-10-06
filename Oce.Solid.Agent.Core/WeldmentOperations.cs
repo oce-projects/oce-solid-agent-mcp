@@ -1333,7 +1333,7 @@ namespace Oce.Solid.Agent.Core
             // is missing or is counted twice, and we say so.
             var warnings = new List<string>();
             if (totalQuantity.HasValue && totalQuantity.Value != solidBodies.Length)
-                warnings.Add("The cut list says " + totalQuantity.GetValueOrDefault() + " bars in all and the part has " +
+                warnings.Add("The cut list says " + totalQuantity.GetValueOrDefault() + " bodies in all (bars, gussets, caps) and the part has " +
                              solidBodies.Length + " bodies: check it before it goes to the workshop.");
             // N15: the bodies the item folders hold, against the bodies of the
             // part (a body in no item, or in two, does not show in the sum of

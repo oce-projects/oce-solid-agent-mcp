@@ -64,10 +64,21 @@ namespace Oce.Solid.Agent.Core
         /// for an edge that lies on it.
         ///
         /// So the two candidates are tried, (UMin, UMax) and the normalized (-UMax, -UMin),
-        /// and the one whose two ends evaluate to ICurveParamData.StartPoint and EndPoint
-        /// (in either order: the page says which is which only when Sense is right, and
-        /// here it was not) is the range. A circle whose ends are one point matches both
+        /// and the one whose two ends evaluate CLOSER to ICurveParamData.StartPoint and
+        /// EndPoint (in either order: the page says which is which only when Sense is right,
+        /// and here it was not) is the range. A circle whose ends are one point matches both
         /// candidates, and the first is as good as the second.
+        ///
+        /// THE CLOSER ONE, NOT THE ONE WITHIN A MICRON (review of 6/10/2026). The first
+        /// version took a candidate only when both ends landed within 1e-6 m and refused
+        /// the edge otherwise. That changed edges the defect never touched: a spline or an
+        /// intersection curve whose ends evaluate a few microns from its vertices (the
+        /// tolerance of the body, not a wrong range) went from «evaluated as before» to
+        /// «could not be read», and LengthThatLiesOn (gusset, weld_bead, face_fillet) from
+        /// a length to -1. Now the first candidate wins whenever it is at least as close
+        /// as the second, so every edge whose range was right reads exactly as before; the
+        /// second wins only when it is strictly closer; and an edge is refused only when
+        /// even the closer candidate misses its ends by more than 0.01 mm.
         /// </summary>
         internal static bool EdgeRangeOnCurve(ICurveParamData parameters, ICurve curve, out double u0, out double u1)
         {
@@ -81,22 +92,24 @@ namespace Oce.Solid.Agent.Core
                 new[] { parameters.UMinValue, parameters.UMaxValue },
                 new[] { -parameters.UMaxValue, -parameters.UMinValue },
             };
+            double best = double.MaxValue;
             foreach (var c in candidates)
             {
                 var a = curve.Evaluate2(c[0], 0) as double[];
                 var b = curve.Evaluate2(c[1], 0) as double[];
                 if (a == null || b == null || a.Length < 3 || b.Length < 3) continue;
-                bool straight = Near(a, start) && Near(b, end);
-                bool swapped = Near(a, end) && Near(b, start);
-                if (straight || swapped) { u0 = c[0]; u1 = c[1]; return true; }
+                // The worse of the two ends, in the better of the two orders.
+                double miss = Math.Min(Math.Max(Distance(a, start), Distance(b, end)),
+                                       Math.Max(Distance(a, end), Distance(b, start)));
+                if (miss < best) { best = miss; u0 = c[0]; u1 = c[1]; }
             }
-            return false;
+            return best <= 1e-5;
         }
 
-        private static bool Near(double[] p, double[] q)
+        private static double Distance(double[] p, double[] q)
         {
             double dx = p[0] - q[0], dy = p[1] - q[1], dz = p[2] - q[2];
-            return Math.Sqrt(dx * dx + dy * dy + dz * dz) < 1e-6;
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
 
         /// <summary>
