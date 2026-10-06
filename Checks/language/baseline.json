@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 17653,
+  "strings": 13930,
   "markdown": 11388,
-  "json_values": 17933,
-  "identifiers": 1702,
+  "json_values": 14211,
+  "identifiers": 1693,
   "json_keys": 14,
-  "protocol": 679,
+  "protocol": 678,
   "paths": 0,
   "transition": 2188
  },
@@ -295,14 +295,8 @@
   "INSTALL-FOR-AI.md": {
    "markdown": 5
   },
-  "Mcp/Risorse.cs": {
-   "strings": 34
-  },
   "NOTICE": {
    "markdown": 196
-  },
-  "Oce.Solid.Agent.Catalog/Program.cs": {
-   "strings": 33
   },
   "Oce.Solid.Agent.Core/Alias.cs": {
    "comments": 1
@@ -334,7 +328,7 @@
    "strings": 22
   },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "strings": 16316,
+   "strings": 12660,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
@@ -579,7 +573,7 @@
    "json_values": 7
   },
   "Tools/catalog.json": {
-   "json_values": 17358
+   "json_values": 13636
   },
   "Tools/update.md": {
    "markdown": 491
@@ -1789,7 +1783,6 @@
    "nCONTROLLO",
    "nDOPO",
    "nDOVE",
-   "nDistanza",
    "nDopo",
    "nEsempio",
    "nFORI",
@@ -1797,32 +1790,25 @@
    "nGeneri",
    "nNELLA",
    "nOgni",
-   "nOtto",
    "nPERCHE",
    "nPRIMA",
    "nPerche",
-   "nPiu",
    "nPoi",
    "nPredefinito",
-   "nQUANDO",
    "nQUANTE",
    "nQUELLO",
    "nQUESTA",
    "nQuali",
    "nQuello",
    "nQuesta",
-   "nRIFIUTA",
    "nRifiuta",
-   "nScrivi",
    "nSenza",
    "nServono",
    "nSimbolo",
    "nSmusso",
-   "nTRE",
    "nTUTTI",
    "nUNA",
    "nUna",
-   "nVa",
    "nervatura",
    "nervatura_nell_angolo_della_l",
    "nervatura_nella_scatola_svuotata",
@@ -2062,7 +2048,6 @@
    "scatola_dodici_triangoli",
    "scatola_in_ascii",
    "schemi",
-   "schizzo",
    "sconosciuta",
    "scostamento_x_mm",
    "scrivi_proprieta",
@@ -2764,7 +2749,6 @@
    "porta",
    "porta-del-cliente",
    "porta_documento",
-   "positiva",
    "posizione",
    "precondizione",
    "prima",

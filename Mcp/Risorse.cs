@@ -79,10 +79,10 @@ namespace Oce.Solid.Agent.Mcp
                     ["name"] = "Operation catalog",
                     ["title"] = "Operation catalog",
                     ["description"] =
-                        "Le " + _catalog.HowMany + " operazioni di disegno che questo " +
-                        "ponte sa eseguire, raggruppate per famiglia, con una riga " +
-                        "ciascuna. Lo schema completo di una sola si legge da " +
-                        OperationPrefix + "<name>, oppure con lo strumento " +
+                        "The " + _catalog.HowMany + " drawing operations this " +
+                        "bridge can run, grouped by family, one line " +
+                        "each. The full schema of just one is read from " +
+                        OperationPrefix + "<name>, or with the tool " +
                         "«describe_operation».",
                     ["mimeType"] = "application/json",
                 },
@@ -102,8 +102,8 @@ namespace Oce.Solid.Agent.Mcp
                     ["name"] = "Single operation",
                     ["title"] = "Single operation",
                     ["description"] =
-                        "Lo schema completo di UNA operazione: cosa serve prima, cosa " +
-                        "fa, e tutti i suoi argomenti. I nomi stanno in " + UriList + ".",
+                        "The full schema of ONE operation: what it needs first, what it " +
+                        "does, and all its arguments. The names are listed in " + UriList + ".",
                     ["mimeType"] = "application/json",
                 },
             };

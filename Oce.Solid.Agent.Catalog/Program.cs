@@ -32,24 +32,24 @@ namespace Oce.Solid.Agent.Catalog
             var notTested = Export.NotTested();
             foreach (var f in empty)
                 Console.Error.WriteLine(
-                    "[catalogo] la famiglia «" + f + "» non ha nessuna operazione " +
-                    "provata: resta fuori dal file.");
+                    "[catalog] the family «" + f + "» has no tested operation: " +
+                    "it stays out of the file.");
             foreach (var n in notTested)
                 Console.Error.WriteLine(
-                    "[catalogo] «" + n + "» non e' provata: resta fuori dal file.");
+                    "[catalog] «" + n + "» is not tested: it stays out of the file.");
 
             if (args.Length >= 2 && args[0] == "--controlla")
             {
                 if (!File.Exists(args[1]))
                 {
-                    Console.Error.WriteLine("non trovo " + args[1]);
+                    Console.Error.WriteLine("cannot find " + args[1]);
                     return 2;
                 }
                 var old = File.ReadAllText(args[1], Encoding.UTF8);
                 if (old == json)
                 {
                     Console.Error.WriteLine(
-                        "[catalogo] identico a " + args[1] + " (" + json.Length + " caratteri)");
+                        "[catalog] identical to " + args[1] + " (" + json.Length + " characters)");
                     return 0;
                 }
 
@@ -59,10 +59,10 @@ namespace Oce.Solid.Agent.Catalog
                 int fin = Math.Min(old.Length, json.Length);
                 while (i < fin && old[i] == json[i]) i++;
                 Console.Error.WriteLine(
-                    "[catalogo] DIVERSO da " + args[1] + ": vecchio " + old.Length +
-                    " caratteri, nuovo " + json.Length + ", primo scostamento al " + i + ".");
-                Console.Error.WriteLine("  vecchio: …" + Around(old, i));
-                Console.Error.WriteLine("  nuovo:   …" + Around(json, i));
+                    "[catalog] DIFFERENT from " + args[1] + ": old " + old.Length +
+                    " characters, new " + json.Length + ", first difference at " + i + ".");
+                Console.Error.WriteLine("  old: …" + Around(old, i));
+                Console.Error.WriteLine("  new: …" + Around(json, i));
                 return 1;
             }
 
@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.Catalog
             {
                 File.WriteAllText(args[0], json, withoutBom);
                 Console.Error.WriteLine(
-                    "[catalogo] scritto " + args[0] + " (" + json.Length + " caratteri)");
+                    "[catalog] written " + args[0] + " (" + json.Length + " characters)");
                 return 0;
             }
 
