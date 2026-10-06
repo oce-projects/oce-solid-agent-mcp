@@ -241,21 +241,33 @@ namespace Oce.Solid.Agent.ContractTests
         /// **217, W3.1-bis.8 pilot (5/10/2026): +1.** The refusals of the cluster of
         /// cases that assert the messages of Bridge/ are English now: the count of
         /// remedies went from 216 to 217 of 937 with the translation.
-        /// **263, W3.1-bis.8 (6/10/2026): +46, the whole of the messages in English.**
-        /// The 937 refusals with a message of their own are English now, and the
-        /// English forms of the list count them: 263 of 937 (28.1%), against 216 of
-        /// 937 (23.0%) on the Italian text of window 3 and the 236 of 935 (25.2%) of
-        /// W3.1-bis.2. The rise is the DETECTOR meeting English sentences, not messages
-        /// that were improved: a part of the +46 are generic forms («, or», «call it»,
-        /// «put the») that an English refusal holds without its being a remedy, and the
-        /// translators also restored remedies that a literal translation had hidden. It
-        /// is said here so that nobody reads the floor as work done. The drop from 236
-        /// to 216 in window 3 was never lost remedies: the old count judged the
-        /// whole statement, and 22 variables and methods with an Italian name held a
-        /// remedy word; when the names became English the words went, and the
-        /// messages stayed what they were.
+        /// **227, W3.1-bis.8 (6/10/2026): the whole of the messages in English, and a
+        /// detector that no longer counts statements.** With the list as it was, the
+        /// English text counted 263 of 937 (+46 over the 217 of the pilot). Read one by
+        /// one, 32 of the 54 refusals that started to count were statements, not ways
+        /// forward: «I cannot use the selection manager», «I do not call it done»,
+        /// «you did not tell me», «it is the face, or it is the wrong one», «the file
+        /// is written but...». An English diagnosis joins its guesses with «, or» where
+        /// the Italian wrote «o», and the English forms of the list are also English
+        /// words of statements. So the detector learned three things: a form after
+        /// «i», «not», «cannot» or «to» is not an imperative; «, or» counts only before
+        /// a second action («, or give me a path»); «is written» only as «is written
+        /// as/«». It also reads a message split over two literals as one text (the
+        /// double blank hid «are written «m3»»). On the tree before window 5 the new
+        /// detector counts 216 (the old 217 held Italian statements that a remedy verb
+        /// happened to be in: «SOLIDWORKS did not reactivate», «refused to remove the
+        /// copies», «the only thing that tells which format to write»); on this
+        /// tree 227: +24, all read as real ways forward («open the part for me», «ask
+        /// for it longer than», «create it, or give me a path», «move the anchor,
+        /// lower «height_mm», or shorten the text»), -13, of which 12 were statements
+        /// at the base and one a hint now said with no remedy word. *The +46 was the
+        /// detector meeting English; +11 is what the translation really did.*
+        /// The drop from 236 to 216 in window 3 was never lost remedies: the old count
+        /// judged the whole statement, and 22 variables and methods with an Italian
+        /// name held a remedy word; when the names became English the words went, and
+        /// the messages stayed what they were.
         /// </summary>
-        private const int Floor = 263;
+        private const int Floor = 227;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -269,7 +281,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 263;   // 6/10/2026, W3.1-bis.8: 263 of 937 (217 after the pilot, 216 before and after window 3)
+        private const int ShareFloorWithRemedy = 227;   // 6/10/2026, W3.1-bis.8: 227 of 937 with the detector that skips statements (216 on the tree before the window)
         private const int ShareFloorWithText = 937;
 
         /// <summary>
@@ -323,12 +335,12 @@ namespace Oce.Solid.Agent.ContractTests
                        "Read the assembly again and ask for the mate once more."),
             new Remedy("aggiungi ", new[] { "add a ", "add the ", "add it", "add «", "add one" },
                        "Add a sketch before the cut."),
-            new Remedy("prova ", new[] { "try again", "try a ", "try the ", "try it", "try with ", "try «" },
+            new Remedy("prova ", new[] { "try again", "try a ", "try the ", "try it", "try with ", "try «", "try saving", "try to " },
                        "Try a smaller radius."),
             new Remedy("togli", new[] { "remove it", "remove the ", "remove «", "remove them", "remove one", "delete it", "delete the " },
                        "Remove «position» and the middle is used."),
             new Remedy("salvalo", new[] { "save it", "save the " }, "The part was never saved: save it first."),
-            new Remedy("scriv", new[] { "write one of", "write it", "write the ", "write «", "is written", "are written" },
+            new Remedy("scriv", new[] { "write one of", "write it", "write the ", "write «", "is written as", "are written as", "is written «", "are written «" },
                        "Write the size as 40x40x3."),
             new Remedy("riattiva", new[] { "reactivate", "activate it", "turn it back on" },
                        "Reactivate the configuration and call me again."),
@@ -346,7 +358,15 @@ namespace Oce.Solid.Agent.ContractTests
             new Remedy("apri ", new[] { "open the ", "open it", "open «", "open a " }, "Open the assembly first."),
             new Remedy("fai il check-out", new[] { "check it out", "check out " }, "Check it out of the vault first."),
             new Remedy("con «", new[] { "with «" }, "Round it with «fillet_edges»."),
-            new Remedy("oppure", new[] { ", or " }, "Tell me the path, or save the part first."),
+            // «, or » alone caught every «it is the face, or it is the wrong one»: an
+            // English diagnosis joins its guesses with it, where the Italian ones used
+            // the short conjunction. A way forward with «or» offers a second ACTION.
+            new Remedy("oppure", new[] { ", or ask", ", or create", ", or open", ", or save", ", or choose", ", or mark",
+                                         ", or give", ", or check", ", or tell", ", or say", ", or delete", ", or remove",
+                                         ", or shorten", ", or leave", ", or change", ", or use", ", or pass", ", or put",
+                                         ", or set", ", or try", ", or move", ", or lower", ", or call", ", or add",
+                                         ", or write", ", or name", ", or point", ", or make", ", or «" },
+                       "Tell me the path, or save the part first."),
 
             // ADDED ON 23/9/2026, LOOKING AT THE REAL MESSAGES. The first
             // draft of the list was written at a desk and counted as mute
@@ -363,7 +383,7 @@ namespace Oce.Solid.Agent.ContractTests
             new Remedy("dimmela", new[] { "tell me" }, "A blind hole wants a depth: tell me."),
             new Remedy("puoi ", new[] { "you can " }, "You can pass the flag that imports them all."),
             new Remedy("ti serve", new[] { "you need" }, "You need a saved part for this."),
-            new Remedy("va scritt", new[] { "must be written", "has to be written", "is written" },
+            new Remedy("va scritt", new[] { "must be written", "has to be written", "is written as" },
                        "The size must be written as 40x40x3."),
             new Remedy("si indica", new[] { "is given", "is indicated" }, "The depth is given in millimetres."),
         };
@@ -374,10 +394,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// of the list translates. Imperatives only, with the word that
         /// follows, so that «I removed the view» or «does not give access» do
         /// not count as a remedy.
+        /// «you find them in» (W3.1-bis.8): the two refusals of a missing path
+        /// say where the open documents are listed, which is their way forward;
+        /// they had counted only by the «tell me» of «you did not tell me».
         /// </summary>
         private static readonly string[] EnglishOnly =
         {
-            "show the ", "undo the step", "leave «", "take them back",
+            "show the ", "undo the step", "leave «", "take them back", "you find them in", "you find it in",
         };
 
         private static readonly string[] ItalianForms = Remedies.Select(r => r.Italian).ToArray();
@@ -546,8 +569,15 @@ namespace Oce.Solid.Agent.ContractTests
             if (StartsAWord("the parts that i could not close because ", new[] { "use " }))
                 wrong.Add("«use » was taken inside «because »");
 
+            // and not when it reports what the program could not do: «I cannot use the
+            // selection manager» is a statement, «Use the top face» is a way forward
+            if (StartsAWord("i cannot use the selection manager.", new[] { "use the " }) ||
+                StartsAWord("i do not call it done.", new[] { "call it" }) ||
+                !StartsAWord("the face is not planar: use the top face.", new[] { "use the " }))
+                wrong.Add("a form after «cannot» or «not» was counted, or one after a colon was not");
+
             Check("the counter, the share floor and the language guard turn red on fake sources",
-                  wrong.Count == 0, wrong.Count == 0 ? "5 fakes ended as expected" : string.Join("; ", wrong));
+                  wrong.Count == 0, wrong.Count == 0 ? "6 fakes ended as expected" : string.Join("; ", wrong));
         }
 
         /// <summary>
@@ -607,6 +637,8 @@ namespace Oce.Solid.Agent.ContractTests
                     // with the names of the code instead of with the messages.
                     var down = string.Join(" ", Regex.Matches(text, @"""((?:[^""\\]|\\.)*)""").Cast<Match>()
                                                   .Select(m => m.Groups[1].Value)).ToLowerInvariant();
+                    // a message split over two literals joins with two blanks: «are written  «m3»»
+                    down = Regex.Replace(down, @"\s+", " ");
                     tally.Refusals.Add(new Refusal
                     {
                         File = file.Key,
@@ -629,14 +661,37 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // A form that begins with a letter must begin a word; one that begins
-        // with punctuation («, or ») carries its own boundary.
+        // with punctuation («, or ask») carries its own boundary.
+        //
+        // AND IT IS NOT A WAY FORWARD AFTER A SUBJECT OR A NEGATION (W3.1-bis.8).
+        // With every refusal in English, 32 of the 54 that started to count did so
+        // on a statement: «I cannot use the selection manager», «I do not call it
+        // done», «you did not tell me», «I could not activate it», «where to put
+        // the circle». An imperative does not follow «i», «not», «cannot» or «to».
+        private static readonly string[] NotAfter = { "i", "not", "cannot", "never", "can't", "don't", "didn't", "couldn't", "to" };
+
         private static int FirstAt(string text, string form)
         {
             bool word = form.Length > 0 && char.IsLetter(form[0]);
             for (int i = text.IndexOf(form, StringComparison.Ordinal); i >= 0;
                  i = text.IndexOf(form, i + 1, StringComparison.Ordinal))
-                if (!word || i == 0 || !char.IsLetter(text[i - 1])) return i;
+            {
+                if (word && i > 0 && char.IsLetter(text[i - 1])) continue;
+                if (word && NotAfter.Contains(WordBefore(text, i), StringComparer.Ordinal)) continue;
+                return i;
+            }
             return -1;
+        }
+
+        // the word that ends right before the blanks before position i ("" after punctuation)
+        private static string WordBefore(string text, int i)
+        {
+            int end = i;
+            while (end > 0 && char.IsWhiteSpace(text[end - 1])) end--;
+            if (end == i) return "";
+            int start = end;
+            while (start > 0 && (char.IsLetter(text[start - 1]) || text[start - 1] == '\'')) start--;
+            return text.Substring(start, end - start);
         }
 
         private static string FirstEnglish(string text)

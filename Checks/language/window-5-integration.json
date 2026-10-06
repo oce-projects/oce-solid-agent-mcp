@@ -9,14 +9,68 @@
   {
    "file": "Tests/RefusalsTests.cs",
    "before": "private const int Floor = 217;",
-   "after": "private const int Floor = 263;",
-   "why": "the floor of the refusals that say what to do is a ratchet that the contract asks to be raised by hand when the measure goes up: with all the messages in English the count is 263 of 937"
+   "after": "private const int Floor = 227;",
+   "why": "the floor of the refusals that say what to do is a ratchet that the contract asks to be set by hand to the measure: with all the messages in English and the detector that no longer counts statements (the changes below) the count is 227 of 937; the old detector said 263, and 32 of its 54 new refusals were statements, not remedies"
   },
   {
    "file": "Tests/RefusalsTests.cs",
    "before": "private const int ShareFloorWithRemedy = 217;",
-   "after": "private const int ShareFloorWithRemedy = 263;",
-   "why": "the share floor (263 of 937, 28.1%) follows the count, as the contract asks: it was 217 of 937 after the pilot and 236 of 935 (25.2%) at W3.1-bis.2"
+   "after": "private const int ShareFloorWithRemedy = 227;",
+   "why": "the share floor (227 of 937, 24.2%) follows the count, as the contract asks: it was 217 of 937 after the pilot, and the new detector counts 216 on the tree before the window"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "\"write «\", \"is written\", \"are written\" },",
+   "after": "\"write «\", \"is written as\", \"are written as\", \"is written «\", \"are written «\" },",
+   "why": "the detector of the refusals that say what to do counted «the file is written but I could not read it back» as a remedy: «is written» counts only as «is written as» or before a value in guillemets"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "new Remedy(\"oppure\", new[] { \", or \" }, \"Tell me the path, or save the part first.\"),",
+   "after": "// «, or » alone caught every «it is the face, or it is the wrong one»: an\n            // English diagnosis joins its guesses with it, where the Italian ones used\n            // the short conjunction. A way forward with «or» offers a second ACTION.\n            new Remedy(\"oppure\", new[] { \", or ask\", \", or create\", \", or open\", \", or save\", \", or choose\", \", or mark\",\n                                         \", or give\", \", or check\", \", or tell\", \", or say\", \", or delete\", \", or remove\",\n                                         \", or shorten\", \", or leave\", \", or change\", \", or use\", \", or pass\", \", or put\",\n                                         \", or set\", \", or try\", \", or move\", \", or lower\", \", or call\", \", or add\",\n                                         \", or write\", \", or name\", \", or point\", \", or make\", \", or «\" },\n                       \"Tell me the path, or save the part first.\"),",
+   "why": "a bare «, or» counted every English diagnosis that joins two guesses («it is the face, or it is the wrong one»), 16 of the refusals that started to count in this window: it counts now only before a second action"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "\"has to be written\", \"is written\" },",
+   "after": "\"has to be written\", \"is written as\" },",
+   "why": "the same narrowing of «is written» as in the line of the Italian word for writing above"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "\"take them back\",",
+   "after": "\"take them back\", \"you find them in\", \"you find it in\",",
+   "why": "two refusals of a missing path say where the open documents are listed, their way forward; they counted only by the «tell me» of «you did not tell me», which the detector no longer takes"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "\"try with \", \"try «\" },",
+   "after": "\"try with \", \"try «\", \"try saving\", \"try to \" },",
+   "why": "the refusal of an image that SOLIDWORKS does not insert says «try saving it again as a png», the remedy the Italian text had and no English form caught"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "wrong.Add(\"«use » was taken inside «because »\");",
+   "after": "wrong.Add(\"«use » was taken inside «because »\");\n\n            // and not when it reports what the program could not do: «I cannot use the\n            // selection manager» is a statement, «Use the top face» is a way forward\n            if (StartsAWord(\"i cannot use the selection manager.\", new[] { \"use the \" }) ||\n                StartsAWord(\"i do not call it done.\", new[] { \"call it\" }) ||\n                !StartsAWord(\"the face is not planar: use the top face.\", new[] { \"use the \" }))\n                wrong.Add(\"a form after «cannot» or «not» was counted, or one after a colon was not\");",
+   "why": "the new rule of the detector (no remedy after a subject or a negation) seen red on fake sentences, like the other rules"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "\"5 fakes ended as expected\"",
+   "after": "\"6 fakes ended as expected\"",
+   "why": "one fake more, the one above"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": "        // A form that begins with a letter must begin a word; one that begins\n        // with punctuation («, or ») carries its own boundary.\n        private static int FirstAt(string text, string form)\n        {\n            bool word = form.Length > 0 && char.IsLetter(form[0]);\n            for (int i = text.IndexOf(form, StringComparison.Ordinal); i >= 0;\n                 i = text.IndexOf(form, i + 1, StringComparison.Ordinal))\n                if (!word || i == 0 || !char.IsLetter(text[i - 1])) return i;\n            return -1;\n        }",
+   "after": "        // A form that begins with a letter must begin a word; one that begins\n        // with punctuation («, or ask») carries its own boundary.\n        //\n        // AND IT IS NOT A WAY FORWARD AFTER A SUBJECT OR A NEGATION (W3.1-bis.8).\n        // With every refusal in English, 32 of the 54 that started to count did so\n        // on a statement: «I cannot use the selection manager», «I do not call it\n        // done», «you did not tell me», «I could not activate it», «where to put\n        // the circle». An imperative does not follow «i», «not», «cannot» or «to».\n        private static readonly string[] NotAfter = { \"i\", \"not\", \"cannot\", \"never\", \"can't\", \"don't\", \"didn't\", \"couldn't\", \"to\" };\n\n        private static int FirstAt(string text, string form)\n        {\n            bool word = form.Length > 0 && char.IsLetter(form[0]);\n            for (int i = text.IndexOf(form, StringComparison.Ordinal); i >= 0;\n                 i = text.IndexOf(form, i + 1, StringComparison.Ordinal))\n            {\n                if (word && i > 0 && char.IsLetter(text[i - 1])) continue;\n                if (word && NotAfter.Contains(WordBefore(text, i), StringComparer.Ordinal)) continue;\n                return i;\n            }\n            return -1;\n        }\n\n        // the word that ends right before the blanks before position i (\"\" after punctuation)\n        private static string WordBefore(string text, int i)\n        {\n            int end = i;\n            while (end > 0 && char.IsWhiteSpace(text[end - 1])) end--;\n            if (end == i) return \"\";\n            int start = end;\n            while (start > 0 && (char.IsLetter(text[start - 1]) || text[start - 1] == '\\'')) start--;\n            return text.Substring(start, end - start);\n        }",
+   "why": "a remedy form after «i», «not», «cannot», «never» or «to» is a statement («I cannot use the selection manager», «I do not call it done», «where to put the circle»), not a way forward: 32 of the 54 refusals that started to count in this window were statements"
+  },
+  {
+   "file": "Tests/RefusalsTests.cs",
+   "before": ".Select(m => m.Groups[1].Value)).ToLowerInvariant();",
+   "after": ".Select(m => m.Groups[1].Value)).ToLowerInvariant();\n                    // a message split over two literals joins with two blanks: «are written  «m3»»\n                    down = Regex.Replace(down, @\"\\s+\", \" \");",
+   "why": "a message split over two literals joins with two blanks, and a form of two words did not see it («metric sizes are written  «m3»»): the blanks are folded before the forms are looked for"
   },
   {
    "file": "Tests/Zc2189WeldAssemblyContract.cs",
