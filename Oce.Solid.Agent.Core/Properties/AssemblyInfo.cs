@@ -479,8 +479,15 @@ using System.Runtime.InteropServices;
 // 0.150.1: W3.1-bis.6, rename window 3: the library is Oce.Solid.Agent.Core
 //          (assembly, namespaces, folder) and its file names are English,
 //          from the name map (Checks/language/window-3-identifiers.js).
-[assembly: AssemblyVersion("0.150.1.0")]
-[assembly: AssemblyFileVersion("0.150.1.0")]
+// 0.151.0: D9 defects of the live proof of 6/10/2026. cut_list counts the gussets
+//          and the end caps (their item folders are swSolidBodyCutList, not
+//          swWeldmentCutlist) and says the item_type of every row; gusset finds
+//          the contact of the faces of a foot at the END of a bar (the range of
+//          an edge whose curve runs the other way is normalized); the first
+//          insert_component into an empty assembly is no longer refused (the
+//          count is asked of GetComponentCount, not read off a null array).
+[assembly: AssemblyVersion("0.151.0.0")]
+[assembly: AssemblyFileVersion("0.151.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -495,4 +502,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.150.1")]
+[assembly: AssemblyInformationalVersion("0.151.0")]

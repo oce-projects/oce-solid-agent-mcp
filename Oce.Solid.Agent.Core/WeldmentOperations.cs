@@ -1303,6 +1303,11 @@ namespace Oce.Solid.Agent.Core
                     // N15: true when every body of the item has the same volume;
                     // null when a volume could not be read (or the item has none).
                     ["bodies_equal"] = BodiesAreEqual(itemVolumes),
+                    // D9 defect 1: the items of the gussets and of the end caps have neither a
+                    // description nor a length, so the row says what kind of item it is and
+                    // names its first body, or it would be a row of nulls.
+                    ["item_type"] = CutListItemTypeName(c),
+                    ["first_body"] = FirstBodyName(c),
                 });
             }
 
@@ -2425,6 +2430,38 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// The kind of a cut list item, from IBodyFolder.GetCutListType
+        /// (swCutListType_e.html): «weldment_member» (3, a structural member),
+        /// «solid_body» (1, what a gusset or an end cap is) or «sheet_metal» (2);
+        /// null when the folder does not answer.
+        /// </summary>
+        private static string CutListItemTypeName(IBodyFolder folder)
+        {
+            try
+            {
+                switch (folder.GetCutListType())
+                {
+                    case (int)swCutListType_e.swWeldmentCutlist: return "weldment_member";
+                    case (int)swCutListType_e.swSolidBodyCutList: return "solid_body";
+                    case (int)swCutListType_e.swSheetmetalCutlist: return "sheet_metal";
+                    default: return null;
+                }
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The name of the first body of a cut list folder, or null.</summary>
+        private static string FirstBodyName(IBodyFolder folder)
+        {
+            try
+            {
+                var bodies = folder.GetBodies() as object[];
+                return bodies == null || bodies.Length == 0 ? null : (bodies[0] as IBody2)?.Name;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
         /// The volumes in mm3 of the bodies of one cut list folder (N15), or null
         /// when the folder gives no array or a body does not answer.
         /// IBody2.GetMassProperties gives the volume in m3 at index 3.
@@ -2522,7 +2559,14 @@ namespace Oce.Solid.Agent.Core
                     var edge = o as IEdge;
                     var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curva);
                     if (curva == null || parameters == null) continue;
-                    double u0 = parameters.UMinValue, u1 = parameters.UMaxValue;
+                    // THE RANGE THAT LANDS ON THE EDGE, not UMinValue..UMaxValue as read
+                    // (D9 defect 2, 6/10/2026): on an edge whose curve runs the other way
+                    // the parameters are negative, and evaluating the curve there landed 32 mm
+                    // off the edge, so the foot at the end of a bar «did not touch» it while
+                    // the foot at the start did. An edge whose range cannot be matched to its
+                    // ends is not guessed at: it counts as one that could not be read.
+                    double u0, u1;
+                    if (!ApiHelpers.EdgeRangeOnCurve(parameters, curva, out u0, out u1)) { mute++; continue; }
                     bool sta = true;
                     foreach (double t in new[] { u0, (u0 + u1) / 2, u1 })
                     {
@@ -3087,11 +3131,14 @@ namespace Oce.Solid.Agent.Core
         /// Is this feature a weldment cut list folder?
         ///
         /// Two checks and not one: `Type` says what kind of folder it is
-        /// (5 = cut list), `GetCutListType` what kind of cut list
-        /// (3 = weldment). The «Corpi solidi» folder answers the second and
-        /// not the first, and without the double check it would end up in the list.
+        /// (5 = cut list item), `GetCutListType` what kind of item (1 solid body,
+        /// 2 sheet metal, 3 weldment; 0 is the folder that holds them). The
+        /// «Corpi solidi» folder answers the second and not the first, and without
+        /// the double check it would end up in the list.
         /// Measured on 9 September 2026: Corpi solidi has Type=1 CutListType=0,
-        /// «Elenco elementi1» has Type=5 CutListType=3.
+        /// «Elenco elementi1» has Type=5 CutListType=3. Measured on 6 October 2026
+        /// (D9 defect 1): the items of the gussets and of the end caps have Type=5
+        /// CutListType=1, and belong in the list too.
         /// </summary>
         private static void Recognize(
             IFeature f, List<IBodyFolder> outside, HashSet<string> already)
@@ -3102,7 +3149,20 @@ namespace Oce.Solid.Agent.Core
                 if (folder == null) return;
                 if (folder.Type != (int)swBodyFolderFeatureType_e.swWeldmentCutListFolder)
                     return;
-                if (folder.GetCutListType() != (int)swCutListType_e.swWeldmentCutlist)
+                // EVERY KIND OF ITEM, NOT ONLY THE STRUCTURAL MEMBERS (D9 defect 1, 6/10/2026).
+                // Until library 0.150.1 this kept only swWeldmentCutlist (3), and the gussets
+                // and the end caps of a weldment were never in the cut list the bridge reads:
+                // the tube stand of task 07, 17 bodies and 6 distinct entries, read 9 bodies
+                // and 4 rows. Measured (Checks\D9Defects, subcommand tree): the item folders
+                // of the gussets and of the end caps are Type 5 like the others and answer
+                // GetCutListType 1, swSolidBodyCutList (swCutListType_e.html: 1 solid body,
+                // 2 sheet metal, 3 weldment); they carry MATERIAL and QUANTITY but no LENGTH
+                // and no description. They are bodies of the part that go to the workshop, and
+                // the sum of the quantities must be the number of bodies.
+                int kind = folder.GetCutListType();
+                if (kind != (int)swCutListType_e.swWeldmentCutlist &&
+                    kind != (int)swCutListType_e.swSolidBodyCutList &&
+                    kind != (int)swCutListType_e.swSheetmetalCutlist)
                     return;
 
                 // THE SAME FOLDER APPEARS TWICE IN THE TREE.

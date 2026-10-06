@@ -32,6 +32,71 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — D9 defects: the cut list counts every body, the gusset at the end of a bar, the empty assembly (branch `d9-defects`) · bridge 0.128.0 · library 0.151.0
+
+**Four defects found on 6/10/2026 by the live proof of the D9 prerequisites
+(the tube stand of task 07 and the plans that start from it), each measured
+before it was fixed with the probe `Checks/D9Defects` ("guide first").** MINOR is
+raised for the bridge and the library although two of the four are fixes: the
+answers of `cut_list` change (more rows, two new fields) and two refusals that were
+wrong are gone, and a reader who compares a number across versions must see it.
+
+1. **`cut_list` counted only the structural members.** The tube stand has 17
+   bodies and 6 distinct entries; the bridge read 9 bodies and 4 rows, with no
+   error: a plausible wrong number. Measured (`D9Defects tree`): the item
+   folders of the gussets and of the end caps are `Type` 5 like the others but
+   answer `GetCutListType` 1 (`swSolidBodyCutList`; the structural members 3), and
+   `WeldmentOperations.Recognize` kept only 3. It now keeps 1, 2 and 3 (page
+   `swCutListType_e.html`). Those items have a quantity and a material but no
+   length and no description, so every row now carries `item_type`
+   (`weldment_member`, `solid_body`, `sheet_metal`) and `first_body`, or a gusset
+   would be a row of nulls. Bench case `cut_list_counts_the_gussets_and_the_caps`;
+2. **`gusset` refused the faces of a foot at the END of its bar segment.** It
+   was the corner, not the segment: the contact test evaluates the curve of each
+   edge at `UMinValue`, the midpoint and `UMaxValue` of `GetCurveParams3`, and
+   when the curve of the edge runs the other way those are in negative parameter
+   space (page `ICurveParamData~UMinValue.html`), so the curve was evaluated 32 mm
+   off the edge (measured: distances 32, 16, 0 mm for an edge that lies on the
+   face). New helper `ApiHelpers.EdgeRangeOnCurve` tries `(UMin, UMax)` and the
+   normalized `(-UMax, -UMin)` and takes the one whose ends evaluate to
+   `StartPoint` and `EndPoint`; an edge that matches neither counts as not read,
+   it is not guessed. `weld_bead` shares the contact test and gets the same
+   repair. Which way the curve of an edge runs depends on how the bar and the
+   foot were drawn, not on where the foot is: on the stand the corners at the
+   start of the segment were taken and the ones at the end refused, and on
+   straight feet (the bench case) the old reading refuses the first gusset
+   too. Bench case `gusset_at_the_end_of_the_bar`. The same pattern is in
+   `DrawingWeldOperations.VisibleJoint` and was NOT touched: it is not one of the
+   four defects, and it needs its own case;
+3. **The first `insert_component` into an empty assembly was refused** («the
+   assembly had -1 components»), although the component went in, on both bridges.
+   Measured (`D9Defects count`): on an empty assembly `GetComponents(true)` is
+   null, which the helper turned into -1, while `GetComponentCount(true)` is 0;
+   after the first and the second insertion both agree. The count is now asked of
+   `GetComponentCount` (page `IAssemblyDoc~GetComponentCount.html`). Bench case
+   `the_first_component_goes_into_an_empty_assembly`;
+4. **`CloseLeftovers --chiudi` closed by title.** It now closes a saved
+   document by its path and a never-saved one by its title. Measured
+   (`D9Defects names`, `closing`): the path is exact; a title matches whole first,
+   and a name that matches no title whole falls back to the base name and closes
+   the first open document of that base name (with `twin.SLDPRT` and
+   `twin.SLDASM` open, `CloseDoc("twin")` closed the part); two documents with
+   the same title cannot be open together (`OpenDoc6` answers 65536). **The harm
+   was NOT reproduced with the titles this machine gives** (extension and drawing
+   sheet included): both desks the probe builds (a never-saved document sharing a
+   base name with a saved one; a saved drawing and its part) were cleaned
+   correctly by the old tool too, so there is no case that is red before. The fix
+   is the defence, and `D9Defects closing` stays as the regression check.
+
+Not changed, on purpose: the state still lists only the 60 largest faces (a
+plan of the stand with the long bars already drawn needs the walls of the feet
+by their area and a selector, which the 60-face list can hide: propose, do not
+change the truncation); the other places that close a document by title
+(`Bench/`, `Checks/*`) close a document they just made and whose title they just
+read.
+
+---
+
 ## Unreleased — W3.1-bis.10, the documents, the scripts and the options in English (branch `w31bis-10`) · bridge 0.127.2 · library 0.150.1 (unchanged)
 
 **The tenth window of W3.1-bis (TODO entry W3.1-bis.10, installer entry H19 lot

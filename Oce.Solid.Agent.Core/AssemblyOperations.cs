@@ -523,11 +523,17 @@ namespace Oce.Solid.Agent.Core
 
         private static int HowManyComponentsInAssembly(IAssemblyDoc assemblyDoc)
         {
-            try
-            {
-                var v = assemblyDoc.GetComponents(true) as object[];
-                return v == null ? -1 : v.Length;
-            }
+            // THE COUNT IS ASKED FOR, NOT TAKEN FROM THE LENGTH OF AN ARRAY (D9 defect 3,
+            // 6/10/2026). Until library 0.150.1 this read GetComponents(true).Length and
+            // took a null for «could not read» (-1). Measured (Checks\D9Defects, subcommand
+            // count): on an EMPTY assembly GetComponents(true) answers null, so the first
+            // insertion read before = -1 and after = 1, and was refused with «the assembly
+            // had -1 components» although the component was in (on both bridges).
+            // IAssemblyDoc~GetComponentCount.html: «Number of components», the TopLevelOnly
+            // argument the same as GetComponents; it answered 0 on the empty assembly, 1 after
+            // the first insertion and 2 after the second, always equal to the array when
+            // there was one. -1 stays for a call that throws: that one is a failed read.
+            try { return assemblyDoc.GetComponentCount(true); }
             catch { return -1; }
         }
 

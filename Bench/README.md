@@ -669,7 +669,7 @@ cases/document_properties/   12   the two drawers, and the code that goes into t
                        material reaches every configuration (Z-C21, M10)
 cases/text/        6   engraving, and the lettering that comes out of the face
 cases/frames/        1   the welded profiles, read from the standard library ({PROFILI})
-cases/assemblies/     22   inserting is not mating; one constraint is not enough;
+cases/assemblies/     23   inserting is not mating; one constraint is not enough;
                        two equal bases and a STEP: one shape per part,
                        the mass per instance (Z-C20);
                        the rebuilt cover keeps the constraints and breaks them;
@@ -694,7 +694,9 @@ cases/assemblies/     22   inserting is not mating; one constraint is not enough
                        is not in the STEP, the lightweight STEP says the export
                        resolved them (Z-C21.11, N5, N27); the same mate twice
                        is refused as redundant and taken out, and a parallel
-                       after it blocks RY only (Z-C14)
+                       after it blocks RY only (Z-C14); the first component goes
+                       into an empty assembly, where the count was read off a
+                       null array (D9 defect 3)
 cases/drawing/      42   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
@@ -747,7 +749,7 @@ cases/drawing/      42   the first case that gets to the DRAWING (entry GT0);
                        none (Z-C21.8, M38); the BOM follows the configuration
                        of the view, not the active one (Z-C21.4, L16-2, L16-3);
                        the indented BOM follows the tree (Z-C21.11, M23)
-cases/weldments/   14   the BOM counts the bars, and the two numbers come from
+cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        two different places; the trim really shortens the bar,
                        and refuses between bars that do not meet; the bead
                        goes between faces that touch at an angle; the cap closes
@@ -766,7 +768,10 @@ cases/weldments/   14   the BOM counts the bars, and the two numbers come from
                        empty profile size names the sizes, the trim extends
                        a short bar (Z-C21, N25, L9-4); the trim refuses an
                        end condition it does not know (Z-C21.8, N22); the end
-                       cap leaves out a drilled wall (Z-C21.5, N7)
+                       cap leaves out a drilled wall (Z-C21.5, N7); the cut list
+                       counts the gussets and the end caps, not only the bars,
+                       and the gusset at the END of a bar is found like the one
+                       at its start (D9 defects 1 and 2)
 cases/extrusions/  10   the tube has the hole; the extruded slot is as long as
                        the bounding box, ends included, and is a polygon; the
                        17-tooth wheel can be made, the 16 one refuses; the fin
