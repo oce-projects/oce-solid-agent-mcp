@@ -17,7 +17,7 @@
           "why": "the plate that then goes on the drawing: if the part is not the right one, neither is the drawing" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
+      "arguments": { "path": "{WORK}\\note_ends_up_on_the_sheet.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a drawing is made on a saved part: if the save warns, the view might point to a file that is not there" } ] },
@@ -29,7 +29,7 @@
           "why": "from here on the active document is another one, and it is the condition for all the rest" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\note_ends_up_on_the_sheet.sldprt" },
+      "arguments": { "model": "{WORK}\\note_ends_up_on_the_sheet.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
           "why": "the views are not needed by the note — which goes on the sheet — but they are needed by the COUNTERPART: without views, «the views stay at zero» would be true for lack of views instead of because the note is in the right place" } ] },

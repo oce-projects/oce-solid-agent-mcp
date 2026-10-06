@@ -77,7 +77,7 @@ namespace Oce.Solid.Agent.Tools
     /// </summary>
     internal sealed class QuestionRegistry
     {
-        public const string FileName = "domande-senza-risposta.jsonl";
+        public const string FileName = "questions-without-answer.jsonl";
 
         /// <summary>The file being written to, or null if no place was found.</summary>
         public string FilePath { get; }
@@ -102,7 +102,7 @@ namespace Oce.Solid.Agent.Tools
         /// <summary>
         /// TWO VARIABLE NAMES AND A FALLBACK, as for the catalogue.
         ///
-        /// `RISCONTRO_REGISTRO` gives the whole file. Without it, we write
+        /// `OCE_QUESTION_REGISTRY` gives the whole file. Without it, we write
         /// next to the executable — which on a development machine is
         /// writable and on an installed one almost never, and that is fine: rule
         /// 2 says that then we stay silent.
@@ -114,7 +114,7 @@ namespace Oce.Solid.Agent.Tools
         /// </summary>
         public static string DefaultPath()
         {
-            var fromEnv = Environment.GetEnvironmentVariable("RISCONTRO_REGISTRO");
+            var fromEnv = Environment.GetEnvironmentVariable("OCE_QUESTION_REGISTRY");
             if (fromEnv != null) return fromEnv.Length == 0 ? null : fromEnv;
 
             try
@@ -129,7 +129,7 @@ namespace Oce.Solid.Agent.Tools
 
         public void ToolThatDoesNotExist(string itemName)
         {
-            Annotate("strumento", itemName, null);
+            Annotate("tool", itemName, null);
         }
 
         public void OperationThatDoesNotExist(string itemName, IEnumerable<string> similar)

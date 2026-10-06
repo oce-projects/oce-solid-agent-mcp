@@ -7,7 +7,7 @@
   "start": { "new_part": true },
   "steps": [
     { "operation": "structural_member",
-      "arguments": { "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "segments": [ { "start": [0, 0, 0], "end": [500, 0, 0] },
                                    { "start": [500, 0, 0], "end": [500, 0, 400] } ] },
@@ -20,7 +20,7 @@
           "why": "the answer names the treatment that was applied, the default included" } ] },
 
     { "operation": "structural_member",
-      "arguments": { "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "corner_treatment": "none",
                      "segments": [ { "start": [0, 1000, 0], "end": [500, 1000, 0] },

@@ -8,18 +8,18 @@ namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// GLOBAL VARIABLES AND EQUATIONS (entry Z-F1): not repeating a number,
-    /// giving it a name. `parete = 3mm`, and the dimension driven by `parete` survives
+    /// giving it a name. `wall = 3mm`, and the dimension driven by `wall` survives
     /// an upstream change by construction — it is the identity system that
     /// SOLIDWORKS already has, and a parametric model is the only kind that someone who does not
     /// design can change without breaking anything.
     ///
     /// Measured on 27/9/2026 (`prova0089 zf1`, `zf1b`, plate 120x80x10):
     ///
-    ///  * `IEquationMgr.Add3(-1, "\"parete\" = 12mm", true, swAllConfiguration,
-    ///    null)` returns the index (0); `"\"D1@Estrusione-Estrusione1\" = \"parete\""`
+    ///  * `IEquationMgr.Add3(-1, "\"wall\" = 12mm", true, swAllConfiguration,
+    ///    null)` returns the index (0); `"\"D1@Estrusione-Estrusione1\" = \"wall\""`
     ///    links the thickness: volume 96000 -> 115200. `set_Equation` to 15mm, then
     ///    `EvaluateAll` and rebuild: 144000, and the dimension says 15.
-    ///  * Expressions work: `"doppio" = 2 * "parete" + 1mm` is worth 31.
+    ///  * Expressions work: `"double" = 2 * "wall" + 1mm` is worth 31.
     ///  * **«spessore» and «Spessore» are REFUSED** (Add3 -1) even with the part
     ///    without properties: for the Italian SOLIDWORKS it is a name already taken, and
     ///    an equation that uses it is worth 3. A refused name is stated, and

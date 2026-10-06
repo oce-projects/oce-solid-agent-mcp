@@ -21,7 +21,7 @@
         ]
       },
       {
-        "name": "coperchio",
+        "name": "cover",
         "position_mm": [
           0,
           7,
@@ -46,7 +46,7 @@
     {
       "operation": "export_iges",
       "arguments": {
-        "path": "{LAVORO}\\limit_iges_of_an_assembly.igs",
+        "path": "{WORK}\\limit_iges_of_an_assembly.igs",
         "representation": "solids"
       },
       "must_fail": {

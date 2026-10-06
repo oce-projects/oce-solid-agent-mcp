@@ -8,7 +8,7 @@
  },
  {
   "operation": "save_document",
-  "arguments": { "path": "{BANCO}/pezzo/z06.SLDPRT" }
+  "arguments": { "path": "{BENCH}/part/z06.SLDPRT" }
  },
  { "operation": "create_drawing", "arguments": {} },
  { "operation": "standard_views", "arguments": {} }

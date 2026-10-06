@@ -24,9 +24,9 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
-const OUTPUT = path.join(__dirname, "viste");
+const OUTPUT = path.join(__dirname, "views");
 
 // The same shell as measurement V2/V3: box 120x80x50, wall 4, open at the
 // top. From outside it is a parallelepiped; the wall is seen only inside.

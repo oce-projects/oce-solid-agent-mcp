@@ -11,7 +11,7 @@
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } },
           { "operation": "apply_material", "arguments": { "material": "AISI 304" } }
         ] },
-      { "name": "coperchio",
+      { "name": "cover",
         "position_mm": [0, 7, 0],
         "steps": [
           { "operation": "extrude_rectangle",
@@ -40,13 +40,13 @@
           "tolerance_why": "true extreme points, rounded",
           "why": "the base from -5 to 5, the cover from 5 to 9: 14 high. In the space of the parts it would be 10" } ] },
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step" },
+      "arguments": { "path": "{WORK}\\assembly_is_weighed_measured_and_sent.step" },
       "expect": [
         { "what": "measurements.solids_in_file", "equal_to": 2, "why": "one MANIFOLD_SOLID_BREP per part" },
         { "what": "measurements.solids_expected", "equal_to": 2, "why": "the bodies of the parts that are not suppressed" },
         { "what": "measurements.protocol_returned", "equal_to": "AP214" } ] },
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\assembly_is_weighed_measured_and_sent.step", "reopen_and_compare": true },
+      "arguments": { "path": "{WORK}\\assembly_is_weighed_measured_and_sent.step", "reopen_and_compare": true },
       "must_fail": {
         "message_includes": ["reopen_and_compare", "New Document"],
         "twin": "assembly_is_weighed_measured_and_sent" } }

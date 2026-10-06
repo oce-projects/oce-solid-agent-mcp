@@ -89,7 +89,7 @@ namespace Checks.FramingTest
 
             Console.WriteLine();
             Console.WriteLine("=== does the part fit inside the frame? ===");
-            Console.WriteLine("libreria " + _library.GetName().Version);
+            Console.WriteLine("library " + _library.GetName().Version);
             Console.WriteLine();
 
             // FIRST THE RULER IS TESTED, THEN WE MEASURE.

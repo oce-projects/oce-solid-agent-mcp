@@ -2,17 +2,17 @@
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Lavoro"],
-      "env": { "FS_ROOT": "C:\\Lavoro" }
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Work"],
+      "env": { "FS_ROOT": "C:\\Work" }
     },
     "github": {
       "command": "docker",
       "args": ["run", "-i", "--rm", "ghcr.io/github/github-mcp-server"],
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "finto-per-la-prova" }
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "fake-for-the-test" }
     }
   },
-  "altreImpostazioniDelClient": {
-    "tema": "scuro",
-    "scalaDelTesto": 1.1
+  "otherClientSettings": {
+    "theme": "dark",
+    "textScale": 1.1
   }
 }

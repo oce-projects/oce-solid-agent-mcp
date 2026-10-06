@@ -34,7 +34,7 @@ namespace Oce.Solid.Agent.Bench
     {
         /// <summary>
         /// Where the drawing library is. Default: next to
-        /// the executable. It is changed with `--libreria &lt;percorso&gt;`.
+        /// the executable. It is changed with `--library &lt;percorso&gt;`.
         ///
         /// BEFORE IT WAS A CONSTANT that pointed to a temporary folder of
         /// a session, and that path no longer exists today. A bench that can
@@ -46,7 +46,7 @@ namespace Oce.Solid.Agent.Bench
         /// trap.
         ///
         /// It pointed to the DLL **next to the executable**. But the real bench is
-        /// `bench.ps1`, which builds and then passes `--libreria` pointing to
+        /// `bench.ps1`, which builds and then passes `--library` pointing to
         /// `Oce.Solid.Agent.Core\bin\Release\` — so the copy next to
         /// the executable is updated by nobody, and stays stuck
         /// at the last time that something put it there.
@@ -64,13 +64,13 @@ namespace Oce.Solid.Agent.Bench
         /// the code of now, which is what whoever launches it believes they are
         /// measuring.
         ///
-        /// **In both cases the line «libreria X.Y.Z (percorso)» comes out
+        /// **In both cases the line «library X.Y.Z (path)» comes out
         /// at the head of the run**, and it is what made it possible to understand.
         /// </remarks>
         private static string _library = DefaultLibrary();
 
         /// <summary>
-        /// True when `--libreria` named another library: an older one may lack
+        /// True when `--library` named another library: an older one may lack
         /// names the bench looks up, by design (W3.1-bis.2, item 3).
         /// </summary>
         private static bool _anotherLibrary;
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// The same library file? Full paths compared without case (Windows
         /// paths); a path that cannot be read is «not the same», so an odd
-        /// --libreria still counts as another library and skips what an older
+        /// --library still counts as another library and skips what an older
         /// library could not pass.
         /// </summary>
         internal static bool SameLibraryPath(string a, string b)
@@ -121,7 +121,7 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// The checks on weldments need the real library files:
         /// an invented `.SLDLFP` measures nothing. Where it is is stated with
-        /// `PROFILI_SALDATURA`.
+        /// `OCE_WELDMENT_PROFILES`.
         ///
         /// It used to be a constant. Whoever clones the repository does not have that disk, and with
         /// a constant found out that they did not have it when the bench failed without
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.Bench
         /// sees it because the bench stops before, saying so.
         /// </summary>
         private static readonly string WeldmentProfiles =
-            System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+            System.Environment.GetEnvironmentVariable("OCE_WELDMENT_PROFILES");
 
         private static readonly string SQUARE_TUBE = string.IsNullOrWhiteSpace(WeldmentProfiles)
             ? null : System.IO.Path.Combine(WeldmentProfiles, "TUBO STRUTTURALE QUADRO.SLDLFP");
@@ -221,36 +221,36 @@ namespace Oce.Solid.Agent.Bench
             if (string.IsNullOrWhiteSpace(WeldmentProfiles))
             {
                 Console.WriteLine();
-                Console.WriteLine("PROFILI_SALDATURA is not set, and the bench cannot run.");
+                Console.WriteLine("OCE_WELDMENT_PROFILES is not set, and the bench cannot run.");
                 Console.WriteLine();
                 Console.WriteLine("  The weldment checks open the real `.SLDLFP` files of the");
                 Console.WriteLine("  standard library: an invented profile measures nothing, and");
                 Console.WriteLine("  there is no default path because every workshop keeps");
                 Console.WriteLine("  its own library where it wants.");
                 Console.WriteLine();
-                Console.WriteLine("      setx PROFILI_SALDATURA \"<la cartella dei .SLDLFP>\"");
+                Console.WriteLine("      setx OCE_WELDMENT_PROFILES \"<the folder of the .SLDLFP files>\"");
                 Console.WriteLine();
                 Console.WriteLine("  Then reopen the terminal: `setx` does not touch the one already open.");
                 return 2;   // bench error, not a red check
             }
 
-            // `--libreria <percorso>` before everything else: if the library
+            // `--library <percorso>` before everything else: if the library
             // is another one, the measurement is another one too, and it must be said at the head.
             var arguments = new List<string>(lineArguments ?? new string[0]);
-            int location = arguments.IndexOf("--libreria");
+            int location = arguments.IndexOf("--library");
             if (location >= 0 && location + 1 < arguments.Count)
             {
                 _library = arguments[location + 1];
                 // ONLY A DIFFERENT FILE IS «ANOTHER LIBRARY» (1/10/2026). bench.ps1
-                // always passes --libreria, with the same path as
-                // DefaultLibrary, so taking every --libreria for another
+                // always passes --library, with the same path as
+                // DefaultLibrary, so taking every --library for another
                 // library skipped the reflection-log test on every full bench
                 // (seen on the bench of 0.148.0, where the test was reported as
                 // skipped). A net that never runs is not a net.
                 _anotherLibrary = !SameLibraryPath(_library, DefaultLibrary());
                 arguments.RemoveRange(location, 2);
             }
-            // `--lento`: the checks that cost MINUTES, not seconds.
+            // `--slow`: the checks that cost MINUTES, not seconds.
             //
             // The ceiling on features (E12) must be tested on a part with more
             // than eighty features, and eighty-five cuts cost ~26 seconds
@@ -262,20 +262,20 @@ namespace Oce.Solid.Agent.Bench
             // BUT A SKIPPED CHECK MUST BE SEEN. When it is not launched, the
             // bench SAYS so and counts it among the skipped: a check that disappears
             // in silence is like a check that never fires.
-            _slow = arguments.Remove("--lento");
+            _slow = arguments.Remove("--slow");
 
-            // `--muta`: not a run with something extra, ANOTHER RUN.
+            // `--mutate`: not a run with something extra, ANOTHER RUN.
             // It perturbs the cases and expects them to turn red (entry F6). It costs
             // one SOLIDWORKS document per mutation, so it is launched before
             // a delivery and not every evening.
-            _mutate = arguments.Remove("--muta");
+            _mutate = arguments.Remove("--mutate");
 
-            // `--regressione`: the suite of the references (entry F8). Like
-            // `--muta`, it is another run: it produces three numbers, not green
+            // `--regression`: the suite of the references (entry F8). Like
+            // `--mutate`, it is another run: it produces three numbers, not green
             // and red checks, and mixing them would tell nobody anything.
-            _regression = arguments.Remove("--regressione");
+            _regression = arguments.Remove("--regression");
 
-            // `--fingi-senza-solidworks`: make SOLIDWORKS DIE on command.
+            // `--pretend-no-solidworks`: make SOLIDWORKS DIE on command.
             //
             // The sentinel (entry K17) lights up when three new parts
             // in a row are not born — a condition that, in real life,
@@ -288,9 +288,9 @@ namespace Oce.Solid.Agent.Bench
             // everything else SAYING so, and exit 4. It is launched by hand,
             // takes a few seconds, and serves to see with one's own eyes what
             // the contract checks verify in the abstract.
-            _pretendWithoutSolidWorks = arguments.Remove("--fingi-senza-solidworks");
+            _pretendWithoutSolidWorks = arguments.Remove("--pretend-no-solidworks");
 
-            // `--gruppo <nomi>`: a single family of checks, while working.
+            // `--group <nomi>`: a single family of checks, while working.
             //
             // ── WHY IT EXISTS (entry F13) ─────────────────────────────────
             //
@@ -309,16 +309,16 @@ namespace Oce.Solid.Agent.Bench
             // on the weight of the PNG. **The bench measures what you broke, not what you
             // did**: that you already know.
             //
-            // So: `--gruppo` to get things wrong quickly, the whole run before
+            // So: `--group` to get things wrong quickly, the whole run before
             // committing, and a partial run that CANNOT pass for a whole
             // one — the summary says so in plain letters.
             List<string> chosen = null;
-            int whereG = arguments.IndexOf("--gruppo");
+            int whereG = arguments.IndexOf("--group");
             if (whereG >= 0)
             {
                 if (whereG + 1 >= arguments.Count)
                 {
-                    Console.WriteLine("«--gruppo» needs a name. " + WhatTheyAreCalled());
+                    Console.WriteLine("«--group» needs a name. " + WhatTheyAreCalled());
                     return 2;
                 }
                 chosen = new List<string>(
@@ -327,23 +327,23 @@ namespace Oce.Solid.Agent.Bench
                 for (int i = 0; i < chosen.Count; i++) chosen[i] = chosen[i].Trim().ToLowerInvariant();
                 arguments.RemoveRange(whereG, 2);
             }
-            if (arguments.Remove("--gruppi"))
+            if (arguments.Remove("--groups"))
             {
                 Console.WriteLine(WhatTheyAreCalled());
                 return 0;
             }
 
-            // `--famiglia <nomi>`: inside the «casi» group, only those
-            // folders (25/9/2026, entry E19). «casi» alone is the thousand declared
+            // `--family <nomi>`: inside the «cases» group, only those
+            // folders (25/9/2026, entry E19). «cases» alone is the thousand declared
             // cases, three quarters of an hour: to see TWO new cases fail
             // before writing the code — the rule of every new check —
-            // it was the whole run or nothing. It implies `--gruppo casi`.
-            int whereF = arguments.IndexOf("--famiglia");
+            // it was the whole run or nothing. It implies `--group cases`.
+            int whereF = arguments.IndexOf("--family");
             if (whereF >= 0)
             {
                 if (whereF + 1 >= arguments.Count)
                 {
-                    Console.WriteLine("«--famiglia» needs a name: " + string.Join(", ", Families));
+                    Console.WriteLine("«--family» needs a name: " + string.Join(", ", Families));
                     return 2;
                 }
                 _familiesOnly = new List<string>(
@@ -358,7 +358,7 @@ namespace Oce.Solid.Agent.Bench
                                       ". The families are: " + string.Join(", ", Families));
                     return 2;
                 }
-                if (chosen == null) chosen = new List<string> { "casi" };
+                if (chosen == null) chosen = new List<string> { "cases" };
             }
 
             lineArguments = arguments.ToArray();
@@ -383,7 +383,7 @@ namespace Oce.Solid.Agent.Bench
             if (!File.Exists(_library))
             {
                 Console.WriteLine("cannot find the library: " + _library);
-                Console.WriteLine("indicala con  --libreria <percorso di Oce.Solid.Agent.Core.dll>");
+                Console.WriteLine("give it with  --library <path of Oce.Solid.Agent.Core.dll>");
                 return 1;
             }
 
@@ -397,10 +397,10 @@ namespace Oce.Solid.Agent.Bench
             // anybody to copy things by hand.
             _addin = Assembly.Load(File.ReadAllBytes(_library));
             Console.WriteLine("SolidWorks " + _sw.RevisionNumber());
-            Console.WriteLine("libreria " + _addin.GetName().Version + "  (" + _library + ")");
+            Console.WriteLine("library " + _addin.GetName().Version + "  (" + _library + ")");
             // ── THE LIBRARY DOES NOT LOAD IS NOT A RED RUN (entry F10) ─
             //
-            // Pointing `--libreria` to a historical version — what is needed to
+            // Pointing `--library` to a historical version — what is needed to
             // show that a check really guards its defect — the
             // types may not be there: before 0.52.0 the operations
             // were in `OpenPDM.SwAddin`, with another namespace.
@@ -434,13 +434,13 @@ namespace Oce.Solid.Agent.Bench
             {
                 Console.WriteLine();
                 Console.WriteLine("THE LIBRARY DOES NOT EXPOSE THE TYPES THE BENCH LOOKS FOR.");
-                Console.WriteLine("  libreria: " + _addin.GetName().Version + "  (" + _library + ")");
-                Console.WriteLine("  cercavo:  " + NS + "SwOperations");
+                Console.WriteLine("  library:  " + _addin.GetName().Version + "  (" + _library + ")");
+                Console.WriteLine("  looked for: " + NS + "SwOperations");
                 Console.WriteLine("  " + ex.GetType().Name + ": " + ex.Message);
                 Console.WriteLine();
                 Console.WriteLine("It is not a red run: it is a library the bench cannot read.");
-                Console.WriteLine("The historical comparison starts at library 0.150.1 (rename window 3, decision D11): before it " +
-                                  "the library had Italian names, and before 0.52.0 the operations lived in «OpenPDM.SwAddin».");
+                Console.WriteLine("The historical comparison starts at library 0.150.2 (W3.1-bis.10b, decision D11): before it " +
+                                  "the library had Italian names or values, and before 0.52.0 the operations lived in «OpenPDM.SwAddin».");
                 return 2;
             }
 
@@ -482,7 +482,7 @@ namespace Oce.Solid.Agent.Bench
             // SESSION MODE: instead of the checks, the complete run — a
             // document kept open while somebody else plans.
             if (lineArguments != null && lineArguments.Length >= 2 &&
-                lineArguments[0] == "--sessione")
+                lineArguments[0] == "--session")
             {
                 // Optional third argument: an already made part to
                 // pick up, instead of an empty part.
@@ -504,15 +504,15 @@ namespace Oce.Solid.Agent.Bench
             // cannot be attached to, dirty desk) and a guardian lit on a
             // run that never began watches nothing.
             //
-            // And it is lit ALWAYS, even with `--gruppo`: the call that does not
+            // And it is lit ALWAYS, even with `--group`: the call that does not
             // return does not look at which subset was chosen.
             TurnOnGuardian();
             Log("SolidWorks " + _sw.RevisionNumber() +
                    ", library " + _addin.GetName().Version +
-                   (_slow ? ", with --lento" : "") +
+                   (_slow ? ", with --slow" : "") +
                    (chosen == null ? "" : ", ONLY the groups " + string.Join(", ", chosen)));
 
-            // ── `--muta` IS A RUN OF ITS OWN ─────────────────────────────
+            // ── `--mutate` IS A RUN OF ITS OWN ─────────────────────────────
             //
             // It is not added to the checks: it replaces them. Mixing it would mean
             // adding hundreds of SOUGHT reds to a count that serves
@@ -556,7 +556,7 @@ namespace Oce.Solid.Agent.Bench
                 }
                 if (theGroup.SlowOnly && !_slow)
                 {
-                    Skipped(theGroup.What, theGroup.WhyItWeighs ?? "run it with --lento");
+                    Skipped(theGroup.What, theGroup.WhyItWeighs ?? "run it with --slow");
                     continue;
                 }
                 // FROM HERE ON THE CHECKS BELONG TO THIS GROUP (entry K2).
@@ -585,7 +585,7 @@ namespace Oce.Solid.Agent.Bench
                     // had happened — and the exit code was 0xE0434352, which means
                     // nothing to anybody.
                     //
-                    // Found by launching `--fingi-senza-solidworks`, that is
+                    // Found by launching `--pretend-no-solidworks`, that is
                     // by exercising the guard on purpose. *A guard that has never been
                     // seen to fire ALL THE WAY is half tested,
                     // and the half that is missing is always the one that is needed.*
@@ -615,8 +615,8 @@ namespace Oce.Solid.Agent.Bench
 
             // THE GROUPS NOT LAUNCHED ARE NAMED, like the skipped ones.
             //
-            // «8 prove, 0 fallite» on a partial run is true and makes one believe a
-            // false thing, exactly as «88 prove, 0 fallite» was with a
+            // «8 tests, 0 failed» on a partial run is true and makes one believe a
+            // false thing, exactly as «88 tests, 0 failed» was with a
             // check not launched. The defense is in the summary line, not
             // in the discipline of whoever launches: late in the evening nobody remembers
             // having limited themselves to one group.
@@ -624,11 +624,11 @@ namespace Oce.Solid.Agent.Bench
             {
                 Console.WriteLine("NOT LAUNCHED — " + notLaunched.Count + " groups out of " +
                                   Groups().Count + ": " + string.Join(", ", notLaunched));
-                Console.WriteLine("the whole run is launched without «--gruppo», " +
+                Console.WriteLine("the whole run is launched without «--group», " +
                                   "and that is the one that counts before committing.");
             }
 
-            // THE SKIPPED ARE COUNTED SEPARATELY AND SAID. «88 prove, 0 fallite»
+            // THE SKIPPED ARE COUNTED SEPARATELY AND SAID. «88 tests, 0 failed»
             // on a run in which a check was not launched is a true
             // sentence that makes one believe a false thing.
             //
@@ -649,8 +649,8 @@ namespace Oce.Solid.Agent.Bench
                     ? "PARTIAL RUN (only " + string.Join(", ", chosen) + ", " +
                       notLaunched.Count + " groups not launched) — "
                     : "") +
-                (_outcomes.Count - _skipped - _benchErrors) + " prove, " + _failed + " fallite" +
-                (_skipped > 0 ? ", " + _skipped + " SKIPPED (--lento runs them)" : "") +
+                (_outcomes.Count - _skipped - _benchErrors) + " tests, " + _failed + " failed" +
+                (_skipped > 0 ? ", " + _skipped + " SKIPPED (--slow runs them)" : "") +
                 (_benchErrors > 0 ? ", " + _benchErrors + " BENCH ERRORS" : "");
             Console.WriteLine(summary);
 
@@ -733,10 +733,10 @@ namespace Oce.Solid.Agent.Bench
         // ══════════════════════════════════════════════════════════════════
         private sealed class Group
         {
-            public string Name;      // how it is written after --gruppo
+            public string Name;      // how it is written after --group
             public string What;      // what it is called when it is said that it was skipped
             public bool SlowOnly;
-            public string WhyItWeighs;   // what is said when --lento is not there
+            public string WhyItWeighs;   // what is said when --slow is not there
 
             /// <summary>
             /// THE CHECKS OF THE GROUP, ONE BY ONE and not a lambda that
@@ -755,32 +755,32 @@ namespace Oce.Solid.Agent.Bench
             Func<Action, Action[]> one = a => new[] { a };
             return new List<Group>
             {
-                new Group { Name = "sezioni",   What = "Services.SectionProfile",      Actions = one(Sections) },
-                new Group { Name = "archivio",  What = "Services.SolidWorksMaterials", Actions = one(Materials) },
-                new Group { Name = "telai",     What = "rectangular_frame",          Actions = one(Frames) },
-                new Group { Name = "fori",      What = "hole_wizard",                 Actions = one(Holes) },
-                new Group { Name = "materiale", What = "apply_material",            Actions = one(Material) },
-                new Group { Name = "stato",     What = "DocumentState",               Actions = one(State) },
-                new Group { Name = "viste",     What = "PartView (V1)",           Actions = one(TestSnapshot) },
-                new Group { Name = "tetto",     What = "the ceiling on features (E12)",
+                new Group { Name = "sections",   What = "Services.SectionProfile",      Actions = one(Sections) },
+                new Group { Name = "materials",  What = "Services.SolidWorksMaterials", Actions = one(Materials) },
+                new Group { Name = "frames",     What = "rectangular_frame",          Actions = one(Frames) },
+                new Group { Name = "holes",      What = "hole_wizard",                 Actions = one(Holes) },
+                new Group { Name = "material", What = "apply_material",            Actions = one(Material) },
+                new Group { Name = "state",     What = "DocumentState",               Actions = one(State) },
+                new Group { Name = "views",     What = "PartView (V1)",           Actions = one(TestSnapshot) },
+                new Group { Name = "ceiling",     What = "the ceiling on features (E12)",
                              Actions = one(TestFeatureCap), SlowOnly = true,
-                             WhyItWeighs = "85 features, about half an hour: run with --lento" },
+                             WhyItWeighs = "85 features, about half an hour: run with --slow" },
 
                 // Those that were inside `NuoveOperazioni()`.
-                new Group { Name = "scatto",       What = "take the view shot",        Actions = one(CaptureView) },
-                new Group { Name = "quanto-vede",  What = "what the model sees", Actions = one(HowMuchTheModelSees) },
-                new Group { Name = "facce",        What = "the faces of the plate", Actions = one(PrintPlateFaces) },
-                new Group { Name = "sposta-corpi", What = "move_bodies",           Actions = one(TestMoveBodies) },
+                new Group { Name = "shot",       What = "take the view shot",        Actions = one(CaptureView) },
+                new Group { Name = "what-it-sees",  What = "what the model sees", Actions = one(HowMuchTheModelSees) },
+                new Group { Name = "faces",        What = "the faces of the plate", Actions = one(PrintPlateFaces) },
+                new Group { Name = "move-bodies", What = "move_bodies",           Actions = one(TestMoveBodies) },
                 // «slot» is no longer there: it became fifteen files in
-                // `cases/slot/`, and it is launched with `--gruppo casi` (entry F11).
+                // `cases/slot/`, and it is launched with `--group cases` (entry F11).
                 // «smusso» is no longer there: it became three files in
-                // `cases/chamfer/`, and it is launched with `--gruppo casi` (entry F11).
+                // `cases/chamfer/`, and it is launched with `--group cases` (entry F11).
                 // «revolve» is no longer there: it became five files in
                 // `cases/revolve/`. The tolerance is the difference: the C#
                 // accepted `atteso * 0.02`, which on the cylinder of 62,831 mm³
                 // is 1,256 mm³ of allowed slack.
                 // «shell» is no longer there: it became two files in
-                // `cases/features/`, and it is launched with `--gruppo casi`.
+                // `cases/features/`, and it is launched with `--group cases`.
                 // «crea-piano» is no longer there: it became three files in
                 // `cases/plane/`, and the expectation is on WHERE THE PLANE ENDED UP
                 // (`last_plane_mm`), not on the distance that the bridge
@@ -789,27 +789,27 @@ namespace Oce.Solid.Agent.Bench
                 // re-attaches with SelectByID2("AXIS"), which is a COM
                 // call and not a catalog operation. All the rest of the
                 // family is in `cases/axis/`.
-                new Group { Name = "crea-asse",    What = "the axis is found again by name", Actions = one(TestCreateAxis) },
+                new Group { Name = "create-axis",    What = "the axis is found again by name", Actions = one(TestCreateAxis) },
                 // THE DIMENSION WITHOUT AN EDGE (entry Z-A2): the red that a declared
                 // case does not know how to build, because after `create_drawing` it does not
                 // go back to the part to suppress.
-                new Group { Name = "orfane",       What = "the dimension left without an edge (Z-A2)", Actions = one(TestOrphanDimensions) },
+                new Group { Name = "orphans",       What = "the dimension left without an edge (Z-A2)", Actions = one(TestOrphanDimensions) },
                 // THE PRINTED NUMBER (entry Z-C2): no catalog operation
                 // overwrites a dimension, so the falsification is done here.
-                new Group { Name = "numeri",       What = "the printed number is the model's (Z-C2)", Actions = one(TestDimensionNumbers) },
+                new Group { Name = "numbers",       What = "the printed number is the model's (Z-C2)", Actions = one(TestDimensionNumbers) },
                 // THE CLIENT'S DOOR (entry F14): it does not call the library,
                 // it talks to the bridge over stdio as an MCP client would.
-                new Group { Name = "porta-del-cliente",
+                new Group { Name = "client-port",
                              What = "the cases that go through the bridge (F14)",
                              Actions = one(TheClientPort) },
                 // «ripeti», «mirror» and «togliere» are no longer there: they
                 // became `cases/patterns/`, `cases/mirror/` and
-                // `cases/removal/`, and they are launched with `--gruppo casi`.
+                // `cases/removal/`, and they are launched with `--group cases`.
                 // «shape» is no longer there: it became `cases/sentence/`, since
                 // the expectations know how to ask «includes» and «does_not_include».
-                new Group { Name = "dove-stava",   What = "where it was, and the empty grep (E10)",
+                new Group { Name = "where-it-was",   What = "where it was, and the empty grep (E10)",
                              Actions = new Action[] { TestWhereItWas, TestThatTheFractionDoesNotDecide } },
-                new Group { Name = "casi",         What = "the declared cases, which are files (F3)",
+                new Group { Name = "cases",         What = "the declared cases, which are files (F3)",
                              Actions = new Action[]
                              {
                                  TestThatSelectorRefuses,
@@ -818,13 +818,13 @@ namespace Oce.Solid.Agent.Bench
                                  // expectations, which before running them is zero.
                                  TestThatAnAbsentFieldIsNotAZero,
                              } },
-                new Group { Name = "il-null-ha-un-nome", What = "the bench says where it failed (F12)",
+                new Group { Name = "null-has-a-name", What = "the bench says where it failed (F12)",
                              Actions = one(TestThatNullHasAName) },
                 // The capability that opens the whole G-A section: without it, no
                 // assembly operation could have a case.
-                new Group { Name = "assieme-di-prova", What = "the bench can prepare an assembly (GA0)",
+                new Group { Name = "test-assembly", What = "the bench can prepare an assembly (GA0)",
                              Actions = one(TestTheTestAssembly) },
-                new Group { Name = "tabella",      What = "the table of groups covers everything (F13)",
+                new Group { Name = "table",      What = "the table of groups covers everything (F13)",
                              Actions = one(TestThatTheTableCoversEverything) },
             };
         }
@@ -889,9 +889,9 @@ namespace Oce.Solid.Agent.Bench
             var outside = families.Where(m => !inGroups.Contains(m)).Select(m => m.Name).ToList();
             Check("F13: no family of checks outside the table",
                   outside.Count == 0,
-                  outside.Count == 0 ? groups.Count + " gruppi" : string.Join(", ", outside));
+                  outside.Count == 0 ? groups.Count + " groups" : string.Join(", ", outside));
 
-            // TWO GROUPS WITH THE SAME NAME: `--gruppo x` would launch two and
+            // TWO GROUPS WITH THE SAME NAME: `--group x` would launch two and
             // the count of the not-launched would say one thing and the run another.
             var doubled = groups.GroupBy(g => g.Name, StringComparer.OrdinalIgnoreCase)
                               .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
@@ -909,7 +909,7 @@ namespace Oce.Solid.Agent.Bench
         {
             return "The groups are: " +
                    string.Join(", ", Groups().Select(g => g.Name)) +
-                   ". Without «--gruppo» all are run, and that is what counts " +
+                   ". Without «--group» all are run, and that is what counts " +
                    "before committing.";
         }
 
@@ -953,7 +953,7 @@ namespace Oce.Solid.Agent.Bench
         private static void RecordOutcome(string itemName, bool ok, string detail,
                                           string callerFile, string callerMember, int callerLine)
         {
-            // QUIET: the `--muta` mode re-runs the same case dozens of times and
+            // QUIET: the `--mutate` mode re-runs the same case dozens of times and
             // EXPECTS it to turn red (entry F6). Those reds are not
             // regressions — they are the result that was sought — and ending up
             // in the list of outcomes would make them be read as such.
@@ -1003,7 +1003,7 @@ namespace Oce.Solid.Agent.Bench
             //
             // The count per group said WHERE the checks are; this says
             // how many of them really have SOLIDWORKS in the middle. Inside the
-            // `casi` group — which alone gathers the great majority of them —
+            // `cases` group — which alone gathers the great majority of them —
             // there are both the declared cases, which do open a document, and the
             // checks on the expectation evaluator, which compare dictionaries
             // and open nothing.
@@ -1126,7 +1126,7 @@ namespace Oce.Solid.Agent.Bench
             int total = _withExpectation + _withoutExpectation.Count;
             Check("the count per group adds up to the total", sum == total,
                   sum == total
-                      ? sum + " prove in " + _perGroup.Count + " gruppi"
+                      ? sum + " tests in " + _perGroup.Count + " groups"
                       : "the sum per group is " + sum + ", the checks are " + total +
                         ": " + Math.Abs(total - sum) + " are not attributed to any " +
                         "group, and a breakdown that does not add up to the total reads as " +
@@ -1156,7 +1156,7 @@ namespace Oce.Solid.Agent.Bench
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var location = Path.Combine(bench != null ? bench.FullName : bin,
-                                        "report", "senza-attesa.txt");
+                                        "report", "without-waiting.txt");
                 var lines = new List<string>
                 {
                     "# The checks that pass without a DECLARED expectation (entry K3).",
@@ -1196,18 +1196,18 @@ namespace Oce.Solid.Agent.Bench
         // to tell them apart was to sample the CPU counter of
         // SLDWORKS.exe and look at the modification time of a file.
         //
-        // ── AND `ultimo-giro.txt` IS NOT WRITTEN BY THE BENCH ─────────────
+        // ── AND `last-run.txt` IS NOT WRITTEN BY THE BENCH ─────────────
         //
         // It must be said because it changes the remedy: the bench prints everything to stdout,
-        // and `ultimo-giro.txt` is a REDIRECTION by whoever launches it. So
+        // and `last-run.txt` is a REDIRECTION by whoever launches it. So
         // how up to date it is does not depend on the bench but on the shell: with
         // `Tee-Object` it grows line by line, with `Out-String` it appears all
         // together at the end. Adding a `Flush` somewhere inside the
         // bench would have changed nothing — there is no «somewhere»:
         // there was no file.
         //
-        // Now there is one **of the bench**, `Bench/in-corso.txt`, written and
-        // flushed line by line. `ultimo-giro.txt` stays what it was, and the
+        // Now there is one **of the bench**, `Bench/in-progress.txt`, written and
+        // flushed line by line. `last-run.txt` stays what it was, and the
         // end-of-run summary does not change by a comma: it is what
         // LEGGIMI documents and what is looked at when the run is over.
         //
@@ -1232,7 +1232,7 @@ namespace Oce.Solid.Agent.Bench
         private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
         /// <summary>
-        /// Opens `Bench/in-corso.txt` next to the executable, one level above
+        /// Opens `Bench/in-progress.txt` next to the executable, one level above
         /// `bin\`. If it does not succeed it says so and goes on without it.
         /// </summary>
         private static void OpenLog()
@@ -1243,7 +1243,7 @@ namespace Oce.Solid.Agent.Bench
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 filePath = Path.Combine(
-                    bench != null ? bench.FullName : bin, "in-corso.txt");
+                    bench != null ? bench.FullName : bin, "in-progress.txt");
 
                 // IT IS TRUNCATED: inside is the run of NOW. A file that
                 // accumulates runs forces whoever reads to ask which line
@@ -1309,11 +1309,11 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// ONE LINE PER RUN, at the tail of `Bench/storico.txt` (entry F12).
+        /// ONE LINE PER RUN, at the tail of `Bench/history.txt` (entry F12).
         ///
         /// ── WHY IT IS NEEDED ─────────────────────────────────────────────
         ///
-        /// `in-corso.txt` is rewritten by the next run, and `ultimo-giro.txt` is a
+        /// `in-progress.txt` is rewritten by the next run, and `last-run.txt` is a
         /// redirection by whoever launches: **of the past runs nothing was left.**
         /// So «that check failed just once» could be neither
         /// proved nor disproved — and a check that fails at random and that
@@ -1335,7 +1335,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 var bin = AppDomain.CurrentDomain.BaseDirectory;
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
-                var file = Path.Combine(bench != null ? bench.FullName : bin, "storico.txt");
+                var file = Path.Combine(bench != null ? bench.FullName : bin, "history.txt");
 
                 var broken = _outcomes.Where(r => r.StartsWith("  NO   ", StringComparison.Ordinal))
                                   .Select(r => r.Substring(7).Trim())
@@ -1343,7 +1343,7 @@ namespace Oce.Solid.Agent.Bench
                                   .ToList();
 
                 var line = DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) +
-                           "  libreria " + (_addin != null ? _addin.GetName().Version.ToString() : "?") +
+                           "  library " + (_addin != null ? _addin.GetName().Version.ToString() : "?") +
                            "  " + summary +
                            (broken.Count > 0 ? "  ->  " + string.Join(" | ", broken) : "");
 
@@ -1364,8 +1364,8 @@ namespace Oce.Solid.Agent.Bench
         ///
         /// It does not count as failed and does not count as succeeded: it counts as
         /// skipped, and it shows. A check that disappears from the report when it is not
-        /// launched is worse than one that does not exist — whoever reads «88 prove, 0
-        /// fallite» believes everything has been tested.
+        /// launched is worse than one that does not exist — whoever reads «88 tests, 0
+        /// failed» believes everything has been tested.
         /// </summary>
         private static void Skipped(string itemName, string why,
                                     [CallerFilePath] string callerFile = "",
@@ -1373,7 +1373,7 @@ namespace Oce.Solid.Agent.Bench
                                     [CallerLineNumber] int callerLine = 0)
         {
             _skipped++;
-            var line = "  --   " + InColumn(itemName) + "SALTATA: " + why;
+            var line = "  --   " + InColumn(itemName) + "SKIPPED: " + why;
             _outcomes.Add(line);
             Console.WriteLine(line);
             Log(line);
@@ -1399,7 +1399,7 @@ namespace Oce.Solid.Agent.Bench
                                           [CallerMemberName] string callerMember = "",
                                           [CallerLineNumber] int callerLine = 0)
         {
-            // Under `--muta` a mutated case that cannot even be run
+            // Under `--mutate` a mutated case that cannot even be run
             // counts as «it turned red»: the mutation bit all the same.
             if (_quiet) { _quietRed = true; return; }
 
@@ -1488,7 +1488,7 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// A test of its own, before the summary: every lookup by name that
         /// would fall back to null in silence found its target (Bench/ReflectionLog.cs,
-        /// W3.1-bis.2 item 3). Against another library (`--libreria`) it is
+        /// W3.1-bis.2 item 3). Against another library (`--library`) it is
         /// skipped and says so: an older library lacks newer names by design.
         /// </summary>
         private static void CheckTheReflectionLog()
@@ -1497,7 +1497,7 @@ namespace Oce.Solid.Agent.Bench
             var verdict = ReflectionLog.Global.Verdict();
             if (_anotherLibrary)
             {
-                Skipped(Rule, "another library was named with --libreria" +
+                Skipped(Rule, "another library was named with --library" +
                               (verdict == null ? "" : " (" + verdict + ")"));
                 return;
             }
@@ -1585,9 +1585,9 @@ namespace Oce.Solid.Agent.Bench
         /// a whole run — an hour and a quarter — thrown away.
         ///
         /// **And the remedy existed, and it ran.** `bench.ps1` calls
-        /// `CloseLeftovers.exe --chiudi Bench\lavoro` at step 3 of five, since
+        /// `CloseLeftovers.exe --close Bench\work` at step 3 of five, since
         /// forever, and says so at the head of the file. What bypassed it was an
-        /// `Oce.Solid.Agent.Bench.exe` launched by hand to pass it `--libreria`.
+        /// `Oce.Solid.Agent.Bench.exe` launched by hand to pass it `--library`.
         ///
         /// **THE PROTECTION WAS IN THE SHELL.** Outside `bench.ps1` there was
         /// nothing, and outside `bench.ps1` is exactly where one goes when one is
@@ -1607,7 +1607,7 @@ namespace Oce.Solid.Agent.Bench
         /// there is a designer with a part open, closing his document
         /// to make the checks run would be real damage done to make a
         /// false red disappear. So the bench stops and says what it found;
-        /// `--chiudi-gli-scarti` is the explicit request of whoever knows that they are
+        /// `--close-leftovers` is the explicit request of whoever knows that they are
         /// discards.
         ///
         /// It exits 3, not 1: a run that did not begin is not a red run,
@@ -1617,7 +1617,7 @@ namespace Oce.Solid.Agent.Bench
         private static bool TheDeskIsClean(string[] lineArguments)
         {
             bool closeItYourself = lineArguments != null &&
-                            Array.IndexOf(lineArguments, "--chiudi-gli-scarti") >= 0;
+                            Array.IndexOf(lineArguments, "--close-leftovers") >= 0;
 
             var names = new List<string>();
             try
@@ -1652,7 +1652,7 @@ namespace Oce.Solid.Agent.Bench
                 Console.WriteLine("that are open, so these would make «state: under 16 KB» fail");
                 Console.WriteLine("after an hour of checks, with nothing changed in the code.");
                 Console.WriteLine();
-                Console.WriteLine("  .\\Bench\\bin\\Oce.Solid.Agent.Bench.exe --chiudi-gli-scarti");
+                Console.WriteLine("  .\\Bench\\bin\\Oce.Solid.Agent.Bench.exe --close-leftovers");
                 Console.WriteLine();
                 Console.WriteLine("closes them and starts. CloseDoc DISCARDS unsaved changes:");
                 Console.WriteLine("look at the list above before asking for it.");
@@ -1764,7 +1764,7 @@ namespace Oce.Solid.Agent.Bench
                 bool ok = testCase[1] == null ? (found == null && !string.IsNullOrEmpty(why))
                                           : (itemName == testCase[1]);
                 Check("material «" + testCase[0] + "»", ok,
-                      found == null ? ("rifiutato: " + (why ?? "").Substring(0, Math.Min(70, (why ?? "").Length)))
+                      found == null ? ("refused: " + (why ?? "").Substring(0, Math.Min(70, (why ?? "").Length)))
                                       : ("-> " + itemName));
             }
         }
@@ -1820,7 +1820,7 @@ namespace Oce.Solid.Agent.Bench
                           measurements == null ? ("refused: " + Short(error)) : "did NOT refuse");
                     return;
                 }
-                if (measurements == null) { Check(itemName, false, "fallito: " + Short(error)); return; }
+                if (measurements == null) { Check(itemName, false, "failed: " + Short(error)); return; }
 
                 string boundingBox = measurements.ContainsKey("bounding_box_outer_mm")
                     ? Convert.ToString(measurements["bounding_box_outer_mm"]) : "(not verified)";
@@ -1899,7 +1899,7 @@ namespace Oce.Solid.Agent.Bench
                           measurements == null ? ("refused: " + Short(error)) : "did NOT refuse");
                     return;
                 }
-                if (measurements == null) { Check(itemName, false, "fallito: " + Short(error)); return; }
+                if (measurements == null) { Check(itemName, false, "failed: " + Short(error)); return; }
 
                 double d = measurements.ContainsKey("diameter_machined_mm")
                     ? Convert.ToDouble(measurements["diameter_machined_mm"]) : 0;
@@ -2019,7 +2019,7 @@ namespace Oce.Solid.Agent.Bench
                 docState = ReadState(doc);
                 var bodies = docState.ContainsKey("bodies") ? docState["bodies"] as System.Collections.IList : null;
                 Check("frame: four bodies in the state", bodies != null && bodies.Count == 4,
-                      bodies == null ? "assenti" : bodies.Count + " corpi");
+                      bodies == null ? "absent" : bodies.Count + " bodies");
                 if (bodies != null && bodies.Count > 0)
                 {
                     var c0 = bodies[0] as Dictionary<string, object>;
@@ -2032,7 +2032,7 @@ namespace Oce.Solid.Agent.Bench
                 Check("part: bounding box 1000x800x80",
                       ing != null && Math.Abs(ing[0] - 1000) < 0.5 &&
                       Math.Abs(ing[1] - 800) < 0.5 && Math.Abs(ing[2] - 80) < 0.5,
-                      ing == null ? "assente" : string.Join("x", ing.Select(x => x.ToString("0.##"))));
+                      ing == null ? "absent" : string.Join("x", ing.Select(x => x.ToString("0.##"))));
                 Check("part: no mass without material", !docState.ContainsKey("mass_kg"));
 
                 var feature = docState["feature"] as System.Collections.IList;
@@ -2094,9 +2094,9 @@ namespace Oce.Solid.Agent.Bench
                 // having changed. Half an hour spent hunting for a regression that
                 // was not there.
                 //
-                // `ChiudiScarti --chiudi` alone does not close them: it spares
+                // `ChiudiScarti --close` alone does not close them: it spares
                 // on purpose the documents with a file. The folder is needed:
-                //   CloseLeftovers.exe --chiudi "...\Bench\lavoro"
+                //   CloseLeftovers.exe --close "...\Bench\work"
                 //
                 // The number is printed ALWAYS, not only when it fails: a
                 // message that says the criterion serves to read the greens too.
@@ -2209,7 +2209,7 @@ namespace Oce.Solid.Agent.Bench
 
             var doc = NewPart();
 
-            string model = "oce-vista-";
+            string model = "oce-view-";
             int temporaryBefore = TemporaryFiles(model);
 
             try
@@ -2274,7 +2274,7 @@ namespace Oce.Solid.Agent.Bench
                       before == null ? "unreadable" : "16 numbers compared");
 
                 // ── THE RED CASE ─────────────────────────────────────────
-                var q = new object[] { doc, "assonometrica-della-nonna", 800, 600, null };
+                var q = new object[] { doc, "made-up-isometric", 800, 600, null };
                 var nothing = fire.Invoke(null, q) as byte[];
                 string why = q[4] as string;
                 Check("photograph: an invented view is refused, with the real names",
@@ -2704,7 +2704,7 @@ namespace Oce.Solid.Agent.Bench
             new Shared.SolidWorksSentinel(3);
 
         /// <summary>
-        /// `--fingi-senza-solidworks`: NewDocument answers null regardless.
+        /// `--pretend-no-solidworks`: NewDocument answers null regardless.
         ///
         /// It serves to SEE the sentinel fire on the real bench, not only
         /// in the contract checks. A guard that nobody has ever seen
@@ -2716,8 +2716,8 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// The families of declared cases to run, or null for all
-        /// (`--famiglia`). A run with this flag is partial like one with
-        /// `--gruppo`, and the summary says so.
+        /// (`--family`). A run with this flag is partial like one with
+        /// `--group`, and the summary says so.
         /// </summary>
         private static List<string> _familiesOnly;
 
@@ -2778,7 +2778,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (IsRemote(its))
                 {
-                    var folder = Path.Combine(Path.GetTempPath(), "banco-modelli");
+                    var folder = Path.Combine(Path.GetTempPath(), "bench-models");
                     Directory.CreateDirectory(folder);
                     var copy = Path.Combine(folder, Path.GetFileName(its));
                     File.Copy(its, copy, true);
@@ -2802,7 +2802,7 @@ namespace Oce.Solid.Agent.Bench
                 string old = null;
                 try
                 {
-                    var c = Path.Combine(Path.GetTempPath(), "banco-modelli",
+                    var c = Path.Combine(Path.GetTempPath(), "bench-models",
                                          Path.GetFileName(its));
                     if (File.Exists(c)) old = c;
                 }
@@ -2853,7 +2853,7 @@ namespace Oce.Solid.Agent.Bench
         //
         // NINETY SECONDS, and it is not «how long it should take»: it is how long
         // beyond any doubt. The slowest check of this bench — 85
-        // features on one part, with `--lento` — takes ~26 seconds per
+        // features on one part, with `--slow` — takes ~26 seconds per
         // cut, and no SINGLE call comes near that. A tight value
         // would turn a slow check into a false alarm, and a false
         // alarm switches the guardian off the next day.

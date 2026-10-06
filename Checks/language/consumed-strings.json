@@ -32,9 +32,9 @@
       "what": "the last line of a bench run, partial or whole, that bench.ps1 copies into the report",
       "consumer": {
         "file": "Bench/bench.ps1",
-        "sha1": "79d695e4e282",
+        "sha1": "106f414110d0",
         "kind": "regex",
-        "line_hint": 195
+        "line_hint": 250
       },
       "producers": [
         "Bench/Program.cs"
@@ -196,7 +196,7 @@
       "what": "the summary line of the contract suite, which the release script quotes",
       "consumer": {
         "file": "Checks/prepare-release.ps1",
-        "sha1": "f1146d3f074c",
+        "sha1": "2e6c8082bf2f",
         "kind": "regex",
         "line_hint": 116
       },
@@ -275,9 +275,9 @@
       "what": "the name of the backup the installer makes of a client configuration before touching it",
       "consumer": {
         "file": "Checks/test-installer.js",
-        "sha1": "33146eab3c3e",
+        "sha1": "1dbb93dbf3a9",
         "kind": "regex",
-        "line_hint": 128
+        "line_hint": 153
       },
       "producers": [
         "Installer/Configuration.cs"

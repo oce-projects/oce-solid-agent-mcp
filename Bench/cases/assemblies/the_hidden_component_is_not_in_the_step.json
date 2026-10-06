@@ -25,7 +25,7 @@
   },
   "steps": [
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\the_hidden_component_is_not_in_the_step.step" },
+      "arguments": { "path": "{WORK}\\the_hidden_component_is_not_in_the_step.step" },
       "expect": [
         { "what": "measurements.solids_in_file", "equal_to": 1,
           "why": "MEASURED on 30/9/2026: SOLIDWORKS does not write a hidden component into the STEP" },

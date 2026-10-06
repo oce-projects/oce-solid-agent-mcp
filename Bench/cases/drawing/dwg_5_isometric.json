@@ -2,7 +2,7 @@
  {
   "operation": "model_view",
   "arguments": {
-   "model": "{BANCO}/pezzo/contenitore_c.SLDPRT",
+   "model": "{BENCH}/part/container_c.SLDPRT",
    "view": "isometric",
    "x_mm": 320,
    "y_mm": 220

@@ -33,12 +33,12 @@ namespace Oce.Solid.Agent.Bench
     /// 20 mm from the edge or stay where it was? **It depends on what whoever
     /// drew it wanted**, and until it is declared there is nothing to measure.
     ///
-    ///   * `ancorato_a_assoluto` — «the hole stays at x = 80 in the model»;
-    ///   * `ancorato_a_bordo` — «the hole stays 20 mm from the right edge».
+    ///   * `anchored_to_absolute` — «the hole stays at x = 80 in the model»;
+    ///   * `anchored_to_border` — «the hole stays 20 mm from the right edge».
     ///
     /// **Up to library 0.115.0 the system could express only the
     /// first:** `x_mm: 80` is absolute by construction, and the cases
-    /// `ancorato_a_bordo` all failed — the starting measurement of E6/E7.
+    /// `anchored_to_border` all failed — the starting measurement of E6/E7.
     /// From 0.116.0 the face operations take `anchor` (entry E18:
     /// `cylindrical_cut` and `rectangular_cut`; from 0.118.0 `slot`;
     /// from 0.119.0 `extrude_on_face` and `hole_wizard`): the cases whose
@@ -122,9 +122,9 @@ namespace Oce.Solid.Agent.Bench
         {
             switch (e)
             {
-                case Outcome.Holds: return "REGGE   ";
-                case Outcome.DetachesAndSaysSo: return "LO DICE ";
-                default: return "SILENZIO";
+                case Outcome.Holds: return "HOLDS   ";
+                case Outcome.DetachesAndSaysSo: return "SAYS SO ";
+                default: return "SILENCE ";
             }
         }
 
@@ -170,12 +170,12 @@ namespace Oce.Solid.Agent.Bench
             }
 
             outside.Intent = Text(testCase, "intent") ?? "?";
-            if (outside.Intent != "ancorato_a_assoluto" && outside.Intent != "ancorato_a_bordo")
+            if (outside.Intent != "anchored_to_absolute" && outside.Intent != "anchored_to_border")
             {
                 // WITHOUT THE INTENT THERE IS NO RIGHT ANSWER, and a case that does not
                 // declare it is not a case: it is a bench error.
-                BenchError(itemName, "«intent» must be «ancorato_a_assoluto» or " +
-                                    "«ancorato_a_bordo»: without it, there is no right answer");
+                BenchError(itemName, "«intent» must be «anchored_to_absolute» or " +
+                                    "«anchored_to_border»: without it, there is no right answer");
                 outside.Why = "intent not declared"; return outside;
             }
             if (Text(testCase, "intent_why") == null)
@@ -352,7 +352,7 @@ namespace Oce.Solid.Agent.Bench
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var folder = Path.Combine(bench.FullName, "report");
                 Directory.CreateDirectory(folder);
-                var file = Path.Combine(folder, "regressione.md");
+                var file = Path.Combine(folder, "regression.md");
 
                 var t = new List<string>
                 {
@@ -373,7 +373,7 @@ namespace Oce.Solid.Agent.Bench
                     "",
                     "Without `anchor`, `x_mm: 80` is absolute by construction. With `anchor`",
                     "(entry E18: holes, pockets, slots, bosses and hole-wizard holes) the profile follows",
-                    "the edge. An `ancorato_a_bordo` case that stays silent is an intent",
+                    "the edge. An `anchored_to_border` case that stays silent is an intent",
                     "that the system cannot yet express: the measure of what is missing.",
                     "",
                     "| case | intent | outcome | |",
@@ -381,7 +381,7 @@ namespace Oce.Solid.Agent.Bench
                 };
                 foreach (var e in outcomes)
                     t.Add("| `" + e.Name + "` | " + e.Intent + " | " +
-                          (e.Come == Outcome.Holds ? "regge"
+                          (e.Come == Outcome.Holds ? "holds"
                            : e.Come == Outcome.DetachesAndSaysSo ? "says so" : "**silence**") +
                           " | " + (e.Why ?? "").Replace("|", "/") + " |");
 
@@ -400,7 +400,7 @@ namespace Oce.Solid.Agent.Bench
             }
             catch (Exception ex)
             {
-                Console.WriteLine("could not write regressione.md: " + ex.Message);
+                Console.WriteLine("could not write regression.md: " + ex.Message);
             }
         }
     }

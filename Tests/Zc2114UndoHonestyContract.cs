@@ -267,7 +267,7 @@ namespace Oce.Solid.Agent.ContractTests
             Func<Dictionary<string, object>, string> id = d => (string)identity.Invoke(null, new object[] { d });
             if (id(new Dictionary<string, object> { ["document_title"] = "Part1", ["path"] = "C:\\x\\Part1.SLDPRT" }) != "C:\\x\\Part1.SLDPRT")
                 problems.Add("the path does not win in the identity for the executor");
-            if (id(new Dictionary<string, object> { ["document_title"] = "Part1", ["path"] = "" }) != "titolo:Part1")
+            if (id(new Dictionary<string, object> { ["document_title"] = "Part1", ["path"] = "" }) != "title:Part1")
                 problems.Add("a document never saved is not its title with the executor's prefix");
             if (id(new Dictionary<string, object> { ["document_title"] = "", ["path"] = "" }) != null)
                 problems.Add("an empty identity is not null");

@@ -31,7 +31,7 @@
       "arguments": {
         "component_a": "C1", "face_a": "right",
         "component_b": "C2", "face_b": "down",
-        "variant": "coincidente", "alignment": "opposto"
+        "variant": "coincident", "alignment": "opposite"
       },
       "expect": [
         { "what": "measurements.mates_after", "equal_to": [1, 1],
@@ -44,7 +44,7 @@
       "arguments": {
         "component_a": "C2", "face_a": "right",
         "component_b": "C3", "face_b": "left",
-        "variant": "coincidente", "alignment": "opposto"
+        "variant": "coincident", "alignment": "opposite"
       },
       "expect": [
         { "what": "measurements.mates_after", "equal_to": [2, 1],
@@ -57,7 +57,7 @@
       "arguments": {
         "component_a": "C2", "face_a": "up",
         "component_b": "C3", "face_b": "left",
-        "variant": "coincidente", "alignment": "opposto"
+        "variant": "coincident", "alignment": "opposite"
       },
       "must_fail": {
         "message_includes": ["C2", "«up»", "in the assembly"],

@@ -380,7 +380,7 @@ namespace Oce.Solid.Agent.ContractTests
                 int butt1 = (int)Call(sw, "TrimEndCondition", "butt1");
                 int butt2 = (int)Call(sw, "TrimEndCondition", "butt2".ToUpperInvariant());
                 int none = (int)Call(sw, "TrimEndCondition", "none");
-                int unknown = (int)Call(sw, "TrimEndCondition", "sconosciuta");
+                int unknown = (int)Call(sw, "TrimEndCondition", "unknown");
                 int missing = (int)Call(sw, "TrimEndCondition", (object)null);
                 Check("N22: the four catalogue words give Trim 4, Miter 1, Butt1 2, Butt2 3, whatever their case",
                       trim == 4 && miter == 1 && butt1 == 2 && butt2 == 3,

@@ -46,8 +46,8 @@ using SolidWorks.Interop.gtswutilities;
 //
 //  USAGE
 //      .\Checks\Thickness\bin\Thickness.exe
-//      .\Checks\Thickness\bin\Thickness.exe --tieni     leaves the part open
-//      .\Checks\Thickness\bin\Thickness.exe --carica    loads Utilities into the
+//      .\Checks\Thickness\bin\Thickness.exe --keep     leaves the part open
+//      .\Checks\Thickness\bin\Thickness.exe --load    loads Utilities into the
 //                                                        session if it is not there
 // =============================================================================
 
@@ -75,8 +75,8 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
-        bool loadFlag = Array.IndexOf(arguments, "--carica") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
+        bool loadFlag = Array.IndexOf(arguments, "--load") >= 0;
 
         Console.WriteLine();
         Console.WriteLine("THICKNESS — the measurement that sizes Z-H1 (SOLIDWORKS Utilities)");
@@ -102,7 +102,7 @@ internal static class Program
         {
             // LOAD INTO THE SESSION, NOT AT STARTUP. `LoadAddIn` turns it on for
             // this session and does not touch AddInsStartup: it is removed by closing
-            // SOLIDWORKS, or with UnloadAddIn. Only with --carica: turning on a
+            // SOLIDWORKS, or with UnloadAddIn. Only with --load: turning on a
             // module in the session of whoever works is their choice, not the
             // probe's.
             string dll = Path.Combine(SolidWorksRoot(sw), "sldUtils", "SwLoaderSw.dll");
@@ -116,7 +116,7 @@ internal static class Program
             Console.WriteLine("UTILITIES IS NOT LOADED in this session.");
             Console.WriteLine("  That does not mean it is not there (K20 finds it registered). Tick");
             Console.WriteLine("  'SOLIDWORKS Utilities' in Tools > Add-Ins, or else");
-            Console.WriteLine("  rilancia con --carica.");
+            Console.WriteLine("  run again with --load.");
             return 3;
         }
         Says("Utilities caricato: " + addin.GetType().Name);
@@ -154,7 +154,7 @@ internal static class Program
             Console.WriteLine("  threshold    answer    minimum     maximum     critical faces");
             Console.WriteLine("  ----------   --------  ----------  ----------  --------------");
 
-            // --esplora: a scan of thresholds, to know how
+            // --explore: a scan of thresholds, to know how
             // the API answers when the threshold drops below the minimum thickness. The first
             // real run gave «15» with the threshold at 1.5 mm, without analysing:
             // before calling it «there is nothing below» or «error» it is looked at
@@ -162,7 +162,7 @@ internal static class Program
             // `System.Environment` spelled out: the SOLIDWORKS interop has its own
             // `Environment`, and the bare name does not compile (it has already happened to the
             // bracket probe).
-            if (Array.IndexOf(System.Environment.GetCommandLineArgs(), "--esplora") >= 0)
+            if (Array.IndexOf(System.Environment.GetCommandLineArgs(), "--explore") >= 0)
             {
                 foreach (double s in new[] { 0.0010, 0.0015, 0.0019, 0.00199, 0.0020, 0.00201, 0.0021, 0.0025, 0.0030, 0.0050, 0.0099, 0.0101, 0.0150 })
                     Analyze(utility, body, s, s.ToString("0.00000") + " m");
@@ -182,7 +182,7 @@ internal static class Program
             // the analysis does not start and answers **12009**,
             // gtWarningTckThinAnalRangeBelowMaxThick — a WARNING that says
             // «below this threshold there is nothing». And straddling the minimum
-            // (2.00 and 2.01 mm) it answers 15. Measured with --esplora on thirteen
+            // (2.00 and 2.01 mm) it answers 15. Measured with --explore on thirteen
             // thresholds: below 2 mm always 12009; from 2.1 to 9.9 mm always 2 faces and
             // minimum 2.00; above 10 mm, 3 faces. *The probe had written the
             // criterion before knowing how the API says «nothing», and mistook it

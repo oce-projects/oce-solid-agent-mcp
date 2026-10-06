@@ -180,14 +180,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         /// <summary>
         /// THE BENCH'S OWN LOG CHECK RUNS ON A FULL BENCH (1/10/2026). bench.ps1
-        /// always passes --libreria with the default path, and the bench took any
-        /// --libreria for «another library»: the check was skipped on every full
+        /// always passes --library with the default path, and the bench took any
+        /// --library for «another library»: the check was skipped on every full
         /// run. Now only a different file counts; this reads the source, and is
-        /// seen red on a copy where every --libreria is «another» again.
+        /// seen red on a copy where every --library is «another» again.
         /// </summary>
         private static void BenchChecksItsLogOnAFullRun()
         {
-            const string Label = "on a full bench (bench.ps1 passes --libreria with the default path) the bench's lookup log is checked, not skipped";
+            const string Label = "on a full bench (bench.ps1 passes --library with the default path) the bench's lookup log is checked, not skipped";
             var file = Path.Combine(Root(), "Bench", "Program.cs");
             if (!File.Exists(file)) { Check(Label, false, "Bench/Program.cs not found"); return; }
             var code = WithoutComments(File.ReadAllText(file));
@@ -197,8 +197,8 @@ namespace Oce.Solid.Agent.ContractTests
             var mutant = Regex.Replace(code, @"_anotherLibrary\s*=\s*!\s*SameLibraryPath\s*\([^;]*;", "_anotherLibrary = true;");
             bool good = ok(code), seenRed = !ok(mutant);
             Check(Label, good && seenRed,
-                  !good ? "Bench/Program.cs does not compare the --libreria path with the default one before skipping"
-                        : !seenRed ? "the check did not turn red on the copy where every --libreria is another library"
+                  !good ? "Bench/Program.cs does not compare the --library path with the default one before skipping"
+                        : !seenRed ? "the check did not turn red on the copy where every --library is another library"
                                    : "only a different library file skips the check (seen red on the old line)");
         }
 

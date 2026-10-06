@@ -64,19 +64,19 @@
 
   <!-- THE WIN32 VERSION FROM VERSION.txt (entry H14): same rule as the bridge.
        Right click -> Properties -> Details on Installer.exe said 0.0.0.0.-->
-  <Target Name="VersioneDaFile" BeforeTargets="CoreCompile">
+  <Target Name="VersionFromFile" BeforeTargets="CoreCompile">
     <ReadLinesFromFile File="$(MSBuildThisFileDirectory)..\VERSION.txt">
-      <Output TaskParameter="Lines" PropertyName="VersionePonte" />
+      <Output TaskParameter="Lines" PropertyName="BridgeVersion" />
     </ReadLinesFromFile>
     <PropertyGroup>
-      <VersionePonte>$(VersionePonte.Trim())</VersionePonte>
-      <FileVersione>$(IntermediateOutputPath)Versione.g.cs</FileVersione>
+      <BridgeVersion>$(BridgeVersion.Trim())</BridgeVersion>
+      <VersionFile>$(IntermediateOutputPath)Version.g.cs</VersionFile>
     </PropertyGroup>
-    <WriteLinesToFile File="$(FileVersione)" Overwrite="true" WriteOnlyWhenDifferent="true"
-      Lines="[assembly: System.Reflection.AssemblyVersion(&quot;$(VersionePonte).0&quot;)];[assembly: System.Reflection.AssemblyFileVersion(&quot;$(VersionePonte).0&quot;)];[assembly: System.Reflection.AssemblyInformationalVersion(&quot;$(VersionePonte)&quot;)]" />
+    <WriteLinesToFile File="$(VersionFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="[assembly: System.Reflection.AssemblyVersion(&quot;$(BridgeVersion).0&quot;)];[assembly: System.Reflection.AssemblyFileVersion(&quot;$(BridgeVersion).0&quot;)];[assembly: System.Reflection.AssemblyInformationalVersion(&quot;$(BridgeVersion)&quot;)]" />
     <ItemGroup>
-      <Compile Include="$(FileVersione)" />
-      <FileWrites Include="$(FileVersione)" />
+      <Compile Include="$(VersionFile)" />
+      <FileWrites Include="$(VersionFile)" />
     </ItemGroup>
   </Target>
 </Project>

@@ -8,7 +8,7 @@ green.
 They are run like this, on an empty document:
 
 ```
-Checks\CloseLeftovers\bin\CloseLeftovers.exe --chiudi
+Checks\CloseLeftovers\bin\CloseLeftovers.exe --close
 Checks\NewPart\bin\NewPart.exe
 node Bench\run_plans.js Bench\cases\bridge\e2_block.json
 node Bench\run_plans.js Bench\cases\bridge\e2_case_a.json

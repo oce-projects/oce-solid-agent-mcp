@@ -11,7 +11,7 @@
           { "operation": "extrude_rectangle",
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
-      { "name": "coperchio",
+      { "name": "cover",
         "position_mm": [0, 40, 0],
         "steps": [
           { "operation": "extrude_rectangle",
@@ -24,7 +24,7 @@
       "arguments": {
         "component_a": "C1", "face_a": "up",
         "component_b": "C2", "face_b": "down",
-        "variant": "coincidente", "alignment": "opposto"
+        "variant": "coincident", "alignment": "opposite"
       },
       "expect": [
         { "what": "measurements.mates_after", "equal_to": [1, 1],

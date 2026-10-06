@@ -13,7 +13,7 @@
                     "tolerance_why": "pi inside: pi x 15^2 x 60 = 42411.5008" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\the_turned_diameter_is_not_an_orphan.sldprt" },
+      "arguments": { "path": "{WORK}\\the_turned_diameter_is_not_an_orphan.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view hangs on the FILE of the part" } ] },
 
     { "operation": "create_drawing",
@@ -21,7 +21,7 @@
       "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "from here on the bench works on the drawing" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\the_turned_diameter_is_not_an_orphan.sldprt" },
+      "arguments": { "model": "{WORK}\\the_turned_diameter_is_not_an_orphan.sldprt" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side" } ] },
 
     { "operation": "drawing_dimension",

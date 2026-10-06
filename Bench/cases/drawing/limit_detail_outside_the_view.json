@@ -19,7 +19,7 @@
           "why": "same part as the twin up to the step that changes" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\limit_detail_outside_the_view.sldprt" },
+      "arguments": { "path": "{WORK}\\limit_detail_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "the part must be on disk before the view names it" } ] },
@@ -31,7 +31,7 @@
           "why": "the refusal must be the one on the CIRCLE, not the one on «it is not a drawing»" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\limit_detail_outside_the_view.sldprt" },
+      "arguments": { "model": "{WORK}\\limit_detail_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
           "why": "and not the one on «there is nothing to detail» either: the view is there, and it is the circle that is wrong" } ] },

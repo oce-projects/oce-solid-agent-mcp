@@ -507,17 +507,17 @@ namespace Oce.Solid.Agent.Core
             set
             {
                 _archiveFolder =
-                    string.IsNullOrWhiteSpace(value) ? "Riscontro" : value.Trim();
+                    string.IsNullOrWhiteSpace(value) ? "Oce.Solid.Agent" : value.Trim();
             }
         }
-        private static string _archiveFolder = "Riscontro";
+        private static string _archiveFolder = "Oce.Solid.Agent";
 
         private static string ReadArchivePath()
         {
             string folder = Path.Combine(
                 System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
                 _archiveFolder);
-            return Path.Combine(folder, "sezioni-profili.txt");
+            return Path.Combine(folder, "profile-sections.txt");
         }
 
         /// <summary>

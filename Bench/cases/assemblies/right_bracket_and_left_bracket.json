@@ -10,7 +10,7 @@
           { "operation": "extrude_rectangle",
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
-      { "name": "staffa",
+      { "name": "bracket",
         "position_mm": [40, 10, 30],
         "steps": [
           { "operation": "extrude_rectangle",

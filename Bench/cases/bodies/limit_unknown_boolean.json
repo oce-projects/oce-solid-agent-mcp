@@ -1,7 +1,7 @@
 {
   "name": "limit_unknown_boolean",
   "family": "bodies",
-  "why": "«fondi» is not one of the three. An unknown name must be refused saying which ones exist: if it passed silently it would end up in the enum as a number, and a value outside the three consumes the wrong body without error.",
+  "why": "«fuse» is not one of the three. An unknown name must be refused saying which ones exist: if it passed silently it would end up in the enum as a number, and a value outside the three consumes the wrong body without error.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",
@@ -13,9 +13,9 @@
                      "copy": true, "copy_count": 1 },
       "expect": [ { "what": "bodies", "equal_to": 2 } ] },
     { "operation": "combine_bodies",
-      "arguments": { "operation": "fondi" },
+      "arguments": { "operation": "fuse" },
       "must_fail": {
-        "message_includes": ["fondi", "union", "subtract", "intersect"],
+        "message_includes": ["fuse", "union", "subtract", "intersect"],
         "volume_unchanged": true,
         "no_extra_feature": true,
         "twin": "merge_two_cubes" } }

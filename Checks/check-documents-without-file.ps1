@@ -89,14 +89,14 @@ foreach ($itemName in $names) {
 Write-Host ""
 Write-Host "=== Inside the add-in"
 
-# The add-in lives in another repository. The path is given with RISCONTRO_ADDIN.
+# The add-in lives in another repository. The path is given with OCE_ADDIN_SOURCES.
 #
 # THERE USED TO BE A FALLBACK HERE, and the fallback was the path of THIS machine to
 # ANOTHER repository that is not publishable. On every other machine it did not
 # exist and the check skipped this half saying so - that is, the fallback was of
 # no use to anybody except whoever wrote it, and meanwhile it published where
 # it keeps its things. Without it, the message below already explains what to do.
-$addin = $env:RISCONTRO_ADDIN
+$addin = $env:OCE_ADDIN_SOURCES
 
 # `-not $addin` BEFORE `Test-Path`, and it is not a matter of style: with the
 # fallback gone the variable can be empty, and `Test-Path $null` in PowerShell 5.1
@@ -105,9 +105,9 @@ $addin = $env:RISCONTRO_ADDIN
 # would carry on down the wrong branch after printing it.
 if (-not $addin -or -not (Test-Path $addin)) {
     if ($addin) { Write-Host "  -- add-in sources not reachable from here ($addin)." }
-    else        { Write-Host "  -- RISCONTRO_ADDIN is not set." }
+    else        { Write-Host "  -- OCE_ADDIN_SOURCES is not set." }
     Write-Host "     THIS HALF WAS NOT CHECKED."
-    Write-Host "     Say where they are with RISCONTRO_ADDIN to check it."
+    Write-Host "     Say where they are with OCE_ADDIN_SOURCES to check it."
 } else {
     foreach ($itemName in $names) {
         $foundOnes = @(Get-ChildItem -Path $addin -Filter *.cs -Recurse -ErrorAction SilentlyContinue |

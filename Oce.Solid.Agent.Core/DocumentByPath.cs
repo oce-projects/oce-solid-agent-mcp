@@ -530,7 +530,7 @@ namespace Oce.Solid.Agent.Core
         /// A PATH THAT IS NOT ON DISK IS NOT A NAME (full bench on 0.144.0,
         /// 29/9/2026, group iges_solids). A part reopened from an IGES with
         /// LoadFile4 was never saved, yet GetPathName answered
-        /// «...\lavoro\gp3_solidi.SLDPRT», a file that does not exist: the stem
+        /// «...\work\gp3_solidi.SLDPRT», a file that does not exist: the stem
         /// of the IGES with the part extension. CloseDoc given that path closed
         /// the reopened part AND the original part the export was made from
         /// («Parte2115», never saved), discarding its changes; the collateral

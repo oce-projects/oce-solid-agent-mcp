@@ -1,7 +1,7 @@
 {
   "name": "variable_does_not_override_the_chamfer",
   "family": "dimensions",
-  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding 7. A dimension linked to an equation is no longer changed by set_dimension (it is driven): it is changed with global_variable — which, however, had none of the guards of set_dimension. A 120 x 80 x 20 plate with a chamfer of 2 on a long top edge, the thickness linked to «parete». Bring parete to 1: the chamfer does not fit, SOLIDWORKS rebuilds cleanly and changes the shape (the same as case r05 for set_dimension). The answer was «succeeded» and the variable stayed written. Now it is refused and the variable of before is put back; the next step proves it: the starting volume is the one with parete = 20.",
+  "why": "ADVERSARIAL REVIEW OF 27/9/2026, finding 7. A dimension linked to an equation is no longer changed by set_dimension (it is driven): it is changed with global_variable — which, however, had none of the guards of set_dimension. A 120 x 80 x 20 plate with a chamfer of 2 on a long top edge, the thickness linked to «wall». Bring wall to 1: the chamfer does not fit, SOLIDWORKS rebuilds cleanly and changes the shape (the same as case r05 for set_dimension). The answer was «succeeded» and the variable stayed written. Now it is refused and the variable of before is put back; the next step proves it: the starting volume is the one with wall = 20.",
   "defect_caught": "A global variable that silently breaks a chamfer; the refusal that leaves the variable written.",
   "start": { "new_part": true },
   "steps": [
@@ -13,24 +13,24 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05,
                     "tolerance_why": "192000 minus 2 x 2 / 2 x 120" } ] },
     { "operation": "global_variable",
-      "arguments": { "name": "parete", "value_mm": 20 },
+      "arguments": { "name": "wall", "value_mm": 20 },
       "expect": [ { "what": "measurements.is_new", "equal_to": true } ] },
     { "operation": "link_dimension",
-      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"parete\"" },
+      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"wall\"" },
       "expect": [
         { "what": "measurements.value_after_mm", "equal_to": 20 },
         { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05, "tolerance_why": "the same: the thickness does not change" } ] },
     { "operation": "global_variable",
-      "arguments": { "name": "parete", "value_mm": 1 },
+      "arguments": { "name": "wall", "value_mm": 1 },
       "must_fail": {
         "message_includes": ["does not fit", "as it was"],
         "twin": "wall_has_a_name" } },
     { "operation": "global_variable",
-      "arguments": { "name": "parete", "value_mm": 15 },
+      "arguments": { "name": "wall", "value_mm": 15 },
       "expect": [
         { "what": "measurements.volume_before_mm3", "equal_to": 191760, "tolerance": 0.05,
           "tolerance_why": "the same",
-          "why": "THE REFUSAL PUT BACK parete = 20: the starting part of this step is the one from before" },
+          "why": "THE REFUSAL PUT BACK wall = 20: the starting part of this step is the one from before" },
         { "what": "volume_mm3", "equal_to": 143760, "tolerance": 0.05,
           "tolerance_why": "120 x 80 x 15 minus the chamfer, 240" } ] }
   ]

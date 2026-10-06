@@ -2,7 +2,7 @@
   "name": "r10_shell_bottom_moves",
   "family": "regression",
   "why": "IT IS THE CASE. A hollowed box, a blind hole in the bottom, and the box becomes taller. The bottom still exists -- no face disappears -- but it has moved by 28 mm. A hole anchored to where the bottom was before ends up in the void, and the part comes out different from the confirmed one.",
-  "intent": "ancorato_a_bordo",
+  "intent": "anchored_to_border",
   "intent_why": "«the hole in the bottom» means in the bottom. The box is open underneath and the bottom is the ceiling, 5 thick: raising it from 52 to 80 the bottom goes from z = 47 to z = 75. A hole that stays at absolute z is no longer in the bottom, and there is no longer any material there to remove.",
   "build": [
     {

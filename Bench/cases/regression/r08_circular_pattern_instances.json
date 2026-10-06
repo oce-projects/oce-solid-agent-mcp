@@ -2,7 +2,7 @@
   "name": "r08_circular_pattern_instances",
   "family": "regression",
   "why": "Six holes repeated around the axis of a cylinder, and the outer cylinder grows. The circular pattern is anchored to the axis, not to the surface: changing the outer diameter must touch neither the number of holes nor the radius they sit on.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the bolt circle is where the drawing puts it. Thickening the outside from 100 to 140 leaves the six holes where they are: we measure that they are still six, with the same centres and the same diameter.",
   "build": [
     {

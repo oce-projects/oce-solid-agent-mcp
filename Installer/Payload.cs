@@ -104,7 +104,7 @@ namespace Oce.Solid.Agent.Installer
                     return true;
                 }
                 using (var s = File.OpenRead(nextTo)) WriteWithCare(s, destination);
-                tell("copiato " + file + " (" + Byte(destination) + ")");
+                tell("copied " + file + " (" + Byte(destination) + ")");
                 return true;
             }
 
@@ -125,7 +125,7 @@ namespace Oce.Solid.Agent.Installer
             var folder = Path.GetDirectoryName(destination);
             if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
-            var temporary = destination + ".parziale";
+            var temporary = destination + ".partial";
             try
             {
                 using (var f = File.Create(temporary)) source.CopyTo(f);

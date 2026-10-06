@@ -12,7 +12,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\z_c21_13_ap242.stp", "protocol": "AP242",
+      "arguments": { "path": "{WORK}\\z_c21_13_ap242.stp", "protocol": "AP242",
                      "reopen_and_compare": true },
       "must_fail": {
         "message_includes": ["SOLIDWORKS MBD", "swPublishStep242_MBDLicenseNotAvailable", "AP214", "AP203"],

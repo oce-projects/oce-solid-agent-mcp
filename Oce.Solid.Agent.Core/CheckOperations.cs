@@ -344,10 +344,10 @@ namespace Oce.Solid.Agent.Core
         private static string BodyTypeName(int typ)
         {
             if (typ == (int)swBodyType_e.swSolidBody) return "solid";
-            if (typ == (int)swBodyType_e.swSheetBody) return "foglio";
-            if (typ == (int)swBodyType_e.swWireBody) return "filo";
-            if (typ == (int)swBodyType_e.swEmptyBody) return "vuoto";
-            return "tipo " + typ;
+            if (typ == (int)swBodyType_e.swSheetBody) return "sheet";
+            if (typ == (int)swBodyType_e.swWireBody) return "wire";
+            if (typ == (int)swBodyType_e.swEmptyBody) return "empty";
+            return "type " + typ;
         }
 
         private static string ABodyOf(string itemName)

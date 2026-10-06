@@ -11,20 +11,20 @@
 #  worktree, compiling, remembering to delete it.
 #
 #      .\Checks\library-of-the-time.ps1 0.70.0
-#      -> ...\libreria-di-allora\0.70.0\Oce.Solid.Agent.Core.dll
+#      -> ...\library-of-the-time\0.70.0\Oce.Solid.Agent.Core.dll
 #
-#      .\Bench\bench.ps1 -Library <that path> -Group casi
+#      .\Bench\bench.ps1 -Library <that path> -Group cases
 #
 #  WHY IT WORKS, AND SINCE WHEN. In this repository **a commit is a
 #  version**: `git log` on `AssemblyInfo.cs` shows one line per number, without
 #  gaps. So the DLL does not need to be kept anywhere -- it is rebuilt.
 #
-#  THE HISTORICAL COMPARISON STARTS AT LIBRARY 0.150.1 (rename window 3,
-#  decision D11). Before it the library, its namespaces, its types and the
-#  case names had Italian names, and the bench of today reads none of them;
+#  THE HISTORICAL COMPARISON STARTS AT LIBRARY 0.150.2 (W3.1-bis.10b,
+#  decision D11). Before it the library, its namespaces, its types, the
+#  case names and some of the values the cases name had Italian names, and the bench of today reads none of them;
 #  before 0.52.0 the operations lived in `OpenPDM.SwAddin`. The bench says
 #  so and exits 2 instead of crashing (measured on 0.30.2). A defect guarded
-#  before 0.150.1 is proven red on the library of that time with the bench
+#  before 0.150.2 is proven red on the library of that time with the bench
 #  of that time (its own commit), not with this one.
 # =============================================================================
 
@@ -42,7 +42,7 @@ param(
 $ErrorActionPreference = "Continue"
 
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$Where = Join-Path $env:TEMP ("libreria-di-allora\" + $Version)
+$Where = Join-Path $env:TEMP ("library-of-the-time\" + $Version)
 
 function Die($message) {
     Write-Output ""
@@ -107,6 +107,6 @@ Write-Output ""
 Write-Output $dll
 Write-Output ""
 Write-Output "use it like this:"
-Write-Output ("  .\Bench\bench.ps1 -Library """ + $dll + """ -Group casi -SkipCompilation")
+Write-Output ("  .\Bench\bench.ps1 -Library """ + $dll + """ -Group cases -SkipCompilation")
 Write-Output ""
 Write-Output ("and remove it like this:  .\Checks\library-of-the-time.ps1 " + $Version + " -Clean")

@@ -55,7 +55,7 @@ namespace Oce.Solid.Agent.Bridge
 
         /// <summary>
         /// Where the drawing library is. It can be changed with
-        /// `RISCONTRO_DISEGNO`.
+        /// `OCE_DRAWING_LIBRARY`.
         ///
         /// **It is no longer `OpenPDM.SwAddin.dll`.** The operations left
         /// the add-in and live in `Oce.Solid.Agent.Core.dll` (add-in 0.47.0): the
@@ -178,7 +178,7 @@ namespace Oce.Solid.Agent.Bridge
         public string Attach()
         {
             FindTheSolidWorksLibraries();
-            LibraryPath = System.Environment.GetEnvironmentVariable("RISCONTRO_DISEGNO");
+            LibraryPath = System.Environment.GetEnvironmentVariable("OCE_DRAWING_LIBRARY");
             if (string.IsNullOrWhiteSpace(LibraryPath))
                 LibraryPath = System.Environment.GetEnvironmentVariable("OPENPDM_ADDIN");
             if (string.IsNullOrWhiteSpace(LibraryPath))
@@ -203,7 +203,7 @@ namespace Oce.Solid.Agent.Bridge
                 //
                 // `SwOperations` comes from the project reference, so
                 // .NET loads it by itself from the executable's folder. But
-                // whoever set RISCONTRO_DISEGNO or OPENPDM_ADDIN
+                // whoever set OCE_DRAWING_LIBRARY or OPENPDM_ADDIN
                 // expects it to serve some purpose, and a variable that does
                 // nothing is worse than one that does not exist: the type is touched and
                 // it is seen WHERE it really came from, then it is compared
@@ -887,7 +887,7 @@ namespace Oce.Solid.Agent.Bridge
         /// <summary>
         /// The plan, on the document the caller has already checked (Z-C21.14,
         /// review F7). <paramref name="expectedDocument"/> is that document's
-        /// identity in the executor's form (its path, or «titolo:» and its
+        /// identity in the executor's form (its path, or «title:» and its
         /// title when it has never been saved): the executor reads the active
         /// document once and stops before writing anything when it is not this
         /// one, instead of running on whatever window came to the front between

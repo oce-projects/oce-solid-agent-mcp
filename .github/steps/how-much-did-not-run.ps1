@@ -6,7 +6,7 @@
 #  mark: whoever looks at it does not open the log. The count of skipped tests goes
 #  into the summary of the run, where it is read without opening anything.
 #
-#  It reads `prove.xml`, which is JUnit and already carries `<skipped>` per case
+#  It reads `results.xml`, which is JUnit and already carries `<skipped>` per case
 #  and `skipped=` per suite.
 #
 #      .\.github\steps\how-much-did-not-run.ps1
@@ -14,7 +14,7 @@
 
 [CmdletBinding()]
 param(
-    [string] $File = 'Tests\bin\prove.xml'
+    [string] $File = 'Tests\bin\results.xml'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +27,7 @@ function WriteLine($lines) {
 }
 
 if (-not (Test-Path $File)) {
-    WriteLine @("### prove.xml was not written ($File)")
+    WriteLine @("### results.xml was not written ($File)")
     exit 0
 }
 

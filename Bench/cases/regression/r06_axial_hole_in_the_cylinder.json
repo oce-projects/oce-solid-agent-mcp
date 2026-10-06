@@ -2,7 +2,7 @@
   "name": "r06_axial_hole_in_the_cylinder",
   "family": "regression",
   "why": "A cylinder with a hole on the axis, and the cylinder gets thinner. The hole is on the axis: whatever the outer diameter does, the hole stays where it is and as big as it is. It is a case that must hold, and its opposite -- an axial hole that moves -- would be visible to the eye.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "a hole on the axis is on the axis: bringing the outer diameter from 100 to 60 does not touch it. We measure that two cylinders remain, the outer one of 60 and the hole of 20, both centred at (0,0).",
   "build": [
     {

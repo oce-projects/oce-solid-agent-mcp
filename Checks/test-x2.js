@@ -47,7 +47,7 @@ const BRIDGE = path.join(ROOT, 'bin', 'oce-solid-agent-mcp.exe');
 const NEW = path.join(ROOT, 'Checks', 'NewPart', 'bin', 'NewPart.exe');
 const CHANGE = path.join(ROOT, 'Checks', 'ChangeByHand', 'bin', 'ChangeByHand.exe');
 const CLOSE = path.join(ROOT, 'Checks', 'CloseLeftovers', 'bin', 'CloseLeftovers.exe');
-const WORK = path.join(ROOT, 'Bench', 'lavoro');
+const WORK = path.join(ROOT, 'Bench', 'work');
 const PART = path.join(WORK, 'prova_x2.SLDPRT');
 
 let trouble = 0;
@@ -155,7 +155,7 @@ async function main() {
   // CLEAN DESK FIRST, as `bench.ps1` does at step 3: a probe that
   // inherits the documents of the previous run measures those too.
   try { fs.mkdirSync(WORK, { recursive: true }); } catch (e) {}
-  try { execFileSync(CLOSE, ['--chiudi', WORK], { stdio: 'ignore' }); } catch (e) {}
+  try { execFileSync(CLOSE, ['--close', WORK], { stdio: 'ignore' }); } catch (e) {}
   try { if (fs.existsSync(PART)) fs.unlinkSync(PART); } catch (e) {}
   try { execFileSync(NEW, { stdio: 'ignore' }); }
   catch (e) { console.log('NewPart did not start: ' + e.message); process.exit(1); }

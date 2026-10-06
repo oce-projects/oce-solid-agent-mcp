@@ -25,7 +25,7 @@
           "why": "192000 minus the pocket 60x30x10 = 18000. It is the cavity the section must show" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\section_cuts_the_part.sldprt" },
+      "arguments": { "path": "{WORK}\\section_cuts_the_part.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a drawing is made on a saved part: if the save warns, the view might point to a file that is not there" } ] },
@@ -37,7 +37,7 @@
           "why": "from here on the active document is another one" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\section_cuts_the_part.sldprt" },
+      "arguments": { "model": "{WORK}\\section_cuts_the_part.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
           "why": "without a model view there is nothing to section" } ] },

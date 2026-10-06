@@ -32,6 +32,167 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.10b, the names the code still held in Italian (branch `w31bis-10b`) · bridge 0.127.3 · library 0.150.2
+
+**Why this window exists.** Window .11 makes the language detector blocking at 0
+everywhere outside closed classes of exceptions. After .10 what still kept it
+above 0 were names the code itself holds, and that a reader somewhere else looks
+for: the words the programs print for the bench and for the contract suite, the
+options of the bench and of the probes, environment variables, the values the
+model passes and reads, a few file names, the id of the CI job and some texts of
+the installer. This window renames them, **every producer and every reader in
+the same commit, no alias** (decision L0 of H19; the aliases of the input are
+removed before the tag anyway). Each name was found with a script on every
+producer and every consumer (C#, JavaScript, PowerShell, YAML, JSON cases,
+documents), and the old name was searched for again in the whole tree afterwards:
+none is left outside this file, the name map, the baseline, the lexicon, the window
+tools of W3.1-bis and the record `Bench/report/last.json`. The old names are
+quoted between «» below, as the entries of the rename windows do.
+
+1. **The summary lines and their readers.**
+   - The bench prints `N tests, M failed` (it printed «N prove, M fallite») and
+     `N tests in K groups` (it printed «N prove in K gruppi»); the readers are
+     `Bench/bench.ps1`, `Bench/README.md`, the contract `BenchTests` and the
+     consumed-strings inventory.
+   - The contract suite prints `N checks, M failed` (it printed «N controlli, M falliti»)
+     and `root:` (it printed «radice:»); the reader is `Checks/prepare-release.ps1`,
+     which now also stops with a message when the suite printed no summary line
+     (it would have thrown on a null).
+   - The JUnit file is `results.xml` (it was «prove.xml»): writer `Tests/Program.cs`;
+     readers `.github/steps/how-much-did-not-run.ps1`, the upload step of
+     `tests.yml`, `Checks/language/snapshot-scripts.json`, `Tests/README.md`.
+   - The files the bench writes: `last-run.txt`, `in-progress.txt`, `history.txt`,
+     `regression.md`, `mutations.md`, `without-waiting.txt` (they were «ultimo-giro.txt»,
+     «in-corso.txt», «storico.txt», «regressione.md», «mutazioni.md», «senza-attesa.txt»,
+     and the ignore rules of the same files); the folders `Bench\work` and `Bench\views`
+     («lavoro», «viste»); the lines `report:`, `exit:`, `building`, `SKIPPED:`,
+     `twins N/M green`, `N mutations, M red`; the labels of the regression table `HOLDS`,
+     `SAYS SO`, `SILENCE`; the session files `step_N.json` and `state_N.json`; the
+     placeholders of the cases `{WORK}` (142 uses in 78 files), `{PROFILES}` (42 in 22),
+     `{DATA}` (11 in 6), `{BENCH}` of the plans (23 in 21), and the copy of the frame
+     profile `FRAME_COPY.SLDLFP`.
+   - **Found while proving that nothing dangles.** `Bench/bench.ps1` (translated in
+     .10) read the line `library X.Y.Z`, but the bench still printed «libreria X.Y.Z»:
+     the `library` field of the report would have said «(not declared)» on the next
+     run, and the freshness contract would have judged the wrong library. And the
+     bench's own check of the view photograph looked for the temporary files «oce-vista-*»
+     while the library names them `oce-view-*` now. Both are fixed. Three entries of
+     `consumed-strings.json` (`bench-summary-line`, `release-contract-summary`,
+     `installer-probe-backup-name`) went red when their consumer changed, as designed,
+     and were bound again to the new lines.
+   - `Bench/report/last.json` is the record of a run made before this window: its
+     `summary` keeps the words and the library number of that run (0.150.1). It is
+     not edited by hand; the next full run rewrites it. The freshness contract is
+     red until then, exactly as it already was.
+2. **The options, no alias.** Bench and `bench.ps1`: `--library`, `--slow`,
+   `--mutate`, `--regression`, `--group` and `--groups`, `--family`,
+   `--pretend-no-solidworks`, `--close-leftovers`, `--session`; `CloseLeftovers`:
+   `--close`, `--spare`; `run_plans.js` and `measure_accumulation.js`: `--clean`,
+   `--close`, `--spare`; the probes: `--keep` (nine of them), `--load`, `--explore`,
+   `--head`, `--high`, `--append`, `--with-inferences`; the catalogue exporter:
+   `--check`. They were «--libreria», «--lento», «--muta», «--regressione», «--gruppo»,
+   «--gruppi», «--famiglia», «--fingi-senza-solidworks», «--chiudi-gli-scarti»,
+   «--sessione», «--chiudi», «--risparmia», «--pulisci», «--tieni», «--carica»,
+   «--esplora», «--testa», «--alta», «--aggiungi», «--con-inferenze», «--controlla»
+   (about 160 uses in 29 files). The 21 names of the bench groups are English too
+   (`cases`, `views`, `frames`, `holes`, `state`, `table`, ...), and the texts that
+   name them.
+3. **Environment variables.** `OCE_WELDMENT_PROFILES` (it was «PROFILI_SALDATURA»: 63
+   uses in 18 files, installer included), `OCE_WRITE_ROOT`, `OCE_READ_ONLY_FOLDERS`,
+   `OCE_DRAWING_LIBRARY`, `OCE_CATALOG`, `OCE_QUESTION_REGISTRY` (the five variables
+   whose names began with «RISCONTRO»: 47 uses in 15 files), `OCE_ADDIN_SOURCES`, `OCE_PRETEND_NO_INTEROP`,
+   `OCE_DOCUMENT_TEMPLATES`, `OCE_BRIDGE` and `OCE_INSTALLER` (the two variables of
+   the bench scripts and of `test-installer.js`). The documents and the contract that
+   demands every variable of the bridge in the README follow. **The alias
+   «OPENPDM_CATALOGO» is gone** (an Italian name read as the old one of `OCE_CATALOG`):
+   `Tools/Catalog.cs` reads one name. The legacy `OPENPDM_ADDIN` is an English name and
+   stays: it is an alias, and .11 decides it.
+4. **The values the model passes and reads.** All English, with no alias:
+   - mates: `variant` is `coincident`, `parallel`, `perpendicular`, `distance` (and
+     the refused `concentric`, `tangent`), `alignment` is `aligned` or `opposite`;
+     the state names a mate `coincident`, `concentric`, `perpendicular`, `parallel`,
+     `tangent`, `distance`, `angle`, `symmetric`, `width`, `lock`, `hinge`, `slot`,
+     `gear`, `screw`, a component `suppressed`, `lightweight` or `resolved`, its
+     freedom `constrained` or `free`;
+   - the `kind` of a selected entity is `face`, `edge`, `body`, `vertex`, `feature`; a
+     body is `solid`, `sheet`, `wire`, `empty`; a drawing view is `sheet`, `projected`,
+     `section`, `detail`, `auxiliary`, `relative`, `detached`, `view`; the unknown
+     codes read `type N`, `condition N`, `code N`;
+   - keys: `standard` and `hole_type` (hole wizard), `perimeter_mm`,
+     `normal_distance_mm`; `degrees` (the units of an angle); the identity of an
+     unsaved document is `title:<title>`; the undo entry is `Assistant`; the registry
+     records the kind `tool`;
+   - the refused values of `applies_to` of the centre marks (`fillets`, `all`,
+     `slots`), the plane names the cases invent (`diagonal`, `oblique`, `upper`), the
+     example name `wall` (it was «parete»);
+   - the internal tags of the drawing dimensions (`hole|`, `cyl?|`, `chamfer|`,
+     `round|`, `outline`, `edge_on`, `plane`, `cone`, `torus`) and the names the cases
+     choose (`cover`, `bracket`, `container_c`, `ABSENT987`, `TEST123`,
+     `anchored_to_absolute`, `anchored_to_border`, `fuse`).
+5. **File names.** `dist\release-notes-X.Y.Z.md` (it was «note-di-rilascio-X.Y.Z.md»);
+   `questions-without-answer.jsonl` (it was «domande-senza-risposta.jsonl»);
+   `profile-sections.txt` in `%LOCALAPPDATA%\Oce.Solid.Agent` (it was
+   «Riscontro\sezioni-profili.txt»; the archive is rebuilt by measuring); the installer's
+   `.partial` and `.before-oce-solid-agent-<time>.bak` (they were «.parziale» and
+   «.prima-di-oce-solid-agent-»); the MSBuild names `VersionFromFile`, `BridgeVersion`,
+   `VersionFile`.
+6. **The CI job id** is `contracts` (it was «contratti»). There is no branch
+   protection, so no required status check named after it exists.
+7. **Texts.** The installer window (`Where to install`, `Browse…`, `Operations library
+   (where it comes from)`, `Ready.`, `Uninstall?`), the line the installer prints for a
+   copied file, `build.ps1` (`found`, `Cleaning`, `Done`) and its payload table, the
+   leftovers of the messages of the bench and of the probes (`failed:`, `(missing)`,
+   `refused:`, `error`, `warning`), the labels of `test-installer.js` and of
+   `questions-without-answer.js`.
+
+**The language gate.** This commit carries `Language-Baseline-Raise` and
+`Language-Gate-Config-Change` (the id of the CI job and the comments of `tests.yml`,
+the workflow of the gate itself, change). The baseline of one file rises, `CHANGELOG.md`
+(markdown 361 → 404 words), because this entry quotes the old names between «»; every
+other file is equal or lower, and no identifier, key, value or path is new. Totals
+before → after (comments, strings, markdown, json_values, identifiers, json_keys,
+protocol, paths, transition): 1762 → 1723, 417 → 390, 825 → 852, 611 → 583,
+1626 → 1603, 14 → 10, 647 → 449, 0 → 0, 2188 → 2188.
+
+**What changed besides names** (the only differences of the compiled code outside
+string literals, measured with `same-il.ps1` and `token-stream.js`): `Tools/Catalog.cs`
+no longer falls back to the alias variable; `Bridge/Paths.cs` no longer lists three dead
+argument names (the real argument is `path`); the refusal that spoke of a step
+reference as «{passo, genere}» says `{step, kind}`. `Checks/prepare-release.ps1` gets its
+guard. The historical comparison of the bench (F10, decision D11) now starts at library
+0.150.2.
+
+**What an installed machine has to do.** The variables have new names: an MCP client
+entry written by the installer before this version carries «PROFILI_SALDATURA», which
+nothing reads any more; reinstalling writes `OCE_WELDMENT_PROFILES`, and a variable set
+by hand (`setx`) has to be set again under its new name. An old installation keeps its
+old backups and its old registry file next to the bridge (the uninstaller of this
+version removes the new names only).
+
+**Kept on purpose, for the owner to read in .11** (pattern, reason, class):
+words Italian SOLIDWORKS itself writes and the code reads — «PASSANTE», «Croci di centro
+sui fori», «Vista in sezione», «Foglio» followed by a number, the reserved equation word
+«spessore», the standard-view fragments («anterior», «posterior», «superior»,
+«inferior», «destra», «sinistr», «isometri», «trimetri», «Isometrica»), the cut-list
+properties «LUNGHEZZA», «ANGOLO1», «ANGOLO2», «DESCRIZIONE», the feature names
+«Specchiato» and «Saldatura» (class `solidworks-localized`); the title-block properties
+of the workshop template «Numero disegno» (and its one-word form in the catalogue example), «Cliente», «Descrizione»,
+«Materiale», «TRATTAMENTO» (class `solidworks-localized` until a new English drawing
+template exists: it has to be made with SOLIDWORKS, with the same links under English
+property names, and the cases `title_block_says_what_it_wants` and
+`limit_property_on_a_configuration_that_does_not_exist`, the examples of the catalogue
+and `TitleBlockOperations` change with it); verbatim transcripts of program output in
+this file (class `quote`); «PROVA», engraved text whose width was measured (class
+`data-becomes-geometry`), and the example note «TOLLERANZE NON INDICATE ISO 2768-mK» of an
+Italian workshop (class `workshop-lexicon`, or an English example); the readers of the
+Italian TODO (`Checks/todo-*.js`, `count-todo.js`, class `todo-reader`); the ids of the
+private RAG notes in `Tools/api_knowledge.json` (the `rag:` references of the `source`
+fields, class `quote`). Not exceptions, still to do or to remove: `Alias.cs` and the
+name map, the `Checks/language/window-*.js` tools, `Bench/tasks/` (the autonomous run,
+branch `d9-fix`), the local names of the probes and of the `Bench/*.js` scripts.
+
+---
+
 ## Unreleased — W3.1-bis.10, the documents, the scripts and the options in English (branch `w31bis-10`) · bridge 0.127.2 · library 0.150.1 (unchanged)
 
 **The tenth window of W3.1-bis (TODO entry W3.1-bis.10, installer entry H19 lot

@@ -6,7 +6,7 @@
 //  A check never seen failing is not a check. For each repair of the review
 //  of W3.1-bis.1 this script switches the repair off in the working tree (one
 //  textual mutation of the detector, the lexicon or the CI step), runs the
-//  contract suite (Tests\bin\Oce.Solid.Agent.ContractTests.exe, with PROVE_SENZA_INTEROP=1)
+//  contract suite (Tests\bin\Oce.Solid.Agent.ContractTests.exe, with OCE_PRETEND_NO_INTEROP=1)
 //  and expects the checks that guard that repair to go red. The file is put
 //  back after every run, whatever happens.
 //
@@ -108,7 +108,7 @@ function mutate(text, edits) {
 
 function runSuite() {
   const exe = path.join(ROOT, 'Tests', 'bin', 'Oce.Solid.Agent.ContractTests.exe');
-  const r = cp.spawnSync(exe, [], { cwd: ROOT, encoding: 'utf8', env: Object.assign({}, process.env, { PROVE_SENZA_INTEROP: '1' }), maxBuffer: 64 << 20 });
+  const r = cp.spawnSync(exe, [], { cwd: ROOT, encoding: 'utf8', env: Object.assign({}, process.env, { OCE_PRETEND_NO_INTEROP: '1' }), maxBuffer: 64 << 20 });
   const lines = (r.stdout || '').split(/\r?\n/);
   return lines.filter(l => /^\s+NO\s/.test(l));
 }

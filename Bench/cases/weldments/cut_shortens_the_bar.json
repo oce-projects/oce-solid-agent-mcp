@@ -13,14 +13,14 @@
   "steps": [
     { "operation": "structural_member",
       "arguments": { "plane": "top",
-                     "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "segments": [ { "start": [0, 0, 0], "end": [600, 0, 0] } ] },
       "expect": [ { "what": "bodies", "equal_to": 1 } ] },
 
     { "operation": "structural_member",
       "arguments": { "plane": "top",
-                     "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "segments": [ { "start": [300, 0, 0], "end": [300, 0, 300] } ] },
       "expect": [ { "what": "bodies", "equal_to": 2,
@@ -28,7 +28,7 @@
 
     { "operation": "structural_member",
       "arguments": { "plane": "top",
-                     "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "segments": [ { "start": [0, 0, 600], "end": [600, 0, 600] } ] },
       "expect": [

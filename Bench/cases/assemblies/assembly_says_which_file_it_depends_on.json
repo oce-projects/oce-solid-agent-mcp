@@ -10,7 +10,7 @@
           { "operation": "extrude_rectangle",
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
-      { "name": "coperchio",
+      { "name": "cover",
         "position_mm": [0, 7, 0],
         "steps": [
           { "operation": "extrude_rectangle",
@@ -20,7 +20,7 @@
   },
   "steps": [
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\assembly_says_which_file_it_depends_on.sldasm" },
+      "arguments": { "path": "{WORK}\\assembly_says_which_file_it_depends_on.sldasm" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
     { "operation": "file_dependencies",
       "arguments": {},

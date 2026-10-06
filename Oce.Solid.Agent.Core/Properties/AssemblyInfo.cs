@@ -15,7 +15,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Oce.Solid.Agent.Core")]
 [assembly: AssemblyDescription(
     "CAD operations for SOLIDWORKS that report what actually came out, not what was asked for.")]
-[assembly: AssemblyProduct("Riscontro")]
+[assembly: AssemblyProduct("Oce.Solid.Agent")]
 [assembly: AssemblyCulture("")]
 
 // Not visible to COM: the bridge uses it, not SOLIDWORKS.
@@ -134,7 +134,7 @@ using System.Runtime.InteropServices;
 //          builds a part.
 //          They are 24 and not 71 on purpose: the other cases use selectors that
 //          live only in the bench (@face, @edge) or the placeholders
-//          {LAVORO}/{PROFILI}. Copying them would have given 24 good examples and 47
+//          {WORK}/{PROFILES}. Copying them would have given 24 good examples and 47
 //          TRAPS -- a model that copies @face(normal=up) receives a
 //          refusal it does not understand, and then no longer trusts the catalogue.
 // 0.110.0: the leash in the library too (entry Z-C4), the SAME
@@ -152,7 +152,7 @@ using System.Runtime.InteropServices;
 //          CHANGELOG (0.84.0). Written on 24/9/2026 with 0.112.0.
 // 0.112.0: the weldment profiles folder no longer has a default
 //          path. `ProfilesFolder()` returns null without
-//          PROFILI_SALDATURA, and `weldment_profiles` tells «I do not know where
+//          OCE_WELDMENT_PROFILES, and `weldment_profiles` tells «I do not know where
 //          it is» from «it is not there»: before, the two cases gave the same
 //          message, with an empty path between quotation marks. The fallback was
 //          the drive of a single workstation: it helped nobody else and
@@ -381,7 +381,7 @@ using System.Runtime.InteropServices;
 //          sketch on a plane, to scale (SetSize with the aspect locked,
 //          SetOrigin), verified with GetPointOnSketchFromPixel — which wants
 //          (column, row), contrary to the name of its arguments. A PDF does not
-//          go in. The bench reads {DATI} (Bench\data\, versioned).
+//          go in. The bench reads {DATA} (Bench\data\, versioned).
 // 0.133.0: GA11, `mirror_component`: IMirrorComponentFeatureData with typed
 //          arrays; instance, opposite linked (MirrorStock) or unlinked, always
 //          asked; verified the centre against the mirror and, for the opposites, the
@@ -479,8 +479,16 @@ using System.Runtime.InteropServices;
 // 0.150.1: W3.1-bis.6, rename window 3: the library is Oce.Solid.Agent.Core
 //          (assembly, namespaces, folder) and its file names are English,
 //          from the name map (Checks/language/window-3-identifiers.js).
-[assembly: AssemblyVersion("0.150.1.0")]
-[assembly: AssemblyFileVersion("0.150.1.0")]
+// 0.150.2: W3.1-bis.10b, the names the library still held in Italian: the
+//          values of the mates (`coincident`, `parallel`, `perpendicular`,
+//          `distance`; `aligned`, `opposite`) and of the state (the kinds of
+//          mates, selections, bodies and drawing views, the degrees of freedom
+//          and the suppression states), the keys `standard` and `hole_type`
+//          of a hole wizard, `perimeter_mm` and `normal_distance_mm`, the
+//          document identity `title:`, the undo entry `Assistant`, and the
+//          internal tags of the drawing dimensions. No alias.
+[assembly: AssemblyVersion("0.150.2.0")]
+[assembly: AssemblyFileVersion("0.150.2.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -495,4 +503,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.150.1")]
+[assembly: AssemblyInformationalVersion("0.150.2")]

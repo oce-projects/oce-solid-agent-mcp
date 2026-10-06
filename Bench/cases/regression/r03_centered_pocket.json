@@ -2,7 +2,7 @@
   "name": "r03_centered_pocket",
   "family": "regression",
   "why": "A pocket at the centre of a plate that gets longer. The plate grows ON ONE SIDE ONLY even if the sketch is centred (measured in entry E2), so «at the centre» and «where it was» stop coinciding: it is the case in which the intent is visible to the naked eye.",
-  "intent": "ancorato_a_bordo",
+  "intent": "anchored_to_border",
   "intent_why": "«centred pocket» means centred, not «at x = 0»: bringing the length from 200 to 260 the part goes from X[-100,100] to X[-100,160], and the centre moves to x = 30. A pocket that stays at x = 0 is no longer centred.",
   "_why_the_anchor": "ENTRY E18 (b). Up to library 0.115.0 the `costruisci` gave the pocket at absolute coordinates (x 0, y 0), that is an instruction that a designer would not give for «centred»: the case measured a limit, and stayed silent by construction. Now the plan says what it means — centred between the sides and between the bottom and the top, with `anchor` — and the EXPECTATIONS are the same as before. The old way is still proved by the twin `r03b_pocket_stays_where_it_was`.",
   "build": [

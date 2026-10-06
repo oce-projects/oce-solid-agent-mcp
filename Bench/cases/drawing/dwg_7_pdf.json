@@ -2,7 +2,7 @@
  {
   "operation": "save_document",
   "arguments": {
-   "path": "{BANCO}/pezzo/contenitore_c.SLDDRW"
+   "path": "{BENCH}/part/container_c.SLDDRW"
   }
  },
  {

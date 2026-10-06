@@ -32,18 +32,18 @@
   },
   "steps": [
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm" },
+      "arguments": { "path": "{WORK}\\the_bom_follows_the_view_configuration.sldasm" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "the views hang on the FILE of the assembly" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm" },
+      "arguments": { "model": "{WORK}\\the_bom_follows_the_view_configuration.sldasm" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3 } ] },
 
     { "operation": "drawing_bom",
       "arguments": { "view": "V1", "variant": "parts_only" },
-      "activate_before": { "document": "{LAVORO}\\the_bom_follows_the_view_configuration.sldasm", "configuration": "Full" },
+      "activate_before": { "document": "{WORK}\\the_bom_follows_the_view_configuration.sldasm", "configuration": "Full" },
       "expect": [
         { "what": "measurements.configuration", "equal_to": "Lean",
           "why": "the view shows the configuration that was active when it was made" },

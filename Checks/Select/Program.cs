@@ -27,19 +27,19 @@ namespace Checks.Select
     {
         private static int Main(string[] arguments)
         {
-            // `--aggiungi` does not empty the previous selection: it serves to test
+            // `--append` does not empty the previous selection: it serves to test
             // the case that entry E9 named as a risk — several entities
             // selected together — which otherwise cannot be built.
             bool append = false;
             var clean = new System.Collections.Generic.List<string>();
             foreach (var a in arguments)
             {
-                if (a == "--aggiungi") append = true;
+                if (a == "--append") append = true;
                 else clean.Add(a);
             }
             arguments = clean.ToArray();
 
-            string what = arguments.Length > 0 ? arguments[0] : "faccia";
+            string what = arguments.Length > 0 ? arguments[0] : "face";
             int which = arguments.Length > 1 && int.TryParse(arguments[1], out var n) ? n : 1;
 
             object raw;

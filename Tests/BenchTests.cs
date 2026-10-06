@@ -59,20 +59,20 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── MORE THAN ZERO CHECKS ─────────────────────────────────────
             //
-            // «0 prove, 0 fallite» is green and means nothing. It is the
+            // «0 tests, 0 failed» is green and means nothing. It is the
             // shape a suite takes when it has emptied itself.
             int passed = Integer(benchRun, "passed");
             Check("the run measured something", passed > 0, passed + " checks passed");
             Check("no check failed", Integer(benchRun, "failed") == 0,
-                  Integer(benchRun, "failed") + " fallite");
+                  Integer(benchRun, "failed") + " failed");
             Check("no bench error", Integer(benchRun, "errors") == 0,
                   Integer(benchRun, "errors") + " bench errors");
             Check("the run exited 0", Integer(benchRun, "exit_code") == 0,
-                  "uscita " + Integer(benchRun, "exit_code"));
+                  "exit " + Integer(benchRun, "exit_code"));
 
             // ── NOT A PARTIAL RUN ─────────────────────────────────────────
             //
-            // `--gruppo` is handy while working and does not count as a delivery:
+            // `--group` is handy while working and does not count as a delivery:
             // the summary says so, and here it is read.
             string summary = Convert.ToString(benchRun.ContainsKey("summary") ? benchRun["summary"] : "");
             Check("it is not a partial run",

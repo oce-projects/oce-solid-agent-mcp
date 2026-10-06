@@ -45,7 +45,7 @@ namespace Oce.Solid.Agent.Bridge
         ///
         /// IT ALSO REWRITES, IN <paramref name="arguments"/> ITSELF, every enum
         /// value spelled differently from the catalogue (Z-C21.10, pattern
-        /// S20): «Superiore» is accepted and goes on as «top». The caller
+        /// S20): «Top» is accepted and goes on as «top». The caller
         /// hands the same dictionary to the library, so whatever passes here
         /// reaches the library spelled as the catalogue spells it. See the
         /// enum block in <see cref="Fail"/> for why.
@@ -192,12 +192,12 @@ namespace Oce.Solid.Agent.Bridge
             //
             // THE VALUE GOES ON SPELLED AS THE CATALOGUE SPELLS IT (Z-C21.10,
             // pattern S20). The case of a word is form, not merit, so
-            // «Superiore» is accepted here, as it always was. Until 0.140.0
+            // «Top» is accepted here, as it always was. Until 0.140.0
             // it then went on to the library untouched, and the library
-            // compares Ordinal: `SelectPlane` read «Superiore» as an
+            // compares Ordinal: `SelectPlane` read «Top» as an
             // unknown name and fell back to the front plane (the box on the
             // wrong plane, riuscita:true, finding N33), and
-            // `rectangular_frame` read «Ingombro» as not-«overall», that
+            // `rectangular_frame` read «Overall» as not-«overall», that
             // is the centreline branch (a 1080x880 frame for 1000x800, N32).
             // Teaching every comparison in the library to ignore case would
             // leave the next one to be forgotten; rewriting the value here
@@ -303,12 +303,12 @@ namespace Oce.Solid.Agent.Bridge
 
         private static string WhatItIsCalled(object v)
         {
-            if (v == null) return "vuoto";
-            if (v is bool) return "vero/falso";
+            if (v == null) return "empty";
+            if (v is bool) return "true/false";
             if (v is string) return "a text («" + v + "»)";
             if (v is Dictionary<string, object>) return "an object";
             if (v is IEnumerable) return "a list";
-            return "un " + v.GetType().Name;
+            return "a " + v.GetType().Name;
         }
 
         /// <summary>The description of the missing parameter, if the catalog has one.</summary>

@@ -16,21 +16,21 @@
 //   1. `node collect_views.js`   builds the five real parts and writes
 //                                 the state, which contains the field `shape`
 //   2. the five sentences are given to an ISOLATED model, which writes the plans in
-//      `cases/forma/1..5.json` without having seen anything else
+//      `cases/shape/1..5.json` without having seen anything else
 //   3. `node test_shape.js`      executes the plans and compares
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 const PLANS = path.join(__dirname, "cases", "forma");
 
-// THE REAL PARTS, taken from `Bench/viste/*-stato.json`, which is the file that the
+// THE REAL PARTS, taken from `Bench/views/*-state.json`, which is the file that the
 // model has NOT seen. If it is missing, the measurement cannot be made: an
 // expected value is not invented.
-const VIEWS = path.join(__dirname, "viste");
+const VIEWS = path.join(__dirname, "views");
 const SHAPES = [
   "1_drilled_plate", "2_open_shell", "3_l_bracket",
   "4_drilled_flange", "5_stepped_shaft",
@@ -124,7 +124,7 @@ async function testOne(number, itemName) {
     check("part " + number, false, "missing plan: " + planFile);
     return;
   }
-  const trueFile = path.join(VIEWS, itemName + "-stato.json");
+  const trueFile = path.join(VIEWS, itemName + "-state.json");
   if (!fs.existsSync(trueFile)) {
     check("pezzo " + number, false,
           "the real state is missing: run `node collect_views.js` first");

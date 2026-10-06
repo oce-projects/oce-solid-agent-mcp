@@ -55,9 +55,9 @@
 #  It does not skip in silence. The groups that need the executable of the bridge
 #  — the MCP protocol, `Session.SameDocument`, the catalog exporter,
 #  the comparison between the two libraries — write an entry **«not runnable
-#  here»**, which is counted apart, printed and ends up in `prove.xml` as
-#  `<skipped>`. The summary (printed in Italian by the suite) says `N controlli, 0 falliti, M non eseguibili qui
-#  (K fatti davvero)`, and the declared minimum is measured on the **facts**: a
+#  here»**, which is counted apart, printed and ends up in `results.xml` as
+#  `<skipped>`. The summary line of the suite says `N checks, 0 failed, M not runnable here
+#  (K really done)`, and the declared minimum is measured on the **facts**: a
 #  suite that is all skipped does not pass the threshold.
 #
 #  What can be done without SOLIDWORKS is done all the same, and it is not
@@ -96,7 +96,7 @@ on:
         default: ''
 
 jobs:
-  contratti:
+  contracts:
     runs-on: windows-latest
 
     steps:
@@ -146,10 +146,10 @@ jobs:
         shell: pwsh
         run: .\.github\steps\how-much-did-not-run.ps1
 
-      - name: Upload prove.xml
+      - name: Upload results.xml
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: prove.xml
-          path: Tests/bin/prove.xml
+          name: results.xml
+          path: Tests/bin/results.xml
           if-no-files-found: error

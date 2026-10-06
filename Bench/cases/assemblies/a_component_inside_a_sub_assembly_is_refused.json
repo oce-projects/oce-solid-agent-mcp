@@ -45,7 +45,7 @@
     { "operation": "replace_component",
       "arguments": {
         "component": "C3",
-        "path": "{LAVORO}\\a_component_inside_a_sub_assembly_is_refused_spare.sldprt"
+        "path": "{WORK}\\a_component_inside_a_sub_assembly_is_refused_spare.sldprt"
       },
       "must_fail": {
         "message_includes": ["C3", "not a top-level component", "ReplaceComponents2"],
@@ -78,7 +78,7 @@
     { "operation": "replace_component",
       "arguments": {
         "component": "C1",
-        "path": "{LAVORO}\\a_component_inside_a_sub_assembly_is_refused_spare.sldprt"
+        "path": "{WORK}\\a_component_inside_a_sub_assembly_is_refused_spare.sldprt"
       },
       "expect": [
         { "what": "measurements.target", "includes": ["spare"],

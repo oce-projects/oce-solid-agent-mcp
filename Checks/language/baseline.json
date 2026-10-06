@@ -2,28 +2,28 @@
  "about": "Language gate baseline (entry W3.1-bis.1). Written by Checks/language/detect-italian.js --write-baseline. Counted categories are Italian words per file and may not grow in any file; set categories may not gain a new element. A raise needs the trailer \"Language-Baseline-Raise: <reason>\" on the commit that raises it.",
  "format": 2,
  "totals": {
-  "comments": 1762,
-  "strings": 417,
-  "markdown": 825,
-  "json_values": 611,
-  "identifiers": 1626,
-  "json_keys": 14,
-  "protocol": 647,
+  "comments": 1723,
+  "strings": 390,
+  "markdown": 852,
+  "json_values": 583,
+  "identifiers": 1603,
+  "json_keys": 10,
+  "protocol": 449,
   "paths": 0,
   "transition": 2188
  },
  "files": {
   ".github/workflows/tests.yml": {
-   "comments": 18
+   "comments": 11
   },
   "Bench/ClientPort.cs": {
    "comments": 5
   },
   "Bench/DeclaredCases.cs": {
-   "comments": 49
+   "comments": 48
   },
   "Bench/Expectations.cs": {
-   "comments": 26
+   "comments": 25
   },
   "Bench/NewOperationsTests.cs": {
    "comments": 11
@@ -32,20 +32,13 @@
    "comments": 16
   },
   "Bench/Program.cs": {
-   "comments": 77,
-   "strings": 1
+   "comments": 69
   },
   "Bench/README.md": {
-   "markdown": 17
+   "markdown": 1
   },
   "Bench/Regression.cs": {
    "comments": 1
-  },
-  "Bench/TestAssembly.cs": {
-   "strings": 1
-  },
-  "Bench/bench.ps1": {
-   "comments": 2
   },
   "Bench/cases/aliases/argument_by_its_italian_name.json": {
    "transition": 4
@@ -59,20 +52,11 @@
   "Bench/cases/aliases/value_by_its_italian_name.json": {
    "transition": 3
   },
-  "Bench/cases/assemblies/inserting_is_not_mating.json": {
-   "json_values": 3
-  },
   "Bench/cases/assemblies/rebuilt_cover_keeps_the_constraints_but_broken.json": {
    "json_values": 4
   },
-  "Bench/cases/bodies/limit_unknown_boolean.json": {
-   "json_values": 1
-  },
-  "Bench/cases/dimensions/variable_does_not_override_the_chamfer.json": {
-   "json_values": 4
-  },
   "Bench/cases/dimensions/wall_has_a_name.json": {
-   "json_values": 2
+   "json_values": 1
   },
   "Bench/cases/document_properties/new_configuration_activates_itself.json": {
    "json_values": 2
@@ -96,12 +80,9 @@
    "json_values": 1
   },
   "Bench/cases/extrusions/unknown_plane_does_not_fall_back_to_front.json": {
-   "json_values": 7
+   "json_values": 3
   },
   "Bench/cases/frames/profiles_are_read_first.json": {
-   "json_values": 1
-  },
-  "Bench/cases/mirror/limit_made_up_plane.json": {
    "json_values": 1
   },
   "Bench/cases/patterns/limit_direction_from_a_curved_edge.json": {
@@ -149,14 +130,11 @@
   "Bench/test_section.js": {
    "comments": 3
   },
-  "Bridge/Session.cs": {
+  "Bridge/Shape.cs": {
    "comments": 1
   },
-  "Bridge/Shape.cs": {
-   "comments": 5
-  },
   "CHANGELOG.md": {
-   "markdown": 361
+   "markdown": 404
   },
   "Checks/EdgeFlange/Program.cs": {
    "strings": 3,
@@ -180,10 +158,6 @@
   },
   "Checks/OutlineTest/Program.cs": {
    "comments": 4
-  },
-  "Checks/PdfText/Program.cs": {
-   "comments": 1,
-   "strings": 1
   },
   "Checks/PositionsTest/Program.cs": {
    "comments": 8
@@ -244,13 +218,6 @@
   "Checks/language/window-3-renamer.js": {
    "strings": 1
   },
-  "Checks/library-of-the-time.ps1": {
-   "comments": 1,
-   "strings": 1
-  },
-  "Checks/prepare-release.ps1": {
-   "strings": 2
-  },
   "Checks/solidworks-modules.ps1": {
    "comments": 13,
    "strings": 1
@@ -288,8 +255,7 @@
    "comments": 3
   },
   "Oce.Solid.Agent.Core/AssemblyState.cs": {
-   "comments": 16,
-   "strings": 1
+   "comments": 15
   },
   "Oce.Solid.Agent.Core/BodyOperations.cs": {
    "comments": 7
@@ -298,7 +264,7 @@
    "comments": 2
   },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "strings": 35,
+   "strings": 24,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
@@ -317,7 +283,7 @@
    "comments": 3
   },
   "Oce.Solid.Agent.Core/DrawingDimensionOperations.cs": {
-   "comments": 14
+   "comments": 13
   },
   "Oce.Solid.Agent.Core/DrawingFlatPatternOperations.cs": {
    "comments": 2
@@ -363,7 +329,6 @@
    "comments": 5
   },
   "Oce.Solid.Agent.Core/MateOperations.cs": {
-   "strings": 6,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/MeasureOperations.cs": {
@@ -386,7 +351,7 @@
    "comments": 5
   },
   "Oce.Solid.Agent.Core/Properties/AssemblyInfo.cs": {
-   "comments": 11
+   "comments": 10
   },
   "Oce.Solid.Agent.Core/PropertyOperations.cs": {
    "comments": 13
@@ -425,8 +390,7 @@
    "comments": 8
   },
   "Oce.Solid.Agent.Core/SwOperations.cs": {
-   "comments": 150,
-   "strings": 2
+   "comments": 150
   },
   "Oce.Solid.Agent.Core/TextOperations.cs": {
    "comments": 5
@@ -442,7 +406,7 @@
    "comments": 7
   },
   "Tests/BenchTests.cs": {
-   "comments": 11
+   "comments": 10
   },
   "Tests/CatalogTests.cs": {
    "comments": 20
@@ -476,7 +440,7 @@
    "comments": 2
   },
   "Tests/Program.cs": {
-   "comments": 27
+   "comments": 19
   },
   "Tests/ProgressTests.cs": {
    "comments": 4,
@@ -508,8 +472,7 @@
    "comments": 2
   },
   "Tests/ShapeSpellingContract.cs": {
-   "comments": 1,
-   "strings": 1
+   "comments": 1
   },
   "Tests/Zc2110HelpersContract.cs": {
    "comments": 1
@@ -518,16 +481,16 @@
    "comments": 1
   },
   "Tools/McpTools.cs": {
-   "comments": 35
+   "comments": 34
   },
   "Tools/QuestionRegistry.cs": {
    "comments": 1
   },
   "Tools/api_knowledge.json": {
-   "json_values": 7
+   "json_values": 4
   },
   "Tools/catalog.json": {
-   "json_values": 36
+   "json_values": 25
   }
  },
  "sets": {
@@ -613,7 +576,6 @@
    "DocumentoNuovo",
    "DocumentoSenzaFile",
    "DofProva2",
-   "Dove",
    "E2-i-due-casi",
    "EditOrdinate",
    "Elicitazione",
@@ -638,7 +600,6 @@
    "Famiglia",
    "Famiglie",
    "Fazzoletto",
-   "FileVersione",
    "Filo",
    "Finestra",
    "FirmaCombacia",
@@ -668,7 +629,6 @@
    "ICreateOrdinateDim3",
    "IFontePiano",
    "IGetCoordinateSystemXformByName",
-   "INSTALLA",
    "INSTALLATORE",
    "ITipo",
    "IndiceDelCorpo",
@@ -774,8 +734,6 @@
    "OperazioniVerifica",
    "Opzione",
    "Orfana",
-   "PONTE",
-   "PROFILI",
    "PROFILI_SALDATURA",
    "PROVA123",
    "PROVE",
@@ -800,7 +758,6 @@
    "Preparazione",
    "PreparazioneFallita",
    "Primitiva",
-   "Progetto",
    "Programma",
    "ProssimoAsync",
    "Protocollo",
@@ -934,7 +891,6 @@
    "Valore",
    "Variabile",
    "Versione",
-   "VersionePonte",
    "ViewDispCoordinateSystems",
    "VistaDelPezzo",
    "X_rif",
@@ -967,7 +923,6 @@
    "adesso",
    "adesso_mm",
    "aggiorna",
-   "aggiungi",
    "ai_disegno",
    "aiuto",
    "albero",
@@ -980,11 +935,9 @@
    "alto_destra",
    "alto_sinistra",
    "altra",
-   "altreImpostazioniDelClient",
    "altri",
    "ammesso",
    "ancora",
-   "ancorato_a_assoluto",
    "ancorato_a_bordo",
    "angolare",
    "angolo",
@@ -1257,7 +1210,6 @@
    "dettaglio_in_tavola",
    "deve_fallire",
    "di_banco",
-   "di_taglio",
    "diametri_esterni",
    "diametro",
    "diametro_mm",
@@ -1287,7 +1239,6 @@
    "domande",
    "domande-senza-risposta",
    "dopo",
-   "doppio",
    "dov",
    "dov-e-il-todo",
    "dove",
@@ -1405,7 +1356,6 @@
    "flangia_spigolo",
    "fogli",
    "foglio",
-   "fondi",
    "fori",
    "forma",
    "formato",
@@ -1739,7 +1689,6 @@
    "numero_disegno_sul_documento",
    "nuovo",
    "nuovo_foglio",
-   "obbligatorio",
    "operazione",
    "operazioni",
    "opposto_legato",
@@ -1755,16 +1704,12 @@
    "parete",
    "pareti_a_sessanta_gradi_non_si_stampano",
    "parte",
-   "passa",
    "passaggio",
    "passante",
    "passate",
    "passi",
    "passi_di_esploso",
    "passo",
-   "passo_",
-   "passo_1",
-   "passo_2",
    "perche",
    "perche_questa_tolleranza",
    "percorsi",
@@ -2004,8 +1949,6 @@
    "staffa_a_elle",
    "stato",
    "statoUscita",
-   "stato_0",
-   "stato_1",
    "stato_dopo",
    "step_ap203_e_lo_dice",
    "step_ap214_riletto",
@@ -2058,7 +2001,6 @@
    "tipo_vista",
    "titoli",
    "titolo",
-   "tizio",
    "toccarsi_conta",
    "toccarsi_non_e_compenetrarsi",
    "togliere",
@@ -2103,7 +2045,6 @@
    "unione",
    "unisci",
    "unisci_due_cubi",
-   "uscita",
    "v4-guscio-intero",
    "v4-guscio-sezione",
    "valida",
@@ -2123,7 +2064,6 @@
    "vero",
    "verso",
    "verticale",
-   "vicini",
    "visibile",
    "vista",
    "vista_dettaglio",
@@ -2160,7 +2100,6 @@
    "zz_ter_i_materiali_dei_due_workflow"
   ],
   "json_keys": [
-   "altreImpostazioniDelClient",
    "come_si_misura",
    "compito",
    "cosa",
@@ -2169,24 +2108,18 @@
    "perche",
    "perche_dice_altezza_totale",
    "perche_questo_compito",
-   "scalaDelTesto",
-   "tema",
    "tolleranza",
-   "uguale",
-   "vista"
+   "uguale"
   ],
   "protocol": [
    "ALZA",
    "ANGOLO1",
    "ANGOLO2",
    "APERTO",
-   "ASSENTE987",
    "Agente",
    "Annulla",
    "Anteriore",
-   "Assistente",
    "Attese",
-   "BANCO",
    "Banco",
    "Breve",
    "CANDIDATO",
@@ -2196,11 +2129,9 @@
    "Che",
    "Classe",
    "Controlli",
-   "DATI",
    "DESCRIZIONE",
    "Descrizione",
    "Disegno",
-   "Disinstallare",
    "DocumentoRichiesto",
    "E2-i-due-casi",
    "ECCEZIONE",
@@ -2213,16 +2144,11 @@
    "FINTO-rotto",
    "FINTO-sano",
    "Famiglia",
-   "Fatto",
-   "FileVersione",
    "Foglio",
    "Frontale",
    "Installa",
    "Intero",
-   "LAVORO",
    "LUNGHEZZA",
-   "Lavoro",
-   "MODELLI_SOLIDWORKS",
    "Materiale",
    "Metti",
    "NATA",
@@ -2232,42 +2158,22 @@
    "NonPosso",
    "NumObbligatorio",
    "NumeroDisegno",
-   "OPENPDM_CATALOGO",
    "OperazioniFori",
    "OperazioniMateriale",
    "OperazioniSaldatura",
    "OperazioniTavola",
-   "PROFILI",
-   "PROFILI_SALDATURA",
-   "PROVA123",
-   "PROVA456",
-   "PROVE_SENZA_INTEROP",
    "PareteStaDentro",
    "Precondizione",
    "Programma",
-   "Pronto",
    "Prove",
    "ProveCatalogo",
-   "Pulizia",
-   "QUADRO_COPIA",
    "RAGGIUNGIBILE",
-   "REGGE",
-   "RISCONTRO_CATALOGO",
-   "RISCONTRO_DISEGNO",
-   "RISCONTRO_RADICE",
-   "RISCONTRO_REGISTRO",
-   "RISCONTRO_SOLA_LETTURA",
    "Rifiuta",
    "Riga",
    "Riscontro",
-   "Riscontro-prove",
-   "SALTATA",
-   "SILENZIO",
-   "SPARITO",
    "Scrivi",
    "Sentinella",
    "Sessione",
-   "Sfoglia",
    "Sommario",
    "Spigolo",
    "Strumenti",
@@ -2281,8 +2187,6 @@
    "Tipo",
    "VERDE",
    "VERDETTO",
-   "VersioneDaFile",
-   "VersionePonte",
    "_firme",
    "_gradi",
    "_guardato",
@@ -2295,22 +2199,15 @@
    "adesso",
    "aggiungi",
    "albero",
-   "allineato",
-   "allora",
-   "alta",
    "alto",
    "altre",
    "altro",
    "alza",
-   "ancorato_a_assoluto",
-   "ancorato_a_bordo",
    "angolare",
-   "angolo",
    "angolo_gradi",
    "annotazioni",
    "annulla",
    "annullamenti",
-   "annullamento",
    "annullare",
    "api_sw_array_tipizzati",
    "api_sw_che_aprono_finestre",
@@ -2320,96 +2217,54 @@
    "archivio",
    "argomenti",
    "asola",
-   "asole",
    "aspetta",
    "asse",
    "assente",
-   "assenti",
-   "assieme",
-   "assieme-di-prova",
    "assiemi",
-   "assonometrica",
-   "assonometrica-della-nonna",
    "attaccato_allo_spigolo",
    "attesa",
    "atteso",
-   "ausiliaria",
    "avviso",
    "bMetti",
    "bNome",
    "banco",
-   "banco-modelli",
-   "baricentro",
-   "bloccato",
-   "blocco",
    "bonifica",
    "bonifica-storia",
    "bordi",
    "caratteri",
    "caratteristiche",
-   "carica",
-   "cartella",
    "cartelle",
    "casi",
    "casi-in-attesa",
    "catalogo",
-   "catalogo_che_non_esiste_",
-   "cercavo",
-   "cerniera",
    "chiamala",
    "chiedi",
-   "chiudi",
-   "chiudi-gli-scarti",
    "chiuso",
    "cilindro",
    "cinquanta",
    "cinque",
-   "cliente",
-   "codice",
-   "coincidente",
    "comeTrovata",
-   "compilo",
    "compiti",
    "componenti",
-   "con-inferenze",
-   "concentrico",
-   "condizione",
-   "cono",
    "conta",
-   "contenitore_c",
-   "contorno",
    "contro",
    "controlla",
    "controlla-catalogo",
    "controlla-pubblicabilita",
-   "controlli",
    "convertiti",
-   "coperchio",
-   "coperchio2",
    "copia",
-   "copiato",
-   "copie",
    "coppie",
    "corpi",
    "corpo",
-   "corso",
    "cosa",
-   "crea",
-   "crea-asse",
-   "dal",
    "dati",
    "davanti",
-   "della",
-   "densita",
    "denti",
    "dentro",
    "descritta",
    "descrizione",
-   "destinazione",
    "destra",
    "dettaglio",
-   "di_taglio",
-   "diagonale",
    "diciannove",
    "diciassette",
    "diciotto",
@@ -2419,14 +2274,9 @@
    "disegna",
    "disegno",
    "disposizione",
-   "distanza",
-   "distanza_normale_mm",
    "documento",
    "dodici",
-   "domande",
    "dopo",
-   "dove",
-   "dove-stava",
    "duecento",
    "eccezione",
    "elenco",
@@ -2435,7 +2285,6 @@
    "esempio",
    "esiste",
    "esito",
-   "esplora",
    "esploso",
    "esploso_fa_cadere_solidworks",
    "esporta",
@@ -2451,28 +2300,17 @@
    "faccia",
    "faccia_a",
    "faccia_b",
-   "fallita",
-   "fallite",
-   "falliti",
-   "fallito",
-   "falso",
    "famiglia",
    "famiglie",
    "filo",
-   "fingi",
-   "fingi-senza-solidworks",
    "finta",
-   "finto",
-   "finto-per-la-prova",
    "firma",
    "foglio",
-   "fondi",
    "fonte",
    "fori",
    "forma",
    "forma_del_pezzo",
    "formato",
-   "foro",
    "fortissimo",
    "fotogrammi",
    "frase",
@@ -2481,12 +2319,8 @@
    "fuori",
    "ga0_assieme_di_due",
    "gemella",
-   "gemelle",
    "generale",
    "generico",
-   "geometria",
-   "giro",
-   "gli",
    "gp2_due_corpi",
    "gp2_forzato",
    "gp2_sbagliato",
@@ -2494,42 +2328,25 @@
    "gp3_sbagliato",
    "gp3_solidi",
    "gradi",
-   "gruppi",
-   "gruppo",
    "guaio",
    "guarda_il_pezzo",
    "guarda_la_tavola",
    "guardalo",
    "guscio",
-   "il-null-ha-un-nome",
-   "in-corso",
    "indica",
-   "inferenze",
    "ingombro",
    "ingombro_mm",
-   "ingranaggio",
-   "inserting_is_not_mating_coperchio",
-   "installato",
-   "installato4",
-   "installatore",
    "interne",
    "interno",
    "intero",
    "isometrica",
    "lamiera",
    "lamiera-sonda",
-   "larghezza",
    "larghezza_mm",
    "lato",
    "lavorazione",
    "lavorazioni",
-   "lavoro",
-   "leggero",
-   "lento",
    "letto",
-   "libero",
-   "libreria",
-   "libreria-di-allora",
    "limiti",
    "lingua",
    "lontanissimo",
@@ -2540,7 +2357,6 @@
    "marcate",
    "marchi",
    "marchio",
-   "massa",
    "materiale",
    "materiali",
    "mensola",
@@ -2551,12 +2367,10 @@
    "misura",
    "misure",
    "misureTot",
-   "modelli",
    "modello",
    "modifica_quota",
    "modulo",
    "muta",
-   "mutazioni",
    "nato",
    "nel",
    "nessuna",
@@ -2564,22 +2378,16 @@
    "nome",
    "non-esiste",
    "non_esiste",
-   "nonna",
-   "norma",
    "nota",
-   "note-di-rilascio",
    "note-interne",
    "novanta",
    "nove",
    "numeri",
    "numeri_banco",
-   "obliquo",
    "occorrenze",
-   "oce-vista",
    "offerti",
    "operazione",
    "operazioni",
-   "opposto",
    "oppure",
    "opzione",
    "orfana",
@@ -2588,20 +2396,13 @@
    "ottanta",
    "otto",
    "papillon",
-   "parallelo",
    "parete",
    "parte",
-   "parziale",
    "passa",
    "passi",
    "passo",
-   "passo_",
    "perche",
    "percorsi",
-   "percorso_file",
-   "percorso_pdf",
-   "perimetro_mm",
-   "perpendicolare",
    "pezzi",
    "pezzo",
    "piani",
@@ -2610,22 +2411,16 @@
    "piega_lamiera",
    "pippo",
    "ponte",
-   "porta",
-   "porta-del-cliente",
    "porta_documento",
    "posizione",
    "precondizione",
    "prima",
-   "prima-di-oce-solid-agent",
    "problemi",
    "prodotto",
-   "profili",
-   "proiezione",
    "pronto",
    "proporzional",
    "proprieta",
    "prova",
-   "prova-installatore",
    "prova-turno",
    "prova-x2",
    "prova_annulla",
@@ -2635,32 +2430,23 @@
    "prova_x2",
    "prove",
    "pubblicabilita",
-   "pulisci",
-   "pulito",
    "punti",
    "punto",
    "puoi",
    "qualita",
    "quando",
    "quanti",
-   "quanto",
-   "quanto-vede",
    "quaranta",
    "quattordici",
    "quattro",
    "questa_non_esiste",
    "quindici",
    "quota",
-   "quota_in_tavola",
    "raccogli_viste",
-   "raccordi",
    "radice",
-   "rebuilt_cover_keeps_the_constraints_but_broken_coperchio2",
-   "regge",
    "registro",
    "registro-prova",
    "regressione",
-   "relativa",
    "relazioni",
    "resoconto",
    "resta",
@@ -2672,149 +2458,101 @@
    "rif",
    "rifai",
    "rifiutata",
-   "rifiutato",
    "riflessione_cad_spento",
    "riga",
    "riga2",
    "righe",
    "righello",
-   "rilascio",
    "rimandi",
    "ripeti",
    "ripiega_lamiera",
-   "ripreso",
-   "risolto",
-   "risparmia",
    "risposta",
    "risultato",
    "ritorna",
    "ritrovare",
    "rivoluzione",
-   "rosse",
    "rotto",
    "saldatura_in_tavola",
    "saldature",
    "salvalo",
    "sano",
    "scadenzaMs",
-   "scarti",
    "scarto",
    "scarto_gradi",
-   "scatto",
    "scheda",
-   "schizzo",
    "sconosciuta",
-   "sconosciuto",
    "scostamenti",
-   "scritto",
    "scriv",
-   "scuro",
    "sedici",
    "segmenti",
    "sei",
    "selezione",
    "selezioni",
-   "senza",
-   "senza-attesa",
    "sessanta",
-   "sessione",
    "settanta",
    "sette",
    "sezione",
    "sezione_in_tavola",
-   "sezioni",
-   "sezioni-profili",
    "simili",
-   "simmetrico",
    "smusso",
    "solidworks_documento_attivo",
    "sommario",
    "sonda",
    "sono",
-   "soppresso",
    "sotto",
    "specchia",
    "spessore",
    "spigoli",
    "spigolo",
-   "sposta",
-   "sposta-corpi",
-   "staccata",
-   "staffa",
    "staffa_a_elle",
    "stato",
-   "stato_",
-   "stava",
    "storia",
-   "storico",
    "strumenti",
-   "strumento",
-   "strumento_che_non_esiste",
    "suArgomenti",
    "suo",
-   "tabella",
    "tacciono",
    "taglia",
    "taglio",
-   "tangente",
    "tavola",
    "telai",
    "telaio",
    "telaio_da_un_metro",
    "tentativo",
    "tenuto",
-   "testa",
    "testo",
    "testo-nel-pdf-sonda",
    "tetto",
-   "tieni",
    "tipo",
-   "tipo_foro",
-   "titolo",
    "togli",
    "togliere",
    "tolto",
-   "tondo",
    "traccia",
    "tre",
    "tredici",
    "trenta",
    "triangolo",
    "trovati",
-   "trovato",
    "tubo",
-   "tubolare",
    "turno",
-   "tutti",
    "tutto",
    "uguale",
    "ultimo",
-   "ultimo-giro",
-   "ultimo-ponte",
    "un-mio-log",
    "undici",
    "unisci",
    "uno",
    "usa",
-   "uscita",
    "utensili",
    "v4-guscio-intero",
    "v4-guscio-sezione",
-   "vede",
    "venti",
-   "verdi",
    "verifica",
    "verifiche",
    "verita",
-   "vero",
    "versione",
    "verso",
-   "vertice",
-   "vicini",
-   "vincolato",
    "vista",
    "viste",
-   "vite",
    "voce",
    "voci",
    "vuole",

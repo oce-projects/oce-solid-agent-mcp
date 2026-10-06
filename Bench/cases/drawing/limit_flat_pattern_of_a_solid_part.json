@@ -8,12 +8,12 @@
       "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 2, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 19200 } ] },
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\limit_flat_pattern_of_a_solid_part.sldprt" },
+      "arguments": { "path": "{WORK}\\limit_flat_pattern_of_a_solid_part.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
     { "operation": "create_drawing", "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
     { "operation": "flat_pattern_view",
-      "arguments": { "model": "{LAVORO}\\limit_flat_pattern_of_a_solid_part.sldprt" },
+      "arguments": { "model": "{WORK}\\limit_flat_pattern_of_a_solid_part.sldprt" },
       "must_fail": {
         "message_includes": ["is not sheet metal"],
         "twin": "flat_pattern_in_the_drawing" } }

@@ -11,11 +11,11 @@
 // conditions, so that the difference among the three is only what one wants to
 // measure.
 //
-// WHAT IT WRITES, in `Bench/viste/`:
+// WHAT IT WRITES, in `Bench/views/`:
 //
 //   <forma>-isometrica.png
 //   <forma>-frontale.png  <forma>-superiore.png  <forma>-destra.png
-//   <forma>-stato.json          the state WITHOUT images, as it is received today
+//   <forma>-state.json          the state WITHOUT images, as it is received today
 //   <forma>-verita.txt          what it really is, taken from `_truth` in the plan
 //
 // The truth is in the plan's file and not here: whoever judges must not be able to
@@ -25,9 +25,9 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
-const OUTPUT = path.join(__dirname, "viste");
+const OUTPUT = path.join(__dirname, "views");
 
 // TWO CALLS, NOT ONE: the bridge gives at most three at a time, and it is a
 // deliberate ceiling (a view costs more than ten times the whole state written out).
@@ -145,9 +145,9 @@ async function collect(planPath) {
   // ── the state, without images: it is what the model receives TODAY ──
   const stateOnly = await invoke("inspect_part");
   const docState = stateOnly.dati || stateFromText(stateOnly.testo);
-  fs.writeFileSync(path.join(OUTPUT, itemName + "-stato.json"),
+  fs.writeFileSync(path.join(OUTPUT, itemName + "-state.json"),
                    JSON.stringify(docState, null, 1));
-  const characters = fs.statSync(path.join(OUTPUT, itemName + "-stato.json")).size;
+  const characters = fs.statSync(path.join(OUTPUT, itemName + "-state.json")).size;
   console.log("  ok  state: " + characters + " characters, " +
               ((docState.faces || []).length) + " faces, " +
               ((docState.feature || []).length) + " features");

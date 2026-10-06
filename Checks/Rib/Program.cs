@@ -176,7 +176,7 @@ internal static class Program
             double v1 = Volume(doc);
             c.Born = rib != null;
             string err = "";
-            if (rib != null) { bool warn; int code = rib.GetErrorCode2(out warn); if (code != 0) err = " errore " + code + (warn ? " (avviso)" : ""); }
+            if (rib != null) { bool warn; int code = rib.GetErrorCode2(out warn); if (code != 0) err = " error " + code + (warn ? " (warning)" : ""); }
             c.Outcome = sel + raised + ", Rib " + (rib == null ? "none" : "«" + rib.Name + "»" + err) +
                         ", volume " + Fmt(v0) + " -> " + Fmt(v1) + " (" + (v1 - v0).ToString("+0.#;-0.#;0", CultureInfo.InvariantCulture) + ")" +
                         ", bodies " + bodies0 + " -> " + Bodies(doc);

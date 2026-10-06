@@ -1,7 +1,7 @@
 // Sends a sequence of plans to the MCP bridge, as a client would.
 //
 //   node run_plans.js cases/bridge/c4r_primary.json cases/bridge/c4r_keyway.json
-//   node run_plans.js --pulisci cases/bridge/*.json
+//   node run_plans.js --clean cases/bridge/*.json
 //
 // Paths with the forward slash: Windows accepts them, and this way there is no
 // level of escaping to get wrong. The same line written with backslashes has
@@ -18,7 +18,7 @@
 // are not the product's times** — they are its own. Whoever reads a report of 27
 // minutes thinks the bridge is slow.
 //
-// With `--pulisci`:
+// With `--clean`:
 //   1. the documents that were there BEFORE are read, and named;
 //   2. before every plan a clean part is opened;
 //   3. at the end what the bench opened is closed, **sparing
@@ -29,13 +29,13 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const CLOSE = path.join(ROOT, "Checks", "CloseLeftovers", "bin", "CloseLeftovers.exe");
 const NEW = path.join(ROOT, "Checks", "NewPart", "bin", "NewPart.exe");
 
 const cliArgs = process.argv.slice(2);
-const cleanFlag = cliArgs.includes("--pulisci");
-const planes = cliArgs.filter(a => a !== "--pulisci");
+const cleanFlag = cliArgs.includes("--clean");
+const planes = cliArgs.filter(a => a !== "--clean");
 if (!planes.length) { console.error("give me the plans"); process.exit(2); }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -48,22 +48,22 @@ if (!planes.length) { console.error("give me the plans"); process.exit(2); }
 // works, and a case that points to a session folder cannot be
 // re-run the week after.
 //
-// Now they write `{BANCO}/pezzo/tizio.SLDPRT`, and here `{BANCO}` becomes
-// `Bench/lavoro`, which is in the .gitignore.
-const WORK = path.join(__dirname, "lavoro");
+// Now they write `{BENCH}/part/some_part.SLDPRT`, and here `{BENCH}` becomes
+// `Bench/work`, which is in the .gitignore.
+const WORK = path.join(__dirname, "work");
 
 function resolvePlaceholder(text) {
-  return text.split("{BANCO}").join(WORK.split("\\").join("/"));
+  return text.split("{BENCH}").join(WORK.split("\\").join("/"));
 }
 
 // THE FOLDER WAS CREATED EMPTY, AND FIVE CASES COULD NOT RUN.
 //
-// The frame cases name `{BANCO}/profili/QUADRO_COPIA.SLDLFP`. Before
+// The frame cases name `{BENCH}/profiles/FRAME_COPY.SLDLFP`. Before
 // the repair with the placeholder (0.25.0) that path pointed to the
 // session scratchpad, where the file really was because somebody had
 // put it there by hand. The placeholder made the path portable and
 // left the file without anybody to provide it: `prepareFolder` created
-// `profili/` and put nothing inside it.
+// `profiles/` and put nothing inside it.
 //
 // Measured on 14/9/2026: five cases answered «Il profilo ... non esiste su
 // questa postazione», which is a right message for a problem that was not there.
@@ -75,27 +75,27 @@ function resolvePlaceholder(text) {
 // workstation: on every other machine it did not exist, so it helped nobody, and
 // meanwhile it told how that disk is laid out. Whoever does not have the variable
 // finds out now with a sentence, instead of in ten minutes with an error.
-const PROFILES = process.env.PROFILI_SALDATURA;
+const PROFILES = process.env.OCE_WELDMENT_PROFILES;
 if (!PROFILES) {
-  console.error("PROFILI_SALDATURA is not set: I do not know where the library");
+  console.error("OCE_WELDMENT_PROFILES is not set: I do not know where the library");
   console.error("of standard profiles is, and there is no default path.");
-  console.error('    setx PROFILI_SALDATURA "<la cartella dei .SLDLFP>"');
+  console.error('    setx OCE_WELDMENT_PROFILES "<the folder of the .SLDLFP files>"');
   process.exit(2);
 }
 
 // name in the library -> name of the copy that the cases name
 const TO_COPY = {
-  "TUBO STRUTTURALE QUADRO.SLDLFP": "QUADRO_COPIA.SLDLFP",
+  "TUBO STRUTTURALE QUADRO.SLDLFP": "FRAME_COPY.SLDLFP",
 };
 
 function prepareFolder() {
-  for (const c of [WORK, path.join(WORK, "pezzo"), path.join(WORK, "profili")]) {
+  for (const c of [WORK, path.join(WORK, "part"), path.join(WORK, "profiles")]) {
     if (!fs.existsSync(c)) fs.mkdirSync(c, { recursive: true });
   }
 
   for (const [origin, copy] of Object.entries(TO_COPY)) {
     const da = path.join(PROFILES, origin);
-    const a = path.join(WORK, "profili", copy);
+    const a = path.join(WORK, "profiles", copy);
     if (fs.existsSync(a)) continue;
     if (!fs.existsSync(da)) {
       // IT IS SAID, and one does not die: whoever clones the repository does not have that
@@ -104,7 +104,7 @@ function prepareFolder() {
       // that blames the path.
       console.error(
         "  [bench] the profile «" + origin + "» is missing in " + PROFILES + "\n" +
-        "          the frame cases will fail. Override it with PROFILI_SALDATURA.");
+        "          the frame cases will fail. Override it with OCE_WELDMENT_PROFILES.");
       continue;
     }
     fs.copyFileSync(da, a);
@@ -180,7 +180,7 @@ function openTitles(docState) {
 
 function tool(filePath, args) {
   if (!fs.existsSync(filePath)) {
-    console.error("manca " + filePath + ": lancia Checks\\build-checks.ps1");
+    console.error("missing " + filePath + ": run Checks\\build-checks.ps1");
     return null;
   }
   const r = spawnSync(filePath, args, { encoding: "utf8" });
@@ -203,7 +203,7 @@ async function main() {
   //
   // It is the number that says whether the bench is slowing ITSELF down: with the discard
   // parts on top it grows from the first case to the last, and a total does not
-  // show it. Measured before `--pulisci`: from 236 to 271 seconds over
+  // show it. Measured before `--clean`: from 236 to 271 seconds over
   // nineteen plans.
   const times = [];
   for (const f of planes) {
@@ -245,8 +245,8 @@ async function main() {
 /// Closes the bench's discards, sparing whoever was there before.
 function cleanUp(toSpare, tellIt) {
   const output = tool(CLOSE, toSpare.length
-    ? ["--chiudi", "--risparmia", toSpare.join(",")]
-    : ["--chiudi"]);
+    ? ["--close", "--spare", toSpare.join(",")]
+    : ["--close"]);
   if (!output || !tellIt) return;
   // Only the two lines that count are printed: how many it closed and how many
   // remain. The rest is the list, and in a report of fifty cases it

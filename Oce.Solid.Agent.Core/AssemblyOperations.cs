@@ -382,8 +382,8 @@ namespace Oce.Solid.Agent.Core
         {
             switch (outcome)
             {
-                case (int)swRemainingDofs_e.swRemainingDofs_Restricted: return "vincolato";
-                case (int)swRemainingDofs_e.swRemainingDofs_Unrestricted: return "libero";
+                case (int)swRemainingDofs_e.swRemainingDofs_Restricted: return "constrained";
+                case (int)swRemainingDofs_e.swRemainingDofs_Unrestricted: return "free";
                 case (int)swRemainingDofs_e.swRemainingDofs_Unavailable: return "unavailable";
                 case (int)swRemainingDofs_e.swRemainingDofs_Failed: return "failed";
                 case (int)swRemainingDofs_e.swRemainingDofs_RootComponent: return "root component";

@@ -3,13 +3,13 @@
   "family": "regression",
   "why": "A welded frame whose PROFILE is changed: the tube goes from 80 to 60. The mitre at the corners is redone with different faces, and if a corner does not close two bars merge into a single body or one is left detached. Four bars must stay four.",
   "_why_it_is_not_the_length": "Entry F8 here asked for «frame 1000x800, 1000 -> 1400». IT CANNOT BE EXPRESSED TODAY: the path of a frame is a `3DProfileFeature`, and the state does not publish its dimensions -- `set_dimension` has nothing to name. The only dimensions the state exposes are those of the tube PROFILE (D1 = 80, D2 = 6, D3 = 5), and that is the one changed here. Found out by measuring, after two cases had been misclassified by guessing the name.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the path of the frame does not change: four bars remain laid out as before, and the centroid of a symmetric frame stays where it is. If a corner is lost, the symmetry goes and it shows.",
   "build": [
     {
       "operation": "rectangular_frame",
       "arguments": {
-        "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
         "configuration": "80X80X5",
         "length_mm": 1000,
         "width_mm": 800,

@@ -11,7 +11,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000, "why": "120 x 80 x 10" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\the_position_frame_reads_its_diameter_back.sldprt" },
+      "arguments": { "path": "{WORK}\\the_position_frame_reads_its_diameter_back.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view hangs on the FILE of the part" } ] },
 
     { "operation": "create_drawing",
@@ -19,7 +19,7 @@
       "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "from here on the bench works on the drawing" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\the_position_frame_reads_its_diameter_back.sldprt" },
+      "arguments": { "model": "{WORK}\\the_position_frame_reads_its_diameter_back.sldprt" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side" } ] },
 
     { "operation": "datum",

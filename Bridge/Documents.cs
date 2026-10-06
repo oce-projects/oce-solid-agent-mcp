@@ -539,7 +539,7 @@ namespace Oce.Solid.Agent.Bridge
             if ((e & (int)swFileLoadError_e.swInvalidFileTypeError) != 0) names.Add("invalid file type");
             if ((e & (int)swFileLoadError_e.swFutureVersion) != 0) names.Add("saved by a newer version of SOLIDWORKS");
             if ((e & (int)swFileLoadError_e.swGenericError) != 0) names.Add("generic error");
-            return names.Count == 0 ? "codice " + e : string.Join(", ", names) + " (codice " + e + ")";
+            return names.Count == 0 ? "code " + e : string.Join(", ", names) + " (code " + e + ")";
         }
 
         private static string OpeningWarnings(int a)
@@ -550,7 +550,7 @@ namespace Oce.Solid.Agent.Bridge
             if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_AlreadyOpen) != 0) names.Add("was already open");
             if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_NeedsRegen) != 0) names.Add("needs a rebuild");
             if ((a & (int)swFileLoadWarning_e.swFileLoadWarning_ModelOutOfDate) != 0) names.Add("model out of date");
-            return names.Count == 0 ? "codice " + a : string.Join(", ", names) + " (codice " + a + ")";
+            return names.Count == 0 ? "code " + a : string.Join(", ", names) + " (code " + a + ")";
         }
     }
 }

@@ -16,10 +16,10 @@ To check without writing — useful before a commit, and in an automatic
 build:
 
 ```bash
-.\bin\Oce.Solid.Agent.Catalog.exe --controlla Tools\catalog.json
+.\bin\Oce.Solid.Agent.Catalog.exe --check Tools\catalog.json
 ```
 
-(`--controlla` is Italian for «check»; the option has kept that name.)
+(`--check` is Italian for «check»; the option has kept that name.)
 
 It exits 0 if the file matches, 1 if not. And when it does not match it says
 **where**: the position of the first different character and the thirty letters

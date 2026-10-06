@@ -67,12 +67,12 @@ namespace Oce.Solid.Agent.Installer
         /// Files the BRIDGE writes beside itself while it runs, which no
         /// install puts there (entry H19, A5). Today one: the log of questions
         /// that had no operation (Tools/QuestionRegistry.cs, file name
-        /// QuestionRegistry.FileName; RISCONTRO_REGISTRO can move it
+        /// QuestionRegistry.FileName; OCE_QUESTION_REGISTRY can move it
         /// elsewhere, and then it is not ours to remove). Left behind, it kept
         /// the folder alive with the message that the folder held someone
         /// else's files, which was not true.
         /// </summary>
-        public static readonly string[] BridgeOwnFiles = { "domande-senza-risposta.jsonl" };
+        public static readonly string[] BridgeOwnFiles = { "questions-without-answer.jsonl" };
 
         // ── THE EXIT CODES OF THE BRIDGE'S --self-test (entry H19, B3) ─────────
         // The same numbers as Program.SelfTest* in the bridge, which this
@@ -646,7 +646,7 @@ namespace Oce.Solid.Agent.Installer
         /// Where the weldment profiles (.sldlfp) are on this machine, or null;
         /// <paramref name="source"/> says where the answer came from.
         ///
-        /// Since library 0.112 PROFILI_SALDATURA has no default, and without it
+        /// Since library 0.112 OCE_WELDMENT_PROFILES has no default, and without it
         /// weldment_profiles refuses. Two places were checked on the machine
         /// this was written on (SOLIDWORKS 2021 SP5.1), and only folders that
         /// exist are ever proposed:

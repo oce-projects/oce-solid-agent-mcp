@@ -413,7 +413,7 @@ if ($toPush.Count -eq 0) {
 # ==============================================================================
 #
 # On 24/9/2026 the HARD-WIRED FALLBACKS disappeared: the profile library is stated
-# with `PROFILI_SALDATURA` and the document templates with `MODELLI_SOLIDWORKS`, and
+# with `OCE_WELDMENT_PROFILES` and the document templates with `OCE_DOCUMENT_TEMPLATES`, and
 # without those variables the bench stops at once saying what is missing instead of
 # looking for a drive that on that machine does not exist. A fallback that works on
 # one workstation only helps nobody, and meanwhile it publishes how that

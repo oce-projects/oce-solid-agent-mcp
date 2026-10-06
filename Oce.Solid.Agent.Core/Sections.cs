@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Core
                 case "tubular":
                 {
                     double b = m["width_mm"], h = m["height_mm"], t = m["wall_mm"];
-                    reason = WallIsInside(t, Math.Min(b, h), "tubolare");
+                    reason = WallIsInside(t, Math.Min(b, h), "tubular");
                     if (reason != null) return null;
                     // Origin at the centre. Two concentric rectangles: the outer
                     // bounding box is written in the coordinates, and does not depend on a
@@ -85,7 +85,7 @@ namespace Oce.Solid.Agent.Core
                 case "tube":
                 {
                     double d = m["diameter_mm"], t = m["wall_mm"];
-                    reason = WallIsInside(t, d, "tubo");
+                    reason = WallIsInside(t, d, "tube");
                     if (reason != null) return null;
                     return new List<object>
                     {

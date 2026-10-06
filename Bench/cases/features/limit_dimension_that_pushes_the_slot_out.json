@@ -2,7 +2,7 @@
   "name": "limit_dimension_that_pushes_the_slot_out",
   "family": "features",
   "why": "ENTRY E18, part (c). It is the case `r16_slot_that_overflows` of the regression, run as a refusal. A centred 200 plate grows and shrinks ON ONE SIDE ONLY (measured in E2): set to 150 it runs from X -100 to +50, and the slot 120 long at the centre (X -60..+60) sticks out by ten from the right side. Up to 0.112.0 `set_dimension` did it and answered «done»: clean rebuild, one body, no error -- and a closed slot turned into an open notch on the edge, which is another part.",
-  "_why_the_edge_is_not_followed": "The intent of the case is `ancorato_a_assoluto`: the slot stays where the designer put it. The cure is not to move it, it is to NOTICE that it leaves the material and say so. The measurement is topological, not geometric: the closed openings of the planar faces (the inner loops) were two -- the slot on the front and on the back -- and after the change they are zero.",
+  "_why_the_edge_is_not_followed": "The intent of the case is `anchored_to_absolute`: the slot stays where the designer put it. The cure is not to move it, it is to NOTICE that it leaves the material and say so. The measurement is topological, not geometric: the closed openings of the planar faces (the inner loops) were two -- the slot on the front and on the back -- and after the change they are zero.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

@@ -94,17 +94,17 @@ if (-not $msbuild) {
            "(free) from https://visualstudio.microsoft.com/downloads/ and choose " +
            "'.NET desktop development'.")
 }
-Ok "trovato"
+Ok "found"
 Note $msbuild
 
 # -----------------------------------------------------------------------------
 if ($Clean) {
-    Step "Pulizia"
+    Step "Cleaning"
     foreach ($d in @("bin", "obj", "dist", "Installer\obj", "Installer\Payload")) {
         $p = Join-Path $root $d
         if (Test-Path $p) { Remove-Item $p -Recurse -Force; Note "removed $d" }
     }
-    Ok "pulito"
+    Ok "clean"
 }
 
 # -----------------------------------------------------------------------------
@@ -117,7 +117,7 @@ $bridge = Join-Path $root "bin\oce-solid-agent-mcp.exe"
 if (-not (Test-Path $bridge)) { Die "built without errors but oce-solid-agent-mcp.exe is not there" }
 Ok ("oce-solid-agent-mcp.exe  " + [math]::Round((Get-Item $bridge).Length / 1KB) + " kB")
 
-if ($BridgeOnly) { Step "Fatto"; Ok $bridge; exit 0 }
+if ($BridgeOnly) { Step "Done"; Ok $bridge; exit 0 }
 
 # -----------------------------------------------------------------------------
 Step "1b. The catalog"
@@ -204,23 +204,23 @@ New-Item -ItemType Directory -Force -Path $payload | Out-Null
 # installs and then does not draw. A package that assembles and does not work is
 # worse than one that refuses to assemble.
 $toBring = @(
-    @{ da = "bin\oce-solid-agent-mcp.exe";        a = "oce-solid-agent-mcp.exe";        obbligatorio = $true  },
-    @{ da = "bin\Oce.Solid.Agent.Core.dll";    a = "Oce.Solid.Agent.Core.dll";    obbligatorio = $true  },
-    @{ da = "bin\catalog.json";            a = "catalog.json";            obbligatorio = $true  },
-    @{ da = "bin\oce-solid-agent-mcp.exe.config"; a = "oce-solid-agent-mcp.exe.config"; obbligatorio = $true  },
-    @{ da = "LICENSE";                      a = "LICENSE";                  obbligatorio = $false },
-    @{ da = "NOTICE";                       a = "NOTICE";                   obbligatorio = $false }
+    @{ source = "bin\oce-solid-agent-mcp.exe";        target = "oce-solid-agent-mcp.exe";        required = $true  },
+    @{ source = "bin\Oce.Solid.Agent.Core.dll";    target = "Oce.Solid.Agent.Core.dll";    required = $true  },
+    @{ source = "bin\catalog.json";            target = "catalog.json";            required = $true  },
+    @{ source = "bin\oce-solid-agent-mcp.exe.config"; target = "oce-solid-agent-mcp.exe.config"; required = $true  },
+    @{ source = "LICENSE";                      target = "LICENSE";                  required = $false },
+    @{ source = "NOTICE";                       target = "NOTICE";                   required = $false }
 )
 
 foreach ($f in $toBring) {
-    $source = Join-Path $root $f.da
+    $source = Join-Path $root $f.source
     if (Test-Path $source) {
-        Copy-Item $source (Join-Path $payload $f.a) -Force
-        Note ("+ " + $f.a)
-    } elseif ($f.obbligatorio) {
-        Die ("missing " + $f.da + ", which has to end up inside the installer")
+        Copy-Item $source (Join-Path $payload $f.target) -Force
+        Note ("+ " + $f.target)
+    } elseif ($f.required) {
+        Die ("missing " + $f.source + ", which has to end up inside the installer")
     } else {
-        Note ("- " + $f.a + " (not there, going on)")
+        Note ("- " + $f.target + " (not there, going on)")
     }
 }
 Ok ((Get-ChildItem $payload).Count.ToString() + " files to embed")

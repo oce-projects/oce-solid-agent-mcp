@@ -14,7 +14,7 @@
           "why": "120 x 80 x 10: the part the drawing is made on" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\two_sheets_and_the_same_projection_angle.sldprt" },
+      "arguments": { "path": "{WORK}\\two_sheets_and_the_same_projection_angle.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a view attaches to the path of the part: it must be saved first" } ] },

@@ -268,8 +268,7 @@ const GIT_POINTERS = ['GIT_INDEX_FILE', 'GIT_DIR', 'GIT_WORK_TREE', 'GIT_OBJECT_
 
 function childEnv(extra) {
   const env = Object.assign({}, process.env, extra || {});
-  delete env.RISCONTRO_CATALOGO;
-  delete env.OPENPDM_CATALOGO;
+  delete env.OCE_CATALOG;
   for (const k of GIT_POINTERS) delete env[k];
   return env;
 }

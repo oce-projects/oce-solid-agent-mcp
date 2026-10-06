@@ -2,7 +2,7 @@
   "name": "r19_hole_twenty_from_the_border",
   "family": "regression",
   "why": "ENTRY E18 (a), the most common case written with the operation that now knows how to anchor: a hole 20 from the right side and 20 from the top, and the plate gets longer. `r01` says the same thing with four `hole_wizard` holes, which cannot take the anchor yet (the sketch of the points is made by HoleWizard: a probe is needed first).",
-  "intent": "ancorato_a_bordo",
+  "intent": "anchored_to_border",
   "intent_why": "the hole is 20 mm from the right side: bringing the length from 200 to 260 the side goes from x = 100 to x = 160 (the plate grows on one side only, entry E2), and the hole must go from x = 80 to x = 140. In y nothing changes.",
   "build": [
     {

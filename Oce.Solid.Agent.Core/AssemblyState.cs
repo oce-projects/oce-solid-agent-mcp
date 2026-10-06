@@ -30,7 +30,7 @@ namespace Oce.Solid.Agent.Core
     /// It is the most expensive trap of the project.
     ///
     /// **For components it is not so, and this must be exploited.** Every component has a
-    /// `Name2` unique inside the assembly («base-1», «base-2», «coperchio-1»):
+    /// `Name2` unique inside the assembly («base-1», «base-2», «cover-1»):
     /// SOLIDWORKS guarantees it, because it is the name with which it tells them apart in the
     /// structure. So here the order can be made **stable** instead of
     /// positional: it is sorted by `Name2` and `C1..Cn` stays the same between two
@@ -461,7 +461,7 @@ namespace Oce.Solid.Agent.Core
                 data["what_is_not_known_about_constraints"] =
                     "SOLIDWORKS does not give the remaining degrees of freedom " +
                     "(it answers «unavailable» on every component, fixed or free). So " +
-                    "«vincolato» here means «has at least one mate», not " +
+                    "«constrained» here means «has at least one mate», not " +
                     "«does not move any more»: one coincident mate leaves three of the six " +
                     "directions free (measured). «mate» says which directions each mate blocks.";
 
@@ -641,23 +641,23 @@ namespace Oce.Solid.Agent.Core
         {
             switch (t)
             {
-                case (int)swMateType_e.swMateCOINCIDENT: return "coincidente";
-                case (int)swMateType_e.swMateCONCENTRIC: return "concentrico";
-                case (int)swMateType_e.swMatePERPENDICULAR: return "perpendicolare";
-                case (int)swMateType_e.swMatePARALLEL: return "parallelo";
-                case (int)swMateType_e.swMateTANGENT: return "tangente";
-                case (int)swMateType_e.swMateDISTANCE: return "distanza";
-                case (int)swMateType_e.swMateANGLE: return "angolo";
-                case (int)swMateType_e.swMateSYMMETRIC: return "simmetrico";
-                case (int)swMateType_e.swMateWIDTH: return "larghezza";
-                case (int)swMateType_e.swMateLOCK: return "blocco";
-                case (int)swMateType_e.swMateHINGE: return "cerniera";
-                case (int)swMateType_e.swMateSLOT: return "asola";
-                case (int)swMateType_e.swMateGEAR: return "ingranaggio";
-                case (int)swMateType_e.swMateSCREW: return "vite";
+                case (int)swMateType_e.swMateCOINCIDENT: return "coincident";
+                case (int)swMateType_e.swMateCONCENTRIC: return "concentric";
+                case (int)swMateType_e.swMatePERPENDICULAR: return "perpendicular";
+                case (int)swMateType_e.swMatePARALLEL: return "parallel";
+                case (int)swMateType_e.swMateTANGENT: return "tangent";
+                case (int)swMateType_e.swMateDISTANCE: return "distance";
+                case (int)swMateType_e.swMateANGLE: return "angle";
+                case (int)swMateType_e.swMateSYMMETRIC: return "symmetric";
+                case (int)swMateType_e.swMateWIDTH: return "width";
+                case (int)swMateType_e.swMateLOCK: return "lock";
+                case (int)swMateType_e.swMateHINGE: return "hinge";
+                case (int)swMateType_e.swMateSLOT: return "slot";
+                case (int)swMateType_e.swMateGEAR: return "gear";
+                case (int)swMateType_e.swMateSCREW: return "screw";
                 default:
                     var n = Enum.GetName(typeof(swMateType_e), t);
-                    return n == null ? "tipo " + t : n.Replace("swMate", "").ToLowerInvariant();
+                    return n == null ? "type " + t : n.Replace("swMate", "").ToLowerInvariant();
             }
         }
 
@@ -666,13 +666,13 @@ namespace Oce.Solid.Agent.Core
             switch (docState)
             {
                 case (int)swComponentSuppressionState_e.swComponentSuppressed:
-                    return "soppresso";
+                    return "suppressed";
                 case (int)swComponentSuppressionState_e.swComponentLightweight:
-                    return "leggero";
+                    return "lightweight";
                 case (int)swComponentSuppressionState_e.swComponentFullyResolved:
-                    return "risolto";
+                    return "resolved";
                 case (int)swComponentSuppressionState_e.swComponentResolved:
-                    return "risolto";
+                    return "resolved";
                 case (int)swComponentSuppressionState_e.swComponentFullyLightweight:
                     return "lightweight (all)";
                 case (int)swComponentSuppressionState_e.swComponentInternalIdMismatch:

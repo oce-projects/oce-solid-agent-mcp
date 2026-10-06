@@ -2,7 +2,7 @@
   "name": "r14_hole_wizard_and_the_pilot_hole",
   "family": "regression",
   "why": "An M8 hole wizard hole on a plate that gets thicker. The hole wizard carries the standard with it -- diameter, thread, depth -- and that standard must not change because the part has changed. If the diameter of the hole follows the thickness, the bolt no longer goes in.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "an M8 is an M8: the diameter is decided by the ISO standard, not by the plate. Thickening it from 20 to 35 the hole stays where it is and as big as it is, and it is written «same_as_before» because the exact number is decided by SOLIDWORKS from the table, not by me.",
   "build": [
     {

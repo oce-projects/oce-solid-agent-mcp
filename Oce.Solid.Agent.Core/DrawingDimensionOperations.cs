@@ -316,18 +316,18 @@ namespace Oce.Solid.Agent.Core
                 // dimensions on the view. «Each element is dimensioned only once»:
                 // if the table is there, the holes are its own.
                 holesInTable = HolesInHoleTable(drawing);
-                var trueHoles = circles.FindAll(c => c.Type == "foro");
+                var trueHoles = circles.FindAll(c => c.Type == "hole");
                 if (trueHoles.Count > 0 && holesInTable <= 0)
                     DimensionTheHoles(model, drawing, trueHoles, all, already, contour, dimensionOffset, planStep, scale,
                                ref below, ref sideways, ref onLeft, sheetDimensions, born, holes, elsewhere, failed);
-                DimensionTheContours(model, drawing, circles.FindAll(c => c.Type == "contorno"), already, contour, dimensionOffset, planStep,
+                DimensionTheContours(model, drawing, circles.FindAll(c => c.Type == "outline"), already, contour, dimensionOffset, planStep,
                                born, externalDiameters, undimensionedBorders, elsewhere, failed);
                 foreach (var c in circles)
-                    if (c.Type == "di_taglio") cutting.Add("Ø" + c.DiameterMm.ToString("0.##", Ci));
+                    if (c.Type == "edge_on") cutting.Add("Ø" + c.DiameterMm.ToString("0.##", Ci));
                 // THE ROUND BAR SEEN FROM THE SIDE (entry GT14): coaxial circles seen edge-on
                 // mean a turned part in the longitudinal view —
                 // lengths between the faces and diameters from the generatrices.
-                round = DimensionTheRoundFromTheSide(model, drawing, view, mu, tr, circles.FindAll(c => c.Type == "di_taglio"),
+                round = DimensionTheRoundFromTheSide(model, drawing, view, mu, tr, circles.FindAll(c => c.Type == "edge_on"),
                                              already, contour, dimensionOffset, planStep, ref below, ref sideways, born, elsewhere, failed);
 
                 foreach (var s in measuredValues)
@@ -617,7 +617,7 @@ namespace Oce.Solid.Agent.Core
         private sealed class ProjectedEdge
         {
             public int Index;
-            /// <summary>«horizontal», «vertical» or «obliquo».</summary>
+            /// <summary>«horizontal», «vertical» or «oblique».</summary>
             public string Facing;
             /// <summary>The centre of the projection, in sheet coordinates.</summary>
             public double Half;
@@ -718,7 +718,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 else
                 {
-                    s.Facing = "obliquo";
+                    s.Facing = "oblique";
                     a0 = Math.Min(fromV[0], aV[0]); a1 = Math.Max(fromV[0], aV[0]);
                 }
                 s.Half = (a0 + a1) / 2;
@@ -742,7 +742,7 @@ namespace Oce.Solid.Agent.Core
             public IEdge Edge;
             public double[] SheetCenter;   // metres
             public double DiameterMm;
-            public string Type;             // "foro", "contorno", "di_taglio"
+            public string Type;             // "hole", "outline", "edge_on"
             public bool? ThroughAll;          // from the geometry; null if it is not understood
             public double DepthMm = double.NaN;
             public double[] ModelCenter;  // metres, in the model
@@ -781,15 +781,15 @@ namespace Oce.Solid.Agent.Core
                 // on purpose — the circle ends up among the edge-on ones, that is NOT dimensioned
                 // and stated in the answer, instead of taking a hole callout.
                 double l = axis == null ? 0 : Math.Sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
-                if (l < 1e-12 || Math.Abs(axis[2]) / l < 0.99) typ = "di_taglio";
+                if (l < 1e-12 || Math.Abs(axis[2]) / l < 0.99) typ = "edge_on";
                 // AN INNER RING IS NOT ENOUGH (adversarial review of 27/9/2026): so
                 // is the foot of a boss, and a tangency circle Ø24 at the
                 // foot of a filleted Ø20 boss became «a hole» with its
                 // position dimensions. A boss has a diameter dimension.
-                else typ = IsAVisibleHole(e, curva, mu, tr) && !IsTheFootOfAStud(e) ? "foro" : "contorno";
+                else typ = IsAVisibleHole(e, curva, mu, tr) && !IsTheFootOfAStud(e) ? "hole" : "outline";
                 var c = new Circle { Index = index, Edge = e, SheetCenter = center, DiameterMm = Math.Round(cp[6] * 2000.0, 3), Type = typ,
                                       ModelCenter = new[] { cp[0], cp[1], cp[2] }, ModelAxis = new[] { cp[3], cp[4], cp[5] } };
-                if (typ == "foro")
+                if (typ == "hole")
                 {
                     double prof;
                     c.ThroughAll = ThroughAllFromGeometry(e, out prof);
@@ -921,7 +921,7 @@ namespace Oce.Solid.Agent.Core
                                 if (generatrixKey != null)
                                 {
                                     outside.Add(generatrixKey);
-                                    outside.Add("foro|" + generatrixKey.Split('|')[1]);
+                                    outside.Add("hole|" + generatrixKey.Split('|')[1]);
                                 }
                                 else
                                 {
@@ -931,8 +931,8 @@ namespace Oce.Solid.Agent.Core
                                     if (pre.Contains("<MOD-DIAM>") && !double.IsNaN(mm))
                                     {
                                         string dd = Math.Round(mm, 2).ToString("0.00", Ci);
-                                        outside.Add("foro|" + dd);
-                                        outside.Add("cil?|" + dd);   // a Ø30, but it is not known of which cylinder
+                                        outside.Add("hole|" + dd);
+                                        outside.Add("cyl?|" + dd);   // a Ø30, but it is not known of which cylinder
                                     }
                                 }
                             }
@@ -955,14 +955,14 @@ namespace Oce.Solid.Agent.Core
                                         var cp = c.CircleParams as double[];
                                         if (cp == null || cp.Length < 7) continue;
                                         string dd = Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci);
-                                        outside.Add("foro|" + dd);
+                                        outside.Add("hole|" + dd);
                                         // AND ITS CYLINDER, if found: a step of a round bar and a
                                         // hole of the same Ø are two elements (review of 27/9).
-                                        outside.Add(CylinderCircleKey(e) ?? "cil?|" + dd);
+                                        outside.Add(CylinderCircleKey(e) ?? "cyl?|" + dd);
                                         continue;
                                     }
                                     var sm = TouchesAChamfer(e);
-                                    if (sm != null) outside.Add("smusso|" + sm);
+                                    if (sm != null) outside.Add("chamfer|" + sm);
                                     if (c != null && c.IsLine()) straight.Add(e);
                                 }
                             // THE EXTENT OF AN EDGE IS DIMENSIONED only by a dimension attached
@@ -1128,7 +1128,7 @@ namespace Oce.Solid.Agent.Core
             foreach (var c in contours)
             {
                 string dm = c.DiameterMm.ToString("0.##", Ci);
-                string key = "foro|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci);
+                string key = "hole|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci);
                 if (!done.Add(key)) continue;
                 // ITS CYLINDER, if found (review of 27/9/2026): the outline
                 // of a round bar is already dimensioned if THAT cylinder is, not any equal
@@ -1154,7 +1154,7 @@ namespace Oce.Solid.Agent.Core
                     }
                 }
                 bool dimensioned = its != null
-                    ? already.Contains(its) || already.Contains("cil?|" + key.Substring(5))
+                    ? already.Contains(its) || already.Contains("cyl?|" + key.Substring(5))
                     : already.Contains(key);
                 if (dimensioned) { elsewhere.Add("outer diameter Ø" + dm + " (already dimensioned in this drawing)"); continue; }
                 int dimensionsBefore = CountDimensions(drawing);
@@ -1243,7 +1243,7 @@ namespace Oce.Solid.Agent.Core
             var alreadyBefore = new HashSet<string>(already, StringComparer.Ordinal);
             foreach (var g in groups)
             {
-                string key = "foro|" + g.Key.Item1.ToString("0.00", Ci);
+                string key = "hole|" + g.Key.Item1.ToString("0.00", Ci);
                 // AND PER CYLINDER, when found: a step of a round bar of the
                 // same Ø, dimensioned in another view, is not this hole.
                 var itsItems = new List<string>();
@@ -1253,7 +1253,7 @@ namespace Oce.Solid.Agent.Core
                     string k = CylinderCircleKey(c.Edge);
                     if (k == null) allFound = false; else itsItems.Add(k);
                 }
-                bool dimensioned = alreadyBefore.Contains("cil?|" + key.Substring(5));
+                bool dimensioned = alreadyBefore.Contains("cyl?|" + key.Substring(5));
                 if (allFound) { foreach (var k in itsItems) if (alreadyBefore.Contains(k)) dimensioned = true; }
                 else if (alreadyBefore.Contains(key)) dimensioned = true;
                 if (dimensioned)
@@ -1370,7 +1370,7 @@ namespace Oce.Solid.Agent.Core
                     {
                         callout.SetText((int)swDimensionTextParts_e.swDimensionTextSuffix,
                                          " <HOLE-DEPTH>" + head.DepthMm.ToString("0.##", Ci));
-                        depthFrom = "geometria";
+                        depthFrom = "geometry";
                     }
                     catch { }
                 }
@@ -1588,9 +1588,9 @@ namespace Oce.Solid.Agent.Core
             var done = new HashSet<string>(StringComparer.Ordinal);
             foreach (var s in all)
             {
-                if (s.ChamferFeature == null || s.Facing != "obliquo" || done.Contains(s.ChamferFeature)) continue;
+                if (s.ChamferFeature == null || s.Facing != "oblique" || done.Contains(s.ChamferFeature)) continue;
                 done.Add(s.ChamferFeature);
-                string key = "smusso|" + s.ChamferFeature;
+                string key = "chamfer|" + s.ChamferFeature;
                 if (already.Contains(key))
                 {
                     elsewhere.Add("chamfer «" + s.ChamferFeature + "» (already dimensioned in this drawing)");
@@ -1599,7 +1599,7 @@ namespace Oce.Solid.Agent.Core
                 ProjectedEdge leg = null;
                 foreach (var t in all)
                 {
-                    if (t.ChamferFeature != null || t.Facing == "obliquo") continue;
+                    if (t.ChamferFeature != null || t.Facing == "oblique") continue;
                     foreach (var p in new[] { t.FromModel, t.ToModel })
                         foreach (var q in new[] { s.FromModel, s.ToModel })
                             if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) leg = t;
@@ -1751,7 +1751,7 @@ namespace Oce.Solid.Agent.Core
         private static string GrownContour(double[] before, double[] after)
         {
             if (before == null || after == null || before.Length < 4 || after.Length < 4)
-                return "sconosciuto";
+                return "unknown";
             for (int i = 0; i < 4; i++)
                 if (Math.Abs(before[i] - after[i]) > 1e-9) return "si";
             return "no";

@@ -45,7 +45,7 @@
           "why": "the chamfer is there, and it is 5 x 45: it is the number the chamfer dimension must write" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\drawing_dimensions_holes_and_chamfer.sldprt" },
+      "arguments": { "path": "{WORK}\\drawing_dimensions_holes_and_chamfer.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
 
     { "operation": "create_drawing",
@@ -53,7 +53,7 @@
       "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "from here the drawing is measured" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\drawing_dimensions_holes_and_chamfer.sldprt" },
+      "arguments": { "model": "{WORK}\\drawing_dimensions_holes_and_chamfer.sldprt" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side" } ] },
 
     { "operation": "drawing_dimension",

@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// Where the library of the welded profiles is. It is stated with
-        /// `PROFILI_SALDATURA`, as in the bench and as in the library.
+        /// `OCE_WELDMENT_PROFILES`, as in the bench and as in the library.
         ///
         /// HERE THERE USED TO BE THE PATH OF ONE WORKSTATION ONLY, as a fallback. It never
         /// helped anybody else - on every other machine that folder does not
@@ -49,13 +49,13 @@ namespace Oce.Solid.Agent.Bench
         {
             get
             {
-                var its = Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+                var its = Environment.GetEnvironmentVariable("OCE_WELDMENT_PROFILES");
                 return string.IsNullOrWhiteSpace(its) ? null : its;
             }
         }
 
         /// <summary>
-        /// WHERE A CASE CAN WRITE. `Bench\lavoro\`, the same folder
+        /// WHERE A CASE CAN WRITE. `Bench\work\`, the same folder
         /// into which `CloseLeftovers` throws the leftover documents: it is ignored by git and
         /// can be emptied at any moment.
         ///
@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.Bench
         {
             get
             {
-                // A LOCAL folder, not `Bench\lavoro` next to the repository: the
+                // A LOCAL folder, not `Bench\work` next to the repository: the
                 // main checkout sits on a network drive, and on 3/10/2026 a
                 // SaveAs3 there answered e=1 and left no file, a bench error
                 // that cost a whole run. OCE_BENCH_WORK names another folder.
@@ -114,7 +114,7 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// THE FILES THAT A CASE READS AND DOES NOT WRITE: `Bench\data\`, versioned (entry
-        /// Z-F5, 27/9/2026: the image to trace). `{LAVORO}` is emptied at every
+        /// Z-F5, 27/9/2026: the image to trace). `{WORK}` is emptied at every
         /// run and is not in the repository, so an input file cannot live there.
         /// </summary>
         internal static string Data
@@ -705,27 +705,27 @@ namespace Oce.Solid.Agent.Bench
 
             // THE PLACEHOLDERS: a case that names a path of THIS machine
             // is not a check, it is a memento. The library of the welded profiles
-            // is where every installation puts it, and the case says «{PROFILI}»
+            // is where every installation puts it, and the case says «{PROFILES}»
             // instead of knowing where it is.
-            if (text != null && text.Contains("{PROFILI}"))
+            if (text != null && text.Contains("{PROFILES}"))
             {
                 // `String.Replace(a, null)` raises `ArgumentNullException`, and
                 // from here it would come out as a bench fault instead of as the
                 // thing it is: a missing precondition. It is said.
                 if (Profiles == null)
                     throw new CouldNotMeasure(
-                        "This case names {PROFILI}, but PROFILI_SALDATURA is not " +
+                        "This case names {PROFILES}, but OCE_WELDMENT_PROFILES is not " +
                         "set and there is no default path. The profile library " +
                         "belongs to the person working, not to the repository: set the variable to its folder.");
-                return text.Replace("{PROFILI}", Profiles);
+                return text.Replace("{PROFILES}", Profiles);
             }
-            // `{LAVORO}`: where a case can write a file without dirtying
+            // `{WORK}`: where a case can write a file without dirtying
             // either the repository or the disk of whoever works.
-            if (text != null && text.Contains("{LAVORO}"))
-                return text.Replace("{LAVORO}", Work);
-            // `{DATI}`: the versioned input files (Bench\data\).
-            if (text != null && text.Contains("{DATI}"))
-                return text.Replace("{DATI}", Data);
+            if (text != null && text.Contains("{WORK}"))
+                return text.Replace("{WORK}", Work);
+            // `{DATA}`: the versioned input files (Bench\data\).
+            if (text != null && text.Contains("{DATA}"))
+                return text.Replace("{DATA}", Data);
             // `{SOLIDWORKS}`: the STOCK files of the installation (the
             // table templates), which belong neither to the repository nor to whoever works.
             if (text != null && text.Contains("{SOLIDWORKS}"))

@@ -126,12 +126,12 @@ namespace Oce.Solid.Agent.ContractTests
                   (refusal ?? "accepted") + ", kind = " + Show(face["kind"]));
 
             // ── WHAT IS NOT IN THE LIST IS STILL REFUSED, AND NOT TOUCHED ───
-            var unknown = Plate("obliquo");
+            var unknown = Plate("oblique");
             refusal = onCatalogue("extrude_rectangle", unknown);
-            Check("«obliquo» is still refused, and the refusal names it",
-                  refusal != null && refusal.Contains("«obliquo»"), refusal ?? "accepted");
+            Check("«oblique» is still refused, and the refusal names it",
+                  refusal != null && refusal.Contains("«oblique»"), refusal ?? "accepted");
             Check("and a refused value is not rewritten",
-                  Same(unknown["plane"], "obliquo"), "piano = " + Show(unknown["plane"]));
+                  Same(unknown["plane"], "oblique"), "plane = " + Show(unknown["plane"]));
 
             // ── TWO SPELLINGS OF ONE WORD LEAVE NOTHING TO CHOOSE ───────────
             //

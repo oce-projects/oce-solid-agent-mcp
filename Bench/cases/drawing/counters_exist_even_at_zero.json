@@ -17,7 +17,7 @@
           "why": "the part the drawing is made on" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\counters_exist_even_at_zero.sldprt" },
+      "arguments": { "path": "{WORK}\\counters_exist_even_at_zero.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a view attaches to the path of the part" } ] },
@@ -29,7 +29,7 @@
           "why": "the bench follows the new document (entry GT0)" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\counters_exist_even_at_zero.sldprt" },
+      "arguments": { "model": "{WORK}\\counters_exist_even_at_zero.sldprt" },
       "_and_the_part_is_named_explicitly": "See `title_block_says_what_it_wants`: without this line the drawing was made of the first part open, and nobody gave an error. The trouble started from this case — it is its part that ended up in the drawing of the other.",
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,

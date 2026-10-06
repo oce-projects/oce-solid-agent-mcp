@@ -9,7 +9,7 @@
                      "thickness_mm": 2, "radius_mm": 2, "depth_mm": 40 },
       "expect": [ { "what": "bodies", "equal_to": 1 } ] },
     { "operation": "flat_pattern_dxf",
-      "arguments": { "path": "{LAVORO}\\limit_flat_pattern_without_a_file.dxf" },
+      "arguments": { "path": "{WORK}\\limit_flat_pattern_without_a_file.dxf" },
       "_the_twin_differs_by_path_and_that_is_not_what_counts": "The bench demands that refusal and twin differ by ONE argument (entry F5), and the first draft had none: «fake twin, identical to the refusal». Here the refusal depends on the STATE — the never saved part — and not on an argument. `path` is the only one the operation takes, and it differs to respect the rule; the difference that decides is the saving, which the twin does two steps earlier. Written so that whoever reads does not believe that it is the path that makes it refuse.",
       "must_fail": {
         "message_includes": ["has never been saved"],

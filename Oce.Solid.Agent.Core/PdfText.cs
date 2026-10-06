@@ -14,7 +14,7 @@ namespace Oce.Solid.Agent.Core
     /// exports carries the text of the drawing AS TEXT — searchable, copyable,
     /// even the one resolved from a property — but in the streams it is written as
     /// GLYPH INDICES inside hexadecimal strings, and the letters sit in the
-    /// /ToUnicode tables. Searching for «PROVA123» in the bytes does not find it, nor
+    /// /ToUnicode tables. Searching for «TEST123» in the bytes does not find it, nor
     /// in the decompressed streams; `pdftotext` finds it, but it is only there where Git is.
     ///
     /// Here: /FlateDecode streams decompressed, `bfchar`/`bfrange` tables read,

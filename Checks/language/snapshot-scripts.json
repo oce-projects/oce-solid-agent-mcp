@@ -11,7 +11,7 @@
   { "script": ".github/steps/executables-exist.ps1", "run": true, "args": ["yes"],
     "needs": ["Tests/bin/Oce.Solid.Agent.ContractTests.exe", "bin/oce-solid-agent-mcp.exe"] },
   { "script": ".github/steps/language-gate.ps1", "run": true, "varies_with": ["head"] },
-  { "script": ".github/steps/how-much-did-not-run.ps1", "run": true, "needs": ["Tests/bin/prove.xml"], "varies_with": ["Tests/bin/prove.xml"] },
+  { "script": ".github/steps/how-much-did-not-run.ps1", "run": true, "needs": ["Tests/bin/results.xml"], "varies_with": ["Tests/bin/results.xml"] },
 
   { "script": "Checks/check-workflow.ps1", "run": true },
   { "script": "Checks/check-catalog.ps1", "run": true, "needs": ["bin/catalog.json", "Oce.Solid.Agent.Core/bin/Release/Oce.Solid.Agent.Core.dll"] },
@@ -23,7 +23,7 @@
   { "script": "Checks/todo-lines.js", "run": true, "todo": true, "varies_with": ["todo"] },
   { "script": "Checks/todo-references.js", "run": true, "todo": true, "varies_with": ["todo"] },
   { "script": "Checks/todo-signatures.ps1", "run": true, "todo": true, "varies_with": ["todo"] },
-  { "script": "Checks/questions-without-answer.js", "run": true, "varies_with": ["bin/domande-senza-risposta.jsonl"] },
+  { "script": "Checks/questions-without-answer.js", "run": true, "varies_with": ["bin/questions-without-answer.jsonl"] },
   { "script": "Checks/zero-or-unknown.js", "run": true },
   { "script": "Checks/zero-or-unknown.js", "run": true, "args": ["--self-test"] },
   { "script": "Checks/expected-keys-test.js", "run": true, "needs": ["Oce.Solid.Agent.Core/bin/Release/Oce.Solid.Agent.Core.dll"] },

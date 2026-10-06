@@ -13,7 +13,7 @@
       "arguments": { "bodies_uid": ["C1"], "dz_mm": 600, "copy": true, "copy_count": 1 },
       "expect": [ { "what": "bodies", "equal_to": 2 } ] },
     { "operation": "export_stl",
-      "arguments": { "path": "{LAVORO}\\gp2_due_corpi.stl" },
+      "arguments": { "path": "{WORK}\\gp2_due_corpi.stl" },
       "must_fail": {
         "message_includes": ["I do not export", "2 bodies", "export_anyway"],
         "volume_unchanged": true,

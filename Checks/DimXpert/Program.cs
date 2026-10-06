@@ -23,7 +23,7 @@ using SolidWorks.Interop.swdimxpert;
 //  hole. A scheme that «succeeds» without adding anything is not a scheme.
 //
 //  USAGE
-//      .\Checks\DimXpert\bin\DimXpert.exe            [--tieni]
+//      .\Checks\DimXpert\bin\DimXpert.exe            [--keep]
 // =============================================================================
 
 internal static class Program
@@ -37,7 +37,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
         Console.WriteLine();
         Console.WriteLine("DIMXPERT — from the core, without the add-in? (entry Z-H3)");
         Console.WriteLine("  plate 100 x 60 x 10 with a 20 through hole");

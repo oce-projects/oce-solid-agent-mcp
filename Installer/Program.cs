@@ -314,7 +314,7 @@ namespace Oce.Solid.Agent.Installer
                                       "; another folder with --weldment-profiles <folder>)");
                 else
                     Console.WriteLine("[~]  weldment profiles: none found. weldment_profiles will refuse until " +
-                                      "PROFILI_SALDATURA is set: install again with --weldment-profiles <folder>");
+                                      "OCE_WELDMENT_PROFILES is set: install again with --weldment-profiles <folder>");
             }
 
             string executable;
@@ -410,7 +410,7 @@ namespace Oce.Solid.Agent.Installer
             "  --no-client             do not touch the configuration of the MCP clients\n" +
             "  --config <path>         wire THAT file instead of looking for the clients\n" +
             "  --weldment-profiles <folder>  the weldment profiles (.sldlfp) for weldment_profiles,\n" +
-            "                          written as PROFILI_SALDATURA in the client's env\n" +
+            "                          written as OCE_WELDMENT_PROFILES in the client's env\n" +
             "  --log <file>            also write the run to this file\n" +
             "  --uninstall             removes the installation, without opening the window\n" +
             "  --keep-client           with --uninstall: leave the MCP client entry in place\n" +

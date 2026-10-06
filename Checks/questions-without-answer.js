@@ -38,7 +38,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const NAME = 'domande-senza-risposta.jsonl';
+const NAME = 'questions-without-answer.jsonl';
 
 const perLines = process.argv.includes('--lines');
 const given = process.argv.slice(2).find(a => !a.startsWith('--'));
@@ -48,7 +48,7 @@ const given = process.argv.slice(2).find(a => !a.startsWith('--'));
 // tool would read an old file without saying so -- so WHICH one is printed.
 function location() {
   if (given) return given;
-  const fromEnv = process.env.RISCONTRO_REGISTRO;
+  const fromEnv = process.env.OCE_QUESTION_REGISTRY;
   if (fromEnv !== undefined) return fromEnv === '' ? null : fromEnv;
   return path.join(root, 'bin', NAME);
 }
@@ -56,12 +56,12 @@ function location() {
 const file = location();
 
 if (file === null) {
-  console.log('RISCONTRO_REGISTRO is set to an empty string: the bridge does not');
+  console.log('OCE_QUESTION_REGISTRY is set to an empty string: the bridge does not');
   console.log('record anything, and there is nothing to read' + '.');
   process.exit(0);
 }
 
-console.log('registro: ' + file);
+console.log('registry: ' + file);
 console.log('');
 
 if (!fs.existsSync(file)) {
@@ -103,7 +103,7 @@ if (perLines) {
   for (const v of entries) {
     console.log('  ' + (v.timestamp || '?') + '  ' + (v.kind || '?') + '  ' +
                 JSON.stringify(v.name) +
-                (v.similar ? '   vicini: ' + v.similar.join(', ') : ''));
+                (v.similar ? '   similar: ' + v.similar.join(', ') : ''));
   }
   console.log('');
 }
@@ -113,19 +113,19 @@ for (const v of entries) {
   const key = (v.kind || '?') + '\u0000' + (v.name || '');
   let c = counts.get(key);
   if (!c) {
-    c = { kind: v.kind || '?', name: v.name || '', quante: 0,
-          prima: v.timestamp, ultima: v.timestamp, vicini: new Set() };
+    c = { kind: v.kind || '?', name: v.name || '', count: 0,
+          first: v.timestamp, last: v.timestamp, similar: new Set() };
     counts.set(key, c);
   }
-  c.quante++;
+  c.count++;
   if (v.timestamp) {
-    if (!c.prima || v.timestamp < c.prima) c.prima = v.timestamp;
-    if (!c.ultima || v.timestamp > c.ultima) c.ultima = v.timestamp;
+    if (!c.first || v.timestamp < c.first) c.first = v.timestamp;
+    if (!c.last || v.timestamp > c.last) c.last = v.timestamp;
   }
-  for (const s of (v.similar || [])) c.vicini.add(s);
+  for (const s of (v.similar || [])) c.similar.add(s);
 }
 
-const all = [...counts.values()].sort((a, b) => b.quante - a.quante ||
+const all = [...counts.values()].sort((a, b) => b.count - a.count ||
                                                  a.name.localeCompare(b.name));
 
 console.log('questions recorded:        ' + entries.length);
@@ -142,10 +142,10 @@ function print(docTitle, list, queue) {
   if (list.length === 0) return;
   console.log(docTitle);
   for (const c of list) {
-    const v = c.vicini.size ? '   vicini: ' + [...c.vicini].join(', ') : '';
-    console.log('  ' + String(c.quante).padStart(4) + '  [' + c.kind + '] ' +
+    const v = c.similar.size ? '   similar: ' + [...c.similar].join(', ') : '';
+    console.log('  ' + String(c.count).padStart(4) + '  [' + c.kind + '] ' +
                 c.name + v);
-    console.log('        dal ' + (c.prima || '?') + ' al ' + (c.ultima || '?'));
+    console.log('        from ' + (c.first || '?') + ' to ' + (c.last || '?'));
   }
   console.log('');
   console.log('  ' + queue);
@@ -153,12 +153,12 @@ function print(docTitle, list, queue) {
 }
 
 print('TO BUILD — no near name in the catalog:',
-       all.filter(c => c.vicini.size === 0),
+       all.filter(c => c.similar.size === 0),
        'The catalog had nothing to suggest: whoever asked wanted something ' +
        'that does not exist.');
 
 print('MAYBE JUST A SYNONYM — the catalog had something close:',
-       all.filter(c => c.vicini.size > 0),
+       all.filter(c => c.similar.size > 0),
        'If the near name really is the same thing, it costs one line of ' +
        'synonym instead of a new operation.');
 

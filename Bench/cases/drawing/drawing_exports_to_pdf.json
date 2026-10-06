@@ -12,7 +12,7 @@
           "why": "120 x 80 x 10: if this does not add up, the drawing below is of another part" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\drawing_exports_to_pdf.sldprt" },
+      "arguments": { "path": "{WORK}\\drawing_exports_to_pdf.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a view attaches to the FILE of the part: without saving it there is nothing to put on the drawing" } ] },
@@ -38,7 +38,7 @@
           "tolerance_why": "as above" } ] },
 
     { "operation": "model_view",
-      "arguments": { "model": "{LAVORO}\\drawing_exports_to_pdf.sldprt",
+      "arguments": { "model": "{WORK}\\drawing_exports_to_pdf.sldprt",
                      "view": "isometric", "x_mm": 320, "y_mm": 200 },
       "expect": [
         { "what": "measurements.views_after", "equal_to": 1,
@@ -49,23 +49,23 @@
           "why": "the TRUE name with which SOLIDWORKS accepted it (`*Isometrica` here, `*Isometric` in English): it is the fact the operation declares so that next time it is written instead of remembered" } ] },
 
     { "operation": "note",
-      "arguments": { "text": "PROVA123", "x_mm": 20, "y_mm": 250 },
+      "arguments": { "text": "TEST123", "x_mm": 20, "y_mm": 250 },
       "expect": [
         { "what": "measurements.notes_placed", "equal_to": 1,
           "why": "the text that the last step must FIND AGAIN in the PDF (entry GT3-bis)" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\drawing_exports_to_pdf.slddrw" },
+      "arguments": { "path": "{WORK}\\drawing_exports_to_pdf.slddrw" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "`export_pdf` without a path puts the PDF next to the drawing: a drawing never saved has no «next to»" } ] },
 
     { "operation": "export_pdf",
-      "arguments": { "search": ["PROVA123", "ASSENTE987"] },
+      "arguments": { "search": ["TEST123", "ABSENT987"] },
       "expect": [
-        { "what": "measurements.found", "equal_to": ["PROVA123"],
+        { "what": "measurements.found", "equal_to": ["TEST123"],
           "why": "ENTRY GT3-bis: the note written two steps earlier comes out of the PDF as TEXT. Measured with `Checks/PdfText`: in the file it is written as glyph indices behind the /ToUnicode tables, and a search in the bytes would not find it — `export_pdf` decodes it" },
-        { "what": "measurements.not_found", "equal_to": ["ASSENTE987"],
+        { "what": "measurements.not_found", "equal_to": ["ABSENT987"],
           "why": "THE RED IN THE SAME RUN: a text that is not in the drawing must NOT be found. Without this line, a decoder that «finds» everything would pass the line above" },
         { "what": "measurements.sheets", "equal_to": 1 },
         { "what": "measurements.pages", "equal_to": 1,

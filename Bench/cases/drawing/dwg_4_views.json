@@ -2,7 +2,7 @@
  {
   "operation": "standard_views",
   "arguments": {
-   "model": "{BANCO}/pezzo/contenitore_c.SLDPRT"
+   "model": "{BENCH}/part/container_c.SLDPRT"
   }
  }
 ]

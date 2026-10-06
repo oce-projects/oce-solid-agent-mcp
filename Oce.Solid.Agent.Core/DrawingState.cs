@@ -625,17 +625,17 @@ namespace Oce.Solid.Agent.Core
         {
             switch (typ)
             {
-                case (int)swDrawingViewTypes_e.swDrawingSheet: return "foglio";
-                case (int)swDrawingViewTypes_e.swDrawingProjectedView: return "proiezione";
-                case (int)swDrawingViewTypes_e.swDrawingSectionView: return "sezione";
-                case (int)swDrawingViewTypes_e.swDrawingDetailView: return "dettaglio";
+                case (int)swDrawingViewTypes_e.swDrawingSheet: return "sheet";
+                case (int)swDrawingViewTypes_e.swDrawingProjectedView: return "projected";
+                case (int)swDrawingViewTypes_e.swDrawingSectionView: return "section";
+                case (int)swDrawingViewTypes_e.swDrawingDetailView: return "detail";
                 case (int)swDrawingViewTypes_e.swDrawingNamedView: return "named view";
-                case (int)swDrawingViewTypes_e.swDrawingAuxiliaryView: return "ausiliaria";
+                case (int)swDrawingViewTypes_e.swDrawingAuxiliaryView: return "auxiliary";
                 case (int)swDrawingViewTypes_e.swDrawingAlternatePositionView: return "alternate position";
-                case (int)swDrawingViewTypes_e.swDrawingRelativeView: return "relativa";
+                case (int)swDrawingViewTypes_e.swDrawingRelativeView: return "relative";
                 case (int)swDrawingViewTypes_e.swDrawingStandardView: return "standard";
-                case (int)swDrawingViewTypes_e.swDrawingDetachedView: return "staccata";
-                default: return "vista";
+                case (int)swDrawingViewTypes_e.swDrawingDetachedView: return "detached";
+                default: return "view";
             }
         }
     }

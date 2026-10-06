@@ -2,7 +2,7 @@
  { "operation": "extrude_rectangle", "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 20, "centered": true } },
  { "operation": "cylindrical_cut", "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "x_mm": -30, "y_mm": 0, "diameter_mm": 12, "through_all": true } },
  { "operation": "rectangular_cut", "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "x_mm": 30, "y_mm": 0, "length_mm": 24, "width_mm": 16, "through_all": true } },
- { "operation": "save_document", "arguments": { "path": "{BANCO}/pezzo/d3.SLDPRT" } },
+ { "operation": "save_document", "arguments": { "path": "{BENCH}/part/d3.SLDPRT" } },
  { "operation": "create_drawing", "arguments": {} },
  { "operation": "standard_views", "arguments": {} },
  { "operation": "model_dimensions", "arguments": {} }

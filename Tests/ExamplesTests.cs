@@ -29,8 +29,8 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// On 23/9/2026, out of 71 operations, **47 did not have a copyable example**:
     /// their cases use selectors that live only in the bench —
-    /// `@face(normal=up)`, `@edge(axis=Z)` — or the placeholders `{LAVORO}` and
-    /// `{PROFILI}`, which the bench replaces and a client does not.
+    /// `@face(normal=up)`, `@edge(axis=Z)` — or the placeholders `{WORK}` and
+    /// `{PROFILES}`, which the bench replaces and a client does not.
     ///
     /// Copying them all the same would have produced twenty-four good examples and
     /// forty-seven **traps**: a model that copies `@face(normal=up)`
@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.ContractTests
         private const int Floor = 30;
 
         /// <summary>What a client cannot copy.</summary>
-        private static readonly string[] BenchOnly = { "@", "{LAVORO}", "{PROFILI}", "{DATI}", "{SOLIDWORKS}" };
+        private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };
 
         internal static void All()
         {
@@ -137,13 +137,13 @@ namespace Oce.Solid.Agent.ContractTests
                       : "there are " + withExample + ": raise the floor to this number");
 
             Check("every example is readable JSON", unreadable.Count == 0,
-                  unreadable.Count == 0 ? "tutti" : string.Join(" | ", unreadable));
+                  unreadable.Count == 0 ? "all" : string.Join(" | ", unreadable));
 
             // THIS IS THE CHECK THAT COUNTS.
             Check("no example uses something that lives only in the bench",
                   contaminated.Count == 0,
                   contaminated.Count == 0
-                      ? "no @ selectors, no placeholders {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
+                      ? "no @ selectors, no placeholders {WORK}/{PROFILES}/{DATA}/{SOLIDWORKS}"
                       : string.Join(" | ", contaminated));
 
             Check("and every field of the example exists in the schema",

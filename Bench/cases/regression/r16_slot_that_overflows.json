@@ -2,7 +2,7 @@
   "name": "r16_slot_that_overflows",
   "family": "regression",
   "why": "A slot 120 long on a plate that shortens from 200 to 150. The slot sticks out, and it must fail NOISILY: a slot open on the side is a different part, and if it comes out without saying anything it is the worst defect of the section.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the slot is where the designer put it, at the centre. Shortening the plate does not move it -- it makes it leave the material, and that is what we want to see said.",
   "build": [
     {

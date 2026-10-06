@@ -253,7 +253,7 @@ namespace Oce.Solid.Agent.ContractTests
         // ── N36: the overhang archive ────────────────────────────────────────
         private static void OverhangArchive(Type section)
         {
-            string folderName = "Riscontro-prove-" + Guid.NewGuid().ToString("N");
+            string folderName = "Oce-test-" + Guid.NewGuid().ToString("N");
             string folder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), folderName);
             try

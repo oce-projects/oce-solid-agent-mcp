@@ -8,7 +8,7 @@ using SolidWorks.Interop.swconst;
 //  SeguiIlBordo — does a hole dimensioned against an EDGE follow it? (entry E18, a and b)
 // =============================================================================
 //
-//  Three of the four silences of `--regressione` are coordinates inside a
+//  Three of the four silences of `--regression` are coordinates inside a
 //  sketch that do not follow the edge when the part changes (K5). The cure that the
 //  entry proposes rests on TWO facts that nobody has measured out of process:
 //
@@ -37,7 +37,7 @@ using SolidWorks.Interop.swconst;
 //  sketch gives no error in `Insert*`: it gives a red feature afterwards.
 //
 //  USAGE
-//      .\Checks\FollowTheEdge\bin\FollowTheEdge.exe            [--tieni]
+//      .\Checks\FollowTheEdge\bin\FollowTheEdge.exe            [--keep]
 // =============================================================================
 
 internal static class Program
@@ -58,7 +58,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
         if (Array.IndexOf(arguments, "--b=convertiti") >= 0) _variant = "convertiti";
         Console.WriteLine();
         Console.WriteLine("FOLLOW THE EDGE — does a hole dimensioned against the edge follow it? (entry E18, variant B: " + _variant + ")");
@@ -369,7 +369,7 @@ internal static class Program
     // added to those put in on purpose they over-constrain the sketch as soon as the part
     // changes. Measured on the evening of 24/9: 5 over-constraining ones after the first change.
     private static bool _withoutInferences = System.Environment.GetCommandLineArgs().Length > 0 &&
-        Array.IndexOf(System.Environment.GetCommandLineArgs(), "--con-inferenze") < 0;
+        Array.IndexOf(System.Environment.GetCommandLineArgs(), "--with-inferences") < 0;
 
     private static ISketchSegment Circle(MathTransform tr, double x, double y, double z, double radius)
     {

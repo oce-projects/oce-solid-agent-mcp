@@ -12,7 +12,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_iges",
-      "arguments": { "path": "{LAVORO}\\the_iges_carries_the_solid.igs", "representation": "solids" },
+      "arguments": { "path": "{WORK}\\the_iges_carries_the_solid.igs", "representation": "solids" },
       "expect": [
         { "what": "measurements.file_format", "equal_to": "IGES" },
         { "what": "measurements.solid_entities", "equal_to": 1,

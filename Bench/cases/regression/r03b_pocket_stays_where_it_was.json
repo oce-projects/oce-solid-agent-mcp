@@ -2,7 +2,7 @@
   "name": "r03b_pocket_stays_where_it_was",
   "family": "regression",
   "why": "THE ABSOLUTE TWIN of `r03_centered_pocket` (entry E18): the same pocket, without `anchor`. It proves that the old way keeps working when it is what is wanted — a pocket that sits at x = 0 because there is something there that corresponds to it, not because it is the centre.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "without an anchor x_mm/y_mm are coordinates of the model: bringing the length to 260 the plate goes from X -100 to +160 and the pocket stays at x = 0. The centroid goes to x = 30.588 instead of 30: it is the difference that `r03` measures, seen from the other side.",
   "build": [
     {

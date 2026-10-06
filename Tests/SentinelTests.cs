@@ -170,7 +170,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // ── AND SOLIDWORKS CAN BE MADE TO DIE ON COMMAND ──────────────
             Check("there is a way to see it fire on the real bench",
-                  p.Contains("--fingi-senza-solidworks"),
+                  p.Contains("--pretend-no-solidworks"),
                   "without it, it would stay a guard that is believed and never seen");
 
             // ── THE DOCUMENT TEMPLATE IS NOT READ FROM THE NETWORK (K19) ──

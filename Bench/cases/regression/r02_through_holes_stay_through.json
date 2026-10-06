@@ -2,7 +2,7 @@
   "name": "r02_through_holes_stay_through",
   "family": "regression",
   "why": "Same plate as case 1, but what changes is the THICKNESS. Four through holes must stay through: it is the end condition of the cut, not a measurement, and it is exactly the kind of thing that breaks in silence when the dimension that changes is another one.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the holes stay where they are: thickening the plate does not move them, and in the workshop nobody expects it. Here the invariant is that they stay FOUR and through.",
   "build": [
     {

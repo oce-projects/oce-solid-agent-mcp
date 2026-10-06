@@ -13,7 +13,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000, "why": "120 x 80 x 10" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\a_dimension_hidden_by_hand_does_not_count.sldprt" },
+      "arguments": { "path": "{WORK}\\a_dimension_hidden_by_hand_does_not_count.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view hangs on the FILE of the part" } ] },
 
     { "operation": "create_drawing",
@@ -21,7 +21,7 @@
       "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "from here on the bench works on the drawing" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\a_dimension_hidden_by_hand_does_not_count.sldprt" },
+      "arguments": { "model": "{WORK}\\a_dimension_hidden_by_hand_does_not_count.sldprt" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side" } ] },
 
     { "operation": "drawing_dimension",
@@ -32,7 +32,7 @@
         { "what": "measurements.dimensions_placed", "equal_to": 2, "why": "two for a rectangle" } ] },
 
     { "operation": "drawing_dimension",
-      "hide_dimensions_first": { "vista": "V1" },
+      "hide_dimensions_first": { "view": "V1" },
       "arguments": { "view": "V2", "count": 6 },
       "expect": [
         { "what": "measurements.dimensions_mm", "includes": ["120"],

@@ -89,9 +89,9 @@ using SolidWorks.Interop.swconst;
 //  InsertStructuralWeldment5. Every part is closed without saving.
 //
 //  USAGE
-//      set PROFILI_SALDATURA=<cartella coi .SLDLFP>
+//      set OCE_WELDMENT_PROFILES=<cartella coi .SLDLFP>
 //      Checks\Gusset\bin\Gusset.exe            closes every test part
-//      Checks\Gusset\bin\Gusset.exe --tieni    leaves them all open, to look
+//      Checks\Gusset\bin\Gusset.exe --keep    leaves them all open, to look
 //
 //  BUILD: built by Checks\build-checks.ps1 (and by build.ps1, step 1c), with the bench
 //  stopped. The script copies the two interop DLLs next to the executable.
@@ -200,7 +200,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        _keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        _keep = Array.IndexOf(arguments, "--keep") >= 0;
 
         Console.WriteLine();
         Console.WriteLine("PROBE GUSSET — entry GP20 (the weldment gusset is not created)");
@@ -208,10 +208,10 @@ internal static class Program
         Console.WriteLine("  a fresh T for each variant, closed without saving at the end of the run");
         Console.WriteLine();
 
-        string profilesFolder = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+        string profilesFolder = System.Environment.GetEnvironmentVariable("OCE_WELDMENT_PROFILES");
         if (string.IsNullOrWhiteSpace(profilesFolder))
         {
-            Console.WriteLine("PROFILI_SALDATURA is not set: I do not know where to find " + ProfileFileName + ".");
+            Console.WriteLine("OCE_WELDMENT_PROFILES is not set: I do not know where to find " + ProfileFileName + ".");
             Console.WriteLine("Set it (the folder with the .SLDLFP files) and run again.");
             return 2;
         }

@@ -11,7 +11,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_stl",
       "select_first": [ "@face(normal=front)" ],
-      "arguments": { "path": "{LAVORO}\\z_c21_2_faccia_selezionata.stl" },
+      "arguments": { "path": "{WORK}\\z_c21_2_faccia_selezionata.stl" },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 12,
           "why": "the WHOLE part: six planar faces, two triangles each. With only the face selected there would be 2" },

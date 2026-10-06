@@ -1361,7 +1361,7 @@ namespace Oce.Solid.Agent.Tools
 
         private static string ReadableName(Dictionary<string, object> identity)
         {
-            if (identity == null) return "(nessuno)";
+            if (identity == null) return "(none)";
             var p = Convert.ToString(identity.TryGetValue("path", out var x) ? x : "");
             if (!string.IsNullOrWhiteSpace(p)) return p;
             var t = Convert.ToString(identity.TryGetValue("document_title", out var y) ? y : "");
@@ -1614,7 +1614,7 @@ namespace Oce.Solid.Agent.Tools
             for (int i = 0; i < steps.Length; i++)
             {
                 var planStep = steps[i] as Dictionary<string, object>;
-                string location = "passo " + (i + 1);
+                string location = "step " + (i + 1);
                 _wire.Step(i + 1, "checking " + location + " of " + steps.Length);
                 if (planStep == null) { trouble.Add(location + ": is not an object"); continue; }
 
@@ -2103,7 +2103,7 @@ namespace Oce.Solid.Agent.Tools
                 // ONLY THE FORM, NEVER THE MERIT: see Bridge/Shape.cs.
                 //
                 // AND THE FORMA REWRITES `suoi` IN PLACE (Z-C21.10, S20): an
-                // enum value accepted with a different case («Superiore»)
+                // enum value accepted with a different case («Top»)
                 // comes out spelled as the catalogue spells it («top»).
                 // `suoi` is the very dictionary the step below hands to the
                 // library, which compares Ordinal.
@@ -2757,7 +2757,7 @@ namespace Oce.Solid.Agent.Tools
             string path = Convert.ToString(identity.TryGetValue("path", out var p) ? p : null) ?? "";
             if (path.Trim().Length > 0) return path;
             string title = Convert.ToString(identity.TryGetValue("document_title", out var t) ? t : null) ?? "";
-            return title.Trim().Length > 0 ? "titolo:" + title : null;
+            return title.Trim().Length > 0 ? "title:" + title : null;
         }
 
         /// <summary>

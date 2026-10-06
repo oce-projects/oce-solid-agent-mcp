@@ -19,7 +19,7 @@ namespace Oce.Solid.Agent.Bridge
     ///
     /// THREE RULES, IN ORDER OF SEVERITY.
     ///
-    /// 1. A ROOT, IF THERE IS ONE. With `RISCONTRO_RADICE` set, it writes only
+    /// 1. A ROOT, IF THERE IS ONE. With `OCE_WRITE_ROOT` set, it writes only
     ///    under that folder and nowhere else. It is the configuration to use when
     ///    the bridge runs with nobody watching.
     ///
@@ -28,7 +28,7 @@ namespace Oce.Solid.Agent.Bridge
     ///    because someone would ask for it on purpose, but because a wrong relative
     ///    path ends up there on its own.
     ///
-    /// 3. THE COMPANY LIBRARIES, if declared in `RISCONTRO_SOLA_LETTURA`.
+    /// 3. THE COMPANY LIBRARIES, if declared in `OCE_READ_ONLY_FOLDERS`.
     ///    It is a rule born from a fact: when inserting a structural member,
     ///    SOLIDWORKS opens by itself the profile library file and leaves it
     ///    marked as modified. From there any save rewrites the
@@ -44,7 +44,7 @@ namespace Oce.Solid.Agent.Bridge
         /// <summary>The argument names that contain a path that is written to.</summary>
         private static readonly string[] WritingFields =
         {
-            "path", "file", "percorso_pdf", "percorso_file", "destinazione",
+            "path", "file",
         };
 
         /// <summary>
@@ -91,12 +91,12 @@ namespace Oce.Solid.Agent.Bridge
                 return "The path «" + filePath + "» has a colon twice: " +
                        "I will not touch it.";
 
-            var root = Variable("RISCONTRO_RADICE");
+            var root = Variable("OCE_WRITE_ROOT");
             if (!string.IsNullOrWhiteSpace(root))
             {
                 if (!Below(full, root))
                     return "I can only write inside «" + root + "» (the " +
-                           "variable RISCONTRO_RADICE of this installation says so), and «" +
+                           "variable OCE_WRITE_ROOT of this installation says so), and «" +
                            full + "» is outside. Choose a path inside it.";
             }
 
@@ -112,7 +112,7 @@ namespace Oce.Solid.Agent.Bridge
             {
                 if (Below(full, single))
                     return "«" + single + "» is declared read-only on this " +
-                           "installation (variable RISCONTRO_SOLA_LETTURA): usually " +
+                           "installation (variable OCE_READ_ONLY_FOLDERS): usually " +
                            "these are the shared libraries, and rewriting them touches " +
                            "everyone's work. «" + full + "» ends up there.";
             }
@@ -152,11 +152,11 @@ namespace Oce.Solid.Agent.Bridge
 
         /// <summary>
         /// Folders declared read-only, separated by semicolons.
-        /// Example: `RISCONTRO_SOLA_LETTURA=S:\CAD;S:\_LIBRERIE`
+        /// Example: `OCE_READ_ONLY_FOLDERS=S:\CAD;S:\_LIBRERIE`
         /// </summary>
         private static IEnumerable<string> ReadOnly()
         {
-            var v = Variable("RISCONTRO_SOLA_LETTURA");
+            var v = Variable("OCE_READ_ONLY_FOLDERS");
             if (string.IsNullOrWhiteSpace(v)) return Enumerable.Empty<string>();
             return v.Split(';')
                 .Select(x => x.Trim())

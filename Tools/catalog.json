@@ -824,7 +824,7 @@
    "name": "global_variable",
    "family": "features",
    "summary": "Gives a NAME to a number (wall = 3 mm): the linked dimensions change with it.",
-   "details": "Creates or changes a global variable of the part: «wall» = 12 mm, or an expression («2 * \"wall\" + 1mm»). The dimensions linked with «link_dimension» change when you change it: it is the way to make a part that can be modified without breaking, without repeating the same number in ten places.\n\nAfter writing it I read it back, and I tell you which dimensions it drives and the volume before and after.\n\nI REFUSE IF the name is not made of letters, digits and «_», if you give me both (or neither) of «value_mm» and «expression», or if SOLIDWORKS does not accept the name: in an Italian SOLIDWORKS «spessore» (thickness) is already taken (measured) — use for example «wall».",
+   "details": "Creates or changes a global variable of the part: «wall» = 12 mm, or an expression («2 * \"wall\" + 1mm»). The dimensions linked with «link_dimension» change when you change it: it is the way to make a part that can be modified without breaking, without repeating the same number in ten places.\n\nAfter writing it I read it back, and I tell you which dimensions it drives and the volume before and after.\n\nI REFUSE IF the name is not made of letters, digits and «_», if you give me both (or neither) of «value_mm» and «expression», or if SOLIDWORKS does not accept the name: in an Italian SOLIDWORKS «spessore» (thickness, the reserved word of an Italian SOLIDWORKS) is already taken (measured) — use for example «wall».",
    "schema": {
     "type": "object",
     "properties": {
@@ -847,7 +847,7 @@
    },
    "precondition": "an open part",
    "document": "part",
-   "example": "{\"name\":\"parete\",\"value_mm\":12}"
+   "example": "{\"name\":\"wall\",\"value_mm\":12}"
   },
   {
    "name": "link_dimension",
@@ -1378,7 +1378,7 @@
    "name": "mirror",
    "family": "features",
    "summary": "Mirrors a feature across one of the three base planes.",
-   "details": "Mirrors a feature that already exists across a plane of symmetry. The feature is given as for «circular_pattern».\n\nThe plane is always one of the three base planes, and it must be stated: getting it wrong does not move the geometry a little, it puts it somewhere else on the part, and the build succeeds all the same.\n\nThe FEATURE is mirrored, not the whole body: for a symmetric part, mirror the hole or pocket that is missing on one side.\n\nI REFUSE IF THE PLANE DOES NOT EXIST, and I tell you which ones there are. Invented names -- diagonale (diagonal), obliquo (oblique) -- I do not interpret: mirroring across the wrong plane produces a plausible and wrong part.",
+   "details": "Mirrors a feature that already exists across a plane of symmetry. The feature is given as for «circular_pattern».\n\nThe plane is always one of the three base planes, and it must be stated: getting it wrong does not move the geometry a little, it puts it somewhere else on the part, and the build succeeds all the same.\n\nThe FEATURE is mirrored, not the whole body: for a symmetric part, mirror the hole or pocket that is missing on one side.\n\nI REFUSE IF THE PLANE DOES NOT EXIST, and I tell you which ones there are. Invented names -- «diagonal», «oblique» -- I do not interpret: mirroring across the wrong plane produces a plausible and wrong part.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2343,7 +2343,7 @@
       "enum": [
        "holes"
       ],
-      "description": "«holes», the whole circles (the only value accepted: raccordi, fillets, is refused, because on a fillet arc the mark is not born from code, measured)."
+      "description": "«holes», the whole circles (the only value accepted: «fillets» is refused, because on a fillet arc the mark is not born from code, measured)."
      },
      "size_mm": {
       "type": "number",
@@ -3547,15 +3547,15 @@
      },
      "variant": {
       "type": "string",
-      "description": "coincidente (default), parallelo, perpendicolare, distanza: the values are written in Italian, as the operation takes them (coincident, parallel, perpendicular, distance). I refuse concentric and tangent: they want a curved face, and here faces are chosen by direction, which holds only for flat ones."
+      "description": "coincident (default), parallel, perpendicular or distance. I refuse concentric and tangent: they want a curved face, and here faces are chosen by direction, which holds only for flat ones."
      },
      "distance_mm": {
       "type": "number",
-      "description": "only for «distanza»: how far apart they are. Without it I refuse -- there is no reasonable default value."
+      "description": "only for «distance»: how far apart they are. Without it I refuse -- there is no reasonable default value."
      },
      "alignment": {
       "type": "string",
-      "description": "«allineato» (aligned, the default) or «opposto» (opposite). If SOLIDWORKS refuses for alignment, try the other: two faces that look at each other want «opposto»."
+      "description": "«aligned» (the default) or «opposite». If SOLIDWORKS refuses for alignment, try the other: two faces that look at each other want «opposite»."
      }
     },
     "required": [

@@ -36,7 +36,7 @@
     { "operation": "replace_component",
       "arguments": {
         "component": "C2",
-        "path": "{LAVORO}\\the_replaced_component_says_its_configuration_lid2.sldprt",
+        "path": "{WORK}\\the_replaced_component_says_its_configuration_lid2.sldprt",
         "configuration": "Medium"
       },
       "must_fail": {
@@ -46,7 +46,7 @@
     { "operation": "replace_component",
       "arguments": {
         "component": "C2",
-        "path": "{LAVORO}\\the_replaced_component_says_its_configuration_lid2.sldprt",
+        "path": "{WORK}\\the_replaced_component_says_its_configuration_lid2.sldprt",
         "configuration": "Short"
       },
       "expect": [

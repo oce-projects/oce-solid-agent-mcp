@@ -2,7 +2,7 @@
  {
   "operation": "rectangular_frame",
   "arguments": {
-   "profile_path": "{BANCO}/profili\\QUADRO_COPIA.SLDLFP",
+   "profile_path": "{BENCH}/profiles\\FRAME_COPY.SLDLFP",
    "configuration": "80X80X5",
    "corner_treatment": "miter",
    "frame": {

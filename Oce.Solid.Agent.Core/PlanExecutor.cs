@@ -53,9 +53,9 @@ namespace Oce.Solid.Agent.Core
         public string UndoName
         {
             get { return _undoName; }
-            set { _undoName = string.IsNullOrWhiteSpace(value) ? "Assistente" : value; }
+            set { _undoName = string.IsNullOrWhiteSpace(value) ? "Assistant" : value; }
         }
-        private string _undoName = "Assistente";
+        private string _undoName = "Assistant";
 
         /// <summary>
         /// Lets it work on a document NEVER SAVED to disk.
@@ -665,7 +665,7 @@ namespace Oce.Solid.Agent.Core
                 var filePath = model.GetPathName();
                 if (!string.IsNullOrEmpty(filePath)) return filePath;
                 var docTitle = model.GetTitle();
-                return string.IsNullOrEmpty(docTitle) ? "" : "titolo:" + docTitle;
+                return string.IsNullOrEmpty(docTitle) ? "" : "title:" + docTitle;
             }
             catch { return ""; }
         }

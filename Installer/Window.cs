@@ -89,12 +89,12 @@ namespace Oce.Solid.Agent.Installer
             Add(_checks);
             y += 140;
 
-            // ── dove ─────────────────────────────────────────────────────
-            Add(Subtitle("Dove installare", ref y));
+            // ── where ─────────────────────────────────────────────────────
+            Add(Subtitle("Where to install", ref y));
             _folder.Text = Steps.DefaultFolder;
-            FieldWithButton(_folder, "Sfoglia…", ref y, ChooseFolder);
+            FieldWithButton(_folder, "Browse…", ref y, ChooseFolder);
 
-            Add(Subtitle("Add-in OpenPDM (facoltativo)", ref y));
+            Add(Subtitle("Operations library (where it comes from)", ref y));
             // THE OPERATIONS ARE NOT ASKED FOR ANY MORE. Since 0.6.0 they are in the
             // payload: the field stays to SAY where they come from, read
             // only. Asking for a file that the package already contains is
@@ -108,7 +108,7 @@ namespace Oce.Solid.Agent.Installer
 
             // THE WELDMENT PROFILES (entry H19, A6): prefilled with the folder
             // SOLIDWORKS uses, or the one it installs, only when one exists;
-            // empty otherwise. Written as PROFILI_SALDATURA in the client's env.
+            // empty otherwise. Written as OCE_WELDMENT_PROFILES in the client's env.
             // A folder already in an installed client's entry comes first: it
             // was chosen by someone (H19 review).
             Add(Subtitle("Weldment profiles folder (optional: weldment_profiles needs it)", ref y));
@@ -260,7 +260,7 @@ namespace Oce.Solid.Agent.Installer
             _install.Enabled = !locked;
             _outcome.Text = locked
                 ? "There are things to fix before installing (rows in red)."
-                : "Pronto.";
+                : "Ready.";
             _outcome.ForeColor = locked ? Color.FromArgb(190, 30, 30) : Color.DimGray;
         }
 
@@ -364,7 +364,7 @@ namespace Oce.Solid.Agent.Installer
                 "I am removing the bridge files from:\n\n" + _folder.Text + "\n\n" +
                 "and the entry from the configuration of the connected programs.\n\n" +
                 "Your parts and your drawings are not touched.",
-                "Disinstallare?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+                "Uninstall?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
             if (response != DialogResult.OK) return;
 
             _registry.Clear();

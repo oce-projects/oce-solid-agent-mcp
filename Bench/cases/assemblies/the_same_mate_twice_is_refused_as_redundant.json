@@ -26,7 +26,7 @@
       "arguments": {
         "component_a": "C1", "face_a": "up",
         "component_b": "C2", "face_b": "down",
-        "variant": "coincidente", "alignment": "opposto"
+        "variant": "coincident", "alignment": "opposite"
       },
       "expect": [
         { "what": "state.components[0].grounded", "equal_to": true,
@@ -41,7 +41,7 @@
       "arguments": {
         "component_a": "C1", "face_a": "up",
         "component_b": "C2", "face_b": "down",
-        "variant": "coincidente", "alignment": "opposto"
+        "variant": "coincident", "alignment": "opposite"
       },
       "must_fail": {
         "message_includes": ["REDUNDANT", "before the mate blocked in TY, RX, RZ", "blocked nothing new",
@@ -55,7 +55,7 @@
       "expect": [
         { "what": "state.components[1].mates", "equal_to": 1,
           "why": "THE REFUSAL LEFT THE ASSEMBLY AS IT WAS: the redundant mate was made, measured and taken out, and the state, which counts the mates on its own, reads one on the lid again. A refusal that left the second mate in would be a refusal that lies. This step only reads (the check changes nothing): a refused step has no expectations of its own." },
-        { "what": "state.components[1].mates_kinds", "equal_to": ["coincidente"],
+        { "what": "state.components[1].mates_kinds", "equal_to": ["coincident"],
           "why": "and the one left is the first coincident" },
         { "what": "state.components[1].origin_mm[1]", "equal_to": 10, "tolerance": 0.01,
           "tolerance_why": "the origin is written rounded to the thousandth of a mm, and y is blocked",
@@ -67,7 +67,7 @@
       "arguments": {
         "component_a": "C1", "face_a": "front",
         "component_b": "C2", "face_b": "front",
-        "variant": "parallelo", "alignment": "allineato"
+        "variant": "parallel", "alignment": "aligned"
       },
       "expect": [
         { "what": "measurements.mates_before", "equal_to": [1, 1],

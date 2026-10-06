@@ -35,7 +35,7 @@ part and closes it.
 
 ```
 .\Bench\bench.ps1                        everything, and writes the report
-.\Bench\bench.ps1 -Group viste          a single family
+.\Bench\bench.ps1 -Group views          a single family
 .\Bench\bench.ps1 -Family reanchor    a single folder of declared cases
 .\Bench\bench.ps1 -Slow                 also the ones that cost minutes
 .\Bench\bench.ps1 -SkipCompilation     the binary that is already there
@@ -74,7 +74,7 @@ after the build leaves the test unresolved and that check red.
 `Bench/ReflectionLog.cs`: the schemas of the mutations, the catalogue count of
 the header, the signatures of the state. A full or partial run ends with one
 more test, «every lookup by name that falls back to null found its target»
-(skipped with `--libreria`: an older library lacks newer names by design); in a
+(skipped with `--library`: an older library lacks newer names by design); in a
 mutation or regression run a miss is a bench error. `Oce.Solid.Agent.ContractTests` forbids a
 `?.` read of a lookup anywhere else in `Bench/`.
 
@@ -88,7 +88,7 @@ mutation or regression run a miss is a bench error. `Oce.Solid.Agent.ContractTes
 > the Windows error about the semaphore timeout period having expired.
 >
 > This has cost us twice: a full run dead at **8469 s** (644 tests passed, zero
-> failed) and a `-Group casi` run dead at **1132 s**. In both cases **zero
+> failed) and a `-Group cases` run dead at **1132 s**. In both cases **zero
 > reds**: it is wasted time, not information.
 >
 > **The signal that tells them apart is simple: a real run ALWAYS writes a file
@@ -96,7 +96,7 @@ mutation or regression run a miss is a bench error. `Oce.Solid.Agent.ContractTes
 > whatever the last line on screen says.
 >
 > Run it **bare**, and read afterwards: `Bench\report\last.json`, or
-> `Bench\ultimo-giro.txt` — which is **UTF-16LE**, so a `grep` done by hand
+> `Bench\last-run.txt` — which is **UTF-16LE**, so a `grep` done by hand
 > finds nothing in it and it looks as if the case never ran. *A log that cannot
 > be read is a log that leads to the wrong conclusion.*
 
@@ -112,10 +112,10 @@ having changed.
 
 ```
 msbuild Bench\Oce.Solid.Agent.Bench.csproj -p:Configuration=Release
-Bench\bin\Oce.Solid.Agent.Bench.exe --libreria Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll
+Bench\bin\Oce.Solid.Agent.Bench.exe --library Oce.Solid.Agent.Core\bin\Release\Oce.Solid.Agent.Core.dll
 ```
 
-Without `--libreria` it looks for `Oce.Solid.Agent.Core.dll` next to the
+Without `--library` it looks for `Oce.Solid.Agent.Core.dll` next to the
 executable. It exits 0 if nothing fails.
 
 ### An expectation that EXPLAINS a red must be put BEFORE that red
@@ -140,7 +140,7 @@ look?** An empty list because nothing could be read passes any
 ### One group only, while working
 
 A whole run lasts **from an hour and three quarters to two hours** — measured on
-18/9/2026: **6774 s** for 781 tests, and 7017 s for the `casi` group alone.
+18/9/2026: **6774 s** for 781 tests, and 7017 s for the `cases` group alone.
 While you are writing something you cannot wait two hours to learn that you got
 one line wrong:
 
@@ -158,9 +158,9 @@ one line wrong:
 > age** — this line is an indication, that field is a measurement.
 
 ```
-Bench\bin\Oce.Solid.Agent.Bench.exe --gruppi                  which groups there are
-Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo viste            only that one: 6.6 seconds
-Bench\bin\Oce.Solid.Agent.Bench.exe --gruppo tabella,forma    more than one, separated by commas
+Bench\bin\Oce.Solid.Agent.Bench.exe --groups                  which groups there are
+Bench\bin\Oce.Solid.Agent.Bench.exe --group views            only that one: 6.6 seconds
+Bench\bin\Oce.Solid.Agent.Bench.exe --group table,cases    more than one, separated by commas
 ```
 
 A wrong name is **refused before SOLIDWORKS is attached to**, and the refusal
@@ -176,20 +176,17 @@ the images changed an assertion about the weight of the PNG.
 > already know that.
 
 That is why a partial run **cannot pass for a whole run**: the summary — on
-screen and in the last line of `in-corso.txt` — says so in plain words, and says
+screen and in the last line of `in-progress.txt` — says so in plain words, and says
 how many groups it did not run.
 
 ```
-PARTIAL RUN (only viste, 23 groups not launched) — 6 prove, 0 fallite
+PARTIAL RUN (only views, 23 groups not launched) — 6 tests, 0 failed
 ```
-
-(In that line «prove» and «fallite» are Italian words that the bench still
-prints and that `bench.ps1` still reads: they mean «tests» and «failed».)
 
 ### The cases that are files — `cases/features/`
 
 A case is a JSON file with **the expected numbers next to every step**, and it
-is run with `--gruppo casi`. No line of C# is needed:
+is run with `--group cases`. No line of C# is needed:
 
 ```json
 { "name": "internal_shell", "family": "features",
@@ -214,7 +211,7 @@ is run with `--gruppo casi`. No line of C# is needed:
 | selectors | `@face(normal=…)`, `@face(planar=false)`, `@face(area~=907.92)`, `@face(normal=front,x~=150)` (x, y, z are the point that the state publishes), `@edge(axis=Z,length~=100)`, `@edge(curved=true,n=1)`, `@feature(kind=…,n=2)`, `@dimension(feature=Schizzo1,name=D1)`, `@dimension(angular=true)` (the only dimension in degrees, entry Z-C21.2) |
 | before the step | `select_first`: uids or selectors left SELECTED when the step starts, as someone sitting in front of SOLIDWORKS would leave them (the STL that exported only the selected face). `hide_first`: bodies, or the body of a face, HIDDEN before the step (the hidden body that came out of the overhang check). Both are counted after they are done: a selection that did not succeed is a bench error, not a green (entry Z-C21.2) |
 | `activate_before` | `{ "document": path, "configuration": name }`: a configuration of ANOTHER open document made active before the step, read back (ShowConfiguration2 answers false on the one already active, so its answer decides nothing). It is how a drawing step finds its model on a configuration other than the one the views show (Z-C21.4, L16-2); a document that is not open, or a configuration that does not become the active one, is a bench error |
-| placeholders | `{PROFILI}` the library of welded profiles of this installation; `{LAVORO}` the folder a case may WRITE to (`Bench\lavoro\`, ignored by git); `{DATI}` the versioned input files (`Bench\data\`); `{SOLIDWORKS}` the SOLIDWORKS installation folder, for the files that ship WITH it and are not versioned (the table templates; `SW_INSTALL_PATH` if it is not the default one, entry Z-C21.2). A case that names a path of this machine is not a test, it is a memory |
+| placeholders | `{PROFILES}` the library of welded profiles of this installation; `{WORK}` the folder a case may WRITE to (`Bench\work\`, ignored by git); `{DATA}` the versioned input files (`Bench\data\`); `{SOLIDWORKS}` the SOLIDWORKS installation folder, for the files that ship WITH it and are not versioned (the table templates; `SW_INSTALL_PATH` if it is not the default one, entry Z-C21.2). A case that names a path of this machine is not a test, it is a memory |
 | `must_fail` | `message_includes` (mandatory), `volume_unchanged`, `no_extra_feature`, `twin`, `difference_is_the_part` (see «The pairs») |
 
 **A key the bench does not read is refused** (W3.1-bis.2, item 4). Every place
@@ -233,14 +230,14 @@ in a second, so a key written wrong is found before the bench runs.
 
 Instead of `"start": { "new_part": true }` a case can ask for an assembly, and the
 bench builds it: every component is a part made **with the same operations as the
-cases**, saved in `Bench\lavoro`, reopened and inserted.
+cases**, saved in `Bench\work`, reopened and inserted.
 
 ```json
 "assembly": {
   "components": [
     { "name": "base",
       "steps": [ { "operation": "extrude_rectangle", "arguments": { … } } ] },
-    { "name": "coperchio", "to_insert": false,
+    { "name": "cover", "to_insert": false,
       "position_mm": [0, 0, 30],
       "steps": [ … ] }
   ]
@@ -249,7 +246,7 @@ cases**, saved in `Bench\lavoro`, reopened and inserted.
 
 | | |
 |---|---|
-| `name` | goes into the file name: `<case>_<name>.sldprt` in `Bench\lavoro`. The case names it with `{LAVORO}\<case>_<name>.sldprt` |
+| `name` | goes into the file name: `<case>_<name>.sldprt` in `Bench\work`. The case names it with `{WORK}\<case>_<name>.sldprt` |
 | `position_mm` | where the **centre of the bounding box** goes, not the origin. Absent = at the origin of the assembly. **It is not a mate**. `AddComponent5` positions the centre: a part with its origin on a face — anything extruded in one direction only — finds its origin shifted by half its size, and in the state it is read back as `origin_mm`. Ask for z=30 on a part 4 thick and the origin comes out at `[0, -2, 30]` |
 | `to_insert` | absent or `true` = the preparation inserts it. **`false` = it builds it and opens it, but does NOT insert it**: it is for testing `insert_component`, otherwise one would measure the work of the preparation believing to measure the operation |
 | `configurations` | next to `components`: `[{ "name": …, "suppressed": [component names], "excluded_from_bom": [component names] }]`, made in this order after the components are in (Z-C21.4, L16-2 and L16-3). Each new configuration becomes the active one, is set while active (suppression, exclusion from the BOM of that configuration only) and every setting is read back; the last one made stays active. No operation of the catalogue suppresses a component or excludes it from the BOM in one configuration |
@@ -257,7 +254,7 @@ cases**, saved in `Bench\lavoro`, reopened and inserted.
 | a repeated child `name` | inside a sub-assembly, two children with the same `name` are two instances of ONE part, built and registered from the first; the later one brings only its `position_mm`, and `steps` of its own are a bench error (Z-C21.11, M23) |
 | `envelope` | on a component: `true` makes it an envelope once inserted (Select4, then IAssemblyDoc.CompConfigProperties6 with IsEnvelope true, as the Z-C21.3 probe of 28/9/2026), read back with IsEnvelope. Top-level parts only, not with `to_insert` false, not on a child of a sub-assembly (Z-C21.11, N27) |
 | `hidden` | on a component: `true` hides it (IComponent2.Visible = swComponentHidden), read back with IsHidden(false). Top level only, not with `to_insert` false, not on a child of a sub-assembly (Z-C21.11) |
-| `reopen_lightweight` | next to `components`: `true` saves the assembly as `{LAVORO}\<case>.sldasm`, closes it and every document of its components (checked by path: nothing of the case stays loaded), reopens it with OpenDoc6 Silent, OverrideDefaultLoadLightweight and LoadLightweight (193), and checks GetLightWeightComponentCount > 0 and the top-level count. The case runs on the reopened document. It is the last step of the preparation, after `configurations`; not with any component at `to_insert` false (Z-C21.11, N5) |
+| `reopen_lightweight` | next to `components`: `true` saves the assembly as `{WORK}\<case>.sldasm`, closes it and every document of its components (checked by path: nothing of the case stays loaded), reopens it with OpenDoc6 Silent, OverrideDefaultLoadLightweight and LoadLightweight (193), and checks GetLightWeightComponentCount > 0 and the top-level count. The case runs on the reopened document. It is the last step of the preparation, after `configurations`; not with any component at `to_insert` false (Z-C21.11, N5) |
 
 The three new keys take only a JSON Boolean: any other value is a bench error,
 never read as false, and so is every read-back that does not say what was asked.
@@ -267,7 +264,7 @@ never read as false, and so is every read-back that does not say what was asked.
 insertion answers `null` without saying why.
 
 At the end the files are **deleted**, and a check verifies it
-(`--gruppo assieme-di-prova`): *a case that succeeds because a file from the
+(`--group test-assembly`): *a case that succeeds because a file from the
 previous run was left behind is not a case, it is a memory.*
 
 What fails during the preparation is a **bench error** (exit 2), not a red test:
@@ -310,7 +307,7 @@ checks are normal noise, and a guard that stopped healthy runs would be switched
 off by the first person who saw it stop one.
 
 To **see it fire** — which is the only way to believe it — there is
-`--fingi-senza-solidworks` («pretend there is no SOLIDWORKS»): it makes
+`--pretend-no-solidworks` («pretend there is no SOLIDWORKS»): it makes
 `NewDocument` answer `null`, and in a few seconds you can read the run that
 interrupts itself. The real condition happens after hours and cannot be
 reproduced on demand (entry K17; on 23/9/2026 it cost an hour and a half of run
@@ -339,7 +336,7 @@ different from the workstation's is measuring something else.
 looks again in the wrong place:
 
 ```
-the framing profiles       the folder named by PROFILI_SALDATURA. Without
+the framing profiles       the folder named by OCE_WELDMENT_PROFILES. Without
                            the variable the bench stops at once and says so:
                            there is no default path, because every
                            workshop keeps its own library where it likes.
@@ -401,12 +398,12 @@ Nineteen parts in `cases/regression/`, each with `build`, **a single
 | **detaches in silence** | rebuild fine, no error, **and the geometry is elsewhere** |
 
 The third row is the only number that counts, and it is written **even when it
-is zero**. The detail case by case goes into `report/regressione.md`, the three
+is zero**. The detail case by case goes into `report/regression.md`, the three
 numbers into the README.
 
 **The `intent` is mandatory**, and a case that does not declare it is a bench
 error: a hole 20 mm from the edge, on a plate that gets wider, must stay 20
-from the edge (`ancorato_a_bordo`) or where it was (`ancorato_a_assoluto`)?
+from the edge (`anchored_to_border`) or where it was (`anchored_to_absolute`)?
 Without knowing that there is no right answer.
 
 Two more fields than the normal cases:
@@ -435,7 +432,7 @@ from the case next to it.
 
 It costs **one SOLIDWORKS document per mutation** — 67 mutations, ~14 minutes —
 so it is run before a delivery, not every evening. It writes
-`Bench/report/mutazioni.md`, one line per case, and has a summary of its own
+`Bench/report/mutations.md`, one line per case, and has a summary of its own
 (`MUTATIONS — 11 cases, 0 blind`): the reds it produces are **sought**.
 
 The mutations on arguments that the operation **ignores** (`depth_mm` on a
@@ -449,7 +446,7 @@ the repair, it turns red.
 
 ```
 .\Checks\library-of-the-time.ps1 0.70.0
-.\Bench\bench.ps1 -Library <the path it printed> -Group casi -SkipCompilation
+.\Bench\bench.ps1 -Library <the path it printed> -Group cases -SkipCompilation
 .\Checks\library-of-the-time.ps1 0.70.0 -Clean
 ```
 
@@ -464,20 +461,17 @@ lived in `OpenPDM.SwAddin` with another namespace: the bench does not find
 them, says so and exits 2 — «it is not a red run, it is a library the bench
 cannot read».
 
-### The runs are counted — `storico.txt`
+### The runs are counted — `history.txt`
 
-`in-corso.txt` is rewritten by the next run, and `ultimo-giro.txt` is a
+`in-progress.txt` is rewritten by the next run, and `last-run.txt` is a
 redirection by whoever launches: **nothing was left of past runs.** Since entry
-F12 every run appends a line at the end of `Bench/storico.txt`, with the failed
+F12 every run appends a line at the end of `Bench/history.txt`, with the failed
 tests **by name**:
 
 ```
-2026-09-15 08:53  libreria 0.75.0.0  117 prove, 0 fallite, 1 SKIPPED (--lento runs them)
-2026-09-15 09:11  libreria 0.75.0.0  117 prove, 1 fallite  ->  null displacement (must fail)
+2026-09-15 08:53  library 0.75.0.0  117 tests, 0 failed, 1 SKIPPED (--slow runs them)
+2026-09-15 09:11  library 0.75.0.0  117 tests, 1 failed  ->  null displacement (must fail)
 ```
-
-(«libreria» is «library», «prove» is «tests», «fallite» is «failed»: the same
-Italian words as in the summary line above.)
 
 It serves to answer one question, which without this file has no answer:
 **«how many times has that one happened?»** — because a test that fails at
@@ -542,11 +536,11 @@ node collect_views.js        builds the five real parts and saves the state,
                               which has the `shape` field inside
                               -- then the five sentences are given, AND NOTHING
                                  ELSE, to an isolated model, which writes the
-                                 plans in cases/forma/1..5.json
+                                 plans in cases/shape/1..5.json
 node test_shape.js           runs the plans and compares volume and bounding box
 ```
 
-**The model that writes the plans must not see `Bench/viste/`**: in there are
+**The model that writes the plans must not see `Bench/views/`**: in there are
 the complete states, that is, the answers. If it sees them, the measurement no
 longer measures anything.
 
@@ -563,17 +557,17 @@ itself the things that can be counted:
   left on, no body cut**. It is the risk that entry V4 names.
 
 The other half — «the thickness can be READ from the section» — can be said only
-by someone who looks. The two images stay in `Bench/viste/`
+by someone who looks. The two images stay in `Bench/views/`
 (`v4-guscio-intero.png` and `v4-guscio-sezione.png`) precisely for that.
 
-With `PONTE=...` you point at another executable: it is for testing the
+With `OCE_BRIDGE=...` you point at another executable: it is for testing the
 **installed** one instead of the one just built, which is the only way to know
 whether the package really works and not only whether it compiles.
 
 ### Before and after every run
 
 ```
-Checks\CloseLeftovers\bin\CloseLeftovers.exe --chiudi
+Checks\CloseLeftovers\bin\CloseLeftovers.exe --close
 Checks\NewPart\bin\NewPart.exe
 ```
 
@@ -585,7 +579,7 @@ plan that is half a second of work takes eighty-five.
 
 ## The cases
 
-**The declared cases** — the ones that `--gruppo casi` runs and measures. The
+**The declared cases** — the ones that `--group cases` runs and measures. The
 list of the families is in `Families` in `DeclaredCases.cs`: a folder that is
 there but is not in the list is not read, and one in the list that is not there
 is a bench error.
@@ -632,7 +626,7 @@ cases/chamfer/       4   where a fillet would remove another volume; the angle
 cases/revolve/  5   the solids of revolution, and the profile straddling the axis
 cases/plane/        7   WHERE the plane ends up, not the distance asked; the photo
                        to be traced, scaled on a plane (Z-F5, reads
-                       {DATI}: Bench/data/, versioned); a picture over 2048 px
+                       {DATA}: Bench/data/, versioned); a picture over 2048 px
                        keeps the scale of its file (Z-C21, M11)
 cases/mirror/     2   the hole must appear on the other side
 cases/patterns/      15   the direction, which is the real doubt; the axis recognised
@@ -668,7 +662,7 @@ cases/export/     15   STL, STEP and IGES: the file read back byte by byte,
 cases/document_properties/   12   the two drawers, and the code that goes into the BOM; the
                        material reaches every configuration (Z-C21, M10)
 cases/text/        6   engraving, and the lettering that comes out of the face
-cases/frames/        1   the welded profiles, read from the standard library ({PROFILI})
+cases/frames/        1   the welded profiles, read from the standard library ({PROFILES})
 cases/assemblies/     22   inserting is not mating; one constraint is not enough;
                        two equal bases and a STEP: one shape per part,
                        the mass per instance (Z-C20);
@@ -799,7 +793,7 @@ cases/dimensions/        7   the variable that does not override the chamfer, re
                        reader (set_dimension, dimension_tolerance, link_dimension)
                        with the fourth configuration active, the before and
                        after of S1 in parts (Z-C21.13)
-cases/regression/ 19   a dimension upstream changes: who holds and who detaches (--regressione)
+cases/regression/ 19   a dimension upstream changes: who holds and who detaches (--regression)
 cases/reanchor/    3   the edge named with the uid read BEFORE two holes is
                        found again by signature (same length, same point) and the
                        centre of mass says which corner; shortened by a chamfer
@@ -812,7 +806,7 @@ cases/aliases/     4   the names of before the rename, accepted until the first
                        part, and the step lists them in measurements.deprecated
 ```
 
-`-Family` (entry E19) runs only those folders of the declared cases: the `casi`
+`-Family` (entry E19) runs only those folders of the declared cases: the `cases`
 group alone is three quarters of an hour, and a new case can be seen to fail
 BEFORE writing the code. The run is partial as with `-Group`, and rewrites
 `last.json` like it does: put it back with `git checkout` before the whole run.
@@ -825,7 +819,7 @@ named that way arrived without a signature, and the body renumbered by a cut
 (entry E4) could not be seen by the bench.
 
 **The others** — plans for the MCP bridge and working material, which
-`--gruppo casi` does not run:
+`--group cases` does not run:
 
 ```
 cases/limits/    8   where the operations break
@@ -834,14 +828,14 @@ cases/views/     5   parts of which everything is known, for the tests on images
 cases/bridge/   107   the plans of the MCP bridge, per TODO entry
 ```
 
-**`cases/forma/` IS NOT IN THE REPOSITORY, and that is intended.** The folder
+**`cases/shape/` IS NOT IN THE REPOSITORY, and that is intended.** The folder
 appears on this machine and holds the five plans that an isolated model writes
 during the V3 measurement — it rewrites them at every run, and versioning them
 would mean freezing the answer of **one** model on **one** day as if it were the
 measurement. The measurement is the number, and it is in the README
 (`.gitignore`, line 59).
 
-*This line used to count it together with the others, «cases/forma/ 5», and the
+*This line used to count it together with the others, «cases/shape/ 5», and the
 count was true only here:* on a clean clone that folder does not exist, and the
 contract check «every folder named in the README exists» turned red for anyone
 except whoever wrote it. **A document that describes the machine of whoever
@@ -865,8 +859,8 @@ An **unreadable** file does not count as a plan: it stays a bench error with the
 right reason. *A recognition that swallows the failures too stops recognising.*
 
 And watch out for the placeholder, which **is not the same in the two shapes**:
-the declared cases use `{LAVORO}` and `{PROFILI}` (resolved by `Bench\Expectations.cs`), the plans
-use `{BANCO}` (resolved by `run_plans.js`). Swapping them gives no error:
+the declared cases use `{WORK}` and `{PROFILES}` (resolved by `Bench\Expectations.cs`), the plans
+use `{BENCH}` (resolved by `run_plans.js`). Swapping them gives no error:
 the path stays literal, and the case complains that a file does not exist.
 
 The names in `cases/bridge/` begin with the entry that gave them birth —

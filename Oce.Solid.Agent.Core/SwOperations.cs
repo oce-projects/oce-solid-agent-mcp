@@ -3700,7 +3700,7 @@ namespace Oce.Solid.Agent.Core
             bool angular = dimensionType == AngularDimension;
             Func<double, double> fromSystem = angular ? (Func<double, double>)Units.Degrees : Units.Mm;
             Func<double, double> toSystem = angular ? (Func<double, double>)Units.Rad : Units.M;
-            string units = angular ? "gradi" : "mm";
+            string units = angular ? "degrees" : "mm";
 
             double before = fromSystem(ApiHelpers.ReadDimension(dimension));
             double? volumeBefore = VolumeMm3(model);
@@ -8297,7 +8297,7 @@ namespace Oce.Solid.Agent.Core
                 if (entry == null)
                 {
                     reason = "Reference no. " + which + " of «" + theField +
-                             "» is not a {passo, genere} object.";
+                             "» is not a {step, kind} object.";
                     return false;
                 }
 

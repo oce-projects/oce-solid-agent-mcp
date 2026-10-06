@@ -108,7 +108,7 @@ namespace Oce.Solid.Agent.Installer
         /// command line (CommandLineToArgvW, which claude.exe and node follow)
         /// give it back unchanged (H19 review). The first version only
         /// escaped the quotes: a value ending in a backslash, such as
-        /// `PROFILI_SALDATURA=D:\Profiles\`, came out as `...\"`, an escaped
+        /// `OCE_WELDMENT_PROFILES=D:\Profiles\`, came out as `...\"`, an escaped
         /// quote, and swallowed the arguments after it. Backslashes are
         /// literal except right before a quote, where they are doubled.
         /// </summary>

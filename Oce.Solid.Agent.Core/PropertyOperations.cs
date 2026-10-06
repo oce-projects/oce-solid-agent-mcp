@@ -483,7 +483,7 @@ namespace Oce.Solid.Agent.Core
                     return ((swCustomInfoAddResult_e)code).ToString();
             }
             catch { }
-            return "codice " + code;
+            return "code " + code;
         }
     }
 }

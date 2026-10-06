@@ -288,11 +288,11 @@ namespace Oce.Solid.Agent.Core
                     if (obj == null) continue;
 
                     string what =
-                        obj is IFace2 ? "faccia" :
-                        obj is IEdge ? "spigolo" :
-                        obj is IBody2 ? "corpo" :
-                        obj is IVertex ? "vertice" :
-                        obj is IFeature ? "lavorazione" : null;
+                        obj is IFace2 ? "face" :
+                        obj is IEdge ? "edge" :
+                        obj is IBody2 ? "body" :
+                        obj is IVertex ? "vertex" :
+                        obj is IFeature ? "feature" : null;
 
                     var entry = new Dictionary<string, object>();
                     if (what != null) entry["kind"] = what;
@@ -1649,8 +1649,8 @@ namespace Oce.Solid.Agent.Core
                     if (d == null) return;
                     // THE STANDARD AND THE SIZE ARE STRINGS, and they are what a
                     // designer says out loud: «a through M8 ISO».
-                    Put(entry, "norma", Text(() => d.Standard));
-                    Put(entry, "tipo_foro", Text(() => d.FastenerType));
+                    Put(entry, "standard", Text(() => d.Standard));
+                    Put(entry, "hole_type", Text(() => d.FastenerType));
                     Put(entry, "size", Text(() => d.FastenerSize));
                     // THE WORKED DIAMETER, with the four-family recipe
                     // already in production in `OperazioniFori`: which of the four
@@ -1853,7 +1853,7 @@ namespace Oce.Solid.Agent.Core
                 case (int)swEndConditions_e.swEndCondOffsetFromSurface: return "offset from a surface";
                 case (int)swEndConditions_e.swEndCondUpToBody: return "up to a body";
                 case (int)swEndConditions_e.swEndCondUpToNext: return "up to the next";
-                default: return "condizione " + code;
+                default: return "condition " + code;
             }
         }
 

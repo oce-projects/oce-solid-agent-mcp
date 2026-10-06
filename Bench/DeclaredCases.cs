@@ -79,7 +79,7 @@ namespace Oce.Solid.Agent.Bench
             // THIS LIST IS EXPLICIT, and it is a lurking defect: a
             // folder of cases that is not in it is a set of files that
             // look like checks and never run. Measured the same day: the
-            // other folders outside the list (`bridge`, `limits`, `views`, `pezzi`,
+            // other folders outside the list (`bridge`, `limits`, `views`, `parts`,
             // `shape`) contain only PLANS, which is right — but it is a fact
             // measured, not a guarantee of the mechanism.
             "weldments",
@@ -233,7 +233,7 @@ namespace Oce.Solid.Agent.Bench
 
             // WHICH CASES ARE GREEN, BY NAME (entry Z-C6, the second half).
             //
-            // `last.json` carried the totals and nothing else: «972 prove, 0 fallite» does not
+            // `last.json` carried the totals and nothing else: «972 tests, 0 failed» does not
             // say WHICH cases ran, and so nobody could check
             // that every `Provata = true` pointed to a case that really runs. On
             // 25/9/2026, while writing the missing cases, two catalog operations
@@ -330,7 +330,7 @@ namespace Oce.Solid.Agent.Bench
                 Check("twin of «" + c.Case + "»", true, c.Twin + " — " + why);
             }
 
-            Check("gemelle " + green + "/" + pairs.Count + " verdi",
+            Check("twins " + green + "/" + pairs.Count + " green",
                   green == pairs.Count, "");
         }
 
@@ -642,7 +642,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // --muta: EVERY CASE MUST BE ABLE TO TURN RED (entry F6)
+        // --mutate: EVERY CASE MUST BE ABLE TO TURN RED (entry F6)
         // ==================================================================
         /// <summary>
         /// PERTURBS THE PLAN, NOT THE CODE.
@@ -684,7 +684,7 @@ namespace Oce.Solid.Agent.Bench
         private static void MutationsRun()
         {
             Console.WriteLine();
-            Console.WriteLine("=== --muta: every case must be able to turn red (F6) ===");
+            Console.WriteLine("=== --mutate: every case must be able to turn red (F6) ===");
 
             var file = CasesFile();
             if (file == null) return;
@@ -741,7 +741,7 @@ namespace Oce.Solid.Agent.Bench
                 // a case whose expectations leave some arguments free, and the
                 // report line says so by name. Only the BLIND one is red.
                 Check("muta: " + itemName, !blind,
-                      mutations.Count + " mutazioni, " + red + " rosse" +
+                      mutations.Count + " mutations, " + red + " red" +
                       (survived.Count > 0 ? " — still green: " + string.Join(", ", survived) : ""));
             }
 
@@ -957,7 +957,7 @@ namespace Oce.Solid.Agent.Bench
                 var bench = Directory.GetParent(bin.TrimEnd(Path.DirectorySeparatorChar));
                 var folder = Path.Combine(bench.FullName, "report");
                 Directory.CreateDirectory(folder);
-                var file = Path.Combine(folder, "mutazioni.md");
+                var file = Path.Combine(folder, "mutations.md");
 
                 var text = new List<string>
                 {
@@ -981,9 +981,9 @@ namespace Oce.Solid.Agent.Bench
                     : "**" + blindOnes + " blind cases.** A blind case is green and proves nothing.");
                 File.WriteAllText(file, string.Join("\r\n", text) + "\r\n",
                                   new System.Text.UTF8Encoding(false));
-                Console.WriteLine("mutazioni: " + file);
+                Console.WriteLine("mutations: " + file);
             }
-            catch (Exception ex) { Console.WriteLine("could not write mutazioni.md: " + ex.Message); }
+            catch (Exception ex) { Console.WriteLine("could not write mutations.md: " + ex.Message); }
         }
 
         /// <summary>
@@ -1427,7 +1427,7 @@ namespace Oce.Solid.Agent.Bench
         /// GUARDS ITS DEFECT (entry F10).
         ///
         /// A case can declare the version of the library **before which
-        /// it had to be red**. Launching the bench with `--libreria` on
+        /// it had to be red**. Launching the bench with `--library` on
         /// an older version, that case **must** fail: if it passes, it
         /// was guarding nothing.
         ///
@@ -1461,7 +1461,7 @@ namespace Oce.Solid.Agent.Bench
         /// <summary>
         /// The steps of a case, on an already open document.
         ///
-        /// It is in a method of its own because `--muta` (entry F6) re-runs the SAME
+        /// It is in a method of its own because `--mutate` (entry F6) re-runs the SAME
         /// case with an argument changed, and that case does not come from a file:
         /// it comes from an in-memory copy. `gemelle` and `path` may be
         /// null — there is no pair to record there and no file
@@ -1688,7 +1688,7 @@ namespace Oce.Solid.Agent.Bench
                         continue;
                     }
 
-                    if (measurements == null) { Check(label, false, "fallito: " + Short(error)); return false; }
+                    if (measurements == null) { Check(label, false, "failed: " + Short(error)); return false; }
 
                     var expectations = Items(planStep, "expect");
                     if (expectations == null || expectations.Count == 0)
@@ -1975,10 +1975,10 @@ namespace Oce.Solid.Agent.Bench
                     "refuses everything.");
                 return false;
             }
-            // Without the path — that is under `--muta`, where the case comes from
+            // Without the path — that is under `--mutate`, where the case comes from
             // an in-memory copy — the file next to it cannot be looked at, and
             // it is not what is being tested.
-            if (casePath == null) { Check(label, true, "rifiutato: " + Short(error)); return true; }
+            if (casePath == null) { Check(label, true, "refused: " + Short(error)); return true; }
             var nextTo = Path.Combine(Path.GetDirectoryName(casePath), twin + ".json");
             if (!File.Exists(nextTo))
             {
@@ -1989,7 +1989,7 @@ namespace Oce.Solid.Agent.Bench
                 return false;
             }
 
-            Check(label, true, "rifiutato: " + Short(error));
+            Check(label, true, "refused: " + Short(error));
             return true;
         }
 

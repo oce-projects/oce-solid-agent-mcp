@@ -69,12 +69,12 @@ namespace Oce.Solid.Agent.Core
             switch (su)
             {
                 case "": case "holes": break;
-                case "raccordi":
-                case "tutti":
+                case "fillets":
+                case "all":
                     return Failed("On fillets the center mark does not come out from code: measured, AddCenterMark on an " +
                                    "arc selected in the view puts nothing (4 arcs out of 4). Ask for «holes»; the centers of " +
                                    "the fillets, if you need them, must be put by hand in SOLIDWORKS.");
-                case "asole":
+                case "slots":
                     return Failed("I do not do slots: a slot has two arcs and a single center mark in the middle, and a center " +
                                    "mark per arc would be wrong. Ask for «holes».");
                 default:

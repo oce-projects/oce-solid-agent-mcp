@@ -287,19 +287,18 @@ The installer reads the number, not the text.
 
 | | |
 |---|---|
-| `RISCONTRO_DISEGNO` | which `Oce.Solid.Agent.Core.dll` you expect to be used. It does **not choose it**: .NET loads the one next to the executable. It is there to be told if the two differ |
-| `OPENPDM_ADDIN` | the old name of `RISCONTRO_DISEGNO`, still read |
-| `RISCONTRO_CATALOGO` | where `catalog.json` is; if missing, next to the executable |
-| `OPENPDM_CATALOGO` | the old name of `RISCONTRO_CATALOGO`, still read |
-| `RISCONTRO_REGISTRO` | where the bridge writes **what it was asked for and was not there**: one JSON line per question, only the name and the nearby names, never the arguments. It is a `.jsonl` file; if the variable is missing, it is written next to the executable (the installer's uninstall removes it); **set to an empty string it means "record nothing"**. If it cannot be written, the bridge stays quiet and goes on: the log never makes the call it observes fail |
+| `OCE_DRAWING_LIBRARY` | which `Oce.Solid.Agent.Core.dll` you expect to be used. It does **not choose it**: .NET loads the one next to the executable. It is there to be told if the two differ |
+| `OPENPDM_ADDIN` | the old name of `OCE_DRAWING_LIBRARY`, still read |
+| `OCE_CATALOG` | where `catalog.json` is; if missing, next to the executable |
+| `OCE_QUESTION_REGISTRY` | where the bridge writes **what it was asked for and was not there**: one JSON line per question, only the name and the nearby names, never the arguments. It is a `.jsonl` file; if the variable is missing, it is written next to the executable (the installer's uninstall removes it); **set to an empty string it means "record nothing"**. If it cannot be written, the bridge stays quiet and goes on: the log never makes the call it observes fail |
 | `SW_INSTALL_PATH` | where the SOLIDWORKS software is installed: the **root**, the one that ends with `\SOLIDWORKS`. It holds both for building and for running — `api\redist` is derived from it |
 | `SW_REDIST` | the old name, still read. It wanted the `api\redist` subfolder and not the root: if both are set, `SW_INSTALL_PATH` wins |
-| `RISCONTRO_RADICE` | the only folder the bridge may write into. If it is set, everything else on the disk is out |
-| `RISCONTRO_SOLA_LETTURA` | folders the bridge must not write, separated by `;` — for example `S:\CAD;S:\_LIBRERIE`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
-| `PROFILI_SALDATURA` | the folder of the weldment profiles (`.sldlfp`) that `weldment_profiles` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
+| `OCE_WRITE_ROOT` | the only folder the bridge may write into. If it is set, everything else on the disk is out |
+| `OCE_READ_ONLY_FOLDERS` | folders the bridge must not write, separated by `;` — for example `S:\CAD;S:\_LIBRERIE`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
+| `OCE_WELDMENT_PROFILES` | the folder of the weldment profiles (`.sldlfp`) that `weldment_profiles` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
 | `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--self-test` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Checks/test-installer.js` sets it unless given `--attach`) |
 
-`RISCONTRO_DISEGNO` no longer decides which library to load, and is still read on
+`OCE_DRAWING_LIBRARY` no longer decides which library to load, and is still read on
 purpose: if it points elsewhere, the bridge **says so**. An environment variable that
 does nothing is worse than one that does not exist — whoever set it keeps believing
 it counts.
@@ -333,13 +332,12 @@ installation. The Italian feature, sketch, sheet and plane names that the bench 
 are listed in `Checks/language/exceptions.json` (class `solidworks-localized`): the
 language gate does not count them.
 
-**A few values outside any enum are still Italian words**: the `variant` of `mate`
-(coincident, parallel, perpendicular, distance) and its `alignment` (aligned,
-opposite) — free text, checked by the operation and not by an enum of the catalog —
-and the `kind` the state reports for a selected entity (face, edge, body, vertex,
-feature), for a mate, for a drawing view and for `check_body_geometry`. The meanings
-are given here in English; the operation takes, and the state prints, the Italian
-word. `describe_operation` on `mate` shows the exact words it accepts.
+**Values outside any enum are English words too**: the `variant` of `mate`
+(`coincident`, `parallel`, `perpendicular`, `distance`) and its `alignment` (`aligned`,
+`opposite`) are free text, checked by the operation and not by an enum of the catalog,
+and so are the `kind` the state reports for a selected entity (`face`, `edge`, `body`,
+`vertex`, `feature`), for a mate, for a drawing view and for `check_body_geometry`.
+`describe_operation` on `mate` shows the exact words it accepts.
 
 **The old Italian names are aliases until the first release.** A client that still
 sends a tool, a sub-action, an operation, a family, an argument or a value by its
@@ -510,7 +508,7 @@ zero is a count nobody checks.
   a version different from the tested one it prints a warning.
 - **No writing outside the open document.** The bridge does not save into the vault, does
   not touch libraries, does not install anything. The paths it is asked to write to are
-  checked against the rules in `RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` above.
+  checked against the rules in `OCE_WRITE_ROOT` and `OCE_READ_ONLY_FOLDERS` above.
 - **No operation that has not been measured.** If an operation has not been built inside
   the SOLIDWORKS software and checked with a number, it is not exposed. It is the rule
   that holds up all of OpenPDM, and it holds here too.

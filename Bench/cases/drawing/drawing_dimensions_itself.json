@@ -27,7 +27,7 @@
           "why": "the chamfer serves to give the case a second measure DIFFERENT from the first: with only 120 a right dimension could not be told from a dimension that always repeats the same number. And the volume says the chamfer is really there, even before going to the drawing" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\drawing_dimensions_itself.sldprt" },
+      "arguments": { "path": "{WORK}\\drawing_dimensions_itself.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a view attaches to the path of the part" } ] },
@@ -39,7 +39,7 @@
           "why": "the bench follows the new document (entry GT0)" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\drawing_dimensions_itself.sldprt" },
+      "arguments": { "model": "{WORK}\\drawing_dimensions_itself.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
           "why": "the dimensions sit on the edges of a VIEW: without views there is nothing to dimension" },

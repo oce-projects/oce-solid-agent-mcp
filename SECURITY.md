@@ -18,8 +18,8 @@ narrower than usual, and worth naming:
 
 - **Writing outside where it says it writes.** The bridge refuses paths under
   the system and program folders (Windows, System32, Program Files, Program Files
-  (x86), ProgramData), under the folders listed in `RISCONTRO_SOLA_LETTURA`, and —
-  when `RISCONTRO_RADICE` is set — anywhere outside that one folder. A way to get
+  (x86), ProgramData), under the folders listed in `OCE_READ_ONLY_FOLDERS`, and —
+  when `OCE_WRITE_ROOT` is set — anywhere outside that one folder. A way to get
   it to write where it refuses, or to escape the declared working folder, is a
   vulnerability.
 - **The installer touching something it did not say it would.** It installs

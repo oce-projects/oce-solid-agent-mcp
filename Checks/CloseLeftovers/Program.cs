@@ -33,10 +33,10 @@ namespace Checks.CloseLeftovers
     /// with unsaved changes never ends up in this list.
     ///
     ///     CloseLeftovers.exe                       only lists
-    ///     CloseLeftovers.exe --chiudi [folders]    really closes
-    ///     CloseLeftovers.exe --chiudi --risparmia "Parte1,Parte2"
+    ///     CloseLeftovers.exe --close [folders]    really closes
+    ///     CloseLeftovers.exe --close --spare "Parte1,Parte2"
     ///
-    /// `--risparmia` serves the bench, and it is the difference between «I close my
+    /// `--spare` serves the bench, and it is the difference between «I close my
     /// leftovers» and «I close everything that is not saved». The bench reads which
     /// documents were there BEFORE starting and names them here: so it closes
     /// what it opened itself and not what somebody else had opened.
@@ -51,8 +51,8 @@ namespace Checks.CloseLeftovers
             for (int i = 0; i < arguments.Length; i++)
             {
                 var a = arguments[i];
-                if (a == "--chiudi") { reallyClose = true; continue; }
-                if (a == "--risparmia" && i + 1 < arguments.Length)
+                if (a == "--close") { reallyClose = true; continue; }
+                if (a == "--spare" && i + 1 < arguments.Length)
                 {
                     foreach (var t in arguments[++i].Split(','))
                         if (t.Trim().Length > 0) spare.Add(t.Trim());
@@ -92,7 +92,7 @@ namespace Checks.CloseLeftovers
             if (!reallyClose)
             {
                 foreach (var t in toClose) Console.WriteLine("  would be closed:  " + t);
-                Console.WriteLine("None closed: --chiudi is missing.");
+                Console.WriteLine("None closed: --close is missing.");
                 return 0;
             }
 

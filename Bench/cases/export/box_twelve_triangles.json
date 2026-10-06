@@ -10,7 +10,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_stl",
-      "arguments": { "path": "{LAVORO}\\gp2_scatola.stl" },
+      "arguments": { "path": "{WORK}\\gp2_scatola.stl" },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 12,
           "_why_twelve": "six planar faces, two triangles each" },

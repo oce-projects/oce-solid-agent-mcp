@@ -17,7 +17,7 @@
           "why": "if the part is not the right one, neither is the drawing" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\detail_enlarges.sldprt" },
+      "arguments": { "path": "{WORK}\\detail_enlarges.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "a drawing is made on a saved part" } ] },
@@ -29,7 +29,7 @@
           "why": "from here on the active document is another one" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\detail_enlarges.sldprt" },
+      "arguments": { "model": "{WORK}\\detail_enlarges.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
           "why": "without a model view there is nothing to detail" } ] },

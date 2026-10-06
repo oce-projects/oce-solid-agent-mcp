@@ -23,7 +23,7 @@ using SolidWorks.Interop.swconst;
 //  (SetBendState does not unfold anything: measured).
 //
 //  USAGE
-//      .\Checks\EdgeFlange\bin\EdgeFlange.exe            [--tieni]
+//      .\Checks\EdgeFlange\bin\EdgeFlange.exe            [--keep]
 // =============================================================================
 
 internal static class Program
@@ -33,14 +33,14 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
-        // --testa: skips attempts 1-9 (all measured on 25-26/9) and only tries
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
+        // --head: skips attempts 1-9 (all measured on 25-26/9) and only tries
         // number 10, the profile drawn on the end face.
-        bool head = Array.IndexOf(arguments, "--testa") >= 0;
-        // --alta=N: the height of the profile rectangle in mm (20 if not given).
+        bool head = Array.IndexOf(arguments, "--head") >= 0;
+        // --high=N: the height of the profile rectangle in mm (20 if not given).
         double high = 0.020;
         foreach (var arg in arguments)
-            if (arg.StartsWith("--alta=")) high = double.Parse(arg.Substring(7), System.Globalization.CultureInfo.InvariantCulture) / 1000.0;
+            if (arg.StartsWith("--high=")) high = double.Parse(arg.Substring(7), System.Globalization.CultureInfo.InvariantCulture) / 1000.0;
         Console.WriteLine();
         Console.WriteLine("EDGE FLANGE — before writing it (entry GP18)");
         Console.WriteLine();

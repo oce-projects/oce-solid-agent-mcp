@@ -11,7 +11,7 @@
           { "operation": "extrude_rectangle",
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
-      { "name": "coperchio",
+      { "name": "cover",
         "to_insert": false,
         "steps": [
           { "operation": "extrude_rectangle",
@@ -22,12 +22,12 @@
   "steps": [
     { "operation": "insert_component",
       "arguments": {
-        "path": "{LAVORO}\\inserting_is_not_mating_coperchio.sldprt",
+        "path": "{WORK}\\inserting_is_not_mating_cover.sldprt",
         "x_mm": 0, "y_mm": 0, "z_mm": 30
       },
       "expect": [
         { "what": "measurements.components_before", "equal_to": 1,
-          "why": "the preparation inserted only one: «coperchio» has «to_insert: false» on purpose, otherwise I would measure the work of the preparation believing I am measuring the operation" },
+          "why": "the preparation inserted only one: «cover» has «to_insert: false» on purpose, otherwise I would measure the work of the preparation believing I am measuring the operation" },
         { "what": "measurements.components_after", "equal_to": 2 },
 
         { "what": "state.how_many_components", "equal_to": 2,
@@ -39,7 +39,7 @@
         { "what": "state.components[1].mates", "equal_to": 0,
           "why": "zero mates on a non-fixed component: it is the count that says «resting», and it holds even without knowing what shape the thing GetMates returns has" },
         { "what": "state.components_grounded", "equal_to": 1,
-          "why": "ONE, NOT ZERO: **SOLIDWORKS fixes the first component inserted by itself** in an assembly. The «base» came from the preparation and is nailed down; the «coperchio», inserted by the operation, is not. The first draft of this case demanded 0 -- and the probe had already shown it (base-1 fixed=True, coperchio-1 fixed=False) before the case was written: the fact was there and had not been brought in.",
+          "why": "ONE, NOT ZERO: **SOLIDWORKS fixes the first component inserted by itself** in an assembly. The «base» came from the preparation and is nailed down; the «cover», inserted by the operation, is not. The first draft of this case demanded 0 -- and the probe had already shown it (base-1 fixed=True, cover-1 fixed=False) before the case was written: the fact was there and had not been brought in.",
           "_why_it_counts": "It is exactly the distinction GA5 exists to make. A fixed component does not move because someone NAILED it down, not because it is mated: if the fixed ones entered the count of the constrained ones, every assembly would look assembled starting from the first part. Here the count excludes them, and that is why «assembly_constrained» stays false with one fixed and one resting." },
 
         { "what": "state.assembly_constrained", "equal_to": false,

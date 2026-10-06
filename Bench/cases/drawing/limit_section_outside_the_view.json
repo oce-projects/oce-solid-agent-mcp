@@ -29,7 +29,7 @@
           "why": "the same cavity as the twin: if the two started from different geometries they would not be a pair" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\limit_section_outside_the_view.sldprt" },
+      "arguments": { "path": "{WORK}\\limit_section_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "the part must be on disk before the view names it" } ] },
@@ -41,7 +41,7 @@
           "why": "the refusal must be the one on the CUT, not the one on «it is not a drawing»: without this expectation a refusal for the wrong reason would pass for a good one" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\limit_section_outside_the_view.sldprt" },
+      "arguments": { "model": "{WORK}\\limit_section_outside_the_view.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
           "why": "and not the one on «there is nothing to section» either: the view is there, and it is the cut that is wrong" } ] },

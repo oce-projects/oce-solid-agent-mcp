@@ -14,7 +14,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///
     /// It is read by REFLECTION from the already compiled bridge — `Catalog` and its
     /// `Similar()` live there — and the `catalog.json` file is pointed out to it with
-    /// `OPENPDM_CATALOGO`, which is the same variable that whoever installs
+    /// `OCE_CATALOG`, which is the same variable that whoever installs
     /// the package elsewhere would use.
     ///
     /// None of this touches SOLIDWORKS: `Catalog` reads a JSON file and
@@ -165,7 +165,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// way one builds while iterating. A guarantee written in a
         /// document is not a guarantee: it is a hope with a source.
         ///
-        /// The tool to notice it was already there — `--controlla` exits 1 if
+        /// The tool to notice it was already there — `--check` exits 1 if
         /// it does not match, and says WHERE — and nobody called it.
         ///
         /// TWO PAIRS ARE LOOKED AT, and they are different defects:
@@ -203,7 +203,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var p = new System.Diagnostics.Process
                 {
                     StartInfo = new System.Diagnostics.ProcessStartInfo(tool,
-                        "--controlla \"" + source + "\"")
+                        "--check \"" + source + "\"")
                     {
                         WorkingDirectory = Root(),
                         RedirectStandardOutput = true,
@@ -427,7 +427,7 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 Environment.SetEnvironmentVariable(
-                    "OPENPDM_CATALOGO", Path.Combine(Root(), "bin", "catalog.json"));
+                    "OCE_CATALOG", Path.Combine(Root(), "bin", "catalog.json"));
                 // IT IS LOADED FROM THE BYTES: `LoadFrom` on a network drive answers
                 // NotSupportedException, and this repository lives on S:.
                 var asm = Load.Bridge(bridge);

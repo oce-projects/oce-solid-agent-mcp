@@ -113,7 +113,8 @@ $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
 $outcome = & $tests 2>&1 | Out-String
 $code = $LASTEXITCODE
 $ErrorActionPreference = $old
-$line = ($outcome -split "`n" | Where-Object { $_ -match 'controlli, \d+ falliti' } | Select-Object -Last 1)
+$line = ($outcome -split "`n" | Where-Object { $_ -match 'checks, \d+ failed' } | Select-Object -Last 1)
+if (-not $line) { Stop 'the contract suite printed no summary line ("N checks, M failed"): its output changed, and this script reads it' }
 if ($code -ne 0) {
     ($outcome -split "`n" | Where-Object { $_ -match '^\s+NO ' }) | Select-Object -First 5 | ForEach-Object { Write-Output "     $_" }
     Stop ("the contract suite is not green: " + $line)
@@ -122,9 +123,9 @@ Ok ("contract suite: " + $line.Trim())
 
 Write-Output ""
 Write-Output "=== the Release notes"
-$note = Join-Path $root ("dist\note-di-rilascio-" + $version + ".md")
+$note = Join-Path $root ("dist\release-notes-" + $version + ".md")
 $cl[$start..($fine - 1)] | Out-File $note -Encoding utf8
-Ok ("dist\note-di-rilascio-" + $version + ".md, from the CHANGELOG entry")
+Ok ("dist\release-notes-" + $version + ".md, from the CHANGELOG entry")
 
 Write-Output ""
 Write-Output "READY. Nothing was published. The three steps, to be done by hand:"

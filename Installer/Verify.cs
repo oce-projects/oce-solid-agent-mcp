@@ -23,7 +23,7 @@ namespace Oce.Solid.Agent.Installer
     ///               of the bridge, the library and this installer
     ///   solidworks  where api\redist is, and which SOLIDWORKS it belongs to
     ///   clients     for each MCP client, whether its "solidworks" entry runs
-    ///               the installed exe; and whether PROFILI_SALDATURA is in it
+    ///               the installed exe; and whether OCE_WELDMENT_PROFILES is in it
     ///   self-test   the exit code of the bridge's --self-test (0, 1, 3, 4, 5, 6)
     ///   handshake   initialize and tools/list over stdio with the installed
     ///               exe, as a client does, and the number of tools
@@ -143,7 +143,7 @@ namespace Oce.Solid.Agent.Installer
                 // must not say all green behind it.
                 var problem = Configuration.ReadProblem(c);
                 string prof = null;
-                if (env != null) env.TryGetValue("PROFILI_SALDATURA", out prof);
+                if (env != null) env.TryGetValue("OCE_WELDMENT_PROFILES", out prof);
                 clientRows.Add(new Dictionary<string, object>
                 {
                     ["name"] = c.Name, ["file"] = c.File, ["command"] = command,
@@ -175,11 +175,11 @@ namespace Oce.Solid.Agent.Installer
             {
                 var good = profiles.Where(Directory.Exists).ToList();
                 if (good.Count > 0)
-                    add("weldment profiles", Ok, "PROFILI_SALDATURA = " + good[0]);
+                    add("weldment profiles", Ok, "OCE_WELDMENT_PROFILES = " + good[0]);
                 else if (profiles.Count > 0)
-                    add("weldment profiles", Warn, "PROFILI_SALDATURA points at a folder that does not exist: " + profiles[0]);
+                    add("weldment profiles", Warn, "OCE_WELDMENT_PROFILES points at a folder that does not exist: " + profiles[0]);
                 else
-                    add("weldment profiles", Warn, "PROFILI_SALDATURA is not set: weldment_profiles will refuse " +
+                    add("weldment profiles", Warn, "OCE_WELDMENT_PROFILES is not set: weldment_profiles will refuse " +
                                                   "(install again with --weldment-profiles <folder>)");
             }
 

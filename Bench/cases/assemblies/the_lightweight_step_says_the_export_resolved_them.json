@@ -25,7 +25,7 @@
   },
   "steps": [
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\the_lightweight_step_says_the_export_resolved_them.step" },
+      "arguments": { "path": "{WORK}\\the_lightweight_step_says_the_export_resolved_them.step" },
       "expect": [
         { "what": "measurements.lightweight_resolved_by_the_export", "includes": ["2 component(s) were lightweight before the export"],
           "why": "THE LINE OF THIS CASE: the export resolved both parts, and the answer says so" },

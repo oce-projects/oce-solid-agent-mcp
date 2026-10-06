@@ -44,7 +44,7 @@
 #       looking for what broke, and nothing broke.
 #
 #      .\Bench\bench.ps1
-#      .\Bench\bench.ps1 -Group viste          a single family (entry F13)
+#      .\Bench\bench.ps1 -Group views          a single family (entry F13)
 #      .\Bench\bench.ps1 -Family reanchor    only that folder of cases (E19)
 #      .\Bench\bench.ps1 -Slow                 also the checks that cost minutes
 #      .\Bench\bench.ps1 -Mutate                  perturbs the cases (entry F6)
@@ -95,7 +95,7 @@ if (-not $SkipCompilation) {
     foreach ($project in @("Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj",
                             "Bench\Oce.Solid.Agent.Bench.csproj")) {
         $full = Join-Path $Root $project
-        Write-Output ("compilo " + $project)
+        Write-Output ("building " + $project)
         & $msbuild $full /p:Configuration=Release /v:m /nologo | Out-Null
         # THE EXIT CODE, NOT THE TEXT. It is the check that entry F2
         # asked for by name.
@@ -127,7 +127,7 @@ if (Test-Path $close) {
     # The bench's work folder is local (see Bench/Expectations.cs); the old one
     # next to the repository is still closed too, for documents of older runs.
     $benchWork = if ($env:OCE_BENCH_WORK) { $env:OCE_BENCH_WORK } else { Join-Path $env:TEMP "oce-bench-work" }
-    $cleanup = & $close --chiudi $benchWork (Join-Path $Bench "lavoro") 2>&1
+    $cleanup = & $close --close $benchWork (Join-Path $Bench "work") 2>&1
     $countLine = @($cleanup | Where-Object { "$_" -match ':\s*(\d+)\s*$' }) | Select-Object -Last 1
     if ($countLine -and ("$countLine" -match ':\s*(\d+)\s*$')) { $openAfterCleanup = [int]$Matches[1] }
 } else {
@@ -168,20 +168,20 @@ if ($fullRun -and -not $NoRestart) {
 
 # --- 4. the run -------------------------------------------------------------
 
-$arguments = @("--libreria", $Library)
-if ($Slow) { $arguments += "--lento" }
+$arguments = @("--library", $Library)
+if ($Slow) { $arguments += "--slow" }
 # -Mutate is not a run with something extra: it is another run. It perturbs the cases
 # one argument at a time and EXPECTS them to turn red (entry F6). It costs one
 # SOLIDWORKS document per mutation: it is launched before a delivery.
-if ($Mutate) { $arguments += "--muta" }
+if ($Mutate) { $arguments += "--mutate" }
 # -Regression: the nineteen cases of the references (entry F8). It produces THREE NUMBERS
 # that add up to the cases -- they hold, they come off and say so, they come off
 # in silence -- and the third is the only one that counts.
-if ($Regression) { $arguments += "--regressione" }
-if (-not [string]::IsNullOrWhiteSpace($Group)) { $arguments += @("--gruppo", $Group) }
+if ($Regression) { $arguments += "--regression" }
+if (-not [string]::IsNullOrWhiteSpace($Group)) { $arguments += @("--group", $Group) }
 # -Family: within the declared cases, only those folders; it implies the
-# «casi» group. Partial like -Group, and written in the summary.
-if (-not [string]::IsNullOrWhiteSpace($Family)) { $arguments += @("--famiglia", $Family) }
+# «cases» group. Partial like -Group, and written in the summary.
+if (-not [string]::IsNullOrWhiteSpace($Family)) { $arguments += @("--family", $Family) }
 
 $executable = Join-Path $Bench "bin\Oce.Solid.Agent.Bench.exe"
 if (-not (Test-Path $executable)) { Die 2 ("cannot find " + $executable) }
@@ -191,7 +191,7 @@ $start = Get-Date
 # end. Written straight onto a network drive, one SMB hiccup («semaphore
 # timeout») made Tee-Object throw and killed the whole run: on 24/9/2026 at 535
 # checks and on 2/10/2026 after four hours.
-$outputNextToBench = Join-Path $Bench "ultimo-giro.txt"
+$outputNextToBench = Join-Path $Bench "last-run.txt"
 $output = Join-Path $env:TEMP "oce-bench-last-run.txt"
 if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -ErrorAction SilentlyContinue }
 # "Continue" ONLY HERE, AND FOR A MEASURED REASON. With $ErrorActionPreference at
@@ -206,7 +206,7 @@ if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -Error
 #     In <la cartella del clone>\Bench\bench.ps1:138 car:1
 #     + & $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
 #
-# without a word about the exception, and with `ultimo-giro.txt` stuck at the
+# without a word about the exception, and with `last-run.txt` stuck at the
 # PREVIOUS run -- which is the worst thing: an old report is read
 # believing it new. Now stderr passes through, ends up in the file like all the
 # rest, and the exit code is the only thing that decides.
@@ -247,7 +247,7 @@ $lines = Get-Content $output
 # THE SUMMARY IS TAKEN FROM THE LINE THE BENCH WRITES, it is not recalculated:
 # two counts of the same number, made in two places, sooner or later diverge and
 # then nobody knows which one is the true one.
-$fine = ($lines | Where-Object { $_ -match "^(PARTIAL RUN|[0-9]+ prove,)" } | Select-Object -Last 1)
+$fine = ($lines | Where-Object { $_ -match "^(PARTIAL RUN|[0-9]+ tests,)" } | Select-Object -Last 1)
 if ($fine -eq $null) { $fine = "(the bench did not write the summary)" }
 # [string] AND IT IS NOT ENOUGH THAT IT BE A STRING. Get-Content returns lines
 # with PowerShell's notes on them (PSPath, PSDrive, the provider...), and
@@ -433,7 +433,7 @@ $fileJson = Join-Path $folder ($itemName + ".json")
 [System.IO.File]::WriteAllText((Join-Path $folder "last.json"), $json, $withoutBom)
 
 Write-Output ""
-Write-Output ("resoconto: " + $fileMd)
+Write-Output ("report: " + $fileMd)
 Write-Output ("           " + $fileJson)
-Write-Output ("uscita: " + $code)
+Write-Output ("exit: " + $code)
 exit $code

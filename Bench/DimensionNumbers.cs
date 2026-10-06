@@ -33,25 +33,25 @@ namespace Oce.Solid.Agent.Bench
             {
                 part = NewPart();
                 if (Extrusion(part, 0, 0, 0.120, 0.080, 0.010) == null)
-                { BenchError("numeri", "the plate did not come out"); return; }
+                { BenchError("numbers", "the plate did not come out"); return; }
                 try { if (File.Exists(file)) File.Delete(file); } catch { }
                 int e = 0, w = 0;
                 part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref e, ref w);
-                if (!File.Exists(file)) { BenchError("numeri", "the part cannot be saved (e=" + e + ")"); return; }
+                if (!File.Exists(file)) { BenchError("numbers", "the part cannot be saved (e=" + e + ")"); return; }
 
                 string error;
                 Run(part, "create_drawing", new Dictionary<string, object> { ["paper_size"] = "A3" },
                        out error, out drawing);
-                if (drawing == null) { BenchError("numeri", "create_drawing: " + error); return; }
+                if (drawing == null) { BenchError("numbers", "create_drawing: " + error); return; }
                 if (Run(drawing, "standard_views", new Dictionary<string, object> { ["model"] = file }, out error) == null)
-                { BenchError("numeri", "standard_views: " + error); return; }
+                { BenchError("numbers", "standard_views: " + error); return; }
                 foreach (var view in new[] { "V1", "V2" })
                     if (Run(drawing, "drawing_dimension", new Dictionary<string, object> { ["view"] = view }, out error) == null)
-                    { BenchError("numeri", "drawing_dimension " + view + ": " + error); return; }
+                    { BenchError("numbers", "drawing_dimension " + view + ": " + error); return; }
 
                 var before = ReadState(drawing);
                 object zero = before.ContainsKey("dimensions_with_number_not_from_model_total")
-                    ? before["dimensions_with_number_not_from_model_total"] : "(manca)";
+                    ? before["dimensions_with_number_not_from_model_total"] : "(missing)";
                 Check("numbers: on the freshly dimensioned drawing no dimension prints a number that is not the model's",
                       Convert.ToString(zero) == "0" && !before.ContainsKey("warning_numbers"),
                       "dimensions_with_number_not_from_model_total " + Convert.ToString(zero));
@@ -66,7 +66,7 @@ namespace Oce.Solid.Agent.Bench
                     while (q != null && quote.Count < 3) { quote.Add(q); q = q.GetNext5() as IDisplayDimension; }
                     v = v.GetNextView() as IView;
                 }
-                if (quote.Count < 3) { BenchError("numeri", "the drawing has " + quote.Count + " dimensions, three are needed"); return; }
+                if (quote.Count < 3) { BenchError("numbers", "the drawing has " + quote.Count + " dimensions, three are needed"); return; }
 
                 // THE OVERWRITTEN NUMBER MATCHES THE MODEL, on purpose: it is the case
                 // that the entry feared most — a comparison of values does not see it.
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.Bench
 
                 var after = ReadState(drawing);
                 object three = after.ContainsKey("dimensions_with_number_not_from_model_total")
-                    ? after["dimensions_with_number_not_from_model_total"] : "(manca)";
+                    ? after["dimensions_with_number_not_from_model_total"] : "(missing)";
                 var list = after.ContainsKey("dimensions_with_number_not_from_model")
                     ? after["dimensions_with_number_not_from_model"] as IEnumerable : null;
                 int overwritten = 0, withText = 0, off = 0;
@@ -97,7 +97,7 @@ namespace Oce.Solid.Agent.Bench
                       "total " + Convert.ToString(three) + ": overwritten " + overwritten + ", with text " + withText +
                       ", turned off " + off + ", warning " + (after.ContainsKey("warning_numbers") ? "yes" : "no"));
             }
-            catch (Exception ex) { BenchError("numeri", Why(ex)); }
+            catch (Exception ex) { BenchError("numbers", Why(ex)); }
             finally
             {
                 try { if (drawing != null) _sw.CloseDoc(drawing.GetTitle()); } catch { }

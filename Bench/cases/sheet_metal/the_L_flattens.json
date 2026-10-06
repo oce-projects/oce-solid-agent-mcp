@@ -19,11 +19,11 @@
           "tolerance_why": "80.712 * 40 * 2: the sheet neither lengthens nor shortens in the calculation, it is the definition of neutral fibre. Measured 6457.0" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\the_L_flattens.sldprt" },
+      "arguments": { "path": "{WORK}\\the_L_flattens.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0 } ] },
 
     { "operation": "flat_pattern_dxf",
-      "arguments": { "path": "{LAVORO}\\the_L_flattens.dxf" },
+      "arguments": { "path": "{WORK}\\the_L_flattens.dxf" },
       "expect": [
         { "what": "measurements.flat_pattern_length_mm", "equal_to": 80.712, "tolerance": 0.01,
           "tolerance_why": "the same measurement as the first step, read back after the saving and the export: the DXF must not have changed the part" },

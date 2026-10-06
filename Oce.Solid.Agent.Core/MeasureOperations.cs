@@ -123,11 +123,11 @@ namespace Oce.Solid.Agent.Core
                 catch { return null; }
             });
 
-            object m = take(p => p.Mass, "massa");
-            object d = take(p => p.Density, "densita");
+            object m = take(p => p.Mass, "mass");
+            object d = take(p => p.Density, "density");
             object v = take(p => p.Volume, "volume");
             object s = take(p => p.SurfaceArea, "area");
-            object c = take(p => p.CenterOfMass, "baricentro");
+            object c = take(p => p.CenterOfMass, "center_of_mass");
 
             if (m == null || d == null || v == null || s == null)
                 return Failed(
@@ -542,7 +542,7 @@ namespace Oce.Solid.Agent.Core
             // with the name that says which is which.
             Put(outside, "area_mm2", measure.Area, 1e6);
             Put(outside, "area_total_mm2", measure.TotalArea, 1e6);
-            Put(outside, "perimetro_mm", measure.Perimeter, 1000.0);
+            Put(outside, "perimeter_mm", measure.Perimeter, 1000.0);
             Put(outside, "length_mm", measure.TotalLength, 1000.0);
             Put(outside, "radius_mm", measure.Radius, 1000.0);
             Put(outside, "diameter_mm", measure.Diameter, 1000.0);
@@ -560,7 +560,7 @@ namespace Oce.Solid.Agent.Core
                 outside["arc_measure"] = arcMeasure;
                 outside["projection"] = "none";
                 Put(outside, "distance_mm", measure.Distance, 1000.0);
-                Put(outside, "distanza_normale_mm", measure.NormalDistance, 1000.0);
+                Put(outside, "normal_distance_mm", measure.NormalDistance, 1000.0);
                 Put(outside, "distance_between_centers_mm", measure.CenterDistance, 1000.0);
                 // THE DELTAS CAN BE TRULY NEGATIVE: a delta is a
                 // difference, and -20 means «twenty on the other side». Here

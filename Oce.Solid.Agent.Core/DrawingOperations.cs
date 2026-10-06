@@ -665,7 +665,7 @@ namespace Oce.Solid.Agent.Core
                     }
                     catch (Exception ex) { return Failed("Dimensions not inserted: " + ex.Message); }
 
-                    tested.Add("v3/" + mask + (fromSketch ? "/schizzo" : ""));
+                    tested.Add("v3/" + mask + (fromSketch ? "/sketch" : ""));
                     after = CountDimensions(drawing);
                     if (after < 0) return Failed("I asked for the dimensions of the model, but then I cannot count the dimensions of the drawing again: I cannot tell you whether they arrived. Look at the drawing before going on.");
                     if (after > before)
@@ -826,7 +826,7 @@ namespace Oce.Solid.Agent.Core
                           "mask brings (measured on 28/9/2026: two sketch dimensions marked, 0 imported). " +
                           "Pass all_dimensions=true to import every dimension of the model, or " +
                           "create the ones you need with " +
-                          "quota_in_tavola."));
+                          "drawing_dimension."));
             }
 
             var measurements = new Dictionary<string, object>
@@ -1508,7 +1508,7 @@ namespace Oce.Solid.Agent.Core
                 case (int)swDocumentTypes_e.swDocPART: return "part";
                 case (int)swDocumentTypes_e.swDocASSEMBLY: return "assembly";
                 case (int)swDocumentTypes_e.swDocDRAWING: return "drawing";
-                default: return "altro";
+                default: return "other";
             }
         }
 

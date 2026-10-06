@@ -193,8 +193,8 @@ namespace Oce.Solid.Agent.Installer
                 entry["env"] = env.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
                 if (env.ContainsKey("SW_REDIST"))
                     tell("adding SW_REDIST: SOLIDWORKS is not in the usual place");
-                if (env.ContainsKey("PROFILI_SALDATURA"))
-                    tell("adding PROFILI_SALDATURA: " + env["PROFILI_SALDATURA"]);
+                if (env.ContainsKey("OCE_WELDMENT_PROFILES"))
+                    tell("adding OCE_WELDMENT_PROFILES: " + env["OCE_WELDMENT_PROFILES"]);
             }
 
             bool existed = server.ContainsKey(ServerName);
@@ -209,7 +209,7 @@ namespace Oce.Solid.Agent.Installer
         /// <summary>
         /// The variables the bridge needs in the client's `env`, and only those
         /// (entry H19, A6): SW_REDIST when SOLIDWORKS is not where the bridge
-        /// looks by itself, PROFILI_SALDATURA when a weldment profiles folder
+        /// looks by itself, OCE_WELDMENT_PROFILES when a weldment profiles folder
         /// is known. One place, so the file, the block to paste and
         /// `claude mcp add` cannot say different things.
         /// </summary>
@@ -217,7 +217,7 @@ namespace Oce.Solid.Agent.Installer
         {
             var env = new Dictionary<string, string>(StringComparer.Ordinal);
             if (!string.IsNullOrWhiteSpace(redist) && !RedistStandard(redist)) env["SW_REDIST"] = redist;
-            if (!string.IsNullOrWhiteSpace(weldmentProfiles)) env["PROFILI_SALDATURA"] = weldmentProfiles;
+            if (!string.IsNullOrWhiteSpace(weldmentProfiles)) env["OCE_WELDMENT_PROFILES"] = weldmentProfiles;
             return env;
         }
 
@@ -227,13 +227,13 @@ namespace Oce.Solid.Agent.Installer
         /// Until this review a reinstall replaced the whole entry with the
         /// variables of <see cref="EnvFor"/>, and `claude mcp remove` + `add`
         /// did the same: whatever the user had added to the bridge's own entry
-        /// was dropped without a word. RISCONTRO_RADICE and
-        /// RISCONTRO_SOLA_LETTURA (the folders the bridge may and may not
-        /// write) are such variables, and so is a PROFILI_SALDATURA set by
+        /// was dropped without a word. OCE_WRITE_ROOT and
+        /// OCE_READ_ONLY_FOLDERS (the folders the bridge may and may not
+        /// write) are such variables, and so is a OCE_WELDMENT_PROFILES set by
         /// hand, as the README told people to do before the installer wrote
         /// it. Now the existing variables stay; of the two the installer owns,
         /// SW_REDIST is set or removed as the installer decided, and
-        /// PROFILI_SALDATURA is set when the installer has a folder and kept
+        /// OCE_WELDMENT_PROFILES is set when the installer has a folder and kept
         /// as it was when it has none.
         /// </summary>
         public static Dictionary<string, string> MergedEnv(
@@ -245,9 +245,9 @@ namespace Oce.Solid.Agent.Installer
             var fresh = EnvFor(redist, weldmentProfiles);
             if (fresh.ContainsKey("SW_REDIST")) env["SW_REDIST"] = fresh["SW_REDIST"];
             else env.Remove("SW_REDIST");
-            if (fresh.ContainsKey("PROFILI_SALDATURA")) env["PROFILI_SALDATURA"] = fresh["PROFILI_SALDATURA"];
+            if (fresh.ContainsKey("OCE_WELDMENT_PROFILES")) env["OCE_WELDMENT_PROFILES"] = fresh["OCE_WELDMENT_PROFILES"];
 
-            var kept = env.Keys.Where(k => k != "SW_REDIST" && !(k == "PROFILI_SALDATURA" && fresh.ContainsKey(k)))
+            var kept = env.Keys.Where(k => k != "SW_REDIST" && !(k == "OCE_WELDMENT_PROFILES" && fresh.ContainsKey(k)))
                           .OrderBy(k => k, StringComparer.Ordinal).ToList();
             if (kept.Count > 0 && tell != null)
                 tell("keeping from the existing entry's env: " + string.Join(", ", kept));
@@ -266,7 +266,7 @@ namespace Oce.Solid.Agent.Installer
         }
 
         /// <summary>
-        /// A PROFILI_SALDATURA already in one of these clients' entries that
+        /// A OCE_WELDMENT_PROFILES already in one of these clients' entries that
         /// names a folder that exists, or null (H19 review). A folder chosen
         /// by hand is worth more than the one the installer would find: it is
         /// kept on a reinstall unless --weldment-profiles names another.
@@ -277,7 +277,7 @@ namespace Oce.Solid.Agent.Installer
             {
                 var env = ConfiguredEnv(c);
                 string v;
-                if (env != null && env.TryGetValue("PROFILI_SALDATURA", out v) &&
+                if (env != null && env.TryGetValue("OCE_WELDMENT_PROFILES", out v) &&
                     !string.IsNullOrWhiteSpace(v) && Directory.Exists(v))
                     return v;
             }
@@ -436,8 +436,8 @@ namespace Oce.Solid.Agent.Installer
             if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
 
             // A FILE HELD BY ANOTHER PROGRAM IS DISCOVERED FIRST (entry H15).
-            // It used to be discovered halfway: copy made, `.parziale` written,
-            // then `File.Delete` throws — and the `.parziale` stayed next to
+            // It used to be discovered halfway: copy made, `.partial` written,
+            // then `File.Delete` throws — and the `.partial` stayed next to
             // the real file forever. Now it is tried to open it for exclusive
             // writing: if it does not allow it, we stop without having touched
             // anything, and say so in words that make clear what to do.
@@ -457,7 +457,7 @@ namespace Oce.Solid.Agent.Installer
 
             var text = Indent(Json().Serialize(root));
 
-            var temporary = file + ".parziale";
+            var temporary = file + ".partial";
             try
             {
                 using (var w = new StreamWriter(temporary, false, new UTF8Encoding(false)))
@@ -467,7 +467,7 @@ namespace Oce.Solid.Agent.Installer
             }
             catch
             {
-                // Whatever went wrong, the `.parziale` does not stay:
+                // Whatever went wrong, the `.partial` does not stay:
                 // a half file next to the real one is the thing that makes
                 // whoever opens the folder think that one can be used.
                 try { if (File.Exists(temporary)) File.Delete(temporary); } catch { }
@@ -496,7 +496,7 @@ namespace Oce.Solid.Agent.Installer
             return copy;
         }
 
-        private const string CopyPrefix = ".prima-di-oce-solid-agent-";
+        private const string CopyPrefix = ".before-oce-solid-agent-";
 
         /// <summary>
         /// How many backup copies per file are kept. Three are enough to go back

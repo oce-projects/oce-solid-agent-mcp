@@ -33,21 +33,14 @@ namespace Oce.Solid.Agent.Tools
 
         public Catalog()
         {
-            // ── TWO NAMES, AND ONLY ONE IS THIS PRODUCT'S ───────────────
+            // ── ONE NAME, NO ALIAS ──────────────────────────────────────
             //
-            // `RISCONTRO_CATALOGO` is the new name. `OPENPDM_CATALOGO` was the
-            // old one, and it **is still read**: whoever set it on an installed
-            // machine must not notice anything, and a variable that stops
-            // working without saying so is the defect that gives no error —
-            // the catalogue does not load, the bridge runs all the same, and
-            // nobody can tell any more what can be asked for.
-            //
-            // Order matters: if both are set, the new one wins.
-            // Whoever sets two different ones already has a problem, and at least
-            // knows which of the two is in charge.
-            FilePath = Environment.GetEnvironmentVariable("RISCONTRO_CATALOGO");
-            if (string.IsNullOrWhiteSpace(FilePath))
-                FilePath = Environment.GetEnvironmentVariable("OPENPDM_CATALOGO");
+            // `OCE_CATALOG` is the only name. The Italian one of before the product
+            // had its own name is no longer read
+            // (decision L0 of W3.1-bis: no alias of an Italian name). A catalogue
+            // that does not load is not silent: the bridge notes it on start and
+            // the tools that need it answer with `LoadingError`.
+            FilePath = Environment.GetEnvironmentVariable("OCE_CATALOG");
             if (string.IsNullOrWhiteSpace(FilePath))
                 FilePath = Path.Combine(
                     Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",

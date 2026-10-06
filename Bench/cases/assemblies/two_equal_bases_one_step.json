@@ -27,7 +27,7 @@
         ]
       },
       {
-        "name": "coperchio",
+        "name": "cover",
         "position_mm": [
           0,
           7,
@@ -58,7 +58,7 @@
     {
       "operation": "insert_component",
       "arguments": {
-        "path": "{LAVORO}\\two_equal_bases_one_step_base.sldprt",
+        "path": "{WORK}\\two_equal_bases_one_step_base.sldprt",
         "x_mm": 200,
         "y_mm": 0,
         "z_mm": 0
@@ -90,7 +90,7 @@
     {
       "operation": "export_step",
       "arguments": {
-        "path": "{LAVORO}\\two_equal_bases_one_step.step"
+        "path": "{WORK}\\two_equal_bases_one_step.step"
       },
       "expect": [
         {

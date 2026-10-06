@@ -2,7 +2,7 @@
   "name": "r05_chamfer_bigger_than_the_part",
   "family": "regression",
   "why": "A chamfer of 2 on a LONG EDGE, and the plate becomes 1 thick. It does not fit, and it MUST fail noisily: a defect that the designer sees is a problem, not a trap. The first draft chamfered the four VERTICAL edges, and the thickness does not touch those: the case came out green for the wrong reason.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the chamfer is 2 x 45 on a horizontal edge and the thickness goes to 1: there is no anchoring that can save it. The only right answer is an error that can be read.",
   "build": [
     {

@@ -37,22 +37,22 @@ namespace Oce.Solid.Agent.Bench
                 // Two extrusions from the TOP plane, taken by position and not
                 // by name: the name changes with the language of the installation.
                 if (Extrusion(part, 0, 0, 0.100, 0.060, 0.010) == null)
-                { BenchError("orfane", "the plate did not come out"); return; }
+                { BenchError("orphans", "the plate did not come out"); return; }
                 var block = Extrusion(part, 0.040, 0.020, 0.060, 0.040, 0.020);
-                if (block == null) { BenchError("orfane", "the block did not come out"); return; }
+                if (block == null) { BenchError("orphans", "the block did not come out"); return; }
 
                 try { if (File.Exists(file)) File.Delete(file); } catch { }
                 int e = 0, w = 0;
                 part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref e, ref w);
-                if (!File.Exists(file)) { BenchError("orfane", "the part cannot be saved (e=" + e + ")"); return; }
+                if (!File.Exists(file)) { BenchError("orphans", "the part cannot be saved (e=" + e + ")"); return; }
 
                 string error;
                 Run(part, "create_drawing", new Dictionary<string, object> { ["paper_size"] = "A3" },
                        out error, out drawing);
-                if (drawing == null) { BenchError("orfane", "create_drawing: " + error); return; }
+                if (drawing == null) { BenchError("orphans", "create_drawing: " + error); return; }
                 if (Run(drawing, "model_view", new Dictionary<string, object>
                     { ["model"] = file, ["view"] = "front", ["x_mm"] = 150, ["y_mm"] = 150 }, out error) == null)
-                { BenchError("orfane", "model_view: " + error); return; }
+                { BenchError("orphans", "model_view: " + error); return; }
 
                 // WHICH EDGE: the high one of the block — Y 20 at both ends,
                 // along X for 20. It is looked for in the same list that
@@ -71,16 +71,16 @@ namespace Oce.Solid.Agent.Bench
                         Math.Abs(Math.Abs(b[0] - a[0]) - 0.020) < 1e-6 && Math.Abs(b[2] - a[2]) < 1e-6)
                         index = i;
                 }
-                if (index < 0) { BenchError("orfane", "among the visible edges I cannot find the top one of the block"); return; }
+                if (index < 0) { BenchError("orphans", "among the visible edges I cannot find the top one of the block"); return; }
 
                 var dimension = Run(drawing, "drawing_dimension",
                     new Dictionary<string, object> { ["edges"] = new object[] { index } }, out error);
-                if (dimension == null) { BenchError("orfane", "drawing_dimension: " + error); return; }
+                if (dimension == null) { BenchError("orphans", "drawing_dimension: " + error); return; }
 
                 var before = ReadState(drawing);
                 Check("orphans: the dimension just put on the block's edge is NOT an orphan",
-                      Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(manca)") == "0",
-                      "dimensions_orphan_total " + Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(manca)"));
+                      Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(missing)") == "0",
+                      "dimensions_orphan_total " + Convert.ToString(before.ContainsKey("dimensions_orphan_total") ? before["dimensions_orphan_total"] : "(missing)"));
 
                 // THE RED: the block is suppressed, and the dimension is left hanging.
                 bool suppressed = block.SetSuppression2(
@@ -89,13 +89,13 @@ namespace Oce.Solid.Agent.Bench
                 part.EditRebuild3();
                 drawing.ForceRebuild3(false);
                 var after = ReadState(drawing);
-                object orf = after.ContainsKey("dimensions_orphan_total") ? after["dimensions_orphan_total"] : "(manca)";
+                object orf = after.ContainsKey("dimensions_orphan_total") ? after["dimensions_orphan_total"] : "(missing)";
                 Check("orphans: with the block suppressed, the state says ONE orphan dimension, and warns about it",
                       suppressed && Convert.ToString(orf) == "1" && after.ContainsKey("warning_dimensions"),
                       "suppressed " + suppressed + ", dimensions_orphan_total " + Convert.ToString(orf) +
                       ", warning " + (after.ContainsKey("warning_dimensions") ? "yes" : "no"));
             }
-            catch (Exception ex) { BenchError("orfane", Why(ex)); }
+            catch (Exception ex) { BenchError("orphans", Why(ex)); }
             finally
             {
                 try { if (drawing != null) _sw.CloseDoc(drawing.GetTitle()); } catch { }

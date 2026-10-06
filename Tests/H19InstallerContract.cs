@@ -153,7 +153,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var values = new[]
                 {
-                    @"PROFILI_SALDATURA=D:\Weld Profiles\", @"C:\Some Folder\oce-solid-agent-mcp.exe",
+                    @"OCE_WELDMENT_PROFILES=D:\Weld Profiles\", @"C:\Some Folder\oce-solid-agent-mcp.exe",
                     @"SW_REDIST=\\server\share\api\redist\", "a\"b", @"ends\\", "", "plain",
                 };
                 var line = "claude " + string.Join(" ", values.Select(v => (string)quote.Invoke(null, new object[] { v }))) + " -- next";
@@ -182,14 +182,14 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var existing = new Dictionary<string, string>
                 {
-                    ["RISCONTRO_RADICE"] = @"C:\Work", ["PROFILI_SALDATURA"] = @"C:\Mine", ["SW_REDIST"] = @"C:\Old\api\redist",
+                    ["OCE_WRITE_ROOT"] = @"C:\Work", ["OCE_WELDMENT_PROFILES"] = @"C:\Mine", ["SW_REDIST"] = @"C:\Old\api\redist",
                 };
                 var kept = (Dictionary<string, string>)merged.Invoke(null, new object[] { existing, null, null, null });
                 var replaced = (Dictionary<string, string>)merged.Invoke(null, new object[] { existing, null, @"C:\New", null });
-                bool ok = kept.Count == 2 && kept["RISCONTRO_RADICE"] == @"C:\Work" && kept["PROFILI_SALDATURA"] == @"C:\Mine" &&
-                          replaced["PROFILI_SALDATURA"] == @"C:\New" && replaced["RISCONTRO_RADICE"] == @"C:\Work" &&
+                bool ok = kept.Count == 2 && kept["OCE_WRITE_ROOT"] == @"C:\Work" && kept["OCE_WELDMENT_PROFILES"] == @"C:\Mine" &&
+                          replaced["OCE_WELDMENT_PROFILES"] == @"C:\New" && replaced["OCE_WRITE_ROOT"] == @"C:\Work" &&
                           !replaced.ContainsKey("SW_REDIST");
-                Check("a reinstall keeps the entry's own variables, sets PROFILI_SALDATURA only when it has one, drops a stale SW_REDIST",
+                Check("a reinstall keeps the entry's own variables, sets OCE_WELDMENT_PROFILES only when it has one, drops a stale SW_REDIST",
                       ok, string.Join(", ", kept.Select(kv => kv.Key + "=" + kv.Value)) + " | " +
                           string.Join(", ", replaced.Select(kv => kv.Key + "=" + kv.Value)));
             }

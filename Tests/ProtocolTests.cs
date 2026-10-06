@@ -169,19 +169,19 @@ namespace Oce.Solid.Agent.ContractTests
                 Check("«measure» declares itself read-only",
                       string.Equals(ann("measure", "readOnlyHint"), "True",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("measure", "readOnlyHint") ?? "(manca)");
+                      ann("measure", "readOnlyHint") ?? "(missing)");
                 Check("«measure» does NOT declare itself destructive",
                       string.Equals(ann("measure", "destructiveHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("measure", "destructiveHint") ?? "(manca)");
+                      ann("measure", "destructiveHint") ?? "(missing)");
                 Check("«build» stays destructive",
                       string.Equals(ann("build", "destructiveHint"), "True",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("build", "destructiveHint") ?? "(manca)");
+                      ann("build", "destructiveHint") ?? "(missing)");
                 Check("«build» does NOT declare itself idempotent",
                       string.Equals(ann("build", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("build", "idempotentHint") ?? "(manca)");
+                      ann("build", "idempotentHint") ?? "(missing)");
 
                 // «document» changes the document in front: it is NOT read-only,
                 // even if it does not touch the geometry. A client that
@@ -192,15 +192,15 @@ namespace Oce.Solid.Agent.ContractTests
                 Check("«document» does NOT declare itself read-only",
                       string.Equals(ann("document", "readOnlyHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("document", "readOnlyHint") ?? "(manca)");
+                      ann("document", "readOnlyHint") ?? "(missing)");
                 Check("«document» does NOT declare itself idempotent",
                       string.Equals(ann("document", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("document", "idempotentHint") ?? "(manca)");
+                      ann("document", "idempotentHint") ?? "(missing)");
                 Check("«document» does NOT declare itself destructive: it does not close and does not throw away anything",
                       string.Equals(ann("document", "destructiveHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
-                      ann("document", "destructiveHint") ?? "(manca)");
+                      ann("document", "destructiveHint") ?? "(missing)");
 
                 bool schemasOk = tools != null && tools.All(s =>
                 {
@@ -234,7 +234,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // be able to read and correct by itself.
                 var unknown = Obj(Ask(p, 3,
                     "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":" +
-                    "{\"name\":\"strumento_che_non_esiste\",\"arguments\":{}}}"));
+                    "{\"name\":\"a_tool_that_does_not_exist\",\"arguments\":{}}}"));
                 Check("an unknown tool is NOT a JSON-RPC error",
                       unknown != null && !unknown.ContainsKey("error"),
                       Short(Convert.ToString(Inside(unknown, "error"))));
@@ -465,7 +465,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// disappears exactly when something has already gone wrong**, and the
         /// symptom is that everything works.
         ///
-        /// It is provoked for real, with `OPENPDM_CATALOGO` pointed at a file that
+        /// It is provoked for real, with `OCE_CATALOG` pointed at a file that
         /// is not there — the same variable that whoever installs the package
         /// elsewhere would use. *A check never seen triggering is not a check.*
         /// </summary>

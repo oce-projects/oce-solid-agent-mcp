@@ -7,7 +7,7 @@
   "start": { "new_part": true },
   "steps": [
     { "operation": "sketch_picture",
-      "arguments": { "path": "{DATI}\\trace_4096x2048.png", "plane": "front", "width_mm": 409.6, "x_mm": 10, "y_mm": 20 },
+      "arguments": { "path": "{DATA}\\trace_4096x2048.png", "plane": "front", "width_mm": 409.6, "x_mm": 10, "y_mm": 20 },
       "expect": [
         { "what": "measurements.mm_per_pixel", "equal_to": 0.1,
           "why": "409.6 mm over the 4096 pixels of the FILE. The old library gives 0.2: 409.6 over the 2048 SOLIDWORKS keeps" },

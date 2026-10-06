@@ -13,7 +13,7 @@
       "arguments": { "bodies_uid": ["C1"], "dz_mm": 600, "copy": true, "copy_count": 1 },
       "expect": [ { "what": "bodies", "equal_to": 2 } ] },
     { "operation": "export_stl",
-      "arguments": { "path": "{LAVORO}\\gp2_forzato.stl", "export_anyway": true },
+      "arguments": { "path": "{WORK}\\gp2_forzato.stl", "export_anyway": true },
       "expect": [
         { "what": "measurements.triangles", "equal_to": 24,
           "_why_24": "two boxes of twelve triangles" },

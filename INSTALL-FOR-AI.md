@@ -105,7 +105,7 @@ The options:
 | `--redist <path>` | the `api\redist` folder of SOLIDWORKS®, if it is not where the installer looks. `--verify` uses it too |
 | `--no-client` | do not touch any MCP client configuration |
 | `--config <path>` | wire **that one file** and do not go looking for clients. `--verify` and `--uninstall` use it too |
-| `--weldment-profiles <folder>` | the weldment profiles (`.sldlfp`) the `weldment_profiles` operation reads, written as `PROFILI_SALDATURA` in the client entry's `env`. Without it the installer keeps a folder already in the client entry, else uses the folder SOLIDWORKS® itself is set to (Tools > Options > File Locations > Weldment Profiles), or the one SOLIDWORKS® installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`), and says which; it never writes a folder that does not exist. A folder given here that does not exist stops the run with exit 1, before anything is installed |
+| `--weldment-profiles <folder>` | the weldment profiles (`.sldlfp`) the `weldment_profiles` operation reads, written as `OCE_WELDMENT_PROFILES` in the client entry's `env`. Without it the installer keeps a folder already in the client entry, else uses the folder SOLIDWORKS® itself is set to (Tools > Options > File Locations > Weldment Profiles), or the one SOLIDWORKS® installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`), and says which; it never writes a folder that does not exist. A folder given here that does not exist stops the run with exit 1, before anything is installed |
 | `--log <file>` | also write every line of the run to this file (UTF-8). Works with every mode that has no window. If the file cannot be created, the run stops with exit 1 |
 | `--uninstall` | remove the installation (step 7) |
 | `--keep-client` | with `--uninstall`: leave the MCP client entries in place |
@@ -144,7 +144,7 @@ machine:
 - `backup copy: <name>` — a backup of each client configuration it touches (see step 3);
 - `added the entry "solidworks" in <client>` or `updated the entry "solidworks" in <client>`,
   and for Claude Code `Claude Code: registered with "claude mcp add --scope user"`;
-- `adding SW_REDIST: …` and `adding PROFILI_SALDATURA: …` — the variables it wrote into the
+- `adding SW_REDIST: …` and `adding OCE_WELDMENT_PROFILES: …` — the variables it wrote into the
   entry's `env`; `keeping from the existing entry's env: …` — variables already there that
   it left alone;
 - `WARNING: <client> is open right now: close it and reopen it, or it will not read the new
@@ -170,14 +170,13 @@ the installer's checks.
     its own every few tens of seconds, so its own command is the safer writer; whether a
     running session can still lose an entry written by the file route is not measured.
   - the entry's `env` holds `SW_REDIST` when SOLIDWORKS® is not in its usual folder
-    (`C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS`), and `PROFILI_SALDATURA` when a weldment
+    (`C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS`), and `OCE_WELDMENT_PROFILES` when a weldment
     profiles folder is known. On a reinstall every other variable already in the
-    `solidworks` entry stays (for example `RISCONTRO_RADICE`), and so does a
-    `PROFILI_SALDATURA` that names a folder that exists, unless `--weldment-profiles` names
+    `solidworks` entry stays (for example `OCE_WRITE_ROOT`), and so does a
+    `OCE_WELDMENT_PROFILES` that names a folder that exists, unless `--weldment-profiles` names
     another; the output says what it kept.
 - **A backup of each config it touched**, the `claude mcp` route included, beside the
-  original, named `<original>.prima-di-oce-solid-agent-<yyyyMMdd-HHmmss>.bak` (the prefix is
-  still Italian). Only the **last three** per file are kept; older ones with that exact
+  original, named `<original>.before-oce-solid-agent-<yyyyMMdd-HHmmss>.bak`. Only the **last three** per file are kept; older ones with that exact
   prefix are removed, and the output says how many. Copies anyone made by hand are never
   touched.
 - **If the client config is locked by another program** (usually the client itself, open),
@@ -225,7 +224,7 @@ installed bridge; on a machine where nothing is installed you get `files`, `soli
 | `files` | a file of the installation is missing | the installed bridge is another version than this installer | run the installer again (to repair or update) |
 | `solidworks` | `api\redist` is not found | SOLIDWORKS® is not the 2021 SP5.1 the bridge was measured on | `--redist <path>` or `SW_INSTALL_PATH`; for the warning, tell the user: it works, nobody has measured it |
 | `clients` | no client runs the installed bridge, or none was found | one client does and another points elsewhere or has a config that cannot be read (a client with no entry at all is only mentioned in the detail) | run step 2 again, or paste the block, or name a file with `--config` |
-| `weldment profiles` | — | `PROFILI_SALDATURA` is not set, or names a folder that does not exist | only matters if the user uses weldments: run step 2 again with `--weldment-profiles <folder>` |
+| `weldment profiles` | — | `OCE_WELDMENT_PROFILES` is not set, or names a folder that does not exist | only matters if the user uses weldments: run step 2 again with `--weldment-profiles <folder>` |
 | `self-test` | the bridge's self-test exits 1, 4 or 6, does not answer, or the bridge is not installed | it exits 3 (SOLIDWORKS® not running) or 5 (`OCE_NO_ATTACH` set) | see the table of the self-test below |
 | `handshake` | the bridge did not answer `initialize` within 90 s or `tools/list` within 60 s, or answered no tools | — | run the self-test by hand (below) and read its lines |
 

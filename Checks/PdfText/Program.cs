@@ -19,8 +19,8 @@ using SolidWorks.Interop.swconst;
 //  copyable: no error anywhere.
 //
 //  THE DRAWING: empty, from the default template, with two notes on the sheet —
-//    one written by hand:       PROVA123
-//    one tied to a property:    $PRP:"Descrizione"  with Descrizione = PROVA456
+//    one written by hand:       TEST123
+//    one tied to a property:    $PRP:"Description"  with Description = TEST456
 //  The second is the case of the title block: the text that SOLIDWORKS resolves.
 //
 //  THREE READINGS OF THE PDF, from the poorest to the richest:
@@ -29,19 +29,19 @@ using SolidWorks.Interop.swconst;
 //       do without depending on anything);
 //    3. `pdftotext`, if present (what whoever searches the PDF sees).
 //
-//  THE RED, in the same run: ASSENTE987 is not in the drawing and MUST NOT
+//  THE RED, in the same run: ABSENT987 is not in the drawing and MUST NOT
 //  be found by any of the three readings. A search that finds everything proves
 //  nothing.
 //
 //  USAGE
-//      .\Checks\PdfText\bin\PdfText.exe            [--tieni]
+//      .\Checks\PdfText\bin\PdfText.exe            [--keep]
 // =============================================================================
 
 internal static class Program
 {
-    private const string Inscription = "PROVA123";
-    private const string Property = "PROVA456";
-    private const string Absent = "ASSENTE987";
+    private const string Inscription = "TEST123";
+    private const string Property = "TEST456";
+    private const string Absent = "ABSENT987";
 
     private static int _step;
     private static void Says(string what)
@@ -52,7 +52,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
         Console.WriteLine();
         Console.WriteLine("TEXT IN THE PDF — does the text of the drawing come out as text? (entry GT3-bis)");
         Console.WriteLine();
@@ -72,15 +72,15 @@ internal static class Program
             if (doc == null) { Console.WriteLine("  NewDocument(drawing) -> null"); return 4; }
 
             var cpm = doc.Extension.get_CustomPropertyManager("");
-            int propOutcome = cpm.Add3("Descrizione", (int)swCustomInfoType_e.swCustomInfoText, Property,
+            int propOutcome = cpm.Add3("Description", (int)swCustomInfoType_e.swCustomInfoText, Property,
                 (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
             string read, resolved; bool fromCache;
-            cpm.Get5("Descrizione", false, out read, out resolved, out fromCache);
-            Says("property Descrizione: Add3 -> " + propOutcome + ", read back «" + resolved + "»");
+            cpm.Get5("Description", false, out read, out resolved, out fromCache);
+            Says("property Description: Add3 -> " + propOutcome + ", read back «" + resolved + "»");
 
             var n1 = doc.InsertNote(Inscription) as INote;
             if (n1 != null) (n1.GetAnnotation() as IAnnotation)?.SetPosition2(0.05, 0.25, 0);
-            var n2 = doc.InsertNote("$PRP:\"Descrizione\"") as INote;
+            var n2 = doc.InsertNote("$PRP:\"Description\"") as INote;
             if (n2 != null) (n2.GetAnnotation() as IAnnotation)?.SetPosition2(0.05, 0.22, 0);
             doc.ClearSelection2(true);
             doc.EditRebuild3();
@@ -263,7 +263,7 @@ internal static class Program
     /// in the /ToUnicode CMaps (`bfchar`, `bfrange`). We do not reconstruct which
     /// character uses which CMap: every string is decoded with each one, and
     /// everything is kept. A string decoded with the wrong table gives
-    /// garbage, not PROVA123 — and the red ASSENTE987 is there to say so if
+    /// garbage, not TEST123 — and the red ABSENT987 is there to say so if
     /// it were not so.
     /// </summary>
     internal static string DecodeWithCMap(string flows)

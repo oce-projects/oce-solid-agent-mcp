@@ -6,7 +6,7 @@
   "start": { "new_part": true },
   "steps": [
     { "operation": "sketch_picture",
-      "arguments": { "path": "{DATI}\\retrace_400x200.png", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
+      "arguments": { "path": "{DATA}\\retrace_400x200.png", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
       "expect": [
         { "what": "measurements.pixel", "equal_to": [400, 200] },
         { "what": "measurements.width_mm", "equal_to": 120, "tolerance": 0.01,
@@ -20,7 +20,7 @@
           "tolerance_why": "399 columns by 0.3 mm, from the two pixels brought into the sketch",
           "why": "the scale verified on the image, not believed" } ] },
     { "operation": "sketch_picture",
-      "arguments": { "path": "{DATI}\\ricalco.pdf", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
+      "arguments": { "path": "{DATA}\\ricalco.pdf", "plane": "front", "width_mm": 120, "x_mm": 10, "y_mm": 20 },
       "must_fail": {
         "message_includes": ["PDF", "PNG"],
         "twin": "the_picture_is_to_scale" } }

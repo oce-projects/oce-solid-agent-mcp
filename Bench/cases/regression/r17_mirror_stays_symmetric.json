@@ -2,7 +2,7 @@
   "name": "r17_mirror_stays_symmetric",
   "family": "regression",
   "why": "A hole mirrored on the right plane, and the plate widens. The mirror is the only construction that declares the symmetry instead of repeating it: if after the change the two holes are no longer at equal and opposite x, the symmetry was lost by the system, not by the designer.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the two holes are at x = +/-60 with respect to the right plane, which is at x = 0. Lengthening the plate does not move them: the mirror only guarantees that they stay symmetric, and that is exactly what is measured here.",
   "build": [
     {

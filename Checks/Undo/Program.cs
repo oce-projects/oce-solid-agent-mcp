@@ -55,7 +55,7 @@ namespace Checks.Undo
                 try { doc.EditUndo2(1); }
                 catch (Exception e)
                 {
-                    Console.Error.WriteLine("annullamento " + (i + 1) + " fallito: " + e.Message);
+                    Console.Error.WriteLine("undo " + (i + 1) + " failed: " + e.Message);
                     return 1;
                 }
             }

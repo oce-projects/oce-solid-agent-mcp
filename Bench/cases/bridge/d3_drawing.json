@@ -1,6 +1,6 @@
 [
  { "operation": "set_dimension", "arguments": { "dimension": "D1@Schizzo3", "value_mm": 36 } },
- { "operation": "save_document", "arguments": { "path": "{BANCO}/pezzo/d3.SLDPRT" } },
+ { "operation": "save_document", "arguments": { "path": "{BENCH}/part/d3.SLDPRT" } },
  { "operation": "create_drawing", "arguments": {} },
  { "operation": "standard_views", "arguments": {} },
  { "operation": "model_dimensions", "arguments": {} }

@@ -40,7 +40,7 @@ namespace Oce.Solid.Agent.Core
     /// ── WHERE THE LIBRARY IS ─────────────────────────────────────────
     ///
     /// The folder is overridden with the environment variable
-    /// `PROFILI_SALDATURA`, as the bench already does. A constant path in the
+    /// `OCE_WELDMENT_PROFILES`, as the bench already does. A constant path in the
     /// code would mean that whoever clones the repository has to modify it to
     /// run anything that involves steel structures.
     /// </summary>
@@ -67,13 +67,13 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "I do not know where the library of the profiles is. It is a folder of " +
                     ".sldlfp files, one per shape: tell me where it is with the environment " +
-                    "variable PROFILI_SALDATURA. There is no default path, because every " +
+                    "variable OCE_WELDMENT_PROFILES. There is no default path, because every " +
                     "workshop keeps its own library wherever it wants.");
 
             if (!Directory.Exists(folder))
                 return Failed(
                     "I cannot find the profiles folder: «" + folder + "», which is what " +
-                    "PROFILI_SALDATURA says. The library is a folder of .sldlfp " +
+                    "OCE_WELDMENT_PROFILES says. The library is a folder of .sldlfp " +
                     "files; check the path.");
 
             string searched = Str(a, "search", null);
@@ -180,7 +180,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The folder of the profile library. It is given with
-        /// `PROFILI_SALDATURA`, the same variable the bench uses: two different
+        /// `OCE_WELDMENT_PROFILES`, the same variable the bench uses: two different
         /// names for the same thing are two things that one day diverge.
         ///
         /// THERE IS NO FALLBACK ANY MORE, and there used to be one: the path of the standards
@@ -194,7 +194,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string ProfilesFolder()
         {
-            var its = System.Environment.GetEnvironmentVariable("PROFILI_SALDATURA");
+            var its = System.Environment.GetEnvironmentVariable("OCE_WELDMENT_PROFILES");
             return string.IsNullOrWhiteSpace(its) ? null : its;
         }
     }

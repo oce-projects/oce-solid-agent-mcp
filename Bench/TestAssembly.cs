@@ -36,7 +36,7 @@ namespace Oce.Solid.Agent.Bench
     /// steps, and each one can fail in its own way:
     ///
     ///   1. create the component part (the same operations as the cases),
-    ///   2. SAVE IT in `Bench\lavoro`,
+    ///   2. SAVE IT in `Bench\work`,
     ///   3. close it,
     ///   4. create the assembly document,
     ///   5. reopen the components and insert them,
@@ -92,7 +92,7 @@ namespace Oce.Solid.Agent.Bench
                     ["components"] = new List<object>
                     {
                         APlate("base", 100, 60, 10, null),
-                        APlate("coperchio", 100, 60, 4, new object[] { 0.0, 0.0, 20.0 }),
+                        APlate("cover", 100, 60, 4, new object[] { 0.0, 0.0, 20.0 }),
                     },
                 },
             };
@@ -125,7 +125,7 @@ namespace Oce.Solid.Agent.Bench
 
             int remained = 0;
             foreach (var f in file) if (File.Exists(f)) remained++;
-            Check("afterwards, nothing is left in «lavoro»", remained == 0,
+            Check("afterwards, nothing is left in «work»", remained == 0,
                   remained == 0
                       ? file.Count + " file cancellati"
                       : remained + " files left: the next run would already find them there");
@@ -288,7 +288,7 @@ namespace Oce.Solid.Agent.Bench
             // it would find the component already inside, and would measure the work
             // of the preparation believing it measured the operation.
             //
-            // The case names the path with `{LAVORO}\<caso>_<componente>.sldprt`:
+            // The case names the path with `{WORK}\<caso>_<componente>.sldprt`:
             // the placeholder already exists and is valid on any machine. *A case
             // that names a path of this machine is not a check, it is a
             // memento.*
@@ -579,7 +579,7 @@ namespace Oce.Solid.Agent.Bench
         /// closed, came back with all its components lightweight
         /// (GetLightWeightComponentCount 4 of 4); a part still loaded as a
         /// document came back resolved. So:
-        ///   1. the assembly is saved as «&lt;case&gt;.sldasm» under Bench\lavoro
+        ///   1. the assembly is saved as «&lt;case&gt;.sldasm» under Bench\work
         ///      and registered like the parts (deleted at the end, closed by
         ///      title);
         ///   2. it is closed by reference, then every loaded document whose FILE
@@ -744,7 +744,7 @@ namespace Oce.Solid.Agent.Bench
         /// A preparation that stopped half-way (Z-C21.11): what it made is closed
         /// and deleted here, since the caller gets null and has nothing to hand
         /// to ThrowAwayPreparation. A document left open would be found by the
-        /// next case, and a file left in Bench\lavoro would be found by the next
+        /// next case, and a file left in Bench\work would be found by the next
         /// round.
         /// </summary>
         private static IModelDoc2 Abandon(Preparation p)

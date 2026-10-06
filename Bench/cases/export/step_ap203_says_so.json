@@ -10,7 +10,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\gp3_ap203.step", "protocol": "AP203" },
+      "arguments": { "path": "{WORK}\\gp3_ap203.step", "protocol": "AP203" },
       "expect": [
         { "what": "measurements.protocol_returned", "equal_to": "AP203" },
         { "what": "measurements.file_schema",

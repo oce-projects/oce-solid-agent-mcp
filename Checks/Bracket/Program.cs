@@ -37,7 +37,7 @@ using SolidWorks.Interop.cosworks;
 //
 //  USAGE
 //      .\Checks\Bracket\bin\Bracket.exe
-//      .\Checks\Bracket\bin\Bracket.exe --tieni     leaves the part open
+//      .\Checks\Bracket\bin\Bracket.exe --keep     leaves the part open
 // =============================================================================
 
 internal static class Program
@@ -74,7 +74,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
 
         double expected = ExpectedSigma();
         Console.WriteLine();
@@ -89,7 +89,7 @@ internal static class Program
         catch (Exception ex)
         {
             Console.WriteLine("SOLIDWORKS does not respond: " + ex.Message);
-            Console.WriteLine("Aprilo e rilancia.");
+            Console.WriteLine("Open it and run again.");
             return 2;
         }
         Says("attached to SOLIDWORKS " + sw.RevisionNumber());

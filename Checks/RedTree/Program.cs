@@ -97,7 +97,7 @@ namespace Checks.RedTree
                     try { code = f.GetErrorCode2(out warning); } catch { }
                     string errorName = code == 0 ? "" : "  <-- " + Explain(code);
                     Console.WriteLine("  " + f.Name + " [" + f.GetTypeName2() + "]" +
-                        " errore=" + code + " avviso=" + warning + errorName);
+                        " error=" + code + " warning=" + warning + errorName);
                     f = f.GetNextFeature() as IFeature;
                 }
             }

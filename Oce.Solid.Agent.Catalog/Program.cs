@@ -10,7 +10,7 @@ namespace Oce.Solid.Agent.Catalog
     ///
     ///     Oce.Solid.Agent.Catalog.exe                 prints the JSON
     ///     Oce.Solid.Agent.Catalog.exe file.json       writes it there
-    ///     Oce.Solid.Agent.Catalog.exe --controlla f   only says whether it matches (exits 1 if not)
+    ///     Oce.Solid.Agent.Catalog.exe --check f   only says whether it matches (exits 1 if not)
     ///
     /// **It needs neither Python, nor docker, nor the network.** It used to need all
     /// three: whoever cloned the repository could not regenerate the catalog, and a
@@ -38,7 +38,7 @@ namespace Oce.Solid.Agent.Catalog
                 Console.Error.WriteLine(
                     "[catalog] «" + n + "» is not tested: it stays out of the file.");
 
-            if (args.Length >= 2 && args[0] == "--controlla")
+            if (args.Length >= 2 && args[0] == "--check")
             {
                 if (!File.Exists(args[1]))
                 {

@@ -2,7 +2,7 @@
   "name": "r01b_four_holes_stay_where_they_are",
   "family": "regression",
   "why": "THE ABSOLUTE TWIN of `r01_four_holes_from_the_border` (entry E18): the same four holes, without an anchor. It proves that the old way keeps working when it is what is wanted — holes that stay where they are because there is something there that corresponds to them, not because they are 20 from the edge.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "without an anchor x_mm/y_mm are coordinates of the model: raising the plate to 180 (from Y -60..+60 to -60..+120) the holes stay at y = +/-40.",
   "build": [
     {

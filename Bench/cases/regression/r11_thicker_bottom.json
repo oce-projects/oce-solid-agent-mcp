@@ -2,7 +2,7 @@
   "name": "r11_thicker_bottom",
   "family": "regression",
   "why": "The same shell as case 10, but what changes is the WALL THICKNESS: from 5 to 12. The bottom moves 7 mm downwards, and the box outside does not change by a millimetre. It is the case in which the bounding box does not help: from outside the part is identical.",
-  "intent": "ancorato_a_bordo",
+  "intent": "anchored_to_border",
   "intent_why": "thickening the wall the bottom goes down from z = 47 to z = 40, and a hole «in the bottom» must follow it. The outer bounding box stays 314 x 274 x 52: here the volume is the only witness.",
   "build": [
     {

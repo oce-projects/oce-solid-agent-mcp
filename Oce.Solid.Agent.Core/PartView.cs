@@ -207,7 +207,7 @@ namespace Oce.Solid.Agent.Core
 
                 // `SaveBMP` wants a path: it cannot return bytes.
                 temporary = Path.Combine(
-                    Path.GetTempPath(), "oce-vista-" + Guid.NewGuid().ToString("N") + ".bmp");
+                    Path.GetTempPath(), "oce-view-" + Guid.NewGuid().ToString("N") + ".bmp");
 
                 // ── THE FRAME TAKES THE SHAPE OF THE GRAPHICS AREA ─────
                 //

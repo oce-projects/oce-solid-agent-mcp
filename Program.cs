@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent
                 }
             }
             catch { }
-            return "sconosciuta";
+            return "unknown";
         }
 
         private static int Main(string[] arguments)

@@ -109,11 +109,11 @@ namespace Oce.Solid.Agent.Core
             foreach (var p in onAxis)
             {
                 string border = WhatBordersTheCircle(p.Item2.Edge, axis);
-                if (border != "piano")
+                if (border != "plane")
                 {
-                    if (border == "cono" || border == "toro")
+                    if (border == "cone" || border == "torus")
                     {
-                        string said = (border == "cono" ? "chamfer" : "fillet") + " on Ø" + p.Item2.DiameterMm.ToString("0.##", Ci);
+                        string said = (border == "cone" ? "chamfer" : "fillet") + " on Ø" + p.Item2.DiameterMm.ToString("0.##", Ci);
                         if (!chamfers.Contains(said)) chamfers.Add(said);
                     }
                     continue;
@@ -202,14 +202,14 @@ namespace Oce.Solid.Agent.Core
                 var m = readOnes.Meta[choice];
                 double expectedValueMm = Math.Round(m[0] * 2000.0, 3);
                 string what = "diameter Ø" + expectedValueMm.ToString("0.##", Ci);
-                string key = "foro|" + Math.Round(expectedValueMm, 2).ToString("0.00", Ci);
+                string key = "hole|" + Math.Round(expectedValueMm, 2).ToString("0.00", Ci);
                 // HALFWAY ALONG THE FACE, on the axis: the measurement line crosses its
                 // cylinder, the way a shaft is dimensioned. The same point makes the
                 // CYLINDER KEY (review of 27/9/2026): two Ø30 pins
                 // separated by a collar are two dimensions, not one.
                 double tm = (m[1] + m[2]) / 2;
                 string cylinder = CylinderKey(m[0] * 2000.0, new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] });
-                if (already.Contains(cylinder) || already.Contains("cil?|" + key.Substring(5)))
+                if (already.Contains(cylinder) || already.Contains("cyl?|" + key.Substring(5)))
                 { elsewhere.Add(what + " (already dimensioned in this drawing)"); continue; }
                 var half = OnSheet(new[] { m[3] + tm * m[6], m[4] + tm * m[7], m[5] + tm * m[8] }, mu, tr);
                 if (half == null) { failed.Add(what + " (I do not know where it is on the sheet)"); continue; }
@@ -308,7 +308,7 @@ namespace Oce.Solid.Agent.Core
                 described["position_mm"] = WhereItEnded(q);
                 born.Add(described);
                 outcome.Diameters.Add(Math.Round(its.DiameterMm, 3));
-                already.Add("foro|" + Math.Round(its.DiameterMm, 2).ToString("0.00", Ci));
+                already.Add("hole|" + Math.Round(its.DiameterMm, 2).ToString("0.00", Ci));
                 already.Add(its.Key);
             }
 
@@ -337,7 +337,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>That cylinder is already dimensioned: its key, or an equal Ø of which the cylinder is not known.</summary>
         private static bool DimensionedCylinder(HashSet<string> already, RoundCylinder c)
         {
-            return already.Contains(c.Key) || already.Contains("cil?|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci));
+            return already.Contains(c.Key) || already.Contains("cyl?|" + Math.Round(c.DiameterMm, 2).ToString("0.00", Ci));
         }
 
         /// <summary>
@@ -596,7 +596,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string WhatBordersTheCircle(IEdge edge, double[] axis)
         {
-            string found = "altro";
+            string found = "other";
             try
             {
                 foreach (var oc in (edge?.GetCoEdges() as object[]) ?? new object[0])
@@ -606,10 +606,10 @@ namespace Oce.Solid.Agent.Core
                     if (su.IsPlane())
                     {
                         var pp = su.PlaneParams as double[];
-                        if (pp != null && pp.Length >= 3 && Math.Abs(Dot(new[] { pp[0], pp[1], pp[2] }, axis)) > 0.9999) return "piano";
+                        if (pp != null && pp.Length >= 3 && Math.Abs(Dot(new[] { pp[0], pp[1], pp[2] }, axis)) > 0.9999) return "plane";
                     }
-                    else if (su.IsCone()) found = "cono";
-                    else if (su.IsTorus() && found != "cono") found = "toro";
+                    else if (su.IsCone()) found = "cone";
+                    else if (su.IsTorus() && found != "cone") found = "torus";
                 }
             }
             catch { }
@@ -621,7 +621,7 @@ namespace Oce.Solid.Agent.Core
         {
             Func<double[], string> s = p => string.Join(",", p.Take(3).Select(v => Math.Round(v * 1000, 2).ToString("0.##", Ci)));
             var x = s(a); var y = s(b);
-            return "tondo|" + (string.CompareOrdinal(x, y) <= 0 ? x + "|" + y : y + "|" + x);
+            return "round|" + (string.CompareOrdinal(x, y) <= 0 ? x + "|" + y : y + "|" + x);
         }
 
         /// <summary>Two circles (CircleParams) on the same axis, with different centres?</summary>

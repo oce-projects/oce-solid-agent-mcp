@@ -32,7 +32,7 @@ using SolidWorks.Interop.swconst;
 //  return any more).
 //
 //  USAGE
-//      .\Checks\Orphan\bin\Orphan.exe            [--tieni]
+//      .\Checks\Orphan\bin\Orphan.exe            [--keep]
 // =============================================================================
 
 internal static class Program
@@ -47,7 +47,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
         Console.WriteLine();
         Console.WriteLine("ORPHAN — does IsDangling become true? (entry Z-A2)");
         Console.WriteLine("  plate 100 x 60 x 10, block 20 x 20 x 20 on top; the block is dimensioned and then suppressed");

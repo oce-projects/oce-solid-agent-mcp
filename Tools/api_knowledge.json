@@ -148,12 +148,12 @@
     },
     "IComponent2.IsFixed": {
       "state": "probed_read",
-      "why": "Reliable. Measured: SOLIDWORKS itself fixes the FIRST component inserted into a new assembly (base-1 fixed=True vs coperchio-1 fixed=False) -- every assembly therefore has at least one pinned part, and a DOF sum that does not exclude fixed components would be wrong on every assembly, always, in the convenient direction nobody checks.",
+      "why": "Reliable. Measured: SOLIDWORKS itself fixes the FIRST component inserted into a new assembly (base-1 fixed=True vs cover-1 fixed=False) -- every assembly therefore has at least one pinned part, and a DOF sum that does not exclude fixed components would be wrong on every assembly, always, in the convenient direction nobody checks.",
       "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 3)"
     },
     "IComponent2.get_Name2": {
       "state": "probed_read",
-      "why": "Unique within the assembly (\"base-1\", \"base-2\", \"coperchio-1\"), and this is what makes a stable C1..Cn numbering possible: sort by Name2, never trust GetComponents' own return order, which is not documented anywhere and was seen to differ between reads.",
+      "why": "Unique within the assembly (\"base-1\", \"base-2\", \"cover-1\"), and this is what makes a stable C1..Cn numbering possible: sort by Name2, never trust GetComponents' own return order, which is not documented anywhere and was seen to differ between reads.",
       "source": "rag:82d_gli_assiemi_e_la_misura_che_manca.md (section 2)"
     },
     "IConfiguration.AddExplodeStep2": {
@@ -553,7 +553,7 @@
     },
     "IModelDocExtension.GetDependencies": {
       "state": "probed_read",
-      "why": "Called as GetDependencies(true,false,false,true,false): Searchflag (the 2nd argument) is FALSE since Z-C21.2-ter. MEASURED 2026-09-28 (Z-C21.3, finding L12-8): with Searchflag true, a component that is not loaded (its file renamed away) came back as a DIFFERENT file with the same name found through the search rules (the current SOLIDWORKS folder), which exists, so a missing file was not reported; false answers the path where the file was last saved. Once a true call has found that file, later false calls answer it too: never call it with true before a check of missing files. Returns a flat object[] of alternating (name, path) pairs, e.g. \"zb3_base\", path, \"zb3_coperchio\", path. MEASURED: the 4th argument (documented as ListBrokenRefs) marks NOTHING even when called on an assembly with a genuinely broken reference -- result was identical to the sane assembly. Do not rely on it to flag broken references: File.Exists on each path.",
+      "why": "Called as GetDependencies(true,false,false,true,false): Searchflag (the 2nd argument) is FALSE since Z-C21.2-ter. MEASURED 2026-09-28 (Z-C21.3, finding L12-8): with Searchflag true, a component that is not loaded (its file renamed away) came back as a DIFFERENT file with the same name found through the search rules (the current SOLIDWORKS folder), which exists, so a missing file was not reported; false answers the path where the file was last saved. Once a true call has found that file, later false calls answer it too: never call it with true before a check of missing files. Returns a flat object[] of alternating (name, path) pairs, e.g. \"zb3_base\", path, \"zb3_cover\", path. MEASURED: the 4th argument (documented as ListBrokenRefs) marks NOTHING even when called on an assembly with a genuinely broken reference -- result was identical to the sane assembly. Do not rely on it to flag broken references: File.Exists on each path.",
       "source": "rag:82zx_da_quali_file_dipende_un_assieme.md; code:DependencyOperations.cs:15"
     },
     "IModelDocExtension.GetMassProperties": {

@@ -8,7 +8,7 @@
   "start": { "new_part": true },
   "steps": [
     { "operation": "rectangular_frame",
-      "arguments": { "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "length_mm": 1000, "width_mm": 800,
                      "plane": "front", "corner_treatment": "miter", "centered": true,
@@ -23,7 +23,7 @@
           "why": "the outside size was verified on the bodies the feature created, which happens only in the «overall» branch" } ] },
 
     { "operation": "rectangular_frame",
-      "arguments": { "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "length_mm": 1000, "width_mm": 800,
                      "plane": "front", "corner_treatment": "miter", "centered": true,

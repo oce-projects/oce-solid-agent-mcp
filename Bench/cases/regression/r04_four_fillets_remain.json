@@ -2,7 +2,7 @@
   "name": "r04_four_fillets_remain",
   "family": "regression",
   "why": "Four R5 fillets on the vertical edges, and the plate gets longer. The fillets have no position of their own: they follow the edges. It is the case that MUST hold, and it serves to tell «the check works» from «everything comes off».",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "a fillet on an edge is anchored to the edge by construction: lengthening the part moves two of the four, and four fillets of 5 remain. Here we measure that they are still there, and that they are still 5.",
   "build": [
     {

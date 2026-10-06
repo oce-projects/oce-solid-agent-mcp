@@ -12,7 +12,7 @@
           { "operation": "extrude_rectangle",
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
-      { "name": "coperchio",
+      { "name": "cover",
         "position_mm": [0, 7, 0],
         "steps": [
           { "operation": "extrude_rectangle",

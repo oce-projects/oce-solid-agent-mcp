@@ -25,9 +25,9 @@ namespace Oce.Solid.Agent.Bench
     ///
     /// HOW IT WORKS. This mode keeps ONE document open and waits for the plans
     /// in files. Whoever plans (on the other side, on the server) writes
-    /// `passo_1.json`; here it is executed, the state is re-read and
-    /// `stato_1.json` is written; the other side reads that, asks the next thing of the
-    /// model, and writes `passo_2.json`.
+    /// `step_1.json`; here it is executed, the state is re-read and
+    /// `state_1.json` is written; the other side reads that, asks the next thing of the
+    /// model, and writes `step_2.json`.
     ///
     /// The document stays OPEN between one step and the next. It is the only way of
     /// measuring what really counts: whether the model, looking at what it has
@@ -51,7 +51,7 @@ namespace Oce.Solid.Agent.Bench
                         Console.WriteLine("cannot open " + toOpen);
                         return 1;
                     }
-                    Console.WriteLine("  ripreso: " + toOpen);
+                    Console.WriteLine("  resumed: " + toOpen);
                 }
                 else
                 {
@@ -77,11 +77,11 @@ namespace Oce.Solid.Agent.Bench
                 // The starting state. Whoever plans starts from here,
                 // exactly as the real add-in would.
                 WriteState(folder, 0, Active() ?? doc, new List<object>());
-                Console.WriteLine("  stato_0 written (empty document)");
+                Console.WriteLine("  state_0 written (empty document)");
 
                 for (int k = 1; k <= 40; k++)
                 {
-                    string request = Path.Combine(folder, "passo_" + k + ".json");
+                    string request = Path.Combine(folder, "step_" + k + ".json");
                     string fine = Path.Combine(folder, "fine.json");
 
                     // The plan is awaited. Half an hour: a model run with
@@ -95,7 +95,7 @@ namespace Oce.Solid.Agent.Bench
                     {
                         if (DateTime.UtcNow > expiry)
                         {
-                            Console.WriteLine("  no passo_" + k + " within half an hour: closing");
+                            Console.WriteLine("  no step_" + k + " within half an hour: closing");
                             return 0;
                         }
                         Thread.Sleep(500);
@@ -105,7 +105,7 @@ namespace Oce.Solid.Agent.Bench
                     // The file may still be being written when we see it.
                     Thread.Sleep(300);
                     var plane = ReadPlane(request);
-                    Console.WriteLine("  passo " + k + ": " + plane.Count + " operazioni");
+                    Console.WriteLine("  step " + k + ": " + plane.Count + " operations");
 
                     // THE SIGNATURES ARE ATTACHED BY THE BENCH, AS THE SERVER DOES.
                     //
@@ -171,7 +171,7 @@ namespace Oce.Solid.Agent.Bench
                     }
 
                     WriteState(folder, k, Active() ?? doc, outcomes);
-                    Console.WriteLine("  stato_" + k + " scritto");
+                    Console.WriteLine("  state_" + k + " written");
                 }
                 return 0;
             }
@@ -423,8 +423,8 @@ namespace Oce.Solid.Agent.Bench
             };
             // It is written to a temporary file and then renamed: whoever reads
             // on the other side must never see half a JSON.
-            string final = Path.Combine(folder, "stato_" + k + ".json");
-            string temporary = final + ".parziale";
+            string final = Path.Combine(folder, "state_" + k + ".json");
+            string temporary = final + ".partial";
             File.WriteAllText(temporary, Json(outside));
             if (File.Exists(final)) File.Delete(final);
             File.Move(temporary, final);

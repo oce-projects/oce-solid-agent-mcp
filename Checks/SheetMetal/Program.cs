@@ -34,7 +34,7 @@ using SolidWorks.Interop.swconst;
 //  wrong volume would mean that something else was measured.
 //
 //  USAGE
-//      .\Checks\SheetMetal\bin\SheetMetal.exe            [--tieni]
+//      .\Checks\SheetMetal\bin\SheetMetal.exe            [--keep]
 // =============================================================================
 
 internal static class Program
@@ -54,7 +54,7 @@ internal static class Program
 
     private static int Main(string[] arguments)
     {
-        bool keep = Array.IndexOf(arguments, "--tieni") >= 0;
+        bool keep = Array.IndexOf(arguments, "--keep") >= 0;
         Console.WriteLine();
         Console.WriteLine("SHEET METAL — the measurement that sizes the family (entry GP18)");
         Console.WriteLine("  L base flange: " + Side1Mm + " + " + Side2Mm + " mm, depth " + DepthMm +

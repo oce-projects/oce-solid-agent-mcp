@@ -38,7 +38,7 @@
           "_the_first_number_i_had_written_was_93643_36": "Wrong by 0.45 -- a mistake of mine in arithmetic, not of the part. It had passed all the same because the tolerance was 0.5, that is **wide enough to cover my mistake**: it is exactly the way a generous tolerance stops measuring. Measured 93643.806. Now the tolerance is 0.1 and the number is the true one." } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\drawing_is_a_second_document.sldprt" },
+      "arguments": { "path": "{WORK}\\drawing_is_a_second_document.sldprt" },
       "expect": [
         { "what": "measurements.path", "includes": ["drawing_is_a_second_document"],
           "why": "A VIEW ATTACHES TO THE PATH OF THE PART, not to the document in memory: a part never saved cannot be put on a drawing, and it is the reason the case needs this step." },
@@ -57,7 +57,7 @@
           "why": "one sheet: if two were born, the count of the views at the next step would be of something else" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\drawing_is_a_second_document.sldprt" },
+      "arguments": { "model": "{WORK}\\drawing_is_a_second_document.sldprt" },
       "_and_the_part_is_named_explicitly": "Added on 18/9/2026. This case was green **by luck of the draw**: it counted the views and the projection angle, not which part they came from. With another part open it would have been green all the same on a wrong drawing — *a proof that counts the objects and does not look at what they are of is green even when the part is another one.*",
       "expect": [
         { "what": "measurements.model", "includes": ["drawing_is_a_second_document"],

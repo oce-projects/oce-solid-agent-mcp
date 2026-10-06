@@ -19,7 +19,7 @@ namespace Oce.Solid.Agent.Core
     /// pocket «in the middle» stays at x = 0 when the plate grows on one side only
     /// (it grows on ONE side even if the sketch is centred: entry E2).
     /// Clean rebuild, no error, wrong part: three of the four
-    /// silences of `--regressione` (K5).
+    /// silences of `--regression` (K5).
     ///
     /// ── THE SHAPE: ONE ANCHOR PER AXIS, AND BOTH AXES ─────────────────────
     ///

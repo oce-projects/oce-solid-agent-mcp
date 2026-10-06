@@ -929,7 +929,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Family = "features",
                     RequestedDocument = "part",
                     Tested = true,
-                    Example = "{\"name\":\"parete\",\"value_mm\":12}",   // from `wall_has_a_name`
+                    Example = "{\"name\":\"wall\",\"value_mm\":12}",   // from `wall_has_a_name`
                     Summary = "Gives a NAME to a number (wall = 3 mm): the linked dimensions change with it.",
                     Description =
                         "Creates or changes a global variable of the part: «wall» = 12 mm, or an expression "
@@ -940,7 +940,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the volume before and after.\n\nI REFUSE IF the name is not made of letters, "
                         + "digits and «_», if you give me both (or neither) of «value_mm» and "
                         + "«expression», or if SOLIDWORKS does not accept the name: in an Italian SOLIDWORKS "
-                        + "«spessore» (thickness) is already taken (measured) — use for example «wall».",
+                        + "«spessore» (thickness, the reserved word of an Italian SOLIDWORKS) is already taken (measured) — use for example «wall».",
                     Precondition = "an open part",
                     Schema = O(
                         "type", "object",
@@ -1623,7 +1623,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "FEATURE is mirrored, not the whole body: for a symmetric part, "
                         + "mirror the hole or pocket that is missing on one side."
                         + "\n\nI REFUSE IF THE PLANE DOES NOT EXIST, and I tell you which ones there are. Invented names "
-                        + "-- diagonale (diagonal), obliquo (oblique) -- I do not interpret: mirroring "
+                        + "-- «diagonal», «oblique» -- I do not interpret: mirroring "
                         + "across the wrong plane produces a plausible and wrong part.",
                     Precondition = "solid_body",
                     Schema = O(
@@ -2763,7 +2763,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "applies_to", O(
                                 "type", "string",
                                 "enum", A("holes"),
-                                "description", "«holes», the whole circles (the only value accepted: raccordi, fillets, is refused, because on a fillet arc the mark is not born from code, measured)."),
+                                "description", "«holes», the whole circles (the only value accepted: «fillets» is refused, because on a fillet arc the mark is not born from code, measured)."),
                             "size_mm", O(
                                 "type", "number",
                                 "description", "how big the mark is. If you do not say, I use "
@@ -4608,19 +4608,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "which of its faces, by direction."),
                             "variant", O(
                                 "type", "string",
-                                "description", "coincidente (default), parallelo, perpendicolare, distanza: the values are written "
-                                    + "in Italian, as the operation takes them (coincident, parallel, perpendicular, distance). "
+                                "description", "coincident (default), parallel, perpendicular "
+                                    + "or distance. "
                                     + "I refuse concentric and tangent: they want a curved face, and here faces are chosen by direction, "
                                     + "which holds only for flat ones."),
                             "distance_mm", O(
                                 "type", "number",
-                                "description", "only for «distanza»: how far apart they are. "
+                                "description", "only for «distance»: how far apart they are. "
                                     + "Without it I refuse -- there is no reasonable default value."),
                             "alignment", O(
                                 "type", "string",
-                                "description", "«allineato» (aligned, the default) or «opposto» (opposite). "
+                                "description", "«aligned» (the default) or «opposite». "
                                     + "If SOLIDWORKS refuses for alignment, try the other: two faces that "
-                                    + "look at each other want «opposto».")),
+                                    + "look at each other want «opposite».")),
                         "required", A("component_a", "face_a", "component_b", "face_b")),
                 },
                 new OperationSpec

@@ -113,13 +113,13 @@ namespace Oce.Solid.Agent.Core
             // do not exist: the catalogue had two types that could never succeed,
             // and they failed with a SOLIDWORKS error that sent one looking
             // elsewhere. The why is stated before touching anything.
-            string requested = (Str(a, "variant", "coincidente") ?? "").Trim().ToLowerInvariant();
-            if (requested == "concentrico" || requested == "tangente")
+            string requested = (Str(a, "variant", "coincident") ?? "").Trim().ToLowerInvariant();
+            if (requested == "concentric" || requested == "tangent")
                 return Failed(
                     "«" + requested + "» wants at least one curved face (a cylinder, a hole), and here " +
                     "the faces are chosen by direction — up, down, front… — which only works for planar " +
                     "faces: between two planar faces a «" + requested + "» does not exist. With planar " +
-                    "faces there are coincidente, parallelo, perpendicolare and distanza. I touched " +
+                    "faces there are coincident, parallel, perpendicular and distance. I touched " +
                     "nothing.");
 
             string facingA = Str(a, "face_a", null);
@@ -131,11 +131,11 @@ namespace Oce.Solid.Agent.Core
             // reading of Transform2 that finding N26 measured (the axes of a
             // mirrored instance, MirrorComponentOperations.cs).
             var faceA = FaceNormalOf(compA, facingA, ComponentAxes(compA), out string why1);
-            if (faceA == null) return Failed("Su «" + uidA + "»: " + why1);
+            if (faceA == null) return Failed("On «" + uidA + "»: " + why1);
             var faceB = FaceNormalOf(compB, facingB, ComponentAxes(compB), out string why2);
-            if (faceB == null) return Failed("Su «" + uidB + "»: " + why2);
+            if (faceB == null) return Failed("On «" + uidB + "»: " + why2);
 
-            string typeName = Str(a, "variant", "coincidente");
+            string typeName = Str(a, "variant", "coincident");
             int typ = MateType(typeName);
             if (typ < 0)
                 return Failed(
@@ -145,13 +145,13 @@ namespace Oce.Solid.Agent.Core
             double distance = Num(a, "distance_mm", double.NaN);
             if (typ == (int)swMateType_e.swMateDISTANCE && double.IsNaN(distance))
                 return Failed(
-                    "A «distanza» mate without «distance_mm» has no " +
+                    "A «distance» mate without «distance_mm» has no " +
                     "reasonable default value: choosing one would mean " +
                     "deciding for you how far apart two faces are.");
             if (double.IsNaN(distance)) distance = 0;
 
-            string alignment = Str(a, "alignment", "allineato");
-            int align = alignment.Equals("opposto", StringComparison.OrdinalIgnoreCase)
+            string alignment = Str(a, "alignment", "aligned");
+            int align = alignment.Equals("opposite", StringComparison.OrdinalIgnoreCase)
                 ? (int)swMateAlign_e.swMateAlignANTI_ALIGNED
                 : 0;   // swAlignNONE = aligned
 
@@ -231,7 +231,7 @@ namespace Oce.Solid.Agent.Core
                     ". The two faces are the «" + facingA + "» of " + uidA + " and the «" +
                     facingB + "» of " + uidB + "; the mate requested is «" +
                     typeName + "»" +
-                    (align == 0 ? " allineato" : " opposto") + ".");
+                    (align == 0 ? " aligned" : " opposite") + ".");
 
             try { model.EditRebuild3(); } catch { }
 
@@ -1102,17 +1102,17 @@ namespace Oce.Solid.Agent.Core
         // Concentric and tangent are no longer there (entry Z-C21.2, M17): with the faces
         // chosen by direction they cannot succeed, and the refusal sits in Mate.
         private static readonly string[] KnownTypes =
-            { "coincidente", "parallelo", "perpendicolare", "distanza" };
+            { "coincident", "parallel", "perpendicular", "distance" };
 
         private static int MateType(string itemName)
         {
             if (string.IsNullOrWhiteSpace(itemName)) return -1;
             switch (itemName.Trim().ToLowerInvariant())
             {
-                case "coincidente": return (int)swMateType_e.swMateCOINCIDENT;
-                case "parallelo": return (int)swMateType_e.swMatePARALLEL;
-                case "perpendicolare": return (int)swMateType_e.swMatePERPENDICULAR;
-                case "distanza": return (int)swMateType_e.swMateDISTANCE;
+                case "coincident": return (int)swMateType_e.swMateCOINCIDENT;
+                case "parallel": return (int)swMateType_e.swMatePARALLEL;
+                case "perpendicular": return (int)swMateType_e.swMatePERPENDICULAR;
+                case "distance": return (int)swMateType_e.swMateDISTANCE;
                 default: return -1;
             }
         }
@@ -1132,7 +1132,7 @@ namespace Oce.Solid.Agent.Core
                 case (int)swAddMateError_e.swAddMateError_IncorrectMateType:
                     return "mate type not suitable for these two faces";
                 case (int)swAddMateError_e.swAddMateError_IncorrectAlignment:
-                    return "wrong alignment: try «opposto»";
+                    return "wrong alignment: try «opposite»";
                 case (int)swAddMateError_e.swAddMateError_IncorrectSelections:
                     return "the two faces are not right for this mate";
                 case (int)swAddMateError_e.swAddMateError_OverDefinedAssembly:

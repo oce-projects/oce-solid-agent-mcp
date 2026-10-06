@@ -9,10 +9,10 @@ const path = require("path");
 // THE PATH IS DERIVED, NOT WRITTEN. Here there used to be the absolute path of
 // this development machine: whoever cloned the repository elsewhere and launched the
 // command as README.md documents it got an ENOENT on a file that on their
-// disk does not exist, with no hint that `PONTE` had to be set.
+// disk does not exist, with no hint that `OCE_BRIDGE` had to be set.
 // `run_plans.js`, two files further on, already did it right.
 const ROOT = path.resolve(__dirname, "..");
-const ESE = process.env.PONTE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
+const ESE = process.env.OCE_BRIDGE || path.join(ROOT, "bin", "oce-solid-agent-mcp.exe");
 const everything = process.argv[2] === "tutto";
 
 const requests = [

@@ -13,7 +13,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 96000, "why": "120 x 80 x 10: the part of both sheets" } ] },
 
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
+      "arguments": { "path": "{WORK}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view hangs on the FILE of the part" } ] },
 
     { "operation": "create_drawing",
@@ -23,7 +23,7 @@
         { "what": "measurements.sheets", "equal_to": 1, "why": "one sheet to start with: the second one comes in step 6" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
+      "arguments": { "model": "{WORK}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side on the first sheet" } ] },
 
     { "operation": "drawing_dimension",
@@ -42,7 +42,7 @@
           "why": "and it is the one in front: the views of step 7 go on it, and the first sheet is NOT the current one when step 8 reads what is already dimensioned" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
+      "arguments": { "model": "{WORK}\\the_second_sheet_does_not_repeat_the_dimensions.sldprt" },
       "expect": [ { "what": "measurements.views_created", "equal_to": 3,
                     "why": "front, top, side again, on the second sheet: V1, V2, V3 now name the views of this sheet" } ] },
 

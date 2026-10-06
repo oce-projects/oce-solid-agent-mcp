@@ -33,13 +33,13 @@ function seconds(what) {
 }
 
 function benchRun(closeEachTime) {
-  spawnSync(CLOSE, ["--chiudi"], { encoding: "utf8" });
+  spawnSync(CLOSE, ["--close"], { encoding: "utf8" });
   const times = [];
   for (let i = 0; i < howMany; i++) {
     spawnSync(NEW, [], { encoding: "utf8" });
     times.push(seconds(() =>
       spawnSync(NODE, [RUN, plane], { encoding: "utf8" })));
-    if (closeEachTime) spawnSync(CLOSE, ["--chiudi"], { encoding: "utf8" });
+    if (closeEachTime) spawnSync(CLOSE, ["--close"], { encoding: "utf8" });
   }
   const remain = spawnSync(CLOSE, [], { encoding: "utf8" }).stdout || "";
   return { tempi: times, restano: (remain.split(/\r?\n/)[0] || "").trim() };

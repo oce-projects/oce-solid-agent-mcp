@@ -1,7 +1,7 @@
 {
   "name": "wall_has_a_name",
   "family": "dimensions",
-  "why": "ENTRY Z-F1. Do not repeat a number, give it a name: a global variable «parete» and the thickness of the plate linked to it. Changing the variable changes the part, by construction. Measured on 27/9/2026 (prova0089 zf1, zf1b): Add3 returns the index; the linked dimension follows the variable (96000 -> 115200 -> 144000 mm3); get_Status cannot be read (-1 even when it works) and the outcome is taken from the values re-read; «spessore» is a name already taken in the Italian SOLIDWORKS.",
+  "why": "ENTRY Z-F1. Do not repeat a number, give it a name: a global variable «wall» and the thickness of the plate linked to it. Changing the variable changes the part, by construction. Measured on 27/9/2026 (prova0089 zf1, zf1b): Add3 returns the index; the linked dimension follows the variable (96000 -> 115200 -> 144000 mm3); get_Status cannot be read (-1 even when it works) and the outcome is taken from the values re-read; «spessore» is a name already taken in the Italian SOLIDWORKS.",
   "defect_caught": "A variable written that drives nothing; a link that the equation accepts and the dimension does not follow; the change of the variable that does not reach the part without EvaluateAll and a rebuild; the name refused by SOLIDWORKS taken for good.",
   "start": { "new_part": true },
   "steps": [
@@ -9,20 +9,20 @@
       "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
     { "operation": "global_variable",
-      "arguments": { "name": "parete", "value_mm": 12 },
+      "arguments": { "name": "wall", "value_mm": 12 },
       "expect": [
         { "what": "measurements.value_mm", "equal_to": 12, "why": "re-read from the equation" },
         { "what": "measurements.is_new", "equal_to": true },
         { "what": "state.equations[0].global_variable", "equal_to": true, "why": "the state lists the equations" },
         { "what": "volume_mm3", "equal_to": 96000, "why": "a variable that nobody uses does not change the part" } ] },
     { "operation": "link_dimension",
-      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"parete\"" },
+      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"wall\"" },
       "expect": [
         { "what": "measurements.value_before_mm", "equal_to": 10 },
         { "what": "measurements.value_after_mm", "equal_to": 12, "why": "the dimension re-read is worth as much as the equation" },
         { "what": "volume_mm3", "equal_to": 115200, "why": "120 x 80 x 12" } ] },
     { "operation": "global_variable",
-      "arguments": { "name": "parete", "value_mm": 15 },
+      "arguments": { "name": "wall", "value_mm": 15 },
       "expect": [
         { "what": "measurements.is_new", "equal_to": false, "why": "the same variable, rewritten" },
         { "what": "measurements.driven_dimensions[0].value_text", "equal_to": 15, "why": "the linked dimension follows" },

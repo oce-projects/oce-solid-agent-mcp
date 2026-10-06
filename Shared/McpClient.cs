@@ -69,7 +69,7 @@ namespace Shared
         internal static Bridge OpenWithBrokenCatalog(string executable)
         {
             var fake = Path.Combine(
-                Path.GetTempPath(), "catalogo_che_non_esiste_" + Guid.NewGuid().ToString("N") + ".json");
+                Path.GetTempPath(), "catalog_that_does_not_exist_" + Guid.NewGuid().ToString("N") + ".json");
             return Open(executable, fake);
         }
 
@@ -118,12 +118,12 @@ namespace Shared
                         },
                     },
                 };
-                // `OPENPDM_CATALOGO` is the same variable that whoever
+                // `OCE_CATALOG` is the same variable that whoever
                 // installs the package elsewhere would use: pointing it at a file that
                 // does not exist is the honest way to test what the bridge does when the
                 // catalog does not load.
                 if (fakeCatalog != null)
-                    p.ServerProcess.StartInfo.EnvironmentVariables["OPENPDM_CATALOGO"] = fakeCatalog;
+                    p.ServerProcess.StartInfo.EnvironmentVariables["OCE_CATALOG"] = fakeCatalog;
                 p.ServerProcess.OutputDataReceived += (s, e) =>
                 {
                     if (e.Data == null) return;

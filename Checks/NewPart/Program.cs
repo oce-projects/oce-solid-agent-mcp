@@ -79,7 +79,7 @@ namespace Checks.NewPart
             };
             // `System.` spelled out: the SOLIDWORKS interop has its own
             // `Environment`, and with the two `using`s the bare name does not compile.
-            var its = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
+            var its = System.Environment.GetEnvironmentVariable("OCE_DOCUMENT_TEMPLATES");
             if (!string.IsNullOrWhiteSpace(its)) folders.Add(its);
             foreach (var c in folders)
             {

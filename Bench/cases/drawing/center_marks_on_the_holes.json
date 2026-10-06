@@ -20,13 +20,13 @@
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 40, "y_mm": 0, "diameter_mm": 8, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 94492.04, "tolerance": 0.05, "tolerance_why": "pi inside" } ] },
     { "operation": "save_document",
-      "arguments": { "path": "{LAVORO}\\center_marks_on_the_holes.sldprt" },
+      "arguments": { "path": "{WORK}\\center_marks_on_the_holes.sldprt" },
       "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
     { "operation": "create_drawing",
       "arguments": { "paper_size": "A3" },
       "expect": [ { "what": "state.kind", "equal_to": "drawing" } ] },
     { "operation": "standard_views",
-      "arguments": { "model": "{LAVORO}\\center_marks_on_the_holes.sldprt" },
+      "arguments": { "model": "{WORK}\\center_marks_on_the_holes.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3 } ] },
     { "operation": "center_marks",
@@ -35,7 +35,7 @@
         { "what": "state.center_marks_total", "equal_to": 3,
           "why": "three holes, three centre marks on the sheet after the operation, whoever made them. The marks SOLIDWORKS puts on holes when it creates the views were counted 3 in three full runs and alone, and 0 in the full run on 0.142.0 and in the drawing family run, with the same code, and not reproduced with the three cases that precede this one: an effect of long runs, still open. So the case no longer asks who made them (already there: 3 recognised and 0 added; missing: 3 added), only that the sheet ends with three and not six" } ] },
     { "operation": "center_marks",
-      "arguments": { "view": "V2", "applies_to": "raccordi" },
+      "arguments": { "view": "V2", "applies_to": "fillets" },
       "must_fail": {
         "message_includes": ["does not come out", "Ask for «holes»"],
         "twin": "center_marks_on_the_holes" } }

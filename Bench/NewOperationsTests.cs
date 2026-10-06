@@ -44,7 +44,7 @@ namespace Oce.Solid.Agent.Bench
         // Up to 0.40.0 there was a `NuoveOperazioni()` that called them in a row.
         // Since entry F13 they are in the table of the groups, in `Program.cs`:
         // **in the same order**, with a name in front of each one, so that
-        // `--gruppo guscio` launches just one. Two lists — one to launch them
+        // `--group shell` launches just one. Two lists — one to launch them
         // all and one to launch one — would be two places to keep
         // aligned, and the day they diverge the bench launches fewer checks than
         // it shows.
@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Bench
         // Â«soppressaÂ»; the cases also look at WHICH hole was turned off -
         // `centers_x_mm` goes from [-60, 0, 60] to [-60, 0] - and how many
         // features remain in the tree, which is the whole difference between
-        // suppressing and deleting. They are launched with `--gruppo casi`.
+        // suppressing and deleting. They are launched with `--group cases`.
 
 
 
@@ -142,7 +142,7 @@ namespace Oce.Solid.Agent.Bench
                 doc.ViewDisplayShaded();
 
                 // WHERE THE SHOTS END UP: next to the bench's executable,
-                // in `lavoro\viste`, which is in the .gitignore.
+                // in `work\views`, which is in the .gitignore.
                 //
                 // It used to be an absolute path inside a temporary folder of a
                 // session, user name included. Wrong twice: that
@@ -150,7 +150,7 @@ namespace Oce.Solid.Agent.Bench
                 // leave this machine (`Checks\check-publishability.ps1`).
                 string folder = System.IO.Path.Combine(
                     System.IO.Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? ".",
-                    "lavoro", "views");
+                    "work", "views");
                 if (!System.IO.Directory.Exists(folder)) System.IO.Directory.CreateDirectory(folder);
 
                 // More views, because ONE ALONE IS NOT ENOUGH and it is worth
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.Bench
                 }
                 Console.WriteLine();
                 Console.WriteLine("=== view shot ===");
-                Console.WriteLine("    cartella: " + folder);
+                Console.WriteLine("    folder: " + folder);
                 Check("take the part's view shot", done > 0,
                       done + " of " + views.Length + " views saved in " + folder);
             }
@@ -454,7 +454,7 @@ namespace Oce.Solid.Agent.Bench
                           measurements == null ? "refused: " + Short(error) : "did NOT refuse");
                     return;
                 }
-                if (measurements == null) { Check(itemName, false, "fallita: " + Short(error)); return; }
+                if (measurements == null) { Check(itemName, false, "failed: " + Short(error)); return; }
 
                 int bodies = CountBodies(doc);
                 double volume = DocumentVolume(doc);
@@ -515,7 +515,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         /// <summary>
-        /// A plate centered at (x, y). With `fondi` false it stays a SEPARATE
+        /// A plate centered at (x, y). With `bottoms` false it stays a SEPARATE
         /// body instead of merging with the one that is already there: it serves to
         /// have more bodies to move.
         /// </summary>
@@ -551,7 +551,7 @@ namespace Oce.Solid.Agent.Bench
         //
         // In both groups the numbers are **exact**: the percentage
         // tolerances that were here — 2% for the slot, 3% for the chamfer —
-        // entry F3 forbids them. They are launched with `--gruppo casi`.
+        // entry F3 forbids them. They are launched with `--group cases`.
 
         // ==================================================================
         // 2. revolve NOW IS A GROUP OF FILES
@@ -589,7 +589,7 @@ namespace Oce.Solid.Agent.Bench
         // `cases\plane\*.json` (entry F11) - three cases. The expectation is not on the
         // distance that the bridge copies from the request, but on WHERE THE PLANE
         // ENDED UP: `last_plane_mm`, three numbers read from the matrix of the
-        // plane created. The sign is seen only this way. `--gruppo casi`.
+        // plane created. The sign is seen only this way. `--group cases`.
 
         // 5. create_axis — and the real question: is it found again by name?
         // ==================================================================
@@ -704,7 +704,7 @@ namespace Oce.Solid.Agent.Bench
         // that field in the state does not exist - it is called Â«curvoÂ». After a
         // through hole the curved edges are TWO, the model can name them, and
         // the refusal is a real case instead of a road believed
-        // closed. They are launched with `--gruppo casi`.
+        // closed. They are launched with `--group cases`.
 
 
         // ==================================================================

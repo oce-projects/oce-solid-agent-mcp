@@ -112,11 +112,11 @@ namespace Oce.Solid.Agent.ContractTests
                   "the name comes back identical, line break included");
 
             // ── `similar` is there only when there is something ─────────────
-            var without = doIt("strumento", "guarda_la_tavola", null);
+            var without = doIt("tool", "guarda_la_tavola", null);
             Check("without near names the field «similar» does not appear",
                   !without.Contains("similar"),
                   "an empty field in every line is noise that somebody then counts");
-            var empty = doIt("strumento", "guarda_la_tavola", new string[0]);
+            var empty = doIt("tool", "guarda_la_tavola", new string[0]);
             Check("and not even with an empty list",
                   !empty.Contains("similar"),
                   "zero and absent are the same thing, and are written the same");
@@ -258,7 +258,7 @@ namespace Oce.Solid.Agent.ContractTests
             catch { raised2 = true; }
             Check("and with no file to write to, the same",
                   !raised2 && read(withoutFile, "WhyItWasSilent") != null,
-                  "an empty RISCONTRO_REGISTRO means «do not register», " +
+                  "an empty OCE_QUESTION_REGISTRY means «do not register», " +
                   "and must not become «register next to the executable»");
         }
 

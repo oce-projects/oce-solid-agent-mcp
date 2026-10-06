@@ -11,7 +11,7 @@
   "steps": [
     { "operation": "rectangular_frame",
       "arguments": {
-        "profile_path": "{PROFILI}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
         "configuration": "80X80X5",
         "length_mm": 1000,
         "width_mm": 800,

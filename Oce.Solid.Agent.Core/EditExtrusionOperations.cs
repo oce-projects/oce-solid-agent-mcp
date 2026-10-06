@@ -40,7 +40,7 @@ namespace Oce.Solid.Agent.Core
                 case (int)swEndConditions_e.swEndCondUpToVertex: return "up to the vertex";
                 case (int)swEndConditions_e.swEndCondUpToBody: return "up to the body";
                 case (int)swEndConditions_e.swEndCondThroughAllBoth: return "through in both directions";
-                default: return "condizione " + c;
+                default: return "condition " + c;
             }
         }
 

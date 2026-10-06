@@ -9,7 +9,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\gp3_ap214.step", "protocol": "AP999",
+      "arguments": { "path": "{WORK}\\gp3_ap214.step", "protocol": "AP999",
                      "reopen_and_compare": true },
       "must_fail": {
         "message_includes": ["AP999", "AP203", "AP214"],

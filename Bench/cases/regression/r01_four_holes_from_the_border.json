@@ -2,7 +2,7 @@
   "name": "r01_four_holes_from_the_border",
   "family": "regression",
   "why": "The most common case there is: four fixing holes 20 mm from the corners of a plate, and the plate widens. In the workshop those holes stay 20 mm from the edge -- that is what «20 from the corners» means.",
-  "intent": "ancorato_a_bordo",
+  "intent": "anchored_to_border",
   "intent_why": "the holes are 20 mm from the edges: widening the plate from 120 to 180 they must stay at 20 mm, that is the two at the bottom stay at y = -40 and the two at the top go from +40 to +100: the plate grows ON ONE SIDE ONLY (entry E2), from Y -60..+60 to Y -60..+120.",
   "build": [
     {

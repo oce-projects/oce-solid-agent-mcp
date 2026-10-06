@@ -10,13 +10,13 @@ Installer/Payload/
 # The output of the last bench run: it changes at every launch and is not a
 # measurement until it has a format. That is decided by entry F2; until
 # then it stays a working file.
-Bench/ultimo-giro.txt
-Bench/ultimo-ponte.txt
+Bench/last-run.txt
+Bench/last-bridge.txt
 
 # The journal of the run IN PROGRESS, line by line with the time next to it. It is the file that
 # is looked at while the bench runs, to know how far it has got and whether it is stuck:
 # it lasts as long as the run and the next one rewrites it.
-Bench/in-corso.txt
+Bench/in-progress.txt
 
 # The report of every run (entry F2): one .md and one .json per launch, plus
 # `last.json`. They change at every run and are the measurement of THIS machine at
@@ -39,24 +39,24 @@ Bench/report/*
 # has their own runs, and mixing them in a versioned file would give a count that
 # belongs to nobody. The number, when it is needed to decide, is copied into the TODO with
 # the date.
-Bench/storico.txt
+Bench/history.txt
 
 # The parts the bench creates while testing: disposable, and with machine
-# paths inside. The cases name them with `{BANCO}`, which the runner resolves
+# paths inside. The cases name them with `{BENCH}`, which the runner resolves
 # here — so that no case carries around the name of whoever works.
-Bench/lavoro/
+Bench/work/
 
 # The material of measurement V2: twenty PNGs and five states, ~1.5 MB, redone by
 # `collect_views.js` in a minute. It is not the measurement — the measurement is the number
 # that ends up in the README — and a repository does not carry around the frames
 # from which it was derived. The PLANS on the other hand are versioned (`cases/views/`):
 # those are the part that must be repeatable.
-Bench/viste/
+Bench/views/
 
 # The plans that an isolated model writes in measurement V3: it redoes them at every
 # run, and versioning them would mean freezing the answer of ONE model of ONE
 # day as if it were the measurement. The measurement is the number, and it is in the README.
-Bench/cases/forma/
+Bench/cases/shape/
 
 # `bin/` and `obj/` above are enough for Bench/ too, and it is intended that the
 # Dassault libraries do not even end up there: the bench csproj

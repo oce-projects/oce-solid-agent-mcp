@@ -30,7 +30,7 @@ namespace Oce.Solid.Agent.ContractTests
     ///     a client would;
     ///   * the **evaluator of the expectations**, against fake states written by hand.
     ///
-    /// ── AND IT WRITES `prove.xml` ────────────────────────────────────────
+    /// ── AND IT WRITES `results.xml` ────────────────────────────────────────
     ///
     /// In JUnit format, which is what every CI knows how to read without
     /// anybody teaching it anything.
@@ -104,7 +104,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// elsewhere, applied to its own CI.
         ///
         /// So: the entry is there all the same, `--` is printed, it is counted separately, and
-        /// it ends up in `prove.xml` as `<skipped>` — which every CI knows how to show.
+        /// it ends up in `results.xml` as `<skipped>` — which every CI knows how to show.
         ///
         /// ── AND «COULD NOT» IS PROVED, NOT DECLARED ────────────────────────
         ///
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// <summary>
         /// «Behave like a runner without SOLIDWORKS», here and now.
         ///
-        /// The «non eseguibile qui» entries would be seen only by a bare machine, and
+        /// The «not runnable here» entries would be seen only by a bare machine, and
         /// this one is not: without this switch the code that writes them
         /// would stay untested until the first CI run — that is, one would
         /// have to believe it works. **A check never seen triggering is not
@@ -146,7 +146,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         internal static bool PretendWithoutInterop
         {
-            get { return Environment.GetEnvironmentVariable("PROVE_SENZA_INTEROP") == "1"; }
+            get { return Environment.GetEnvironmentVariable("OCE_PRETEND_NO_INTEROP") == "1"; }
         }
 
         /// <summary>
@@ -350,12 +350,12 @@ namespace Oce.Solid.Agent.ContractTests
             Console.OutputEncoding = Encoding.UTF8;
 
             Console.WriteLine("Oce.Solid.Agent.ContractTests — without SOLIDWORKS, on any machine");
-            Console.WriteLine("radice: " + Root());
+            Console.WriteLine("root: " + Root());
 
             if (PretendWithoutInterop)
             {
                 Console.WriteLine();
-                Console.WriteLine("### PROVE_SENZA_INTEROP=1 — SIMULATED RUN ###");
+                Console.WriteLine("### OCE_PRETEND_NO_INTEROP=1 — SIMULATED RUN ###");
                 Console.WriteLine("This machine pretends not to have SOLIDWORKS, to");
                 Console.WriteLine("show how the suite behaves on a bare runner. The");
                 Console.WriteLine("results of this run do NOT count as an acceptance test.");
@@ -431,14 +431,14 @@ namespace Oce.Solid.Agent.ContractTests
             Console.WriteLine();
             Console.WriteLine(new string('=', 76));
             int done = Outcomes.Count - NotRunnableHere;
-            var summary = Outcomes.Count + " controlli, " + FailedOnes + " falliti";
+            var summary = Outcomes.Count + " checks, " + FailedOnes + " failed";
             if (NotRunnableHere > 0)
                 summary += ", " + NotRunnableHere + " not runnable here (" +
                              done + " really done)";
             Console.WriteLine(summary);
 
             // THE NUMBER ALONE WOULD READ AS A GREEN. Whoever looks at a CI
-            // reads «0 falliti» and moves on: if half of the checks did not
+            // reads «0 failed» and moves on: if half of the checks did not
             // run, that number is true and misleading at once, and it is
             // exactly the defect that this repository reproaches elsewhere.
             if (NotRunnableHere > 0)
@@ -453,11 +453,11 @@ namespace Oce.Solid.Agent.ContractTests
 
             // THE MINIMUM IS DECLARED AND IS CHECKED. A suite that empties itself
             // — a check file removed, a group that exits early — would stay
-            // green with three checks, and «0 falliti» would sound the same.
+            // green with three checks, and «0 failed» would sound the same.
             //
             // THE FACTS ARE COUNTED, NOT THE ENTRIES (entry F9-bis). By counting
             // `Outcomes.Count` the threshold would have been passed even by twenty-five
-            // «non eseguibile qui» lines: a minimum that lets itself be satisfied
+            // «not runnable here» lines: a minimum that lets itself be satisfied
             // by what did not run is not a minimum.
             const int DeclaredMinimum = 25;
             if (done < DeclaredMinimum)
@@ -533,13 +533,13 @@ namespace Oce.Solid.Agent.ContractTests
             // outside the solution on purpose: they are not checked here.
             var map = new[]
             {
-                new { Dove = new[] { @"Oce.Solid.Agent.Core", @"Oce.Solid.Agent.Core\Catalog",
+                new { Folders = new[] { @"Oce.Solid.Agent.Core", @"Oce.Solid.Agent.Core\Catalog",
                                      @"Oce.Solid.Agent.Core\Properties", @"Oce.Solid.Agent.Core\Api" },
-                      Progetto = @"Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj" },
-                new { Dove = new[] { @"Bridge", @"Tools", @"Mcp" },
-                      Progetto = @"Oce.Solid.Agent.csproj" },
-                new { Dove = new[] { @"Bench" }, Progetto = @"Bench\Oce.Solid.Agent.Bench.csproj" },
-                new { Dove = new[] { @"Tests" }, Progetto = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
+                      Project = @"Oce.Solid.Agent.Core\Oce.Solid.Agent.Core.csproj" },
+                new { Folders = new[] { @"Bridge", @"Tools", @"Mcp" },
+                      Project = @"Oce.Solid.Agent.csproj" },
+                new { Folders = new[] { @"Bench" }, Project = @"Bench\Oce.Solid.Agent.Bench.csproj" },
+                new { Folders = new[] { @"Tests" }, Project = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
 
                 // `Shared\` IS BUILT BY TWO, and here naming one is enough.
                 //
@@ -553,9 +553,9 @@ namespace Oce.Solid.Agent.ContractTests
                 // sources that nobody looks at: a file put there and forgotten
                 // outside the csproj files would not be built and nobody would say
                 // so — the defect this check exists for.
-                new { Dove = new[] { @"Shared" },
-                      Progetto = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
-                new { Dove = new[] { @"Installer" }, Progetto = @"Installer\Installer.csproj" },
+                new { Folders = new[] { @"Shared" },
+                      Project = @"Tests\Oce.Solid.Agent.ContractTests.csproj" },
+                new { Folders = new[] { @"Installer" }, Project = @"Installer\Installer.csproj" },
             };
 
             int inspected = 0;
@@ -563,17 +563,17 @@ namespace Oce.Solid.Agent.ContractTests
 
             foreach (var m in map)
             {
-                var csproj = Path.Combine(Root(), m.Progetto);
+                var csproj = Path.Combine(Root(), m.Project);
                 if (!File.Exists(csproj))
                 {
-                    Check("the project «" + m.Progetto + "» is there", false, csproj);
+                    Check("the project «" + m.Project + "» is there", false, csproj);
                     continue;
                 }
                 string text;
                 try { text = File.ReadAllText(csproj); }
-                catch (Exception ex) { Check("«" + m.Progetto + "» can be read", false, ex.Message); continue; }
+                catch (Exception ex) { Check("«" + m.Project + "» can be read", false, ex.Message); continue; }
 
-                foreach (var folder in m.Dove)
+                foreach (var folder in m.Folders)
                 {
                     var full = Path.Combine(Root(), folder);
                     if (!Directory.Exists(full)) continue;
@@ -591,7 +591,7 @@ namespace Oce.Solid.Agent.ContractTests
                         // The NAME is looked for between quotes: it covers both
                         // `Include="Pippo.cs"` and `Include="Bridge\Pippo.cs"`.
                         if (text.IndexOf(itemName + "\"", StringComparison.OrdinalIgnoreCase) < 0)
-                            outside.Add(folder + "\\" + itemName + " → " + m.Progetto);
+                            outside.Add(folder + "\\" + itemName + " → " + m.Project);
                     }
                 }
             }
@@ -612,7 +612,7 @@ namespace Oce.Solid.Agent.ContractTests
         ///
         /// Found on 17/9/2026 reading the README for another reason:
         /// **three variables out of eight were not there**, and two of the three were
-        /// `RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` — that is, the only two
+        /// `OCE_WRITE_ROOT` and `OCE_READ_ONLY_FOLDERS` — that is, the only two
         /// with which the bridge is told where it must NOT write. Whoever installs reads
         /// the table, not the sources: a defense that is in the code and not in the
         /// README **is a defense that nobody switches on**, and the part finds it out
@@ -645,7 +645,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // `GetEnvironmentVariable("X")` and the shortcut `Variable("X")`
             // of `Bridge\Paths.cs`. The second is exactly the one that hid
-            // `RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` from a grep done on the
+            // `OCE_WRITE_ROOT` and `OCE_READ_ONLY_FOLDERS` from a grep done on the
             // long name: **looking for one form only means finding only one.**
             var shape = new System.Text.RegularExpressions.Regex(
                 @"(?:GetEnvironmentVariable|Variable)\(""([A-Z][A-Z_0-9]+)""\)");
@@ -721,8 +721,8 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // AT THE START OF THE LINE, and the reason is measured (25/9/2026): without `^` the
             // count also took the sentence that TELLS the old line
-            // («This line used to count it ... «cases/forma/ 5»»), and
-            // `cases/forma/` is not in the repository by choice. Locally it passed,
+            // («This line used to count it ... «cases/shape/ 5»»), and
+            // `cases/shape/` is not in the repository by choice. Locally it passed,
             // because the five files are there; in a clean clone — the CI — it was
             // «nominate e non esistenti: forma», red on every push since 0.85.0.
             var shape = new System.Text.RegularExpressions.Regex(
@@ -968,7 +968,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// Under `cases\` there are two different things: the CASES (objects with
         /// steps and expectations, which the bench executes) and the PLANS (arrays, which
         /// `run_plans.js` launches by hand). The folders of plans only —
-        /// `ponte\`, `limiti\`, `viste\`, `pezzi\`, `forma\` — stand outside
+        /// `bridge\`, `limits\`, `views\`, `parts\`, `shape\` — stand outside
         /// the list and rightly so.
         ///
         /// So the check does not ask «every folder is in the list»:
@@ -1010,7 +1010,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (listed.Count < 10) return;
 
             // `regression` is NOT in the list, and it is not a defect: it has a
-            // run of its own (`--regressione`), with an evaluator of its own. It is written
+            // run of its own (`--regression`), with an evaluator of its own. It is written
             // here and not in a generic list of exceptions, because it is
             // only one and it has a reason.
             var outsideByDesign = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regression" };
@@ -1311,12 +1311,12 @@ namespace Oce.Solid.Agent.ContractTests
             // ── AND THE THIRD COPY: WE LOOK AT THE ROOT, NOT THE SYMPTOM ──
             //
             // `Bench\bin\Oce.Solid.Agent.Core.dll` is a LEFTOVER: `bench.ps1`
-            // passes `--libreria` pointing at the source, and nobody updates
+            // passes `--library` pointing at the source, and nobody updates
             // that copy. Demanding that it match would be a perennial red
             // on a file that the real run never looks at.
             //
             // What counts is the DEFAULT: what `Oce.Solid.Agent.Bench.exe`
-            // loads if somebody launches it by hand without `--libreria`. Until 24/9/2026 it was
+            // loads if somebody launches it by hand without `--library`. Until 24/9/2026 it was
             // the copy next to itself, and it
             // made me measure for a run the code of six versions before
             // saying that two defaults just written «did not
@@ -1333,7 +1333,7 @@ namespace Oce.Solid.Agent.ContractTests
                     text.IndexOf("DefaultLibrary", StringComparison.Ordinal) >= 0 &&
                     text.IndexOf("\"Oce.Solid.Agent.Core\", \"bin\", \"Release\"",
                                   StringComparison.Ordinal) >= 0;
-                Check("without «--libreria» the bench looks FIRST for the library just compiled",
+                Check("without «--library» the bench looks FIRST for the library just compiled",
                       findTheGoodOne,
                       findTheGoodOne
                           ? "the fallback next to the executable stays, but comes after"
@@ -1418,14 +1418,14 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         /// <summary>
-        /// `prove.xml` in JUnit format: it is what every CI knows how to read without
+        /// `results.xml` in JUnit format: it is what every CI knows how to read without
         /// anybody teaching it anything.
         /// </summary>
         private static void WriteJUnit()
         {
             try
             {
-                var file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "prove.xml");
+                var file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "results.xml");
                 var x = new StringBuilder();
                 x.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 x.AppendLine("<testsuites name=\"Oce.Solid.Agent.ContractTests\" tests=\"" + Outcomes.Count +
@@ -1463,11 +1463,11 @@ namespace Oce.Solid.Agent.ContractTests
                 }
                 x.AppendLine("</testsuites>");
                 File.WriteAllText(file, x.ToString(), new UTF8Encoding(false));
-                Console.WriteLine("prove.xml: " + file);
+                Console.WriteLine("results.xml: " + file);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("could not write prove.xml: " + ex.Message);
+                Console.WriteLine("could not write results.xml: " + ex.Message);
             }
         }
 

@@ -192,7 +192,7 @@ namespace Oce.Solid.Agent.Core
                     columnType == (int)swTableColumnTypes_e.swWeldTableColumnType_Quantity)
                 {
                     quantityColumn = c;
-                    asFound = "tipo";
+                    asFound = "type";
                 }
             }
             for (int c = 0; quantityColumn < 0 && c < columns; c++)
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.Core
                     p.IndexOf("QUANTITY", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     quantityColumn = c;
-                    asFound = "nome";
+                    asFound = "name";
                 }
             }
 
@@ -247,7 +247,7 @@ namespace Oce.Solid.Agent.Core
             // in English like the next ones of the bridge: how the quantity column
             // was found («type», «name» or null) and whether the comparison with the
             // cut list of the part was made.
-            measurements["quantity_column_found_by"] = asFound == "tipo" ? "type" : asFound == "nome" ? "name" : null;
+            measurements["quantity_column_found_by"] = asFound == "type" ? "type" : asFound == "name" ? "name" : null;
             measurements["comparison_done"] = quantityRead && bodiesInPart > 0;
 
             // ── THE COLUMNS THAT ARE NEEDED, AND A PLACE ON THE SHEET ───

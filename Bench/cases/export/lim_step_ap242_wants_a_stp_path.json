@@ -11,7 +11,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "export_step",
-      "arguments": { "path": "{LAVORO}\\z_c21_13_ap242.step", "protocol": "AP242",
+      "arguments": { "path": "{WORK}\\z_c21_13_ap242.step", "protocol": "AP242",
                      "reopen_and_compare": true },
       "must_fail": {
         "message_includes": ["PublishSTEP242File", ".stp path", "swPublishStep242_InvalidPath"],

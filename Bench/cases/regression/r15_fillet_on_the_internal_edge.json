@@ -2,7 +2,7 @@
   "name": "r15_fillet_on_the_internal_edge",
   "family": "regression",
   "why": "Two L extrusions with a fillet on the inner edge, and the base widens. The fillet is on an edge that the change does not touch: it must stay, and stay at 8. It serves to avoid making people believe that everything always comes off -- half the value of this suite is in the cases that HOLD.",
-  "intent": "ancorato_a_assoluto",
+  "intent": "anchored_to_absolute",
   "intent_why": "the fillet is hooked to the inner edge of the L, which the width of the base does not move. The radius stays 8, and the fillets stay one: it is «as it was», and that is indeed how it is written.",
   "build": [
     {

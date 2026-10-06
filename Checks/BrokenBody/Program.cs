@@ -124,7 +124,7 @@ namespace Checks.BrokenBody
             // `Check3` learned to see it, these three lines would turn
             // red — and that is exactly when the operation must be rewritten.
             Expect("the sheet is a sheet body, not a solid",
-                     TypeName(sheet) == "foglio", "tipo " + TypeName(sheet));
+                     TypeName(sheet) == "sheet", "type " + TypeName(sheet));
             Expect("the sheet: Check() declares it healthy all the same", One(sheet, c => c.Check()) == 1,
                      "Check() = " + One(sheet, c => c.Check()));
             Expect("the sheet: Check2() declares it healthy all the same", One(sheet, c => c.Check2()) == 0,
@@ -478,7 +478,7 @@ namespace Checks.BrokenBody
             };
             // `System.` spelled out: the SOLIDWORKS interop has its own
             // `Environment`, and with the two `using`s the bare name does not compile.
-            var its = System.Environment.GetEnvironmentVariable("MODELLI_SOLIDWORKS");
+            var its = System.Environment.GetEnvironmentVariable("OCE_DOCUMENT_TEMPLATES");
             if (!string.IsNullOrWhiteSpace(its)) folders.Add(its);
             foreach (var c in folders)
             {
