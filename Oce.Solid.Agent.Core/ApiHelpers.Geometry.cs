@@ -46,6 +46,73 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// The parameter range of an edge ON ITS CURVE, the one whose evaluation lands on
+        /// the edge: false when neither candidate does.
+        ///
+        /// WHY IT IS NOT JUST UMinValue..UMaxValue (found 6/10/2026, D9 defect 2, probe
+        /// Checks\D9Defects, subcommand gusset). Guide: ICurveParamData~UMinValue.html,
+        /// Remarks: when the curve and the edge run in opposite directions the
+        /// parameters are in NEGATIVE parameter space («if Sense is false, minimum U
+        /// parameter is 10, and maximum U parameter is 5, then UMinValue = -10 and
+        /// UMaxValue = -5. To normalize the values in positive parameter space, swap the
+        /// two U parameter values and then negate them»). Measured on the 150 mm foot of a
+        /// tube stand: the top edge of the wall of one foot answered UMin 0, UMax 0.032 and
+        /// its curve evaluated on the edge; the same edge of the foot at the other end of
+        /// the bar answered UMin -0.032, UMax 0 (with Sense reading True, against the
+        /// page) and ICurve~Evaluate2 at those values landed 32 mm OUTSIDE the edge.
+        /// Three points evaluated there, tested against another face, said «not on it»
+        /// for an edge that lies on it.
+        ///
+        /// So the two candidates are tried, (UMin, UMax) and the normalized (-UMax, -UMin),
+        /// and the one whose two ends evaluate CLOSER to ICurveParamData.StartPoint and
+        /// EndPoint (in either order: the page says which is which only when Sense is right,
+        /// and here it was not) is the range. A circle whose ends are one point matches both
+        /// candidates, and the first is as good as the second.
+        ///
+        /// THE CLOSER ONE, NOT THE ONE WITHIN A MICRON (review of 6/10/2026). The first
+        /// version took a candidate only when both ends landed within 1e-6 m and refused
+        /// the edge otherwise. That changed edges the defect never touched: a spline or an
+        /// intersection curve whose ends evaluate a few microns from its vertices (the
+        /// tolerance of the body, not a wrong range) went from «evaluated as before» to
+        /// «could not be read», and LengthThatLiesOn (gusset, weld_bead, face_fillet) from
+        /// a length to -1. Now the first candidate wins whenever it is at least as close
+        /// as the second, so every edge whose range was right reads exactly as before; the
+        /// second wins only when it is strictly closer; and an edge is refused only when
+        /// even the closer candidate misses its ends by more than 0.01 mm.
+        /// </summary>
+        internal static bool EdgeRangeOnCurve(ICurveParamData parameters, ICurve curve, out double u0, out double u1)
+        {
+            u0 = 0; u1 = 0;
+            if (parameters == null || curve == null) return false;
+            var start = parameters.StartPoint as double[];
+            var end = parameters.EndPoint as double[];
+            if (start == null || end == null || start.Length < 3 || end.Length < 3) return false;
+            var candidates = new[]
+            {
+                new[] { parameters.UMinValue, parameters.UMaxValue },
+                new[] { -parameters.UMaxValue, -parameters.UMinValue },
+            };
+            double best = double.MaxValue;
+            foreach (var c in candidates)
+            {
+                var a = curve.Evaluate2(c[0], 0) as double[];
+                var b = curve.Evaluate2(c[1], 0) as double[];
+                if (a == null || b == null || a.Length < 3 || b.Length < 3) continue;
+                // The worse of the two ends, in the better of the two orders.
+                double miss = Math.Min(Math.Max(Distance(a, start), Distance(b, end)),
+                                       Math.Max(Distance(a, end), Distance(b, start)));
+                if (miss < best) { best = miss; u0 = c[0]; u1 = c[1]; }
+            }
+            return best <= 1e-5;
+        }
+
+        private static double Distance(double[] p, double[] q)
+        {
+            double dx = p[0] - q[0], dy = p[1] - q[1], dz = p[2] - q[2];
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
+
+        /// <summary>
         /// The obsolete array form of the edge parameters, for the one call site
         /// that still reads it by position (OperazioniTesto, sketch-text
         /// outline).

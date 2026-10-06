@@ -73,7 +73,7 @@ namespace Checks.CloseLeftovers
             // THE LIST IS MADE FIRST, THEN WE CLOSE.
             // Closing while walking the chain of documents breaks it: the
             // next GetNext() starts from a document that is no longer there.
-            var toClose = new List<string>();
+            var toClose = new List<Candidate>();
             var kept = new List<string>();
             var doc = (IModelDoc2)sw.GetFirstDocument();
             while (doc != null)
@@ -82,7 +82,7 @@ namespace Checks.CloseLeftovers
                 string filePath = doc.GetPathName() ?? "";
                 if (spare.Contains(docTitle))
                     kept.Add(docTitle + "  (spared: it was there before)");
-                else if (Deviation(filePath, folders)) toClose.Add(docTitle);
+                else if (Deviation(filePath, folders)) toClose.Add(new Candidate { Title = docTitle, Path = filePath });
                 else kept.Add(docTitle + (filePath == "" ? "" : "  " + filePath));
                 doc = (IModelDoc2)doc.GetNext();
             }
@@ -91,18 +91,38 @@ namespace Checks.CloseLeftovers
             foreach (var t in kept) Console.WriteLine("  tenuto:  " + t);
             if (!reallyClose)
             {
-                foreach (var t in toClose) Console.WriteLine("  would be closed:  " + t);
+                foreach (var t in toClose) Console.WriteLine("  would be closed:  " + t.Title);
                 Console.WriteLine("None closed: --close is missing.");
                 return 0;
             }
 
-            int done = 0;
+            // CLOSED BY PATH WHEN THERE IS ONE (D9 defect 4, 6/10/2026).
+            //
+            // ISldWorks~CloseDoc.html says «Name of document» and not which name. Measured
+            // (Checks/D9Defects, subcommands names, close and closing; SOLIDWORKS 29.5):
+            //   - the full path is exact, whatever else is open;
+            //   - a title is matched whole first. Handed a name WITHOUT the extension that
+            //     matches no title, CloseDoc falls back to the base name and closes the FIRST
+            //     open document of that base name, in whatever case, whatever its folder or
+            //     type: with twin.SLDPRT and twin.SLDASM open from two folders,
+            //     CloseDoc("twin") closed the part and left the assembly;
+            //   - two documents with the same title cannot be open together (OpenDoc6 answers
+            //     65536, swFileWithSameTitleAlreadyOpen), and the titles GetTitle gives on this
+            //     machine, with the extension and the sheet of a drawing, matched whole in
+            //     every desk the probe built. So the harm of closing by title was NOT
+            //     reproduced here: it would need a title that matches nothing whole (a machine that
+            //     hides the extensions, a title that changed between the listing and the
+            //     closing), and then the fallback picks a document by base name.
+            // A saved document is therefore closed by its path, which cannot be read as
+            // anything else. One that was never saved has only its title, and it is closed by
+            // that, matched whole.
+            int done = 0, notClosed = 0;
             foreach (var t in toClose)
             {
-                try { sw.CloseDoc(t); done++; }
-                catch (Exception e) { Console.Error.WriteLine("  not closed " + t + ": " + e.Message); }
+                try { sw.CloseDoc(t.Path != "" ? t.Path : t.Title); done++; }
+                catch (Exception e) { Console.Error.WriteLine("  not closed " + t.Title + ": " + e.Message); notClosed++; }
             }
-            Console.WriteLine("closed: " + done);
+            Console.WriteLine("closed: " + done + (notClosed > 0 ? ", not closed: " + notClosed : ""));
 
             // THE CHECK THAT REALLY HAPPENED. The documents are counted again:
             // CloseDoc returns nothing, and without recounting «closed» cannot be told
@@ -112,6 +132,12 @@ namespace Checks.CloseLeftovers
             while (d2 != null) { remain++; d2 = (IModelDoc2)d2.GetNext(); }
             Console.WriteLine("open documents now: " + remain);
             return 0;
+        }
+
+        private sealed class Candidate
+        {
+            public string Title;
+            public string Path;      // "" for a document that was never saved
         }
 
         private static bool Deviation(string filePath, List<string> folders)

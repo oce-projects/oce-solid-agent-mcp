@@ -1,0 +1,159 @@
+{
+  "name": "gusset_at_the_end_of_the_bar",
+  "family": "weldments",
+  "why": "D9 DEFECT 2, found on 6/10/2026 by the live proof of the prerequisites. `gusset` accepted the two faces of some feet and refused the same faces of others (the two faces do not touch), with the same selectors. On the tube stand of task 07 (feet extended to the bar by a trim) the corners at the START of the bar segment were taken and the ones at the END were refused: two of the four gussets could not be made. This case hangs one foot at each end of the same bar and puts a gusset on each.",
+  "defect_caught": "The edge that is declared not to touch. The cause, measured with Checks/D9Defects (subcommand gusset): the contact test evaluates the curve of each edge at three parameters taken from GetCurveParams3 (UMinValue, the midpoint, UMaxValue). When the curve of the edge runs the other way the parameters are NEGATIVE (ICurveParamData~UMinValue.html, negative parameter space), and the evaluation landed 32 mm outside the edge: the top edge of the wall of a refused foot answered distances of 32, 16 and 0 mm to the underside it lies on. Which way the curve of an edge runs is decided by how the bar and the foot were drawn, not by where the foot is: on the stand the start and the end of the segment is how it showed; on the straight feet of this case the old reading refuses the first gusset already (measured on 6/10/2026), and both are accepted now.",
+  "start": {
+    "new_part": true
+  },
+  "steps": [
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              -480,
+              0,
+              -280
+            ],
+            "end": [
+              -480,
+              0,
+              280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 1
+        }
+      ]
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              -480,
+              -20,
+              -280
+            ],
+            "end": [
+              -480,
+              -170,
+              -280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 2,
+          "why": "the foot at the START of the segment of the bar (z = -280)"
+        }
+      ]
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              -480,
+              -20,
+              280
+            ],
+            "end": [
+              -480,
+              -170,
+              280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 3,
+          "why": "the foot at the END of the segment of the bar (z = +280)"
+        }
+      ]
+    },
+    {
+      "operation": "gusset",
+      "arguments": {
+        "faces_uid": [
+          "@face(area~=4800,x~=-464,z~=-260)",
+          "@face(area~=17920,x~=-464,y~=-20)"
+        ],
+        "thickness_mm": 3,
+        "leg1_mm": 40,
+        "leg2_mm": 40,
+        "position": "center"
+      },
+      "expect": [
+        {
+          "what": "measurements.volume_added_mm3",
+          "equal_to": 2400,
+          "tolerance": 1,
+          "tolerance_why": "exact: a right triangle of legs 40 and 40 times 3 thick, on flat faces",
+          "why": "the foot at the start of the segment: on the stand this corner was taken, with these feet the old reading refuses it too"
+        },
+        {
+          "what": "measurements.contact_mm",
+          "equal_to": 32,
+          "tolerance": 0.01,
+          "tolerance_why": "the flat of the tube is 32 mm: 40 less the two corner radii of 4"
+        }
+      ]
+    },
+    {
+      "operation": "gusset",
+      "arguments": {
+        "faces_uid": [
+          "@face(area~=4800,x~=-464,z~=260)",
+          "@face(area~=17920,x~=-464,y~=-20)"
+        ],
+        "thickness_mm": 3,
+        "leg1_mm": 40,
+        "leg2_mm": 40,
+        "position": "center"
+      },
+      "expect": [
+        {
+          "what": "measurements.volume_added_mm3",
+          "equal_to": 2400,
+          "tolerance": 1,
+          "tolerance_why": "the same as the first gusset: exact on flat faces",
+          "why": "the foot at the end of the segment: refused by the old reading with the two faces do not touch"
+        },
+        {
+          "what": "measurements.contact_mm",
+          "equal_to": 32,
+          "tolerance": 0.01,
+          "tolerance_why": "the flat of the tube is 32 mm: 40 less the two corner radii of 4",
+          "why": "the edge the wall shares with the underside of the bar is 32 mm long, at the end of the bar as at the start"
+        },
+        {
+          "what": "bodies",
+          "equal_to": 5,
+          "why": "the bar, two feet, two gussets"
+        }
+      ]
+    }
+  ]
+}

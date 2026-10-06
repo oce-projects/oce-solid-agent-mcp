@@ -108,7 +108,11 @@ $tools = @(
     @{ nome = 'Rib'; sw = $true; lib = $false },
     @{ nome = 'Gusset'; sw = $true; lib = $false },
     @{ nome = 'ExtrusionType'; sw = $true; lib = $false },
-    @{ nome = 'RibWithdraw'; sw = $true; lib = $false }
+    @{ nome = 'RibWithdraw'; sw = $true; lib = $false },
+    # The four defects of the live proof of 6/10/2026 (D9 prerequisites), measured
+    # before they are fixed: the cut list folders, the contact test of the gusset,
+    # the empty assembly, CloseDoc by title or by path.
+    @{ nome = 'D9Defects'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

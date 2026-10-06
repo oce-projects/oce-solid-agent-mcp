@@ -1,0 +1,39 @@
+{
+  "name": "the_first_component_goes_into_an_empty_assembly",
+  "family": "assemblies",
+  "why": "D9 DEFECT 3, found on 6/10/2026 by the live proof of the prerequisites. The first `insert_component` into an assembly with nothing in it was refused with the assembly had -1 components and now it has 1, I did not consider it inserted, although the component was in (on both bridges). The count was the length of the array GetComponents answers, and on an empty assembly GetComponents answers null, which the helper read as could-not-read and turned into -1. It is the one case where components_before is zero, and no case started from an empty assembly: every one had a component from the preparation.",
+  "defect_caught": "The refusal of the first insertion, and the -1. Measured with Checks/D9Defects (subcommand count): on an empty assembly GetComponents(true) is null while IAssemblyDoc.GetComponentCount(true) is 0; after the first AddComponent5 both say 1, after the second both say 2. The count is now asked of GetComponentCount.",
+  "assembly": {
+    "components": [
+      { "name": "piece",
+        "to_insert": false,
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 100, "width_mm": 60, "thickness_mm": 10, "centered": true } }
+        ] }
+    ]
+  },
+  "steps": [
+    { "operation": "insert_component",
+      "arguments": { "path": "{WORK}\\the_first_component_goes_into_an_empty_assembly_piece.sldprt",
+                     "x_mm": 0, "y_mm": 0, "z_mm": 0 },
+      "expect": [
+        { "what": "measurements.components_before", "equal_to": 0,
+          "why": "the preparation inserted nothing (to_insert is false): the assembly is empty, and this step is its first insertion. The old reading said -1" },
+        { "what": "measurements.components_after", "equal_to": 1 },
+        { "what": "state.how_many_components", "equal_to": 1,
+          "why": "the state of the assembly agrees: one component. The count of the operation is not the only witness" },
+        { "what": "measurements.grounded", "equal_to": true,
+          "why": "SOLIDWORKS fixes the first component of an assembly by itself (see inserting_is_not_mating): the one that went in is the first, so it is fixed" }
+      ] },
+
+    { "operation": "insert_component",
+      "arguments": { "path": "{WORK}\\the_first_component_goes_into_an_empty_assembly_piece.sldprt",
+                     "x_mm": 100, "y_mm": 0, "z_mm": 0 },
+      "expect": [
+        { "what": "measurements.components_before", "equal_to": 1,
+          "why": "the control: the second insertion read 1 before the fix too" },
+        { "what": "measurements.components_after", "equal_to": 2 }
+      ] }
+  ]
+}
