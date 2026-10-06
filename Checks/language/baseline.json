@@ -4,9 +4,9 @@
  "totals": {
   "comments": 1773,
   "strings": 528,
-  "markdown": 11388,
+  "markdown": 8660,
   "json_values": 611,
-  "identifiers": 1657,
+  "identifiers": 1639,
   "json_keys": 14,
   "protocol": 666,
   "paths": 0,
@@ -292,12 +292,6 @@
    "comments": 6,
    "strings": 2
   },
-  "INSTALL-FOR-AI.md": {
-   "markdown": 5
-  },
-  "NOTICE": {
-   "markdown": 196
-  },
   "Oce.Solid.Agent.Core/Alias.cs": {
    "comments": 1
   },
@@ -467,12 +461,6 @@
   },
   "Program.cs": {
    "comments": 7
-  },
-  "QUICKSTART.md": {
-   "markdown": 3
-  },
-  "README.md": {
-   "markdown": 2524
   },
   "Tests/BenchTests.cs": {
    "comments": 11
@@ -830,7 +818,6 @@
    "Percorsi",
    "Peso",
    "PezziDellAssieme",
-   "Piano",
    "PianoInMemoria",
    "Pippo",
    "Ponte",
@@ -1008,9 +995,7 @@
    "accoppiamento",
    "adesso",
    "adesso_mm",
-   "agganciato",
    "aggiorna",
-   "aggiorno",
    "aggiungi",
    "ai_disegno",
    "aiuto",
@@ -1019,7 +1004,6 @@
    "albero_forato_non_dichiara_piu_il_profilo",
    "albero_pulito_dichiara_il_profilo",
    "alfa",
-   "alla",
    "allora",
    "alto",
    "alto_destra",
@@ -1239,7 +1223,6 @@
    "cosa_non_so",
    "cosa_non_so_ancora_fare",
    "cosa_non_so_dei_vincoli",
-   "cose",
    "costruisci",
    "costruisci-controlli",
    "cp_1_blocco",
@@ -1291,7 +1274,6 @@
    "daPortare",
    "da_faccia_uid",
    "da_inserire",
-   "dalla",
    "dati",
    "datum_in_tavola",
    "davanti",
@@ -1440,7 +1422,6 @@
    "fazzoletto",
    "feature_e_direzione",
    "feature_rif",
-   "fermo",
    "file_mancante",
    "filettato",
    "filettatura_cosmetica",
@@ -1559,7 +1540,6 @@
    "installa",
    "installa-ganci",
    "installatore",
-   "installo",
    "interasse",
    "interne",
    "interno",
@@ -1753,7 +1733,6 @@
    "misura",
    "misura_accumulo",
    "misura_fra_entita",
-   "misurare",
    "misure",
    "modelli",
    "modello",
@@ -1767,10 +1746,8 @@
    "nervatura",
    "nervatura_nell_angolo_della_l",
    "nervatura_nella_scatola_svuotata",
-   "nessun",
    "nessuna",
    "nessuno",
-   "niente",
    "nodoMax",
    "nodoMin",
    "nome",
@@ -1949,7 +1926,6 @@
    "rappresentazione",
    "rebuilt_cover_keeps_the_constraints_but_broken_coperchio2",
    "regressione",
-   "reinstallo",
    "reso_saldato",
    "resoconto",
    "restano",
@@ -1963,7 +1939,6 @@
    "riga",
    "righe",
    "righe-del-todo",
-   "rilascio",
    "rimandi",
    "rimandi-del-todo",
    "rinomina",
@@ -1976,7 +1951,6 @@
    "ripetizione",
    "riscontro",
    "riscontro-disegno",
-   "riscriverlo",
    "risparmia",
    "rispettoA",
    "rispetto_a_uid",
@@ -2009,7 +1983,6 @@
    "secondi",
    "segmenti",
    "selezione",
-   "sento",
    "senza",
    "senza-attesa",
    "senza_asportazione",
@@ -2030,7 +2003,6 @@
    "simmetria",
    "simmetrica",
    "sinistra",
-   "sistemare",
    "smusso",
    "smusso_3x6_cianfrino",
    "smusso_5_a_45",
@@ -2175,7 +2147,6 @@
    "v4-guscio-intero",
    "v4-guscio-sezione",
    "valida",
-   "valido",
    "valoreMax",
    "valoreMin",
    "variabile_globale",
@@ -2190,7 +2161,6 @@
    "verifiche",
    "verita",
    "vero",
-   "versione",
    "verso",
    "verticale",
    "vicini",

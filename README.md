@@ -1,537 +1,532 @@
 # OCE Solid Agent
 
-*Un progetto indipendente, non affiliato a Dassault Systèmes.*
+*An independent project, not affiliated with Dassault Systèmes.*
 
-Un ponte MCP per **disegnare nel software SOLIDWORKS®**: espone come strumenti novantanove
-operazioni di disegno gia' misurate, cosi' che un modello qualunque — locale o
-remoto — possa costruire un pezzo e, soprattutto, **guardare cos'e' venuto**.
+An MCP bridge for **drawing in the SOLIDWORKS® software**: it exposes ninety-nine
+drawing operations, each one already measured, as tools, so that any model — local
+or remote — can build a part and, above all, **look at what came out**.
 
-Si installa con un file solo e non chiede altro che un'installazione
-SOLIDWORKS® con licenza tua.
+It installs with a single file and asks for nothing more than a SOLIDWORKS®
+installation with a license of your own.
 
-> **Vuoi solo usarlo, non compilarlo?** → **[QUICKSTART.md](QUICKSTART.md)**,
-> sei passi, in inglese. Questa pagina e' per chi vuole costruirlo.
-> Se invece sei un assistente AI che installa per conto di qualcuno, la pagina
-> scritta per te e' **[INSTALL-FOR-AI.md](INSTALL-FOR-AI.md)**.
+> **Do you only want to use it, not build it?** → **[QUICKSTART.md](QUICKSTART.md)**,
+> six steps, in plain English. This page is for people who want to build it.
+> If you are an AI assistant installing it on someone's behalf, the page written
+> for you is **[INSTALL-FOR-AI.md](INSTALL-FOR-AI.md)**.
 
-> SOLIDWORKS® e' un marchio registrato di Dassault Systèmes SolidWorks
-> Corporation. Questo progetto e' indipendente e non e' affiliato, sponsorizzato
-> ne' approvato da Dassault Systèmes. Non contiene e non ridistribuisce codice o
-> materiale di Dassault Systèmes: le librerie di interoperabilita' si caricano
-> all'avvio dalla **tua** installazione di SOLIDWORKS®, che richiede una licenza
-> tua.
+> SOLIDWORKS® is a registered trademark of Dassault Systèmes SolidWorks
+> Corporation. This project is independent and is not affiliated with, sponsored
+> by or endorsed by Dassault Systèmes. It contains and redistributes no code or
+> material of Dassault Systèmes: the interoperability libraries are loaded at
+> start-up from **your** SOLIDWORKS® installation, which requires a license of
+> your own.
 
-## Perche' esiste
+## Why it exists
 
-OpenPDM ha un assistente che disegna: un modello locale propone un piano, il
-server lo valida, l'add-in lo esegue dentro il software SOLIDWORKS, e un progettista
-conferma prima che il pezzo esista. Quella catena e' il prodotto e resta il
-prodotto.
+OpenPDM has an assistant that draws: a local model proposes a plan, the server
+validates it, the add-in runs it inside the SOLIDWORKS software, and a designer
+confirms before the part exists. That chain is the product and stays the product.
 
-Il problema e' stato sempre lo stesso: **misurare**. Ogni difetto vero di
-quell'assistente e' venuto fuori disegnando davvero, e ogni giro di prova
-costava un balletto di file fra due macchine. Con questo ponte un giro e' una
-chiamata.
+The problem has always been the same: **measuring**. Every real defect of that
+assistant turned up by actually drawing, and every test round cost a dance of
+files between two machines. With this bridge a round is one call.
 
-E c'e' una seconda ragione, meno ovvia e piu' importante. Il modello che gira
-in officina e' piccolo. Finche' l'unico modo di provare il sistema e' passare
-da lui, non si distingue **«mancano gli strumenti»** da **«il modello non ce la
-fa»**. Con questo ponte si puo' far disegnare lo stesso pezzo a un modello
-grande e a uno piccolo, sulla stessa strada e con gli stessi controlli: la
-differenza che resta e' la risposta.
+There is a second reason, less obvious and more important. The model that runs
+in the workshop is small. As long as the only way to test the system is through
+that model, you cannot tell **"the tools are missing"** from **"the model is not
+up to it"**. With this bridge the same part can be drawn by a large model and by a
+small one, by the same route and with the same checks: what remains different is
+the answer.
 
-## Cosa NON e'
+## What it is NOT
 
-Non e' un modo per far disegnare a un modello in rete i pezzi dell'azienda. Il
-prodotto resta l'assistente locale, offline, con il pannello di conferma. Qui
-si misura e si sviluppa.
+It is not a way to let a model on the network draw the company's parts. The product
+stays the local, offline assistant with its confirmation panel. Here things are
+measured and developed.
 
-## Come funziona
+## How it works
 
-Un'applicazione da riga di comando che parla **MCP su stdio** e chiama
-`Oce.Solid.Agent.Core`, la libreria che contiene le operazioni. Non le riscrive:
-sono le stesse che l'add-in di OpenPDM esegue quando un progettista preme
-«conferma», cosi' cio' che si prova di qui e' esattamente cio' che avra' in
-mano.
+A command-line application that speaks **MCP over stdio** and calls
+`Oce.Solid.Agent.Core`, the library that holds the operations. It does not rewrite
+them: they are the same ones the OpenPDM add-in runs when a designer presses
+"confirm", so what you test here is exactly what the designer will get.
 
 ```
-modello  <--MCP/stdio-->  oce-solid-agent-mcp.exe  ---->  Oce.Solid.Agent.Core.dll
-                                                             |
-                                                         SOLIDWORKS
+model  <--MCP/stdio-->  oce-solid-agent-mcp.exe  ---->  Oce.Solid.Agent.Core.dll
+                                                            |
+                                                        SOLIDWORKS
 ```
 
-Fino alla 0.5.0 la libreria era `OpenPDM.SwAddin.dll` — l'add-in intero,
-caricato per riflessione — e il ponte si portava dietro tutto il PDM per fare
-un foro. Dalla 0.6.0 le operazioni stanno per conto loro; dalla 0.7.0
-l'installatore se le porta dentro.
+Up to 0.5.0 the library was `OpenPDM.SwAddin.dll` — the whole add-in, loaded by
+reflection — and the bridge dragged all of the PDM along to drill one hole. From
+0.6.0 the operations stand on their own; from 0.7.0 the installer carries them
+inside.
 
-## Gli strumenti
+## The tools
 
-Nove, non novantanove. Le operazioni di disegno sono novantanove, ma esporne
-una per strumento costerebbe decine di migliaia di caratteri di schemi in
-ogni richiesta — e, soprattutto, renderebbe facile saltare il primo passo.
-(Erano cinque fino alla 0.56.0: il sesto e' nato per una ragione precisa,
-scritta sotto la tabella, non per coprire di piu'. Il settimo, `document`,
-dalla 0.87.0: senza, per cominciare un pezzo da zero serviva una persona che
-cliccasse File > Nuovo.)
+Nine, not ninety-nine. The drawing operations are ninety-nine, but exposing one
+per tool would cost tens of thousands of characters of schemas in every request
+— and, above all, it would make it easy to skip the first step. (There were five
+up to 0.56.0: the sixth, `measure`, came with 0.57.0 for a precise reason, written below
+the table, not to cover more. The seventh, `document`, came with 0.87.0: without it, starting
+a part from scratch needed a person to click File > New.)
 
-*Since 0.112.0 (entry U1.1): the eighth and ninth, `api_search` and
-`api_signature`, read the whole SOLIDWORKS API — the `sldworks` interop and the
-`swconst` enums, 13,945 members once the four old interfaces are left out — by
-reflection, with SOLIDWORKS closed. They are the first half of the generic
-layer; `api_objects` and `api_call` come with U1.2-U1.3.*
+*Since 0.112.0, the eighth and ninth, `api_search` and `api_signature`, read the
+whole SOLIDWORKS API — the `sldworks` interop and the `swconst` enums, 13,945
+members once the four old interfaces are left out — by reflection, with
+SOLIDWORKS closed. They are the first half of the generic layer; `api_objects` and
+`api_call` are still to come.*
 
-| strumento | a cosa serve |
+| tool | what it is for |
 |---|---|
-| `inspect_part` | lo stato del documento aperto: ingombro, volume, corpi, lavorazioni con le loro quote, facce e spigoli con il loro identificativo. Con `views` torna anche una **fotografia** del pezzo |
-| `list_operations` | l'elenco corto per famiglia: un nome e una riga |
-| `describe_operation` | lo schema completo di una |
-| `build` | esegue una sequenza e **riporta cos'e' venuto**: le misure di ogni passo e lo stato dopo |
-| `measure` | le stesse operazioni, ma **solo quelle che leggono** (famiglia `checks`). Si dichiara di sola lettura, cosi' il client non chiede conferma per una misura |
-| `undo` | ritira l'ultimo piano, tutto intero — ma solo se il pezzo e' ancora come `build` l'aveva lasciato |
-| `document` | crea una parte o un assieme vuoti, apre un file dal disco, elenca i documenti aperti, ne porta uno davanti, ne chiude uno — e **rifiuta di chiudere** un documento con modifiche non salvate. Dice sempre se un file e' aperto in **sola lettura**; e dopo ogni cambio di documento `build` pretende un nuovo `inspect_part` |
+| `inspect_part` | the state of the open document: bounding box, volume, bodies, features with their dimensions, faces and edges with their identifier. With `views` it also returns a **photograph** of the part |
+| `list_operations` | the short list by family: a name and one line each |
+| `describe_operation` | the complete schema of one |
+| `build` | runs a sequence and **reports what came out**: the measurements of every step and the state afterwards |
+| `measure` | the same operations, but **only the ones that read** (family `checks`). It declares itself read-only, so the client does not ask for confirmation for a measurement |
+| `undo` | withdraws the last plan, all of it — but only if the part is still as `build` left it |
+| `document` | creates an empty part or assembly, opens a file from disk, lists the open documents, brings one to the front, closes one — and **refuses to close** a document with unsaved changes. It always says whether a file is open **read-only**; and after every change of document `build` insists on a new `inspect_part` |
 | `api_search` | searches the whole API by a piece of a name and answers with the **real signatures** read from the interop on this machine; the four old interfaces (`IModelDoc`, `IBody`, `IFace`, `IComponent`) are named with the sister to use, never shown. Read only |
-| `api_signature` | the card of one member: every overload, property or method, the `&` out parameters, the typed `I…` variant, the numbered family with the last one marked **«latest by number, not verified»**, the **Void** flag, and what is known of it from `Tools/api_knowledge.json` — state, enum map (**«enum not tabulated»** where nobody wrote one), measured indices (**«index not tabulated»** otherwise), measured types, source. Read only |
+| `api_signature` | the card of one member: every overload, property or method, the `&` out parameters, the typed `I…` variant, the numbered family with the last one marked **"latest by number, not verified"**, the **Void** flag, and what is known of it from `Tools/api_knowledge.json` — state, enum map (**"enum not tabulated"** where nobody wrote one), measured indices (**"index not tabulated"** otherwise), measured types, source. Read only |
 
-**`measure` esiste perche' le annotazioni stanno sullo strumento.** Il client MCP
-legge `readOnlyHint` e `destructiveHint` in `tools/list`, cioe' **prima** che
-esista una chiamata: con il solo `build` chiedeva conferma anche per
-`mass_properties`, che non muove un millimetro cubo. Chi conferma dieci volte
-di fila smette di leggere cosa conferma. Un'operazione che tocca il pezzo,
-dentro `measure`, viene rifiutata **prima** che il piano parta — mai meta' piano.
+**`measure` exists because the annotations sit on the tool.** The MCP client reads
+`readOnlyHint` and `destructiveHint` in `tools/list`, that is **before** any call
+exists: with `build` alone it asked for confirmation even for `mass_properties`,
+which does not move a cubic millimetre. Someone who confirms ten times in a row
+stops reading what they confirm. An operation that touches the part, inside
+`measure`, is refused **before** the plan starts — never half a plan.
 
-**`inspect_part` non e' un accessorio.** Gli identificativi che gli altri
-strumenti vogliono — `F1`, `E4`, `Corpo1` — nascono li' e valgono per quella
-lettura: sono POSIZIONALI, si rinumerano per area a ogni lettura, e dopo
-ogni modifica vanno riletti. Chi salta il primo strumento lavora alla cieca,
-ed e' il difetto piu' caro di tutto il progetto.
+**`inspect_part` is not an accessory.** The identifiers the other tools want —
+`F1`, `E4`, `C1` — are born there and hold for that reading: they are POSITIONAL,
+they are renumbered by area at every reading, and after every change they must be
+read again. Anyone who skips the first tool works blind, which is the most
+expensive defect of the whole project.
 
-**Misurare e vedere non sono la stessa cosa.** Dalla 0.31.0 `inspect_part`
-accetta `views` — per esempio `["isometric"]` — e risponde con una o piu'
-immagini PNG accanto allo stato.
+**Measuring and seeing are not the same thing.** Since 0.31.0 `inspect_part` accepts
+`views` — for example `["isometric"]` — and answers with one or more PNG images next
+to the state. The views are `isometric`, `trimetric`, `dimetric`, `front`, `back`,
+`left`, `right`, `top` and `bottom`.
 
-**Quanto serve, misurato.** Cinque pezzi di forma diversa (piastra forata,
-scatola svuotata, staffa a L, flangia con corona di fori, albero a gradini),
-quattro modelli isolati, criterio scritto prima di guardare le risposte:
+**How much is needed, measured.** Five parts of different shapes (a plate with
+holes, a hollowed box, an L bracket, a flange with a ring of holes, a stepped
+shaft), four isolated models, criterion written before looking at the answers:
 
-| il modello riceve | dice che oggetto e' | dice le lavorazioni | dice le quote | **numeri sbagliati** |
+| the model receives | says what object it is | says the machining | says the dimensions | **wrong numbers** |
 |---|---|---|---|---|
-| solo l'isometrica | **5/5** | 3/5 | 0/5 | **0** |
-| quattro viste | **5/5** | 4/5 | 0/5 | **0** |
-| solo lo stato | **5/5** | **5/5** | **5/5** | **3** |
-| stato + isometrica | **5/5** | **5/5** | **5/5** | **1** |
+| the isometric only | **5/5** | 3/5 | 0/5 | **0** |
+| four views | **5/5** | 4/5 | 0/5 | **0** |
+| the state only | **5/5** | **5/5** | **5/5** | **3** |
+| state + isometric | **5/5** | **5/5** | **5/5** | **1** |
 
-Due cose che non ci aspettavamo. **Il solo stato testuale basta a capire che
-oggetto e', 5 volte su 5** — «scatola a pareti sottili aperta su un lato»,
-«albero di rivoluzione a gradini» — quindi il ponte non era cieco come
-sembrava. E **un'immagine non fa inventare numeri**: dieci risposte su dieci
-hanno scritto «non stimabile, nessun riferimento di scala» invece di tirare a
-indovinare, dando pero' proporzioni giuste (rapporto lati 1,6-1,7:1 contro
-1,67 vero).
+Two things we did not expect. **The written state alone is enough to understand
+what the object is, 5 times out of 5** — "thin-walled box open on one side",
+"stepped shaft of revolution" — so the bridge was not as blind as it seemed. And
+**an image does not make a model invent numbers**: ten answers out of ten wrote
+"cannot be estimated, no scale reference" instead of guessing, while still giving
+right proportions (side ratio 1.6-1.7:1 against the true 1.67).
 
-Un modello, un giro per condizione. Su «numeri sbagliati» **3 contro 1 e' un
-solo giro**, e un solo giro non e' una tendenza.
+One model, one round per condition. On "wrong numbers", **3 against 1 is a single
+round**, and a single round is not a trend.
 
-**E la forma si puo' anche DIRE.** Lo stato porta un campo `shape` che riassume
-il pezzo in una riga — 68-152 caratteri contro i 40-115 kB di un'immagine:
+**And the shape can also be SAID.** The state carries a `shape` field that sums the
+part up in one line — 68-152 characters against the 40-115 kB of an image:
 
 ```
-Ingombro 140 x 16 x 140 mm, volume 191938.7 mm3 (il 61% dell'ingombro),
-1 foro Ø60 (centro 0,0,0), 6 fori Ø11 su una circonferenza Ø90 a passo 60 gradi.
+Bounding box 140 x 16 x 140 mm, volume 191938.7 mm3 (that is 61% of the bounding box),
+1 hole Ø60 (center 0,0,0), 6 holes Ø11 on a circle Ø90 at a pitch of 60 degrees.
 ```
 
-Misurato con un criterio piu' duro di quello sopra: **dalla sola frase** un
-modello isolato ha riscritto il piano di costruzione, e il pezzo rifatto e'
-stato confrontato con l'originale.
+Measured with a harder criterion than the one above: **from the sentence alone**
+an isolated model rewrote the construction plan, and the rebuilt part was compared
+with the original.
 
-| pezzo | volume rifatto contro originale |
+| part | rebuilt volume against original |
 |---|---|
-| piastra forata | 353214,2 contro 353214,2 — **0,0%** |
-| scatola svuotata | 109056 contro 109056 — **0,0%** |
-| staffa a L | 105600 contro 105600 — **0,0%** |
-| flangia con corona | 191938,7 contro 191938,7 — **0,0%** |
-| albero a gradini | 55857,5 contro 55857,5 — **0,0%** |
+| plate with holes | 353214.2 against 353214.2 — **0.0%** |
+| hollowed box | 109056 against 109056 — **0.0%** |
+| L bracket | 105600 against 105600 — **0.0%** |
+| flange with a ring | 191938.7 against 191938.7 — **0.0%** |
+| stepped shaft | 55857.5 against 55857.5 — **0.0%** |
 
-**Cinque su cinque al volume esatto**, non «vicino».
+**Five out of five at the exact volume**, not "close".
 
-Al primo giro erano quattro: l'albero usciva al 3,8%, perche' la frase diceva
-«pezzo di rivoluzione» e nient'altro — il nome della famiglia senza una quota. E
-il modello **l'aveva detto prima di provare**, indicando cosa mancava: i
-diametri intermedi. Adesso la frase porta anche il profilo — *«Ø30 per 40, Ø20
-per 30, Ø34 per 20»* — ricavato dall'area delle facce cilindriche.
+On the first round it was four: the shaft came out 3.8% off, because the sentence
+said "part of revolution" and nothing else — the name of the family without a
+single dimension. And the model **had said so before trying**, pointing at what was
+missing: the intermediate diameters. Now the sentence also carries the profile —
+*"Ø30 for 40, Ø20 for 30, Ø34 for 20"* — worked out from the area of the
+cylindrical faces.
 
-**E lo dichiara solo se lo sa ricostruire.** La lunghezza di un tratto viene da
-`area / (π·d)`, che vale su un cilindro intero: tagliato da una cava o da un
-foro darebbe un numero corto, plausibile e falso. Il profilo si scrive solo
-quando la somma delle lunghezze fa l'ingombro **e** il volume ricostruito fa il
-volume vero. Altrimenti la frase tace, e resta «pezzo di rivoluzione»: poco, ma
-vero.
+**And it only states it if it can rebuild it.** The length of a stretch comes from
+`area / (π·d)`, which holds on a whole cylinder: cut by a groove or a hole it would
+give a number that is short, plausible and false. The profile is written only when
+the sum of the lengths makes the bounding box **and** the rebuilt volume makes the
+true volume. Otherwise the sentence is silent and stays "part of revolution": little,
+but true.
 
-**Al massimo tre, e solo se le si chiede.** Una vista costa piu' di dieci volte
-l'intero stato scritto, che sta sotto i 16.000 caratteri: portarne tre a ogni
-lettura cambierebbe di un ordine di grandezza il costo del ponte, e lo
-pagherebbe anche chi voleva solo sapere quanti corpi ci sono.
+**At most three, and only if you ask for them.** A view costs more than ten times the
+whole written state, which stays under 16,000 characters: carrying three at every
+reading would change the cost of the bridge by an order of magnitude, and it would
+also be paid by whoever only wanted to know how many bodies there are.
 
-Fotografare **non tocca la vista di chi lavora**: l'orientamento si salva prima
-e si rimette dopo, anche quando la fotografia fallisce a meta'.
+Taking a photograph **does not touch the view of whoever is working**: the
+orientation is saved before and put back after, even when the photograph fails
+halfway.
 
-**E si puo' guardare dentro.** Con `section: {plane: "right"}` il pezzo arriva
-in **spaccato**: uno spaccato dice di un guscio piu' di dieci viste esterne —
-dall'esterno una scatola svuotata e una piena sono lo stesso parallelepipedo, e
-lo spessore del fondo non si legge.
+**And you can look inside.** With `section: {plane: "right"}` the part arrives as a
+**cutaway** (planes `front`, `top` or `right`; `offset_mm` moves the cut): a cutaway
+says more about a shell than ten external views — from the outside a hollowed box
+and a full one are the same block, and the thickness of the bottom cannot be read.
 
-Taglia **solo il disegno**, non la geometria: nessuna feature nell'albero,
-nessun corpo diviso. E si toglie da sola appena scattata, come l'orientamento.
+It cuts **only the picture**, not the geometry: no feature in the tree, no body
+split. And it removes itself as soon as it has been taken, like the orientation.
 
-**E si puo' tornare indietro.** Fino alla 0.31.0 le operazioni erano tutte
-additive o parametriche: l'albero poteva solo crescere, e chi si accorgeva di
-aver sbagliato doveva costruirci sopra o rifare il pezzo da capo. `undo`
-ritira l'ultimo piano tutto intero — `build` lo esegue gia' dentro **una sola**
-voce di annullamento.
+**And you can go back.** Up to 0.31.0 the operations were all additive or
+parametric: the tree could only grow, and whoever noticed a mistake had to build on
+top of it or redo the part from scratch. `undo` withdraws the last plan, all of it —
+`build` already runs it inside **a single** undo entry.
 
-**E si puo' togliere una lavorazione in mezzo**, non solo l'ultimo piano:
-`suppress_feature` la spegne (e `reactivate` la riaccende),
-`delete_feature` la cancella. La seconda **si rifiuta quando qualcosa
-dipende da quella lavorazione**, e dice cosa: cancellarla la porterebbe via
-insieme ai suoi figli, e SOLIDWORKS lo fa senza chiedere.
+**And you can remove a feature in the middle**, not only the last plan:
+`suppress_feature` turns it off (with `reactivate: true` it turns it back on),
+`delete_feature` deletes it. The second **refuses when anything depends on that
+feature**, and says what: deleting it would take its children away with it, and
+SOLIDWORKS does that without asking.
 
-**Si rifiuta se il pezzo e' cambiato dopo.** Volume e numero di lavorazioni
-devono essere ancora quelli che `build` aveva lasciato: se il progettista ha
-lavorato a mano nel frattempo, annullare toglierebbe il suo lavoro, e il ponte
-si ferma dicendo cosa e' cambiato.
+**It refuses if the part changed afterwards.** Volume and number of features must
+still be what `build` left: if the designer worked by hand in the meantime, undoing
+would remove their work, and the bridge stops and says what changed.
 
-## Come si mette in funzione
+## How to put it to work
 
-### Prima si compila
+There are two routes. To **use** the bridge you do not build anything: take
+`Installer.exe` and follow [QUICKSTART.md](QUICKSTART.md). The rest of this section
+is for building it from a clone.
 
-`bin\` sta nel `.gitignore`: dopo un clone quella cartella **non esiste**, e
-l'eseguibile nominato qui sotto nemmeno.
+### First, build it
+
+`bin\` is in `.gitignore`: after a clone that folder **does not exist**, and neither
+does the executable named below.
 
 ```
 .\build.ps1
 ```
 
-Serve MSBuild (i **Build Tools for Visual Studio 2022**, gratis, bastano) e
-SOLIDWORKS installato sulla macchina: le librerie di interoperabilita' non
-stanno in questo repository e si prendono da li'.
+You need MSBuild (the **Build Tools for Visual Studio 2022**, free, are enough) and
+SOLIDWORKS installed on the machine: the interoperability libraries are not in this
+repository and are taken from there. The script builds the bridge into `bin\`,
+regenerates `Tools\catalog.json`, builds the probes of `Checks\`, and ends with
+`dist\Installer.exe` and the checksum `dist\Installer.exe.sha256` next to it. Its
+other switches are `-Clean` (delete `bin`, `obj` and `dist` first) and `-BridgeOnly`
+(only the bridge, no installer).
 
-Subito dopo il clone, una volta sola:
+Right after the clone, once only:
 
 ```
 .\Checks\install-hooks.ps1
 ```
 
-Accende il gancio `pre-push`, che lancia `check-publishability.ps1` e
-**ferma il push** se dall'albero o dalla storia uscirebbe un percorso di questa
-macchina, un nome utente o un indirizzo di rete privato. Git non versiona
-`.git\hooks`: finche' non si lancia quella riga, il gancio sta nel repository e
-non e' acceso. Per saltarlo una volta, sapendo di farlo: `git push --no-verify`.
+It turns on the `pre-push` hook. Before a push the hook runs the repository's own
+checks — the workflow steps of the CI, the language gate (new text is written in
+English), and `check-publishability.ps1` — and **stops the push** if one of them
+fails; the last one fails if the tree or the history would let out a path of this
+machine, a user name or a private network address. Git does not version
+`.git\hooks`: until you run that line, the hook sits in the repository and is not
+on. To skip it once, knowing you do it: `git push --no-verify`.
 
-Se SOLIDWORKS non e' nel posto di serie, la cartella si dice — ed e' la
-**radice** dell'installazione, non `api\redist`:
+If SOLIDWORKS is not in the usual place, name the folder — it is the **root** of the
+installation, not `api\redist`:
 
 ```
-.\build.ps1 -SwInstallPath 'D:\Programmi\SOLIDWORKS Corp\SOLIDWORKS'
+.\build.ps1 -SwInstallPath 'D:\Programs\SOLIDWORKS Corp\SOLIDWORKS'
 ```
 
-Gli attrezzi di prova in `Checks\` hanno uno script loro, e stanno fuori
-dalla soluzione apposta — un progetto in piu' li farebbe ricompilare a ogni
-build senza motivo:
+The probes in `Checks\` have a script of their own, and they sit outside the solution
+on purpose — one more project would make them rebuild at every build for no reason.
+`build.ps1` already builds them (it stops if one does not compile); to build only
+them:
 
 ```
 .\Checks\build-checks.ps1
 ```
 
-Qui la cartella si chiama `-SwRedist` ed e' `api\redist`, non la radice: sono
-due script diversi nati in due momenti diversi, e uniformarli e' una cosa
-gia' segnata e non una da indovinare.
+It takes the same `-SwInstallPath` (and reads `SW_INSTALL_PATH`), so the two scripts
+agree on what "the SOLIDWORKS folder" means.
 
-### Poi si collega
+### Then connect it
 
 ```jsonc
-// nella configurazione del client MCP
+// in the configuration of the MCP client
 {
   "mcpServers": {
-    "oce-solid-agent": {
-      "command": "C:\\percorso\\del\\clone\\bin\\oce-solid-agent-mcp.exe"
+    "solidworks": {
+      "command": "C:\\path\\to\\the\\clone\\bin\\oce-solid-agent-mcp.exe"
     }
   }
 }
 ```
 
-Prima di collegare un client conviene il giro secco:
+`solidworks` is the name the installer gives the entry; any name works. With
+Claude Code, the supported way to write the same thing is
+`claude mcp add --scope user solidworks -- "C:\path\to\the\clone\bin\oce-solid-agent-mcp.exe"`.
+
+Before connecting a client, the dry run is worth it:
 
 ```
-bin\oce-solid-agent-mcp.exe --prova
+bin\oce-solid-agent-mcp.exe --self-test
 ```
 
-Stampa su stderr se si e' agganciato, quale add-in ha caricato, quante
-operazioni conosce e cosa vede nel documento aperto. Non tocca niente.
-Its exit code says the same in a number (from 0.126.0): 0 attached, 3
+It prints on stderr whether it attached, which library it loaded, how many
+operations it knows and what it sees in the open document. It touches nothing.
+Its exit code says the same thing in a number (since 0.126.0): 0 attached, 3
 SOLIDWORKS not running, 4 not installed or not registered, 5 not tried
 (`OCE_NO_ATTACH`), 6 SOLIDWORKS running in this session but not answering
 (usually started as administrator while the client is not), 1 anything else.
 The installer reads the number, not the text.
 
-### Variabili d'ambiente
+### Environment variables
 
 | | |
 |---|---|
-| `RISCONTRO_DISEGNO` | quale `Oce.Solid.Agent.Core.dll` ci si aspetta di usare. **Non la sceglie**: .NET carica quella accanto all'eseguibile. Serve a farsi dire se le due non coincidono |
-| `OPENPDM_ADDIN` | il vecchio nome di `RISCONTRO_DISEGNO`, ancora letto |
-| `RISCONTRO_CATALOGO` | dove sta `catalog.json`; se manca, accanto all'eseguibile |
-| `OPENPDM_CATALOGO` | il vecchio nome di `RISCONTRO_CATALOGO`, ancora letto |
-| `RISCONTRO_REGISTRO` | dove il ponte scrive **cosa gli e' stato chiesto e non c'era** (voce Z-G7): una riga JSON per domanda, solo il nome e i nomi vicini, mai gli argomenti. Se manca, accanto all'eseguibile; **impostata a stringa vuota vuol dire «non registrare niente»**. Se non si puo' scrivere, il ponte tace e va avanti: il registro non fa mai fallire la chiamata che osserva |
-| `SW_INSTALL_PATH` | dove e' installato il software SOLIDWORKS: la **radice**, quella che finisce con `\SOLIDWORKS`. Vale sia per compilare che per far girare — da qui si ricava `api\redist` |
-| `SW_REDIST` | il vecchio nome, ancora letto. Voleva la sottocartella `api\redist` e non la radice: se sono impostate tutte e due vince `SW_INSTALL_PATH` |
-| `RISCONTRO_RADICE` | l'unica cartella dentro cui il ponte puo' scrivere. Se e' impostata, tutto il resto del disco e' fuori |
-| `RISCONTRO_SOLA_LETTURA` | cartelle che il ponte non deve scrivere, separate da `;` — esempio `S:\CAD;S:\_LIBRERIE`. Si aggiungono a quelle di sistema, non le sostituiscono |
-| `PROFILI_SALDATURA` | the folder of the weldment profiles (`.sldlfp`) that `profili_saldatura` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
-| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--prova` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Checks/test-installer.js` sets it unless given `--attach`) |
+| `RISCONTRO_DISEGNO` | which `Oce.Solid.Agent.Core.dll` you expect to be used. It does **not choose it**: .NET loads the one next to the executable. It is there to be told if the two differ |
+| `OPENPDM_ADDIN` | the old name of `RISCONTRO_DISEGNO`, still read |
+| `RISCONTRO_CATALOGO` | where `catalog.json` is; if missing, next to the executable |
+| `OPENPDM_CATALOGO` | the old name of `RISCONTRO_CATALOGO`, still read |
+| `RISCONTRO_REGISTRO` | where the bridge writes **what it was asked for and was not there**: one JSON line per question, only the name and the nearby names, never the arguments. It is a `.jsonl` file; if the variable is missing, it is written next to the executable (the installer's uninstall removes it); **set to an empty string it means "record nothing"**. If it cannot be written, the bridge stays quiet and goes on: the log never makes the call it observes fail |
+| `SW_INSTALL_PATH` | where the SOLIDWORKS software is installed: the **root**, the one that ends with `\SOLIDWORKS`. It holds both for building and for running — `api\redist` is derived from it |
+| `SW_REDIST` | the old name, still read. It wanted the `api\redist` subfolder and not the root: if both are set, `SW_INSTALL_PATH` wins |
+| `RISCONTRO_RADICE` | the only folder the bridge may write into. If it is set, everything else on the disk is out |
+| `RISCONTRO_SOLA_LETTURA` | folders the bridge must not write, separated by `;` — for example `S:\CAD;S:\_LIBRERIE`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
+| `PROFILI_SALDATURA` | the folder of the weldment profiles (`.sldlfp`) that `weldment_profiles` reads. It has no default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>` or from the folder SOLIDWORKS is set to (Tools > Options > File Locations > Weldment Profiles), else the one SOLIDWORKS installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
+| `OCE_NO_ATTACH` | any value except empty, `0` and `false`: the bridge starts, answers the protocol and lists its tools, but **does not attach to SOLIDWORKS** and says so; `--self-test` exits 5. For a session busy with a batch job or the bench, and for the installer's own tests (`Checks/test-installer.js` sets it unless given `--attach`) |
 
-`RISCONTRO_DISEGNO` non decide piu' quale libreria caricare, e resta letta
-apposta: se punta altrove, il ponte lo **dice**. Una variabile d'ambiente che
-non fa niente e' peggio di una che non esiste — chi l'ha impostata continua a
-credere che conti.
+`RISCONTRO_DISEGNO` no longer decides which library to load, and is still read on
+purpose: if it points elsewhere, the bridge **says so**. An environment variable that
+does nothing is worse than one that does not exist — whoever set it keeps believing
+it counts.
 
-Le librerie di interoperabilita' di Dassault **non stanno in questo
-repository**: si prendono dall'installazione, cosi' la versione e' sempre
-quella che sta girando.
+The Dassault interoperability libraries are **not in this repository**: they are
+taken from the installation, so the version is always the one that is running.
 
 ## Language
 
-**The protocol is English.** The seven tools (`inspect_part`, `list_operations`,
-`describe_operation`, `build`, `measure`, `undo`, `document`) and their
-sub-actions, the 99 operations and their families, every argument and the
-value of every argument whose schema lists one, the selectors
-(`@face(normal=front)`), the fields of every answer and the value of every
-response field the name map covers, the keys of `Tools/catalog.json`, the
-MCP resources (`catalog://operations`, `catalog://operation/{name}`) and the
-tool titles are English names (rename window 2, W3.1-bis.5). The cases of the
-bench were renamed in window 1 (W3.1-bis.4); the classes, files and folders of
-the code follow in window 3 (W3.1-bis.6). The texts of the answers, the
-descriptions of the catalogue and the comments are still partly Italian, and
-become English entry by entry.
+**The project is in English**: the nine tools and their sub-actions, the 99
+operations and their families, every argument and the value of every argument whose
+schema lists one, the selectors (`@face(normal=front)`), the fields of every answer,
+the keys of `Tools/catalog.json`, the MCP resources (`catalog://operations`,
+`catalog://operation/{name}`), the tool titles, the texts of the answers, the
+descriptions in the catalog, the code, its comments and these documents. New text is
+written in English, and a language gate (`Checks/language/detect-italian.js`) keeps
+the Italian from growing, on every push and on the CI: every commit is judged
+against its parent, with its parent's rules, and a raise needs a signed trailer on
+the commit that raises.
 
-**A few values outside any enum are still Italian** (W3.1-bis.8): `mate`'s
-`variant` and `alignment` (free text, not checked against the catalogue), and
-the `kind` the state reports for a mate, a drawing view, a selection or
-`check_body_geometry`. The name map has no row for them yet.
+**What comes from SOLIDWORKS stays in the language of the installation.** The names
+SOLIDWORKS gives to features, sketches, planes and configurations (`Boss-Extrude1`,
+`Sketch1`, `Front Plane`, `Default` on an English installation; `Estrusione1`,
+`Schizzo1`, «Piano frontale», `Predefinito` on an Italian one), the custom properties
+of the templates (`Descrizione`, `Materiale` in the templates this bridge was
+measured with) and the messages SOLIDWORKS itself writes are read and passed on as
+they are: the bridge never translates them, and an operation that takes such a name
+takes it as the installation spells it. Where the catalog gives an example with a
+feature name, it gives the English one and says that the name is the one of the
+installation. The Italian feature, sketch, sheet and plane names that the bench meets
+are listed in `Checks/language/exceptions.json` (class `solidworks-localized`): the
+language gate does not count them.
 
-**What comes from SOLIDWORKS stays in the language of the installation.** The
-names SOLIDWORKS gives to features, sketches, planes and configurations
-(`Boss-Extrude1`, `Sketch1`, `Front Plane`, `Default` on an English
-installation; `Estrusione1`, `Schizzo1`, `Piano frontale`, `Predefinito` on an
-Italian one), the custom properties of the templates (`Descrizione`,
-`Materiale` in the templates this bridge was measured with) and the messages
-SOLIDWORKS itself writes are read and passed on as they are: the bridge never
-translates them, and an operation that takes such a name takes it as the
-installation spells it. Where the catalogue gives an example with a feature
-name, it gives the English one and says that the name is the one of the
-installation. The Italian feature, sketch, sheet and plane names the bench
-meets are listed in `Checks/language/exceptions.json` (class
-`solidworks-localized`): the language gate does not count them and the rename
-does not touch them.
+**A few values outside any enum are still Italian words**: the `variant` of `mate`
+(coincident, parallel, perpendicular, distance) and its `alignment` (aligned,
+opposite) — free text, checked by the operation and not by an enum of the catalog —
+and the `kind` the state reports for a selected entity (face, edge, body, vertex,
+feature), for a mate, for a drawing view and for `check_body_geometry`. The meanings
+are given here in English; the operation takes, and the state prints, the Italian
+word. `describe_operation` on `mate` shows the exact words it accepts.
 
-**The Italian names are aliases until the first release.** A client that still
-sends a tool, a sub-action, an operation, a family, an argument or a value by
-its Italian name gets the same answer as with the English name, plus the lines
-of `deprecated` (in `structuredContent` and as the last text of the answer)
-that say which names were accepted and which English name to use instead;
-the selectors of the bench written with the old names are read the same way. The aliases are accepted on input only: the answers, the
-catalogue and `describe_operation` speak English only. They are read from
-`Checks/language/name-map.tsv`, the map the rename was generated from
-(embedded in the library, `Oce.Solid.Agent.Core/Alias.cs`), and they are removed
-with the map in W3.1-bis.11, before the release tag.
+**The old Italian names are aliases until the first release.** A client that still
+sends a tool, a sub-action, an operation, a family, an argument or a value by its
+Italian name gets the same answer as with the English name, plus the lines of
+`deprecated` (in `structuredContent` and as the last text of the answer) that say
+which names were accepted and which English name to use instead; the selectors of the
+bench written with the old names are read the same way. The aliases are accepted on
+input only: the answers, the catalog and `describe_operation` speak English only.
+They come from `Checks/language/name-map.tsv`, the map the rename was generated from
+(embedded in the library, `Oce.Solid.Agent.Core/Alias.cs`), and they are removed with
+the map before the release tag.
 
-What holds already: **new text is written in English**, and a language gate
-(`Checks/language/detect-italian.js`) keeps the Italian from growing, on every
-push and on the CI: every commit is judged against its parent, with its parent's
-rules, and a raise needs a signed trailer on the commit that raises.
+## The catalog
 
-## Il catalogo
+`Tools/catalog.json` is an EXPORTED copy, written by the bridge itself, not a second
+writing: see [Tools/update.md](Tools/update.md). It holds only the operations
+**measured inside the SOLIDWORKS software**.
 
-`Tools/catalog.json` e' una copia ESPORTATA dal server, non una
-seconda scrittura: vedi [Tools/update.md](Tools/update.md).
-Contiene solo le operazioni **misurate dentro il software SOLIDWORKS**.
+An operation that exists in the library but creates nothing **stays out of the file**
+(`Tested = false`): a client must not be able to call it. Today there is none. The
+last one was `gusset`, null in sixteen variants (measured on 25 September 2026); it
+came back when the API guide said what was missing (mark 1 on the two faces and a
+profile that is not degenerate). The bench prints in its header **both numbers with
+their name** — "runnable: 99 operations (in catalog: 99)": until 24 September 2026
+it printed "catalog: 73" while the catalog had 71, and the difference was explained
+once, plausibly and wrongly, with two copies of the library that diverged.
 
-Un'operazione che esiste nella libreria ma non crea niente **resta fuori dal
-file** (`Provata=false`): un client non deve poterla chiamare. Oggi non ce
-n'e' nessuna: l'ultima era `gusset`, null in sedici varianti (misurato il
-25/9/2026), rientrata con la voce GP20 quando la guida API ha detto cosa
-mancava (la marca 1 sulle due facce e un profilo non degenere). Il banco stampa
-in intestazione **tutti e due i numeri col loro nome** — «eseguibili: 99
-operazioni (a catalogo: 99)» — dal 24/9/2026
-(voce F15): prima stampava «catalogo: 73» e il catalogo ne aveva 71, e la
-differenza e' stata spiegata una volta, in modo plausibile e sbagliato, con due
-copie della libreria che divergevano.
+### What runs on which document
 
-### Su che documento gira cosa
-
-| famiglia | documento |
+| family | document |
 |---|---|
-| `extrusions`, `features`, `weldments`, `references`, `physical_properties`, `exports`, `identity`, `sheet_metal`, `dimensions` | una **parte** |
-| `drawing` | una **tavola** |
-| `assemblies` — `insert_component`, `mate`, `replace_component` | un **assieme** |
-| `checks` | quasi tutte su una parte; `interference_check` vuole un **assieme** |
+| `extrusions`, `features`, `weldments`, `references`, `physical_properties`, `sheet_metal`, `dimensions` | a **part** (`weldment_profiles` only reads a folder and needs no document) |
+| `drawing` | a **drawing** (`create_drawing` starts from a part or an assembly; `save_document` takes any document) |
+| `assemblies` — `insert_component`, `mirror_component`, `fix_component`, `mate`, `replace_component` | an **assembly** |
+| `exports`, `identity` | a part or an assembly (`export_stl` and `export_iges` want a part; `set_property` takes any document) |
+| `checks` | mostly a part; `interference_check` wants an **assembly**, `title_block` a **drawing**, `mass_properties` and `body_bounding_box` a part or an assembly, `file_dependencies` any document |
 
-Non e' una tabella decorativa: **c'e' un controllo che la fa rispettare.**
-`Oce.Solid.Agent.ContractTests` confronta le famiglie del catalogo servito coi tipi di
-documento che l'esecutore ammette, e diventa rosso se il ponte promette una
-famiglia che rifiuterebbe prima del primo passo. E' nato rosso: fino al
-18/9/2026 il catalogo elencava la famiglia `assemblies` per intero mentre
-l'esecutore rifiutava ogni assieme. **Il banco non poteva accorgersene — chiama
-la libreria, non il ponte.**
+It is not a decorative table: **a check enforces it.** `Oce.Solid.Agent.ContractTests`
+compares the families of the served catalog with the document types the executor
+admits, and turns red if the bridge promises a family that it would refuse before the
+first step. It was born red: until 18 September 2026 the catalog listed the family
+`assemblies` in full while the executor refused every assembly. **The bench could not
+notice — it calls the library, not the bridge.**
 
-> Questa riga, nella prima stesura, ne ha fatto scattare un'altra: nominava il
-> numero delle operazioni di assieme a parole, e il controllo che sorveglia **il
-> conto delle operazioni nel README** l'ha letto come se il README dichiarasse
-> quel numero — e si e' fatto rosso.
+> This sentence, in its first draft, set off another one: it named the number of
+> assembly operations in words, and the check that guards **the count of operations
+> in the README** read it as if the README were declaring that number — and went red.
 >
-> Aveva ragione lui a essere stupido. Un numero a parole accanto alla parola
-> «operazioni» e' indistinguibile, per chi legge in fretta, da quello che dice
-> quante ce ne sono in tutto; e il difetto che il controllo esiste per prendere
-> — un README che promette un catalogo diverso da quello vero — ha esattamente
-> quella forma. **Ho riscritto la frase, non il controllo.** *Un controllo a cui
-> si spiegano le eccezioni smette di essere un controllo.*
+> The check was right to be stupid. A number in words next to the word "operations"
+> cannot be told apart, by someone reading in a hurry, from the one that says how
+> many there are in all; and the defect the check exists to catch — a README that
+> promises a catalog different from the real one — has exactly that shape. **I
+> rewrote the sentence, not the check.** *A check to which you explain the exceptions
+> stops being a check.*
 
-## Stato
+## Status
 
-Vedi [CHANGELOG.md](CHANGELOG.md). La versione sta in `VERSION.txt` e sale a
-ogni modifica: e' una regola, non una consuetudine.
+See [CHANGELOG.md](CHANGELOG.md). The version is in `VERSION.txt` and goes up with
+every change: it is a rule, not a habit.
 
-### Cosa la CI prova, e cosa NON prova
+### What the CI proves, and what it does NOT prove
 
-> **Questa sezione e' stata riscritta il 23/9/2026, e prima diceva il falso.**
-> Diceva «la CI compila, lancia i controlli di contratto — che parlano col
-> ponte sullo stdio, senza SOLIDWORKS — e rifiuta una consegna in cui nessuno
-> ha lanciato il banco». **Nessuna delle prime due cose poteva succedere su un
-> runner di GitHub**, e la CI non e' mai diventata verde. Il perche' sta sotto,
-> perche' e' il genere di cosa che chi legge un README ha il diritto di sapere
-> prima di fidarsi di un distintivo.
+> **This section was rewritten on 23 September 2026, and before that it said what was
+> false.** It said "the CI builds, runs the contract checks — which talk to the bridge
+> over stdio, without SOLIDWORKS — and refuses a delivery in which nobody ran the
+> bench". **Neither of the first two things could happen on a GitHub runner**, and the
+> CI never turned green. The why is below, because it is the kind of thing whoever reads
+> a README has the right to know before trusting a badge.
 
-**Il ponte, in CI, non si compila.** `Oce.Solid.Agent.csproj` e
-`Oce.Solid.Agent.Core.csproj` referenziano `SolidWorks.Interop.sldworks` e
-`SolidWorks.Interop.swconst` con un `HintPath` dentro l'installazione di
-SOLIDWORKS. Quelle DLL sono di Dassault: non stanno in repository, non si
-scaricano, e su un runner di GitHub non ci sono. Misurato, non dedotto —
-compilando con `/p:SwInstallPath=Z:\non-esiste` escono duecento e passa
-`CS0246: il nome di tipo o di spazio dei nomi 'IModelDoc2' non e' stato
-trovato`.
+**The bridge is not built in the CI.** `Oce.Solid.Agent.csproj` and
+`Oce.Solid.Agent.Core.csproj` reference `SolidWorks.Interop.sldworks` and
+`SolidWorks.Interop.swconst` with a `HintPath` inside the SOLIDWORKS installation.
+Those DLLs are Dassault's: they are not in the repository, they cannot be downloaded,
+and on a GitHub runner they are not there. Measured, not deduced — building with
+`/p:SwInstallPath=Z:\does-not-exist` gives two hundred errors and goes through
+`CS0246: The type or namespace name 'IModelDoc2' could not be found` (the compiler's
+message, here in English; on a Windows set to Italian it comes out in Italian).
 
-Di conseguenza **nemmeno i controlli che parlano col ponte** possono girare:
-senza eseguibile non c'e' nessuno stdio a cui scrivere.
+As a consequence **not even the checks that talk to the bridge** can run: without an
+executable there is no stdio to write to.
 
-Quello che la CI fa davvero:
+What the CI really does:
 
-| | gira su un runner di GitHub |
+| | runs on a GitHub runner |
 |---|---|
-| compila `Oce.Solid.Agent.ContractTests` (di interop non ne ha, e c'e' un controllo che lo verifica) | **si** |
-| il valutatore delle attese, i sorgenti nei loro `.csproj`, i documenti che contano i file giusti | **si** |
-| il contenuto del catalogo, letto da `Tools\catalog.json` che sta in repository | **si** |
-| **rifiuta una consegna in cui nessuno ha lanciato il banco** | **si** |
-| compila il ponte | solo dove l'interop c'e' (un runner self-hosted con SOLIDWORKS) |
-| il protocollo MCP, `Session.SameDocument`, l'esportatore del catalogo | solo li' |
+| builds `Oce.Solid.Agent.ContractTests` (it has no interop, and a check verifies it) | **yes** |
+| the evaluator of the expectations, the sources inside their `.csproj`, the documents that count the right files | **yes** |
+| the content of the catalog, read from `Tools\catalog.json`, which is in the repository | **yes** |
+| **refuses a delivery in which nobody ran the bench** | **yes** |
+| builds the bridge | only where the interop is (a self-hosted runner with SOLIDWORKS) |
+| the MCP protocol, `Session.SameDocument`, the catalog exporter | only there |
 
-**E cio' che non gira non diventa verde.** I gruppi che hanno bisogno del
-ponte scrivono una voce **«non eseguibile qui»**: si conta a parte, si stampa,
-finisce in `prove.xml` come `<skipped>` e nel riepilogo della corsa. Il
-riepilogo dice `N controlli, 0 falliti, M non eseguibili qui (K fatti
-davvero)`, e il minimo dichiarato si misura sui **fatti** — una suite tutta
-saltata non supera la soglia. *Saltare in silenzio sarebbe stato il modo piu'
-comodo di far diventare verde questo file, ed e' il difetto che il file
-stesso esiste per non avere.*
+**And what does not run does not turn green.** The groups that need the bridge write
+an entry **"not runnable here"**: it is counted apart, printed, and ends up in the
+JUnit report as `<skipped>` and in the summary of the run. The summary line gives the
+number of checks, how many failed, how many were "not runnable here" and, in
+brackets, how many were really done; the declared minimum is measured on the **real
+ones** — a suite that is all skipped does not pass the threshold. *Skipping
+in silence would have been the easiest way to make this file turn green, and it is the
+defect the file itself exists not to have.*
 
-> **Il punto sul banco non e' una verifica indipendente, e vale dirlo qui.**
-> Nessun runner ha una licenza SOLIDWORKS, quindi **il banco in CI non gira**.
-> Cio' che la CI legge e' `Bench/report/last.json`: un file che
-> **produciamo e committiamo noi**. Controlla che dichiari un giro intero,
-> coerente con la libreria di adesso e posteriore all'ultima modifica alle
-> operazioni.
+> **The point about the bench is not an independent verification, and it is worth
+> saying here.** No runner has a SOLIDWORKS license, so **the bench does not run in the
+> CI**. What the CI reads is `Bench/report/last.json`: a file that **we produce and
+> commit ourselves**. It checks that it declares a whole run, consistent with the
+> library of now and later than the last change to the operations.
 >
-> E' una guardia contro la **nostra** distrazione — il commit fatto senza aver
-> rilanciato il banco — non contro un resoconto che dicesse il falso. Se il
-> resoconto mentisse, la CI lo crederebbe.
+> It is a guard against **our own** distraction — the commit made without having rerun
+> the bench — not against a report that said something false. If the report lied, the
+> CI would believe it.
 >
-> *Una difesa raccontata piu' forte di com'e' indebolisce anche quelle vere,
-> perche' insegna a non fidarsi dell'etichetta.*
+> *A defense told as stronger than it is weakens the true ones too, because it teaches
+> people not to trust the label.*
 
-### Quanto reggono i riferimenti quando il pezzo cambia
+### How well references hold when the part changes
 
-Diciannove pezzi costruiti, **una sola quota a monte cambiata**, e la geometria
-a valle rimisurata. Il risultato e' una di tre cose, non due:
+Nineteen parts built, **a single upstream dimension changed**, and the downstream
+geometry measured again. The result is one of three things, not two:
 
-| | casi su 19 | |
+| | cases out of 19 | |
 |---|---|---|
-| **reggono** | **17** | ricostruzione pulita, e la geometria sta dove l'intento dichiara |
-| **si staccano e lo dicono** | **2** | la ricostruzione fallisce, una lavorazione porta un errore, o la modifica viene rifiutata: il progettista lo vede |
-| **si staccano in silenzio** | **0** | ricostruzione a posto, nessun errore, e la geometria e' finita da un'altra parte |
+| **hold** | **17** | clean rebuild, and the geometry is where the intent says |
+| **come off and say so** | **2** | the rebuild fails, a feature carries an error, or the change is refused: the designer sees it |
+| **come off in silence** | **0** | rebuild fine, no error, and the geometry ended up somewhere else |
 
-*Misurato il 26/9/2026 su SOLIDWORKS 29.5.1, libreria 0.121.0. Si rifa' con
-`.\Bench\bench.ps1 -Regression`; il dettaglio caso per caso finisce in
-`Bench/report/regressione.md`.*
+*Measured on 26 September 2026 on SOLIDWORKS 29.5.1, library 0.121.0. It is redone with
+`.\Bench\bench.ps1 -Regression`; the case-by-case detail goes into the `Bench/report/`
+folder.*
 
-**Il 15/9 erano 12, 0 e 4 su sedici**, e lo zero in mezzo era il numero piu'
-interessante: nessun caso si era rotto in modo visibile, le quattro volte che
-il pezzo era uscito diverso SOLIDWORKS aveva ricostruito pulito e taciuto. E'
-la ragione per cui questa suite misura **la posizione della geometria** e non
-il fatto che la ricostruzione sia andata.
+**On 15 September they were 12, 0 and 4 out of sixteen**, and the zero in the middle
+was the most interesting number: no case had broken in a visible way, the four times
+the part had come out different SOLIDWORKS had rebuilt clean and kept quiet. It is the
+reason this suite measures **the position of the geometry** and not whether the rebuild
+went through.
 
-**I quattro silenzi avevano due cause, non quattro** (misurato il 23/9/2026).
-Tre erano la stessa: *un'operazione agganciata a una **faccia** segue la
-geometria; le coordinate `x_mm`/`y_mm` dentro il piano di schizzo di quella
-faccia no.* Dal 25/9 (voce E18) `cylindrical_cut` e `rectangular_cut`
-prendono `anchor` — una quota da uno spigolo, o il centro fra due spigoli, per
-asse — e il profilo segue il bordo:
+**The four silences had two causes, not four** (measured on 23 September 2026). Three
+were the same: *an operation attached to a **face** follows the geometry; the `x_mm`/
+`y_mm` coordinates inside the sketch plane of that face do not.* Since 25 September
+`cylindrical_cut` and `rectangular_cut` take `anchor` — a dimension from an edge, or the
+center between two edges, per axis — and the profile follows the edge:
 
-- la tasca centrata (`r03`) regge, e il suo gemello senza ancora (`r03b`)
-  resta dov'era, come deve;
-- un foro a 20 dal bordo (`r19`) regge, e i quattro fori guidati a 20 dagli
-  angoli (`r01`, dalla libreria 0.119.0) pure — col gemello assoluto `r01b`;
-- l'asola che esce dal materiale accorciando la piastra (`r16`) adesso si
-  **rifiuta con criterio**, e la quota torna com'era: e' la riga di mezzo;
-- anche asole e rialzi prendono l'ancora (0.118.0, 0.119.0).
+- the centered pocket (`r03`) holds, and its twin without an anchor (`r03b`) stays where
+  it was, as it should;
+- a hole 20 from the edge (`r19`) holds, and so do the four holes guided 20 from the
+  corners (`r01`, from library 0.119.0) — with the absolute twin `r01b`;
+- the slot that leaves the material by shortening the plate (`r16`) is now **refused
+  with a reason**, and the dimension goes back as it was: that is the middle row;
+- slots and bosses take the anchor too (library 0.118.0 and 0.119.0).
 
-Il quarto (`r05`) non si ripara ancorando, e per un po' l'abbiamo scritto
-come irreparabile: uno smusso piu' grande del materiale **non fallisce**.
-SOLIDWORKS ricostruisce pulito e si mangia un millimetro di larghezza. Si
-prende rileggendo il pezzo dopo — e il segno c'era gia': la lavorazione di
-base perde una faccia intera, quella che lo smusso adesso si prende tutta.
-Dalla libreria 0.121.0 `set_dimension` guarda proprio quello: se una
-lavorazione che non e' un taglio perde facce e piu' avanti c'e' uno smusso o
-un raccordo, **rifiuta, dice quale, e rimette il valore di prima**. `r05` e'
-passato alla riga di mezzo, e la terza e' a zero.
+The fourth (`r05`) cannot be repaired by anchoring, and for a while we wrote it down as
+irreparable: a chamfer bigger than the material **does not fail**. SOLIDWORKS rebuilds
+clean and eats a millimetre of width. It is caught by reading the part again afterwards
+— and the sign was already there: the base feature loses a whole face, the one the
+chamfer now takes entirely. Since library 0.121.0 `set_dimension` looks at exactly that:
+if a feature that is not a cut loses faces and further on there is a chamfer or a
+fillet, it **refuses, says which, and puts the previous value back**. `r05` moved to the
+middle row, and the third is at zero.
 
-La terza riga si scrive **anche quando vale zero**: un conteggio che sparisce
-quando e' zero e' un conteggio che nessuno controlla.
+The third row is written **even when it is zero**: a count that disappears when it is
+zero is a count nobody checks.
 
-## Vincoli che non si negoziano
+## Constraints that are not negotiable
 
-- **Serve una sessione SOLIDWORKS aperta.** Il ponte si aggancia a una sessione che c'e',
-  non ne avvia una.
-- **Provato solo su SOLIDWORKS 2021 SP5.1** (interop 29.5.1). Le versioni piu'
-  vecchie si possono provare quando serve; le piu' nuove non sono provate.
-  L'installatore le accetta tutte, e per una versione diversa da quella provata
-  mette un avviso.
-- **Niente scritture fuori dal documento aperto.** Il ponte non salva nel
-  vault, non tocca librerie, non installa niente.
-- **Nessuna operazione non misurata.** Se un'operazione non e' stata costruita
-  dentro il software SOLIDWORKS e verificata con un numero, non si espone. E' la regola
-  che regge tutto OpenPDM e vale anche qui.
+- **A SOLIDWORKS session must be open.** The bridge attaches to a session that is
+  there; it does not start one.
+- **Tested only on SOLIDWORKS 2021 SP5.1** (interop 29.5.1). Older versions can be
+  tried when needed; newer ones are not tested. The installer accepts them all, and for
+  a version different from the tested one it prints a warning.
+- **No writing outside the open document.** The bridge does not save into the vault, does
+  not touch libraries, does not install anything. The paths it is asked to write to are
+  checked against the rules in `RISCONTRO_RADICE` and `RISCONTRO_SOLA_LETTURA` above.
+- **No operation that has not been measured.** If an operation has not been built inside
+  the SOLIDWORKS software and checked with a number, it is not exposed. It is the rule
+  that holds up all of OpenPDM, and it holds here too.
 
-## Marchi
+## Trademarks
 
-SOLIDWORKS e 3DEXPERIENCE sono marchi registrati di Dassault Systèmes
-SolidWorks Corporation. Questo progetto e' indipendente e **non e' affiliato,
-autorizzato, sponsorizzato ne' approvato da Dassault Systèmes SolidWorks
-Corporation** — in inglese, che e' la lingua in cui la formula conta: *not
-affiliated with, authorized by, sponsored by or endorsed by Dassault Systemes
-SolidWorks Corporation.*
+SOLIDWORKS and 3DEXPERIENCE are registered trademarks of Dassault Systèmes SolidWorks
+Corporation. This project is independent and **is not affiliated with, authorized,
+sponsored or endorsed by Dassault Systèmes SolidWorks Corporation**: *not affiliated
+with, authorized by, sponsored by or endorsed by Dassault Systemes SolidWorks
+Corporation.*
 
-La licenza Apache-2.0 di questo progetto **non concede alcun diritto sui
-marchi**: lo dice la sua sezione 6, e vale la pena dirlo qui perche' una
-licenza permissiva si legge in fretta come se permettesse tutto.
+The Apache-2.0 license of this project **grants no rights over trademarks**: its
+section 6 says so, and it is worth saying here because a permissive license is easily
+read as if it allowed everything.
 
-Il nome SOLIDWORKS compare solo come qualifica del software con cui questo
-ponte parla. Vedi [NOTICE](NOTICE), che dice la stessa cosa piu' per esteso —
-ed e' ripetuta qui perche' **il NOTICE quasi nessuno lo apre**.
+The name SOLIDWORKS appears only as a description of the software this bridge talks to.
+See [NOTICE](NOTICE), which says the same thing at more length — and it is repeated
+here because **hardly anyone opens the NOTICE**.

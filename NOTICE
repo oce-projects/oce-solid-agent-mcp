@@ -1,60 +1,60 @@
 OCE Solid Agent
 Copyright 2026 Oscar Contato
 
-Questo prodotto include software sviluppato da Oscar Contato.
-Distribuito secondo i termini della Apache License 2.0 (vedi LICENSE).
+This product includes software developed by Oscar Contato.
+Distributed under the terms of the Apache License 2.0 (see LICENSE).
 
 -------------------------------------------------------------------------------
-MARCHI
+TRADEMARKS
 -------------------------------------------------------------------------------
 
-SOLIDWORKS(R) e 3DEXPERIENCE(R) sono marchi registrati di Dassault Systemes
+SOLIDWORKS(R) and 3DEXPERIENCE(R) are registered trademarks of Dassault Systemes
 SolidWorks Corporation.
 
-Questo progetto NON e' un prodotto di Dassault Systemes, non e' affiliato,
-sponsorizzato ne' avallato da Dassault Systemes. Il nome SOLIDWORKS e' usato
-solo per indicare con quale programma questo software e' interoperabile, cioe'
-nel modo descrittivo e nominativo consentito dall'uso corretto dei marchi.
+This project is NOT a product of Dassault Systemes, and is not affiliated with,
+sponsored by or endorsed by Dassault Systemes. The name SOLIDWORKS is used only
+to say which program this software interoperates with, that is, in the
+descriptive and nominative way that fair use of trademarks allows.
 
-In inglese, che e' la lingua in cui questa formula viene letta:
+The formula, in the words in which it is usually read:
 
     This project is not affiliated with, authorized by, sponsored by or
     endorsed by Dassault Systemes SolidWorks Corporation. SOLIDWORKS is a
     registered trademark of Dassault Systemes SolidWorks Corporation.
 
-LA LICENZA NON CONCEDE DIRITTI SUI MARCHI. La Apache License 2.0, con cui
-questo progetto e' distribuito, lo dice alla SEZIONE 6 ("Trademarks"):
-la licenza non da' il permesso di usare nomi commerciali, marchi, marchi di
-servizio o nomi di prodotto del concedente. Vale per il nome di questo
-progetto e a maggior ragione per SOLIDWORKS, che non e' nostro da concedere.
-Si scrive qui perche' una licenza permissiva si legge in fretta come se
-permettesse tutto.
+THE LICENSE GRANTS NO RIGHTS OVER TRADEMARKS. The Apache License 2.0, under
+which this project is distributed, says so in SECTION 6 ("Trademarks"): the
+license does not grant permission to use the trade names, trademarks, service
+marks or product names of the licensor. That holds for the name of this project
+and all the more for SOLIDWORKS, which is not ours to grant. It is written here
+because a permissive license is easily read as if it allowed everything.
 
-Questo progetto NON ridistribuisce alcun componente di Dassault Systemes. Le
-librerie di interoperabilita' (SolidWorks.Interop.*.dll) vengono caricate a
-tempo di esecuzione dall'installazione di SOLIDWORKS presente sulla macchina di
-chi lo usa: non sono incluse in questo repository ne' nei pacchetti prodotti.
-Per usare questo software occorre una licenza valida di SOLIDWORKS, che non e'
-fornita qui.
-
--------------------------------------------------------------------------------
-COMPONENTI DI TERZE PARTI
--------------------------------------------------------------------------------
-
-Nessuno. Il progetto usa solo la libreria standard di .NET Framework 4.8
-(System, System.Core, System.Web.Extensions per la serializzazione JSON).
-
-Il protocollo Model Context Protocol (MCP) e' una specifica aperta pubblicata
-da Anthropic; qui e' implementato da zero, senza usarne il codice.
+This project does NOT redistribute any component of Dassault Systemes. The
+interoperability libraries (SolidWorks.Interop.*.dll) are loaded at run time
+from the SOLIDWORKS installation on the machine of whoever uses the software:
+they are not included in this repository or in the packages built from it. To
+use this software a valid SOLIDWORKS license is needed, and it is not provided
+here.
 
 -------------------------------------------------------------------------------
-AVVERTENZA D'USO
+THIRD-PARTY COMPONENTS
 -------------------------------------------------------------------------------
 
-Questo software MODIFICA modelli CAD. Un modello modificato puo' essere diverso
-da quello che chi ha chiesto la modifica si aspettava. Chi lo usa resta
-responsabile di verificare il risultato prima di mandarlo in produzione, in
-officina o a un fornitore.
+None. The project uses only the standard libraries of .NET Framework 4.8 (for
+example System, System.Core and System.Web.Extensions, the last one for JSON
+serialization).
 
-Vale integralmente l'esclusione di garanzia e di responsabilita' della sezione 7
-e 8 della Apache License 2.0.
+The Model Context Protocol (MCP) is an open specification published by
+Anthropic; here it is implemented from scratch, without using its code.
+
+-------------------------------------------------------------------------------
+NOTICE OF USE
+-------------------------------------------------------------------------------
+
+This software MODIFIES CAD models. A modified model can differ from what the
+person who asked for the change expected. Whoever uses it remains responsible
+for checking the result before sending it to production, to the workshop or to
+a supplier.
+
+The disclaimer of warranty and the limitation of liability of sections 7 and 8
+of the Apache License 2.0 apply in full.

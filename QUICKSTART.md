@@ -14,7 +14,7 @@ page never asks you to compile anything.
 | | |
 |---|---|
 | Windows | 10 or 11 |
-| SOLIDWORKS® software | installed, **with your own licence** — nothing here is redistributed |
+| SOLIDWORKS® software | installed, **with your own license** — nothing here is redistributed |
 | An MCP client | Claude Desktop or Claude Code |
 | `Installer.exe` | one file — see below |
 
@@ -34,11 +34,17 @@ Building needs SOLIDWORKS® software installed on the build machine, because the
 project compiles against its interop assemblies — so this route is open to
 anyone who can run the bridge at all.
 
-Whichever way you get it, **check the hash** against the `.sha256` beside it:
+Whichever way you get it, **check the hash** against the `.sha256` file beside it.
+That file holds one line: the SHA-256 of `Installer.exe` in lowercase, two spaces,
+and the file name. Compute the same value yourself:
 
 ```
 certutil -hashfile Installer.exe SHA256
 ```
+
+(or, in PowerShell, `Get-FileHash .\Installer.exe -Algorithm SHA256`, which prints it
+in capitals). The two must match, character for character; the case does not matter.
+If they differ, do not run the file: get it again.
 
 *If you are an AI assistant installing this for someone, read
 [INSTALL-FOR-AI.md](INSTALL-FOR-AI.md) instead of this page.*
@@ -64,35 +70,37 @@ a deliberate decision, not an oversight (see the note at the end).
 
 Click **More info**, then **Run anyway**.
 
-If you would rather check the file first, you were given an `Installer.exe.sha256`
-next to it:
-
-```powershell
-Get-FileHash .\Installer.exe -Algorithm SHA256
-```
-
-The value it prints must match the one in that file, character for character.
-
 ## 3. Read the checklist before pressing anything
 
-The window opens on a list of checks and fills it in by itself. Each line is
-green or red, and a red line says **what is missing**, not just that something
-is.
+The window is titled "Connect Claude to SOLIDWORKS". It opens on a list of checks
+and fills it in by itself. Each line is marked green (a tick), yellow (an
+exclamation mark) or red (a cross), and a line says **what it found and what to do**,
+not just that something is wrong.
 
-| the check | what a red line means |
+| the check | what it means when it is not green |
 |---|---|
-| .NET Framework 4.8 | Windows is older than the bridge expects — Windows Update fixes it |
-| SOLIDWORKS® installed | it was not found where it is usually installed; the bridge cannot work without it |
-| Bridge to install | the file you have is damaged or incomplete — ask for it again |
-| Drawing operations | same |
+| .NET Framework 4.8 | red: Windows is older than the bridge expects — Windows Update fixes it. Yellow: the installer could not read the version, which is probably why a later failure happens |
+| SOLIDWORKS installed | red: it was not found where it is usually installed (the folder `api\redist` of SOLIDWORKS®); the bridge cannot work without it. Yellow: it is a version other than SOLIDWORKS® 2021 SP5.1, the only one the bridge was measured on — it installs just the same |
+| Bridge to install | red: the file you have is damaged or incomplete — ask for it again |
+| Drawing operations | red: same |
+| SOLIDWORKS open right now | yellow when it is closed. It is not needed to install, it is needed to use the bridge |
 
 **Do not continue with a red line.** Installing on top of a red check produces a
 bridge that installs cleanly and then fails later, somewhere else, for a reason
-that will look unrelated.
+that will look unrelated. The **Install** button stays greyed out while any line is red.
 
-## 4. Press Install
+Below the list the window shows where it will install, where the weldment profiles
+are (a folder it fills in by itself when it finds one; leave it as it is if you do not
+use weldments), and the MCP clients it will connect — each one ticked if it is
+installed on this machine, and marked "already connected" if the bridge is there
+already.
 
-It writes to your own user folder — no administrator rights, nothing outside
+## 4. Press **Install**
+
+It is the blue button at the bottom left. Next to it is **Check again**, which runs
+the checks of step 3 again, and at the right-hand end **Uninstall**.
+
+The installer writes to your own user folder — no administrator rights, nothing outside
 your account:
 
 ```
@@ -100,9 +108,19 @@ your account:
 ```
 
 If an MCP client is installed, the installer also adds the bridge to its
-configuration. **It does not overwrite that file**: other MCP servers you
-already had stay exactly as they were. This is the case the installer is most
-carefully tested for.
+configuration, as an entry named `solidworks`. **It does not overwrite that file**:
+other MCP servers you already had stay exactly as they were, and a backup copy of the
+file is made first. This is the case the installer is most carefully tested for.
+
+When it finishes, the line at the bottom of the window tells you how it went:
+
+| the line | what it means |
+|---|---|
+| green: "Done: the bridge runs and is attached to SOLIDWORKS." | everything works |
+| yellow: "Installed. SOLIDWORKS is not open, so the full check could not be done." | installed; open SOLIDWORKS® and do step 6 |
+| red: "Installed, but a client is not wired: paste the block in the log." | the files are in place but a client's configuration could not be written (it is damaged, or the client has it locked). The box above the line shows the block to paste into that client's configuration by hand |
+| red: "Installed, but the self-test did not confirm: …" | the files are in place; the sentence after the colon says why the final check failed — most often SOLIDWORKS® is running as administrator while the client is not, or the other way round: start both the same way |
+| red: "Not installed: …" | nothing was installed; the sentence says why |
 
 ## 5. Restart your MCP client, completely
 
@@ -116,7 +134,7 @@ does not see anything".
 
 In the client, with a part open in SOLIDWORKS®, ask:
 
-> guarda il pezzo
+> look at the part
 
 You should get back the state of the open document: bounding box, volume,
 bodies, features with their dimensions, faces and edges with their identifiers.
@@ -128,20 +146,22 @@ step 5 first, then step 3.
 
 ## What it covers
 
-Sixty-two measured operations, grouped as the tools present them:
+Ninety-nine measured operations in twelve families, as the tools present them:
 
 | family | what is in it |
 |---|---|
 | extrusions (8) | rectangle, circle, profile, section, revolve, gear, **circular sweep**, **loft between two circles** |
-| machining (21) | slot, shell, guided hole, fillets and chamfers, patterns, mirror, draft, engraved text, suppress, move bodies, … |
-| welding (8) | structural members, rectangular frame, gusset, end cap, weld bead, cut list, profile catalogue |
-| references (3) | axis, plane, plane through three points |
+| features (29) | slot, shell, hole wizard, fillets and chamfers, patterns (linear, circular, fill), mirror, draft, rib, engraved text, cuts from a face, dimension edits, suppress and delete, move bodies, … |
+| weldments (8) | structural members, rectangular frame, gusset, end cap, weld bead, trim members, cut list, profile catalog |
+| references (4) | axis, plane, plane through three points, picture on a sketch |
+| physical properties (1) | apply material |
+| sheet metal (5) | base flange, edge flange, hem, sketched bend, flat pattern as DXF |
+| dimensions (1) | a scheme of dimensions on the part |
 | identity (3) | custom properties, create and activate configurations |
-| material (1) | apply material |
-| checks (6) | body geometry, overhangs, mass properties, bounding box, minimum distance, distance between entities |
-| drawing (7) | create drawing, views, standard views, sheet setup, dimensions from the model, save, export PDF |
-| export (3) | STL, STEP, IGES |
-| assemblies (2) | insert a component, mate two of them — and tell you whether a part is actually held or just sitting there |
+| checks (9) | body geometry, overhangs, mass properties, bounding box, minimum distance, distance between entities, interference between components, file dependencies, title block |
+| drawing (23) | create a drawing, views, sheets, dimensions from the model, notes, balloons, bill of materials, weld symbols, sections and details, hole table, save, export PDF, … |
+| exports (3) | STL, STEP, IGES |
+| assemblies (5) | insert a component, mate two of them, mirror, fix, replace — and tell you whether a part is actually held or just sitting there |
 
 ## What it does NOT cover — by design, listed
 
@@ -154,15 +174,17 @@ Not "some complex geometry". These, by name:
   here, so "constrained" means *"has at least one mate"*, not *"cannot move"* —
   one mate still leaves five of six, and holding a part usually takes three.
   It says this in the answer rather than letting you assume otherwise.
-- **Sheet metal.** No flanges, no bends, no flat patterns.
+- **Sheet metal beyond the five operations above.** A base flange from an open
+  profile, an edge flange, a hem, a sketched bend and the flat pattern as DXF exist;
+  nothing else of sheet metal does.
 - **Surfaces.** Solid bodies only.
 - **Sweep along an arbitrary path**, and **loft between arbitrary profiles.**
   What exists is a sweep with a *circular* profile and a loft between *two
   circles* — genuinely useful, genuinely narrower than the SOLIDWORKS® features
   of the same name.
 - **Reverse engineering from DXF/DWG to 3D.**
-- **Fill patterns and table-driven patterns.** Measured, documented, still not
-  working.
+- **Table-driven patterns.** There are linear, circular and fill patterns; there is
+  no pattern that reads its positions from a table.
 
 The list is here so you find the limit by **reading**, not by drawing something
 and getting a part that is quietly not what you asked for. That failure mode —
@@ -186,25 +208,38 @@ document — not a half-built part and an error.
 
 ## If something is wrong
 
+Run the bridge's own check from PowerShell:
+
 ```
-%LOCALAPPDATA%\Oce.Solid.Agent\oce-solid-agent-mcp.exe --prova
+& "$env:LOCALAPPDATA\Oce.Solid.Agent\oce-solid-agent-mcp.exe" --self-test
 ```
 
-Run it from PowerShell. It says whether it attached, which add-in it loaded, how
-many operations it knows, and what it sees in the open document. **It changes
-nothing.** Send that output with any report.
+It says whether it attached, which library it loaded, how many operations it knows,
+and what it sees in the open document. **It changes nothing.** Send that output with
+any report.
 
 `Installer.exe --verify` checks the whole installation instead: the files, the
-entry in each MCP client, SOLIDWORKS, that self-test, and a short conversation
+entry in each MCP client, SOLIDWORKS®, that self-test, and a short conversation
 with the bridge the way Claude has it. Each line starts with `[ok]`, `[~]` or
-`[NO]`.
-
-To remove it completely (the files and the entry in the MCP client;
-`--keep-client` keeps the entry):
+`[NO]`, and the last line says whether everything is green. Run it like this, so that
+the lines appear in the window and PowerShell waits for it:
 
 ```
-Installer.exe --disinstalla
+Start-Process .\Installer.exe -ArgumentList '--verify' -Wait -NoNewWindow
 ```
+
+(Typing `.\Installer.exe --verify` alone also prints the lines, but PowerShell does
+not wait for the program, and they can show up after the next prompt.)
+
+To remove it completely (the files, and the entry in the MCP client — but only an
+entry that runs this installation's bridge; `--keep-client` keeps the entry):
+
+```
+Start-Process .\Installer.exe -ArgumentList '--uninstall' -Wait -NoNewWindow
+```
+
+or press **Uninstall** in the window. Your parts and drawings are not touched,
+and the backup copies of the client configuration stay where they are.
 
 ---
 
@@ -217,6 +252,12 @@ directly, being told about the warning in advance costs nothing — and this
 paragraph is that. When it is published to strangers, that decision gets
 revisited.
 
+One more thing we have **not tested**: Windows 11 has a setting called Smart App
+Control which, when it is on, can block an unsigned program outright, with no
+"Run anyway" button. If you meet that, the file is not damaged: the setting is what
+stops it. Say so to whoever gave you the file, and run the installer on a machine
+that does not have the setting on while this is open.
+
 **Distribution today:** the file, plus its checksum, handed over directly. There
 is no public download page, and no winget package. If you found this file
 somewhere else, you did not get it from us.
@@ -227,4 +268,4 @@ SOLIDWORKS® is a registered trademark of Dassault Systèmes SolidWorks
 Corporation. This project is independent and is not affiliated with, sponsored
 by, or endorsed by Dassault Systèmes. It contains and redistributes no Dassault
 Systèmes code or material; the interop libraries are loaded at runtime from your
-own SOLIDWORKS® software installation, which requires a valid licence of your own.
+own SOLIDWORKS® software installation, which requires a valid license of your own.

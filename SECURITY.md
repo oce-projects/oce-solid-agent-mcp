@@ -17,9 +17,11 @@ is no server, no account, no network listener. What is in scope is therefore
 narrower than usual, and worth naming:
 
 - **Writing outside where it says it writes.** The bridge refuses paths under
-  the folders listed in `RISCONTRO_SOLA_LETTURA` and under system locations. A
-  way to get it to write outside those, or to escape a declared working folder,
-  is a vulnerability.
+  the system and program folders (Windows, System32, Program Files, Program Files
+  (x86), ProgramData), under the folders listed in `RISCONTRO_SOLA_LETTURA`, and —
+  when `RISCONTRO_RADICE` is set — anywhere outside that one folder. A way to get
+  it to write where it refuses, or to escape the declared working folder, is a
+  vulnerability.
 - **The installer touching something it did not say it would.** It installs
   into the user's own profile, edits the MCP client configuration it names, and
   backs up what it edits. Anything else is a bug worth reporting privately.
@@ -47,7 +49,7 @@ narrower than usual, and worth naming:
 An acknowledgement, and an honest answer about whether and when it will be
 fixed. Read the "No support commitment" section of
 [CONTRIBUTING.md](CONTRIBUTING.md) before assuming more than that: this is
-published under the Apache Licence 2.0, "as is", and there is one person behind
+published under the Apache License 2.0, "as is", and there is one person behind
 it.
 
 ## Supported versions
