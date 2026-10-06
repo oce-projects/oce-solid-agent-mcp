@@ -27,7 +27,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("la chiamata che non torna (K18)");
+            Group("the call that does not return (K18)");
 
             var t0 = new DateTime(2026, 9, 23, 15, 36, 0);
             var g = new Shared.Leash(90000);
@@ -36,33 +36,33 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // The half that is usually not tested. A guardian that shouts between
             // one check and the next gets switched off the next day.
-            Check("senza nessuna chiamata in corso, tace",
+            Check("with no call in progress, it stays silent",
                   g.Hanging(t0.AddHours(3)) == null,
-                  "tre ore di silenzio, nessun allarme");
+                  "three hours of silence, no alarm");
 
             // ── A NORMAL CALL DOES NOT MAKE IT TRIGGER ───────────────────
             g.Begin("extrude_rectangle", t0);
-            Check("una chiamata di 30 secondi non e' appesa",
+            Check("a call of 30 seconds is not hung",
                   g.Hanging(t0.AddSeconds(30)) == null,
-                  "soglia 90 s");
-            Check("e nemmeno una di 89",
+                  "threshold 90 s");
+            Check("and neither is one of 89",
                   g.Hanging(t0.AddSeconds(89)) == null, "");
 
             // ── AT NINETY IT TRIGGERS ────────────────────────────────────
             var report = g.Hanging(t0.AddSeconds(90));
-            Check("a novanta secondi scatta", report != null,
-                  report == null ? "(niente)"
+            Check("at ninety seconds it fires", report != null,
+                  report == null ? "(nothing)"
                                   : report.Substring(0, Math.Min(90, report.Length)));
 
             // AND THE REPORT SAYS WHICH ONE, which is the whole point: on 23/9/2026 the
             // run stayed hung and nobody knew inside what.
-            Check("e il referto NOMINA la chiamata",
+            Check("and the report NAMES the call",
                   report != null && report.Contains("extrude_rectangle"),
-                  "senza il nome sarebbe un allarme senza indirizzo");
+                  "without the name it would be an alarm with no address");
 
-            Check("e dice da quanto, coi secondi",
+            Check("and says for how long, with the seconds",
                   report != null && report.Contains("90"),
-                  "«e' partita 90 secondi fa»");
+                  "«it started 90 seconds ago»");
 
             // AND IT DOES NOT PROMISE WHAT IT CANNOT DO. A message that said
             // «I retry» or «I cancel» would be false: a stuck COM call
@@ -71,27 +71,27 @@ namespace Oce.Solid.Agent.ContractTests
             // says «**N**on si puo' annullare» because a sentence starts there.
             // It is the third time that a string comparison has fallen like this in
             // this repository — the COMPARISON is fixed, not the message.
-            Check("e non promette di annullarla",
+            Check("and does not promise to cancel it",
                   report != null &&
-                  report.IndexOf("non si puo' annullare",
+                  report.IndexOf("cannot be cancelled",
                                   StringComparison.OrdinalIgnoreCase) >= 0,
-                  "dice quale era, e si ferma");
+                  "says which one it was, and stops");
 
             // ── WHEN IT RETURNS, THE GUARDIAN MUST STAY SILENT ───────────
             //
             // Without this, the first pause between two checks would become an
             // alarm and the run would die by itself halfway.
             g.Finished();
-            Check("finita la chiamata, torna a tacere",
+            Check("once the call is over, it goes silent again",
                   g.Hanging(t0.AddHours(1)) == null,
-                  "un'ora dopo, nessun allarme");
+                  "an hour later, no alarm");
 
             // ── A RIDICULOUS THRESHOLD IS REFUSED ────────────────────────
             bool refused = false;
             try { new Shared.Leash(500); }
             catch (ArgumentOutOfRangeException) { refused = true; }
-            Check("mezzo secondo non e' un guinzaglio, e viene rifiutato",
-                  refused, "qualunque prova vera lo farebbe scattare");
+            Check("half a second is not a leash, and it is refused",
+                  refused, "any real check would make it fire");
 
             // ── AND THE BENCH REALLY USES IT ─────────────────────────────
             TheBenchUsesIt();
@@ -102,33 +102,33 @@ namespace Oce.Solid.Agent.ContractTests
             var file = Path.Combine(Root(), "Bench", "Program.cs");
             if (!File.Exists(file))
             {
-                Check("il sorgente del banco c'e'", false, "manca " + file);
+                Check("the bench source is there", false, "missing " + file);
                 return;
             }
             var p = File.ReadAllText(file);
 
-            Check("il banco costruisce il guinzaglio a 90 secondi",
+            Check("the bench builds the leash at 90 seconds",
                   p.Contains("new Shared.Leash(90000)"), "Bench/Program.cs");
 
             // A GUARDIAN DEFINED AND NEVER SWITCHED ON is the disease that this
             // repository chases, applied to itself.
-            Check("e lo ACCENDE",
+            Check("and TURNS IT ON",
                   p.Contains("TurnOnGuardian();"),
-                  "definirlo e non chiamarlo sarebbe un `Tested = true` che nessuno esercita");
+                  "defining it and not calling it would be a `Tested = true` that nobody exercises");
 
-            Check("ogni operazione passa dal guinzaglio",
+            Check("every operation goes through the leash",
                   p.Contains("Leash.Begin(operation,") &&
                   p.Contains("finally { Leash.Finished(); }"),
-                  "con un `finally`: se la chiamata alza, il guinzaglio si slaccia comunque");
+                  "with a `finally`: if the call raises, the leash is loosened anyway");
 
             // AND THE NEW PART, which is where it really got stuck.
-            Check("e anche NewDocument, che e' dove si e' piantato il 23/9",
+            Check("and NewDocument too, which is where it got stuck on 23/9",
                   p.Contains("Leash.Begin(\"NewDocument"),
-                  "il modello di documento letto da una condivisione di rete");
+                  "the document template read from a network share");
 
-            Check("e l'uscita e' un codice suo, il 5",
+            Check("and the exit is its own code, 5",
                   p.Contains("System.Environment.Exit(5)"),
-                  "non 1 e non 2: un giro appeso non e' un giro con prove rosse");
+                  "not 1 and not 2: a hung run is not a run with red checks");
 
             TheLibraryUsesIt();
         }
@@ -146,37 +146,37 @@ namespace Oce.Solid.Agent.ContractTests
             var file = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(file))
             {
-                Check("il sorgente dell'esecutore c'e'", false, "manca " + file);
+                Check("the executor source is there", false, "missing " + file);
                 return;
             }
             var p = File.ReadAllText(file);
 
-            Check("anche la libreria ha il guinzaglio",
+            Check("the library has the leash too",
                   p.Contains("new Shared.Leash("),
-                  "la STESSA classe del banco: due scadenze che si comportano " +
-                  "diversamente sono peggio di una sola");
+                  "the SAME class as the bench: two timeouts that behave " +
+                  "differently are worse than one");
 
-            Check("e ogni passo del piano ci passa",
+            Check("and every step of the plan goes through it",
                   p.Contains("_leash.Begin(planStep.Operation") &&
                   p.Contains("finally { _leash.Finished(); }"),
-                  "col `finally`: un passo che alza non deve lasciare il guinzaglio teso");
+                  "with the `finally`: a step that raises must not leave the leash taut");
 
             // ── THE LINE THAT PROTECTS THE PROTOCOL ──────────────────────
             //
             // Over stdio, stdout IS the JSON-RPC channel. A report printed there
             // is not a nuisance: it breaks the conversation, and the client answers
             // -32700 to a request that has nothing to do with it.
-            Check("il referto va su stderr, MAI su stdout",
-                  p.Contains("Console.Error.WriteLine(\"[ponte] \"") &&
+            Check("the report goes to stderr, NEVER to stdout",
+                  p.Contains("Console.Error.WriteLine(\"[bridge] \"") &&
                   !p.Contains("Console.WriteLine(report)"),
-                  "stdout e' il canale JSON-RPC");
+                  "stdout is the JSON-RPC channel");
 
             // ── AND IT DOES NOT KILL SOMEBODY ELSE'S PROCESS ─────────────
             int guardianIndex = p.IndexOf("TurnOnGuardian()", StringComparison.Ordinal);
             string body = guardianIndex < 0 ? "" : p.Substring(guardianIndex);
-            Check("e non uccide il ponte, che e' un servizio di qualcun altro",
+            Check("and it does not kill the bridge, which is somebody else's service",
                   !body.Contains("Environment.Exit"),
-                  "il banco muore, il ponte dice e va avanti");
+                  "the bench dies, the bridge says so and goes on");
         }
     }
 }

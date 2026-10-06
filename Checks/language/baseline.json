@@ -3,14 +3,14 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 31918,
+  "strings": 26872,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 749,
+  "protocol": 739,
   "paths": 0,
-  "transition": 2192
+  "transition": 2188
  },
  "files": {
   ".github/steps/executables-exist.ps1": {
@@ -1403,19 +1403,11 @@
   "README.md": {
    "markdown": 2524
   },
-  "Tests/AliasLayerContract.cs": {
-   "transition": 4
-  },
   "Tests/BenchTests.cs": {
-   "strings": 218,
    "comments": 11
   },
   "Tests/CatalogTests.cs": {
-   "strings": 314,
    "comments": 20
-  },
-  "Tests/ConfirmationTests.cs": {
-   "strings": 57
   },
   "Tests/DescriptionValuesContract.cs": {
    "comments": 13,
@@ -1423,43 +1415,26 @@
   },
   "Tests/DescriptionsTests.cs": {
    "comments": 6,
-   "strings": 47
+   "strings": 8
   },
   "Tests/DocumentSignaturesTests.cs": {
-   "comments": 4,
-   "strings": 74
-  },
-  "Tests/DocumentTests.cs": {
-   "strings": 35
+   "comments": 4
   },
   "Tests/DryRunTests.cs": {
-   "strings": 157
-  },
-  "Tests/ErrorEnumTests.cs": {
-   "strings": 89
-  },
-  "Tests/ExamplesTests.cs": {
-   "strings": 75
+   "strings": 2
   },
   "Tests/ExpectationsTests.cs": {
-   "strings": 495,
-   "comments": 14
-  },
-  "Tests/ForbiddenSignaturesTests.cs": {
-   "strings": 87
-  },
-  "Tests/ImagesTests.cs": {
-   "strings": 55
+   "comments": 14,
+   "strings": 2
   },
   "Tests/LanguageGateTests.cs": {
    "strings": 3
   },
   "Tests/LeashTests.cs": {
-   "strings": 203,
    "comments": 4
   },
   "Tests/LimitsTests.cs": {
-   "strings": 275,
+   "strings": 10,
    "comments": 1
   },
   "Tests/Load.cs": {
@@ -1472,15 +1447,13 @@
    "comments": 2
   },
   "Tests/Program.cs": {
-   "comments": 28,
-   "strings": 719
+   "comments": 28
   },
   "Tests/ProgressTests.cs": {
-   "strings": 485,
-   "comments": 4
+   "comments": 4,
+   "strings": 2
   },
   "Tests/ProtocolTests.cs": {
-   "strings": 257,
    "comments": 1
   },
   "Tests/README.md": {
@@ -1488,33 +1461,26 @@
   },
   "Tests/RefusalsTests.cs": {
    "comments": 134,
-   "strings": 56
-  },
-  "Tests/RegistryTests.cs": {
-   "strings": 308
+   "strings": 7
   },
   "Tests/RequestedDocumentTests.cs": {
-   "comments": 2,
-   "strings": 83
+   "comments": 2
   },
   "Tests/RequiredFieldsTests.cs": {
-   "comments": 1,
-   "strings": 418
+   "comments": 1
   },
   "Tests/SelectionMarksContract.cs": {
    "comments": 4
   },
   "Tests/SentinelTests.cs": {
-   "strings": 224,
    "comments": 3
   },
   "Tests/SessionTests.cs": {
-   "strings": 340,
    "comments": 2
   },
   "Tests/ShapeSpellingContract.cs": {
    "comments": 1,
-   "strings": 7
+   "strings": 1
   },
   "Tests/Zc2110HelpersContract.cs": {
    "comments": 1
@@ -3323,11 +3289,9 @@
    "FINTO-sano",
    "Famiglia",
    "Fatto",
-   "Fermato",
    "FileVersione",
    "Foglio",
    "Frontale",
-   "IGNORATO",
    "Installa",
    "Intero",
    "LAVORO",
@@ -3382,7 +3346,6 @@
    "SALTATA",
    "SCRITTE",
    "SILENZIO",
-   "SORGENTE",
    "SPARITO",
    "Scrivi",
    "Sentinella",
@@ -3415,7 +3378,6 @@
    "accoppia",
    "acqua",
    "adesso",
-   "aggiorna",
    "aggiungi",
    "aiuto",
    "albero",
@@ -3666,7 +3628,6 @@
    "interne",
    "interno",
    "intero",
-   "intestazioni",
    "isometrica",
    "lamiera",
    "lamiera-sonda",
@@ -3693,7 +3654,6 @@
    "lunghezza_mm",
    "manca",
    "marca",
-   "marcata",
    "marcate",
    "marchi",
    "marchio",
@@ -3810,7 +3770,6 @@
    "punti",
    "punto",
    "puoi",
-   "qualcosa",
    "qualita",
    "quando",
    "quanti",
@@ -3857,7 +3816,6 @@
    "ripeti",
    "ripiega_lamiera",
    "ripreso",
-   "riscritto",
    "risolto",
    "risparmia",
    "risposta",
@@ -3884,7 +3842,6 @@
    "schizzo",
    "sconosciuta",
    "sconosciuto",
-   "scorciati",
    "scostamenti",
    "scritto",
    "scriv",
@@ -3914,7 +3871,6 @@
    "simmetrico",
    "sinistro",
    "smusso",
-   "soglia",
    "solidworks_documento_attivo",
    "sommario",
    "sonda",

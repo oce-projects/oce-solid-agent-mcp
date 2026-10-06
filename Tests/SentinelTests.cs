@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("la sentinella: quando SOLIDWORKS se n'e' andato");
+            Group("the sentinel: when SOLIDWORKS has gone away");
 
             // ── TWO FAILURES ARE NOT ENOUGH ───────────────────────────────
             //
@@ -35,13 +35,13 @@ namespace Oce.Solid.Agent.ContractTests
             var s1 = new Shared.SolidWorksSentinel(3);
             s1.Failed();
             s1.Failed();
-            Check("due fallimenti di fila non bastano", !s1.HasGone,
-                  "di fila: " + s1.InARow + " su soglia " + s1.Threshold);
+            Check("two failures in a row are not enough", !s1.HasGone,
+                  "in a row: " + s1.InARow + " on threshold " + s1.Threshold);
 
             // ── THREE YES ─────────────────────────────────────────────────
             bool fired = s1.Failed();
-            Check("al terzo la sentinella scatta", fired && s1.HasGone,
-                  "di fila: " + s1.InARow);
+            Check("at the third the sentinel fires", fired && s1.HasGone,
+                  "in a row: " + s1.InARow);
 
             // ── AND IT DOES NOT GO BACK ───────────────────────────────────
             //
@@ -49,8 +49,8 @@ namespace Oce.Solid.Agent.ContractTests
             // does not resurrect it: from there on the run is no longer valid
             // anyway, because in between there are checks not done.
             s1.Succeeded();
-            Check("una volta scattata non si spegne", s1.HasGone,
-                  "dopo Succeeded(): " + s1.HasGone);
+            Check("once fired it does not turn off", s1.HasGone,
+                  "after Succeeded(): " + s1.HasGone);
 
             // ── «IN A ROW» IS THE WORD THAT COUNTS ───────────────────────
             //
@@ -63,19 +63,19 @@ namespace Oce.Solid.Agent.ContractTests
             s2.Failed(); s2.Succeeded();
             s2.Failed(); s2.Succeeded();
             s2.Failed();
-            Check("tre fallimenti SPARSI non la fanno scattare", !s2.HasGone,
-                  "quattro fallimenti in tutto, mai due di fila: di fila = " + s2.InARow);
+            Check("three SCATTERED failures do not make it fire", !s2.HasGone,
+                  "four failures in all, never two in a row: in a row = " + s2.InARow);
 
             // ── THE THRESHOLD IS A PARAMETER, NOT THE NUMBER THREE ───────
             var s3 = new Shared.SolidWorksSentinel(1);
             s3.Failed();
-            Check("con soglia 1 scatta al primo", s3.HasGone, "soglia " + s3.Threshold);
+            Check("with threshold 1 it fires at the first", s3.HasGone, "threshold " + s3.Threshold);
 
             bool refused = false;
             try { new Shared.SolidWorksSentinel(0); }
             catch (ArgumentOutOfRangeException) { refused = true; }
-            Check("una soglia di zero viene rifiutata", refused,
-                  "scatterebbe prima di guardare");
+            Check("a threshold of zero is refused", refused,
+                  "it would fire before looking");
 
             // ── THE REPORT CARRIES THE NUMBERS ────────────────────────────
             //
@@ -87,10 +87,10 @@ namespace Oce.Solid.Agent.ContractTests
             // said «0 tentativi di fila andati a vuoto» — the 3 that it found
             // was the threshold, in the same sentence. See `_whenItFires`.
             string report = s1.Report();
-            Check("il referto dice quanti tentativi", report.Contains("3 tentativi"), report);
-            Check("il referto dice che NON sono rosse",
-                  report.IndexOf("NON SONO STATE", StringComparison.Ordinal) >= 0,
-                  "la differenza fra «fallita» e «non fatta» e' tutto il punto");
+            Check("the report says how many attempts", report.Contains("3 attempts"), report);
+            Check("the report says they are NOT red",
+                  report.IndexOf("WERE NOT DONE", StringComparison.Ordinal) >= 0,
+                  "the difference between «failed» and «not done» is the whole point");
 
             // ── AND THE BENCH REALLY USES IT ──────────────────────────────
             //
@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.ContractTests
             foreach (var f in new[] { program, assemblyDoc, cases })
                 if (!File.Exists(f))
                 {
-                    Check("i sorgenti del banco ci sono", false, "manca " + f);
+                    Check("the sources of the bench are there", false, "missing " + f);
                     return;
                 }
 
@@ -119,43 +119,43 @@ namespace Oce.Solid.Agent.ContractTests
             string a = File.ReadAllText(assemblyDoc);
             string c = File.ReadAllText(cases);
 
-            Check("il banco costruisce la sentinella",
+            Check("the bench builds the sentinel",
                   Regex.IsMatch(p, @"new Shared\.SolidWorksSentinel\(\s*3\s*\)"),
-                  "soglia 3 in Bench/Program.cs");
+                  "threshold 3 in Bench/Program.cs");
 
             // THE THREE POINTS THAT CREATE DOCUMENTS, one by one. A point that does not
             // go through it is a road along which the bench keeps testing
             // against a dead program — that is, the defect, intact.
-            Check("NewPart consulta la sentinella",
+            Check("NewPart consults the sentinel",
                   p.Contains("if (Sentinel.HasGone)") &&
                   p.Contains("Sentinel.Failed()") &&
                   p.Contains("Sentinel.Succeeded()"),
                   "Bench/Program.cs");
 
-            Check("anche l'assieme di prova ci passa",
+            Check("the test assembly goes through it too",
                   a.Contains("Program.Sentinel.HasGone") &&
                   a.Contains("Program.Sentinel.Failed()"),
-                  "Bench/TestAssembly.cs: un assieme comincia da parti nuove");
+                  "Bench/TestAssembly.cs: an assembly starts from new parts");
 
-            Check("i casi dichiarati si SALTANO, non falliscono",
+            Check("the declared cases are SKIPPED, they do not fail",
                   c.Contains("Sentinel.HasGone") && c.Contains("Skipped("),
-                  "Bench/DeclaredCases.cs: saltata non conta ne' verde ne' rossa");
+                  "Bench/DeclaredCases.cs: skipped counts neither green nor red");
 
             // ── AND EVEN BEFORE THE TRIGGER, RED IS THE WRONG WORD ────────
             //
             // The two cases that consume the first two failures are not red:
             // they are not measured. Before, they ended up in a `catch (Exception)` that
             // marked red whatever had happened.
-            Check("una preparazione fallita non diventa rossa",
+            Check("a failed setup does not become red",
                   c.Contains("catch (Shared.PreparationFailed"),
-                  "Bench/DeclaredCases.cs: errore di banco, o saltata se gia' morto");
+                  "Bench/DeclaredCases.cs: bench error, or skipped if already dead");
 
             // AND IT IS THE TYPE, NOT THE TEXT. A `catch` that recognized the
             // preparation from the message would go back to marking red the day
             // somebody rewrites the sentence — without anything saying so.
-            Check("la preparazione si riconosce dal TIPO, non dal messaggio",
+            Check("the setup is recognized by the TYPE, not by the message",
                   p.Contains("throw new Shared.PreparationFailed("),
-                  "Bench/Program.cs: OrSayIt e la sentinella alzano lo stesso tipo");
+                  "Bench/Program.cs: OrSayIt and the sentinel raise the same type");
 
             // ── EXIT 4, AND IT COMES BEFORE THE OTHERS ────────────────────
             //
@@ -164,14 +164,14 @@ namespace Oce.Solid.Agent.ContractTests
             // run was not done.
             int where4 = p.IndexOf("return 4;", StringComparison.Ordinal);
             int where2 = p.LastIndexOf("if (_benchErrors > 0) return 2;", StringComparison.Ordinal);
-            Check("il verdetto ha l'uscita 4", where4 >= 0, "Bench/Program.cs");
-            Check("la 4 viene prima della 2", where4 >= 0 && where2 >= 0 && where4 < where2,
-                  "un giro non fatto non e' un giro con errori");
+            Check("the verdict has exit 4", where4 >= 0, "Bench/Program.cs");
+            Check("the 4 comes before the 2", where4 >= 0 && where2 >= 0 && where4 < where2,
+                  "a run not done is not a run with errors");
 
             // ── AND SOLIDWORKS CAN BE MADE TO DIE ON COMMAND ──────────────
-            Check("c'e' un modo di vederla scattare sul banco vero",
+            Check("there is a way to see it fire on the real bench",
                   p.Contains("--fingi-senza-solidworks"),
-                  "senza, resterebbe una guardia creduta e mai vista");
+                  "without it, it would stay a guard that is believed and never seen");
 
             // ── THE DOCUMENT TEMPLATE IS NOT READ FROM THE NETWORK (K19) ──
             //
@@ -180,24 +180,24 @@ namespace Oce.Solid.Agent.ContractTests
             // gets stuck while opening it, it keeps the handle and the file can no
             // longer be read even from outside: on 23/9/2026 three runs in a row died,
             // and it looked like the network.
-            Check("il modello di documento si copia in locale",
+            Check("the document template is copied locally",
                   p.Contains("LocalModel("),
                   "Bench/Program.cs");
 
-            Check("la parte nuova nasce dalla copia locale",
+            Check("the new part comes from the local copy",
                   p.Contains("LocalModel(_sw.GetUserPreferenceStringValue("),
-                  "non dal percorso di rete");
+                  "not from the network path");
 
-            Check("e anche l'assieme di prova",
+            Check("and the test assembly too",
                   a.Contains("Program.LocalModel("),
                   "Bench/TestAssembly.cs");
 
             // AND THE COPY ANNOUNCES ITSELF. A bench that silently uses a template
             // different from that of the workstation measures something else.
-            Check("la copia si dice, e anche quando non riesce",
-                  p.Contains("modello copiato in locale") &&
-                  p.Contains("NON ho potuto copiare il modello in locale"),
-                  "tutte e due le strade parlano");
+            Check("the copy is announced, and also when it fails",
+                  p.Contains("model copied locally") &&
+                  p.Contains("I could NOT copy the model locally"),
+                  "both ways speak");
 
             // ── AND IF THE COPY FAILS, WE DO NOT GO BACK TO THE NETWORK FOR NOTHING ──
             //
@@ -206,10 +206,10 @@ namespace Oce.Solid.Agent.ContractTests
             // locally there is the copy of a previous run it is used, and it
             // says **from when it is** — an old template passed off as the current one
             // would be the same old silence.
-            Check("se la copia fallisce si usa quella del giro prima",
-                  p.Contains("uso la copia locale del") &&
+            Check("if the copy fails the one of the previous run is used",
+                  p.Contains("I use the local copy of the") &&
                   p.Contains("File.GetLastWriteTime("),
-                  "e la sua data si legge nel resoconto");
+                  "and its date is read in the report");
         }
     }
 }

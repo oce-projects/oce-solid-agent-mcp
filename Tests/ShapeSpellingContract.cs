@@ -95,7 +95,7 @@ namespace Oce.Solid.Agent.ContractTests
             onCatalogue("export_step", step);
             Check("«a4v» becomes «A4V» and «ap214» «AP214»: the catalogue's spelling, not lower case",
                   Same(sheet["paper_size"], "A4V") && Same(step["protocol"], "AP214"),
-                  "formato = " + Show(sheet["paper_size"]) + ", protocollo = " + Show(step["protocol"]));
+                  "format = " + Show(sheet["paper_size"]) + ", protocol = " + Show(step["protocol"]));
 
             // ── N32 THROUGH THE BRIDGE, AND A FREE TEXT LEFT ALONE ──────────
             var frame = new Dictionary<string, object>
@@ -109,10 +109,10 @@ namespace Oce.Solid.Agent.ContractTests
             refusal = onCatalogue("rectangular_frame", frame);
             Check("rectangular_frame: «Overall» reaches the library as «overall» (N32)",
                   refusal == null && Same(frame["measured_as"], "overall"),
-                  (refusal ?? "accepted") + ", misure = " + Show(frame["measured_as"]));
+                  (refusal ?? "accepted") + ", measures = " + Show(frame["measured_as"]));
             Check("a string that is not an enum is never rewritten («80X80X5» stays)",
                   Same(frame["configuration"], "80X80X5"),
-                  "configurazione = " + Show(frame["configuration"]));
+                  "configuration = " + Show(frame["configuration"]));
 
             // ── INSIDE A NESTED OBJECT ──────────────────────────────────────
             var face = new Dictionary<string, object> { ["step"] = 1, ["kind"] = "Top_Face" };
@@ -123,7 +123,7 @@ namespace Oce.Solid.Agent.ContractTests
             refusal = onCatalogue("cylindrical_cut", hole);
             Check("cylindrical_cut: «faccia_rif.genere» «Top_Face» becomes «top_face»",
                   refusal == null && Same(face["kind"], "top_face"),
-                  (refusal ?? "accepted") + ", genere = " + Show(face["kind"]));
+                  (refusal ?? "accepted") + ", kind = " + Show(face["kind"]));
 
             // ── WHAT IS NOT IN THE LIST IS STILL REFUSED, AND NOT TOUCHED ───
             var unknown = Plate("obliquo");
@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.ContractTests
             refusal = shape("finta", twoWays, ambiguous);
             Check("«Abc» against «abc» and «ABC» is refused, not guessed",
                   refusal != null && Same(ambiguous["mode"], "Abc"),
-                  (refusal ?? "accepted") + ", modo = " + Show(ambiguous["mode"]));
+                  (refusal ?? "accepted") + ", mode = " + Show(ambiguous["mode"]));
 
             // ── EVERY TOP-LEVEL ENUM OF THE CATALOGUE ───────────────────────
             //

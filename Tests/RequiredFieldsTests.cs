@@ -60,58 +60,58 @@ namespace Oce.Solid.Agent.ContractTests
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // ── THEY ARE ASKED FOR: they are the work, not a side matter ──
-                { "extrude_profile.contours", "e' la sagoma: senza, non c'e' niente da estrudere" },
+                { "extrude_profile.contours", "it is the shape: without it there is nothing to extrude" },
                 { "revolve.contours", "idem" },
                 { "extrude_on_face.contours", "idem" },
-                { "revolve.axis", "attorno a cosa gira: un predefinito sceglierebbe il pezzo" },
-                { "extrude_section.variant", "quale profilato: IPE e tubo quadro non si somigliano" },
-                { "hole_wizard.size", "M8 o M10 lo decide il bullone, non l'officina" },
-                { "hole_wizard.positions", "dove vanno i fori: e' la lavorazione stessa" },
-                { "set_dimension.dimension", "quale quota cambiare: indovinarla e' cambiare il pezzo sbagliato" },
-                { "circular_pattern.instance_count", "quante: e' il senso dell'operazione" },
+                { "revolve.axis", "what it revolves around: a default would choose the part" },
+                { "extrude_section.variant", "which section: IPE and square tube are not alike" },
+                { "hole_wizard.size", "M8 or M10 is decided by the bolt, not by the workshop" },
+                { "hole_wizard.positions", "where the holes go: it is the feature itself" },
+                { "set_dimension.dimension", "which dimension to change: guessing it means changing the wrong part" },
+                { "circular_pattern.instance_count", "how many: it is the point of the operation" },
                 { "linear_pattern.instance_count1", "idem" },
-                { "fill_pattern.copies_per_turn", "quante copie per giro: e' la densita' del riempimento, non c'e' un numero d'officina" },
-                { "rib.plane", "il piano decide dove sta la nervatura: un piano d'ufficio la metterebbe di traverso, o fuori dal pezzo" },
-                { "mirror.plane", "rispetto a cosa: un predefinito specchierebbe a caso" },
-                { "note.text", "cosa c'e' scritto: non esiste un testo d'ufficio" },
+                { "fill_pattern.copies_per_turn", "how many copies per turn: it is the density of the fill, there is no workshop number" },
+                { "rib.plane", "the plane decides where the rib sits: a desk plane would put it crosswise, or outside the part" },
+                { "mirror.plane", "with respect to what: a default would mirror at random" },
+                { "note.text", "what is written: there is no desk text" },
                 { "engrave_text.text", "idem" },
-                { "activate_sheet.name", "quale foglio: sono tutti legittimi" },
-                { "cosmetic_thread.designation", "M10x1.5 lo decide l'accoppiamento" },
-                { "measure_between.uid", "fra cosa e cosa si misura" },
-                { "suppress_instance.copies", "quali copie togliere" },
-                { "set_property.name", "quale proprieta'" },
-                { "set_property.value_text", "e cosa scriverci" },
-                { "create_configuration.name", "come si chiama: un nome d'ufficio sarebbe un doppione" },
-                { "activate_configuration.name", "quale attivare" },
-                { "mate.component_a", "quali due pezzi si accoppiano" },
-                { "mate.face_a", "e su quali facce" },
+                { "activate_sheet.name", "which sheet: they are all legitimate" },
+                { "cosmetic_thread.designation", "M10x1.5 is decided by the mating" },
+                { "measure_between.uid", "between what and what it is measured" },
+                { "suppress_instance.copies", "which copies to remove" },
+                { "set_property.name", "which property" },
+                { "set_property.value_text", "and what to write in it" },
+                { "create_configuration.name", "what it is called: a desk name would be a duplicate" },
+                { "activate_configuration.name", "which one to activate" },
+                { "mate.component_a", "which two parts mate" },
+                { "mate.face_a", "and on which faces" },
                 { "mate.component_b", "idem" },
                 { "mate.face_b", "idem" },
-                { "replace_component.component", "quale componente si sostituisce" },
-                { "replace_component.path", "e con quale file" },
-                { "insert_component.path", "quale file si inserisce" },
-                { "base_flange.points", "il profilo della lamiera: e' la lamiera stessa, e da che parte va lo spessore dipende dal verso" },
-                { "surface_finish.ra_um", "la rugosita' la decide la funzione della superficie: un Ra d'ufficio si stamperebbe su ogni faccia" },
-                { "dimension_tolerance.dimension", "quale quota tollerare lo sa solo chi progetta: una tolleranza d'ufficio su una quota scelta da me e' un accoppiamento inventato" },
-                { "dimension_tolerance.variant", "± o H7 e' la domanda stessa: non c'e' un tipo di tolleranza d'ufficio" },
-                { "fix_component.component", "quale componente fissare lo sa chi monta: sceglierlo io sarebbe inchiodare un pezzo a caso" },
-                { "fix_component.grounded", "fissare e liberare sono due cose opposte: non c'e' un verso d'ufficio" },
-                { "global_variable.name", "il nome e' la cosa stessa che si crea: senza, non c'e' una variabile" },
-                { "link_dimension.dimension", "quale quota legare lo sa chi progetta: legarne una a caso cambia un pezzo senza dirlo" },
-                { "link_dimension.expression", "a cosa legarla e' la domanda stessa: non c'e' un'espressione d'ufficio" },
-                { "reorder_feature.placement", "prima o dopo danno due pezzi diversi: non c'e' un verso d'ufficio" },
-                { "sketch_picture.path", "l'immagine da ricalcare e' la cosa stessa: senza, non c'e' niente da mettere" },
-                { "mirror_component.component", "quale pezzo specchiare lo sa chi monta: sceglierlo io sarebbe specchiarne uno a caso" },
-                { "mirror_component.plane", "il piano decide dove va il pezzo: un piano d'ufficio lo mette dalla parte sbagliata" },
-                { "mirror_component.mode", "istanza, legato o slegato sono tre pezzi diversi, e sbagliare non da' errore: si chiede sempre" },
-                { "sketch_picture.plane", "su quale piano sta il disegno lo sa chi lo guarda: un piano d'ufficio lo metterebbe di traverso" },
-                { "geometric_tolerance.characteristic", "planarita' o perpendicolarita' e' la domanda: non c'e' una tolleranza d'ufficio" },
+                { "replace_component.component", "which component is replaced" },
+                { "replace_component.path", "and with which file" },
+                { "insert_component.path", "which file is inserted" },
+                { "base_flange.points", "the profile of the sheet metal: it is the sheet itself, and which side the thickness goes on depends on the direction" },
+                { "surface_finish.ra_um", "the roughness is decided by the function of the surface: a desk Ra would be stamped on every face" },
+                { "dimension_tolerance.dimension", "which dimension to tolerate only the designer knows: a desk tolerance on a dimension chosen by me is an invented fit" },
+                { "dimension_tolerance.variant", "± or H7 is the question itself: there is no desk tolerance type" },
+                { "fix_component.component", "which component to fix is known by whoever assembles: choosing it myself would be nailing down a random part" },
+                { "fix_component.grounded", "fixing and freeing are two opposite things: there is no desk direction" },
+                { "global_variable.name", "the name is the very thing that is created: without it there is no variable" },
+                { "link_dimension.dimension", "which dimension to link is known by the designer: linking a random one changes a part without saying so" },
+                { "link_dimension.expression", "what to link it to is the question itself: there is no desk expression" },
+                { "reorder_feature.placement", "before or after give two different parts: there is no desk direction" },
+                { "sketch_picture.path", "the image to trace is the very thing: without it there is nothing to place" },
+                { "mirror_component.component", "which part to mirror is known by whoever assembles: choosing it myself would be mirroring a random one" },
+                { "mirror_component.plane", "the plane decides where the part goes: a desk plane puts it on the wrong side" },
+                { "mirror_component.mode", "instance, linked or unlinked are three different parts, and getting it wrong gives no error: it is always asked" },
+                { "sketch_picture.plane", "which plane the drawing is on is known by whoever looks at it: a desk plane would put it crosswise" },
+                { "geometric_tolerance.characteristic", "flatness or perpendicularity is the question: there is no desk tolerance" },
 
                 // ── THEY DEPEND ON THE WORKSHOP, NOT ON US (entry Z-G8) ──────
                 { "structural_member.profile_path",
-                  "la libreria dei profili e' di QUESTA officina: un predefinito " +
-                  "nostro sarebbe il percorso della nostra macchina. Vedi Z-G8" },
-                { "structural_member.configuration", "idem: la misura sta in quella libreria" },
+                  "the library of the profiles belongs to THIS workshop: a default " +
+                  "of ours would be the path of our machine. See Z-G8" },
+                { "structural_member.configuration", "likewise: the measurement is in that library" },
                 { "rectangular_frame.profile_path", "idem" },
                 { "rectangular_frame.configuration", "idem" },
 
@@ -136,12 +136,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("ogni campo obbligatorio e' una decisione presa (Z-G3)");
+            Group("every mandatory field is a decision taken (Z-G3)");
 
             var file = ServedCatalog();
             if (!File.Exists(file))
             {
-                Check("il catalogo servito c'e'", false, "manca " + file);
+                Check("the served catalog is there", false, "missing " + file);
                 return;
             }
 
@@ -152,7 +152,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ? raw as object[] : null;
             if (entries == null)
             {
-                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("the catalog has the operations", false, "«operations» is not a list");
                 return;
             }
 
@@ -183,26 +183,26 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
 
-            Check("i campi obbligatori si contano", mandatory > 0,
-                  mandatory + " in tutto: " + quote + " quote o riferimenti (si chiedono), " +
-                  (mandatory - quote) + " da decidere");
+            Check("the mandatory fields are counted", mandatory > 0,
+                  mandatory + " in all: " + quote + " dimensions or references (they are asked for), " +
+                  (mandatory - quote) + " to decide");
 
-            Check("ogni campo che non e' una quota ha una decisione scritta",
+            Check("every field that is not a dimension has a written decision",
                   withoutDecision.Count == 0,
                   withoutDecision.Count == 0
-                      ? Decided.Count + " decisioni, tutte in `RequiredFieldsTests.cs`"
-                      : "SENZA DECISIONE: " + string.Join(", ", withoutDecision));
+                      ? Decided.Count + " decisions, all in `RequiredFieldsTests.cs`"
+                      : "WITHOUT A DECISION: " + string.Join(", ", withoutDecision));
 
             // ── AND A DECISION FOR A FIELD THAT IS NO LONGER THERE IS NOISE ──
             //
             // Same reason as the list of exceptions in Z-C7: an expired permission
             // covers the day somebody rewrites that spot.
             var ghosts = Decided.Keys.Where(k => !foundItems.Contains(k)).ToList();
-            Check("e nessuna decisione riguarda un campo che non esiste piu'",
+            Check("and no decision concerns a field that no longer exists",
                   ghosts.Count == 0,
                   ghosts.Count == 0
-                      ? "nessuna decisione scaduta"
-                      : "non esistono piu': " + string.Join(", ", ghosts));
+                      ? "no expired decision"
+                      : "no longer exist: " + string.Join(", ", ghosts));
 
             // ── THE CANDIDATES LEFT, if there are any ─────────────────────
             //
@@ -213,10 +213,10 @@ namespace Oce.Solid.Agent.ContractTests
             // precisely when the work ends. Now it limits itself to telling them.
             var candidates = Decided.Where(x => x.Value.StartsWith("CANDIDATO", StringComparison.Ordinal))
                                   .Select(x => x.Key).ToList();
-            Check("i campi che avrebbero un valore d'officina sono nominati", true,
+            Check("the fields that would have a workshop value are named", true,
                   candidates.Count == 0
-                      ? "nessun candidato rimasto: i due di Z-G3 sono fatti"
-                      : candidates.Count + " candidati, non ancora fatti: " +
+                      ? "no candidate left: the two of Z-G3 are done"
+                      : candidates.Count + " candidates, not yet done: " +
                         string.Join(", ", candidates));
 
             // ── AND THE TWO FACTS ARE LOOKED AT IN THE SERVED CATALOGUE ───
@@ -271,14 +271,14 @@ namespace Oce.Solid.Agent.ContractTests
                 bool mandatoryAnchor = requested != null &&
                     requested.Any(x => Convert.ToString(x) == theField);
 
-                Check(operation + "." + theField + " ha il suo predefinito, e non e' piu' obbligatorio",
+                Check(operation + "." + theField + " has its default, and is no longer mandatory",
                       Convert.ToString(d) == expected && !mandatoryAnchor,
                       "default=" + (d == null ? "(nessuno)" : "«" + Convert.ToString(d) + "»") +
                       ", obbligatorio=" + mandatoryAnchor);
                 return;
             }
-            Check(operation + "." + theField + " ha il suo predefinito, e non e' piu' obbligatorio",
-                  false, "l'operazione «" + operation + "» non e' in catalogo");
+            Check(operation + "." + theField + " has its default, and is no longer mandatory",
+                  false, "the operation «" + operation + "» is not in the catalog");
         }
     }
 }

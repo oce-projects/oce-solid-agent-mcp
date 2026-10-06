@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             Group("Session.SameDocument");
 
-            var bridge = BridgeOrNotHere("Session.SameDocument, per intero");
+            var bridge = BridgeOrNotHere("Session.SameDocument, in full");
             if (bridge == null) return;
 
             MethodInfo same;
@@ -32,12 +32,12 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "Session");
-                if (typ == null) { Check("la classe Session c'e'", false, ""); return; }
+                if (typ == null) { Check("the Session class is there", false, ""); return; }
                 same = typ.GetMethod("SameDocument",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (same == null) { Check("SameDocument c'e'", false, ""); return; }
+                if (same == null) { Check("SameDocument is there", false, ""); return; }
             }
-            catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
             Func<Dictionary<string, object>, Dictionary<string, object>, bool> equal =
                 (a, b) => (bool)same.Invoke(null, new object[] { a, b });
@@ -50,23 +50,23 @@ namespace Oce.Solid.Agent.ContractTests
             // It is the only thing that does not change. Two documents with the same title and
             // a different path are two different parts, and taking them for one
             // is exactly the defect that this function defends against.
-            Check("stesso percorso, titolo diverso: lo stesso documento",
+            Check("same path, different title: the same document",
                   equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\b.SLDPRT", "Parte2")));
-            Check("percorso diverso, titolo uguale: NON lo stesso documento",
+            Check("different path, same title: NOT the same document",
                   !equal(id(@"S:\a\b.SLDPRT", "Parte1"), id(@"S:\a\c.SLDPRT", "Parte1")));
 
             // ── THE TWO BACKSLASHES ARE THE SAME BACKSLASH ───────────────
-            Check("«/» e «\\» sono lo stesso percorso",
+            Check("«/» and «\\» are the same path",
                   equal(id("S:/a/b.SLDPRT", ""), id(@"S:\a\b.SLDPRT", "")));
-            Check("maiuscole e minuscole non contano",
+            Check("upper and lower case do not matter",
                   equal(id(@"S:\A\B.sldprt", ""), id(@"s:\a\b.SLDPRT", "")));
-            Check("gli spazi attorno non contano",
+            Check("the spaces around do not matter",
                   equal(id(@"  S:\a\b.SLDPRT  ", ""), id(@"S:\a\b.SLDPRT", "")));
 
             // ── THE NEVER-SAVED ARE COMPARED BY TITLE ────────────────────
-            Check("senza percorso, il titolo decide",
+            Check("without a path, the title decides",
                   equal(id("", "Parte286"), id("", "Parte286")));
-            Check("senza percorso, titoli diversi: documenti diversi",
+            Check("without a path, different titles: different documents",
                   !equal(id("", "Parte286"), id("", "Parte287")));
 
             // ── TWO EMPTY IDENTITIES ARE NOT THE SAME DOCUMENT ───────────
@@ -74,13 +74,13 @@ namespace Oce.Solid.Agent.ContractTests
             // It is the case that counts: «I do not know who you are» and «I do not know who you are» do not
             // make «you are the same person». Answering yes here would mean
             // letting any document through.
-            Check("due identita' vuote NON sono lo stesso documento",
+            Check("two empty identities are NOT the same document",
                   !equal(id("", ""), id("", "")));
-            Check("null non e' lo stesso di niente", !equal(null, id("", "Parte1")));
-            Check("null e null non sono lo stesso documento", !equal(null, null));
+            Check("null is not the same as nothing", !equal(null, id("", "Parte1")));
+            Check("null and null are not the same document", !equal(null, null));
 
             // ── ONE SAVED AND ONE NOT: different ─────────────────────────
-            Check("uno salvato e uno mai salvato, stesso titolo: diversi",
+            Check("one saved and one never saved, same title: different",
                   !equal(id(@"S:\a\Parte1.SLDPRT", "Parte1"), id("", "Parte1")));
 
             TheTurnKey(bridge);
@@ -102,26 +102,26 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheFileVersion(string bridge)
         {
-            Group("le proprieta' del file dicono la versione (H14)");
+            Group("the file properties say the version (H14)");
             string expectation;
             try { expectation = File.ReadAllText(Path.Combine(Root(), "VERSION.txt")).Trim(); }
-            catch (Exception ex) { Check("VERSION.txt si legge", false, ex.Message); return; }
+            catch (Exception ex) { Check("VERSION.txt can be read", false, ex.Message); return; }
 
             var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(bridge);
-            Check("il ponte: versione del file = VERSION.txt",
+            Check("the bridge: file version = VERSION.txt",
                   vi.FileVersion == expectation + ".0", "file " + vi.FileVersion + ", VERSION.txt " + expectation);
-            Check("il ponte: versione del prodotto = VERSION.txt",
+            Check("the bridge: product version = VERSION.txt",
                   vi.ProductVersion == expectation, "prodotto " + vi.ProductVersion);
 
             var install = Path.Combine(Root(), "dist", "Installer.exe");
             if (!File.Exists(install))
             {
-                Check("l'installatore c'e' (dist\\Installer.exe) per controllarne la versione", false,
-                      "non costruito: .\\build.ps1");
+                Check("the installer is there (dist\\Installer.exe) to check its version", false,
+                      "not built: .\\build.ps1");
                 return;
             }
             var vj = System.Diagnostics.FileVersionInfo.GetVersionInfo(install);
-            Check("l'installatore: versione del file = VERSION.txt",
+            Check("the installer: file version = VERSION.txt",
                   vj.FileVersion == expectation + ".0", "file " + vj.FileVersion + ", VERSION.txt " + expectation);
         }
 
@@ -137,15 +137,15 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void NotInstalledOrNotOpen(string bridge)
         {
-            Group("Session.AttachMessage: non installato o non aperto (H16)");
+            Group("Session.AttachMessage: not installed or not open (H16)");
             MethodInfo m;
             try
             {
                 var typ = Load.Class(Load.Bridge(bridge), "Session");
                 m = typ?.GetMethod("AttachMessage", BindingFlags.NonPublic | BindingFlags.Static);
-                if (m == null) { Check("AttachMessage c'e'", false, ""); return; }
+                if (m == null) { Check("AttachMessage is there", false, ""); return; }
             }
-            catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
             Func<uint, string> sentence = c => (string)m.Invoke(null, new object[] { unchecked((int)c) });
 
@@ -161,7 +161,7 @@ namespace Oce.Solid.Agent.ContractTests
                       t.IndexOf("does not seem to be open", StringComparison.Ordinal) < 0, t);
             }
             var other = sentence(0x80004005);
-            Check("un codice qualunque si dice in esadecimale", other.Contains("0x80004005"), other);
+            Check("any code is written in hexadecimal", other.Contains("0x80004005"), other);
         }
 
         /// <summary>
@@ -185,26 +185,26 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheTurnFires(string bridge)
         {
-            Group("DocumentTurn: il lucchetto scatta fra due processi (W2.9)");
+            Group("DocumentTurn: the lock fires between two processes (W2.9)");
 
             MethodInfo take, keyOf;
             try
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "DocumentTurn");
-                if (typ == null) { Check("la classe DocumentTurn c'e'", false, ""); return; }
+                if (typ == null) { Check("the DocumentTurn class is there", false, ""); return; }
                 take = typ.GetMethod("Take", BindingFlags.Public | BindingFlags.Static);
                 keyOf = typ.GetMethod("KeyOf", BindingFlags.NonPublic | BindingFlags.Static);
-                if (take == null || keyOf == null) { Check("Take e KeyOf ci sono", false, ""); return; }
+                if (take == null || keyOf == null) { Check("Take and KeyOf are there", false, ""); return; }
             }
-            catch (Exception ex) { Check("DocumentTurn si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("DocumentTurn loads", false, ex.ToString()); return; }
 
             // A path that does not exist and that no real bridge is using:
             // the lock is its own and that is all.
             var fake = new FakeDocument(
                 @"C:\prova-turno\" + Guid.NewGuid().ToString("N") + ".sldprt", "prova");
             var key = keyOf.Invoke(null, new object[] { fake, null }) as string;
-            if (string.IsNullOrEmpty(key)) { Check("la chiave di prova c'e'", false, ""); return; }
+            if (string.IsNullOrEmpty(key)) { Check("the test key is there", false, ""); return; }
             string itemName = @"Local\OceSolidAgent_" + key;
 
             Func<IDisposable> test = () =>
@@ -212,7 +212,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // 1. free: it is taken, and by releasing it it becomes free again.
             var t1 = test();
-            Check("libero: il turno si prende", t1 != null);
+            Check("free: the turn is taken", t1 != null);
             if (t1 != null) t1.Dispose();
 
             // 2. held by ANOTHER PROCESS: the bridge must refuse.
@@ -221,7 +221,7 @@ namespace Oce.Solid.Agent.ContractTests
             try { File.Delete(ready); } catch { }
             string command =
                 "$m = New-Object System.Threading.Mutex($false, '" + itemName + "'); " +
-                "[void]$m.WaitOne(); Set-Content -Path '" + ready + "' -Value preso; " +
+                "[void]$m.WaitOne(); Set-Content -Path '" + ready + "' -Value taken; " +
                 "Start-Sleep -Seconds 20";
             System.Diagnostics.Process child = null;
             try
@@ -238,23 +238,23 @@ namespace Oce.Solid.Agent.ContractTests
                     System.Threading.Thread.Sleep(100);
                 if (!File.Exists(ready))
                 {
-                    Check("un secondo processo tiene il lucchetto", false,
-                          "la PowerShell figlia non ha preso il mutex entro 15 s");
+                    Check("a second process holds the lock", false,
+                          "the child PowerShell did not take the mutex within 15 s");
                     return;
                 }
 
                 var t2 = test();
-                Check("lo tiene un ALTRO processo: il ponte rifiuta", t2 == null,
-                      t2 == null ? "Take -> null, cioe' «il documento e' in uso da un altro ponte»"
-                                 : "Take ha dato il turno anche se un altro processo lo teneva");
+                Check("it is held by ANOTHER process: the bridge refuses", t2 == null,
+                      t2 == null ? "Take -> null, that is «the document is in use by another bridge»"
+                                 : "Take gave the turn even though another process held it");
                 if (t2 != null) t2.Dispose();
 
                 // 3. the process DIES without releasing: the turn becomes free again.
                 child.Kill();
                 child.WaitForExit(5000);
                 var t3 = test();
-                Check("chi lo teneva e' morto senza rilasciarlo: il turno si riprende", t3 != null,
-                      "un lucchetto che resta chiuso dopo che chi l'ha chiuso e' morto non e' un lucchetto, e' un guasto");
+                Check("whoever held it died without releasing it: the turn is taken back", t3 != null,
+                      "a lock that stays closed after whoever closed it has died is not a lock, it is a fault");
                 if (t3 != null) t3.Dispose();
             }
             finally
@@ -267,7 +267,7 @@ namespace Oce.Solid.Agent.ContractTests
             var tA = test();
             var other = new FakeDocument(@"C:\prova-turno\altro-" + Guid.NewGuid().ToString("N") + ".sldprt", "altro");
             var tB = take.Invoke(null, new object[] { other, null }) as IDisposable;
-            Check("un documento diverso non aspetta il lucchetto del primo", tA != null && tB != null);
+            Check("a different document does not wait for the lock of the first", tA != null && tB != null);
             if (tA != null) tA.Dispose();
             if (tB != null) tB.Dispose();
         }
@@ -295,12 +295,12 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "McpTools");
-                if (typ == null) { Check("la classe McpTools c'e'", false, ""); return; }
+                if (typ == null) { Check("the McpTools class is there", false, ""); return; }
                 changed = typ.GetMethod("WhatChanged",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (changed == null) { Check("WhatChanged c'e'", false, ""); return; }
+                if (changed == null) { Check("WhatChanged is there", false, ""); return; }
             }
-            catch (Exception ex) { Check("il ponte si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("the bridge loads", false, ex.ToString()); return; }
 
             Func<Dictionary<string, object>, Dictionary<string, object>, string> whichOne =
                 (a, b) => (string)changed.Invoke(null, new object[] { a, b });
@@ -319,7 +319,7 @@ namespace Oce.Solid.Agent.ContractTests
             // would pass that check and would stop «build» saying nothing:
             // the worse of the two ways of getting it wrong, because the warning is there and
             // it is not clear what it is about.
-            Check("due firme uguali: non e' cambiato niente",
+            Check("two equal signatures: nothing has changed",
                   whichOne(signature(96000.0, 3), signature(96000.0, 3)) == null,
                   Convert.ToString(whichOne(signature(96000.0, 3), signature(96000.0, 3)) ?? "(null)"));
 
@@ -330,11 +330,11 @@ namespace Oce.Solid.Agent.ContractTests
             // difference between a warning that is read and one that one learns to
             // ignore.
             var v = whichOne(signature(96000.0, 3), signature(94500.0, 3));
-            Check("il volume cambiato si dice, con i due numeri",
+            Check("the changed volume is reported, with the two numbers",
                   v != null && v.Contains("96000") && v.Contains("94500"), v ?? "(null)");
 
             var l = whichOne(signature(96000.0, 3), signature(96000.0, 4));
-            Check("una lavorazione in piu' si dice, con i due conti",
+            Check("one more feature is reported, with the two counts",
                   l != null && l.Contains("3") && l.Contains("4"), l ?? "(null)");
 
             // ── TWO THINGS CHANGED ARE BOTH TOLD ─────────────────────────
@@ -343,8 +343,8 @@ namespace Oce.Solid.Agent.ContractTests
             // changed» be read by whoever also has one more feature, and the second
             // would come out only on the next run.
             var due = whichOne(signature(96000.0, 3), signature(94500.0, 4));
-            Check("due differenze si dicono tutte e due",
-                  due != null && due.Contains("volume") && due.Contains("lavorazioni"),
+            Check("two differences are both reported",
+                  due != null && due.Contains("volume") && due.Contains("features"),
                   due ?? "(null)");
 
             // ── «IT WAS NOT THERE» AND «NOW IT IS» IS A DIFFERENCE ───────
@@ -353,8 +353,8 @@ namespace Oce.Solid.Agent.ContractTests
             // as zero would say «the volume went from 0 to 96000», which is a
             // sentence about a part that has never existed.
             var born = whichOne(signature(null, 0), signature(96000.0, 1));
-            Check("da «nessun volume» a un volume: e' una differenza",
-                  born != null && born.Contains("nessuno"), born ?? "(null)");
+            Check("from «no volume» to a volume: it is a difference",
+                  born != null && born.Contains("none"), born ?? "(null)");
 
             // ── WITHOUT A TERM, NO COMPARISON ────────────────────────────
             //
@@ -362,9 +362,9 @@ namespace Oce.Solid.Agent.ContractTests
             // same» nor «everything has changed»: it is the absence of the question. If it
             // answered «changed», «build» would always stop at the first
             // call after a bridge that has just started.
-            Check("senza la firma di prima non si dice niente",
+            Check("without the previous signature nothing is said",
                   whichOne(null, signature(96000.0, 3)) == null);
-            Check("senza la firma di adesso non si dice niente",
+            Check("without the current signature nothing is said",
                   whichOne(signature(96000.0, 3), null) == null);
 
             // ── THE DATE OF THE FILE ─────────────────────────────────────
@@ -373,9 +373,9 @@ namespace Oce.Solid.Agent.ContractTests
             var written2 = new Dictionary<string, object>(StringComparer.Ordinal)
                 { ["file_written"] = "2026-09-23T07:00:00.0000000Z" };
             var rewritten = whichOne(written1, written2);
-            Check("un file riscritto si dice", rewritten != null && rewritten.Contains("riscritto"),
+            Check("a rewritten file is reported", rewritten != null && rewritten.Contains("rewritten"),
                   rewritten ?? "(null)");
-            Check("stessa data: non e' cambiato niente", whichOne(written1, written1) == null);
+            Check("same date: nothing has changed", whichOne(written1, written1) == null);
         }
 
         /// <summary>
@@ -400,19 +400,19 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void TheTurnKey(string bridge)
         {
-            Group("DocumentTurn: la chiave");
+            Group("DocumentTurn: the key");
 
             MethodInfo keyOf;
             try
             {
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "DocumentTurn");
-                if (typ == null) { Check("la classe DocumentTurn c'e'", false, ""); return; }
+                if (typ == null) { Check("the DocumentTurn class is there", false, ""); return; }
                 keyOf = typ.GetMethod("KeyOf",
                     BindingFlags.NonPublic | BindingFlags.Static);
-                if (keyOf == null) { Check("KeyOf c'e'", false, ""); return; }
+                if (keyOf == null) { Check("KeyOf is there", false, ""); return; }
             }
-            catch (Exception ex) { Check("DocumentTurn si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("DocumentTurn loads", false, ex.ToString()); return; }
 
             Func<string, string, string> key = (filePath, docTitle) =>
             {
@@ -420,13 +420,13 @@ namespace Oce.Solid.Agent.ContractTests
                 return keyOf.Invoke(null, arg) as string;
             };
 
-            Check("lo stesso percorso da' la stessa chiave",
+            Check("the same path gives the same key",
                   key(@"S:\a\b.sldprt", "b") == key(@"S:\a\b.sldprt", "altro"),
-                  "e il titolo non c'entra: conta il file");
-            Check("maiuscole diverse, stessa chiave",
+                  "and the title does not matter: the file counts");
+            Check("different capitals, same key",
                   key(@"S:\A\B.SLDPRT", "") == key(@"s:\a\b.sldprt", ""),
-                  "su Windows due percorsi che differiscono per il caso sono lo stesso file");
-            Check("percorsi diversi, chiavi diverse",
+                  "on Windows two paths that differ by case are the same file");
+            Check("different paths, different keys",
                   key(@"S:\a\b.sldprt", "") != key(@"S:\a\c.sldprt", ""));
 
             // THE CASE THAT A TRUNCATION WOULD HAVE BROKEN: two files in the same
@@ -434,22 +434,22 @@ namespace Oce.Solid.Agent.ContractTests
             // key derived from the truncated path they would be the same thing, and
             // two different parts would block each other.
             string along = @"S:\" + new string('x', 200) + @"\";
-            Check("due file in una cartella profondissima restano distinti",
+            Check("two files in a very deep folder stay distinct",
                   key(along + "uno.sldprt", "") != key(along + "due.sldprt", ""),
-                  "e' il caso che un troncamento del percorso avrebbe fuso");
+                  "it is the case that a truncation of the path would have merged");
 
-            Check("senza percorso si usa il titolo",
+            Check("without a path the title is used",
                   key("", "Parte286") != null &&
                   key("", "Parte286") == key("", "Parte286"));
-            Check("titoli diversi, chiavi diverse",
+            Check("different titles, different keys",
                   key("", "Parte286") != key("", "Parte287"));
 
             // NOTHING IN, NOTHING OUT: no key, and therefore no lock.
             // Locking on an invented key would merge different documents and
             // let the equal ones through: it would do the opposite of what
             // is needed.
-            Check("senza percorso NE titolo non c'e' chiave", key("", "") == null,
-                  "un lucchetto su una chiave inventata e' peggio di nessun lucchetto");
+            Check("without a path NOR a title there is no key", key("", "") == null,
+                  "a lock on an invented key is worse than no lock");
         }
 
         /// <summary>

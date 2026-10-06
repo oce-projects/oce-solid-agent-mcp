@@ -241,8 +241,21 @@ namespace Oce.Solid.Agent.ContractTests
         /// **217, W3.1-bis.8 pilot (5/10/2026): +1.** The refusals of the cluster of
         /// cases that assert the messages of Bridge/ are English now: the count of
         /// remedies went from 216 to 217 of 937 with the translation.
+        /// **263, W3.1-bis.8 (6/10/2026): +46, the whole of the messages in English.**
+        /// The 937 refusals with a message of their own are English now, and the
+        /// English forms of the list count them: 263 of 937 (28.1%), against 216 of
+        /// 937 (23.0%) on the Italian text of window 3 and the 236 of 935 (25.2%) of
+        /// W3.1-bis.2. The rise is the DETECTOR meeting English sentences, not messages
+        /// that were improved: a part of the +46 are generic forms («, or», «call it»,
+        /// «put the») that an English refusal holds without its being a remedy, and the
+        /// translators also restored remedies that a literal translation had hidden. It
+        /// is said here so that nobody reads the floor as work done. The drop from 236
+        /// to 216 in window 3 was never lost remedies: the old count judged the
+        /// whole statement, and 22 variables and methods with an Italian name held a
+        /// remedy word; when the names became English the words went, and the
+        /// messages stayed what they were.
         /// </summary>
-        private const int Floor = 217;
+        private const int Floor = 263;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -256,7 +269,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 217;   // 5/10/2026, W3.1-bis.8 pilot: 217 of 937 (216 before the pilot, 216 before and after window 3)
+        private const int ShareFloorWithRemedy = 263;   // 6/10/2026, W3.1-bis.8: 263 of 937 (217 after the pilot, 216 before and after window 3)
         private const int ShareFloorWithText = 937;
 
         /// <summary>
@@ -399,12 +412,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("i rifiuti che dicono anche cosa fare (Z-G4)");
+            Group("the refusals that also say what to do (Z-G4)");
 
             var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(folder))
             {
-                Check("la cartella della libreria c'e'", false, "manca " + folder);
+                Check("the library folder is there", false, "missing " + folder);
                 return;
             }
 
@@ -413,20 +426,20 @@ namespace Oce.Solid.Agent.ContractTests
             var tally = Count(sources, ItalianForms, EnglishForms);
             int total = tally.Points, withText = tally.WithText, forward = tally.Forwarded, withRoad = tally.WithRemedy;
 
-            Check("i punti di rifiuto si contano", total > 0,
-                  total + " punti: " + withText + " con un messaggio proprio, " +
-                  forward + " che ne inoltrano uno scritto altrove");
+            Check("the refusal points are counted", total > 0,
+                  total + " points: " + withText + " with a message of their own, " +
+                  forward + " that forward one written elsewhere");
 
             // THE FLOOR GOES UP AND DOES NOT GO DOWN.
-            Check("i rifiuti con una strada non sono diminuiti",
+            Check("the refusals with a way forward have not decreased",
                   withRoad >= Floor,
-                  withRoad + " su " + withText + " (" + (withText == 0 ? 0 : withRoad * 100 / withText) +
-                  "%), pavimento " + Floor);
+                  withRoad + " out of " + withText + " (" + (withText == 0 ? 0 : withRoad * 100 / withText) +
+                  "%), floor " + Floor);
 
-            Check("e il pavimento e' quello vero", withRoad == Floor,
+            Check("and the floor is the real one", withRoad == Floor,
                   withRoad == Floor
                       ? withRoad + ", as measured"
-                      : "sono " + withRoad + ": alza il pavimento a questo numero");
+                      : "there are " + withRoad + ": raise the floor to this number");
 
             // WHERE THE MUTE ONES ARE, because a number without an address does not
             // make anybody start.
@@ -434,9 +447,9 @@ namespace Oce.Solid.Agent.ContractTests
                 .GroupBy(r => r.File).ToDictionary(g => g.Key, g => g.Count());
             var worse = perFile.OrderByDescending(x => x.Value).Take(5)
                 .Select(x => x.Key + " (" + x.Value + ")");
-            Check("si sa da dove cominciare", perFile.Count > 0 || withRoad == total,
-                  perFile.Count == 0 ? "nessun rifiuto muto"
-                                     : "i piu' muti: " + string.Join(", ", worse));
+            Check("it is known where to start", perFile.Count > 0 || withRoad == total,
+                  perFile.Count == 0 ? "no mute refusal"
+                                     : "the most mute: " + string.Join(", ", worse));
 
             Bilingual(tally);
         }

@@ -41,15 +41,15 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("il protocollo MCP");
+            Group("the MCP protocol");
 
-            var bridge = BridgeOrNotHere("il protocollo MCP, per intero");
+            var bridge = BridgeOrNotHere("the MCP protocol, in full");
             if (bridge == null) return;
 
             using (var p = Open(bridge))
             {
-                if (p == null) { Check("il ponte parte", false, "non e' partito"); return; }
-                Check("il ponte parte anche senza SOLIDWORKS", true, "");
+                if (p == null) { Check("the bridge starts", false, "it did not start"); return; }
+                Check("the bridge starts even without SOLIDWORKS", true, "");
 
                 // ── initialize SENDS BACK THE VERSION RECEIVED ────────────────
                 var r = Ask(p, 1,
@@ -58,11 +58,11 @@ namespace Oce.Solid.Agent.ContractTests
                     "\"clientInfo\":{\"name\":\"prove\",\"version\":\"1\"}}}");
                 Check("initialize risponde", r != null,
                       r != null ? Short(r)
-                                : "niente entro " + (TimeoutMs / 1000) + "s. Righe viste finora: " +
+                                : "nothing within " + (TimeoutMs / 1000) + "s. Lines seen so far: " +
                                   string.Join(" | ", p.Views.Take(3)));
                 var iniz = Obj(r);
                 var result = Inside(iniz, "result") as Dictionary<string, object>;
-                Check("initialize rimanda la versione di protocollo ricevuta",
+                Check("initialize sends back the protocol version received",
                       result != null &&
                       Convert.ToString(Inside(result, "protocolVersion")) == "2024-11-05",
                       Convert.ToString(Inside(result, "protocolVersion")));
@@ -81,10 +81,10 @@ namespace Oce.Solid.Agent.ContractTests
                 var expected = RepositoryVersion();
                 var info = Inside(result, "serverInfo") as Dictionary<string, object>;
                 var called = Convert.ToString(Inside(info, "version"));
-                Check("e la versione che il ponte annuncia e' quella di VERSION.txt",
+                Check("and the version that the bridge announces is the one of VERSION.txt",
                       expected != null && called == expected,
                       expected == null
-                          ? "VERSION.txt non si legge"
+                          ? "VERSION.txt cannot be read"
                           : "annunciata «" + called + "», VERSION.txt dice «" + expected + "»");
 
                 // ── A NOTIFICATION RECEIVES NO ANSWER ──────────────────────
@@ -127,7 +127,7 @@ namespace Oce.Solid.Agent.ContractTests
                     var method = objBefore == null ? null : Convert.ToString(Inside(objBefore, "method"));
                     if (method != "notifications/message") break;
                 }
-                Check("una notifica NON riceve risposta",
+                Check("a notification gets NO reply",
                       objBefore != null && objBefore.ContainsKey("id") &&
                       Convert.ToString(objBefore["id"]) == "2",
                       Short(before));
@@ -149,7 +149,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // U1.1). Changed on purpose, like the seventh.
                 Check("tools/list gives exactly nine tools",
                       tools != null && tools.Length == 9,
-                      tools == null ? "(niente)" : tools.Length + " strumenti: " +
+                      tools == null ? "(nothing)" : tools.Length + " strumenti: " +
                           string.Join(", ", tools.Select(s => Convert.ToString(Inside(s, "name")))));
 
                 // ── THE ANNOTATIONS TELL THE TRUTH ───────────────────────
@@ -166,19 +166,19 @@ namespace Oce.Solid.Agent.ContractTests
                     return s == null ? null
                         : Convert.ToString(Inside(Inside(s, "annotations"), theField));
                 };
-                Check("«measure» si dichiara di sola lettura",
+                Check("«measure» declares itself read-only",
                       string.Equals(ann("measure", "readOnlyHint"), "True",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("measure", "readOnlyHint") ?? "(manca)");
-                Check("«measure» NON si dichiara distruttivo",
+                Check("«measure» does NOT declare itself destructive",
                       string.Equals(ann("measure", "destructiveHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("measure", "destructiveHint") ?? "(manca)");
-                Check("«build» resta distruttivo",
+                Check("«build» stays destructive",
                       string.Equals(ann("build", "destructiveHint"), "True",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("build", "destructiveHint") ?? "(manca)");
-                Check("«build» NON si dichiara idempotente",
+                Check("«build» does NOT declare itself idempotent",
                       string.Equals(ann("build", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("build", "idempotentHint") ?? "(manca)");
@@ -189,15 +189,15 @@ namespace Oce.Solid.Agent.ContractTests
                 // next plan would write into a different part from the one
                 // the person working has in front. And it is NOT idempotent: «create» twice
                 // makes two documents.
-                Check("«document» NON si dichiara di sola lettura",
+                Check("«document» does NOT declare itself read-only",
                       string.Equals(ann("document", "readOnlyHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("document", "readOnlyHint") ?? "(manca)");
-                Check("«document» NON si dichiara idempotente",
+                Check("«document» does NOT declare itself idempotent",
                       string.Equals(ann("document", "idempotentHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("document", "idempotentHint") ?? "(manca)");
-                Check("«document» NON si dichiara distruttivo: non chiude e non butta niente",
+                Check("«document» does NOT declare itself destructive: it does not close and does not throw away anything",
                       string.Equals(ann("document", "destructiveHint"), "False",
                                     StringComparison.OrdinalIgnoreCase),
                       ann("document", "destructiveHint") ?? "(manca)");
@@ -207,12 +207,12 @@ namespace Oce.Solid.Agent.ContractTests
                     var schema = Inside(s, "inputSchema") as Dictionary<string, object>;
                     return schema != null && Convert.ToString(Inside(schema, "type")) == "object";
                 });
-                Check("ogni strumento ha un inputSchema di tipo object", schemasOk);
+                Check("every tool has an inputSchema of type object", schemasOk);
 
                 bool namesOk = tools != null && tools.All(s =>
                     !string.IsNullOrWhiteSpace(Convert.ToString(Inside(s, "name"))) &&
                     !string.IsNullOrWhiteSpace(Convert.ToString(Inside(s, "description"))));
-                Check("ogni strumento ha nome e descrizione", namesOk);
+                Check("every tool has a name and a description", namesOk);
 
                 // `title` AT THE FIRST LEVEL, not only inside `annotations`.
                 // In the recent revisions of the spec it is on the tool; a
@@ -220,8 +220,8 @@ namespace Oce.Solid.Agent.ContractTests
                 // `inspect_part` to whoever is working.
                 bool titlesOk = tools != null && tools.All(s =>
                     !string.IsNullOrWhiteSpace(Convert.ToString(Inside(s, "title"))));
-                Check("ogni strumento ha un «title» di primo livello", titlesOk,
-                      tools == null ? "(niente)" : string.Join(", ",
+                Check("every tool has a top-level «title»", titlesOk,
+                      tools == null ? "(nothing)" : string.Join(", ",
                           tools.Select(s => Convert.ToString(Inside(s, "title")))));
 
                 // ── A TOOL THAT IS NOT THERE ─────────────────────────────
@@ -235,11 +235,11 @@ namespace Oce.Solid.Agent.ContractTests
                 var unknown = Obj(Ask(p, 3,
                     "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"strumento_che_non_esiste\",\"arguments\":{}}}"));
-                Check("uno strumento sconosciuto NON e' un errore JSON-RPC",
+                Check("an unknown tool is NOT a JSON-RPC error",
                       unknown != null && !unknown.ContainsKey("error"),
                       Short(Convert.ToString(Inside(unknown, "error"))));
                 var its = Inside(unknown, "result") as Dictionary<string, object>;
-                Check("uno strumento sconosciuto da' isError: true nel contenuto",
+                Check("an unknown tool gives isError: true in the content",
                       its != null && its.ContainsKey("isError") &&
                       Convert.ToString(its["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase));
 
@@ -257,11 +257,11 @@ namespace Oce.Solid.Agent.ContractTests
                     .Where(n => !string.IsNullOrWhiteSpace(n) &&
                                 unknownText.IndexOf(n, StringComparison.Ordinal) < 0)
                     .ToList();
-                Check("il messaggio elenca TUTTI gli strumenti che tools/list dichiara",
+                Check("the message lists ALL the tools that tools/list declares",
                       missingItems.Count == 0,
                       missingItems.Count == 0
                           ? "tutti e " + (tools == null ? 0 : tools.Length)
-                          : "non nominati: " + string.Join(", ", missingItems));
+                          : "not named: " + string.Join(", ", missingItems));
 
                 // ── «measure» REFUSES WHAT TOUCHES THE PART ───────────────
                 //
@@ -279,17 +279,17 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"name\":\"measure\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"extrude_rectangle\",\"arguments\":{}}]}}}"));
                 var itsTouch = Inside(touches, "result") as Dictionary<string, object>;
-                Check("«measure» rifiuta «extrude_rectangle»",
+                Check("«measure» refuses «extrude_rectangle»",
                       itsTouch != null && itsTouch.ContainsKey("isError") &&
                       Convert.ToString(itsTouch["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase),
                       Short(TextOf(itsTouch)));
                 // AND IT SAYS SO WITH THE CRITERION, not with a verdict: whoever reads must
                 // know WITH WHICH tool it is done, otherwise they must guess.
-                Check("il rifiuto dice con quale strumento si fa",
+                Check("the refusal says with which tool it is done",
                       TextOf(itsTouch).IndexOf("build", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(TextOf(itsTouch)));
-                Check("il rifiuto dice che non ha eseguito niente",
-                      TextOf(itsTouch).IndexOf("niente", StringComparison.OrdinalIgnoreCase) >= 0,
+                Check("the refusal says it did not execute anything",
+                      TextOf(itsTouch).IndexOf("nothing", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(TextOf(itsTouch)));
 
                 // ── THE DATA ALSO COME OUT IN A READABLE FORM (entry W2.4) ──
@@ -302,9 +302,9 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":" +
                     "{\"name\":\"list_operations\",\"arguments\":{}}}"));
                 var itsList = Inside(list, "result") as Dictionary<string, object>;
-                Check("il testo c'e' ancora", TextOf(itsList).Length > 0,
+                Check("the text is still there", TextOf(itsList).Length > 0,
                       Short(TextOf(itsList)));
-                Check("e accanto c'e' «structuredContent»",
+                Check("and next to it there is «structuredContent»",
                       itsList != null && itsList.ContainsKey("structuredContent") &&
                       itsList["structuredContent"] != null,
                       itsList != null && itsList.ContainsKey("structuredContent")
@@ -316,10 +316,10 @@ namespace Oce.Solid.Agent.ContractTests
                 // this check says so.
                 bool conSchema = tools != null && tools.Any(
                     s => Inside(s, "outputSchema") != null);
-                Check("nessuno strumento dichiara un «outputSchema» a meta'", !conSchema,
+                Check("no tool declares an «outputSchema» halfway", !conSchema,
                       conSchema
-                          ? "qualcuno lo dichiara: o la forma e' stabile e va scritto tutto, o va tolto"
-                          : "nessuno, come deciso");
+                          ? "someone declares it: either the shape is stable and all of it must be written, or it must be removed"
+                          : "none, as decided");
 
                 // ── THE LEVEL OF NARRATION CAN BE ASKED FOR (entry W2.8) ────
                 //
@@ -331,7 +331,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var levelOk = Obj(Ask(p, 6,
                     "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"logging/setLevel\"," +
                     "\"params\":{\"level\":\"warning\"}}"));
-                Check("logging/setLevel accetta un livello vero",
+                Check("logging/setLevel accepts a real level",
                       levelOk != null && levelOk.ContainsKey("result") &&
                       !levelOk.ContainsKey("error"),
                       Short(Convert.ToString(Inside(levelOk, "error"))));
@@ -340,10 +340,10 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"logging/setLevel\"," +
                     "\"params\":{\"level\":\"fortissimo\"}}"));
                 var levelError = Inside(levelNo, "error") as Dictionary<string, object>;
-                Check("logging/setLevel RIFIUTA un livello inventato",
+                Check("logging/setLevel REFUSES an invented level",
                       levelError != null,
-                      levelError == null ? "(l'ha accettato)" : "-32602");
-                Check("e dice quali sono i livelli veri",
+                      levelError == null ? "(it accepted it)" : "-32602");
+                Check("and says which are the real levels",
                       levelError != null &&
                       Convert.ToString(Inside(levelError, "message"))
                              .IndexOf("emergency", StringComparison.Ordinal) >= 0,
@@ -356,20 +356,20 @@ namespace Oce.Solid.Agent.ContractTests
                 var resourceList = Obj(Ask(p, 40,
                     "{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"resources/list\",\"params\":{}}"));
                 var risorse = Inside(Inside(resourceList, "result"), "resources") as object[];
-                Check("resources/list da' il catalogo",
+                Check("resources/list gives the catalog",
                       risorse != null && risorse.Length == 1 &&
                       Convert.ToString(Inside(risorse[0], "uri")) == "catalog://operations",
-                      risorse == null ? "(niente)" : risorse.Length + ": " +
+                      risorse == null ? "(nothing)" : risorse.Length + ": " +
                           string.Join(", ", risorse.Select(x => Convert.ToString(Inside(x, "uri")))));
 
                 var models = Obj(Ask(p, 41,
                     "{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"resources/templates/list\",\"params\":{}}"));
                 var schemas = Inside(Inside(models, "result"), "resourceTemplates") as object[];
-                Check("resources/templates/list da' il modello per una operazione",
+                Check("resources/templates/list gives the template for an operation",
                       schemas != null && schemas.Length == 1 &&
                       Convert.ToString(Inside(schemas[0], "uriTemplate"))
                           == "catalog://operation/{name}",
-                      schemas == null ? "(niente)" : schemas.Length + ": " +
+                      schemas == null ? "(nothing)" : schemas.Length + ": " +
                           string.Join(", ", schemas.Select(x => Convert.ToString(Inside(x, "uriTemplate")))));
 
                 // ── AND THIS IS THE REAL CHECK: **THE TWO DOORS, ONE THING** ──
@@ -386,7 +386,7 @@ namespace Oce.Solid.Agent.ContractTests
                 var contents = Inside(Inside(reading, "result"), "contents") as object[];
                 var resourceText = contents == null || contents.Length == 0
                     ? null : Convert.ToString(Inside(contents[0], "text"));
-                Check("resources/read torna il testo del catalogo",
+                Check("resources/read returns the text of the catalog",
                       !string.IsNullOrWhiteSpace(resourceText) &&
                       resourceText.IndexOf("\"families\"", StringComparison.Ordinal) >= 0,
                       Short(resourceText));
@@ -397,13 +397,13 @@ namespace Oce.Solid.Agent.ContractTests
                 var parts = Inside(Inside(fromTool, "result"), "content") as object[];
                 var toolText = parts == null || parts.Length == 0
                     ? null : Convert.ToString(Inside(parts[0], "text"));
-                Check("la risorsa e lo strumento dicono LA STESSA COSA",
+                Check("the resource and the tool say THE SAME THING",
                       !string.IsNullOrWhiteSpace(resourceText) &&
                       !string.IsNullOrWhiteSpace(toolText) &&
                       string.Equals(resourceText, toolText, StringComparison.Ordinal),
                       resourceText == null || toolText == null
-                          ? "(una delle due e' vuota)"
-                          : resourceText.Length + " caratteri contro " + toolText.Length);
+                          ? "(one of the two is empty)"
+                          : resourceText.Length + " characters against " + toolText.Length);
 
                 // ── A URI THAT DOES NOT EXIST SAYS WHAT EXISTS ───────────────
                 //
@@ -414,23 +414,23 @@ namespace Oce.Solid.Agent.ContractTests
                 var uriError = Inside(missing, "error") as Dictionary<string, object>;
                 var messageUri = uriError == null
                     ? null : Convert.ToString(Inside(uriError, "message"));
-                Check("un URI sconosciuto e' un errore, non una risposta vuota",
-                      uriError != null, uriError == null ? "(ha risposto ok)" : Short(messageUri));
-                Check("e l'errore dice quali URI ci sono",
+                Check("an unknown URI is an error, not an empty answer",
+                      uriError != null, uriError == null ? "(it answered ok)" : Short(messageUri));
+                Check("and the error says which URIs there are",
                       messageUri != null &&
                       messageUri.IndexOf("catalog://operations", StringComparison.Ordinal) >= 0,
                       Short(messageUri));
 
                 // ── JSON MALFORMATO: -32700, id nullo ─────────────────────
-                Write(p, "{questo non e' json");
+                Write(p, "{this is not json");
                 var crooked = Obj(Line(p, TimeoutMs));
                 var error = Inside(crooked, "error") as Dictionary<string, object>;
-                Check("JSON malformato da' -32700",
+                Check("malformed JSON gives -32700",
                       error != null && Convert.ToString(Inside(error, "code")) == "-32700",
                       Convert.ToString(Inside(error, "code")));
                 Check("JSON malformato risponde con id nullo",
                       crooked != null && crooked.ContainsKey("id") && crooked["id"] == null,
-                      crooked == null ? "(niente)" : Convert.ToString(crooked["id"]));
+                      crooked == null ? "(nothing)" : Convert.ToString(crooked["id"]));
 
                 // ── ON STDOUT THERE IS NOTHING THAT IS NOT JSON ─────────────
                 //
@@ -438,12 +438,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // that ends up on stdout breaks the customer, who reads JSON line
                 // by line. It is declared twice in the comments of the bridge and
                 // nobody has ever tested it.
-                Check("su stdout ogni riga e' JSON",
+                Check("on stdout every line is JSON",
                       p.LinesNotJson.Count == 0,
                       p.LinesNotJson.Count == 0
-                          ? p.LinesRead + " righe, tutte JSON"
-                          : "righe non JSON: " + string.Join(" | ", p.LinesNotJson.Take(3)));
-                Check("su stdout ci sono state righe da leggere", p.LinesRead > 0,
+                          ? p.LinesRead + " lines, all JSON"
+                          : "non-JSON lines: " + string.Join(" | ", p.LinesNotJson.Take(3)));
+                Check("on stdout there were lines to read", p.LinesRead > 0,
                       p.LinesRead + " righe");
 
                 Close(p);
@@ -471,11 +471,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         private static void WithoutCatalogMeasureCloses(string bridge)
         {
-            Group("il ponte senza catalogo");
+            Group("the bridge without a catalog");
             using (var p = OpenWithBrokenCatalog(bridge))
             {
-                if (p == null) { Check("il ponte parte anche senza catalogo", false, ""); return; }
-                Check("il ponte parte anche senza catalogo", true, "");
+                if (p == null) { Check("the bridge starts even without a catalog", false, ""); return; }
+                Check("the bridge starts even without a catalog", true, "");
 
                 Ask(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
@@ -488,11 +488,11 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"name\":\"measure\",\"arguments\":{\"steps\":[" +
                     "{\"operation\":\"extrude_rectangle\",\"arguments\":{}}]}}}"));
                 var its = Inside(r, "result") as Dictionary<string, object>;
-                Check("senza catalogo «measure» NON esegue",
+                Check("without a catalog «measure» does NOT execute",
                       its != null && its.ContainsKey("isError") &&
                       Convert.ToString(its["isError"]).Equals("True", StringComparison.OrdinalIgnoreCase),
                       Short(TextOf(its)));
-                Check("e dice che e' colpa del catalogo, non un errore qualunque",
+                Check("and says it is the fault of the catalog, not just any error",
                       TextOf(its).IndexOf("catalogo", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(TextOf(its)));
 

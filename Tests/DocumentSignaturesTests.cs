@@ -80,16 +80,16 @@ namespace Oce.Solid.Agent.ContractTests
                 bool seenSignatures = Regex.IsMatch(around, @"_seenSignatures\s*=");
                 bool lightSignature = Regex.IsMatch(around, @"_signatureSeen\s*=");
                 if (!seenSignatures || !lightSignature)
-                    outside.Add("riga " + (i + 1) + ": _seen cambia da solo" +
-                              (seenSignatures ? "" : " (manca _seenSignatures)") +
-                              (lightSignature ? "" : " (manca _signatureSeen)"));
+                    outside.Add("line " + (i + 1) + ": _seen changes on its own" +
+                              (seenSignatures ? "" : " (_seenSignatures missing)") +
+                              (lightSignature ? "" : " (_signatureSeen missing)"));
             }
             return outside;
         }
 
         internal static void All()
         {
-            Group("le firme non sopravvivono al cambio di documento (Z-A1)");
+            Group("the signatures do not survive the change of document (Z-A1)");
 
             // ── FIRST: CAN THE RULE SAY NO? ──────────────────────────────
             //
@@ -102,8 +102,8 @@ namespace Oce.Solid.Agent.ContractTests
                 "            _seen = now;",
                 "            return Protocol.Content(\"...\", true);",
             };
-            Check("la regola prende il difetto vero", Sole(defect).Count == 1,
-                  Sole(defect).Count == 1 ? Sole(defect)[0] : "NON l'ha preso");
+            Check("the rule catches the real defect", Sole(defect).Count == 1,
+                  Sole(defect).Count == 1 ? Sole(defect)[0] : "it did NOT catch it");
 
             // ── AND IT DOES NOT PUNISH WHOEVER EXPLAINS ───────────────────
             //
@@ -115,37 +115,37 @@ namespace Oce.Solid.Agent.ContractTests
                 "                _seenSignatures = StateSignatures(after);",
                 "                _signatureSeen = LightSignature(after);",
             };
-            for (int k = 0; k < 25; k++) good.Add("                // " + k + " righe di spiegazione");
+            for (int k = 0; k < 25; k++) good.Add("                // " + k + " lines of explanation");
             good.Add("                _seen = StateIdentity(after);");
-            Check("e non punisce chi spiega", Sole(good.ToArray()).Count == 0,
-                  "venticinque righe di commento fra le firme e `_seen`");
+            Check("and it does not punish whoever explains", Sole(good.ToArray()).Count == 0,
+                  "twenty-five lines of comment between the signatures and `_seen`");
 
             // ── THEN: THE REAL SOURCE ─────────────────────────────────────
             var file = Path.Combine(Root(), "Tools", "McpTools.cs");
             if (!File.Exists(file))
             {
-                Check("il sorgente del ponte c'e'", false, "manca " + file);
+                Check("the bridge source is there", false, "missing " + file);
                 return;
             }
             var lines = File.ReadAllLines(file);
             var sole = Sole(lines);
 
-            Check("nessun `_seen =` viaggia da solo", sole.Count == 0,
+            Check("no `_seen =` travels alone", sole.Count == 0,
                   sole.Count == 0
-                      ? "ogni cambio di documento rifa' o butta le firme"
+                      ? "every change of document redoes or throws away the signatures"
                       : string.Join(" | ", sole));
 
             // ── AND THE PRECISE CASE THAT THE DEFECT EXPLOITED ────────────
             var text = File.ReadAllText(file);
-            Check("un documento nominato butta le firme vecchie",
+            Check("a named document throws away the old signatures",
                   Regex.IsMatch(text,
                       @"if\s*\(\s*!theCheckedOne\s*\)\s*\{[^}]*_seenSignatures\s*=\s*null[^}]*_signatureSeen\s*=\s*null[^}]*\}\s*(?:\r?\n)\s*_seen\s*=\s*now"),
-                  "prima si buttano, poi si sposta `_seen`");
+                  "first they are thrown away, then `_seen` is moved");
 
-            Check("e accanto c'e' il perche'",
+            Check("and the why is next to it",
                   text.Contains("better no comparison than a comparison") ||
                   text.Contains("the old signatures are thrown away"),
-                  "una regola senza il motivo dura fino al primo che la legge");
+                  "a rule without the reason lasts until the first person who reads it");
         }
     }
 }

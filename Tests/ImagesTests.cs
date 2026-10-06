@@ -36,39 +36,39 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("cosa accompagna una fotografia (Z-C10)");
+            Group("what goes with a photograph (Z-C10)");
 
             var file = Path.Combine(Root(), "Tools", "McpTools.cs");
             if (!File.Exists(file))
             {
-                Check("il sorgente del ponte c'e'", false, "manca " + file);
+                Check("the bridge source is there", false, "missing " + file);
                 return;
             }
             var text = File.ReadAllText(file);
 
-            Check("la didascalia dice che i numeri dell'immagine non sono autorevoli",
-                  text.Contains("non sono autorevoli"),
-                  "Tools/McpTools.cs, accanto alle viste");
+            Check("the caption says that the numbers read from the image are not authoritative",
+                  text.Contains("are not authoritative"),
+                  "Tools/McpTools.cs, next to the views");
 
             // THE NUMBERS, NOT THE ADJECTIVE. «It may be imprecise» does not change
             // anybody's behaviour; «90 read as 79» does.
-            Check("e porta gli errori misurati, non un aggettivo",
+            Check("and it carries the measured errors, not an adjective",
                   text.Contains("90") && text.Contains("79") &&
-                  text.Contains("12,5") && text.Contains("letta 6"),
-                  "Ø90 letto 79; parete 12,5 letta 6");
+                  text.Contains("12.5") && text.Contains("read as 6"),
+                  "Ø90 read as 79; wall 12.5 read as 6");
 
             // AND THE WAY TO THE TRUE MEASUREMENT. A warning without an alternative
             // leaves the model with the same problem and the doubt on top.
-            Check("e nomina come si prende la misura vera",
+            Check("and names how to take the real measurement",
                   text.Contains("measure_between") &&
                   text.Contains("minimum_distance") &&
                   text.Contains("body_bounding_box"),
-                  "tre operazioni nominate, piu' lo stato");
+                  "three named operations, plus the state");
 
             // ── AND THE REASON, which is what makes the notice memorable ──
-            Check("e dice PERCHE' l'isometrica sbaglia",
-                  text.Contains("scorciati"),
-                  "in isometrica gli spessori sono scorciati e sembrano piu' grossi");
+            Check("and says WHY the isometric view is wrong",
+                  text.Contains("foreshortened"),
+                  "in isometric the thicknesses are foreshortened and look bigger");
         }
     }
 }

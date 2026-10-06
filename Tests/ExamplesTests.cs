@@ -62,12 +62,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("gli esempi si copiano da un caso verde (Z-G1)");
+            Group("the examples are copied from a green case (Z-G1)");
 
             var file = ServedCatalog();
             if (!File.Exists(file))
             {
-                Check("il catalogo servito c'e'", false, "manca " + file);
+                Check("the served catalog is there", false, "missing " + file);
                 return;
             }
 
@@ -78,7 +78,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ? raw as object[] : null;
             if (entries == null)
             {
-                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("the catalog has the operations", false, "«operations» is not a list");
                 return;
             }
 
@@ -104,12 +104,12 @@ namespace Oce.Solid.Agent.ContractTests
                 Dictionary<string, object> arguments = null;
                 try { arguments = s.DeserializeObject(example) as Dictionary<string, object>; }
                 catch (Exception ex) { unreadable.Add(itemName + ": " + ex.Message); continue; }
-                if (arguments == null) { unreadable.Add(itemName + ": non e' un oggetto"); continue; }
+                if (arguments == null) { unreadable.Add(itemName + ": is not an object"); continue; }
 
                 // ── IS IT COPYABLE? ───────────────────────────────────────
                 foreach (var bad in BenchOnly)
                     if (example.Contains(bad))
-                        contaminated.Add(itemName + " contiene «" + bad + "»");
+                        contaminated.Add(itemName + " contains «" + bad + "»");
 
                 // ── AND DO THE FIELDS EXIST IN THE SCHEMA? ────────────────
                 //
@@ -127,30 +127,30 @@ namespace Oce.Solid.Agent.ContractTests
                         outsideSchema.Add(itemName + "." + theField);
             }
 
-            Check("gli esempi non sono diminuiti", withExample >= Floor,
-                  withExample + " operazioni su " + entries.Length +
-                  " hanno un esempio (pavimento " + Floor + ")");
+            Check("the examples have not decreased", withExample >= Floor,
+                  withExample + " operations out of " + entries.Length +
+                  " have an example (floor " + Floor + ")");
 
-            Check("e il pavimento e' quello vero", withExample == Floor,
+            Check("and the floor is the real one", withExample == Floor,
                   withExample == Floor
-                      ? "ventiquattro, come misurati"
-                      : "sono " + withExample + ": alza il pavimento a questo numero");
+                      ? "twenty-four, as measured"
+                      : "there are " + withExample + ": raise the floor to this number");
 
-            Check("ogni esempio e' JSON leggibile", unreadable.Count == 0,
+            Check("every example is readable JSON", unreadable.Count == 0,
                   unreadable.Count == 0 ? "tutti" : string.Join(" | ", unreadable));
 
             // THIS IS THE CHECK THAT COUNTS.
-            Check("nessun esempio usa qualcosa che vive solo nel banco",
+            Check("no example uses something that lives only in the bench",
                   contaminated.Count == 0,
                   contaminated.Count == 0
-                      ? "niente selettori @, niente segnaposto {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
+                      ? "no @ selectors, no placeholders {LAVORO}/{PROFILI}/{DATI}/{SOLIDWORKS}"
                       : string.Join(" | ", contaminated));
 
-            Check("e ogni campo dell'esempio esiste nello schema",
+            Check("and every field of the example exists in the schema",
                   outsideSchema.Count == 0,
                   outsideSchema.Count == 0
-                      ? "nessun esempio invecchiato"
-                      : "campi che lo schema non ha: " + string.Join(", ", outsideSchema));
+                      ? "no outdated example"
+                      : "fields that the schema does not have: " + string.Join(", ", outsideSchema));
         }
     }
 }

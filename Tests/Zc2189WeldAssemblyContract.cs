@@ -510,7 +510,9 @@ namespace Oce.Solid.Agent.ContractTests
                           "no expected words for the verdict in that bench case");
                     return;
                 }
-                string alarm = expected[0];
+                // The alarm that opens the verdict is fixed here: the case now asks for the sentence that explains it
+                // (the words «The parts occupy the same space»), not for the bare word, which many other messages share.
+                string alarm = "WARNING";
                 var two = new List<string> { "base-1", "lid-1" };
                 var certain = (string)Call(sw, "InterferenceVerdict", 1, (int?)0, true, 19200.0, 0.0, two);
                 var onlyPossible = (string)Call(sw, "InterferenceVerdict", 1, (int?)1, true, 5.0, 5.0, two);

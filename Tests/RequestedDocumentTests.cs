@@ -42,12 +42,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("ogni operazione dice su che documento gira (Z-D0-ter)");
+            Group("every operation says what document it runs on (Z-D0-ter)");
 
             var file = ServedCatalog();
             if (!File.Exists(file))
             {
-                Check("il catalogo servito c'e'", false, "manca " + file);
+                Check("the served catalog is there", false, "missing " + file);
                 return;
             }
 
@@ -58,7 +58,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ? raw as object[] : null;
             if (entries == null)
             {
-                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("the catalog has the operations", false, "«operations» is not a list");
                 return;
             }
 
@@ -96,12 +96,12 @@ namespace Oce.Solid.Agent.ContractTests
                 nameSet.Add(doc);
             }
 
-            Check("nessuna operazione tace sul documento", withoutField.Count == 0,
+            Check("no operation stays silent about the document", withoutField.Count == 0,
                   withoutField.Count == 0
-                      ? entries.Length + " operazioni, tutte dichiarate"
+                      ? entries.Length + " operations, all declared"
                       : "tacciono: " + string.Join(", ", withoutField));
 
-            Check("e nessuna usa una parola fuori dal vocabolario",
+            Check("and none uses a word outside the vocabulary",
                   outsideVocabulary.Count == 0,
                   outsideVocabulary.Count == 0
                       ? "solo: " + string.Join(", ", Allowed)
@@ -116,11 +116,11 @@ namespace Oce.Solid.Agent.ContractTests
             var mixed = perFamily.Where(x => x.Value.Count > 1)
                 .Select(x => x.Key + " (" + string.Join(", ", x.Value.OrderBy(s => s)) + ")")
                 .ToList();
-            Check("il campo dice qualcosa che la famiglia non diceva",
+            Check("the field says something that the family did not say",
                   mixed.Count > 0,
                   mixed.Count > 0
-                      ? "famiglie con piu' di un documento: " + string.Join(" | ", mixed)
-                      : "NESSUNA famiglia mista: il campo e' un doppione, toglilo");
+                      ? "families with more than one document: " + string.Join(" | ", mixed)
+                      : "NO mixed family: the field is a duplicate, remove it");
 
             // ── AND WHAT IT DECLARES MUST BE EXECUTABLE ──────────────────
             //
@@ -132,7 +132,7 @@ namespace Oce.Solid.Agent.ContractTests
             string executor = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(executor))
             {
-                Check("il sorgente dell'esecutore c'e'", false, "manca " + executor);
+                Check("the executor source is there", false, "missing " + executor);
                 return;
             }
             var text = File.ReadAllText(executor);
@@ -144,7 +144,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (Regex.IsMatch(block, @"swDocASSEMBLY")) allowedByExecutor.Add("assembly");
             if (Regex.IsMatch(block, @"swDocDRAWING")) allowedByExecutor.Add("drawing");
 
-            Check("i tipi ammessi si leggono dal sorgente dell'esecutore",
+            Check("the accepted types are read from the source of the executor",
                   allowedByExecutor.Count > 0,
                   string.Join(", ", allowedByExecutor.OrderBy(s => s)));
 
@@ -158,11 +158,11 @@ namespace Oce.Solid.Agent.ContractTests
                         unreachable.Add(part + " (" + pair.Value + " operazioni)");
                 }
             }
-            Check("nessuna operazione promette un documento che l'esecutore rifiuta",
+            Check("no operation promises a document that the executor refuses",
                   unreachable.Count == 0,
                   unreachable.Count == 0
-                      ? "tutti i documenti dichiarati sono eseguibili"
-                      : "PROMESSI E IRRAGGIUNGIBILI: " + string.Join(", ", unreachable.Distinct()));
+                      ? "all the declared documents are executable"
+                      : "PROMISED AND UNREACHABLE: " + string.Join(", ", unreachable.Distinct()));
         }
     }
 }

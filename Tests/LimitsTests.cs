@@ -109,12 +109,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("i limiti misurati e le descrizioni che li dichiarano (Z-G5, Z-C11)");
+            Group("the measured limits and the descriptions that declare them (Z-G5, Z-C11)");
 
             var folder = Path.Combine(Root(), "Bench", "cases");
             if (!Directory.Exists(folder))
             {
-                Check("la cartella dei casi c'e'", false, "manca " + folder);
+                Check("the cases folder is there", false, "missing " + folder);
                 return;
             }
 
@@ -202,7 +202,7 @@ namespace Oce.Solid.Agent.ContractTests
                     // stopping the whole case there. It happened with the case of the
                     // drawing that was looked at: three holes without expectations, and the expectations of the
                     // drawing never ran. It is seen by reading the JSON.
-                    else if (!planStep.ContainsKey("must_fail")) muteSteps.Add(itemName + " / passo " + number);
+                    else if (!planStep.ContainsKey("must_fail")) muteSteps.Add(itemName + " / step " + number);
                     object opN, argN;
                     string opName = planStep.TryGetValue("operation", out opN) ? Convert.ToString(opN) : "";
                     string argText = planStep.TryGetValue("arguments", out argN) ? js.Serialize(argN) : "{}";
@@ -257,7 +257,7 @@ namespace Oce.Solid.Agent.ContractTests
 
                     object op;
                     string operation = planStep.TryGetValue("operation", out op)
-                        ? Convert.ToString(op) : "(senza nome)";
+                        ? Convert.ToString(op) : "(no name)";
                     int howMany;
                     refusedOperations.TryGetValue(operation, out howMany);
                     refusedOperations[operation] = howMany + 1;
@@ -268,7 +268,7 @@ namespace Oce.Solid.Agent.ContractTests
                         ? Convert.ToString(g) : null;
                     if (string.IsNullOrEmpty(twin)) withoutTwin.Add(itemName + " / " + operation);
                     else if (!names.Contains(twin))
-                        absentTwins.Add(itemName + " -> «" + twin + "» non esiste");
+                        absentTwins.Add(itemName + " -> «" + twin + "» does not exist");
 
                     // ── AND THE MESSAGE MUST BE DEMANDED ─────────────────────
                     //
@@ -287,20 +287,20 @@ namespace Oce.Solid.Agent.ContractTests
             // are the list to look at one by one; a NEW case that cites a
             // body by number turns this check red on the day
             // it is written: `@body(name=...)` is used.
-            Check("i casi che citano un corpo per numero non aumentano (Z-C16)",
+            Check("the cases that cite a body by number do not increase (Z-C16)",
                   casesWithNumbers.Count <= BodiesByNumberCap,
-                  casesWithNumbers.Count + " casi (tetto " + BodiesByNumberCap + "): " +
+                  casesWithNumbers.Count + " cases (ceiling " + BodiesByNumberCap + "): " +
                   string.Join(", ", casesWithNumbers));
-            Check("e il tetto dei corpi per numero e' quello vero",
+            Check("and the ceiling of bodies by number is the real one",
                   casesWithNumbers.Count == BodiesByNumberCap,
                   casesWithNumbers.Count == BodiesByNumberCap
                       ? "tetto " + BodiesByNumberCap
-                      : "sono " + casesWithNumbers.Count + ": abbassa il tetto a questo numero");
+                      : "there are " + casesWithNumbers.Count + ": lower the ceiling to this number");
 
-            Check("ogni passo di un caso misura qualcosa (come pretende il banco)", muteSteps.Count == 0,
-                  muteSteps.Count == 0 ? "nessun passo senza attese" : string.Join(" | ", muteSteps));
+            Check("every step of a case measures something (as the bench demands)", muteSteps.Count == 0,
+                  muteSteps.Count == 0 ? "no step without expectations" : string.Join(" | ", muteSteps));
 
-            Check("tutti i file di caso si leggono", unreadable.Count == 0,
+            Check("all the case files can be read", unreadable.Count == 0,
                   unreadable.Count == 0
                       ? file.Length + " file (" + declared + " casi, " + planes + " piani)"
                       : string.Join(" | ", unreadable));
@@ -336,7 +336,7 @@ namespace Oce.Solid.Agent.ContractTests
                     if (p.Item1 == r.Item2 && !p.Item3) { itsItems = p.Item2; break; }
                 if (itsItems == null)
                 {
-                    far.Add(r.Item1 + " -> " + r.Item4 + ": nessun passo «" + r.Item2 + "» che riesce");
+                    far.Add(r.Item1 + " -> " + r.Item4 + ": no «" + r.Item2 + "» step that succeeds");
                     continue;
                 }
                 string why;
@@ -361,7 +361,7 @@ namespace Oce.Solid.Agent.ContractTests
                 }
                 if (location < 0)
                 {
-                    far.Add(r.Item1 + " -> " + r.Item4 + ": nessun passo «" + r.Item2 + "» che riesce");
+                    far.Add(r.Item1 + " -> " + r.Item4 + ": no «" + r.Item2 + "» step that succeeds");
                     continue;
                 }
                 object argG;
@@ -373,43 +373,43 @@ namespace Oce.Solid.Agent.ContractTests
                     far.Add(r.Item1 + " -> " + r.Item4 + ": " + why);
             }
 
-            Check("ogni gemella somiglia al suo rifiuto come la vuole il banco (F5, vista prima del giro)",
+            Check("every twin resembles its refusal as the bench wants it (F5, seen before the run)",
                   far.Count == 0,
                   far.Count == 0
-                      ? refusalsWithTwin.Count + " coppie guardate col criterio del banco, " +
-                        refusalsInPart.Count + " con la differenza dichiarata nel pezzo"
+                      ? refusalsWithTwin.Count + " pairs looked at with the criterion of the bench, " +
+                        refusalsInPart.Count + " with the difference declared in the part"
                       : string.Join(" | ", far));
 
-            Check("nessuna gemella e' identica al suo rifiuto (voce F5, vista prima del giro)",
+            Check("no twin is identical to its refusal (entry F5, seen before the run)",
                   fake.Count == 0,
-                  fake.Count == 0 ? refusalsToCompare.Count + " rifiuti con gemella confrontati" : string.Join(" | ", fake));
+                  fake.Count == 0 ? refusalsToCompare.Count + " refusals with a twin compared" : string.Join(" | ", fake));
 
-            Check("ogni tolleranza dice perche' (la regola del banco, vista prima del giro)",
+            Check("every tolerance says why (the rule of the bench, seen before the run)",
                   withoutWhy.Count == 0,
                   withoutWhy.Count == 0
-                      ? "nessuna tolleranza muta"
+                      ? "no mute tolerance"
                       : string.Join(" | ", withoutWhy));
 
-            Check("ogni rifiuto dichiara la sua gemella", withoutTwin.Count == 0,
+            Check("every refusal declares its twin", withoutTwin.Count == 0,
                   withoutTwin.Count == 0
-                      ? refusedOperations.Values.Sum() + " rifiuti, tutti con gemella"
+                      ? refusedOperations.Values.Sum() + " refusals, all with a twin"
                       : string.Join(" | ", withoutTwin));
 
-            Check("e la gemella esiste davvero", absentTwins.Count == 0,
+            Check("and the twin really exists", absentTwins.Count == 0,
                   absentTwins.Count == 0
-                      ? "nessun rimando a un caso che non c'e'"
+                      ? "no cross-reference to a case that is not there"
                       : string.Join(" | ", absentTwins));
 
-            Check("ogni rifiuto pretende un messaggio", withoutMessage.Count == 0,
+            Check("every refusal demands a message", withoutMessage.Count == 0,
                   withoutMessage.Count == 0
-                      ? "nessun «deve_fallire» che accetti qualunque errore"
+                      ? "no «deve_fallire» that accepts any error"
                       : string.Join(" | ", withoutMessage));
 
             // ── AND THE DESCRIPTIONS? (Z-G5) ─────────────────────────────
             var catalog = ServedCatalog();
             if (!File.Exists(catalog))
             {
-                Check("il catalogo servito c'e'", false, "manca " + catalog);
+                Check("the served catalog is there", false, "missing " + catalog);
                 return;
             }
 
@@ -420,7 +420,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ? rawEntries as object[] : null;
             if (entries == null)
             {
-                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("the catalog has the operations", false, "«operations» is not a list");
                 return;
             }
 
@@ -449,23 +449,23 @@ namespace Oce.Solid.Agent.ContractTests
                 if (!speaks) mute.Add(op + " (" + refusedOperations[op] + ")");
             }
 
-            Check("ogni operazione col rifiuto provato sta a catalogo",
+            Check("every operation with a proven refusal is in the catalog",
                   outsideCatalog.Count == 0,
                   outsideCatalog.Count == 0
-                      ? refusedOperations.Count + " operazioni con almeno un rifiuto provato"
-                      : "fuori catalogo: " + string.Join(", ", outsideCatalog));
+                      ? refusedOperations.Count + " operations with at least one proven refusal"
+                      : "outside the catalog: " + string.Join(", ", outsideCatalog));
 
             // THE CEILING GOES DOWN AND DOES NOT GO UP. A new guard without the sentence that
             // declares it turns this check red, and it is the moment in
             // which it is needed: afterwards, nobody comes back to it.
-            Check("le descrizioni mute non sono aumentate", mute.Count <= Mute,
+            Check("the mute descriptions have not increased", mute.Count <= Mute,
                   mute.Count + " mute su " + refusedOperations.Count +
                   " (tetto " + Mute + "): " + string.Join(", ", mute));
 
-            Check("e il tetto e' quello vero", mute.Count == Mute,
+            Check("and the ceiling is the real one", mute.Count == Mute,
                   mute.Count == Mute
-                      ? "zero: ogni operazione col rifiuto provato lo dichiara"
-                      : "sono " + mute.Count + ": abbassa il tetto a questo numero");
+                      ? "zero: every operation with a proven refusal declares it"
+                      : "there are " + mute.Count + ": lower the ceiling to this number");
 
             EveryOperationHasAGreenCase(
                 new HashSet<string>(textOf.Keys, StringComparer.Ordinal), casesPerOp,
@@ -502,7 +502,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             if (!File.Exists(lastJson))
             {
-                Check("il banco dice quali casi sono verdi (Z-C6)", false, "manca " + lastJson);
+                Check("the bench says which cases are green (Z-C6)", false, "missing " + lastJson);
                 return;
             }
             var last = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(lastJson))
@@ -511,39 +511,39 @@ namespace Oce.Solid.Agent.ContractTests
             var list = last != null && last.TryGetValue("green_cases", out rawItems) ? rawItems as object[] : null;
             if (list == null)
             {
-                Check("il banco dice quali casi sono verdi (Z-C6)", false,
-                      "`last.json` non ha «green_cases»: l'ultimo giro e' di un banco che non " +
-                      "li scriveva ancora. Rilancia il banco.");
+                Check("the bench says which cases are green (Z-C6)", false,
+                      "`last.json` has no «green_cases»: the last run is from a bench that did not " +
+                      "write them yet. Run the bench again.");
                 return;
             }
             var green = new HashSet<string>(list.Select(x => Convert.ToString(x)), StringComparer.Ordinal);
-            Check("il banco dice quali casi sono verdi (Z-C6)", green.Count > 0,
-                  green.Count + " casi verdi nell'ultimo giro");
+            Check("the bench says which cases are green (Z-C6)", green.Count > 0,
+                  green.Count + " green cases in the last run");
 
             var without = new List<string>();
             foreach (var op in inCatalog.OrderBy(x => x, StringComparer.Ordinal))
             {
                 if (WithoutGreenCase.ContainsKey(op)) continue;
                 HashSet<string> itsItems;
-                if (!casesPerOp.TryGetValue(op, out itsItems)) { without.Add(op + " (nessun caso)"); continue; }
+                if (!casesPerOp.TryGetValue(op, out itsItems)) { without.Add(op + " (no case)"); continue; }
                 if (!itsItems.Any(green.Contains))
                     without.Add(op + " (" + string.Join(", ", itsItems.OrderBy(x => x, StringComparer.Ordinal)) +
-                              ": nessuno verde nell'ultimo giro)");
+                              ": none green in the last run)");
             }
-            Check("ogni operazione a catalogo ha un caso VERDE nell'ultimo giro (Z-C6)",
+            Check("every operation of the catalog has a GREEN case in the last run (Z-C6)",
                   without.Count == 0,
                   without.Count == 0
-                      ? (inCatalog.Count - WithoutGreenCase.Count) + " su " + inCatalog.Count + ", piu' " +
-                        WithoutGreenCase.Count + " eccezioni dichiarate col perche'"
+                      ? (inCatalog.Count - WithoutGreenCase.Count) + " out of " + inCatalog.Count + ", plus " +
+                        WithoutGreenCase.Count + " exceptions declared with the why"
                       : string.Join(" | ", without));
 
             var expired = new List<string>();
             foreach (var kv in WithoutGreenCase)
             {
-                if (!inCatalog.Contains(kv.Key)) expired.Add(kv.Key + ": non e' piu' a catalogo, togli l'eccezione");
-                else if (casesPerOp.ContainsKey(kv.Key)) expired.Add(kv.Key + ": adesso ha un caso, togli l'eccezione");
+                if (!inCatalog.Contains(kv.Key)) expired.Add(kv.Key + ": is no longer in the catalog, remove the exception");
+                else if (casesPerOp.ContainsKey(kv.Key)) expired.Add(kv.Key + ": now has a case, remove the exception");
             }
-            Check("e le eccezioni valgono ancora (Z-C6)", expired.Count == 0,
+            Check("and the exceptions still hold (Z-C6)", expired.Count == 0,
                   expired.Count == 0 ? string.Join(", ", WithoutGreenCase.Keys) : string.Join(" | ", expired));
         }
     }

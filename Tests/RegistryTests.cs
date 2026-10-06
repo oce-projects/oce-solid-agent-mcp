@@ -45,7 +45,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("il registro delle domande senza risposta (Z-G7)");
+            Group("the registry of the questions without an answer (Z-G7)");
 
             TheLineShape();
             TheSilenceIsWanted();
@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void TheLineShape()
         {
-            var bridge = BridgeOrNotHere("la riga del registro");
+            var bridge = BridgeOrNotHere("the line of the registry");
             if (bridge == null) return;
 
             MethodInfo line;
@@ -69,13 +69,13 @@ namespace Oce.Solid.Agent.ContractTests
                 var asm = Load.Bridge(bridge);
                 typ = Load.Class(asm, "QuestionRegistry");
                 if (typ == null)
-                { Check("la classe QuestionRegistry c'e'", false, ""); return; }
+                { Check("the QuestionRegistry class is there", false, ""); return; }
                 line = typ.GetMethod("Line",
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-                if (line == null) { Check("Line() c'e'", false, ""); return; }
+                if (line == null) { Check("Line() is there", false, ""); return; }
             }
             catch (Exception ex)
-            { Check("il ponte si carica", false, ex.ToString()); return; }
+            { Check("the bridge loads", false, ex.ToString()); return; }
 
             var timestamp = new DateTime(2026, 9, 23, 21, 30, 0);
             Func<string, string, string[], string> doIt = (t, n, s) =>
@@ -84,17 +84,17 @@ namespace Oce.Solid.Agent.ContractTests
             // ── a normal line ────────────────────────────────────────────
             var normal = doIt("operation", "ripiega_lamiera",
                               new[] { "piega_lamiera" });
-            Check("la riga porta quando, tipo e nome",
+            Check("the line carries when, type and name",
                   normal.Contains("\"timestamp\":\"2026-09-23T21:30:00\"") &&
                   normal.Contains("\"kind\":\"operation\"") &&
                   normal.Contains("\"name\":\"ripiega_lamiera\""),
                   normal);
-            Check("e i nomi vicini, che sono la meta' utile della misura",
+            Check("and the near names, which are the useful half of the measurement",
                   normal.Contains("piega_lamiera") && normal.Contains("similar"),
-                  "distingue «ha sbagliato a scrivere» da «chiede una cosa che non c'e'»");
-            Check("sta su UNA riga sola, che e' cio' che JSONL vuol dire",
+                  "it tells «got the spelling wrong» from «asks for something that is not there»");
+            Check("it sits on ONE line only, which is what JSONL means",
                   !normal.Contains("\n") && !normal.Contains("\r"),
-                  normal.Length + " caratteri, nessun a capo");
+                  normal.Length + " characters, no line break");
 
             // ── the name that a model can really invent ──────────────────
             //
@@ -104,22 +104,22 @@ namespace Oce.Solid.Agent.ContractTests
             // same `Protocol.InJson` as the rest of the bridge instead of
             // pasting quotation marks by hand.
             var bad = doIt("operation", "taglia\"a\"meta" + "\n" + "riga2", null);
-            Check("un nome con le virgolette non spezza la riga",
+            Check("a name with quotes does not break the line",
                   !bad.Contains("\n") && !bad.Contains("\r"),
                   bad);
-            Check("e si rilegge come JSON, non come testo rotto",
+            Check("and it reads back as JSON, not as broken text",
                   ReadsBack(bad, "taglia\"a\"meta" + "\n" + "riga2"),
-                  "il nome torna indietro identico, a capo compreso");
+                  "the name comes back identical, line break included");
 
             // ── `similar` is there only when there is something ─────────────
             var without = doIt("strumento", "guarda_la_tavola", null);
-            Check("senza nomi vicini il campo «similar» non compare",
+            Check("without near names the field «similar» does not appear",
                   !without.Contains("similar"),
-                  "un campo vuoto in ogni riga e' rumore che poi qualcuno conta");
+                  "an empty field in every line is noise that somebody then counts");
             var empty = doIt("strumento", "guarda_la_tavola", new string[0]);
-            Check("e nemmeno con un elenco vuoto",
+            Check("and not even with an empty list",
                   !empty.Contains("similar"),
-                  "zero e assente sono la stessa cosa, e si scrivono uguale");
+                  "zero and absent are the same thing, and are written the same");
         }
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void TheSilenceIsWanted()
         {
-            var bridge = BridgeOrNotHere("il registro che non puo' scrivere");
+            var bridge = BridgeOrNotHere("the registry that cannot write");
             if (bridge == null) return;
 
             Type typ;
@@ -171,7 +171,7 @@ namespace Oce.Solid.Agent.ContractTests
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
                 null, new[] { typeof(string) }, null);
             if (constructor == null)
-            { Check("il registro si costruisce con un percorso", false, ""); return; }
+            { Check("the registry is built with a path", false, ""); return; }
 
             Func<object, string, string, object> annotate = (reg, method, itemName) =>
             {
@@ -199,17 +199,17 @@ namespace Oce.Solid.Agent.ContractTests
                 annotate(good, "OperationThatDoesNotExist", "fresa_a_candela");
                 annotate(good, "ToolThatDoesNotExist", "apri_la_tavola");
                 var lines = File.Exists(file) ? File.ReadAllLines(file) : new string[0];
-                Check("scrive una riga per domanda",
+                Check("it writes one line per question",
                       lines.Length == 2, lines.Length + " righe");
-                Check("e le scrive in aggiunta, non sovrascrivendo",
+                Check("and it writes them appending, not overwriting",
                       lines.Length == 2 &&
                       lines[0].Contains("fresa_a_candela") &&
                       lines[1].Contains("apri_la_tavola"),
-                      "la prima resta quando arriva la seconda");
-                Check("e dice di averle scritte",
+                      "the first stays when the second arrives");
+                Check("and says it wrote them",
                       Convert.ToInt32(read(good, "Written")) == 2 &&
                       read(good, "WhyItWasSilent") == null,
-                      "Written=2, nessun motivo di silenzio");
+                      "Written=2, no reason for silence");
             }
             finally { try { File.Delete(file); } catch { } }
 
@@ -220,10 +220,10 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var reg = constructor.Invoke(new object[] { file2 });
                 annotate(reg, "OperationThatDoesNotExist", "   ");
-                Check("un nome vuoto non finisce nel registro",
+                Check("an empty name does not end up in the registry",
                       !File.Exists(file2) &&
                       Convert.ToInt32(read(reg, "Written")) == 0,
-                      "e' un piano malfatto, non una cosa che qualcuno voleva");
+                      "it is a malformed plan, not something somebody wanted");
             }
             finally { try { File.Delete(file2); } catch { } }
 
@@ -240,11 +240,11 @@ namespace Oce.Solid.Agent.ContractTests
                 bool hasRaised = false;
                 try { annotate(reg, "OperationThatDoesNotExist", "fresa_a_candela"); }
                 catch { hasRaised = true; }
-                Check("se non puo' scrivere NON solleva",
+                Check("if it cannot write it does NOT raise",
                       !hasRaised,
-                      "un registro che fa fallire la chiamata che osserva e' " +
-                      "peggio di nessun registro");
-                Check("e il motivo del silenzio resta scritto",
+                      "a registry that makes the call it observes fail is " +
+                      "worse than no registry");
+                Check("and the reason for the silence stays written",
                       !hasRaised && read(reg, "WhyItWasSilent") != null &&
                       Convert.ToInt32(read(reg, "Written")) == 0,
                       Convert.ToString(read(reg, "WhyItWasSilent")));
@@ -256,10 +256,10 @@ namespace Oce.Solid.Agent.ContractTests
             bool raised2 = false;
             try { annotate(withoutFile, "ToolThatDoesNotExist", "x_qualunque"); }
             catch { raised2 = true; }
-            Check("e senza nessun file su cui scrivere, idem",
+            Check("and with no file to write to, the same",
                   !raised2 && read(withoutFile, "WhyItWasSilent") != null,
-                  "RISCONTRO_REGISTRO vuota vuol dire «non registrare», " +
-                  "e non deve diventare «registra accanto all'eseguibile»");
+                  "an empty RISCONTRO_REGISTRO means «do not register», " +
+                  "and must not become «register next to the executable»");
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -270,7 +270,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var source = Path.Combine(Root(), "Tools", "McpTools.cs");
             if (!File.Exists(source))
-            { Check("McpTools.cs si legge", false, source); return; }
+            { Check("McpTools.cs can be read", false, source); return; }
 
             var lines = File.ReadAllLines(source);
             var discovered = new List<int>();
@@ -289,20 +289,20 @@ namespace Oce.Solid.Agent.ContractTests
                 else discovered.Add(i + 1);
             }
 
-            Check("ogni punto che cerca un nome vicino scrive anche nel registro",
+            Check("every place that looks for a near name also writes to the registry",
                   discovered.Count == 0,
                   discovered.Count == 0
-                      ? monitored + " punti, tutti sorvegliati"
-                      : "scoperti alle righe " + string.Join(", ", discovered));
-            Check("e i punti sono piu' di uno, se no la regola sorveglia il vuoto",
+                      ? monitored + " places, all guarded"
+                      : "uncovered at lines " + string.Join(", ", discovered));
+            Check("and the places are more than one, otherwise the rule guards nothing",
                   monitored >= 3,
-                  monitored + " punti che chiedono `_catalog.Similar(`");
+                  monitored + " places that ask for `_catalog.Similar(`");
 
             var everything = string.Join("\n", lines);
-            Check("e lo strumento che non esiste finisce nel registro",
+            Check("and the tool that does not exist ends up in the registry",
                   everything.IndexOf("_registry.ToolThatDoesNotExist",
                                 StringComparison.Ordinal) >= 0,
-                  "e' il punto che sapeva e taceva: il `default` di Invoke");
+                  "it is the place that knew and kept quiet: the `default` of Invoke");
 
             // ── THE RULE IS MADE TO FAIL ON PURPOSE ───────────────────────
             //
@@ -311,20 +311,20 @@ namespace Oce.Solid.Agent.ContractTests
             var fakeBroken = new[]
             {
                 "                var similar = _catalog.Similar(itemName);",
-                "                trouble.Add(location + \": non esiste\");",
+                "                trouble.Add(location + \": does not exist\");",
             };
             var fakeHealthy = new[]
             {
                 "                var similar = _catalog.Similar(itemName);",
                 "                _registry.OperationThatDoesNotExist(itemName, similar);",
-                "                trouble.Add(location + \": non esiste\");",
+                "                trouble.Add(location + \": does not exist\");",
             };
-            Check("la regola prende un punto che NON scrive",
+            Check("the rule catches a place that does NOT write",
                   Discovered(fakeBroken) == 1,
-                  "una riga che cerca i nomi vicini e non registra niente");
-            Check("e lascia stare quello che scrive",
+                  "a line that looks for near names and registers nothing");
+            Check("and leaves alone the one that writes",
                   Discovered(fakeHealthy) == 0,
-                  "provata in tutt'e due i versi, su righe finte");
+                  "tried both ways, on fake lines");
         }
 
         private static int Discovered(string[] lines)
@@ -349,7 +349,7 @@ namespace Oce.Solid.Agent.ContractTests
         {
             var source = Path.Combine(Root(), "Tools", "QuestionRegistry.cs");
             if (!File.Exists(source))
-            { Check("QuestionRegistry.cs si legge", false, source); return; }
+            { Check("QuestionRegistry.cs can be read", false, source); return; }
 
             // The CODE is looked at, not the comments: the explanation of the rule
             // names `Console` on purpose, and a check that punished its own
@@ -357,15 +357,15 @@ namespace Oce.Solid.Agent.ContractTests
             var code = WithoutComments(File.ReadAllText(source));
             var foundItems = Regex.Matches(code, @"\bConsole\s*\.").Count;
 
-            Check("il registro non nomina Console da nessuna parte",
+            Check("the registry does not name Console anywhere",
                   foundItems == 0,
                   foundItems == 0
-                      ? "li' passa il JSON-RPC: una riga di troppo e' il protocollo rotto"
+                      ? "the JSON-RPC passes there: one line too many is the protocol broken"
                       : foundItems + " occorrenze");
-            Check("e la regola guarda il codice, non i commenti che la spiegano",
+            Check("and the rule looks at the code, not at the comments that explain it",
                   File.ReadAllText(source).IndexOf("Console", StringComparison.Ordinal) >= 0,
-                  "il cappello nomina Console per dire di non usarlo: se questa " +
-                  "riga diventasse rossa vorrebbe dire che la spiegazione e' sparita");
+                  "the header names Console to say not to use it: if this " +
+                  "line turned red it would mean the explanation is gone");
         }
 
         /// <summary>

@@ -29,14 +29,14 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("la conferma all'utente, non al modello (W2.5)");
+            Group("the confirmation goes to the user, not to the model (W2.5)");
 
-            var executable = BridgeOrNotHere("la conferma sul ponte vero");
+            var executable = BridgeOrNotHere("the confirmation on the real bridge");
             if (executable == null) return;
 
             // ── 1. A CLIENT THAT KNOWS HOW TO ASK, AND SAYS NO ───────────
             var p = Open(executable);
-            if (p == null) { Check("il ponte parte", false, ""); return; }
+            if (p == null) { Check("the bridge starts", false, ""); return; }
             try
             {
                 Ask(p, 1,
@@ -65,8 +65,8 @@ namespace Oce.Solid.Agent.ContractTests
                     { question = o; questionId = Inside(o, "id"); }
                 }
 
-                Check("il ponte CHIEDE prima di eliminare", question != null,
-                      question == null ? "nessuna elicitation/create" : "elicitation/create");
+                Check("the bridge ASKS before deleting", question != null,
+                      question == null ? "no elicitation/create" : "elicitation/create");
 
                 if (question != null)
                 {
@@ -75,12 +75,12 @@ namespace Oce.Solid.Agent.ContractTests
 
                     // THE QUESTION MUST SAY WHAT IS ABOUT TO BE LOST. «Confirm?»
                     // on its own is a button, not a question.
-                    Check("e la domanda nomina l'operazione",
+                    Check("and the question names the operation",
                           message != null && message.Contains("delete_feature"),
                           Short(message));
-                    Check("e dice che non si annulla",
+                    Check("and says it cannot be undone",
                           message != null &&
-                          message.IndexOf("non si annulla", StringComparison.OrdinalIgnoreCase) >= 0,
+                          message.IndexOf("cannot be undone", StringComparison.OrdinalIgnoreCase) >= 0,
                           Short(message));
 
                     // ── SI RISPONDE DI NO ────────────────────────────────
@@ -99,15 +99,15 @@ namespace Oce.Solid.Agent.ContractTests
                         text = TextOf(Inside(o, "result") as Dictionary<string, object>);
                     }
 
-                    Check("e a un «no» SI FERMA", text != null && text.Contains("Fermato"),
+                    Check("and on a «no» it STOPS", text != null && text.Contains("Stopped"),
                           Short(text));
 
                     // THE MOST IMPORTANT LINE: it is not enough to stop, one must
                     // say that nothing was touched. Whoever reads «stopped»
                     // without that sentence has to go and check the part.
-                    Check("e dice di non aver toccato niente",
+                    Check("and says it touched nothing",
                           text != null &&
-                          text.IndexOf("non ho toccato niente", StringComparison.OrdinalIgnoreCase) >= 0,
+                          text.IndexOf("I touched nothing", StringComparison.OrdinalIgnoreCase) >= 0,
                           Short(text));
                 }
             }
@@ -120,7 +120,7 @@ namespace Oce.Solid.Agent.ContractTests
             // is the way a defense disappears without anyone
             // noticing.
             var q = Open(executable);
-            if (q == null) { Check("il ponte riparte", false, ""); return; }
+            if (q == null) { Check("the bridge restarts", false, ""); return; }
             try
             {
                 Ask(q, 1,
@@ -137,9 +137,9 @@ namespace Oce.Solid.Agent.ContractTests
                 // Without SOLIDWORKS the plan stops right after, and that is fine: the
                 // thing to test is that it **has not stayed hung** waiting for
                 // a confirmation that this client does not know how to give.
-                Check("con un client che non sa chiedere, NON resta appeso",
+                Check("with a client that cannot ask, it does NOT hang",
                       response != null,
-                      "risponde invece di aspettare una conferma impossibile");
+                      "it answers instead of waiting for an impossible confirmation");
             }
             finally { Close(q); }
         }

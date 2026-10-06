@@ -41,14 +41,14 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("le descrizioni del catalogo non si smentiscono (Z-C15)");
+            Group("the descriptions of the catalog do not contradict themselves (Z-C15)");
 
             var catalog = Path.Combine(Root(), "bin", "catalog.json");
             if (!File.Exists(catalog))
                 catalog = Path.Combine(Root(), "Tools", "catalog.json");
             if (!File.Exists(catalog))
             {
-                Check("il catalogo servito c'e'", false, "manca " + catalog);
+                Check("the served catalog is there", false, "missing " + catalog);
                 return;
             }
 
@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.ContractTests
                 ? raw as object[] : null;
             if (entries == null)
             {
-                Check("il catalogo ha le operazioni", false, "«operations» non e' un elenco");
+                Check("the catalog has the operations", false, "«operations» is not a list");
                 return;
             }
 
@@ -92,14 +92,14 @@ namespace Oce.Solid.Agent.ContractTests
                 exclusive++;
                 var siblings = perFamily[t.Item2].Where(x => x != t.Item1).ToList();
                 if (siblings.Count > 0)
-                    contradictions.Add(t.Item1 + " dice «" + sentence + "», e in «" + t.Item2 + "» ci sono anche " +
+                    contradictions.Add(t.Item1 + " says «" + sentence + "», and in «" + t.Item2 + "» there are also " +
                                  string.Join(", ", siblings.Take(4)) + (siblings.Count > 4 ? "..." : ""));
             }
 
-            Check("nessuna descrizione si dichiara l'unica in una famiglia che non lo e'",
+            Check("no description declares itself the only one in a family where it is not",
                   contradictions.Count == 0,
                   contradictions.Count == 0
-                      ? texts.Count + " descrizioni lette, " + exclusive + " si dicono uniche e sono sole davvero"
+                      ? texts.Count + " descriptions read, " + exclusive + " call themselves unique and are really alone"
                       : string.Join(" | ", contradictions));
         }
     }

@@ -24,7 +24,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("il catalogo");
+            Group("the catalog");
 
             var json = Path.Combine(Root(), "bin", "catalog.json");
 
@@ -50,15 +50,15 @@ namespace Oce.Solid.Agent.ContractTests
                 }
                 else
                 {
-                    Check("il catalogo c'e'", false,
-                          "non trovo " + json + " — si produce con .\\build.ps1");
+                    Check("the catalog is there", false,
+                          "cannot find " + json + " — produce it with .\\build.ps1");
                     return;
                 }
             }
-            Check("il catalogo c'e'", true,
+            Check("the catalog is there", true,
                   fromRepository
-                      ? json + " (quello in repository: qui SOLIDWORKS non c'e', " +
-                        "quindi bin\\catalog.json non si poteva produrre)"
+                      ? json + " (the one in the repository: SOLIDWORKS is not here, " +
+                        "so bin\\catalog.json could not be produced)"
                       : json);
 
             Dictionary<string, object> root;
@@ -68,12 +68,12 @@ namespace Oce.Solid.Agent.ContractTests
                 s.MaxJsonLength = 40 * 1024 * 1024;
                 root = s.DeserializeObject(File.ReadAllText(json)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { Check("il catalogo si legge", false, ex.Message); return; }
+            catch (Exception ex) { Check("the catalog can be read", false, ex.Message); return; }
 
             var operations = (root != null && root.ContainsKey("operations")
                 ? root["operations"] : null) as object[];
-            if (operations == null) { Check("il catalogo ha «operations»", false, ""); return; }
-            Check("il catalogo ha almeno trenta operazioni", operations.Length >= 30,
+            if (operations == null) { Check("the catalog has «operations»", false, ""); return; }
+            Check("the catalog has at least thirty operations", operations.Length >= 30,
                   operations.Length + " operazioni");
 
             TheReadmeStatesTheRightNumber(operations.Length);
@@ -85,15 +85,15 @@ namespace Oce.Solid.Agent.ContractTests
             foreach (var o in operations)
             {
                 var v = o as Dictionary<string, object>;
-                if (v == null) { without.Add("(una voce non e' un oggetto)"); continue; }
+                if (v == null) { without.Add("(an entry is not an object)"); continue; }
                 string itemName = v.ContainsKey("name") ? Convert.ToString(v["name"]) : null;
                 if (itemName != null) catalogNames.Add(itemName);
                 foreach (var theField in new[] { "name", "family", "summary", "details", "schema" })
                     if (!v.ContainsKey(theField) || v[theField] == null)
-                        without.Add((itemName ?? "?") + " senza «" + theField + "»");
+                        without.Add((itemName ?? "?") + " without «" + theField + "»");
                 if (v.ContainsKey("family")) families.Add(Convert.ToString(v["family"]));
             }
-            Check("ogni operazione ha nome, famiglia, sommario, descrizione, schema",
+            Check("every operation has name, family, summary, description, schema",
                   without.Count == 0, string.Join("; ", without.Take(4)));
 
             // ── THE DECLARED FAMILIES ARE THE USED ONES ───────────────────
@@ -103,13 +103,13 @@ namespace Oce.Solid.Agent.ContractTests
             // until they look for it by name.
             var declared = (root.ContainsKey("families") ? root["families"] : null)
                              as Dictionary<string, object>;
-            if (declared == null) Check("il catalogo dichiara le famiglie", false, "");
+            if (declared == null) Check("the catalog declares the families", false, "");
             else
             {
                 var orfane = families.Where(f => !declared.ContainsKey(f)).ToList();
-                Check("ogni famiglia usata e' dichiarata", orfane.Count == 0,
+                Check("every family in use is declared", orfane.Count == 0,
                       orfane.Count == 0 ? declared.Count + " famiglie"
-                                        : "usate e non dichiarate: " + string.Join(", ", orfane));
+                                        : "used and not declared: " + string.Join(", ", orfane));
             }
 
             // ── NO PATH OF THIS MACHINE ───────────────────────────────────
@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.ContractTests
                 bad.Add(text.Substring(m.Index, Math.Min(40, text.Length - m.Index)));
             foreach (var p in new[] { "scratchpad", "\\\\\\\\" })
                 if (text.IndexOf(p, StringComparison.Ordinal) >= 0) bad.Add(p);
-            Check("nessun percorso di questa macchina nel catalogo",
+            Check("no path of this machine in the catalog",
                   bad.Count == 0,
                   bad.Count == 0 ? "" : "trovati: " + string.Join(" | ", bad.Take(3)));
 
@@ -185,13 +185,13 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 if (!TheBridgeCouldBeBuilt())
                 {
-                    NotHere("il catalogo esportato combacia col C#",
-                           "qui SOLIDWORKS non c'e': Oce.Solid.Agent.Catalog.exe dipende da " +
-                           "Oce.Solid.Agent.Core, che senza interop non si compila.");
+                    NotHere("the exported catalog matches the C#",
+                           "SOLIDWORKS is not here: Oce.Solid.Agent.Catalog.exe depends on " +
+                           "Oce.Solid.Agent.Core, which cannot be compiled without the interop.");
                     return;
                 }
-                Check("l'esportatore del catalogo c'e'", false,
-                      "non trovo " + tool + " — si produce con .\\build.ps1");
+                Check("the catalog exporter is there", false,
+                      "cannot find " + tool + " — produce it with .\\build.ps1");
                 return;
             }
 
@@ -219,7 +219,7 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex)
             {
-                Check("il catalogo esportato combacia col C#", false, ex.Message);
+                Check("the exported catalog matches the C#", false, ex.Message);
                 return;
             }
 
@@ -228,9 +228,9 @@ namespace Oce.Solid.Agent.ContractTests
             string line = said.Replace("\r", " ").Replace("\n", " ");
             if (line.Length > 160) line = line.Substring(0, 160) + "...";
 
-            Check("il catalogo esportato combacia col C#", output == 0,
-                  output == 0 ? "Tools\\catalog.json e' aggiornato"
-                              : "NON combacia: si rigenera con "
+            Check("the exported catalog matches the C#", output == 0,
+                  output == 0 ? "Tools\\catalog.json is up to date"
+                              : "does NOT match: regenerate it with "
                                 + ".\\bin\\Oce.Solid.Agent.Catalog.exe Tools\\catalog.json — " + line);
 
             // 2. AND IS WHAT THE BRIDGE LOADS THE SAME?
@@ -238,14 +238,14 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 if (!TheBridgeCouldBeBuilt())
                 {
-                    NotHere("il ponte carica il catalogo di adesso",
-                           "qui SOLIDWORKS non c'e': bin\\catalog.json non esiste " +
-                           "perche' build.ps1 non poteva girare, e un file si confronta " +
-                           "con un altro file, non con la sua assenza.");
+                    NotHere("the bridge loads the current catalog",
+                           "SOLIDWORKS is not here: bin\\catalog.json does not exist " +
+                           "because build.ps1 could not run, and a file is compared " +
+                           "with another file, not with its absence.");
                     return;
                 }
-                Check("il ponte carica il catalogo di adesso", false,
-                      "non trovo " + package + " — si produce con .\\build.ps1");
+                Check("the bridge loads the current catalog", false,
+                      "cannot find " + package + " — produce it with .\\build.ps1");
                 return;
             }
 
@@ -253,17 +253,17 @@ namespace Oce.Solid.Agent.ContractTests
             try { a = Fingerprint(source); b = Fingerprint(package); }
             catch (Exception ex)
             {
-                Check("il ponte carica il catalogo di adesso", false, ex.Message);
+                Check("the bridge loads the current catalog", false, ex.Message);
                 return;
             }
 
-            Check("il ponte carica il catalogo di adesso",
+            Check("the bridge loads the current catalog",
                   string.Equals(a, b, StringComparison.Ordinal),
                   string.Equals(a, b, StringComparison.Ordinal)
-                      ? "Tools\\ e bin\\ sono lo stesso file"
-                      : "bin\\catalog.json e' rimasto indietro rispetto a Tools\\: "
-                        + "si rilancia .\\build.ps1, che lo ricopia. Finche' non lo si fa, "
-                        + "il ponte RIFIUTA le operazioni nuove dicendo che non esistono");
+                      ? "Tools\\ and bin\\ are the same file"
+                      : "bin\\catalog.json has fallen behind Tools\\: "
+                        + "run .\\build.ps1 again, which copies it over again. Until it is run, "
+                        + "the bridge REFUSES the new operations saying that they do not exist");
         }
 
         private static string Fingerprint(string filePath)
@@ -310,7 +310,7 @@ namespace Oce.Solid.Agent.ContractTests
             var source = Path.Combine(Root(), "Oce.Solid.Agent.Core", "SwOperations.cs");
             if (!File.Exists(source))
             {
-                Check("il sorgente del dispatcher si legge", false, "non trovo " + source);
+                Check("the dispatcher source can be read", false, "cannot find " + source);
                 return;
             }
 
@@ -324,9 +324,9 @@ namespace Oce.Solid.Agent.ContractTests
                          System.Text.RegularExpressions.Regex.Matches(block.Groups[1].Value, "\"([a-z0-9_]+)\""))
                     executables.Add(m.Groups[1].Value);
 
-            Check("l'elenco delle operazioni eseguibili si legge",
+            Check("the list of executable operations can be read",
                   executables.Count >= 30,
-                  executables.Count + " nomi in ExecutableNames");
+                  executables.Count + " names in ExecutableNames");
             if (executables.Count < 30) return;
 
             // The untested ones, asked of whoever decides who stays out of the file.
@@ -338,9 +338,9 @@ namespace Oce.Solid.Agent.ContractTests
             if (!ProductFromBuild(Path.Combine(Root(), "bin", "Oce.Solid.Agent.Core.dll")) &&
                 !TheBridgeCouldBeBuilt())
             {
-                NotHere("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
-                       "qui SOLIDWORKS non c'e': l'elenco delle non provate si chiede a " +
-                       "Oce.Solid.Agent.Core.dll, che senza interop non si compila.");
+                NotHere("every executable operation is in the catalog or declared untested",
+                       "SOLIDWORKS is not here: the list of the untested ones is asked of " +
+                       "Oce.Solid.Agent.Core.dll, which cannot be compiled without the interop.");
                 return;
             }
 
@@ -354,8 +354,8 @@ namespace Oce.Solid.Agent.ContractTests
                 var export = Load.Class(library, "Export");
                 if (export == null)
                 {
-                    Check("l'elenco delle non provate si chiede all'esportatore", false,
-                          "non trovo la classe Export");
+                    Check("the list of the untested ones is asked of the exporter", false,
+                          "cannot find the Export class");
                     return;
                 }
                 notTested = (export.GetMethod("NotTested",
@@ -364,14 +364,14 @@ namespace Oce.Solid.Agent.ContractTests
                              ?.Cast<object>().Select(Convert.ToString).ToList();
                 if (notTested == null)
                 {
-                    Check("l'elenco delle non provate si chiede all'esportatore", false,
-                          "NotTested() non ha risposto");
+                    Check("the list of the untested ones is asked of the exporter", false,
+                          "NotTested() did not answer");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Check("l'elenco delle non provate si chiede all'esportatore", false, ex.Message);
+                Check("the list of the untested ones is asked of the exporter", false, ex.Message);
                 return;
             }
 
@@ -380,29 +380,29 @@ namespace Oce.Solid.Agent.ContractTests
             // 1. Executable and invisible: the defect this check exists to catch.
             var invisible = executables.Where(n => !inCatalog.Contains(n) && !outside.Contains(n))
                                        .OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Check("ogni operazione eseguibile e' nel catalogo o dichiarata non provata",
+            Check("every executable operation is in the catalog or declared untested",
                   invisible.Count == 0,
                   invisible.Count == 0
-                      ? executables.Count + " eseguibili = " + inCatalog.Count +
-                        " nel catalogo + " + outside.Count + " non provate"
-                      : "eseguibili e invisibili al modello: " + string.Join(", ", invisible));
+                      ? executables.Count + " executable = " + inCatalog.Count +
+                        " in the catalog + " + outside.Count + " untested"
+                      : "executable and invisible to the model: " + string.Join(", ", invisible));
 
             // 2. The opposite direction: a catalogue entry that the dispatcher cannot execute
             //    is a promise that is found false only by calling it.
             var promises = inCatalog.Where(n => !executables.Contains(n))
                                       .OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Check("ogni operazione del catalogo e' davvero eseguibile",
+            Check("every operation of the catalog is really executable",
                   promises.Count == 0,
-                  promises.Count == 0 ? "" : "nel catalogo e non nel dispatcher: " +
+                  promises.Count == 0 ? "" : "in the catalog and not in the dispatcher: " +
                                              string.Join(", ", promises));
 
             // 3. And an untested one must not have ended up in the file all the same.
             var escaped = outside.Where(inCatalog.Contains)
                                 .OrderBy(n => n, StringComparer.Ordinal).ToList();
-            Check("nessuna operazione non provata e' finita nel catalogo",
+            Check("no untested operation ended up in the catalog",
                   escaped.Count == 0,
                   escaped.Count == 0 ? outside.Count + " fuori: " + string.Join(", ", outside)
-                                      : "non provate ma esposte: " + string.Join(", ", escaped));
+                                      : "untested but exposed: " + string.Join(", ", escaped));
         }
 
         /// <summary>
@@ -419,7 +419,7 @@ namespace Oce.Solid.Agent.ContractTests
             // AND NOBODY RAN build.ps1: the rule is in one place only.
             // Before there was a flat red here, and in CI (where the bridge is never
             // built) it kept the CI red on every push.
-            var bridge = BridgeOrNotHere("Catalog.Similar: i nomi vicini a quello sbagliato");
+            var bridge = BridgeOrNotHere("Catalog.Similar: the names close to the wrong one");
             if (bridge == null) return;
 
             object catalog;
@@ -432,25 +432,25 @@ namespace Oce.Solid.Agent.ContractTests
                 // NotSupportedException, and this repository lives on S:.
                 var asm = Load.Bridge(bridge);
                 var typ = Load.Class(asm, "Catalog");
-                if (typ == null) { Check("Catalog.Similar: la classe c'e'", false, "Catalog assente"); return; }
+                if (typ == null) { Check("Catalog.Similar: the class is there", false, "Catalog missing"); return; }
                 catalog = Activator.CreateInstance(typ, true);
                 similar = typ.GetMethod("Similar");
-                if (similar == null) { Check("Catalog.Similar: il metodo c'e'", false, ""); return; }
+                if (similar == null) { Check("Catalog.Similar: the method is there", false, ""); return; }
             }
-            catch (Exception ex) { Check("Catalog.Similar: si carica", false, ex.ToString()); return; }
+            catch (Exception ex) { Check("Catalog.Similar: it loads", false, ex.ToString()); return; }
 
             Func<string, List<string>> di = n =>
                 (similar.Invoke(catalog, new object[] { n }) as System.Collections.IEnumerable)
                     ?.Cast<object>().Select(Convert.ToString).ToList() ?? new List<string>();
 
-            Check("«slots» trova «slot»", di("slots").Contains("slot"),
+            Check("«slots» finds «slot»", di("slots").Contains("slot"),
                   string.Join(", ", di("slots")));
-            Check("«hole» trova «hole_wizard»", di("hole").Contains("hole_wizard"),
+            Check("«hole» finds «hole_wizard»", di("hole").Contains("hole_wizard"),
                   string.Join(", ", di("hole")));
-            Check("un nome vuoto non esplode e non inventa", di("").Count == 0);
-            Check("un nome che non somiglia a niente non inventa",
+            Check("an empty name does not blow up and does not invent", di("").Count == 0);
+            Check("a name that resembles nothing does not invent",
                   di("qwertyuiop").Count == 0, string.Join(", ", di("qwertyuiop")));
-            Check("non ne offre piu' di cinque", di("a_asola_foro_taglio_piano").Count <= 5,
+            Check("it offers no more than five", di("a_asola_foro_taglio_piano").Count <= 5,
                   di("a_asola_foro_taglio_piano").Count + " offerti");
         }
 

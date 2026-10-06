@@ -18,7 +18,7 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("il valutatore delle attese");
+            Group("the evaluator of the expectations");
 
             var measurements = new Dictionary<string, object>
             {
@@ -40,25 +40,25 @@ namespace Oce.Solid.Agent.ContractTests
             string d;
 
             // ── THE RIGHT NUMBER PASSES, THE WRONG ONE DOES NOT ───────────
-            Check("numero giusto: verde",
+            Check("right number: green",
                   Expectations.Matches(Expectation("measurements.removed_mm3", 1234.5), null, docState, measurements, out d), d);
-            Check("numero sbagliato: rosso",
+            Check("wrong number: red",
                   !Expectations.Matches(Expectation("measurements.removed_mm3", 1234.6), null, docState, measurements, out d), d);
 
             // ── THE TOLERANCE IS ABSOLUTE, AND THE WHY IS NEEDED ──────────
             var withTolerance = Expectation("measurements.removed_mm3", 1234.0);
             withTolerance["tolerance"] = 1.0;
-            withTolerance["tolerance_why"] = "e' una prova, e il numero e' scritto a mano";
-            Check("tolleranza rispettata: verde",
+            withTolerance["tolerance_why"] = "it is a check, and the number is written by hand";
+            Check("tolerance respected: green",
                   Expectations.Matches(withTolerance, null, docState, measurements, out d), d);
 
             withTolerance["equal_to"] = 1200.0;
-            Check("tolleranza superata: rosso",
+            Check("tolerance exceeded: red",
                   !Expectations.Matches(withTolerance, null, docState, measurements, out d), d);
 
             var withoutWhy = Expectation("measurements.removed_mm3", 1234.0);
             withoutWhy["tolerance"] = 1.0;
-            Check("tolleranza senza il perche': non si valuta",
+            Check("tolerance without the why: not evaluated",
                   Raise(() => { string x; Expectations.Matches(withoutWhy, null, docState, measurements, out x); },
                        "tolerance_why"));
 
@@ -66,47 +66,47 @@ namespace Oce.Solid.Agent.ContractTests
             //
             // It is the trap in its literal form: a dictionary that does not
             // find the key returns null, and null compared with null passes.
-            Check("campo assente: non si valuta, e dice quali c'erano",
+            Check("missing field: not evaluated, and it says which ones there were",
                   Raise(() => { string x; Expectations.Matches(Expectation("measurements.non_esiste", 0.0), null, docState, measurements, out x); },
-                       "campo assente: measurements.non_esiste"));
-            Check("campo assente: elenca i campi che c'erano",
+                       "missing field: measurements.non_esiste"));
+            Check("missing field: it lists the fields that were there",
                   Raise(() => { string x; Expectations.Matches(Expectation("measurements.non_esiste", 0.0), null, docState, measurements, out x); },
                        "faces_removed, facing, removed_mm3"));
 
             // ── A DECLARED NULL IS MEASURED ───────────────────────────────
-            Check("«material: null» si misura, non e' assente",
+            Check("«material: null» is measured, it is not missing",
                   Expectations.Matches(Expectation("state.material", ""), null, docState, measurements, out d), d);
 
             // ── THE LISTS OF NUMBERS ──────────────────────────────────────
-            Check("elenco di numeri giusto: verde",
+            Check("list of numbers right: green",
                   Expectations.Matches(Expectation("state.bounding_box_mm", new List<object> { 100.0, 60.0, 40.0 }),
                                   null, docState, measurements, out d), d);
-            Check("elenco di numeri con un valore diverso: rosso",
+            Check("list of numbers with a different value: red",
                   !Expectations.Matches(Expectation("state.bounding_box_mm", new List<object> { 100.0, 60.0, 41.0 }),
                                    null, docState, measurements, out d), d);
-            Check("elenco di lunghezza diversa: rosso",
+            Check("list of a different length: red",
                   !Expectations.Matches(Expectation("state.bounding_box_mm", new List<object> { 100.0, 60.0 }),
                                    null, docState, measurements, out d), d);
 
             // ── INSIDE A LIST, BY INDEX ───────────────────────────────────
-            Check("stato.facce[1].area_mm2 si legge",
+            Check("state.faces[1].area_mm2 can be read",
                   Expectations.Matches(Expectation("state.faces[1].area_mm2", 2000.0), null, docState, measurements, out d), d);
-            Check("un indice oltre la fine: non si valuta",
+            Check("an index beyond the end: not evaluated",
                   Raise(() => { string x; Expectations.Matches(Expectation("state.faces[9].area_mm2", 0.0), null, docState, measurements, out x); },
-                       "campo assente"));
+                       "missing field"));
 
             // ── THE MEASUREMENTS OF THE DOCUMENT, WITHOUT A DOCUMENT ──────
             //
             // Here SOLIDWORKS is not there: `volume_mm3` cannot be measured, and the
             // evaluator SAYS so instead of answering zero.
-            Check("«volume_mm3» senza documento: lo dice",
+            Check("«volume_mm3» without a document: it says so",
                   Raise(() => { string x; Expectations.Matches(Expectation("volume_mm3", 0.0), null, docState, measurements, out x); },
-                       "si misura sul documento"));
+                       "measured on the document"));
 
             // And with a fake document — a function that returns numbers — it
             // is measured all right: it is the bridge that the real bench passes to it.
             Func<string, object> fake = c => c == "volume_mm3" ? (object)240000.0 : null;
-            Check("«volume_mm3» con chi sa misurarlo: verde",
+            Check("«volume_mm3» with something that can measure it: green",
                   Expectations.Matches(Expectation("volume_mm3", 240000.0), fake, docState, measurements, out d), d);
 
             // ── A NAME THAT DOES NOT EXIST ────────────────────────────────
@@ -127,12 +127,12 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 arrived = true;
                 throw new Expectations.CouldNotMeasure(
-                    "non so misurare «" + c + "»: i nomi sono volume_mm3");
+                    "I cannot measure «" + c + "»: the names are volume_mm3");
             };
-            Check("un «cosa» sconosciuto: il rifiuto di chi misura arriva intero",
+            Check("an unknown «what»: the refusal of whoever measures arrives whole",
                   Raise(() => { string x; Expectations.Matches(Expectation("pippo", 1.0), strict, docState, measurements, out x); },
-                       "non so misurare «pippo»"));
-            Check("un «cosa» sconosciuto viene davvero chiesto a chi misura", arrived);
+                       "I cannot measure «pippo»"));
+            Check("an unknown «what» is really asked of whoever measures", arrived);
 
             // ── TWO DIFFERENT PROFILES ARE NOT WRITTEN THE SAME ───────────
             //
@@ -155,18 +155,18 @@ namespace Oce.Solid.Agent.ContractTests
             };
             object cylinder = profile(new double[] { 0, 0, 0, 20, 50, 20, 50, 0 });
             object straddling = profile(new double[] { 0, -20, 0, 20, 50, 20, 50, -20 });
-            Check("due contorni diversi si scrivono diversi",
+            Check("two different outlines are written differently",
                   Expectations.HowItIsWritten(cylinder) != Expectations.HowItIsWritten(straddling),
                   Expectations.HowItIsWritten(straddling));
-            Check("due contorni uguali si scrivono uguali",
+            Check("two equal outlines are written equally",
                   Expectations.HowItIsWritten(cylinder) ==
                   Expectations.HowItIsWritten(profile(new double[] { 0, 0, 0, 20, 50, 20, 50, 0 })));
-            Check("un elenco non si scrive «System.Object[]»",
+            Check("a list is not written «System.Object[]»",
                   Expectations.HowItIsWritten(cylinder).IndexOf("System.Object", StringComparison.Ordinal) < 0,
                   Expectations.HowItIsWritten(cylinder));
-            Check("un numero si scrive col punto, non con la virgola",
+            Check("a number is written with the dot, not with the comma",
                   Expectations.HowItIsWritten(1.5) == "1.5", Expectations.HowItIsWritten(1.5));
-            Check("il niente ha un nome", Expectations.HowItIsWritten(null) == "(niente)");
+            Check("nothing has a name", Expectations.HowItIsWritten(null) == "(nothing)");
 
             // ── A LIST THAT HAS NO NUMBERS ────────────────────────────────
             //
@@ -183,28 +183,28 @@ namespace Oce.Solid.Agent.ContractTests
             Func<string, object, Dictionary<string, object>> att = (c, u) =>
                 new Dictionary<string, object> { ["what"] = c, ["equal_to"] = u };
 
-            Check("elenco di testo: uguale passa",
+            Check("list of text: equal passes",
                   Expectations.Matches(att("state.utensili", new List<object> { "C2", "C3" }),
                                   null, withLists, measurements, out d), d);
-            Check("elenco di testo ROSSO: un elemento diverso",
+            Check("list of text RED: a different element",
                   !Expectations.Matches(att("state.utensili", new List<object> { "C2", "C9" }),
                                    null, withLists, measurements, out d), d);
-            Check("elenco di testo ROSSO: l'ORDINE conta",
+            Check("list of text RED: the ORDER matters",
                   !Expectations.Matches(att("state.utensili", new List<object> { "C3", "C2" }),
                                    null, withLists, measurements, out d), d);
-            Check("elenco di testo ROSSO: uno in meno",
+            Check("list of text RED: one fewer",
                   !Expectations.Matches(att("state.utensili", new List<object> { "C2" }),
                                    null, withLists, measurements, out d), d);
-            Check("elenco di testo: anche uno solo",
+            Check("list of text: even a single one",
                   Expectations.Matches(att("state.one", new List<object> { "C2" }),
                                   null, withLists, measurements, out d), d);
-            Check("elenco misto testo e numeri: si confronta come testo",
+            Check("mixed list of text and numbers: compared as text",
                   Expectations.Matches(att("state.misti", new List<object> { "C2", 7.0 }),
                                   null, withLists, measurements, out d), d);
-            Check("elenco di testo ROSSO: se la misura NON e' un elenco, lo dice",
+            Check("list of text RED: if the measurement is NOT a list, it says so",
                   !Expectations.Matches(att("state.material", new List<object> { "C2" }),
                                    null, docState, measurements, out d) &&
-                  d.IndexOf("non e' un elenco", StringComparison.Ordinal) >= 0, d);
+                  d.IndexOf("is not a list", StringComparison.Ordinal) >= 0, d);
 
             // ── HAS THE TWIN ANYTHING TO DO WITH THE REFUSAL? (F5) ────────
             //
@@ -215,29 +215,29 @@ namespace Oce.Solid.Agent.ContractTests
                 new Dictionary<string, object> { ["face_uid"] = a, ["x_mm"] = b };
             string d2;
 
-            Check("gemella identica: rifiutata",
+            Check("identical twin: refused",
                   !Expectations.Resemble(arg2("F1", "10"), arg2("F1", "10"), out d2) &&
-                  d2.IndexOf("copia", StringComparison.Ordinal) >= 0, d2);
+                  d2.IndexOf("copy", StringComparison.Ordinal) >= 0, d2);
 
-            Check("gemella che differisce per un argomento: accettata",
+            Check("twin that differs by one argument: accepted",
                   Expectations.Resemble(arg2("F1", "10"), arg2("F1", "40"), out d2), d2);
 
-            Check("gemella senza niente in comune, con due argomenti: rifiutata",
+            Check("twin with nothing in common, with two arguments: refused",
                   !Expectations.Resemble(arg2("F1", "10"), arg2("F5", "40"), out d2) &&
-                  d2.IndexOf("non si parlano", StringComparison.Ordinal) >= 0, d2);
+                  d2.IndexOf("do not talk to each other", StringComparison.Ordinal) >= 0, d2);
 
             // THE EXCEPTION OF THE ARITY. `create_axis` takes `face_uid` and nothing else:
             // two cases that differ in that cannot have one in
             // common, and refusing them would forbid the pair for half the catalogue.
             Func<string, Dictionary<string, object>> arg1 = a =>
                 new Dictionary<string, object> { ["face_uid"] = a };
-            Check("gemella di un'operazione con UN argomento solo: accettata",
+            Check("twin of an operation with ONE argument only: accepted",
                   Expectations.Resemble(arg1("@face(planar=false)"),
                                       arg1("@face(normal=front)"), out d2), d2);
-            Check("...e lo dice, invece di far finta che sia una coppia normale",
-                  d2.IndexOf("l'unico che questa operazione prende",
+            Check("...and it says so, instead of pretending it is a normal pair",
+                  d2.IndexOf("the only one this operation takes",
                              StringComparison.Ordinal) >= 0, d2);
-            Check("un argomento solo, ma uguale: resta una copia",
+            Check("one argument only, but equal: it stays a copy",
                   !Expectations.Resemble(arg1("F1"), arg1("F1"), out d2), d2);
 
             // THE DIFFERENCE DECLARED IN THE PART (28/9/2026, rib W1.2):
@@ -252,21 +252,21 @@ namespace Oce.Solid.Agent.ContractTests
             var box = new List<object> { partStep("top", 20.0),
                 new Dictionary<string, object> { ["operation"] = "shell" } };
             var plate = new List<object> { partStep("top", 2.0) };
-            const string partSentence = "la piastra non ha pareti, la scatola si'";
-            Check("stessi argomenti su un altro pezzo, dichiarato: accettata",
+            const string partSentence = "the plate has no walls, the box does";
+            Check("same arguments on another part, declared: accepted",
                   Expectations.ResembleInPart(arg2("F1", "10"), arg2("F1", "10"), plate, box, partSentence, out d2) &&
-                  d2.IndexOf("pezzo diverso dal passo 1", StringComparison.Ordinal) >= 0, d2);
-            Check("stessi argomenti e stesso pezzo, anche se dichiarato: resta una copia",
+                  d2.IndexOf("part different from step 1", StringComparison.Ordinal) >= 0, d2);
+            Check("same arguments and same part, even if declared: it stays a copy",
                   !Expectations.ResembleInPart(arg2("F1", "10"), arg2("F1", "10"), box, box, partSentence, out d2) &&
-                  d2.IndexOf("copia", StringComparison.Ordinal) >= 0, d2);
-            Check("argomenti diversi e la differenza dichiarata nel pezzo: la dichiarazione e' di troppo",
+                  d2.IndexOf("copy", StringComparison.Ordinal) >= 0, d2);
+            Check("different arguments and the difference declared in the part: the declaration is superfluous",
                   !Expectations.ResembleInPart(arg2("F1", "10"), arg2("F1", "40"), plate, box, partSentence, out d2) &&
-                  d2.IndexOf("togli", StringComparison.Ordinal) >= 0, d2);
-            Check("la differenza nel pezzo dichiarata senza dire quale: rifiutata",
+                  d2.IndexOf("remove", StringComparison.Ordinal) >= 0, d2);
+            Check("the difference in the part declared without saying which: refused",
                   !Expectations.ResembleInPart(arg2("F1", "10"), arg2("F1", "10"), plate, box, " ", out d2), d2);
 
             // The contours are lists: it is the case that broke the comparison.
-            Check("gemelle che differiscono solo in una lista: accettate",
+            Check("twins that differ only in a list: accepted",
                   Expectations.Resemble(
                       new Dictionary<string, object> { ["contours"] = straddling, ["angle_deg"] = 360.0 },
                       new Dictionary<string, object> { ["contours"] = cylinder, ["angle_deg"] = 360.0 },
@@ -279,7 +279,7 @@ namespace Oce.Solid.Agent.ContractTests
             // is the defect that gives no error.
             var withShape = new Dictionary<string, object>
             {
-                ["shape"] = "una rivoluzione del profilo D30 per 40, D20 per 30",
+                ["shape"] = "a part of revolution with the profile D30 for 40, D20 for 30",
             };
             Func<object, object, Dictionary<string, object>> sentence = (c, n) =>
             {
@@ -289,26 +289,26 @@ namespace Oce.Solid.Agent.ContractTests
                 return a;
             };
 
-            Check("frase: il pezzo che c'e' si trova",
-                  Expectations.Matches(sentence(new List<object> { "profilo", "D30 per 40" }, null),
+            Check("sentence: the part that is there is found",
+                  Expectations.Matches(sentence(new List<object> { "profile", "D30 for 40" }, null),
                                   null, withShape, measurements, out d), d);
-            Check("frase ROSSO: un pezzo che non c'e' fa fallire",
-                  !Expectations.Matches(sentence(new List<object> { "D99 per 1" }, null),
+            Check("sentence RED: a part that is not there fails",
+                  !Expectations.Matches(sentence(new List<object> { "D99 for 1" }, null),
                                    null, withShape, measurements, out d) &&
-                  d.IndexOf("non dice", StringComparison.Ordinal) >= 0, d);
-            Check("frase ROSSO: «non_contiene» fallisce se la parola c'e' ancora",
-                  !Expectations.Matches(sentence(null, new List<object> { "profilo" }),
+                  d.IndexOf("does not say", StringComparison.Ordinal) >= 0, d);
+            Check("sentence RED: «non_contiene» fails if the word is still there",
+                  !Expectations.Matches(sentence(null, new List<object> { "profile" }),
                                    null, withShape, measurements, out d) &&
-                  d.IndexOf("dice ancora", StringComparison.Ordinal) >= 0, d);
-            Check("frase: «non_contiene» passa quando la parola e' sparita",
-                  Expectations.Matches(sentence(null, new List<object> { "guscio" }),
+                  d.IndexOf("still says", StringComparison.Ordinal) >= 0, d);
+            Check("sentence: «non_contiene» passes when the word is gone",
+                  Expectations.Matches(sentence(null, new List<object> { "shell" }),
                                   null, withShape, measurements, out d), d);
-            Check("frase: si puo' chiedere l'una e l'altra insieme",
-                  Expectations.Matches(sentence(new List<object> { "rivoluzione" },
+            Check("sentence: both can be asked together",
+                  Expectations.Matches(sentence(new List<object> { "revolution" },
                                         new List<object> { "shell" }),
                                   null, withShape, measurements, out d), d);
-            Check("frase: una stringa sola vale come elenco di uno",
-                  Expectations.Matches(sentence("rivoluzione", null), null, withShape, measurements, out d), d);
+            Check("sentence: a single string counts as a list of one",
+                  Expectations.Matches(sentence("revolution", null), null, withShape, measurements, out d), d);
 
             // ── AND A LIST IS NOT «System.String[]» ───────────────────────
             //
@@ -331,69 +331,69 @@ namespace Oce.Solid.Agent.ContractTests
                 return a;
             };
 
-            Check("elenco: «contiene» trova una voce intera",
+            Check("list: «includes» finds a whole entry",
                   Expectations.Matches(list("measurements", new List<object> { "80X80X5" }, null),
                                   null, docState, withList, out d), d);
-            Check("elenco: «contiene» trova anche un pezzo di voce",
+            Check("list: «includes» also finds part of an entry",
                   Expectations.Matches(list("measurements", new List<object> { "100X100" }, null),
                                   null, docState, withList, out d), d);
-            Check("elenco ROSSO: una voce che non c'e' fa fallire",
+            Check("list RED: an entry that is not there fails",
                   !Expectations.Matches(list("measurements", new List<object> { "999X999X9" }, null),
                                    null, docState, withList, out d) &&
-                  d.IndexOf("non dice", StringComparison.Ordinal) >= 0, d);
+                  d.IndexOf("does not say", StringComparison.Ordinal) >= 0, d);
             // THE MESSAGE MUST NO LONGER SAY THE NAME OF THE TYPE. It is the half
             // that counts: the red was there before too, but it said something from which
             // one could not start again.
-            Check("elenco ROSSO: il messaggio mostra le voci, non «System.String[]»",
+            Check("list RED: the message shows the entries, not «System.String[]»",
                   !Expectations.Matches(list("measurements", new List<object> { "999X999X9" }, null),
                                    null, docState, withList, out d) &&
                   d.IndexOf("System.String[]", StringComparison.Ordinal) < 0 &&
                   d.IndexOf("80X80X5", StringComparison.Ordinal) >= 0, d);
-            Check("elenco: «non_contiene» passa se nessuna voce lo dice",
+            Check("list: «non_contiene» passes if no entry says it",
                   Expectations.Matches(list("measurements", null, new List<object> { "999X999X9" }),
                                   null, docState, withList, out d), d);
-            Check("elenco ROSSO: «non_contiene» fallisce se una voce lo dice",
+            Check("list RED: «non_contiene» fails if an entry says it",
                   !Expectations.Matches(list("measurements", null, new List<object> { "40X40X3" }),
                                    null, docState, withList, out d) &&
-                  d.IndexOf("dice ancora", StringComparison.Ordinal) >= 0, d);
+                  d.IndexOf("still says", StringComparison.Ordinal) >= 0, d);
             // AN EMPTY LIST CONTAINS NOTHING, and it is not an absent field:
             // it is a list that is there and is empty. The two things are told apart.
-            Check("elenco ROSSO: un elenco vuoto non contiene niente",
+            Check("list RED: an empty list contains nothing",
                   !Expectations.Matches(list("vuoto", new List<object> { "any" }, null),
                                    null, docState, withList, out d), d);
             // AN ABSENT FIELD IS NOT AN EMPTY SENTENCE, and it is not even a
             // red: it is a bench error, as for every other measurement. The
             // case asks for something that is not in the state, and it must be said.
-            Check("frase ROSSO: un campo che non c'e' non si valuta",
+            Check("sentence RED: a field that is not there is not evaluated",
                   Raise(() => { string x;
                                Expectations.Matches(sentence(new List<object> { "x" }, null), null,
                                                new Dictionary<string, object>(), measurements, out x); },
-                       "campo assente"));
+                       "missing field"));
             // And if instead whoever measures answers «nothing», that yes: it is a
             // red, because the sentence was due and is not there.
-            Check("frase ROSSO: chi misura risponde niente, e la frase manca",
+            Check("sentence RED: whoever measures answers nothing, and the sentence is missing",
                   !Expectations.Matches(
                       new Dictionary<string, object>
                       { ["what"] = "forma_del_pezzo", ["includes"] = new List<object> { "x" } },
                       c => null, docState, measurements, out d) &&
-                  d.IndexOf("non c'e'", StringComparison.Ordinal) >= 0, d);
-            Check("frase ROSSO: un elenco vuoto non chiede niente, e si rifiuta",
+                  d.IndexOf("is missing", StringComparison.Ordinal) >= 0, d);
+            Check("sentence RED: an empty list asks for nothing, and is refused",
                   Raise(() => { string x;
                                Expectations.Matches(sentence(new List<object>(), null), null, withShape, measurements, out x); },
-                       "non chiede niente"));
-            Check("frase ROSSO: «uguale» insieme a «contiene» si rifiuta",
+                       "asks for nothing"));
+            Check("sentence RED: «equal» together with «includes» is refused",
                   Raise(() =>
                   {
-                      var a = sentence(new List<object> { "profilo" }, null);
-                      a["equal_to"] = "qualcosa";
+                      var a = sentence(new List<object> { "profile" }, null);
+                      a["equal_to"] = "something";
                       string x; Expectations.Matches(a, null, withShape, measurements, out x);
-                  }, "decidi quale dei due"));
+                  }, "decide which of the two"));
 
             // ── THE SELECTORS: ZERO OR MORE THAN ONE ARE REFUSED ──────────
-            Check("selettore: una faccia sola si prende",
+            Check("selector: a single face is taken",
                   Expectations.Select("@face(normal=front)", docState) == "F1");
-            Check("selettore: nessuna faccia, si rifiuta",
-                  Raise(() => Expectations.Select("@face(normal=up)", docState), "non l'ho trovata"));
+            Check("selector: no face, it is refused",
+                  Raise(() => Expectations.Select("@face(normal=up)", docState), "I did not find it"));
 
             var due = new Dictionary<string, object>
             {
@@ -403,8 +403,8 @@ namespace Oce.Solid.Agent.ContractTests
                     new Dictionary<string, object> { ["uid"] = "F5", ["facing"] = "front" },
                 },
             };
-            Check("selettore: due facce uguali, si rifiuta invece di indovinare",
-                  Raise(() => Expectations.Select("@face(normal=front)", due), "ne ho trovate 2"));
+            Check("selector: two equal faces, it is refused instead of guessing",
+                  Raise(() => Expectations.Select("@face(normal=front)", due), "I found 2"));
 
             // THE BODY BY NAME (25/9/2026): the numbers C1, C2... do not follow
             // the order of creation and change between one run and the next. The state
@@ -417,10 +417,10 @@ namespace Oce.Solid.Agent.ContractTests
                     new Dictionary<string, object> { ["uid"] = "C2", ["name"] = "TUBO 80X80X5(1)" },
                 },
             };
-            Check("selettore: @body prende per nome, parentesi comprese",
+            Check("selector: @body takes by name, parentheses included",
                   Expectations.Select("@body(name=TUBO 80X80X5(1))", bodies) == "C2");
-            Check("selettore: @body con un nome che non c'e', si rifiuta",
-                  Raise(() => Expectations.Select("@body(name=TUBO 80X80X5(3))", bodies), "non l'ho trovata"));
+            Check("selector: @body with a name that is not there, it is refused",
+                  Raise(() => Expectations.Select("@body(name=TUBO 80X80X5(3))", bodies), "I did not find it"));
 
             // THE EDGE BY WHERE IT IS (entry E18): x, y, z read point_mm. The
             // four edges 120 long of a plate are told apart only like this.
@@ -437,10 +437,10 @@ namespace Oce.Solid.Agent.ContractTests
                     edge("E1", -100, 0), edge("E2", 100, 0), edge("E3", -100, 20), edge("E4", 100, 20),
                 },
             };
-            Check("selettore: lo spigolo si prende per coordinate (x, z)",
+            Check("selector: the edge is taken by coordinates (x, z)",
                   Expectations.Select("@edge(axis=Y,x~=-100,z~=20)", four) == "E3");
-            Check("selettore: con una coordinata sola i fianchi restano due, e si rifiuta",
-                  Raise(() => Expectations.Select("@edge(axis=Y,x~=-100)", four), "ne ho trovate 2"));
+            Check("selector: with one coordinate only the sides stay two, and it is refused",
+                  Raise(() => Expectations.Select("@edge(axis=Y,x~=-100)", four), "I found 2"));
         }
 
         private static Dictionary<string, object> Expectation(string what, object equal)

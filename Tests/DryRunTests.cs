@@ -28,13 +28,13 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("la prova a vuoto: sbagliare senza toccare il pezzo (Z-G6)");
+            Group("the dry run: making a mistake without touching the part (Z-G6)");
 
-            var executable = BridgeOrNotHere("la prova a vuoto sul ponte vero");
+            var executable = BridgeOrNotHere("the dry run on the real bridge");
             if (executable == null) return;
 
             var p = Open(executable);
-            if (p == null) { Check("il ponte parte", false, "non si e' avviato"); return; }
+            if (p == null) { Check("the bridge starts", false, "it did not start"); return; }
             try
             {
                 Ask(p, 1,
@@ -62,43 +62,43 @@ namespace Oce.Solid.Agent.ContractTests
                 var result = Inside(bad, "result") as Dictionary<string, object>;
                 var text = TextOf(result);
 
-                Check("la prova a vuoto risponde anche con SOLIDWORKS chiuso",
+                Check("the dry run answers even with SOLIDWORKS closed",
                       !string.IsNullOrEmpty(text), Short(text));
 
-                Check("e dice che e' una prova a vuoto",
-                      text.IndexOf("PROVA A VUOTO", StringComparison.OrdinalIgnoreCase) >= 0,
+                Check("and says it is a dry run",
+                      text.IndexOf("DRY RUN", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(text));
 
-                Check("prende l'operazione che non esiste",
-                      text.Contains("estrudi_rettangolino") && text.Contains("non esiste"),
-                      "e prova a suggerire nomi simili");
+                Check("it catches the operation that does not exist",
+                      text.Contains("estrudi_rettangolino") && text.Contains("does not exist"),
+                      "and tries to suggest similar names");
 
-                Check("prende l'argomento obbligatorio che manca",
+                Check("it catches the required argument that is missing",
                       text.Contains("width_mm") || text.Contains("thickness_mm"),
-                      "su «extrude_rectangle» manca piu' di un obbligatorio");
+                      "on «extrude_rectangle» more than one required argument is missing");
 
                 // THE MOST PRECIOUS OF THE FOUR: a badly written argument gives
                 // no error, it is ignored, and the part comes out different
                 // from how it was asked for. It is the defect that is not seen.
-                Check("prende l'argomento SCONOSCIUTO, che verrebbe ignorato",
+                Check("takes the UNKNOWN argument, which would be ignored",
                       text.Contains("depth_mm") &&
-                      text.IndexOf("IGNORATO", StringComparison.OrdinalIgnoreCase) >= 0,
-                      "il difetto che non da' errore");
+                      text.IndexOf("IGNORED", StringComparison.OrdinalIgnoreCase) >= 0,
+                      "the defect that gives no error");
 
-                Check("prende il rimando a un passo che non c'e'",
-                      text.Contains("passo 9") ||
-                      text.IndexOf("non e' ancora stato fatto", StringComparison.Ordinal) >= 0,
-                      "face_ref verso il passo 9, in un piano di quattro");
+                Check("it catches the reference to a step that is not there",
+                      text.Contains("step 9") ||
+                      text.IndexOf("has not been done yet", StringComparison.Ordinal) >= 0,
+                      "face_ref pointing to step 9, in a plan of four");
 
-                Check("e la risposta e' marcata come errore",
+                Check("and the answer is marked as an error",
                       result != null && result.ContainsKey("isError") &&
                       Convert.ToString(result["isError"]).Equals(
                           "True", StringComparison.OrdinalIgnoreCase),
-                      "un piano che non regge non e' una risposta neutra");
+                      "a plan that does not hold is not a neutral answer");
 
-                Check("e dichiara cosa NON ha potuto controllare",
-                      text.Contains("NON controllati") && text.Contains("uid"),
-                      "tacere sui limiti farebbe credere che il piano sia a posto");
+                Check("and it declares what it could NOT check",
+                      text.Contains("NOT checked") && text.Contains("uid"),
+                      "staying silent about the limits would make people believe the plan is fine");
 
                 // ── A GOOD PLAN IS NOT REJECTED ───────────────────────────
                 //
@@ -114,12 +114,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var itsGoodOne = Inside(good, "result") as Dictionary<string, object>;
                 var goodText = TextOf(itsGoodOne);
 
-                Check("un piano buono NON viene bocciato",
-                      goodText.Contains("il piano regge"), Short(goodText));
+                Check("a good plan is NOT rejected",
+                      goodText.Contains("the plan holds"), Short(goodText));
 
-                Check("ma anche li' dice cosa non ha guardato",
-                      goodText.Contains("NON controllati"),
-                      "soprattutto quando regge");
+                Check("but even there it says what it did not look at",
+                      goodText.Contains("NOT checked"),
+                      "above all when it holds");
 
                 // ── AND `dry_run` IS DECLARED IN THE SCHEMA ───────────────
                 //
@@ -131,11 +131,11 @@ namespace Oce.Solid.Agent.ContractTests
                 // «System.Collections.Generic.Dictionary...».
                 var toolsLine = Ask(p, 22,
                     "{\"jsonrpc\":\"2.0\",\"id\":22,\"method\":\"tools/list\",\"params\":{}}");
-                Check("«dry_run» e' dichiarato nello schema di «build»",
+                Check("«dry_run» is declared in the schema of «build»",
                       toolsLine != null &&
                       toolsLine.Contains("\"dry_run\"") &&
-                      toolsLine.Contains("PROVA A VUOTO"),
-                      "una capacita' che non si vede in tools/list non la usa nessuno");
+                      toolsLine.Contains("PROVA A VUOTO"),   // the DESCRIPTION of the tool, which window .9 translates: until then it still says this
+                      "a capability that does not show in tools/list is used by nobody");
             }
             finally { Close(p); }
         }

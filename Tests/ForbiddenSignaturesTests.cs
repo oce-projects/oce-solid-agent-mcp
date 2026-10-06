@@ -52,30 +52,30 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 {
                     @"\bmodel\s*\.\s*AddDimension\s*\(",
-                    "IModelDoc2.AddDimension (3 param) ritorna Boolean: la quota, " +
-                    "se nasce, NON E' RAGGIUNGIBILE. Si usa " +
-                    "`model.Extension.AddDimension(x, y, z, direction)`, che " +
-                    "torna l'oggetto (voce GP6)"
+                    "IModelDoc2.AddDimension (3 param) returns Boolean: the dimension, " +
+                    "if it is born, is NOT REACHABLE. Use " +
+                    "`model.Extension.AddDimension(x, y, z, direction)`, which " +
+                    "returns the object (entry GP6)"
                 },
                 {
                     @"\bmodel\s*\.\s*AddDimension2\s*\(",
-                    "IModelDoc2.AddDimension2 non ha controllo di direzione: la " +
-                    "quota nasce orientata a caso, ed e' un difetto che sullo " +
-                    "schermo non si vede (voce GP6)"
+                    "IModelDoc2.AddDimension2 has no direction control: the " +
+                    "dimension is born oriented at random, and it is a defect that " +
+                    "cannot be seen on the screen (entry GP6)"
                 },
                 {
                     @"\.\s*EditDelete\s*\(",
-                    "IModelDoc2.EditDelete chiede conferma con una finestra: dentro " +
-                    "SOLIDWORKS la chiamata COM non torna e il CAD resta piantato. Si " +
-                    "usa `model.Extension.DeleteSelection2(swDelete_Absorbed)`. " +
-                    "Era vietata solo nei commenti, e OperazioniTabellaFori la chiamava " +
-                    "davvero (trovata dal workflow W-S il 27/9/2026)"
+                    "IModelDoc2.EditDelete asks for confirmation with a window: inside " +
+                    "SOLIDWORKS the COM call does not return and the CAD stays stuck. Use " +
+                    "`model.Extension.DeleteSelection2(swDelete_Absorbed)`. " +
+                    "It was forbidden only in comments, and OperazioniTabellaFori really " +
+                    "called it (found by the W-S workflow on 27/9/2026)"
                 },
             };
 
         internal static void All()
         {
-            Group("le chiamate vietate per contratto (GP6, EditDelete)");
+            Group("the calls forbidden by contract (GP6, EditDelete)");
 
             // ── FIRST: DOES THE RULE HAVE TEETH? ─────────────────────────
             var mustFire = new[]
@@ -88,7 +88,7 @@ namespace Oce.Solid.Agent.ContractTests
             int taken = 0;
             foreach (var r in mustFire)
                 if (Forbidden.Keys.Any(k => Regex.IsMatch(r, k))) taken++;
-            Check("la regola riconosce le chiamate vietate", taken == mustFire.Length,
+            Check("the rule recognizes the forbidden calls", taken == mustFire.Length,
                   taken + " su " + mustFire.Length);
 
             // ── AND IT DOES NOT CATCH THE RIGHT ONE ───────────────────────
@@ -100,14 +100,14 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 "var nature = model.Extension.AddDimension(x, y, z, 0);",
                 "model.Extension.AddDimension(entry.X, entry.Y, entry.Z, 0);",
-                "// AddDimension apre un modale: spegnere swInputDimValOnCreate",
+                "// AddDimension opens a modal: turn off swInputDimValOnCreate",
                 "model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);",
             };
             var shouted = mustPass
                 .Where(r => Forbidden.Keys.Any(k => Regex.IsMatch(r, k))).ToList();
-            Check("e NON prende `Extension.AddDimension`, che e' quella giusta",
+            Check("and it does NOT catch `Extension.AddDimension`, which is the right one",
                   shouted.Count == 0,
-                  shouted.Count == 0 ? "quattro righe legittime, zero falsi allarmi"
+                  shouted.Count == 0 ? "four legitimate lines, zero false alarms"
                                     : string.Join(" | ", shouted));
 
             // ── THEN: THE REAL SOURCE ────────────────────────────────────
@@ -137,9 +137,9 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
 
-            Check("nessuno chiama le firme vietate", foundOnes.Count == 0,
+            Check("nobody calls the forbidden signatures", foundOnes.Count == 0,
                   foundOnes.Count == 0
-                      ? checkedLines + " righe di codice guardate in " + folders.Length + " cartelle"
+                      ? checkedLines + " lines of code looked at in " + folders.Length + " folders"
                       : string.Join(" | ", foundOnes));
 
             // ── AND THE RIGHT ONE IS REALLY USED ─────────────────────────
@@ -151,8 +151,8 @@ namespace Oce.Solid.Agent.ContractTests
             var quote = Path.Combine(Root(), "Oce.Solid.Agent.Core", "DrawingDimensionOperations.cs");
             if (File.Exists(quote))
                 used = File.ReadAllText(quote).Contains("Extension.AddDimension(");
-            Check("e quella giusta e' davvero in uso", used,
-                  "DrawingDimensionOperations.cs: senza questa riga il divieto sorveglierebbe il vuoto");
+            Check("and the right one is really in use", used,
+                  "DrawingDimensionOperations.cs: without this line the ban would guard nothing");
         }
     }
 }

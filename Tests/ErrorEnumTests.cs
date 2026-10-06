@@ -76,23 +76,23 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 {
                     "error != 0 || obj == null",
-                    "GetObjectByPersistReference3: swPersistReferencedObject_Ok vale " +
-                    "**0** (Invalid 1, Suppressed 2, Deleted 4), letto per " +
-                    "riflessione il 23/9/2026. Qui lo zero e' davvero «tutto bene»."
+                    "GetObjectByPersistReference3: swPersistReferencedObject_Ok is worth " +
+                    "**0** (Invalid 1, Suppressed 2, Deleted 4), read by " +
+                    "reflection on 23/9/2026. Here the zero really means «all well»."
                 },
                 {
                     "inError == 1",
-                    "NON E' UN CODICE DI ERRORE: e' il CONTEGGIO delle lavorazioni " +
-                    "in errore (`features_in_error` dello stato), confrontato " +
-                    "con 1 per scegliere fra «lavorazione» e «features». " +
-                    "Trovata da questa guardia al suo primo giro, il 23/9/2026: " +
-                    "il nome dice «error» e il valore e' un numero di cose."
+                    "NOT AN ERROR CODE: it is the COUNT of the features " +
+                    "in error (`features_in_error` of the state), compared " +
+                    "with 1 to choose between «feature» and «features». " +
+                    "Found by this guard on its first run, on 23/9/2026: " +
+                    "the name says «error» and the value is a number of things."
                 },
             };
 
         internal static void All()
         {
-            Group("gli errori non si confrontano con una cifra (Z-C7)");
+            Group("errors are not compared with a digit (Z-C7)");
 
             // ── FIRST: DOES THE GUARD HAVE TEETH? ────────────────────────
             //
@@ -101,14 +101,14 @@ namespace Oce.Solid.Agent.ContractTests
             // «no suspicious line» one proves that it would recognize them.
             var mustFire = new[]
             {
-                "if (errore != 0) return null;",
+                "if (error != 0) return null;",
                 "if (error == 0) { }",
                 "while (statoUscita != 1)",
                 "if (ErroreMate == 0) return;",
             };
             int taken = 0;
             foreach (var r in mustFire) if (Suspicious.IsMatch(r)) taken++;
-            Check("la guardia riconosce i confronti con una cifra",
+            Check("the guard recognizes the comparisons with a digit",
                   taken == mustFire.Length,
                   taken + " su " + mustFire.Length);
 
@@ -117,23 +117,23 @@ namespace Oce.Solid.Agent.ContractTests
             // check dies.
             var mustStaySilent = new[]
             {
-                "if (errore != (int)swAddMateError_e.swAddMateError_NoError)",
+                "if (error != (int)swAddMateError_e.swAddMateError_NoError)",
                 "if (erroreU > 0.5 || erroreV > 0.5)",
-                "if (errori.Count > 0) return;",
-                "var stato = 0;",
+                "if (errors.Count > 0) return;",
+                "var status = 0;",
             };
             var shouted = new List<string>();
             foreach (var r in mustStaySilent) if (Suspicious.IsMatch(r)) shouted.Add(r.Trim());
-            Check("e tace su quello che va bene",
+            Check("and it stays silent on what is fine",
                   shouted.Count == 0,
-                  shouted.Count == 0 ? "quattro righe legittime, zero falsi allarmi"
-                                    : "falsi allarmi: " + string.Join(" | ", shouted));
+                  shouted.Count == 0 ? "four legitimate lines, zero false alarms"
+                                    : "false alarms: " + string.Join(" | ", shouted));
 
             // ── THEN: THE SOURCES ─────────────────────────────────────────
             var folder = Path.Combine(Root(), "Oce.Solid.Agent.Core");
             if (!Directory.Exists(folder))
             {
-                Check("la cartella della libreria c'e'", false, "manca " + folder);
+                Check("the library folder is there", false, "missing " + folder);
                 return;
             }
 
@@ -166,11 +166,11 @@ namespace Oce.Solid.Agent.ContractTests
                 }
             }
 
-            Check("nessun errore confrontato con una cifra",
+            Check("no error compared with a digit",
                   foundOnes.Count == 0,
                   foundOnes.Count == 0
-                      ? inspected + " righe di codice guardate, " + Allowed.Count +
-                        " eccezione dichiarata"
+                      ? inspected + " lines of code looked at, " + Allowed.Count +
+                        " declared exception"
                       : string.Join(" | ", foundOnes));
 
             // ── AND DO THE EXCEPTIONS STILL EXIST? ──────────────────────
@@ -183,8 +183,8 @@ namespace Oce.Solid.Agent.ContractTests
                 bool alive = false;
                 foreach (var file in Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories))
                     if (File.ReadAllText(file).Contains(p.Key)) { alive = true; break; }
-                Check("l'eccezione dichiarata esiste ancora: «" + p.Key + "»", alive,
-                      alive ? p.Value : "NON c'e' piu' nel codice: togli il permesso");
+                Check("the declared exception still exists: «" + p.Key + "»", alive,
+                      alive ? p.Value : "it is NO LONGER in the code: remove the permission");
             }
         }
     }

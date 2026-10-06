@@ -36,17 +36,17 @@ namespace Oce.Solid.Agent.ContractTests
     {
         internal static void All()
         {
-            Group("il banco e' stato lanciato su questa versione");
+            Group("the bench was run on this version");
 
             var file = Path.Combine(Root(), "Bench", "report", "last.json");
             if (!File.Exists(file))
             {
-                Check("il banco e' stato eseguito", false,
-                      "il banco non e' stato eseguito su questa versione: manca " + file +
-                      ". Si lancia con .\\Bench\\bench.ps1");
+                Check("the bench was run", false,
+                      "the bench was not run on this version: missing " + file +
+                      ". Run it with .\\Bench\\bench.ps1");
                 return;
             }
-            Check("il banco e' stato eseguito", true, file);
+            Check("the bench was run", true, file);
 
             Dictionary<string, object> benchRun;
             try
@@ -54,20 +54,20 @@ namespace Oce.Solid.Agent.ContractTests
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 benchRun = s.DeserializeObject(File.ReadAllText(file)) as Dictionary<string, object>;
             }
-            catch (Exception ex) { Check("il resoconto si legge", false, ex.Message); return; }
-            if (benchRun == null) { Check("il resoconto e' un oggetto", false, ""); return; }
+            catch (Exception ex) { Check("the report can be read", false, ex.Message); return; }
+            if (benchRun == null) { Check("the report is an object", false, ""); return; }
 
             // ── MORE THAN ZERO CHECKS ─────────────────────────────────────
             //
             // «0 prove, 0 fallite» is green and means nothing. It is the
             // shape a suite takes when it has emptied itself.
             int passed = Integer(benchRun, "passed");
-            Check("il giro ha misurato qualcosa", passed > 0, passed + " prove passate");
-            Check("nessuna prova fallita", Integer(benchRun, "failed") == 0,
+            Check("the run measured something", passed > 0, passed + " checks passed");
+            Check("no check failed", Integer(benchRun, "failed") == 0,
                   Integer(benchRun, "failed") + " fallite");
-            Check("nessun errore di banco", Integer(benchRun, "errors") == 0,
-                  Integer(benchRun, "errors") + " errori di banco");
-            Check("il giro e' uscito 0", Integer(benchRun, "exit_code") == 0,
+            Check("no bench error", Integer(benchRun, "errors") == 0,
+                  Integer(benchRun, "errors") + " bench errors");
+            Check("the run exited 0", Integer(benchRun, "exit_code") == 0,
                   "uscita " + Integer(benchRun, "exit_code"));
 
             // ── NOT A PARTIAL RUN ─────────────────────────────────────────
@@ -75,16 +75,16 @@ namespace Oce.Solid.Agent.ContractTests
             // `--gruppo` is handy while working and does not count as a delivery:
             // the summary says so, and here it is read.
             string summary = Convert.ToString(benchRun.ContainsKey("summary") ? benchRun["summary"] : "");
-            Check("non e' un giro parziale",
-                  summary.IndexOf("GIRO PARZIALE", StringComparison.Ordinal) < 0,
+            Check("it is not a partial run",
+                  summary.IndexOf("PARTIAL RUN", StringComparison.Ordinal) < 0,
                   summary);
 
             // ── THE LIBRARY VERSION IS THE CURRENT ONE ────────────────────
             string declared = AssemblyVersion();
             string didRun = Convert.ToString(benchRun.ContainsKey("library") ? benchRun["library"] : "");
-            Check("il banco ha girato sulla libreria di adesso",
+            Check("the bench ran on the current library",
                   declared != null && didRun.StartsWith(declared, StringComparison.Ordinal),
-                  "AssemblyInfo dice " + (declared ?? "?") + ", il giro dice " + didRun);
+                  "AssemblyInfo says " + (declared ?? "?") + ", the run says " + didRun);
 
             // ── AND NOT BEFORE THE LAST CHANGE TO THE OPERATIONS ──────────
             //
@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.ContractTests
             DateTime? timestamp = Data(Convert.ToString(benchRun.ContainsKey("timestamp") ? benchRun["timestamp"] : ""));
             if (timestamp == null)
             {
-                Check("il giro dice quando", false, "«timestamp» illeggibile");
+                Check("the run says when", false, "«timestamp» unreadable");
             }
             else
             {
@@ -115,8 +115,8 @@ namespace Oce.Solid.Agent.ContractTests
                 // answered a different question from the one it seemed to answer:
                 // not «this bench is green» but «a bench from a few hours ago
                 // was».
-                LookAtTouch("le operazioni", "Oce.Solid.Agent.Core", timestamp.Value);
-                LookAtTouch("il banco", "Bench", timestamp.Value);
+                LookAtTouch("the operations", "Oce.Solid.Agent.Core", timestamp.Value);
+                LookAtTouch("the bench", "Bench", timestamp.Value);
             }
 
             // Outside the `if`: the rule is checked even when the report
@@ -249,21 +249,21 @@ namespace Oce.Solid.Agent.ContractTests
                                LastChangeInTheWorkTree(filePath));
             if (!t.GitHasAnswered)
             {
-                Check("so quando " + what + " e' stato toccato", false,
-                      "git non risponde: senza, questo controllo non esiste");
+                Check("I know when " + what + " was last touched", false,
+                      "git does not answer: without it, this check does not exist");
                 return;
             }
             if (t.When == null)
             {
-                Check("il giro e' posteriore all'ultima modifica a " + what, true,
-                      "nessun commit su " + filePath + " senza il resoconto accanto: " +
-                      "non c'e' niente di non provato");
+                Check("the run is later than the last change to " + what, true,
+                      "no commit on " + filePath + " without the report next to it: " +
+                      "there is nothing unproven");
                 return;
             }
-            Check("il giro e' posteriore all'ultima modifica a " + what,
+            Check("the run is later than the last change to " + what,
                   timestamp >= t.When.Value.AddMinutes(-1),
-                  "giro " + timestamp.ToString("s") +
-                  ", ultima modifica " + t.When.Value.ToString("s") +
+                  "run " + timestamp.ToString("s") +
+                  ", last change " + t.When.Value.ToString("s") +
                   (string.IsNullOrEmpty(t.Why) ? "" : " (" + t.Why + ")"));
         }
 
@@ -319,7 +319,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 GitHasAnswered = fromGit.GitHasAnswered,
                 When = fromWork,
-                Why = "modificato e NON committato",
+                Why = "modified and NOT committed",
             };
         }
 
@@ -404,26 +404,26 @@ namespace Oce.Solid.Agent.ContractTests
             var dirty = new DateTime(2026, 9, 23, 19, 18, 20);
 
             var withDirt = MoreRecent(git, dirty);
-            Check("un file toccato e non committato VINCE sull'ultimo commit",
+            Check("a touched, uncommitted file WINS over the last commit",
                   withDirt.When == dirty &&
-                  withDirt.Why == "modificato e NON committato",
-                  "commit 15/9 08:27, file 23/9 19:18: vale il file");
+                  withDirt.Why == "modified and NOT committed",
+                  "commit 15/9 08:27, file 23/9 19:18: the file counts");
 
             var clean = MoreRecent(git, null);
-            Check("e con l'albero pulito resta la data del commit",
+            Check("and with a clean tree the date of the commit stays",
                   clean.When == git.When && clean.Why == "commit",
-                  "niente di sporco: vale il commit, come prima");
+                  "nothing dirty: the commit counts, as before");
 
             var dirtyOld = MoreRecent(git, new DateTime(2026, 9, 10, 0, 0, 0));
-            Check("un file sporco PIU' VECCHIO del commit non sposta niente",
+            Check("a dirty file OLDER than the commit moves nothing",
                   dirtyOld.When == git.When,
-                  "vale il piu' recente dei due, non l'ultimo guardato");
+                  "the more recent of the two counts, not the last one looked at");
 
             var withoutCommit = MoreRecent(
                 new Touch { GitHasAnswered = true, When = null }, dirty);
-            Check("«nessun commit non provato» NON copre un file sporco",
+            Check("«no unproven commit» does NOT cover a dirty file",
                   withoutCommit.When == dirty,
-                  "era il verde falso: git taceva e l'albero era pieno");
+                  "it was the false green: git said nothing and the tree was full");
 
             // ── AND A `.md` DOES NOT COUNT, BUT A `.json` DOES ───────────
             //
@@ -431,15 +431,15 @@ namespace Oce.Solid.Agent.ContractTests
             // stops the exception from widening: the declared cases are
             // `.json`, they change what the bench measures, and must keep
             // demanding a new run.
-            Check("un LEGGIMI toccato dopo il giro non lo invalida",
+            Check("a README touched after the run does not invalidate it",
                   CodeOnly(new[] { "Bench/README.md" }).Count == 0,
-                  "una riga di documentazione non cambia cosa fa il banco");
-            Check("ma un caso dichiarato si'",
+                  "a line of documentation does not change what the bench does");
+            Check("but a declared case does",
                   CodeOnly(new[] { "Bench/cases/bodies/x.json" }).Count == 1,
-                  "un `.json` di `cases/` e' un DATO: cambia cosa si misura");
-            Check("e un sorgente pure",
+                  "a `.json` of `cases/` is DATA: it changes what is measured");
+            Check("and so does a source file",
                   CodeOnly(new[] { "Bench/Program.cs" }).Count == 1,
-                  "l'eccezione e' stretta a `.md` e non si allarga da sola");
+                  "the exception is narrow to `.md` and does not widen by itself");
 
             // ── A COMMIT CARRIES A RUN ONLY IF THE RUN'S TIMESTAMP CHANGES ──
             //

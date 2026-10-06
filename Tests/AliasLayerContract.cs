@@ -249,8 +249,8 @@ namespace Oce.Solid.Agent.ContractTests
                 var answer = Inside(Obj(Ask(p, 40, plan)), "result") as Dictionary<string, object>;
                 var text = AllText(answer);
                 Check("an Italian tool, plan and step give the dry run of the English plan",
-                      text.IndexOf("PROVA A VUOTO", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                      text.IndexOf("non esiste", StringComparison.OrdinalIgnoreCase) < 0 &&
+                      text.IndexOf("DRY RUN", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                      text.IndexOf("does not exist", StringComparison.OrdinalIgnoreCase) < 0 &&
                       !Equals(Inside(answer, "isError"), true),
                       Short(text));
                 var expected = new[] { buildIt, stepsIt, operationIt, argumentsIt, opIt, planeIt, topIt, lengthIt, widthIt, thicknessIt };

@@ -50,12 +50,12 @@ namespace Oce.Solid.Agent.ContractTests
 
         internal static void All()
         {
-            Group("il documento si tiene per mano (Z-C5)");
+            Group("the document is held by hand (Z-C5)");
 
             string file = Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs");
             if (!File.Exists(file))
             {
-                Check("PlanExecutor.cs c'e'", false, "manca " + file);
+                Check("PlanExecutor.cs is there", false, "missing " + file);
                 return;
             }
 
@@ -73,15 +73,15 @@ namespace Oce.Solid.Agent.ContractTests
                 if (r.Contains("_sw.IActiveDoc2")) { howMany++; location.Add((i + 1).ToString()); }
             }
 
-            Check("le letture del documento attivo non sono aumentate",
+            Check("the reads of the active document have not increased",
                   howMany <= Cap,
-                  howMany + " letture (tetto " + Cap + "), alle righe " +
+                  howMany + " reads (ceiling " + Cap + "), at lines " +
                   string.Join(", ", location));
 
             // AND THE CEILING MUST NOT BE WIDER THAN THE TRUTH. A ceiling set
             // high «to be on the safe side» is not a ceiling: it is a number that has
             // never said no, and the day it would be needed it will not say it.
-            Check("il tetto e' quello vero, non uno comodo",
+            Check("the ceiling is the real one, not a convenient one",
                   howMany == Cap,
                   howMany == Cap
                       ? howMany + ", the ones listed in the comment"
@@ -93,19 +93,19 @@ namespace Oce.Solid.Agent.ContractTests
             // read the global on its own account and then the plan read it again.
             // They approved two different documents without anything saying so.
             string text = File.ReadAllText(file);
-            Check("i controlli preliminari RICEVONO il documento",
+            Check("the preliminary checks RECEIVE the document",
                   Regex.IsMatch(text,
                       @"private string PreliminaryChecks\(\s*IModelDoc2 \w+\s*\)"),
-                  "non `PreliminaryChecks()`");
+                  "not `PreliminaryChecks()`");
 
             // And receiving it is not enough if it then fishes it out again all the same: we
             // look at the body of the method, not only the signature.
             int start = text.IndexOf("private string PreliminaryChecks(",
                                        StringComparison.Ordinal);
             string body = start < 0 ? "" : text.Substring(start);
-            Check("e dentro non se lo ripesca",
+            Check("and inside they do not fetch it again",
                   start >= 0 && !BodyReads(body),
-                  "nessun `_sw.IActiveDoc2` nel corpo di PreliminaryChecks");
+                  "no `_sw.IActiveDoc2` in the body of PreliminaryChecks");
 
             UndoOnTheDocumentHeld(lines);
         }
