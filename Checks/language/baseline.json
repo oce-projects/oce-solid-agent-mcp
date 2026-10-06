@@ -3,12 +3,12 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 13930,
+  "strings": 10060,
   "markdown": 11388,
-  "json_values": 14211,
-  "identifiers": 1693,
+  "json_values": 11022,
+  "identifiers": 1686,
   "json_keys": 14,
-  "protocol": 678,
+  "protocol": 676,
   "paths": 0,
   "transition": 2188
  },
@@ -328,7 +328,7 @@
    "strings": 22
   },
   "Oce.Solid.Agent.Core/Catalog/Operations.cs": {
-   "strings": 12660,
+   "strings": 9518,
    "comments": 1
   },
   "Oce.Solid.Agent.Core/CenterMarkOperations.cs": {
@@ -494,9 +494,6 @@
   "Tests/DocumentSignaturesTests.cs": {
    "comments": 4
   },
-  "Tests/DryRunTests.cs": {
-   "strings": 2
-  },
   "Tests/ExpectationsTests.cs": {
    "comments": 14,
    "strings": 2
@@ -563,7 +560,6 @@
    "comments": 1
   },
   "Tools/McpTools.cs": {
-   "strings": 726,
    "comments": 35
   },
   "Tools/QuestionRegistry.cs": {
@@ -573,7 +569,7 @@
    "json_values": 7
   },
   "Tools/catalog.json": {
-   "json_values": 13636
+   "json_values": 10447
   },
   "Tools/update.md": {
    "markdown": 491
@@ -1780,7 +1776,6 @@
    "mutazioni",
    "nANCHE",
    "nATTENZIONE",
-   "nCONTROLLO",
    "nDOPO",
    "nDOVE",
    "nDopo",
@@ -1788,24 +1783,18 @@
    "nFORI",
    "nGLI",
    "nGeneri",
-   "nNELLA",
    "nOgni",
    "nPERCHE",
    "nPRIMA",
    "nPerche",
    "nPoi",
-   "nPredefinito",
-   "nQUANTE",
    "nQUELLO",
    "nQUESTA",
-   "nQuali",
    "nQuello",
    "nQuesta",
    "nRifiuta",
    "nSenza",
-   "nServono",
    "nSimbolo",
-   "nSmusso",
    "nTUTTI",
    "nUNA",
    "nUna",
@@ -2819,7 +2808,6 @@
    "righello",
    "rilascio",
    "rimandi",
-   "ripeterla",
    "ripeti",
    "ripiega_lamiera",
    "ripreso",
@@ -2966,7 +2954,6 @@
    "vite",
    "voce",
    "voci",
-   "volta",
    "vuole",
    "vuoto",
    "x_qualunque",

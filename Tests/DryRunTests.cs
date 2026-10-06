@@ -134,7 +134,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Check("«dry_run» is declared in the schema of «build»",
                       toolsLine != null &&
                       toolsLine.Contains("\"dry_run\"") &&
-                      toolsLine.Contains("PROVA A VUOTO"),   // the DESCRIPTION of the tool, which window .9 translates: until then it still says this
+                      toolsLine.Contains("DRY RUN"),   // the DESCRIPTION of the tool, which window .9 translates: until then it still says this
                       "a capability that does not show in tools/list is used by nobody");
             }
             finally { Close(p); }

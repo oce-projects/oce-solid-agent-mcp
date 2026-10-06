@@ -26,7 +26,7 @@ namespace Oce.Solid.Agent.Tools
     ///      make it hard to skip the first.
     ///
     /// `inspect_part` is not an accessory: it is the first, and without it the
-    /// identifiers the others want (`F1`, `E4`, `Corpo1`) do not
+    /// identifiers the others want (`F1`, `E4`, `C1`) do not
     /// exist.
     ///
     /// **THE FIFTH IS `undo`, and it came later (entry R1).** It is not
@@ -82,18 +82,18 @@ namespace Oce.Solid.Agent.Tools
             {
                 Tool(
                     "inspect_part",
-                    "GUARDA il documento aperto in SolidWorks prima di toccarlo: " +
-                    "ingombro, volume, corpi, lavorazioni con le loro quote, facce " +
-                    "e spigoli con il loro identificativo. Gli identificativi (F1, " +
-                    "E4, Corpo1) che le altre operazioni vogliono nascono QUI e " +
-                    "valgono per questa lettura: dopo ogni modifica si rilegge.\n\n" +
-                    "Con «views» torna anche una FOTOGRAFIA del pezzo, che e' " +
-                    "l'unico modo di sapere che FORMA ha: l'elenco delle facce " +
-                    "dice quante sono e quanto misurano, non com'e' fatto. " +
-                    "Costa: ogni vista pesa piu' dell'intero stato scritto, " +
-                    "quindi si chiede quando la forma e' in dubbio — dopo un " +
-                    "guscio, dopo uno smusso, prima di dire che il pezzo e' " +
-                    "finito — non a ogni lettura.",
+                    "LOOK at the document open in SolidWorks before touching it: " +
+                    "bounding box, volume, bodies, features with their dimensions, faces " +
+                    "and edges with their identifier. The identifiers (F1, E4, C1) " +
+                    "that the other operations want are born HERE and are valid " +
+                    "for this reading: after every change, read again.\n\n" +
+                    "With «views» a PHOTOGRAPH of the part also comes back, which is the " +
+                    "only way to know what SHAPE it has: the list of faces says how " +
+                    "many there are and how big they are, not how it is made. " +
+                    "It costs: each view weighs more than the whole written " +
+                    "state, so it is asked for when the shape is in doubt — after " +
+                    "a shell, after a chamfer, before saying the part is " +
+                    "finished — not at every reading.",
                     Object(
                         new Dictionary<string, object>
                         {
@@ -101,10 +101,10 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "array",
                                 ["description"] =
-                                    "quali viste fotografare, al massimo " +
-                                    MaximumViews + ". Se non sai quale, chiedi " +
-                                    "«isometric»: e' la sola che da sola mostra una " +
-                                    "forma. Ci sono: " +
+                                    "which views to photograph, at most " +
+                                    MaximumViews + ". If you do not know which, ask for " +
+                                    "«isometric»: it is the only one that shows a " +
+                                    "shape by itself. Available: " +
                                     string.Join(", ", Session.ViewNames) + ".",
                                 ["items"] = new Dictionary<string, object>
                                 {
@@ -116,26 +116,26 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "object",
                                 ["description"] =
-                                    "UNO SPACCATO: il pezzo tagliato da un piano. Dice di un " +
-                                    "guscio piu' di dieci viste esterne — dall'esterno una " +
-                                    "scatola svuotata e una piena sono lo stesso " +
-                                    "parallelepipedo. Taglia solo il DISEGNO, non il pezzo, e " +
-                                    "si toglie da sola appena scattata.",
+                                    "A CUTAWAY: the part cut by a plane. It tells you more about " +
+                                    "a shell than ten external views — from the outside a " +
+                                    "hollowed box and a full one are the same block. " +
+                                    "It cuts only the PICTURE, not the part, and it removes itself " +
+                                    "as soon as the picture is taken.",
                                 ["properties"] = new Dictionary<string, object>
                                 {
                                     ["plane"] = new Dictionary<string, object>
                                     {
                                         ["type"] = "string",
                                         ["enum"] = Names(Session.PlaneNames),
-                                        ["description"] = "su quale piano tagliare",
+                                        ["description"] = "which plane to cut on",
                                     },
                                     ["offset_mm"] = new Dictionary<string, object>
                                     {
                                         ["type"] = "number",
                                         ["description"] =
-                                            "di quanto spostare il piano di taglio, in mm. " +
-                                            "Predefinito 0, cioe' il piano stesso — che passa " +
-                                            "per l'origine, non per il centro del pezzo.",
+                                            "how far to move the cutting plane, in mm. Default " +
+                                            "0, that is, the plane itself — which passes through " +
+                                            "the origin, not through the center of the part.",
                                     },
                                 },
                                 ["required"] = new[] { "plane" },
@@ -146,8 +146,8 @@ namespace Oce.Solid.Agent.Tools
 
                 Tool(
                     "list_operations",
-                    "L'elenco corto di cosa si puo' chiedere, per famiglia: un " +
-                    "nome e una riga ciascuna. Per lo schema completo di una, usa " +
+                    "The short list of what can be asked for, by family: a " +
+                    "name and one line each. For the complete schema of one, use " +
                     "«describe_operation».",
                     Object(
                         new Dictionary<string, object>
@@ -156,7 +156,7 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "solo una famiglia: extrusions, features, weldments, " +
+                                    "only one family: extrusions, features, weldments, " +
                                     "references, assemblies, physical_properties, drawing, " +
                                     "checks, exports, identity, sheet_metal, dimensions",
                             },
@@ -166,15 +166,15 @@ namespace Oce.Solid.Agent.Tools
 
                 Tool(
                     "describe_operation",
-                    "Lo schema completo di una operazione: cosa vuole, in che " +
-                    "unita', cosa deve esserci gia' nel documento.",
+                    "The complete schema of one operation: what it wants, in " +
+                    "which units, what must already be in the document.",
                     Object(
                         new Dictionary<string, object>
                         {
                             ["name"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
-                                ["description"] = "il nome esatto, da «list_operations»",
+                                ["description"] = "the exact name, from «list_operations»",
                             },
                         },
                         new[] { "name" }),
@@ -182,26 +182,26 @@ namespace Oce.Solid.Agent.Tools
 
                 Tool(
                     "build",
-                    "Esegue in SolidWorks una sequenza di operazioni e RIPORTA " +
-                    "COS'E' VENUTO: le misure di ogni passo e lo stato del " +
-                    "documento dopo.\n\n" +
-                    "Il piano viene controllato TUTTO prima di cominciare: se un " +
-                    "passo qualunque ha un nome sbagliato o argomenti che non " +
-                    "rispettano lo schema, non viene eseguito niente e il " +
-                    "documento resta com'era.\n\n" +
-                    "Se invece un passo fallisce mentre viene eseguito, ci si " +
-                    "ferma li': i passi seguenti quasi sempre nominano cio' che " +
-                    "il passo fallito avrebbe dovuto creare. Quello che era gia' " +
-                    "stato costruito resta, e «undo» lo toglie tutto in una " +
-                    "volta.\n\n" +
-                    "Con «dry_run: true» il piano viene SOLO controllato: non " +
-                    "viene toccato niente, e la risposta dice cosa e' stato " +
-                    "guardato e cosa no. Serve a sbagliare prima, invece che " +
-                    "a meta' pezzo.\n\n" +
-                    "Un passo puo' nominare la geometria creata da un passo " +
-                    "PRECEDENTE dello stesso piano (per esempio face_ref: " +
-                    "{step: 1, kind: \"top_face\"}): e' l'unico modo, " +
-                    "perche' quella faccia non ha ancora nessun identificativo.\n\n" +
+                    "Runs a sequence of operations in SolidWorks and REPORTS " +
+                    "WHAT CAME OUT: the measurements of each step and the state of the " +
+                    "document afterwards.\n\n" +
+                    "The plan is checked ENTIRELY before starting: if any " +
+                    "step has a wrong name or arguments that do not follow " +
+                    "the schema, nothing is run and the " +
+                    "document stays as it was.\n\n" +
+                    "If instead a step fails while it is being run, it stops " +
+                    "there: the following steps almost always name what " +
+                    "the failed step should have created. What had already been " +
+                    "built stays, and «undo» removes it all in one " +
+                    "go.\n\n" +
+                    "With «dry_run: true» the plan is ONLY checked: nothing is " +
+                    "touched, and the answer says what was looked at and what was not. " +
+                    "It is for making mistakes beforehand, instead of " +
+                    "in the middle of the part.\n\n" +
+                    "A step can name the geometry created by an EARLIER step of " +
+                    "the same plan (for example face_ref: " +
+                    "{step: 1, kind: \"top_face\"}): it is the only way, " +
+                    "because that face has no identifier yet.\n\n" +
                     "The plan runs on the document you looked at; if another window " +
                     "came to the front in between, it stops before writing. " +
                     "«volume_after_mm3» is the plan's document; «state_after» is the " +
@@ -217,20 +217,20 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "array",
                                 ["description"] =
-                                    "le operazioni da fare, in ordine",
+                                    "the operations to run, in order",
                                 ["items"] = Object(
                                     new Dictionary<string, object>
                                     {
                                         ["operation"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "string",
-                                            ["description"] = "il nome dell'operazione",
+                                            ["description"] = "the name of the operation",
                                         },
                                         ["arguments"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "object",
                                             ["description"] =
-                                                "gli argomenti, come da «describe_operation»",
+                                                "the arguments, as in «describe_operation»",
                                         },
                                     },
                                     new[] { "operation" }),
@@ -239,29 +239,29 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "Su quale documento disegnare: il titolo o il " +
-                                    "percorso, copiato da «inspect_part». Serve " +
-                                    "SOLO se il documento davanti e' cambiato da " +
-                                    "quando l'hai guardato: normalmente si omette. " +
-                                    "Nominarlo vuol dire «so quale pezzo sto " +
-                                    "toccando», e un nome che non corrisponde viene " +
-                                    "rifiutato.",
+                                    "Which document to draw on: the title or the " +
+                                    "path, copied from «inspect_part». It is needed " +
+                                    "ONLY if the document in front has changed " +
+                                    "since you looked at it: normally it is omitted. " +
+                                    "Naming it means «I know which part " +
+                                    "I am touching», and a name that does not match " +
+                                    "is refused.",
                             },
                             ["dry_run"] = new Dictionary<string, object>
                             {
                                 ["type"] = "boolean",
                                 ["description"] =
-                                    "PROVA A VUOTO: controlla il piano e NON " +
-                                    "tocca niente. Dice quali operazioni non " +
-                                    "esistono, quali argomenti obbligatori " +
-                                    "mancano, quali argomenti verrebbero " +
-                                    "IGNORATI perche' scritti male, e quali " +
-                                    "rimandi puntano a un passo che non c'e'. " +
-                                    "Dice anche cosa NON ha potuto guardare: " +
-                                    "se gli «uid» sono ancora validi e se il " +
-                                    "documento e' quello giusto lo sa solo " +
-                                    "leggendo il documento. Funziona anche con " +
-                                    "SOLIDWORKS chiuso.",
+                                    "DRY RUN: checks the plan and touches NOTHING. " +
+                                    "It says which operations do not exist, " +
+                                    "which required arguments are missing, " +
+                                    "which arguments would be IGNORED because " +
+                                    "they are misspelled, and which references " +
+                                    "point to a step that is not there. It also " +
+                                    "says what it could NOT look at: whether " +
+                                    "the «uid»s are still valid and whether the " +
+                                    "document is the right one can only be known " +
+                                    "by reading the document. It also works with " +
+                                    "SOLIDWORKS closed.",
                             },
                         },
                         new[] { "steps" }),
@@ -285,15 +285,15 @@ namespace Oce.Solid.Agent.Tools
                 // One more tool was needed, and this is it.
                 Tool(
                     "measure",
-                    "MISURA il pezzo senza toccarlo. Prende le stesse " +
-                    "operazioni di «build», ma accetta SOLO quelle della " +
-                    "famiglia «checks» — quelle che leggono e basta.\n\n" +
-                    "Se hai solo bisogno di sapere com'e' fatto il pezzo, usa " +
-                    "questo: il tuo client sa che non cambia niente e non ti " +
-                    "chiede conferma.\n\n" +
-                    "Un'operazione che tocca il pezzo qui viene RIFIUTATA, e la " +
-                    "risposta dice con quale strumento si fa. Il piano non " +
-                    "parte: non si misura meta' pezzo e poi ci si ferma.",
+                    "MEASURES the part without touching it. It takes " +
+                    "the same operations as «build», but accepts ONLY those " +
+                    "of the «checks» family — the ones that only read.\n\n" +
+                    "If you only need to know how the part is made, use this one: " +
+                    "your client knows it changes nothing and does not ask " +
+                    "you for confirmation.\n\n" +
+                    "An operation that touches the part is REFUSED here, and " +
+                    "the answer says which tool does it. The plan does not " +
+                    "start: it does not measure half the part and then stop.",
                     Object(
                         new Dictionary<string, object>
                         {
@@ -301,8 +301,8 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "array",
                                 ["description"] =
-                                    "le misure da prendere, in ordine — solo " +
-                                    "operazioni della famiglia «checks»",
+                                    "the measurements to take, in order — only " +
+                                    "operations of the «checks» family",
                                 ["items"] = Object(
                                     new Dictionary<string, object>
                                     {
@@ -310,13 +310,13 @@ namespace Oce.Solid.Agent.Tools
                                         {
                                             ["type"] = "string",
                                             ["description"] =
-                                                "il nome dell'operazione di verifica",
+                                                "the name of the check operation",
                                         },
                                         ["arguments"] = new Dictionary<string, object>
                                         {
                                             ["type"] = "object",
                                             ["description"] =
-                                                "gli argomenti, come da «describe_operation»",
+                                                "the arguments, as in «describe_operation»",
                                         },
                                     },
                                     new[] { "operation" }),
@@ -325,9 +325,9 @@ namespace Oce.Solid.Agent.Tools
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "Su quale documento misurare: il titolo o il " +
-                                    "percorso, copiato da «inspect_part». " +
-                                    "Normalmente si omette.",
+                                    "Which document to measure: the title or " +
+                                    "the path, copied from «inspect_part». " +
+                                    "Normally omitted.",
                             },
                         },
                         new[] { "steps" }),
@@ -339,16 +339,16 @@ namespace Oce.Solid.Agent.Tools
 
                 Tool(
                     "undo",
-                    "RITIRA l'ultimo piano eseguito da «build», tutto intero. " +
-                    "E' il gesto che questo ponte chiedeva di fare con Ctrl+Z, " +
-                    "che tu non hai.\n\n" +
-                    "Si annulla SOLO se il pezzo e' ancora come «build» lo " +
-                    "aveva lasciato: se dopo il piano qualcuno ha lavorato a " +
-                    "mano, mi fermo e dico cosa e' cambiato — annullare " +
-                    "allora toglierebbe il lavoro di qualcun altro.\n\n" +
-                    "Dopo, il pezzo torna al volume che aveva prima del piano, e " +
-                    "gli identificativi delle facce NON sono piu' quelli: la " +
-                    "risposta porta lo stato nuovo, ed e' quello che vale.\n\n" +
+                    "WITHDRAWS the last plan run by «build», the whole of it. " +
+                    "It is what you would otherwise do with Ctrl+Z, which you " +
+                    "do not have.\n\n" +
+                    "It undoes ONLY if the part is still as «build» left it: " +
+                    "if someone has worked by hand after the plan, I stop and " +
+                    "say what changed — undoing then would remove someone " +
+                    "else's work.\n\n" +
+                    "Afterwards, the part returns to the volume it had before the plan, and the identifiers of " +
+                    "the faces are NO LONGER the same: the answer carries " +
+                    "the new state, and that is the one that counts.\n\n" +
                     "The last plan is the last one that built something or left its " +
                     "own undo entry (its answer said «undo_entry_recorded»: true), " +
                     "for example a reorder; a measure, or a plan that wrote nothing, " +
@@ -375,18 +375,18 @@ namespace Oce.Solid.Agent.Tools
 
                 Tool(
                     "document",
-                    "Il DOCUMENTO su cui si lavora: crearne uno, aprirne uno dal " +
-                    "disco, sapere quali sono aperti, portarne uno davanti.\n\n" +
-                    "Senza documenti aperti gli altri strumenti non hanno niente " +
-                    "da guardare: si comincia con «create» (una parte vuota dal " +
-                    "modello predefinito) o con «open».\n\n" +
-                    "Ogni volta che il documento davanti cambia, quello che avevi " +
-                    "guardato non vale piu': prima di disegnare, «inspect_part». " +
-                    "Il ponte lo pretende.\n\n" +
-                    "Un file aperto in SOLA LETTURA lo dico sempre: di solito vuol " +
-                    "dire che un collega lo ha aperto, e «build» non ci scrive.\n\n" +
-                    "«close» RIFIUTA un documento con modifiche non salvate: non " +
-                    "butto il lavoro di nessuno. Salvalo prima, o chiudilo a mano.\n\n" +
+                    "The DOCUMENT you work on: creating one, opening one from " +
+                    "disk, knowing which ones are open, bringing one to the front.\n\n" +
+                    "Without open documents the other tools have nothing to " +
+                    "look at: you start with «create» (an empty part from the " +
+                    "default template) or with «open».\n\n" +
+                    "Every time the document in front changes, what you had looked " +
+                    "at is no longer valid: before drawing, «inspect_part». The " +
+                    "bridge requires it.\n\n" +
+                    "I always report a file opened READ-ONLY: it usually means a " +
+                    "colleague has it open, and «build» does not write to it.\n\n" +
+                    "«close» REFUSES a document with unsaved changes: I do not throw " +
+                    "away anyone's work. Save it first, or close it by hand.\n\n" +
                     "Closing: a saved document is closed by its full path, and one never " +
                     "saved as the active document or by a title that no other open " +
                     "document answers to. It REFUSES when another open document answers " +
@@ -406,28 +406,28 @@ namespace Oce.Solid.Agent.Tools
                                 ["type"] = "string",
                                 ["enum"] = new[] { "create", "open", "list", "activate", "close" },
                                 ["description"] =
-                                    "«create»: crea un documento vuoto e lo porta davanti. " +
-                                    "«open»: apre un file dal disco. «list»: i documenti " +
-                                    "aperti, e quale e' davanti. «activate»: porta davanti uno " +
-                                    "gia' aperto. «close»: chiude uno aperto, solo se non ha " +
-                                    "modifiche da salvare.",
+                                    "«create»: creates an empty document and brings it to the " +
+                                    "front. «open»: opens a file from disk. «list»: the open " +
+                                    "documents, and which one is in front. «activate»: brings an already " +
+                                    "open one to the front. «close»: closes an open one, only if it " +
+                                    "has no changes to save.",
                             },
                             ["variant"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
                                 ["enum"] = new[] { "part", "assembly" },
                                 ["description"] =
-                                    "solo con «create». Predefinito «part». Una tavola " +
-                                    "nasce da un pezzo: «create_drawing», dentro un piano.",
+                                    "only with «create». Default «part». A drawing is " +
+                                    "born from a part: «create_drawing», inside a plan.",
                             },
                             ["path"] = new Dictionary<string, object>
                             {
                                 ["type"] = "string",
                                 ["description"] =
-                                    "con «open»: il file .sldprt, .sldasm o .slddrw, col " +
-                                    "percorso intero. Con «activate» e «close»: il percorso " +
-                                    "o, per un documento mai salvato, il titolo che " +
-                                    "«list» ha dato.",
+                                    "with «open»: the .sldprt, .sldasm or .slddrw file, " +
+                                    "with the full path. With «activate» and «close»: the " +
+                                    "path or, for a document never saved, the title " +
+                                    "that «list» gave.",
                             },
                         },
                         new[] { "action" }),

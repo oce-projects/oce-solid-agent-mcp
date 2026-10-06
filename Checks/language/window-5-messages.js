@@ -211,6 +211,7 @@ const ALLOWED_CODE_CHANGES = [];
 //                  The tree before is read with them applied, so that its units and its token stream are compared with the tree
 //                  now; any other change of code is still refused. Each is a number or a line a contract asks to be moved by hand
 //                  (a ratchet, the alarm word of a verdict) and says why.
+//                  A snippet with Italian in it gives before_rot13 / after_rot13 (the same text in ROT13) in the place of before / after.
 function integrationOf(root) {
   const file = path.join(root, 'Checks', 'language', PROFILE.integration);
   let j = { forced_units: [], code_changes: [] };
@@ -221,7 +222,14 @@ function integrationOf(root) {
   // word was held by other literals by chance), or the value is read from the drawing template and no literal of the sources holds it
   const assertions = new Map();
   for (const e of j.assertions || []) for (const u of e.units) assertions.set(e.file + '#' + u, e);
-  return { forced, code_changes: j.code_changes || [], assertions };
+  // a snippet that holds Italian (the tree before the window) is written in ROT13 (before_rot13, after_rot13): this file is judged by
+  // the language gate, and a gate that counted the Italian the integrator had to quote would ask for a baseline it has no right to
+  const rot13 = (s) => s.replace(/[a-z]/gi, (c) => { const b = c <= 'Z' ? 65 : 97; return String.fromCharCode((c.charCodeAt(0) - b + 13) % 26 + b); });
+  const code_changes = (j.code_changes || []).map(c => Object.assign({}, c, {
+    before: c.before_rot13 !== undefined ? rot13(c.before_rot13) : c.before,
+    after: c.after_rot13 !== undefined ? rot13(c.after_rot13) : c.after,
+  }));
+  return { forced, code_changes, assertions };
 }
 function applySnippets(text, rel, integ) {
   let out = text;
