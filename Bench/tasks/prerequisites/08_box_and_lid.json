@@ -1,0 +1,155 @@
+{
+  "name": "08_box_and_lid",
+  "family": "prerequisites",
+  "why": "The reference plan of task 08 (the box with a lid), the assembly that task 13 starts from («the box assembly of task 08, check that the lid does not interfere»). Built by the runner before the session of task 13: two saved parts and the assembly saved and in front, the base fixed and the lid sitting on the rim, mated. The numbers are task 08's: base 100 x 100 x 20 with a pocket of 90 x 90, 15 deep (5 of rim all around), lid 100 x 100 x 3, assembly 23 tall, zero interferences.",
+  "defect_caught": "A prerequisite that is a heap of loose parts, or a lid sunk into the pocket: task 13 would then check an assembly that is not the one task 08 describes.",
+  "_how_it_was_chosen": "The mates are the ones the autonomous run of 6/10 found after a first try that sank the lid: «up» of the base is the LARGEST face that looks up, and that is the floor of the pocket (90 x 90), not the rim (100 x 100 minus the pocket), so a coincident mate puts the lid on the floor, 5700 mm3 inside the rim. A distance of 15 from the floor (the depth of the pocket) puts the lid on the rim. Then the two sides are aligned so nothing is left to move in the plane. The lid is inserted 60 above the base only to be seen move: the mates decide where it ends.",
+  "assembly": {
+    "components": [
+      {
+        "name": "base",
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 100,
+              "width_mm": 100,
+              "thickness_mm": 20,
+              "centered": true
+            }
+          },
+          {
+            "operation": "rectangular_cut",
+            "arguments": {
+              "face_ref": {
+                "step": 1,
+                "kind": "top_face"
+              },
+              "x_mm": 0,
+              "y_mm": 0,
+              "length_mm": 90,
+              "width_mm": 90,
+              "through_all": false,
+              "depth_mm": 15
+            }
+          }
+        ]
+      },
+      {
+        "name": "lid",
+        "position_mm": [
+          0,
+          60,
+          0
+        ],
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 100,
+              "width_mm": 100,
+              "thickness_mm": 3,
+              "centered": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "operation": "fix_component",
+      "arguments": {
+        "component": "C1",
+        "grounded": true
+      },
+      "expect": [
+        {
+          "what": "measurements.grounded_after",
+          "equal_to": true,
+          "why": "task 08: «fix the base and sit the lid on top of it, mated»; the lid is held by its mates, not by being fixed."
+        }
+      ]
+    },
+    {
+      "operation": "mate",
+      "arguments": {
+        "component_a": "C2",
+        "face_a": "down",
+        "component_b": "C1",
+        "face_b": "up",
+        "variant": "distance",
+        "distance_mm": 15,
+        "alignment": "opposite"
+      },
+      "expect": [
+        {
+          "what": "measurements.mates_after",
+          "equal_to": [
+            1,
+            1
+          ],
+          "why": "one mate on each of the two components after the first mate."
+        }
+      ]
+    },
+    {
+      "operation": "mate",
+      "arguments": {
+        "component_a": "C2",
+        "face_a": "right",
+        "component_b": "C1",
+        "face_b": "right",
+        "variant": "coincident",
+        "alignment": "aligned"
+      }
+    },
+    {
+      "operation": "mate",
+      "arguments": {
+        "component_a": "C2",
+        "face_a": "front",
+        "component_b": "C1",
+        "face_b": "front",
+        "variant": "coincident",
+        "alignment": "aligned"
+      }
+    },
+    {
+      "operation": "interference_check",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "measurements.how_many",
+          "equal_to": 0,
+          "why": "task 08 and task 13 state it: the lid rests on the rim, it does not wedge in; zero is the right result."
+        }
+      ]
+    },
+    {
+      "operation": "body_bounding_box",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "state.how_many_components",
+          "equal_to": 2,
+          "why": "base and lid, no third component."
+        },
+        {
+          "what": "measurements.bounding_box_mm",
+          "equal_to": [
+            100,
+            23,
+            100
+          ],
+          "tolerance": 0.5,
+          "tolerance_why": "the height of task 08 is 23 +- 0.1; 0.5 covers the order of the three numbers, which is the axes of the assembly (Y up), not the tolerance of the height.",
+          "why": "20 of the base plus 3 of the lid: the lid sits on the rim, not on the floor of the pocket (that would give 20)."
+        }
+      ]
+    }
+  ],
+  "_how_it_is_held": "The base is fixed by fix_component, as task 08 asks («fix the base»). SOLIDWORKS fixes the first component inserted (the bridge of before answered grounded_before true on 6/10), so the step usually changes nothing; it is there so that the plan says it and checks it, instead of resting on which component came in first. The components are numbered by name, «base-1» before «lid-1», so C1 is the base and C2 the lid. The height is read with body_bounding_box, which measures an assembly: the state of an assembly carries no bounding box, and the live proof of 6/10 read «undefined» there."
+}

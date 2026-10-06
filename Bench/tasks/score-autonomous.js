@@ -78,10 +78,23 @@ function direction() {
 // Keys only the bridge before the rename writes: an answer or a state with one
 // of them speaks the Italian protocol.
 const ITALIAN_MARKS = ['esiti', 'riuscita', 'misure', 'corpi_totali', 'facce', 'stato_dopo', 'operazione'];
+// The state of an ASSEMBLY has neither bodies nor faces: without keys of its own
+// (the documents open, the count of the components) it went through
+// untranslated, and the preparer of the D9 run read «-1 components» on the
+// bridge of before (live proof of 6/10, task 08). Their names of before are read
+// from the map (the response_field rows), like everything else of that protocol.
+const ASSEMBLY_MARKS = ['documents_open', 'how_many_components', 'components_top_level'];
+let MARKS = null;
+function italianMarks() {
+  if (MARKS) return MARKS;
+  const before = [...direction().field].filter(([it, en]) => it !== en && ASSEMBLY_MARKS.includes(en)).map(([it]) => it);
+  MARKS = ITALIAN_MARKS.concat(before);
+  return MARKS;
+}
 function speaksItalian(v) {
   if (Array.isArray(v)) return v.some(speaksItalian);
   if (!v || typeof v !== 'object') return false;
-  return Object.keys(v).some(k => ITALIAN_MARKS.includes(k) || speaksItalian(v[k]));
+  return Object.keys(v).some(k => italianMarks().includes(k) || speaksItalian(v[k]));
 }
 // An answer (or a state) of the bridge before, as the bridge after writes it:
 // every key by the response_field rows (a field that depends on the field it
@@ -242,6 +255,20 @@ function scoreSession(rows, outcomes, state) {
 
 function median(xs) { const s = xs.slice().sort((a, b) => a - b); return s.length ? s[Math.floor((s.length - 1) / 2)] : null; }
 
+// The sessions a run did not start because the part they start from could not be
+// built (see prerequisite.js): { task, n, error } for each one that has no
+// transcript.
+function prerequisiteFailures(dir) {
+  const out = [];
+  for (const f of fs.readdirSync(dir).filter(x => /^\d\d_.+-\d+\.prerequisite\.json$/.test(x)).sort()) {
+    const m = /^(.+)-(\d+)\.prerequisite\.json$/.exec(f);
+    let j;
+    try { j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8').replace(/^\ufeff/, '')); } catch (e) { j = { ok: false, error: 'unreadable: ' + f }; }
+    if (j.ok === false && !fs.existsSync(path.join(dir, m[1] + '-' + m[2] + '.jsonl'))) out.push({ task: m[1], n: Number(m[2]), error: j.error || 'no reason recorded' });
+  }
+  return out;
+}
+
 function scoreRun(dir) {
   const runFile = path.join(dir, 'run.json');
   if (!fs.existsSync(runFile)) fail('no run.json in ' + dir);
@@ -262,6 +289,14 @@ function scoreRun(dir) {
     const s = scoreSession(rows, outcomes, st.answer);
     const protocol = outcomes.italian > 0 || st.italian ? 'it (read through the name map)' : outcomes.length || rawState ? 'en' : 'nothing read';
     (perTask[task] = perTask[task] || []).push(Object.assign({ n: Number(m[2]), outcomes_read: outcomes.length, protocol }, s));
+  }
+  // A session the runner did not run because its prerequisite did not hold
+  // (<task>-<n>.prerequisite.json with ok false, and no transcript) is NOT DONE
+  // too: the model never got a part to work on. Counted, so that a bridge that
+  // cannot build the part a task starts from is worse than one that can.
+  for (const f of prerequisiteFailures(dir)) {
+    (perTask[f.task] = perTask[f.task] || []).push({ n: f.n, outcomes_read: 0, protocol: 'no session: the prerequisite did not hold', outcome: 'NOT DONE', rows: [], prerequisite: f.error });
+    console.log(f.task + ' #' + f.n + ': NOT DONE, the session did not run: the prerequisite did not hold (' + String(f.error).replace(/\s+/g, ' ').slice(0, 300) + ')');
   }
   // A run in which not one session gave an outcome is not a run of NOT DONE:
   // it is a run the scorer cannot read (another protocol, a bridge that did
@@ -372,11 +407,35 @@ function selfTest() {
   check('the state of before is read through the map', readAnswer(stateIt).italian && readAnswer(stateIt).answer.bodies_total === 1);
   check('a session of the bridge before that holds every row is RIGHT, not NOT DONE',
         scoreSession(rows.slice(0, 6), readIt, readAnswer(stateIt).answer).outcome === 'RIGHT');
+  // An assembly of the bridge before has no body and no face: the run of 6/10 read
+  // it untranslated, «-1 components» (seen red without the three assembly marks).
+  const nameBefore = (en) => [...direction().field].find(([it, e]) => e === en && it !== en)[0];
+  const assemblyIt = {};
+  assemblyIt[nameBefore('documents_open')] = [];
+  assemblyIt[nameBefore('how_many_components')] = 2;
+  check('the state of an ASSEMBLY of before is read through the map too', readAnswer(assemblyIt).italian && readAnswer(assemblyIt).answer.how_many_components === 2);
   check('an English answer goes through the reading unchanged', !readAnswer({ outcomes }).italian && readAnswer({ outcomes }).answer.outcomes === outcomes);
   check('the median of 1, 0, 1 is 1', median([1, 0, 1]) === 1);
+  // a session the runner did not run for a prerequisite that did not hold is read
+  // from its file, and one that has a transcript is not
+  const folder = fs.mkdtempSync(path.join(require('os').tmpdir(), 'score-prerequisite-'));
+  try {
+    fs.writeFileSync(path.join(folder, '11_tube_stand_drawing-1.prerequisite.json'), JSON.stringify({ ok: false, error: 'the gusset did not find its face' }));
+    fs.writeFileSync(path.join(folder, '12_flange_weight_and_envelope-1.prerequisite.json'), JSON.stringify({ ok: true }));
+    fs.writeFileSync(path.join(folder, '13_lid_interference-1.prerequisite.json'), JSON.stringify({ ok: false, error: 'x' }));
+    fs.writeFileSync(path.join(folder, '13_lid_interference-1.jsonl'), '');
+    const lost = prerequisiteFailures(folder);
+    check('a session whose prerequisite did not hold, and that has no transcript, is found: its task, its number and its reason',
+          lost.length === 1 && lost[0].task === '11_tube_stand_drawing' && lost[0].n === 1 && /gusset/.test(lost[0].error));
+  } finally { fs.rmSync(folder, { recursive: true, force: true }); }
   console.log(bad ? 'self-test: ' + bad + ' failed' : 'self-test: all held');
   return bad === 0;
 }
+
+// What another script of this folder may borrow: the preparer of the
+// prerequisites reads the answers of the bridge of before through the same map.
+module.exports = { readAnswer, askBridge, INSPECT, speaksItalian };
+if (require.main !== module) return;
 
 const argv = process.argv.slice(2);
 if (argv[0] === '--self-test') process.exit(selfTest() ? 0 : 1);

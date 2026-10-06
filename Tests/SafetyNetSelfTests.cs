@@ -95,6 +95,37 @@ namespace Oce.Solid.Agent.ContractTests
                     Summary = new Regex(@"(\d+) of (\d+) comparisons as expected"),
                     Enough = m => m.Groups[1].Value == m.Groups[2].Value && int.Parse(m.Groups[2].Value) >= 17,
                 },
+                // THE AUTONOMOUS RUN OF THE TASKS (D9, entry W3.1-bis.5): the three scripts
+                // that decide what a session starts from. They need no SOLIDWORKS: the
+                // rule that closes every document between two sessions (with the defect of
+                // 6/10 reproduced and a document that never closes), the reference plans of
+                // the tasks that start from another task (against the catalogue, the index
+                // against the texts of the tasks, the whole build against a script that
+                // plays the bridge), and the scorer that reads what the sessions kept.
+                new SelfTest
+                {
+                    Title = "session-documents.js: every document the run opened is closed between two sessions, and none that was open before it; one that never closes is named",
+                    Exe = "node", Script = Path.Combine(root, "Bench", "tasks", "session-documents.js"),
+                    Arguments = "--self-test",
+                    Summary = new Regex(@"self-test: all held"),
+                    Enough = m => true,
+                },
+                new SelfTest
+                {
+                    Title = "prerequisite.js: the reference plans hold against the catalogue, every task that names another task has its plan, a plan that is not the part of its task is refused",
+                    Exe = "node", Script = Path.Combine(root, "Bench", "tasks", "prerequisite.js"),
+                    Arguments = "--self-test",
+                    Summary = new Regex(@"self-test: all held"),
+                    Enough = m => true,
+                },
+                new SelfTest
+                {
+                    Title = "score-autonomous.js: the tables, the outcomes of both bridges and a session that did not run for its prerequisite",
+                    Exe = "node", Script = Path.Combine(root, "Bench", "tasks", "score-autonomous.js"),
+                    Arguments = "--self-test",
+                    Summary = new Regex(@"self-test: all held"),
+                    Enough = m => true,
+                },
             };
 
             foreach (var t in tests)

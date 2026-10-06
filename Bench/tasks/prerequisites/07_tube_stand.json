@@ -1,0 +1,302 @@
+{
+  "name": "07_tube_stand",
+  "family": "prerequisites",
+  "why": "The reference plan of task 07 (the tube stand with feet), the part that tasks 11 (the drawing with the cut list) and 15 (the STEP export) start from. Built by the runner before each of those sessions, saved in the session folder and in front. The numbers are task 07's: a frame of 40x40x3 square tube, 1000 by 600, mitred at the corners, with a crossbar at mid-length; four feet of the same tube, 150 tall, one under each corner, capped at the bottom; a triangular gusset of 40x40, 3 thick, between each foot and the frame; the cut list on it. Task 07 counts 17 bodies and 6 cut-list rows.",
+  "defect_caught": "A prerequisite that is not the stand of task 07, so that the drawing of task 11 and the export of task 15 would be measured on another part.",
+  "_status": "DOES NOT BUILD ON THE BRIDGE OF TODAY, and it is not a defect of the plan. The live proof of 6/10 and three probes on the bridge after (0.127.1, logs in the report of W3.1-bis.5) found three defects of the library, each of which alone keeps the stand of task 07 from being built, by this plan or by any other plan, and by the model of task 07 itself (the run of 6/10 gave WRONG on all seven sessions of task 07): (1) cut_list counts only the items of the structural members (WeldmentOperations.CutListFolders keeps the folders whose GetCutListType is swWeldmentCutlist), so the gussets and the caps are never in bodies_in_cut_list or distinct_entries: a stand with 17 bodies reads 9 bodies and 4 rows, never the 17 and 6 of task 07; (2) gusset refuses two touching faces («the two faces do not touch») at the corners that sit at the END of the segment of the bar the gusset rests on, and accepts the same faces at its START: on a rectangular_frame the corners at z = -280 are refused, on two short bars drawn from z = -280 to +280 the corners at z = +280 are, with the same foot and the same selectors (probes 2 and 3); (3) the state lists only the 60 largest faces and the walls of the four feet tie at 4,800 mm2 behind the 40 larger faces of the frame: 32 walls for 20 places, cut in the order of the bodies, which is not the order they were made in, so the wall a gusset needs is not listed for the third and the fourth foot (probe 2: «faces 60 of 137», the wall of the third foot missing). What the probes DID prove, for the plan that will be written when the library is fixed: a foot drawn 20 short of the frame, extended to it by trim_members and capped with end_cap «ends_ref» on the step of the foot gets ONE cap, at the bottom (the extended end belongs to the trim, and the free ends of the step are the bottom ones only: «end_capped»: 4 for four feet, probe 3), where end_cap on the bodies caps both ends (8, the run of 6/10: 21 bodies instead of 17); and with the long bars not yet drawn the walls of all four feet are listed (16 + 32 large faces). The runner refuses the sessions of tasks 11 and 15 while this plan does not build: on both bridges, so the comparison of D9 is not tilted, but those two tasks are not measured.",
+  "_how_the_faces_are_named": "Selectors read the state the bridge returns. point_mm of a face is the point of the face closest to the origin (measured on the proof of 6/10: the +z wall of the foot at x -480, z -280 answered [-464, -20, -260], the underside of the short bar [-464, -20, 0]), so the foot wall is named by its area (150 x 32 flat width = 4,800) and the X and Z of that point, and the underside of the bar by its area (17,920) and the X and Y of its point. Not by «normal»: the bridge of before the rename writes the facing in Italian and the reading through the map translates that field only in the cases, so on that bridge «normal=front» found nothing (proof of 6/10). The feet are the members (3) to (6) in the order of this plan, and the caps name them by that.",
+  "start": {
+    "new_part": true
+  },
+  "steps": [
+    {
+      "operation": "rectangular_frame",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "length_mm": 1000,
+        "width_mm": 600,
+        "plane": "top",
+        "corner_treatment": "miter",
+        "centered": true
+      }
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              0,
+              0,
+              -260
+            ],
+            "end": [
+              0,
+              0,
+              260
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              -480,
+              -20,
+              -280
+            ],
+            "end": [
+              -480,
+              -170,
+              -280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 6,
+          "why": "four frame bars, the crossbar and the first foot."
+        },
+        {
+          "what": "bounding_box_mm",
+          "equal_to": [
+            1000,
+            190,
+            600
+          ],
+          "tolerance": 1,
+          "tolerance_why": "exact on bars of known length; 1 mm covers the rounding of the envelope.",
+          "why": "the frame is 1000 by 600 and 40 thick around y = 0 (from -20 to 20), and the foot, 150 tall, goes down to y = -170: 190 in all, the same as the stand with every foot (measured on the run of 6/10: [1000, 190, 600])."
+        }
+      ]
+    },
+    {
+      "operation": "gusset",
+      "arguments": {
+        "faces_uid": [
+          "@face(area~=4800,x~=-464,z~=-260)",
+          "@face(area~=17920,x~=-464,y~=-20)"
+        ],
+        "thickness_mm": 3,
+        "leg1_mm": 40,
+        "leg2_mm": 40,
+        "position": "center"
+      },
+      "expect": [
+        {
+          "what": "measurements.volume_added_mm3",
+          "equal_to": 2400,
+          "tolerance": 1,
+          "tolerance_why": "exact: a right triangle of legs 40 and 40 (800 mm2) times 3 thick, on flat faces.",
+          "why": "the gusset of task 07: 40x40, 3 thick, triangular."
+        }
+      ]
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              480,
+              -20,
+              -280
+            ],
+            "end": [
+              480,
+              -170,
+              -280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 8,
+          "why": "the six of before, the first gusset and the second foot."
+        }
+      ]
+    },
+    {
+      "operation": "gusset",
+      "arguments": {
+        "faces_uid": [
+          "@face(area~=4800,x~=464,z~=-260)",
+          "@face(area~=17920,x~=464,y~=-20)"
+        ],
+        "thickness_mm": 3,
+        "leg1_mm": 40,
+        "leg2_mm": 40,
+        "position": "center"
+      },
+      "expect": [
+        {
+          "what": "measurements.volume_added_mm3",
+          "equal_to": 2400,
+          "tolerance": 1,
+          "tolerance_why": "the same as the first gusset: exact on flat faces."
+        }
+      ]
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              -480,
+              -20,
+              280
+            ],
+            "end": [
+              -480,
+              -170,
+              280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 10,
+          "why": "the eight of before, the second gusset and the third foot."
+        }
+      ]
+    },
+    {
+      "operation": "gusset",
+      "arguments": {
+        "faces_uid": [
+          "@face(area~=4800,x~=-464,z~=260)",
+          "@face(area~=17920,x~=-464,y~=-20)"
+        ],
+        "thickness_mm": 3,
+        "leg1_mm": 40,
+        "leg2_mm": 40,
+        "position": "center"
+      },
+      "expect": [
+        {
+          "what": "measurements.volume_added_mm3",
+          "equal_to": 2400,
+          "tolerance": 1,
+          "tolerance_why": "the same as the first gusset: exact on flat faces."
+        }
+      ]
+    },
+    {
+      "operation": "structural_member",
+      "arguments": {
+        "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+        "configuration": "40x40x3",
+        "corner_treatment": "none",
+        "segments": [
+          {
+            "start": [
+              480,
+              -20,
+              280
+            ],
+            "end": [
+              480,
+              -170,
+              280
+            ]
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 12,
+          "why": "the ten of before, the third gusset and the fourth foot."
+        }
+      ]
+    },
+    {
+      "operation": "gusset",
+      "arguments": {
+        "faces_uid": [
+          "@face(area~=4800,x~=464,z~=260)",
+          "@face(area~=17920,x~=464,y~=-20)"
+        ],
+        "thickness_mm": 3,
+        "leg1_mm": 40,
+        "leg2_mm": 40,
+        "position": "center"
+      },
+      "expect": [
+        {
+          "what": "measurements.volume_added_mm3",
+          "equal_to": 2400,
+          "tolerance": 1,
+          "tolerance_why": "the same as the first gusset: exact on flat faces."
+        },
+        {
+          "what": "bodies",
+          "equal_to": 13,
+          "why": "four frame bars, the crossbar, four feet and four gussets."
+        }
+      ]
+    },
+    {
+      "operation": "end_cap",
+      "arguments": {
+        "bodies_uid": [
+          "@body(name=TUBO STRUTTURALE QUADRO 40x40x3(3))",
+          "@body(name=TUBO STRUTTURALE QUADRO 40x40x3(4))",
+          "@body(name=TUBO STRUTTURALE QUADRO 40x40x3(5))",
+          "@body(name=TUBO STRUTTURALE QUADRO 40x40x3(6))"
+        ],
+        "thickness_mm": 3
+      }
+    },
+    {
+      "operation": "cut_list",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "bodies",
+          "equal_to": 17,
+          "why": "task 07: 4 frame bars + 1 crossbar + 4 feet + 4 gussets + 4 caps. SEE _status: with a cap at both ends of every foot this would be 21."
+        },
+        {
+          "what": "measurements.bodies_in_cut_list",
+          "equal_to": 17,
+          "why": "the sum of the quantities of every row of the cut list, as task 07 states."
+        },
+        {
+          "what": "measurements.distinct_entries",
+          "equal_to": 6,
+          "why": "two 1000 sides, two 600 sides, the crossbar, the feet, the gussets, the caps: six rows, as task 07 states."
+        },
+        {
+          "what": "measurements.already_existed",
+          "equal_to": false,
+          "why": "the cut list is born in this plan, as task 07 states."
+        }
+      ]
+    }
+  ]
+}

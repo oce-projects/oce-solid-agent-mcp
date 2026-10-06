@@ -1,0 +1,188 @@
+{
+  "name": "09_bracket_pair",
+  "family": "prerequisites",
+  "why": "The reference plan of task 09 (the left and right bracket pair), the assembly that task 10 starts from («the bracket-on-plate assembly of task 09»). Built by the runner before the session of task 10: the base plate and the L-bracket saved, the assembly saved and in front with three components (the plate, the bracket, and its mirrored instance), the plate fixed, the bracket mated with its long leg resting on the plate and its short leg flush with a short edge, and its mirrored instance, driven by the mirror, flush with the other short edge. The numbers are task 09's: plate 300 x 120 x 10, brackets as in task 01, one mirrored from the other.",
+  "defect_caught": "A prerequisite with two brackets rebuilt from scratch instead of mirrored, or loose on the plate: task 10 would then draw an assembly that is not the one task 09 describes.",
+  "_how_it_was_chosen": "The bracket component repeats, step by step, the plan of task 01 (the contract of the runner checks that the two lists are equal, so a change of the bracket in one place cannot leave the other behind). Positions are the centre of the bounding box: the plate at the origin (it fills y from -5 to 5), the bracket with its short leg at the left edge (x from -150 to -30, y from 5 to 65), so its centre is (-90, 35, 0). The mirror is an instance of the same file across the right plane: the L-bracket is symmetric about its own mid-plane, so the mirror image is the same part turned, and one file is right.",
+  "assembly": {
+    "components": [
+      {
+        "name": "base_plate",
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 300,
+              "width_mm": 120,
+              "thickness_mm": 10,
+              "centered": true
+            }
+          }
+        ]
+      },
+      {
+        "name": "bracket",
+        "position_mm": [
+          -90,
+          35,
+          0
+        ],
+        "steps": [
+          {
+            "operation": "extrude_profile",
+            "arguments": {
+              "plane": "front",
+              "contours": [
+                [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    120,
+                    0
+                  ],
+                  [
+                    120,
+                    8
+                  ],
+                  [
+                    8,
+                    8
+                  ],
+                  [
+                    8,
+                    60
+                  ],
+                  [
+                    0,
+                    60
+                  ]
+                ]
+              ],
+              "thickness_mm": 50
+            }
+          },
+          {
+            "operation": "hole_wizard",
+            "arguments": {
+              "face_uid": "@face(area~=6000)",
+              "variant": "clearance",
+              "size": "M8",
+              "positions": [
+                {
+                  "x_mm": 100,
+                  "y_mm": 25
+                },
+                {
+                  "x_mm": 20,
+                  "y_mm": 25
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "operation": "fix_component",
+      "arguments": {
+        "component": "C1",
+        "grounded": true
+      },
+      "expect": [
+        {
+          "what": "measurements.grounded_after",
+          "equal_to": true,
+          "why": "the plate is the one fixed component: the brackets are held by their mates, not by being fixed."
+        }
+      ]
+    },
+    {
+      "operation": "mate",
+      "arguments": {
+        "component_a": "C2",
+        "face_a": "down",
+        "component_b": "C1",
+        "face_b": "up",
+        "variant": "coincident",
+        "alignment": "opposite"
+      }
+    },
+    {
+      "operation": "mate",
+      "arguments": {
+        "component_a": "C2",
+        "face_a": "left",
+        "component_b": "C1",
+        "face_b": "left",
+        "variant": "coincident",
+        "alignment": "aligned"
+      }
+    },
+    {
+      "operation": "mirror_component",
+      "arguments": {
+        "component": "C2",
+        "plane": "right",
+        "mode": "instance"
+      },
+      "expect": [
+        {
+          "what": "measurements.new_file",
+          "equal_to": false,
+          "why": "an instance of the same file, not a second bracket built from scratch: that is the point of task 09 («mirrored, not rebuilt from scratch»)."
+        },
+        {
+          "what": "measurements.new_center_mm",
+          "equal_to": [
+            90,
+            35,
+            0
+          ],
+          "tolerance": 0.5,
+          "tolerance_why": "the bridge reads the real extreme points and rounds them; 0.5 covers the rounding, not a bracket on the wrong side.",
+          "why": "the centre of the bracket is (-90, 35, 0): on the right plane the x changes sign."
+        }
+      ]
+    },
+    {
+      "operation": "interference_check",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "measurements.how_many",
+          "equal_to": 0,
+          "why": "task 09 states it: the brackets rest on the plate, they do not wedge into it."
+        }
+      ]
+    },
+    {
+      "operation": "body_bounding_box",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "state.how_many_components",
+          "equal_to": 3,
+          "why": "the plate, the bracket and its mirrored instance."
+        },
+        {
+          "what": "measurements.bounding_box_mm",
+          "equal_to": [
+            300,
+            70,
+            120
+          ],
+          "tolerance": 0.5,
+          "tolerance_why": "the bridge rounds the extreme points of every body; 0.5 covers the rounding, not a bracket off the plate.",
+          "why": "300 of the plate by 120 of its width, and 70 tall: the plate fills y from -5 to 5, the brackets stand on it and rise 60 (their short leg, 60 in total from the bottom of the long leg) to y = 65. Read with body_bounding_box, which measures an assembly: the state of an assembly carries no bounding box (the live proof of 6/10 read «undefined»)."
+        }
+      ]
+    }
+  ],
+  "_how_the_components_are_named": "The bridge numbers the components C1, C2... in the order of their names (Name2, AssemblyState.ComponentsInOrder), not in the order they came in. With a plate called «plate», «bracket-1» was C1 and the plate C2, and the live proof of 6/10 mirrored the plate (new centre [0, 0, 0]). The plate is therefore «base_plate» (the words of task 09, «a 300x120 base plate»): «base_plate-1» sorts before «bracket-1», so C1 is the plate and C2 the bracket. The mirrored instance is born LAST, after every step that names a component, so whatever name SOLIDWORKS gives it cannot renumber a component a later step names.",
+  "_how_it_is_held": "The plate is fixed by fix_component: SOLIDWORKS fixes the first component inserted, so the step usually changes nothing, but the plan says it and checks it instead of resting on the order of the inserts (on 6/10 the component the plan called C1 was the bracket, and it moved). The bracket is mated with its long leg on the plate and its short leg flush with the left short edge; the two mates leave it free only along Z, along the edge, which task 09 does not fix. The mirrored instance is NOT mated: a mirror-component feature drives its instance, which is fully blocked from the moment it is born (the live proof of 6/10: its first mate was refused as REDUNDANT, «C3: before the mate blocked in TX, TY, TZ, RX, RY, RZ»), and it follows the bracket wherever the mates put it."
+}

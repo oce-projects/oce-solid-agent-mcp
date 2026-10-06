@@ -40,18 +40,36 @@ namespace Checks.CloseLeftovers
     /// leftovers» and «I close everything that is not saved». The bench reads which
     /// documents were there BEFORE starting and names them here: so it closes
     /// what it opened itself and not what somebody else had opened.
+    ///
+    /// TWO MODES FOR THE AUTONOMOUS RUN OF THE TASKS (Bench/tasks/session-documents.js).
+    /// The run must start every session with NO document open, so it has to
+    /// close what the session before opened whatever its state: saved files in
+    /// the temporary folder, a library file, a drawing. The rule above (never
+    /// saved, or under a folder) cannot say that, and the decision of WHAT to
+    /// close belongs to the script, where it has a self-test. Here it only acts:
+    ///
+    ///     CloseLeftovers.exe --list-json                    the open documents as one JSON array
+    ///                                                       of {title, path, type}; closes nothing
+    ///     CloseLeftovers.exe --close-titles-file <file>     closes exactly the documents whose
+    ///                                                       titles the file lists, one per line,
+    ///                                                       in that order (changes are discarded, as
+    ///                                                       CloseDoc does: never save anything here)
     /// </summary>
     internal static class Program
     {
         private static int Main(string[] arguments)
         {
             bool reallyClose = false;
+            bool listJson = false;
+            string titlesFile = null;
             var folders = new List<string>();
             var spare = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < arguments.Length; i++)
             {
                 var a = arguments[i];
                 if (a == "--close") { reallyClose = true; continue; }
+                if (a == "--list-json") { listJson = true; continue; }
+                if (a == "--close-titles-file" && i + 1 < arguments.Length) { titlesFile = arguments[++i]; continue; }
                 if (a == "--spare" && i + 1 < arguments.Length)
                 {
                     foreach (var t in arguments[++i].Split(','))
@@ -69,6 +87,9 @@ namespace Checks.CloseLeftovers
                 return 2;
             }
             var sw = (ISldWorks)raw;
+
+            if (listJson) return ListJson(sw);
+            if (titlesFile != null) return CloseTitles(sw, titlesFile);
 
             // THE LIST IS MADE FIRST, THEN WE CLOSE.
             // Closing while walking the chain of documents breaks it: the
@@ -138,6 +159,86 @@ namespace Checks.CloseLeftovers
         {
             public string Title;
             public string Path;      // "" for a document that was never saved
+        }
+
+        private static string Quote(string s)
+        {
+            var b = new System.Text.StringBuilder("\"");
+            foreach (char c in s ?? "")
+            {
+                if (c == '"' || c == '\\') b.Append('\\').Append(c);
+                else if (c < ' ') b.Append("\\u").Append(((int)c).ToString("x4"));
+                else b.Append(c);
+            }
+            return b.Append('"').ToString();
+        }
+
+        private static string TypeName(IModelDoc2 d)
+        {
+            int t = 0;
+            try { t = d.GetType(); } catch { }
+            return t == (int)swDocumentTypes_e.swDocPART ? "part"
+                 : t == (int)swDocumentTypes_e.swDocASSEMBLY ? "assembly"
+                 : t == (int)swDocumentTypes_e.swDocDRAWING ? "drawing" : "other";
+        }
+
+        /// <summary>The open documents as one JSON array; nothing is closed.</summary>
+        private static int ListJson(ISldWorks sw)
+        {
+            Console.OutputEncoding = new System.Text.UTF8Encoding(false);
+            var items = new List<string>();
+            var d = (IModelDoc2)sw.GetFirstDocument();
+            while (d != null)
+            {
+                string t = "", p = "";
+                try { t = d.GetTitle() ?? ""; } catch { }
+                try { p = d.GetPathName() ?? ""; } catch { }
+                items.Add("{\"title\":" + Quote(t) + ",\"path\":" + Quote(p) + ",\"type\":" + Quote(TypeName(d)) + "}");
+                d = (IModelDoc2)d.GetNext();
+            }
+            Console.WriteLine("[" + string.Join(",", items) + "]");
+            return 0;
+        }
+
+        /// <summary>
+        /// Closes exactly the documents whose titles the file lists (one per
+        /// line, in the order to close them), then says how many are still
+        /// open. CloseDoc answers nothing, so the answer is the count after.
+        /// </summary>
+        private static int CloseTitles(ISldWorks sw, string file)
+        {
+            Console.OutputEncoding = new System.Text.UTF8Encoding(false);
+            var titles = new List<string>();
+            foreach (var line in System.IO.File.ReadAllLines(file, System.Text.Encoding.UTF8))
+                if (line.Trim().Length > 0) titles.Add(line.Trim());
+            int asked = 0;
+            foreach (var t in titles)
+            {
+                try { sw.CloseDoc(t); asked++; }
+                catch (Exception e) { Console.Error.WriteLine("not closed " + t + ": " + e.Message); }
+            }
+            // CloseDoc answers nothing. A saved document that did not go by its title may
+            // answer to its full path: ask once more that way, then count.
+            var byPath = new List<string>();
+            var s = (IModelDoc2)sw.GetFirstDocument();
+            while (s != null)
+            {
+                string t = "", p = "";
+                try { t = s.GetTitle() ?? ""; } catch { }
+                try { p = s.GetPathName() ?? ""; } catch { }
+                if (p.Length > 0 && titles.Contains(t)) byPath.Add(p);
+                s = (IModelDoc2)s.GetNext();
+            }
+            foreach (var p in byPath)
+            {
+                try { sw.CloseDoc(p); }
+                catch (Exception e) { Console.Error.WriteLine("not closed " + p + ": " + e.Message); }
+            }
+            int remain = 0;
+            var d = (IModelDoc2)sw.GetFirstDocument();
+            while (d != null) { remain++; d = (IModelDoc2)d.GetNext(); }
+            Console.WriteLine("close asked for " + asked + " of " + titles.Count + "; documents open now: " + remain);
+            return 0;
         }
 
         private static bool Deviation(string filePath, List<string> folders)

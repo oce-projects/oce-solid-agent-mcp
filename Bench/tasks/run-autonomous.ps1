@@ -27,10 +27,32 @@
 #  window (the catalogue of the snapshot) against the bridge after it, at most
 #  one task of fifteen worse. The commands are in Bench/tasks/README.md.
 #
-#  NEEDS SOLIDWORKS, a built bridge and the claude CLI. It starts every task
-#  with -Between (a command that closes the documents left open by the task
-#  before, for example), because a task that finds the part of the previous
-#  one in front is not measuring the model.
+#  NEEDS SOLIDWORKS, a built bridge and the claude CLI.
+#
+#  EVERY SESSION STARTS WITH NO DOCUMENT OPEN. The run of 6/10 closed between
+#  two tasks only the documents never saved, so what task 08 saved in its
+#  temporary folder (the assembly and its parts) stayed open for every later
+#  session, and a weld profile of the library stayed open after tasks 06-07: a
+#  task that finds the part of the previous one in front is not measuring the
+#  model. Now the runner reads the documents open BEFORE the run
+#  (session-documents.js --snapshot, written in <out>/documents-before-run.json:
+#  the person's, never closed) and, before and after every session, closes
+#  every other open document whatever its state (session-documents.js
+#  --close-all: saved files of the temporary folder, library files, drawings,
+#  unsaved ones). A document that cannot be closed stops that session, which is
+#  counted as not started: it would start from something else than an empty
+#  SOLIDWORKS. -Between stays as an extra command, run after that.
+#
+#  THE PREREQUISITES. Seven tasks start from the result of an earlier one ("the
+#  L-bracket of task 01"); each session runs in an empty folder, so the model
+#  found a box and said the bracket was not there. The runner builds that part
+#  BEFORE the session through the same bridge, from a reference plan of
+#  Bench/tasks/prerequisites/ (index.json says which task needs which plan),
+#  saved in the folder of the session and open in front, and checks it against
+#  the numbers of its own task (prerequisite.js --build). The text of the task
+#  and its measure are not changed. A prerequisite that does not hold means the
+#  session would measure another part: the session is NOT run, the run says why
+#  (<task>-<n>.prerequisite.json, and run.json) and exits 1.
 #
 #  THE SESSION SEES THE BRIDGE AND NOTHING ELSE. A session started in the
 #  repository could read Bench/tasks/NN_*.md, with the table of the expected
@@ -49,7 +71,8 @@
 #      .\Bench\tasks\run-autonomous.ps1 -Language it -TasksDir <Italian tasks> -Repeats 3 -Label after
 #
 #  Exit 0 when every session ran (whatever the model made of it), 1 when a
-#  session could not start, 2 on a bad argument.
+#  session could not start (or its prerequisite did not hold, or a document
+#  could not be closed), 2 on a bad argument.
 # =============================================================================
 
 param(
@@ -63,6 +86,7 @@ param(
     [string]   $Model = '',
     [string]   $Claude = 'claude',
     [string]   $Between = '',
+    [string]   $PrerequisitesDir = '',
     [string]   $Out = '',
     [switch]   $DryRun
 )
@@ -98,6 +122,16 @@ function TaskText([string] $file) {
         elseif ($quote.Count -gt 0) { break }
     }
     return ($quote -join "`n").Trim()
+}
+
+# Which task needs which reference plan (prerequisites/index.json).
+if (-not $PrerequisitesDir) { $PrerequisitesDir = Join-Path $PSScriptRoot 'prerequisites' }
+if (-not (Test-Path -LiteralPath (Join-Path $PrerequisitesDir 'index.json'))) { Write-Host "no index.json in $PrerequisitesDir" -ForegroundColor Red; exit 2 }
+$prerequisiteIndex = Get-Content -LiteralPath (Join-Path $PrerequisitesDir 'index.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+function PrerequisiteOf([string] $task) {
+    $entry = $prerequisiteIndex.tasks.PSObject.Properties | Where-Object { $_.Name -eq $task.Substring(0, 2) } | Select-Object -First 1
+    if ($entry) { return $entry.Value }
+    return $null
 }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmm'
@@ -171,7 +205,22 @@ if ($DryRun) {
     foreach ($c in $commands) {
         $shown = (SessionArguments ('<' + $c.Text.Length + ' characters>') '<out>\mcp-config.json') | ForEach-Object { if ($_ -eq '' -or $_ -eq '""') { '""' } else { $_ } }
         Write-Host ("  " + $c.Task + " #" + $c.N + ", in an empty temporary folder: " + $Claude + " " + ($shown -join ' '))
+        $needs = PrerequisiteOf $c.Task
+        if ($needs) { Write-Host ("      before it: the prerequisite " + $needs.plan + " (the result of task " + $needs.from_task + "), built in that folder, saved and open in front") }
     }
+    # What can be checked without SOLIDWORKS: the reference plans against the
+    # catalogue (and the dry run of the bridge, or the catalogue of before when
+    # the bridge is the one of before the rename), the index against the texts of
+    # the tasks, and the self-tests of the two scripts that close and prepare.
+    $dryProblems = 0
+    foreach ($check in @(
+            @('prerequisite.js', '--check', '--bridge', $Bridge, '--dir', $PrerequisitesDir),
+            @('prerequisite.js', '--self-test'),
+            @('session-documents.js', '--self-test'))) {
+        & node (Join-Path $PSScriptRoot $check[0]) @($check[1..($check.Count - 1)]) | Out-Host
+        if ($LASTEXITCODE -ne 0) { $dryProblems++ }
+    }
+    if ($dryProblems -gt 0) { Write-Host ("dry run: " + $dryProblems + " check(s) failed") -ForegroundColor Red; exit 1 }
     Write-Host "dry run: nothing started"
     exit 0
 }
@@ -181,9 +230,33 @@ $configFile = Join-Path $Out 'mcp-config.json'
 [IO.File]::WriteAllText($configFile, $configJson, (New-Object System.Text.UTF8Encoding($false)))
 $started = Get-Date
 $failed = 0
+$prerequisitesBuilt = @()
+$prerequisitesFailed = @()
+
+# The documents open before the run are the person's: written down once, never
+# closed (session-documents.js, which holds the rule and its self-test).
+$spareFile = Join-Path $Out 'documents-before-run.json'
+& node (Join-Path $PSScriptRoot 'session-documents.js') --snapshot $spareFile | Out-Host
+if ($LASTEXITCODE -ne 0) { Write-Host "could not read the documents open in SOLIDWORKS: no run" -ForegroundColor Red; exit 1 }
+$sparedDocuments = @((Get-Content -LiteralPath $spareFile -Raw -Encoding UTF8 | ConvertFrom-Json).documents)
+if ($sparedDocuments.Count -gt 0) {
+    Write-Host ("WARNING: " + $sparedDocuments.Count + " document(s) were open before the run and stay open: every session will find them in front of it. Close them first if the run must start from an empty SOLIDWORKS.") -ForegroundColor Yellow
+}
+
+# Closes every open document that was not open before the run; false when one
+# stays open (the session after it would not start from an empty SOLIDWORKS).
+function CloseAll {
+    & node (Join-Path $PSScriptRoot 'session-documents.js') --close-all --spare $spareFile | Out-Host
+    return ($LASTEXITCODE -eq 0)
+}
 
 foreach ($c in $commands) {
     $base = Join-Path $Out ($c.Task + '-' + $c.N)
+    if (-not (CloseAll)) {
+        Write-Host ("  " + $c.Task + " #" + $c.N + " NOT STARTED: a document that must be closed is still open") -ForegroundColor Red
+        $failed++
+        continue
+    }
     if ($Between) {
         Write-Host ("  before " + $c.Task + " #" + $c.N + ": " + $Between)
         & powershell -NoProfile -Command $Between | Out-Host
@@ -193,27 +266,53 @@ foreach ($c in $commands) {
     # an empty folder of its own: nothing of the repository, no project memory
     $work = Join-Path ([IO.Path]::GetTempPath()) ('d9-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force -Path $work | Out-Null
-    Push-Location -LiteralPath $work
-    try {
-        & $Claude @arguments 2> ($base + '.stderr.txt') | Out-File -LiteralPath ($base + '.jsonl') -Encoding utf8
-        if ($LASTEXITCODE -ne 0) { Write-Host ("    the session ended with " + $LASTEXITCODE) -ForegroundColor Yellow }
-    } catch {
-        Write-Host ("    the session did not start: " + $_.Exception.Message) -ForegroundColor Red
-        $failed++
-        continue
-    } finally {
-        Pop-Location
-        try { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction Stop } catch { Write-Host ("    could not remove " + $work) -ForegroundColor Yellow }
+
+    # The part the task starts from, built before the session, in its folder.
+    $ready = $true
+    $needs = PrerequisiteOf $c.Task
+    if ($needs) {
+        Write-Host ("    prerequisite: " + $needs.plan + " (the result of task " + $needs.from_task + ")")
+        & node (Join-Path $PSScriptRoot 'prerequisite.js') --build $Bridge $needs.plan $work --out ($base + '.prerequisite.json') --dir $PrerequisitesDir | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "    the prerequisite did not hold: the session is NOT run (it would measure another part); see the .prerequisite.json" -ForegroundColor Red
+            $prerequisitesFailed += ($c.Task + '-' + $c.N)
+            $failed++
+            $ready = $false
+        } else { $prerequisitesBuilt += ($c.Task + '-' + $c.N + ': ' + $needs.plan) }
     }
-    # The finished part, read by a fresh bridge.
-    & node (Join-Path $PSScriptRoot 'score-autonomous.js') --read-state $Bridge ($base + '.state.json') | Out-Host
+
+    if ($ready) {
+        Push-Location -LiteralPath $work
+        try {
+            & $Claude @arguments 2> ($base + '.stderr.txt') | Out-File -LiteralPath ($base + '.jsonl') -Encoding utf8
+            if ($LASTEXITCODE -ne 0) { Write-Host ("    the session ended with " + $LASTEXITCODE) -ForegroundColor Yellow }
+            $ran = $true
+        } catch {
+            Write-Host ("    the session did not start: " + $_.Exception.Message) -ForegroundColor Red
+            $failed++
+            $ran = $false
+        } finally {
+            Pop-Location
+        }
+        # The finished part, read by a fresh bridge (before the documents are closed).
+        if ($ran) { & node (Join-Path $PSScriptRoot 'score-autonomous.js') --read-state $Bridge ($base + '.state.json') | Out-Host }
+    }
+
+    # What the session opened is closed BEFORE its folder goes: an open file of
+    # that folder keeps it from being removed.
+    [void](CloseAll)
+    try { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction Stop } catch { Write-Host ("    could not remove " + $work) -ForegroundColor Yellow }
 }
+# and the run leaves SOLIDWORKS as it found it
+if (-not (CloseAll)) { Write-Host "a document opened by the run is still open" -ForegroundColor Yellow }
 
 $run = [ordered]@{
     language = $Language; tasks_dir = $TasksDir; repeats = $Repeats; bridge = $Bridge
     bridge_version = $bridgeInfo.version; bridge_protocol = $bridgeInfo.protocol; isolation = $isolation
     catalogue_sha256 = $catalogueHash; model = $Model; max_turns = $MaxTurns; label = $Label
     started = $started.ToString('s'); ended = (Get-Date).ToString('s'); sessions = $commands.Count; not_started = $failed
+    documents_before_run = 'documents-before-run.json'
+    prerequisites_built = @($prerequisitesBuilt); prerequisites_failed = @($prerequisitesFailed)
 }
 [IO.File]::WriteAllText((Join-Path $Out 'run.json'), ($run | ConvertTo-Json), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("done: " + ($commands.Count - $failed) + " of " + $commands.Count + " sessions; score with:")

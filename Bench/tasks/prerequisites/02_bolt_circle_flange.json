@@ -1,0 +1,47 @@
+{
+  "name": "02_bolt_circle_flange",
+  "family": "prerequisites",
+  "why": "The reference plan of task 02 (the bolt-circle flange), the part that task 12 starts from («put S235JR on the bolt-circle flange, see task 02»). Built by the runner before the session of task 12, saved in the session folder and in front. It carries NO material on purpose: task 12 asks the model to put S235JR on it and to say the weight, so a flange that already had a steel would measure nothing. The numbers are task 02's: 160 diameter, 12 thick, 40 bore, six holes of 9 on a 130 circle, evenly spaced.",
+  "defect_caught": "A prerequisite that is not the flange of task 02, or that already carries the material the task 12 asks for.",
+  "_how_it_was_chosen": "The disc and the bore are ONE profile with two circles (a circle is a circle, not a polygon), 12 thick; the six holes are one hole_wizard call with six positions on the top face (it looks along Z, so x_mm is X and y_mm is Y). The positions are r = 65 at 0, 60, 120... degrees: (65, 0), (32.5, 56.291651), (-32.5, 56.291651), (-65, 0), (-32.5, -56.291651), (32.5, -56.291651). The autonomous run of 6/10 built the same flange this way and read 221,614.2.",
+  "start": { "new_part": true },
+  "steps": [
+    {
+      "operation": "extrude_profile",
+      "arguments": {
+        "plane": "front",
+        "contours": [
+          { "circle": [0, 0], "diameter_mm": 160 },
+          { "circle": [0, 0], "diameter_mm": 40 }
+        ],
+        "thickness_mm": 12
+      }
+    },
+    {
+      "operation": "hole_wizard",
+      "arguments": {
+        "face_ref": { "step": 1, "kind": "top_face" },
+        "variant": "clearance",
+        "size": "M8",
+        "positions": [
+          { "x_mm": 65, "y_mm": 0 },
+          { "x_mm": 32.5, "y_mm": 56.291651 },
+          { "x_mm": -32.5, "y_mm": 56.291651 },
+          { "x_mm": -65, "y_mm": 0 },
+          { "x_mm": -32.5, "y_mm": -56.291651 },
+          { "x_mm": 32.5, "y_mm": -56.291651 }
+        ]
+      },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 221614.23, "tolerance": 2,
+          "tolerance_why": "the tolerance of task 02: it covers the cascading rounding of pi, not a seventh hole forgotten or double-counted.",
+          "why": "the volume task 02 states: the disc minus the bore minus six holes." },
+        { "what": "bodies", "equal_to": 1,
+          "why": "a bored disc is ONE part." },
+        { "what": "diameters_mm", "equal_to": [9, 9, 9, 9, 9, 9, 40, 160], "tolerance": 0.02,
+          "tolerance_why": "the same as task 02.",
+          "why": "the six holes, the bore and the rim, smallest first. Task 02 says to confirm at the first run that SOLIDWORKS does not split the rim in two faces (160 twice): this is where it would show." }
+      ]
+    }
+  ]
+}

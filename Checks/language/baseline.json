@@ -10,7 +10,7 @@
   "json_keys": 10,
   "protocol": 441,
   "paths": 0,
-  "transition": 2188
+  "transition": 2199
  },
  "files": {
   ".github/workflows/tests.yml": {
@@ -120,6 +120,9 @@
   },
   "Bench/tasks/one_meter_frame.json": {
    "json_values": 296
+  },
+  "Bench/tasks/prerequisite.js": {
+   "transition": 11
   },
   "Bench/tasks/score-autonomous.js": {
    "transition": 10

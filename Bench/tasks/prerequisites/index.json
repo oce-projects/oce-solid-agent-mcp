@@ -1,0 +1,17 @@
+{
+  "about": [
+    "Which task of the autonomous run starts from the result of which earlier task, and the reference plan that builds that result before the session (Bench/tasks/prerequisite.js, run-autonomous.ps1).",
+    "A task is listed when its text (the first blockquote) names another task: «see task 01», «(task 07)». The contract of the runner reads the texts and refuses an index that misses one, names a task the text does not name, or holds a plan no task uses.",
+    "The plan is built in the folder of the session, saved there and left open in front. The earlier tasks (01-08) measure whether the model can build the part; the tasks below measure what is done with it."
+  ],
+  "format": 1,
+  "tasks": {
+    "09": { "from_task": "01", "plan": "01_l_bracket" },
+    "10": { "from_task": "09", "plan": "09_bracket_pair" },
+    "11": { "from_task": "07", "plan": "07_tube_stand" },
+    "12": { "from_task": "02", "plan": "02_bolt_circle_flange" },
+    "13": { "from_task": "08", "plan": "08_box_and_lid" },
+    "14": { "from_task": "03", "plan": "03_slotted_plate" },
+    "15": { "from_task": "07", "plan": "07_tube_stand" }
+  }
+}

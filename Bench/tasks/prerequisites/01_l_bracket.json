@@ -1,0 +1,42 @@
+{
+  "name": "01_l_bracket",
+  "family": "prerequisites",
+  "why": "The reference plan of task 01 (the L-bracket), the part that task 09 starts from («the L-bracket, see task 01»). The runner builds it through the bridge before the session of task 09 and leaves it saved in the session folder and in front, so the model finds the part the task talks about. Every number is the one task 01 states: 8 mm steel, long leg 120 x 50, short leg 60 in total measured from the bottom, two through holes of 9 for M8, 20 from the edge and 80 apart.",
+  "defect_caught": "A prerequisite that is not the part the task describes: a bracket 8 mm taller (the short leg read as 60 of its own height), holes on the short leg, or a second body.",
+  "_how_it_was_chosen": "One profile extruded 50 (the L as a closed polyline, the way the autonomous run of 6/10 built it: volume 67,782.1 after the holes, the number of task 01), then the holes of 9 with hole_wizard (M8, clearance, through by default) on the underside of the long leg. The underside is named by its area, 120 x 50 = 6,000 mm2, which no other face of the L has (the top of the long leg is 112 x 50 = 5,600, the outer face of the short leg 60 x 50 = 3,000, the two L faces 1,376): «area~=6000». Not by «normal=down»: the bridge of before the rename writes the facing in Italian and the map reads that field back only in the cases, so on that bridge the selector found nothing (live proof of 6/10); the area is a number on both. Hole positions are model coordinates: the face looks along Y, so x_mm is X and y_mm is Z; the leg is 50 wide in Z, so Z = 25 is the middle.",
+  "start": { "new_part": true },
+  "steps": [
+    {
+      "operation": "extrude_profile",
+      "arguments": {
+        "plane": "front",
+        "contours": [ [ [0, 0], [120, 0], [120, 8], [8, 8], [8, 60], [0, 60] ] ],
+        "thickness_mm": 50
+      },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 68800, "tolerance": 1,
+          "tolerance_why": "exact: 120x50x8 = 48,000 for the long leg plus 52x50x8 = 20,800 for the short leg (60 in total minus the 8 it sits on), on flat faces; 1 mm3 covers the rounding of the mass properties.",
+          "why": "the L before the holes: it is the sum of the two legs of task 01, so a leg read the other way shows here, before the holes hide it." }
+      ]
+    },
+    {
+      "operation": "hole_wizard",
+      "arguments": {
+        "face_uid": "@face(area~=6000)",
+        "variant": "clearance",
+        "size": "M8",
+        "positions": [ { "x_mm": 100, "y_mm": 25 }, { "x_mm": 20, "y_mm": 25 } ]
+      },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 67782, "tolerance": 200,
+          "tolerance_why": "the tolerance of task 01: it covers the rounding and a minimal fillet, not a different reading of the task.",
+          "why": "the volume task 01 states: 68,800 minus two holes of 9 through 8 mm of steel (2 x pi x 4.5^2 x 8 = 1,018)." },
+        { "what": "bodies", "equal_to": 1,
+          "why": "a bracket is ONE part, as task 01 says." },
+        { "what": "diameters_mm", "equal_to": [9, 9], "tolerance": 0.02,
+          "tolerance_why": "the same as task 01.",
+          "why": "the two through holes of 9 and no other cylindrical face." }
+      ]
+    }
+  ]
+}

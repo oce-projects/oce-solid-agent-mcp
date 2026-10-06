@@ -1,0 +1,35 @@
+{
+  "name": "03_slotted_plate",
+  "family": "prerequisites",
+  "why": "The reference plan of task 03 (the slotted plate), the part that task 14 starts from («send the slotted plate to 3D printing, see task 03»). Built by the runner before the session of task 14, saved in the session folder and in front. The numbers are task 03's: plate 150 x 80, 10 thick, one slot in the middle 60 centre-to-centre and 12 wide, through, the four vertical edges chamfered 3x45. It carries no material: task 03 measures none and task 14 reads none, and the name of the aluminium in the material library of this installation is Italian, which a file of this repository cannot carry.",
+  "defect_caught": "A prerequisite that is not the plate of task 03: a slot read as 60 overall instead of 60 between the centres, or a chamfer on the wrong edges, which would hide a printing defect task 14 is meant to find.",
+  "_how_it_was_chosen": "Rectangle 150 x 80 x 10; the slot with length 72 (the length is overall, outside to outside: 60 between the centres plus the diameter of the ends, 12); the chamfer on the side edges of the first step (the vertical ones). The autonomous run of 6/10 built the same plate this way and read 111,489.",
+  "start": { "new_part": true },
+  "steps": [
+    {
+      "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 150, "width_mm": 80, "thickness_mm": 10, "centered": true }
+    },
+    {
+      "operation": "slot",
+      "arguments": {
+        "face_ref": { "step": 1, "kind": "top_face" },
+        "x_mm": 0, "y_mm": 0, "length_mm": 72, "width_mm": 12, "through_all": true
+      }
+    },
+    {
+      "operation": "chamfer_edges",
+      "arguments": { "edges_ref": { "step": 1, "kind": "side_edges" }, "leg_mm": 3 },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 111489.03, "tolerance": 0.1,
+          "tolerance_why": "the tolerance of task 03.",
+          "why": "the volume task 03 states: the plate minus the slot (833.0973 mm2 of area, times 10) minus four chamfers of 3x3 (45 each)." },
+        { "what": "bodies", "equal_to": 1,
+          "why": "a machined plate stays one part: task 14 states it as its precondition." },
+        { "what": "diameters_mm", "equal_to": [12, 12], "tolerance": 0.02,
+          "tolerance_why": "the same as task 03.",
+          "why": "the only curved faces are the two round ends of the slot." }
+      ]
+    }
+  ]
+}
