@@ -235,5 +235,17 @@
   "reason": "the review of W3.1-bis.5 (finding 1 and finding 6): the scorer reads the protocol the bridge of 9384b2c speaks, so ITALIAN_MARKS and the self-test fixture of a session of that bridge name its fields and two of its operations as that bridge wrote them, not as a global allowance. Counted as transition: the bridge of before leaves the autonomous run in W3.1-bis.11",
   "signed_by": "W3.1-bis.5",
   "date": "2026-10-02"
+ },
+ {
+  "class": "transition",
+  "file": "^Bench/tasks/prerequisite\\.js$",
+  "pattern": "\\b(?:coincidente|parallelo|perpendicolare|distanza|allineato|opposto|PROFILI)\\b",
+  "applies_to": [
+   "detector",
+   "translator"
+  ],
+  "reason": "integration-1: the bridge of 9384b2c, the one D9 compares against, takes the mate values in Italian, and the name map has no row for them (the catalogue describes them in prose), so prerequisite.js holds the explicit table MATE_VALUES_BEFORE and the self-test that refuses them on the bridge of today; the old name of the profiles placeholder is named by the check that refuses it. Counted as transition: the bridge of before leaves the autonomous run in W3.1-bis.11",
+  "signed_by": "integration-1",
+  "date": "2026-10-06"
  }
 ]
