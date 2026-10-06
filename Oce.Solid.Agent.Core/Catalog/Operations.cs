@@ -3618,8 +3618,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "not having it. If it does not match I stop.\n\n"
                         + "Size and scale too, if you do not say, are those of the current sheet: two sheets at different "
                         + "scales can be wanted, but not through distraction.\n\nThe name, if "
-                        + "you do not say, is the first free «FoglioN» (that is how the "
-                        + "bridge names a sheet). A name already used I refuse: two sheets with the "
+                        + "you do not say, is the next free one in the series SOLIDWORKS started "
+                        + "(«Sheet2», «Sheet3»... with the word of the installation). A name already used I refuse: two sheets with the "
                         + "same name and you no longer know which one you are looking at.",
                     Precondition = "an open drawing",
                     Schema = O(
@@ -3627,7 +3627,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "properties", O(
                             "name", O(
                                 "type", "string",
-                                "description", "what to call it. Empty = the first free «FoglioN»."),
+                                "description", "what to call it. Empty = the next free name in the series of the sheets («Sheet2»...)."),
                             "paper_size", O(
                                 "type", "string",
                                 "description", "A0, A1, A2, A3, A4, A4V. Empty = the one of the current sheet."),

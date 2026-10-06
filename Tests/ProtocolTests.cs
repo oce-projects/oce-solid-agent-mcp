@@ -260,7 +260,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Check("the message lists ALL the tools that tools/list declares",
                       missingItems.Count == 0,
                       missingItems.Count == 0
-                          ? "tutti e " + (tools == null ? 0 : tools.Length)
+                          ? "all " + (tools == null ? 0 : tools.Length)
                           : "not named: " + string.Join(", ", missingItems));
 
                 // ── «measure» REFUSES WHAT TOUCHES THE PART ───────────────

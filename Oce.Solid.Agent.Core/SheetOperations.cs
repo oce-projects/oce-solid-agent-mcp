@@ -262,20 +262,32 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// A name that is not already there. «Foglio2», «Foglio3»... and if by chance
-        /// they exist, it goes on counting instead of refusing: whoever asks for a
-        /// new sheet without giving it a name does not want to know that the default
-        /// name was taken.
+        /// A name that is not already there, in the series SOLIDWORKS started: the
+        /// word of the first existing sheet that ends in a number («Sheet1» on an
+        /// English installation, its own word on another), then «Sheet» if no sheet
+        /// has that shape. «Sheet2», «Sheet3»... and if by chance they exist, it goes
+        /// on counting instead of refusing: whoever asks for a new sheet without
+        /// giving it a name does not want to know that the default name was taken.
+        /// Until W3.1-bis.11 the word was written here in Italian, so an English
+        /// installation got a sheet named in another language.
         /// </summary>
         private static string FreeName(List<string> existing)
         {
+            string word = "Sheet";
+            foreach (var n in existing)
+            {
+                string s = n ?? "";
+                int k = s.Length;
+                while (k > 0 && char.IsDigit(s[k - 1])) k--;
+                if (k >= 3 && k < s.Length && s.Substring(0, k).All(char.IsLetter)) { word = s.Substring(0, k); break; }
+            }
             for (int i = existing.Count + 1; i < existing.Count + 100; i++)
             {
-                var attempt = "Foglio" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var attempt = word + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 if (!existing.Any(n => string.Equals(n, attempt, StringComparison.OrdinalIgnoreCase)))
                     return attempt;
             }
-            return "Foglio" + Guid.NewGuid().ToString("N").Substring(0, 4);
+            return word + Guid.NewGuid().ToString("N").Substring(0, 4);
         }
     }
 }

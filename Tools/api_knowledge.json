@@ -280,7 +280,7 @@
     },
     "IFeatureManager.InsertCosmeticWeldBead": {
       "state": "probed_modifies",
-      "why": "Measured 2026-09-25: works only via selection (the 'lato'/side variant), ONE face per side, and does NOT check whether the faces actually touch -- it will create a bead between faces that are far apart if that is not checked first.",
+      "why": "Measured 2026-09-25: works only via selection (the side variant), ONE face per side, and does NOT check whether the faces actually touch -- it will create a bead between faces that are far apart if that is not checked first.",
       "source": "memory:api_sw_typed_arrays; rag:82zb"
     },
     "IFeatureManager.InsertCosmeticWeldBead2": {

@@ -967,9 +967,9 @@ namespace Oce.Solid.Agent.Bench
             {
                 var entry = f as Dictionary<string, object>;
                 if (entry == null || !entry.ContainsKey("dimensions")) continue;
-                var quote = entry["dimensions"] as System.Collections.IList;
-                if (quote == null) continue;
-                foreach (var q in quote)
+                var dims = entry["dimensions"] as System.Collections.IList;
+                if (dims == null) continue;
+                foreach (var q in dims)
                 {
                     var dimension = q as Dictionary<string, object>;
                     if (dimension == null || !dimension.ContainsKey("name")) continue;

@@ -100,7 +100,7 @@ internal static class Program
             }
             if (view == null) { Console.WriteLine("  no front view created"); return 4; }
             drawingDoc.EditRebuild3();
-            Says("vista «" + taken + "» -> «" + view.GetName2() + "»");
+            Says("view «" + taken + "» -> «" + view.GetName2() + "»");
 
             // ── THE TOP EDGE OF THE BLOCK ───────────────────────────────
             var edges = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];

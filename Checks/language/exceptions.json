@@ -74,15 +74,6 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^Oce\\.Solid\\.Agent\\.Core/(?:SheetOperations\\.cs|Catalog/Operations\\.cs)$|^Tools/catalog\\.json$",
-  "pattern": "Foglio(?:N)?",
-  "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names a new drawing sheet with the Italian word for «sheet» plus a number on the Italian installation («Sheet1» on an English one); the bridge names the sheets it adds the same way and the catalogue says so",
-  "signed_by": null,
-  "signed_on": null
- },
- {
-  "class": "solidworks-localized",
   "file": "^(?:Bench|Checks|Oce\\.Solid\\.Agent\\.Core|Tools)/",
   "pattern": "TUBO STRUTTURALE (?:QUADRO|RETTANGOLARE)(?:\\.SLDLFP)?",
   "applies_to": ["detector", "translator"],
@@ -200,7 +191,7 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^Oce\\.Solid\\.Agent\\.Core/PropertyOperations\\.cs$|^Bench/cases/document_properties/new_configuration_activates_itself\\.json$",
+  "file": "^Oce\\.Solid\\.Agent\\.Core/(?:PropertyOperations|DocumentState|MaterialOperations)\\.cs$|^Bench/DeclaredCases\\.cs$|^Bench/cases/document_properties/(?:new_configuration_activates_itself|limit_default_is_not_named_default)\\.json$",
   "pattern": "Default(?:<|&lt;)(?:A macchina|Saldato)(?:>|&gt;)|_Stato di visualizzazione \\d|A macchina|Saldato",
   "applies_to": ["detector", "translator"],
   "reason": "the configurations and the display states that the company template of the Italian installation creates, by the names it gives them",

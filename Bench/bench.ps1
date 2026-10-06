@@ -203,8 +203,10 @@ if (Test-Path $outputNextToBench) { Remove-Item $outputNextToBench -Force -Error
 # what one saw was:
 #
 #     Oce.Solid.Agent.Bench.exe :
-#     In <la cartella del clone>\Bench\bench.ps1:138 car:1
-#     + & $eseguibile $argomenti 2>&1 | Tee-Object -FilePath $uscita
+#     At <clone folder>\Bench\bench.ps1:138 char:1
+#     + & $executable $arguments 2>&1 | Tee-Object -FilePath $output
+#
+# (as an English Windows prints it; the variables have their names of today)
 #
 # without a word about the exception, and with `last-run.txt` stuck at the
 # PREVIOUS run -- which is the worst thing: an old report is read

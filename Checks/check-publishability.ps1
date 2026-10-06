@@ -180,7 +180,7 @@ $TrueAddress = '192\.168\.\d'
 # sensitivity does not cost a single false positive... except these two, where the
 # name is NOT a leak: it is what the file must say.
 #
-#   LICENSE:189   «Copyright 2026 <autore>» - the line that the Apache-2.0
+#   LICENSE:189   «Copyright 2026 <author>» - the line that the Apache-2.0
 #                 requires, and without which the licence is not granted to
 #                 anybody.
 #   NOTICE:2,4    the attribution, which the Apache-2.0 requires to be redistributed.
@@ -389,7 +389,7 @@ if ($toPush.Count -eq 0) {
             $(if ($caseSensitive) { @() } else { @('-i') }) +
             @('-P', '-e', $pattern) + $toPush))
 
-        # Shape of a line: <sha>:<percorso>:<numero>:<testo>
+        # Shape of a line: <sha>:<path>:<line>:<text>
         $gaps = @($foundItems | Where-Object {
             if ($_ -notmatch '^([0-9a-f]{7,40}):([^:]+):(\d+):') { return $false }
             $filePath = $Matches[2] -replace '/', '\'

@@ -89,7 +89,7 @@ using SolidWorks.Interop.swconst;
 //  InsertStructuralWeldment5. Every part is closed without saving.
 //
 //  USAGE
-//      set OCE_WELDMENT_PROFILES=<cartella coi .SLDLFP>
+//      set OCE_WELDMENT_PROFILES=<folder with the .SLDLFP files>
 //      Checks\Gusset\bin\Gusset.exe            closes every test part
 //      Checks\Gusset\bin\Gusset.exe --keep    leaves them all open, to look
 //

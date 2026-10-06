@@ -375,8 +375,13 @@ function proseVerdict(text, cfg) {
   // file names with a known extension (install-hooks.ps1): names too
   t = t.replace(/\b[A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:cs|js|ps1|json|md|csproj|yml|yaml|txt|exe|dll|sln|config|bat|sh|png|sldprt|sldasm|slddrw|step|pdf)\b/gi,
     (m) => { paths.push(m); return ' '; });
-  // XML doc tags inside comments
-  t = t.replace(/<\/?[A-Za-z][^<>]*>/g, ' ');
+  // XML doc tags inside comments (<summary>, <see cref="X"/>, </param>, List<T>):
+  // the tag name goes to the identifier check. Only a NAME with attributes is a
+  // tag: a placeholder with words in it (<the clone folder>) is prose and is
+  // scored, and a one-word placeholder (<path>) is a name like any other. Until
+  // W3.1-bis.11 every <...> was blanked, and an Italian placeholder passed.
+  t = t.replace(/<\/?([A-Za-z][A-Za-z0-9:_.-]*)((?:\s+[A-Za-z_:][-A-Za-z0-9_:.]*\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*\/?>/g,
+    (m, tag) => { names.push(tag); return ' '; });
   // name-like words
   t = t.replace(/[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*/g, (m) => {
     const pieces = m.split('.');

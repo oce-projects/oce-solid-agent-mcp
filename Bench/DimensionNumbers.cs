@@ -58,22 +58,22 @@ namespace Oce.Solid.Agent.Bench
 
                 // THREE DIMENSIONS, ONE PER ROAD. The first three of the sheet are taken,
                 // view after view: which ones they are does not matter, what matters is that there are three.
-                var quote = new List<IDisplayDimension>();
+                var dims = new List<IDisplayDimension>();
                 var v = (((IDrawingDoc)drawing).GetFirstView() as IView)?.GetNextView() as IView;
-                while (v != null && quote.Count < 3)
+                while (v != null && dims.Count < 3)
                 {
                     var q = v.GetFirstDisplayDimension5() as IDisplayDimension;
-                    while (q != null && quote.Count < 3) { quote.Add(q); q = q.GetNext5() as IDisplayDimension; }
+                    while (q != null && dims.Count < 3) { dims.Add(q); q = q.GetNext5() as IDisplayDimension; }
                     v = v.GetNextView() as IView;
                 }
-                if (quote.Count < 3) { BenchError("numbers", "the drawing has " + quote.Count + " dimensions, three are needed"); return; }
+                if (dims.Count < 3) { BenchError("numbers", "the drawing has " + dims.Count + " dimensions, three are needed"); return; }
 
                 // THE OVERWRITTEN NUMBER MATCHES THE MODEL, on purpose: it is the case
                 // that the entry feared most — a comparison of values does not see it.
-                double its = quote[0].GetDimension2(0).GetSystemValue2("");
-                quote[0].SetOverride(true, its);
-                quote[1].SetText((int)swDimensionTextParts_e.swDimensionTextAll, "99");
-                quote[2].ShowDimensionValue = false;
+                double its = dims[0].GetDimension2(0).GetSystemValue2("");
+                dims[0].SetOverride(true, its);
+                dims[1].SetText((int)swDimensionTextParts_e.swDimensionTextAll, "99");
+                dims[2].ShowDimensionValue = false;
                 drawing.ForceRebuild3(false);
 
                 var after = ReadState(drawing);

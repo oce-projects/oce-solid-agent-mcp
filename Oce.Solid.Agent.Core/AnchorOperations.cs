@@ -1291,8 +1291,8 @@ namespace Oce.Solid.Agent.Core
             var toDimension = new List<Dimension>();
             if (textR != null) toDimension.Add(Dimension.Su(a1, textR));
             if (textL != null) toDimension.Add(Dimension.Su(centerline, textL));
-            int quote = DimensionSegments(model, toDimension);
-            if (quote < 2 && error == null) error = "The dimensions of the slot were not all created (" + quote + " of 2).";
+            int dimensionsMade = DimensionSegments(model, toDimension);
+            if (dimensionsMade < 2 && error == null) error = "The dimensions of the slot were not all created (" + dimensionsMade + " of 2).";
 
             // THE ORIENTATION. Horizontal or vertical midline IN THE SKETCH:
             // a relation. Oblique: an angle against the first edge of
@@ -1324,7 +1324,7 @@ namespace Oce.Solid.Agent.Core
                         error = "The angle of the slot against edge «" + reference.Uid + "» " +
                                  (angleNotKept ?? "was not born.");
                 }
-                else quote++;
+                else dimensionsMade++;
             }
             else
                 measurements["orientation"] = "free: a slanted slot without an anchor has no edge to measure " +
@@ -1333,10 +1333,10 @@ namespace Oce.Solid.Agent.Core
             // THE ANCHOR, on the point halfway along the midline.
             if (!anchor.Empty)
             {
-                if (error != null) return quote;
+                if (error != null) return dimensionsMade;
                 string e4;
                 var center = PointInSketch(model, axes, offsetM, x, y, out e4);
-                if (center == null) { error = e4; return quote; }
+                if (center == null) { error = e4; return dimensionsMade; }
                 ISketchPoint point;
                 try
                 {
@@ -1347,13 +1347,13 @@ namespace Oce.Solid.Agent.Core
                 if (point == null || !Relation(model, point, centerline, "sgATMIDDLE"))
                 {
                     error = "I could not put the point at the center of the slot.";
-                    return quote;
+                    return dimensionsMade;
                 }
                 string e5;
                 if (!ApplyAnchor(model, anchor, point, axes, offsetM, x, y, measurements, out e5))
                     error = e5;
             }
-            return quote;
+            return dimensionsMade;
         }
 
         /// <summary>

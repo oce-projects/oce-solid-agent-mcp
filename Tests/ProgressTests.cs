@@ -208,7 +208,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("without a token the thread is off", !(bool)read(off, "On"), "");
             total(off, 3);
             planStep(off, 1, "one");
-            planStep(off, 2, "due");
+            planStep(off, 2, "two");
             Check("and off it sends nothing",
                   Convert.ToInt32(read(off, "Mandate")) == 0,
                   "whoever did not ask to be updated is not disturbed");
@@ -217,10 +217,10 @@ namespace Oce.Solid.Agent.ContractTests
             var isOn = newItem("g");
             total(isOn, 4);
             planStep(isOn, 1, "one");
-            planStep(isOn, 2, "due");
+            planStep(isOn, 2, "two");
             Check("with a token it sends one step at a time",
                   Convert.ToInt32(read(isOn, "Mandate")) == 2,
-                  "2 notifiche");
+                  "2 notifications");
             Check("and it remembers how far it got",
                   Convert.ToDouble(read(isOn, "Last")) == 2,
                   "it is for whoever resumes the count: the execution after the check");

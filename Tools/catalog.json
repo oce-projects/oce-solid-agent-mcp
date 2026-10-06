@@ -2930,13 +2930,13 @@
    "name": "new_sheet",
    "family": "drawing",
    "summary": "Adds a sheet to the drawing, with the same projection angle as the first.",
-   "details": "Adds a SHEET to the open drawing and activates it.\n\nI DO NOT ASK YOU FOR THE PROJECTION ANGLE, and it is not a simplification: I read it from the current sheet and pass it on unchanged. If sheet 2 were born in a different angle from sheet 1, the same drawing would have two sheets mirrored differently -- **neither of them gives an error**, and whoever cuts the part from sheet 2 cuts it flipped.\n\nAnd I read it back from the new sheet after creating it: passing it is not having it. If it does not match I stop.\n\nSize and scale too, if you do not say, are those of the current sheet: two sheets at different scales can be wanted, but not through distraction.\n\nThe name, if you do not say, is the first free «FoglioN» (that is how the bridge names a sheet). A name already used I refuse: two sheets with the same name and you no longer know which one you are looking at.",
+   "details": "Adds a SHEET to the open drawing and activates it.\n\nI DO NOT ASK YOU FOR THE PROJECTION ANGLE, and it is not a simplification: I read it from the current sheet and pass it on unchanged. If sheet 2 were born in a different angle from sheet 1, the same drawing would have two sheets mirrored differently -- **neither of them gives an error**, and whoever cuts the part from sheet 2 cuts it flipped.\n\nAnd I read it back from the new sheet after creating it: passing it is not having it. If it does not match I stop.\n\nSize and scale too, if you do not say, are those of the current sheet: two sheets at different scales can be wanted, but not through distraction.\n\nThe name, if you do not say, is the next free one in the series SOLIDWORKS started («Sheet2», «Sheet3»... with the word of the installation). A name already used I refuse: two sheets with the same name and you no longer know which one you are looking at.",
    "schema": {
     "type": "object",
     "properties": {
      "name": {
       "type": "string",
-      "description": "what to call it. Empty = the first free «FoglioN»."
+      "description": "what to call it. Empty = the next free name in the series of the sheets («Sheet2»...)."
      },
      "paper_size": {
       "type": "string",

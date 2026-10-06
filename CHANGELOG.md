@@ -102,11 +102,12 @@ writes the square-tube profile as `{SQUARE_TUBE}` and `prerequisite.js` holds th
 `Tests/Zc2111ComponentsContract.cs` keeps its «old reader must stay gone» check under an
 English name (`PartsOfTheAssembly`).
 
-**6. The exceptions to sign: 40 entries, none signed.** The gate lists them and nothing
+**6. The exceptions to sign: 39 entries, none signed** (40 before the review below
+removed the one of the sheet name). The gate lists them and nothing
 else. By class: `detector-lexicon` 2 (the word lists of `lexicon.json`; the patterns of
 `exceptions.json` itself), `changelog-quote` 1 (the text between «» in this file),
 `changelog-history` 1 (this file from the entry of W3.1-bis.10b down), `solidworks-localized`
-22, `data-becomes-geometry` 2, `todo-reader` 12. The 22 of SOLIDWORKS are the names it
+21, `data-becomes-geometry` 2, `todo-reader` 12. The 21 of SOLIDWORKS are the names it
 writes in the language of the installation: the default names of features, sketches, axes,
 sheets and parts; the square-tube profile of the weldment library; the hole callout word;
 the center-mark option; the section and drawing view names; the reserved equation word;
@@ -146,6 +147,33 @@ the two dates), which only a bench run can turn green; `test-installer.js` 65 ch
 0 broken; `see-it-fail.js --check` 20 mutations; `check-workflow.ps1` all good;
 `check-publishability.ps1` clean. The gate, in strict mode, fails and lists exactly the 40
 unsigned entries — «0 outside every entry» — and with the 40 signed (tried on a copy) it holds.
+
+**Review (adversarial, same window).**
+- *The detector had a hole:* the prose check blanked everything between angle brackets as
+  if it were an XML tag, so a placeholder such as `<folder with the files>` written in
+  Italian was never read (three were in the tree: `Bench/bench.ps1`, `Checks/Gusset`,
+  `check-publishability.ps1`). Now only a name with attributes is a tag, its name goes to
+  the identifier check, and a placeholder with words in it is prose. The fix found 21 more
+  occurrences: the placeholders above, `<author>` in a comment, and the company-template
+  configuration names («Default<…>») in four more files, which the configuration entry of
+  `solidworks-localized` now names.
+- *The bridge named sheets in Italian by itself:* `new_sheet` without a name produced the
+  Italian word for «sheet» plus a number on every installation, an English one included,
+  and an exception called it a SOLIDWORKS name. It now continues the series of the first
+  existing sheet whose name is a word and a number (unchanged on the Italian installation)
+  and falls back to `Sheet`; the catalogue says so, and the exception is gone (39 left).
+- *Italian the gate cannot see, found by reading:* the contract details «tutti e …» and
+  «tutti e due …» (`Tests/Program.cs`, `ProtocolTests.cs`), a step label and a detail of
+  `ProgressTests.cs`, a message of the `Orphan` probe, a quoted argument name in
+  `api_knowledge.json`, and the variable `quote` (the Italian word for dimensions, an
+  English homograph) in `Bench/DimensionNumbers.cs`, `Bench/Expectations.cs` and
+  `AnchorOperations.cs`. All translated or renamed; no behaviour changes but the sheet name.
+- Checked and left as they are: every remaining entry is a literal or a closed list of
+  names on named files (the changelog history is a scope, by design); nothing reads the
+  alias layer, the map or the window tools (`same-il.ps1` takes any map as a parameter, the
+  `alias_uses` line in `Bench/report/last.json` is the record of a past run); the detector
+  reads every tracked file but the two `.png`, and the contract injects Italian in each of
+  the eight categories; both CI workflows run the gate without `continue-on-error`.
 
 ---
 

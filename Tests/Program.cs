@@ -600,7 +600,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("every source is listed in its .csproj",
                   outside.Count == 0,
                   outside.Count == 0
-                      ? "tutti e " + inspected
+                      ? "all " + inspected
                       : "OUTSIDE THE PROJECT (they are not compiled): " +
                         string.Join("; ", outside));
         }
@@ -1302,7 +1302,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("the source and the bridge have the SAME version of the library",
                   string.Equals(v1, v2, StringComparison.Ordinal),
                   string.Equals(v1, v2, StringComparison.Ordinal)
-                      ? "tutti e due " + v1
+                      ? "both " + v1
                       : "SOURCE " + v1 + " against BRIDGE " + v2 +
                         " — whoever compiled only the project updated the first and " +
                         "not the second: run .\\build.ps1 again, which aligns them");
