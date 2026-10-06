@@ -20,16 +20,16 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if (-not (Test-Path 'Tests\bin\Oce.Solid.Agent.ContractTests.exe')) {
-    Write-Output "NON COMPILATO: Tests\bin\Oce.Solid.Agent.ContractTests.exe"
+    Write-Output "NOT BUILT: Tests\bin\Oce.Solid.Agent.ContractTests.exe"
     exit 1
 }
-Write-Output "Oce.Solid.Agent.ContractTests.exe c'e'"
+Write-Output "Oce.Solid.Agent.ContractTests.exe is there"
 
 if ($InteropIsThere -eq 'si' -and -not (Test-Path 'bin\oce-solid-agent-mcp.exe')) {
-    Write-Output "L'interop c'e' ma il ponte non e' stato prodotto: e' un difetto,"
-    Write-Output "non una mancanza di questa macchina."
+    Write-Output "The interop is there but the bridge was not built: that is a defect,"
+    Write-Output "not a limitation of this machine."
     exit 1
 }
 
-if ($InteropIsThere -eq 'si') { Write-Output "e c'e' anche il ponte" }
-else { Write-Output "il ponte qui non si compila, ed e' atteso" }
+if ($InteropIsThere -eq 'si') { Write-Output "and the bridge is there too" }
+else { Write-Output "the bridge cannot be built here, and that is expected" }

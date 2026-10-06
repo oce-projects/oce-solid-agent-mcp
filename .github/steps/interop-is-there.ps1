@@ -38,11 +38,11 @@ function SayIt($line) {
 }
 
 if ($found) {
-    Write-Output "interop trovata: $found"
+    Write-Output "interop found: $found"
     SayIt "ce=si"
     SayIt "dove=$found"
 } else {
-    Write-Output "interop NON trovata: il ponte qui non si compila, ed e' atteso."
+    Write-Output "interop NOT found: the bridge cannot be built here, and that is expected."
     Write-Output "cercata in:"
     $places | ForEach-Object { Write-Output "  $_" }
     SayIt "ce=no"

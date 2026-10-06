@@ -55,7 +55,7 @@ if (-not $SwInstallPath -and $env:SW_INSTALL_PATH) { $SwInstallPath = $env:SW_IN
 $location = @()
 if ($SwInstallPath) {
     if (-not (Test-Path $SwInstallPath)) {
-        Write-Host "  -SwInstallPath punta a una cartella che non c'e': $SwInstallPath" -ForegroundColor Red
+        Write-Host "  -SwInstallPath points to a folder that does not exist: $SwInstallPath" -ForegroundColor Red
         exit 1
     }
     $location = @("-p:SwInstallPath=$SwInstallPath")
@@ -90,9 +90,9 @@ if (-not $msbuild) {
     )) { if (Test-Path $c) { $msbuild = $c; break } }
 }
 if (-not $msbuild) {
-    Die ("MSBuild non trovato. Installa 'Build Tools for Visual Studio 2022' " +
-           "(gratis) da https://visualstudio.microsoft.com/downloads/ scegliendo " +
-           "'Sviluppo di applicazioni desktop .NET'.")
+    Die ("MSBuild not found. Install 'Build Tools for Visual Studio 2022' " +
+           "(free) from https://visualstudio.microsoft.com/downloads/ and choose " +
+           "'.NET desktop development'.")
 }
 Ok "trovato"
 Note $msbuild
@@ -102,25 +102,25 @@ if ($Clean) {
     Step "Pulizia"
     foreach ($d in @("bin", "obj", "dist", "Installer\obj", "Installer\Payload")) {
         $p = Join-Path $root $d
-        if (Test-Path $p) { Remove-Item $p -Recurse -Force; Note "tolto $d" }
+        if (Test-Path $p) { Remove-Item $p -Recurse -Force; Note "removed $d" }
     }
     Ok "pulito"
 }
 
 # -----------------------------------------------------------------------------
-Step "1. Il ponte"
+Step "1. The bridge"
 # -----------------------------------------------------------------------------
 & $msbuild (Join-Path $root "Oce.Solid.Agent.csproj") -p:Configuration=Release -v:m -nologo @location
-if ($LASTEXITCODE -ne 0) { Die "compilazione del ponte fallita" }
+if ($LASTEXITCODE -ne 0) { Die "building the bridge failed" }
 
 $bridge = Join-Path $root "bin\oce-solid-agent-mcp.exe"
-if (-not (Test-Path $bridge)) { Die "compilato senza errori ma oce-solid-agent-mcp.exe non c'e'" }
+if (-not (Test-Path $bridge)) { Die "built without errors but oce-solid-agent-mcp.exe is not there" }
 Ok ("oce-solid-agent-mcp.exe  " + [math]::Round((Get-Item $bridge).Length / 1KB) + " kB")
 
 if ($BridgeOnly) { Step "Fatto"; Ok $bridge; exit 0 }
 
 # -----------------------------------------------------------------------------
-Step "1b. Il catalogo"
+Step "1b. The catalog"
 # -----------------------------------------------------------------------------
 # IT IS REGENERATED, NOT HOPED FOR.
 #
@@ -133,7 +133,7 @@ Step "1b. Il catalogo"
 # during a build is something the person looking must see, not a surprise
 # in the next `git status`.
 & $msbuild (Join-Path $root "Oce.Solid.Agent.Catalog\Oce.Solid.Agent.Catalog.csproj") -p:Configuration=Release -v:m -nologo @location
-if ($LASTEXITCODE -ne 0) { Die "compilazione dell'esportatore del catalogo fallita" }
+if ($LASTEXITCODE -ne 0) { Die "building the catalog exporter failed" }
 
 $exporter = Join-Path $root "bin\Oce.Solid.Agent.Catalog.exe"
 $catalog = Join-Path $root "Tools\catalog.json"
@@ -156,23 +156,23 @@ $ErrorActionPreference = 'Continue'
 & $exporter $catalog
 $catalogOutcome = $LASTEXITCODE
 $ErrorActionPreference = $oldPreference
-if ($catalogOutcome -ne 0) { Die "il catalogo non si e' scritto" }
+if ($catalogOutcome -ne 0) { Die "the catalog was not written" }
 
 $afterBytes = [IO.File]::ReadAllBytes($catalog)
 if ($null -eq $beforeBytes) {
-    Ok "catalog.json scritto ($($afterBytes.Length) byte)"
+    Ok "catalog.json written ($($afterBytes.Length) bytes)"
 } elseif ([Convert]::ToBase64String($beforeBytes) -eq [Convert]::ToBase64String($afterBytes)) {
-    Ok "catalog.json invariato ($($afterBytes.Length) byte)"
+    Ok "catalog.json unchanged ($($afterBytes.Length) bytes)"
 } else {
-    Ok "catalog.json RIGENERATO: $($beforeBytes.Length) -> $($afterBytes.Length) byte"
-    Note "era indietro rispetto al C#. Guarda il diff prima di committare."
+    Ok "catalog.json REGENERATED: $($beforeBytes.Length) -> $($afterBytes.Length) bytes"
+    Note "was behind the C#. Look at the diff before committing."
 }
 
 # The bridge reads what is next to it, not what is in Tools\.
 Copy-Item $catalog (Join-Path $root "bin\catalog.json") -Force
 
 # -----------------------------------------------------------------------------
-Step "1c. Le sonde"
+Step "1c. The probes"
 # -----------------------------------------------------------------------------
 # THE PROBES ARE COMPILED AT EVERY PACKAGE, and not out of scruple.
 #
@@ -187,11 +187,11 @@ $ErrorActionPreference = 'Continue'
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root "Checks\build-checks.ps1") *> $null
 $probesOutcome = $LASTEXITCODE
 $ErrorActionPreference = $oldPreference
-if ($probesOutcome -ne 0) { Die "una sonda non compila: lancia .\Checks\build-checks.ps1 per vedere quale" }
-Ok "tutte le sonde compilano"
+if ($probesOutcome -ne 0) { Die "a probe does not build: run .\Checks\build-checks.ps1 to see which" }
+Ok "all the probes build"
 
 # -----------------------------------------------------------------------------
-Step "2. Il carico da incorporare"
+Step "2. The payload to embed"
 # -----------------------------------------------------------------------------
 $payload = Join-Path $root "Installer\Payload"
 if (Test-Path $payload) { Remove-Item $payload -Recurse -Force }
@@ -218,21 +218,21 @@ foreach ($f in $toBring) {
         Copy-Item $source (Join-Path $payload $f.a) -Force
         Note ("+ " + $f.a)
     } elseif ($f.obbligatorio) {
-        Die ("manca " + $f.da + ", che deve finire dentro l'installatore")
+        Die ("missing " + $f.da + ", which has to end up inside the installer")
     } else {
-        Note ("- " + $f.a + " (non c'e', si prosegue)")
+        Note ("- " + $f.a + " (not there, going on)")
     }
 }
-Ok ((Get-ChildItem $payload).Count.ToString() + " file da incorporare")
+Ok ((Get-ChildItem $payload).Count.ToString() + " files to embed")
 
 # -----------------------------------------------------------------------------
-Step "3. L'installatore"
+Step "3. The installer"
 # -----------------------------------------------------------------------------
 & $msbuild (Join-Path $root "Installer\Installer.csproj") -p:Configuration=Release -v:m -nologo @location
-if ($LASTEXITCODE -ne 0) { Die "compilazione dell'installatore fallita" }
+if ($LASTEXITCODE -ne 0) { Die "building the installer failed" }
 
 $exe = Join-Path $root "bin\Installer.exe"
-if (-not (Test-Path $exe)) { Die "compilato senza errori ma Installer.exe non c'e'" }
+if (-not (Test-Path $exe)) { Die "built without errors but Installer.exe is not there" }
 
 $dist = Join-Path $root "dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
@@ -248,12 +248,12 @@ Step "Verifica"
 $bigBridge = (Get-Item $bridge).Length
 $bigExe = (Get-Item $final).Length
 if ($bigExe -le $bigBridge) {
-    Die ("Installer.exe e' " + [math]::Round($bigExe / 1KB) + " kB ma il ponte da " +
-           "solo ne occupa " + [math]::Round($bigBridge / 1KB) + ": il carico non e' " +
-           "stato incorporato. Controlla Installer\Payload\ e l'elemento " +
-           "EmbeddedResource nel csproj.")
+    Die ("Installer.exe is " + [math]::Round($bigExe / 1KB) + " kB but the bridge " +
+           "alone takes " + [math]::Round($bigBridge / 1KB) + ": the payload was not " +
+           "embedded. Check Installer\Payload\ and the " +
+           "EmbeddedResource element in the csproj.")
 }
-Ok ("Installer.exe  " + [math]::Round($bigExe / 1KB) + " kB  (ponte incorporato)")
+Ok ("Installer.exe  " + [math]::Round($bigExe / 1KB) + " kB  (bridge embedded)")
 Note $final
 
 # THE CHECKSUM NEXT TO THE FILE, ALWAYS.
@@ -280,5 +280,5 @@ Write-Host ""
 # were in a private DLL. Since they are in Oce.Solid.Agent.Core.dll,
 # inside this repository, the payload carries them. The only thing needed
 # on the machine of whoever installs is SOLIDWORKS, for its interops.
-Write-Host "  Un file solo. Dallo a chiunque abbia SOLIDWORKS." -ForegroundColor White
-Write-Host "  Prova:  .\dist\Installer.exe --aiuto" -ForegroundColor DarkGray
+Write-Host "  A single file. Give it to anyone who has SOLIDWORKS." -ForegroundColor White
+Write-Host "  Try:  .\dist\Installer.exe --aiuto" -ForegroundColor DarkGray

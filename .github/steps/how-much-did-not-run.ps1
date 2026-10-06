@@ -27,7 +27,7 @@ function WriteLine($lines) {
 }
 
 if (-not (Test-Path $File)) {
-    WriteLine @("### prove.xml non e' stato scritto ($File)")
+    WriteLine @("### prove.xml was not written ($File)")
     exit 0
 }
 
@@ -40,16 +40,16 @@ $done   = $all.Count - $skippedOnes.Count
 $r = @()
 $r += "### Oce.Solid.Agent.ContractTests"
 $r += ""
-$r += "- **$done** controlli fatti davvero"
-$r += "- **$($red.Count)** falliti"
-$r += "- **$($skippedOnes.Count)** non eseguibili qui"
+$r += "- **$done** checks really done"
+$r += "- **$($red.Count)** failed"
+$r += "- **$($skippedOnes.Count)** not runnable here"
 if ($skippedOnes.Count -gt 0) {
     $r += ""
     # Single quotes: inside are the quotation marks of the quote, and in a
     # string between double quotes they would be the end of the string.
-    $r += '"Non eseguibile qui" **non vuol dire passato**: su questo runner SOLIDWORKS'
-    $r += "non c'e', quindi il ponte non si poteva nemmeno compilare e i controlli che"
-    $r += "gli parlano non hanno girato."
+    $r += '"Not runnable here" **does not mean passed**: on this runner SOLIDWORKS'
+    $r += "is not there, so the bridge could not even be built and the checks that"
+    $r += "talk to it did not run."
     $r += ""
     foreach ($s in $skippedOnes) { $r += "- ``$($s.name)``" }
 }

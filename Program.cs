@@ -72,14 +72,14 @@ namespace Oce.Solid.Agent
             if (reason != null) Protocol.Note("[ponte] " + reason);
             else
                 Protocol.Note(
-                    "[ponte] SolidWorks " + session.SolidWorksVersion() +
-                    ", libreria di disegno " + session.LibraryVersion());
+                    "[bridge] SolidWorks " + session.SolidWorksVersion() +
+                    ", drawing library " + session.LibraryVersion());
 
             var catalog = new Catalog();
             if (catalog.LoadingError != null)
                 Protocol.Note("[ponte] " + catalog.LoadingError);
             else
-                Protocol.Note("[ponte] catalogo: " + catalog.HowMany + " operazioni provate");
+                Protocol.Note("[bridge] catalog: " + catalog.HowMany + " operations tested");
 
             if (arguments != null && arguments.Length > 0 && arguments[0] == "--prova")
                 return Test(session, catalog);
@@ -110,7 +110,7 @@ namespace Oce.Solid.Agent
                 catch (Exception ex)
                 {
                     Protocol.Send(output, Protocol.Error(
-                        null, Protocol.ParsingError, "JSON non valido: " + ex.Message));
+                        null, Protocol.ParsingError, "Invalid JSON: " + ex.Message));
                     continue;
                 }
                 if (message == null) continue;
@@ -140,7 +140,7 @@ namespace Oce.Solid.Agent
                 }
             }
 
-            Protocol.Note("[ponte] chiuso");
+            Protocol.Note("[bridge] closed");
             return 0;
         }
 
@@ -191,18 +191,18 @@ namespace Oce.Solid.Agent
                             ["version"] = Version,
                         },
                         ["instructions"] =
-                            "Un ponte verso SOLIDWORKS. Prima di proporre " +
-                            "qualunque cosa chiama «inspect_part»: gli " +
-                            "identificativi delle facce e degli spigoli nascono " +
-                            "li' e valgono per quella lettura. Dopo ogni " +
-                            "modifica il pezzo cambia e vanno riletti.\n\n" +
-                            "Se la forma e' in dubbio, «inspect_part» con " +
-                            "«views» ti fa VEDERE il pezzo: l'elenco delle facce " +
-                            "dice quante sono e quanto misurano, non com'e' " +
-                            "fatto.\n\n" +
-                            "Se quello che hai disegnato non va, «undo» ritira " +
-                            "l'ultimo piano tutto intero: non serve rifare il " +
-                            "pezzo da capo.",
+                            "A bridge to SOLIDWORKS. Before proposing " +
+                            "anything, call «inspect_part»: the " +
+                            "identifiers of faces and edges are born " +
+                            "there and hold for that reading only. After every " +
+                            "change the part is different, so read it again.\n\n" +
+                            "If the shape is in doubt, «inspect_part» with " +
+                            "«views» lets you SEE the part: the list of faces " +
+                            "says how many there are and how big they are, not " +
+                            "what shape it has.\n\n" +
+                            "If what you drew is wrong, «undo» withdraws " +
+                            "the last plan whole: there is no need to redo " +
+                            "the part from scratch.",
                     });
 
                 case "notifications/initialized":
@@ -225,7 +225,7 @@ namespace Oce.Solid.Agent
                     if (!Protocol.SetLevel(wanted))
                         return Protocol.Error(
                             id, Protocol.InvalidParameters,
-                            "Livello «" + (wanted ?? "") + "» sconosciuto. Ci sono: " +
+                            "Unknown level «" + (wanted ?? "") + "». The levels are: " +
                             "debug, info, notice, warning, error, critical, alert, emergency.");
                     return Protocol.Response(id, new Dictionary<string, object>());
                 }
@@ -261,7 +261,7 @@ namespace Oce.Solid.Agent
                         ? Convert.ToString(u) : null;
                     if (string.IsNullOrWhiteSpace(uri))
                         return Protocol.Error(
-                            id, Protocol.InvalidParameters, "manca «uri»");
+                            id, Protocol.InvalidParameters, "«uri» is missing");
 
                     // THE URIs OF BEFORE W3.1-bis.5 (Oce.Solid.Agent.Core/Alias.cs, decision
                     // D4): read as the English ones until the first release, and the
@@ -283,12 +283,12 @@ namespace Oce.Solid.Agent
                     var similar = risorse.Similar(uri);
                     return Protocol.Error(
                         id, Protocol.InvalidParameters,
-                        "Non conosco la risorsa «" + uri + "». C'e' «" +
-                        Risorse.UriList + "» (tutte le operazioni in breve) e " +
-                        "«" + Risorse.OperationPrefix + "<name>» per una sola." +
+                        "I do not know the resource «" + uri + "». There is «" +
+                        Risorse.UriList + "» (all the operations in brief) and " +
+                        "«" + Risorse.OperationPrefix + "<name>» for a single one." +
                         (similar.Count == 0
                             ? ""
-                            : " Forse cercavi: " + string.Join(", ", similar) + "."));
+                            : " Did you mean: " + string.Join(", ", similar) + "."));
                 }
 
                 case "tools/call":
@@ -299,7 +299,7 @@ namespace Oce.Solid.Agent
                         ? a as Dictionary<string, object> : null;
                     if (string.IsNullOrWhiteSpace(itemName))
                         return Protocol.Error(
-                            id, Protocol.InvalidParameters, "manca «name»");
+                            id, Protocol.InvalidParameters, "«name» is missing");
                     // THE PROGRESS TOKEN (entry W2.2). It sits on
                     // `params._meta`, that is next to `name` and not inside
                     // `arguments`: it belongs to the PROTOCOL, not to the tool,
@@ -333,7 +333,7 @@ namespace Oce.Solid.Agent
                 default:
                     return Protocol.Error(
                         id, Protocol.UnknownMethod,
-                        "Metodo non gestito: " + method);
+                        "Unhandled method: " + method);
             }
         }
 
@@ -356,16 +356,16 @@ namespace Oce.Solid.Agent
                 if (parameters.TryGetValue("reason", out m)) reason = Convert.ToString(m);
             }
 
-            return "[ponte] annullamento chiesto per la richiesta " +
-                   (which == null ? "(senza requestId)" : "«" + Convert.ToString(which) + "»") +
-                   (string.IsNullOrWhiteSpace(reason) ? "" : ", motivo: " + reason) +
-                   ". NON l'ho interrotta: questo ponte serve una richiesta " +
-                   "alla volta sullo stesso thread, perche' SOLIDWORKS lo " +
-                   "pretende, e mentre lavora non legge stdin. Quando questa " +
-                   "riga e' arrivata, quella richiesta era gia' finita. Se la " +
-                   "risposta non ti serve piu', buttala: il documento e' nello " +
-                   "stato in cui quel piano l'ha lasciato, e «inspect_part» " +
-                   "te lo dice.";
+            return "[bridge] cancellation requested for request " +
+                   (which == null ? "(no requestId)" : "«" + Convert.ToString(which) + "»") +
+                   (string.IsNullOrWhiteSpace(reason) ? "" : ", reason: " + reason) +
+                   ". I did NOT interrupt it: this bridge serves one request " +
+                   "at a time on the same thread, because SOLIDWORKS " +
+                   "demands it, and while it works it does not read stdin. When this " +
+                   "line arrived, that request had already finished. If the " +
+                   "answer is of no use to you any more, throw it away: the document is in the " +
+                   "state in which that plan left it, and «inspect_part» " +
+                   "tells you.";
         }
 
         private static string ProtocolVersion(Dictionary<string, object> parameters)
@@ -486,15 +486,15 @@ namespace Oce.Solid.Agent
         /// </summary>
         private static int Test(Session session, Catalog catalog)
         {
-            Protocol.Note("[prova] agganciata: " + session.Attached);
-            Protocol.Note("[prova] libreria di disegno: " + session.LibraryPath);
-            Protocol.Note("[prova] catalogo: " + catalog.FilePath);
+            Protocol.Note("[self-test] attached: " + session.Attached);
+            Protocol.Note("[self-test] drawing library: " + session.LibraryPath);
+            Protocol.Note("[self-test] catalog: " + catalog.FilePath);
 
             if (catalog.HowMany > 0)
             {
                 var someone = string.Join(", ",
                     new List<string>(catalog.Names).GetRange(0, Math.Min(5, catalog.HowMany)));
-                Protocol.Note("[prova] prime operazioni: " + someone);
+                Protocol.Note("[self-test] first operations: " + someone);
             }
 
             if (!session.Attached)
@@ -525,8 +525,8 @@ namespace Oce.Solid.Agent
             // line with the version number, printed at the attachment.
             if (session.ActiveDocument() == null)
             {
-                Protocol.Note("[prova] nessun documento aperto: agganciato, niente da misurare.");
-                Protocol.Note("[prova] il ponte sta in piedi.");
+                Protocol.Note("[self-test] no document open: attached, nothing to measure.");
+                Protocol.Note("[self-test] the bridge works.");
                 return 0;
             }
 
@@ -537,7 +537,7 @@ namespace Oce.Solid.Agent
                 if (docState.TryGetValue(key, out var v))
                     Protocol.Note("[prova] " + key + " = " + v);
 
-            Protocol.Note("[prova] il ponte sta in piedi.");
+            Protocol.Note("[self-test] the bridge works.");
             return 0;
         }
     }

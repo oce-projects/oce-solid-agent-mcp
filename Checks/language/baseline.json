@@ -3,25 +3,18 @@
  "format": 2,
  "totals": {
   "comments": 1791,
-  "strings": 52506,
+  "strings": 52160,
   "markdown": 11388,
   "json_values": 54633,
   "identifiers": 1713,
   "json_keys": 14,
-  "protocol": 836,
+  "protocol": 835,
   "paths": 0,
   "transition": 2192
  },
  "files": {
   ".github/steps/executables-exist.ps1": {
-   "comments": 1,
-   "strings": 30
-  },
-  ".github/steps/how-much-did-not-run.ps1": {
-   "strings": 37
-  },
-  ".github/steps/interop-is-there.ps1": {
-   "strings": 10
+   "comments": 1
   },
   ".github/workflows/tests.yml": {
    "comments": 18,
@@ -1507,7 +1500,6 @@
    "comments": 53
   },
   "Program.cs": {
-   "strings": 166,
    "comments": 7
   },
   "QUICKSTART.md": {
@@ -1660,7 +1652,6 @@
    "markdown": 491
   },
   "build.ps1": {
-   "strings": 103,
    "comments": 2
   }
  },
@@ -3770,7 +3761,6 @@
    "falso",
    "famiglia",
    "famiglie",
-   "fatto",
    "fessura",
    "fessure",
    "filo",
