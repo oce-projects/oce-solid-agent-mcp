@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.Core
     /// SOLIDWORKS 29.5.1:
     ///
     ///   A  feature 4 + edge 1 + face 16384 BEFORE CreateDefinition
-    ///        -> «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2:
+    ///        -> «Fill Pattern1» [APattern], volume 71396.8 -> 62952.2:
     ///           14 more holes, -8444.6 = 14 x 603.2 exact, bodies 1 -> 1, 0 in error
     ///   C  same selections AFTER CreateDefinition          -> same as A
     ///   D  the face of the hole with mark 5 instead of 4   -> same as A

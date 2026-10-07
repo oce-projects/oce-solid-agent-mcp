@@ -21,7 +21,7 @@
                      "diameter_mm": 60, "through_all": false, "depth_mm": 3 }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Svuota1,name=D1)", "value_mm": 12 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.shell}1,name=D1)", "value_mm": 12 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [314, 274, 52] },
     { "what": "center_of_mass_mm", "equal_to": [0, 0, 37.031],

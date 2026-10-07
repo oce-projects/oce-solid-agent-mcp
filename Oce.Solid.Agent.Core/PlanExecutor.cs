@@ -67,7 +67,7 @@ namespace Oce.Solid.Agent.Core
         ///     checked out, and writing into it produces changes that at
         ///     save time fail or end up in a copy. There the refusal
         ///     «save it to disk first» is the right thing;
-        ///   * the MCP bridge works on purpose on a freshly opened `Parte1`. There that
+        ///   * the MCP bridge works on purpose on a freshly opened `Part1`. There that
         ///     refusal would make the bridge useless for its normal case.
         ///
         /// WHY IT IS NOT JUST ANY BOOLEAN. The danger written in entry
@@ -225,7 +225,7 @@ namespace Oce.Solid.Agent.Core
             //
             // Strings do not hold, and it was measured: a plan that
             // SAVES the part halfway changes both the path (from empty to
-            // a file) and the title (from «Parte131» to «z06»). A comparison by
+            // a file) and the title (from «Part131» to «z06»). A comparison by
             // name saw the name change and stopped saying «the active
             // document changed while I was running» — on a document that had
             // not changed at all, it had only been saved. Refusing what is
@@ -614,8 +614,8 @@ namespace Oce.Solid.Agent.Core
         ///
         /// The path on disk, when there is one. When there is not — a part just
         /// opened and never saved — the title, with a prefix that tells it apart:
-        /// a file that was really called «Parte1» must not be mistaken
-        /// for the in-memory «Parte1».
+        /// a file that was really called «Part1» must not be mistaken
+        /// for the in-memory «Part1».
         ///
         /// Before, the bare paths were compared. Without the title, TWO
         /// never-saved documents both have an empty path, and would have

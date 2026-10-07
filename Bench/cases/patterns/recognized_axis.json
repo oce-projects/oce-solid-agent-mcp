@@ -19,10 +19,10 @@
     { "operation": "circular_pattern",
       "arguments": {
         "feature_uid": "@feature(kind=ICE,n=1)",
-        "axis_uid": "Assi1",
+        "axis_uid": "{SW:feature.axis}1",
         "instance_count": 6,
         "total_angle_deg": 360,
-        "_signatures": { "Assi1": { "point_mm": [0, 0, 25], "direction": [0, 0, 1] } }
+        "_signatures": { "{SW:feature.axis}1": { "point_mm": [0, 0, 25], "direction": [0, 0, 1] } }
       },
       "_the_signature_is_written_by_hand_and_stated": "`_signatures` is what the bridge attaches to each step with the signatures read from the state when the plan was confirmed. Here it is written by hand to build the two situations — axis in its place, axis elsewhere — without having to really move the axis between the reading and the execution, which a declared case cannot do. The point (0, 0, 25) is at the middle of the axis of the cylinder, not at its start: it is the line that counts.",
       "expect": [

@@ -189,6 +189,15 @@
     <Compile Include="Units.cs" />
     <Compile Include="SolidWorksMaterials.cs" />
     <Compile Include="SectionProfile.cs" />
+    <Compile Include="Localization\SolidWorksNameTable.cs" />
+    <Compile Include="Localization\SolidWorksLanguage.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The names SOLIDWORKS writes only as localized text, one table for the library, the bench and the probes. -->
+    <EmbeddedResource Include="Localization\solidworks-names.json">
+      <LogicalName>solidworks-names.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

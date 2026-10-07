@@ -43,6 +43,6 @@
           "why": "the sum of the quantities of the items is the number of bars: two plus two" },
 
         { "what": "measurements.made_weldment", "equal_to": true,
-          "why": "the rectangular_frame does not put in the «Saldatura» feature (the Italian SOLIDWORKS name of the weldment feature): it is this step that makes the part a weldment, and it is the reason the items are separated" } ] }
+          "why": "the rectangular_frame does not put in the «Weldment» feature (the Italian SOLIDWORKS name of the weldment feature): it is this step that makes the part a weldment, and it is the reason the items are separated" } ] }
   ]
 }

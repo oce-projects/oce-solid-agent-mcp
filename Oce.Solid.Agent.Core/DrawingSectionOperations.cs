@@ -29,7 +29,7 @@ namespace Oce.Solid.Agent.Core
     ///
     ///     line selected: True, objects: 1, type 10 (swSelSKETCHSEGS)
     ///     views on the sheet: 4 -> 5
-    ///       -> THE SECTION IS THERE. Last view: «Vista in sezione A-A»
+    ///       -> THE SECTION IS THERE. Last view: «Section View A-A»
     ///
     /// ── THREE THINGS THAT CANNOT BE DEDUCED, AND THEY COST US ───────────
     ///

@@ -21,7 +21,7 @@
                      "diameter_mm": 60, "through_all": false, "depth_mm": 3 }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "value_mm": 80 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.boss_extrude}1,name=D1)", "value_mm": 80 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [314, 274, 80] },
     { "what": "center_of_mass_mm", "equal_to": [0, 0, 57.253],

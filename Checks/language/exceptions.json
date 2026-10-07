@@ -38,37 +38,37 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^Bench/",
-  "pattern": "(?:Taglio-Estrusione|Estrusione-Estrusione|Estrusione|Schizzo|Assi|Svuota|Foglio|Parte)\\d+|Accorcia/Estendi\\d+",
+  "file": "^Oce\\.Solid\\.Agent\\.Core/Localization/solidworks-names\\.json$",
+  "pattern": "Estrusione-Estrusione|Taglio-Estrusione|Schizzo|Assi|Svuota",
   "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names the features, sketches, axes, sheets and parts it creates in the language of the installation («Extrude1», «Sketch1» on an English one); the cases and the notes quote them as SOLIDWORKS wrote them on the Italian installation they were measured with (bench cases, expectations and plans)",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
+  "reason": "the Italian names SOLIDWORKS gives to the features, sketches, axes and shells it creates (solidworks-names.json, rows feature.*): what an Italian installation writes, kept as SOLIDWORKS spells it, read by the library, the bench and the probes through the table; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
+  "signed_by": null,
+  "signed_on": null
  },
  {
   "class": "solidworks-localized",
-  "file": "^Bench/Program\\.cs$",
-  "pattern": "Estrusione",
+  "file": "^Oce\\.Solid\\.Agent\\.Core/Localization/solidworks-names\\.json$",
+  "pattern": "\\*Anteriore|\\*Posteriore|\\*Superiore|\\*Inferiore|\\*Destra|\\*Sinistra|\\*Isometrico|\\*Dimetrico|\\*Trimetrico",
   "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names the features, sketches, axes, sheets and parts it creates in the language of the installation («Extrude1», «Sketch1» on an English one); the cases and the notes quote them as SOLIDWORKS wrote them on the Italian installation they were measured with; the bench tells a uid of the old numbering by its prefix",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
+  "reason": "the Italian names of the nine standard views of a document (solidworks-names.json, rows view.*): the last resort of the search for a view, after what the view does when shown and the order of the system views; what an Italian installation writes, kept as SOLIDWORKS spells it; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
+  "signed_by": null,
+  "signed_on": null
  },
  {
   "class": "solidworks-localized",
-  "file": "^Oce\\.Solid\\.Agent\\.Core/",
-  "pattern": "(?:Taglio-Estrusione|Estrusione-Estrusione|Estrusione|Schizzo|Assi|Svuota|Parte|SpecchiaComponente)\\d+|Immagine per schizzo\\d+|Ripetizione di riempimento\\d+|Accorcia/Estendi\\d+",
+  "file": "^Oce\\.Solid\\.Agent\\.Core/Localization/solidworks-names\\.json$",
+  "pattern": "PASSANTE|LUNGHEZZA|ANGOLO1|ANGOLO2|DESCRIZIONE|spessore",
   "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names the features, sketches, axes, sheets and parts it creates in the language of the installation («Extrude1», «Sketch1» on an English one); the cases and the notes quote them as SOLIDWORKS wrote them on the Italian installation they were measured with (comments of the library that record what was measured)",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
+  "reason": "the Italian words of the interface that end up in a document (solidworks-names.json, rows callout.*, cutlist.property.* and equation.*): the word of a hole callout, the names of the cut-list properties and the variable name SOLIDWORKS reserves; what an Italian installation writes, kept as SOLIDWORKS spells it; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
+  "signed_by": null,
+  "signed_on": null
  },
  {
   "class": "solidworks-localized",
-  "file": "^(?:README\\.md|Checks/(?:FaceFillet|Fill)/Program\\.cs|Tools/api_knowledge\\.json)$",
-  "pattern": "Estrusione\\d|Schizzo\\d|Ripetizione di riempimento\\d|Taglio-Estruso\\d",
+  "file": "^Bench/cases/drawing/two_sheets_and_the_same_projection_angle\\.json$",
+  "pattern": "Foglio1",
   "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names the features, sketches, axes, sheets and parts it creates in the language of the installation («Extrude1», «Sketch1» on an English one); the cases and the notes quote them as SOLIDWORKS wrote them on the Italian installation they were measured with",
+  "reason": "the drawing template of this company stores its first sheet under an Italian name: the name is in the template file, so it does not follow the language SOLIDWORKS runs in and is not in solidworks-names.json; the case quotes it as the template has it",
   "signed_by": "Oscar Contato",
   "signed_on": "2026-10-07"
  },
@@ -92,109 +92,10 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/(?:Catalog/Operations|DrawingDimensionOperations|HoleTableOperations|Properties/AssemblyInfo)\\.cs|Bench/cases/drawing/(?:blind_hole_says_how_deep_it_is|dimensions_arrive_in_the_pdf)\\.json|Tools/catalog\\.json)$",
-  "pattern": "PASSANTE",
+  "file": "^(?:Bench/DeclaredCases\\.cs|Bench/cases/document_properties/(?:new_configuration_activates_itself|limit_default_is_not_named_default)\\.json)$",
+  "pattern": "A macchina|Saldato",
   "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS writes the Italian word for «through» in the hole callout of a drawing on the Italian installation: the bridge reads it and the cases quote it",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/Catalog/Operations\\.cs|Tools/catalog\\.json)$",
-  "pattern": "Croci di centro sui fori",
-  "applies_to": ["detector", "translator"],
-  "reason": "the name SOLIDWORKS gives the center-mark option of the document in its Italian interface",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/(?:Catalog/Operations|DrawingSectionOperations|DrawingDimensionOperations)\\.cs|Tools/catalog\\.json|Bench/cases/drawing/drawing_dimensions_holes_and_chamfer\\.json)$",
-  "pattern": "Vista in sezione(?: [A-Z]-[A-Z])?|Vista del disegno\\d",
-  "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names the views of a drawing in the language of the installation (the section view «A-A», «Drawing View2»)",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/Catalog/Operations\\.cs|Oce\\.Solid\\.Agent\\.Core/EquationOperations\\.cs|Oce\\.Solid\\.Agent\\.Core/Properties/AssemblyInfo\\.cs|Bench/cases/dimensions/wall_has_a_name\\.json|Tools/catalog\\.json)$",
-  "pattern": "[Ss]pessore",
-  "applies_to": ["detector", "translator"],
-  "reason": "the Italian word for «thickness» is reserved by SOLIDWORKS in equations on the Italian installation: a global variable called so is refused (Add3 answers -1), and the cases and the notes name the word",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/(?:DrawingOperations|DrawingSectionOperations)\\.cs|Bench/NewOperationsTests\\.cs|Bench/cases/drawing/drawing_exports_to_pdf\\.json|Checks/Orphan/Program\\.cs)$",
-  "pattern": "\\*Isometric[ao]|\\*Frontale|\\*Anteriore|\\bdestra\\b",
-  "applies_to": ["detector", "translator"],
-  "reason": "SOLIDWORKS names the standard views with Italian words on the Italian installation and answers to no other spelling; the bridge tries both languages and the notes record the fact",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/DrawingCutListOperations\\.cs|Bench/cases/drawing/cut_list_in_the_drawing\\.json|Oce\\.Solid\\.Agent\\.Core/WeldmentOperations\\.cs)$",
-  "pattern": "LUNGHEZZA|ANGOLO[12]|DESCRIZIONE|QUANTITA",
-  "applies_to": ["detector", "translator"],
-  "reason": "the column titles of the cut-list table of the Italian drawing template, which the bridge reads by title",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^Oce\\.Solid\\.Agent\\.Core/MirrorComponentOperations\\.cs$",
-  "pattern": "Specchiato",
-  "applies_to": ["detector", "translator"],
-  "reason": "the Italian word SOLIDWORKS puts in the name of the first feature of a mirrored component",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/(?:WeldmentOperations|DocumentState|Properties/AssemblyInfo)\\.cs|Bench/cases/weldments/cut_list_counts_the_bars\\.json)$",
-  "pattern": "Saldatura|Corpi solidi|Elenco elementi|Membro strutturale",
-  "applies_to": ["detector", "translator"],
-  "reason": "the names SOLIDWORKS gives the weldment feature, the folder of the solid bodies, the cut-list items and the structural member on the Italian installation",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^Oce\\.Solid\\.Agent\\.Core/BodyOperations\\.cs$",
-  "pattern": "Maschiatura|Filettature macchina",
-  "applies_to": ["detector", "translator"],
-  "reason": "the name of the machine-thread type in the Italian interface of the Hole Wizard",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/SolidWorksMaterials\\.cs|Bench/DeclaredCases\\.cs)$",
-  "pattern": "Acciaio(?: legato)?|Leghe di alluminio|materiali personalizzati",
-  "applies_to": ["detector", "translator"],
-  "reason": "the names of the classes and of the databases of the SOLIDWORKS material library on the Italian installation",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^(?:Oce\\.Solid\\.Agent\\.Core/References\\.cs|Checks/(?:DimXpert|FollowTheEdge|SheetMetal)/Program\\.cs)$",
-  "pattern": "Piano (?:frontale|superiore|destro)",
-  "applies_to": ["detector", "translator"],
-  "reason": "the names SOLIDWORKS gives the three base planes of a part on the Italian installation; the probes quote the message they get when they cannot find one",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^Oce\\.Solid\\.Agent\\.Core/(?:PropertyOperations|DocumentState|MaterialOperations)\\.cs$|^Bench/DeclaredCases\\.cs$|^Bench/cases/document_properties/(?:new_configuration_activates_itself|limit_default_is_not_named_default)\\.json$",
-  "pattern": "_Stato di visualizzazione \\d|A macchina|Saldato",
-  "applies_to": ["detector", "translator"],
-  "reason": "the configurations and the display states that the company template of the Italian installation creates, by the names it gives them",
+  "reason": "the part template of this company stores a pair of configurations with Italian names (the weldment pair, the machined one and the welded one): the name is in the template file, so it does not follow the language SOLIDWORKS runs in and is not in solidworks-names.json; the cases quote it as the template has it",
   "signed_by": "Oscar Contato",
   "signed_on": "2026-10-07"
  },
@@ -213,15 +114,6 @@
   "pattern": "Disegno(?:\\.drwdot|\\d*)",
   "applies_to": ["detector", "translator"],
   "reason": "the name of the drawing template of the workshop and of the drawing document SOLIDWORKS opens from it («Disegno1» on the Italian installation); temporary, until the English template",
-  "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-07"
- },
- {
-  "class": "solidworks-localized",
-  "file": "^README\\.md$",
-  "pattern": "Predefinito|«Piano frontale»",
-  "applies_to": ["detector", "translator"],
-  "reason": "the names SOLIDWORKS gives the default configuration and the front plane on the Italian installation, quoted next to the English ones",
   "signed_by": "Oscar Contato",
   "signed_on": "2026-10-07"
  },

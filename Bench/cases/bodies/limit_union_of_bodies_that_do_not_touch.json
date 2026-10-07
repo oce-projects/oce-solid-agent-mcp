@@ -9,12 +9,12 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 1000 } ] },
     { "operation": "move_bodies",
-      "arguments": { "bodies_uid": ["@body(name=Estrusione-Estrusione1)"], "dx_mm": 50, "copy": true, "copy_count": 1 },
+      "arguments": { "bodies_uid": ["@body(name={SW:feature.boss_extrude}1)"], "dx_mm": 50, "copy": true, "copy_count": 1 },
       "expect": [
         { "what": "bodies", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 2000 } ] },
     { "operation": "combine_bodies",
-      "arguments": { "operation": "union", "main_body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "operation": "union", "main_body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "_why_the_main_one": "To resemble the twin without being a copy of it: with the same arguments as «requested_combine» the difference would lie only in the geometry, which the comparison of the twins does not see. The main body named by name does not change the union.",
       "must_fail": {
         "message_includes": ["created nothing", "do not touch"],

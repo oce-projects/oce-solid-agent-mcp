@@ -44,7 +44,7 @@
           "why": "the 800 bar is written on the sheet: it is exactly the one the cut list from before lost" },
         { "what": "measurements.inside_sheet", "equal_to": true,
           "why": "SEEN IN THE PNG on 26/9/2026, with the rest of the case green: the table of the workshop template has 17 columns and at 250/200 it ran off the sheet after the fourth. Now it is measured and goes in a free place inside the frame" },
-        { "what": "measurements.columns_visible", "includes": ["LUNGHEZZA", "QUANTITA"],
-          "why": "the columns the workshop needs stay; the others (author, code, the duplicates QUANTITY and TOTAL LENGTH...) are hidden. The two literals are the headers the Italian workshop template PRINTS for the length and the quantity: SOLIDWORKS writes them, the repository does not choose them (window .8 had translated the second to «quantity column», a text no template prints, and the case went red; they are candidates for the solidworks-localized exceptions of .11)" } ] }
+        { "what": "measurements.workshop_columns_visible", "includes": ["length", "quantity"],
+          "why": "the columns the workshop needs stay; the others (author, code, the duplicates QUANTITY and TOTAL LENGTH...) are hidden. They are asserted by ROLE, not by the header the table template prints: the quantity column is told by its type (swWeldTableColumnType_Quantity) and the length by the name of its property in any language of solidworks-names.json (cutlist.property.length), so the case does not depend on the language of the template" } ] }
   ]
 }

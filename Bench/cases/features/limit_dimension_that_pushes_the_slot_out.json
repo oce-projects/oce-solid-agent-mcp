@@ -16,7 +16,7 @@
         { "what": "volume_mm3", "equal_to": 433716.81, "tolerance": 0.5,
           "tolerance_why": "480000 minus (100*20 + pi*10^2) * 20 = 46283.19. It is the volume that the next step must find INTACT" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 150 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 150 },
       "must_fail": {
         "message_includes": ["goes out of the material"],
         "volume_unchanged": true,

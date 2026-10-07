@@ -20,7 +20,7 @@
                                  "y": { "centered_between": [ "@edge(axis=X,y~=-60,z~=20)", "@edge(axis=X,y~=60,z~=20)" ] } } }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
     { "what": "center_of_mass_mm", "equal_to": [30, 0, 9.853],

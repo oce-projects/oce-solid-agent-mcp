@@ -20,7 +20,7 @@
           "tolerance_why": "plate 480000 at (0,0,10) plus boss 8000 at (0,-30,25)" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "center_of_mass_mm", "equal_to": [30, -0.38, 10.19], "tolerance": 0.01,
           "tolerance_why": "plate 624000 at (30,0,10) plus boss 8000 at (30,-30,25): the boss went to the middle of the new plate" } ] }

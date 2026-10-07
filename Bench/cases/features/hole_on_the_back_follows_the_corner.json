@@ -21,13 +21,13 @@
         { "what": "centers_y_mm", "equal_to": [40], "tolerance": 0.05,
           "tolerance_why": "as above" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 260 },
         { "what": "centers_x_mm", "equal_to": [140], "tolerance": 0.05,
           "tolerance_why": "the right side moves to 160: 140" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 180 },
         { "what": "centers_x_mm", "equal_to": [140], "tolerance": 0.05,

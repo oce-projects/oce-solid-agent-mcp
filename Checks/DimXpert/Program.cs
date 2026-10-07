@@ -58,7 +58,7 @@ internal static class Program
 
             doc.ClearSelection2(true);
             if (!SelectBasePlane(doc, 2))
-            { Console.WriteLine("  cannot find «Piano superiore»"); return 4; }
+            { Console.WriteLine("  cannot find «Top Plane»"); return 4; }
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateCornerRectangle(0, 0, 0, 0.100, 0.060, 0);
             doc.SketchManager.CreateCircleByRadius(0.050, 0.030, 0, 0.010);

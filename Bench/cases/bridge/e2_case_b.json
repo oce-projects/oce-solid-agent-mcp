@@ -1,4 +1,4 @@
 [
- { "operation": "set_dimension", "arguments": { "dimension": "D1@Estrusione-Estrusione1", "value_mm": 12 } },
+ { "operation": "set_dimension", "arguments": { "dimension": "D1@{SW:feature.boss_extrude}1", "value_mm": 12 } },
  { "operation": "cylindrical_cut", "arguments": { "face_uid": "F5", "x_mm": 0, "y_mm": 0, "diameter_mm": 10, "through_all": false, "depth_mm": 4 } }
 ]

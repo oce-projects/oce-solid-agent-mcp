@@ -24,7 +24,7 @@
           "tolerance_why": "the dimension is read back in metres from the dimension just created" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 260 },
         { "what": "centers_x_mm", "equal_to": [140], "tolerance": 0.05,
@@ -34,7 +34,7 @@
         { "what": "volume_mm3", "equal_to": 622429.2, "tolerance": 0.05,
           "tolerance_why": "260*120*20 minus the whole hole" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "measurements.now_mm", "equal_to": 180 },
         { "what": "centers_x_mm", "equal_to": [140], "tolerance": 0.05,

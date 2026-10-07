@@ -3606,7 +3606,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "You did not say which dimension to change. The names of the " +
                     "dimensions are in the state of the document, inside each feature " +
-                    "(for example «D1@Schizzo1»).");
+                    "(for example «D1@Sketch1»).");
 
             double val;
             string error;
@@ -3890,7 +3890,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// Looks for a dimension by name in the whole tree.
         ///
-        /// The name may be the full one («D1@Schizzo1») or the short one
+        /// The name may be the full one («D1@Sketch1») or the short one
         /// («D1»): the model reads the full one in the state, but a person
         /// writing by hand uses the short one, and refusing for that would be pedantic.
         /// If it does not find it, it lists the names that exist: a «not found» without
@@ -3926,8 +3926,8 @@ namespace Oce.Solid.Agent.Core
                             // THREE FORMS, AND ALL THREE MUST WORK.
                             //
                             //   D1                          the short name
-                            //   D1@Schizzo1                 name and feature
-                            //   D1@Schizzo1@Parte286.Part   as the state writes it
+                            //   D1@Sketch1                 name and feature
+                            //   D1@Sketch1@Part286.Part   as the state writes it
                             //
                             // The second was missing, and the error message
                             // took it for granted («for example «D1@Sketch1»»):
@@ -5757,7 +5757,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The chamfer or fillet that a new dimension has pushed out of measure,
         /// said in words («the chamfer «Smusso1» takes a whole face of
-        /// «Estrusione1» (6 -> 5 faces)»); null if there is none.
+        /// «Extrude1» (6 -> 5 faces)»); null if there is none.
         ///
         /// Two conditions, both read: a feature that is not a
         /// cut (`Cut`, `ICE`, `HoleWzd`, and the revolve cuts) has FEWER
@@ -6289,7 +6289,7 @@ namespace Oce.Solid.Agent.Core
         /// should not assume that Sketch1 always appears before Sketch2».
         ///
         /// THE NAMES ARE READ, NEVER WRITTEN. Feature names are localized (an
-        /// Italian installation says «Schizzo1» where an English one says
+        /// Italian installation says «Sketch1» where an English one says
         /// «Sketch1») and a SelectByID2 on a name we made up answers false in
         /// silence. Here a name is only compared with the names read from the
         /// same tree a moment before, and the feature is then selected as an
@@ -6419,8 +6419,8 @@ namespace Oce.Solid.Agent.Core
         ///      September 2026, which is the opposite of what it seems: an ABSORBED
         ///      sketch stays anyway in the top-level walk of
         ///      `IFirstFeature`/`GetNextFeature`. On a tub made with a
-        ///      single extrusion the tree is: ... `#18 ProfileFeature Schizzo1`,
-        ///      `#19 Extrusion Estrusione1`. That is, a successful extrusion
+        ///      single extrusion the tree is: ... `#18 ProfileFeature Sketch1`,
+        ///      `#19 Extrusion Extrude1`. That is, a successful extrusion
         ///      adds TWO features to the count, not one — and the sketch is
         ///      second to last, not last. It is exactly the reason why the
         ///      check is «the LAST one is a sketch» and not «there is a sketch
@@ -6583,7 +6583,7 @@ namespace Oce.Solid.Agent.Core
             {
                 reason = "You did not say which feature. The names are in the " +
                          "state of the document, inside «feature» (for example " +
-                         "«Taglio-Estrusione2»).";
+                         "«Cut-Extrude2»).";
                 return null;
             }
 

@@ -613,7 +613,7 @@
     },
     "IModelDocExtension.SelectByID2": {
       "state": "probed_modifies",
-      "why": "IMPORTANT: exists ONLY on IModelDocExtension in this interop, not on IModelDoc2 -- must be called through Extension. Used with mark strings such as \"BODYFEATURE\"; measured that selecting by a feature's CURRENT display name (e.g. after a rename to \"Taglio-Estruso1\") returns false if the code still looks for the old name (\"Cut-Extrude1\"), i.e. selection by name is fragile across a language/rename change. SelectByID2 exists only on IModelDocExtension (9 arguments, with Mark and Callout); the other preselection is IEntity.Select4(Boolean Append, SelectData Data).",
+      "why": "IMPORTANT: exists ONLY on IModelDocExtension in this interop, not on IModelDoc2 -- must be called through Extension. Used with mark strings such as \"BODYFEATURE\"; measured that selecting by a feature's CURRENT display name (e.g. after a rename to \"Cut-Extrude1\") returns false if the code still looks for the old name (\"Cut-Extrude1\"), i.e. selection by name is fragile across a language/rename change. SelectByID2 exists only on IModelDocExtension (9 arguments, with Mark and Callout); the other preselection is IEntity.Select4(Boolean Append, SelectData Data).",
       "source": "rag:82h; rag:82zz_ter"
     },
     "IModelDocExtension.SetUserPreferenceDouble": {
@@ -700,7 +700,7 @@
     },
     "ISldWorks.ActivateDoc": {
       "state": "forbidden",
-      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test extrude_rectangle landed inside another session's Parte4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
+      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test extrude_rectangle landed inside another session's Part4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
       "source": "memory:solidworks_active_document"
     },
     "ISldWorks.ActivateDoc2": {

@@ -80,7 +80,7 @@ internal static class Program
             // ── THE PLATE, with its two dimensions ──────────────────────
             _doc.ClearSelection2(true);
             if (!SelectBasePlane(_doc, 1))
-            { Console.WriteLine("  cannot find «Piano frontale»"); return 4; }
+            { Console.WriteLine("  cannot find «Front Plane»"); return 4; }
             _doc.SketchManager.InsertSketch(true);
             var sides = _doc.SketchManager.CreateCornerRectangle(-0.100, -0.060, 0, 0.100, 0.060, 0) as object[];
             ISketchSegment up = null, right = null;

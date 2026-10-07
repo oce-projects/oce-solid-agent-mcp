@@ -12,7 +12,7 @@
       "arguments": { "face_uid": "@face(normal=up)", "x_mm": 0, "y_mm": 0, "diameter_mm": 10, "through_all": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 95214.6, "tolerance": 0.05, "tolerance_why": "pi inside: 96000 minus pi x 5^2 x 10" } ] },
     { "operation": "dimension_tolerance",
-      "arguments": { "dimension": "D1@Schizzo2", "variant": "fit", "fit_class": "H7" },
+      "arguments": { "dimension": "D1@{SW:feature.sketch}2", "variant": "fit", "fit_class": "H7" },
       "expect": [
         { "what": "measurements.nominal_mm", "equal_to": 10, "why": "the dimension of the hole, not the thickness (which is also 10: the probe had fallen for it)" },
         { "what": "measurements.lower_deviation_mm", "equal_to": 0, "tolerance": 0.0001, "tolerance_why": "SOLIDWORKS writes in metres, here in mm to four decimals", "why": "an H hole starts from zero" },
@@ -21,13 +21,13 @@
         { "what": "measurements.tolerance_decimals", "equal_to": 3,
           "why": "measured: without it, the drawing showed «+0 / 0» — the limits with the decimals of the dimension" } ] },
     { "operation": "dimension_tolerance",
-      "arguments": { "dimension": "D1@Estrusione-Estrusione1", "variant": "symmetric", "value_mm": 0.05 },
+      "arguments": { "dimension": "D1@{SW:feature.boss_extrude}1", "variant": "symmetric", "value_mm": 0.05 },
       "expect": [
         { "what": "measurements.lower_limit_mm", "equal_to": 9.95, "tolerance": 0.0001, "tolerance_why": "four decimals", "why": "10 - 0,05" },
         { "what": "measurements.upper_limit_mm", "equal_to": 10.05, "tolerance": 0.0001, "tolerance_why": "four decimals", "why": "10 + 0,05" },
         { "what": "measurements.tolerance_decimals", "equal_to": 2, "why": "those of the value asked for" } ] },
     { "operation": "dimension_tolerance",
-      "arguments": { "dimension": "D1@Schizzo2", "variant": "fit", "fit_class": "H14" },
+      "arguments": { "dimension": "D1@{SW:feature.sketch}2", "variant": "fit", "fit_class": "H14" },
       "must_fail": {
         "message_includes": ["IT14", "Choose a grade between 5 and 11"],
         "volume_unchanged": true,

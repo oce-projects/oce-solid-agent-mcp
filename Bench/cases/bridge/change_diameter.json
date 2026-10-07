@@ -2,7 +2,7 @@
  {
   "operation": "set_dimension",
   "arguments": {
-   "dimension": "D1@Schizzo1",
+   "dimension": "D1@{SW:feature.sketch}1",
    "value_mm": 60
   }
  }

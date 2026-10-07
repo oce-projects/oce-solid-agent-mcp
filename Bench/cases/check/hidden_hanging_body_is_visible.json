@@ -12,7 +12,7 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "move_bodies",
-      "arguments": { "bodies_uid": [ "@body(name=Estrusione-Estrusione1)" ], "dx_mm": 200,
+      "arguments": { "bodies_uid": [ "@body(name={SW:feature.boss_extrude}1)" ], "dx_mm": 200,
                      "copy": true, "copy_count": 1 },
       "expect": [
         { "what": "bodies", "equal_to": 2 },

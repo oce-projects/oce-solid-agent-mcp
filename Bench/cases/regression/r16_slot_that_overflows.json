@@ -16,7 +16,7 @@
                      "length_mm": 120, "width_mm": 20, "through_all": true }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 150 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 150 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [150, 120, 20] },
     { "what": "bodies", "equal_to": 1 },

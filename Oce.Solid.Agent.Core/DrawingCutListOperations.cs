@@ -322,14 +322,38 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// The column properties that are needed in the workshop to cut: the
-        /// length, the two angles, the description (the profile). With the item number
-        /// and the quantity, which are columns of TYPE (`swWeldTableColumnType_*`).
+        /// The roles of the column properties that are needed in the workshop to
+        /// cut: the length, the two angles, the description (the profile). With
+        /// the item number and the quantity, which are columns of TYPE
+        /// (`swWeldTableColumnType_*`) and need no name at all.
+        ///
+        /// A property of the cut list has the name SOLIDWORKS gave it in the
+        /// language it ran in when the cut list (or the profile, or the table
+        /// template) was made, so the names are those of the table
+        /// (solidworks-names.json, keys cutlist.property.*) in EVERY column: a
+        /// template made in another language than the interface still carries its
+        /// own words, and recognising all of them is the robust choice.
         /// </summary>
-        private static readonly HashSet<string> WorkshopColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        private static readonly string[] WorkshopRoles = { "length", "angle1", "angle2", "description" };
+
+        /// <summary>
+        /// The role of a column of the table of the cut list, told by its TYPE
+        /// first and by the name of its property (every language of the table)
+        /// second: "item_number", "quantity", "length", "angle1", "angle2",
+        /// "description", or null for a column the workshop does not need.
+        /// </summary>
+        internal static string ColumnRole(int columnType, string property)
         {
-            "LUNGHEZZA", "LENGTH", "ANGOLO1", "ANGOLO2", "ANGLE1", "ANGLE2", "DESCRIZIONE", "DESCRIPTION",
-        };
+            if (columnType == (int)swTableColumnTypes_e.swWeldTableColumnType_ItemNumber) return "item_number";
+            if (columnType == (int)swTableColumnTypes_e.swWeldTableColumnType_Quantity) return "quantity";
+            string itsName = (property ?? "").Trim();
+            if (itsName.Length == 0) return null;
+            var names = SolidWorksNameTable.Embedded();
+            foreach (var role in WorkshopRoles)
+                foreach (var spelling in names.All("cutlist.property." + role))
+                    if (string.Equals(spelling, itsName, StringComparison.OrdinalIgnoreCase)) return role;
+            return null;
+        }
 
         /// <summary>
         /// Hides the columns that are not needed (or keeps those asked for with
@@ -343,6 +367,13 @@ namespace Oce.Solid.Agent.Core
         {
             reason = null;
             // ── 1. WHICH COLUMNS ────────────────────────────────────────────
+            // THE TYPE OF EVERY COLUMN, read once (ITableAnnotation~GetColumnType2).
+            var types = new int[columns];
+            for (int c = 0; c < columns; c++)
+            {
+                types[c] = -1;
+                try { types[c] = table.GetColumnType2(c, true); } catch { }
+            }
             var requestedItems = StringList(a, "columns");
             bool all = requestedItems.Any(c => string.Equals((c ?? "").Trim(), "all", StringComparison.OrdinalIgnoreCase));
             var keep = new bool[columns];
@@ -367,11 +398,7 @@ namespace Oce.Solid.Agent.Core
                 int held = 0;
                 for (int c = 0; c < columns; c++)
                 {
-                    int typ = -1;
-                    try { typ = table.GetColumnType2(c, true); } catch { }
-                    keep[c] = typ == (int)swTableColumnTypes_e.swWeldTableColumnType_ItemNumber ||
-                                typ == (int)swTableColumnTypes_e.swWeldTableColumnType_Quantity ||
-                                WorkshopColumns.Contains((property[c] ?? "").Trim());
+                    keep[c] = ColumnRole(types[c], property[c]) != null;
                     if (keep[c]) held++;
                 }
                 // A table template that is not recognised stays as it is: better
@@ -402,6 +429,19 @@ namespace Oce.Solid.Agent.Core
             }
             measurements["columns_visible"] = visible.ToArray();
             measurements["columns_hidden"] = hiddenOnes.ToArray();
+            // THE SAME THING BY ROLE, which does not depend on what the template
+            // prints in the header nor on the language of the property names:
+            // «length», «quantity»... (the cases of the bench assert this one).
+            var rolesVisible = new List<string>();
+            for (int c = 0; c < columns; c++)
+            {
+                bool hiddenNow = false;
+                try { hiddenNow = table.ColumnHidden[c]; } catch { }
+                if (hiddenNow) continue;
+                string role = ColumnRole(types[c], property[c]);
+                if (role != null && !rolesVisible.Contains(role)) rolesVisible.Add(role);
+            }
+            measurements["workshop_columns_visible"] = rolesVisible.ToArray();
 
             // ── 2. HOW BIG IT IS ────────────────────────────────────────────
             double w = 0, h = 0;

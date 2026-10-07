@@ -22,13 +22,13 @@
       "operation": "circular_pattern",
       "arguments": {
         "feature_uid": "@feature(kind=ICE,n=1)",
-        "axis_uid": "Assi1",
+        "axis_uid": "{SW:feature.axis}1",
         "instance_count": 6,
         "total_angle_deg": 360
       }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 140 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 140 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [140, 140, 50],
       "tolerance": 0.02,

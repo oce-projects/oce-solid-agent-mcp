@@ -19,11 +19,11 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 393842.48, "tolerance": 0.5,
                     "tolerance_why": "400000 minus twice pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "suppress_feature",
-      "arguments": { "feature_uid": "Taglio-Estrusione2" },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}2" },
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
                     "tolerance_why": "the volume with a single hole comes back: the calculation has pi inside" } ] },
     { "operation": "suppress_feature",
-      "arguments": { "feature_uid": "Taglio-Estrusione2" },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}2" },
       "must_fail": {
         "message_includes": ["already suppressed", "reactivate"],
         "volume_unchanged": true,

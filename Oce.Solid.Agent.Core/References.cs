@@ -189,8 +189,8 @@ namespace Oce.Solid.Agent.Core
         ///
         /// A plane qualifies with the canonical normal of the name, SAME SIGN,
         /// and passing through the world origin. Measured by the Z-C21.3 probe of
-        /// C3-6 (28/9/2026, SOLIDWORKS 29.5.1) on the template: «Piano frontale»
-        /// normal (0, 0, 1), «Piano superiore» (0, 1, 0), «Piano destro»
+        /// C3-6 (28/9/2026, SOLIDWORKS 29.5.1) on the template: «Front Plane»
+        /// normal (0, 0, 1), «Top Plane» (0, 1, 0), «Right Plane»
         /// (1, 0, 0), all three with origin (0, 0, 0); a plane offset 20 mm from
         /// the front read (0, 0, 1) through (0, 0, 20), and a plane through three
         /// points at y = 30 read (0, -1, 0): neither qualifies. The sign is

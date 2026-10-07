@@ -2,7 +2,7 @@
  {
   "operation": "mirror",
   "arguments": {
-   "feature_uid": "Taglio-Estrusione1",
+   "feature_uid": "{SW:feature.cut_extrude}1",
    "plane": "right"
   }
  }

@@ -520,7 +520,7 @@ internal static class FaceFilletProbe
         sm.InsertSketch(true);
         sm.CreateCornerRectangle(-0.02, -0.02, 0, 0.02, 0.02, 0);
         sm.InsertSketch(false);
-        doc.Extension.SelectByID2("Schizzo1", "SKETCH", 0, 0, 0, false, 0, null, 0);
+        doc.Extension.SelectByID2("Sketch1", "SKETCH", 0, 0, 0, false, 0, null, 0);
         doc.FeatureManager.FeatureExtrusion3(
             true, false, false, (int)swEndConditions_e.swEndCondBlind, 0, 0.040, 0,
             false, false, false, false, 0, 0, false, false, false, false,
@@ -562,7 +562,7 @@ internal static class FaceFilletProbe
         // (0.020): the raised block turns out 0.030 x 0.030, centred.
         sm.CreateCornerRectangle(-0.015, -0.015, 0, 0.015, 0.015, 0);
         sm.InsertSketch(false);
-        doc.Extension.SelectByID2("Schizzo2", "SKETCH", 0, 0, 0, false, 0, null, 0);
+        doc.Extension.SelectByID2("Sketch2", "SKETCH", 0, 0, 0, false, 0, null, 0);
         doc.FeatureManager.FeatureExtrusion3(
             true, false, false, (int)swEndConditions_e.swEndCondBlind, 0, 0.020, 0,
             false, false, false, false, 0, 0, false, false, false, false,

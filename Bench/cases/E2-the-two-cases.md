@@ -44,7 +44,7 @@ F6  1200  [50,0,0]   [1,0,0]
 
 | step | expected |
 |---|---|
-| `set_dimension D1@Schizzo1 100 → 160` | succeeds, volume **192,000** = 120,000 · 160/100 |
+| `set_dimension D1@Sketch1 100 → 160` | succeeds, volume **192,000** = 120,000 · 160/100 |
 | `cylindrical_cut` Ø10 on **F6** | **succeeds, and SAYS how far the face has moved** |
 
 **Up to 0.25.2 it was a REFUSAL**, and entry E2 had written it so (the bridge of
@@ -110,7 +110,7 @@ depth 8.
 
 | step | expected |
 |---|---|
-| `set_dimension D1@Estrusione-Estrusione1 20 → 12` | succeeds, volume **59,200** |
+| `set_dimension D1@Boss-Extrude1 20 → 12` | succeeds, volume **59,200** |
 | `cylindrical_cut` Ø10 depth 4 on **F5** (the bottom of the pocket) | «succeeded», **and the part is wrong** |
 
 ### What happens, and why nobody notices
@@ -132,7 +132,7 @@ has area **4400**, that is, almost three times as much.
 
 ```
 [agent] the face «F5» had moved: found again from its signature
-[agent] created feature Taglio-Estrusione2
+[agent] created feature Cut-Extrude2
 succeeded: true
 ```
 

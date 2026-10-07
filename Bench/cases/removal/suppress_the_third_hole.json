@@ -29,7 +29,7 @@
           "tolerance_why": "three holes of 14: the diameter is read from CylinderParams" },
         { "what": "how_many_features", "equal_to": 4 } ] },
     { "operation": "suppress_feature",
-      "arguments": { "feature_uid": "Taglio-Estrusione3" },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}3" },
       "expect": [
         { "what": "volume_mm3", "equal_to": 393842.48, "tolerance": 0.5,
           "tolerance_why": "the volume with two holes, identical: the calculation has pi inside" },
@@ -38,7 +38,7 @@
         { "what": "how_many_features", "equal_to": 4,
           "_why_four": "suppressed does not mean deleted: it stays in the tree, and that is the whole difference from `delete_feature`" } ] },
     { "operation": "suppress_feature",
-      "arguments": { "feature_uid": "Taglio-Estrusione3", "reactivate": true },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}3", "reactivate": true },
       "expect": [
         { "what": "volume_mm3", "equal_to": 390763.72, "tolerance": 0.5,
           "tolerance_why": "the volume with three holes, as it was: the calculation has pi inside" },

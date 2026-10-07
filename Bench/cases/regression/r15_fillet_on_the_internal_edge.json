@@ -23,7 +23,7 @@
       "arguments": { "edges_uid": [ "@edge(axis=Y,length~=120,n=1)" ], "radius_mm": 8 }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 160 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D2)", "value_mm": 160 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [200, 160, 80],
       "tolerance": 0.05,

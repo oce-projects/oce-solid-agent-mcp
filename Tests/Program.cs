@@ -412,6 +412,7 @@ namespace Oce.Solid.Agent.ContractTests
             Zc2189DrawingContract.RunAll();
             Zc2189MachiningContract.RunAll();
             Zc215IdentityContract.RunAll();
+            SolidWorksNamesContract.RunAll();
             Zc215SketchIdentityContract.RunAll();
             Zc215ActivationRebuildContract.RunAll();
             Zc215HolePointIdentityContract.RunAll();

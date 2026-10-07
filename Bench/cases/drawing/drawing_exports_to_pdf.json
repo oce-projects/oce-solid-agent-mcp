@@ -46,7 +46,7 @@
         { "what": "state.views_total", "equal_to": 1,
           "why": "THE TWO READINGS AGREE: the operation says one, the state re-read from scratch finds one" },
         { "what": "measurements.sw_name", "includes": ["Iso"],
-          "why": "the TRUE name with which SOLIDWORKS accepted it (`*Isometrica` here, `*Isometric` in English): it is the fact the operation declares so that next time it is written instead of remembered" } ] },
+          "why": "the TRUE name with which SOLIDWORKS accepted it (`*Isometric` here, `*Isometric` in English): it is the fact the operation declares so that next time it is written instead of remembered" } ] },
 
     { "operation": "note",
       "arguments": { "text": "TEST123", "x_mm": 20, "y_mm": 250 },

@@ -156,14 +156,14 @@ namespace Oce.Solid.Agent.Bench
                 // More views, because ONE ALONE IS NOT ENOUGH and it is worth
                 // measuring: from an isometric one cannot tell whether a hole is
                 // through or blind, and the back is not seen.
-                // THE NAMES OF THE VIEWS ARE IN ENGLISH EVEN ON AN
-                // ITALIAN INSTALLATION. With «*Isometrica» ShowNamedView2
+                // THE NAMES OF THE VIEWS DEPEND ON THE LANGUAGE OF THE INSTALLATION.
+                // With a name the installation does not use ShowNamedView2
                 // does not complain and does nothing: the shot comes out with the view
                 // that was there before. It is the same trap as the names of the planes
                 // already documented in the RAG — and if the wrong image had
                 // reached the model, the fault would have seemed its own.
                 // NEITHER THE ITALIAN NAME NOR THE ENGLISH ONE: IT IS NOT THE NAME.
-                // `ShowNamedView2` with «*Isometrica» and with «*Isometric» produced
+                // `ShowNamedView2` with «*Isometric» and with the Italian name produced
                 // the SAME IMAGE, that is it did nothing in
                 // either case. So the numeric identifier of the standard view
                 // is passed, which is the second parameter

@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.129.0-blue)
-![Library version](https://img.shields.io/badge/library-0.152.0-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.130.0-blue)
+![Library version](https://img.shields.io/badge/library-0.153.0-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -342,18 +342,26 @@ the Italian from growing, on every push and on the CI: every commit is judged
 against its parent, with its parent's rules, and a raise needs a signed trailer on
 the commit that raises.
 
-**What comes from SOLIDWORKS stays in the language of the installation.** The names
-SOLIDWORKS gives to features, sketches, planes and configurations (`Boss-Extrude1`,
-`Sketch1`, `Front Plane`, `Default` on an English installation; `Estrusione1`,
-`Schizzo1`, «Piano frontale», `Predefinito` on an Italian one), the custom properties
-of the templates (`Descrizione`, `Materiale` in the templates this bridge was
-measured with) and the messages SOLIDWORKS itself writes are read and passed on as
-they are: the bridge never translates them, and an operation that takes such a name
-takes it as the installation spells it. Where the catalog gives an example with a
+**What comes from SOLIDWORKS stays in the language of the installation, and the
+bridge reads it in any language.** The names SOLIDWORKS gives to features, sketches,
+planes and configurations (`Boss-Extrude1`, `Sketch1`, `Front Plane` on an English
+installation; their translations on an Italian one), the custom properties of the
+templates (`Descrizione`, `Materiale` in the templates this bridge was measured
+with) and the messages SOLIDWORKS itself writes are read and passed on as they are:
+the bridge never translates them for the model, and an operation that takes such a
+name takes it as the installation spells it. What the bridge has to recognise by
+itself it reads from the API wherever the API allows (a feature by its type, a base
+plane by its normal, a standard view by its rotation, a table column by its type);
+the rest is in one table, `Oce.Solid.Agent.Core/Localization/solidworks-names.json`,
+with a column per language. The column is chosen by `ISldWorks.GetCurrentLanguage`
+and, for the names of features, documents and sheets, by the toggle «Use English
+feature and file names»; a language the table does not know falls back to English and
+the state says so in `solidworks_language`. Where the catalog gives an example with a
 feature name, it gives the English one and says that the name is the one of the
-installation. The Italian feature, sketch, sheet and plane names that the bench meets
-are listed in `Checks/language/exceptions.json` (class `solidworks-localized`): the
-language gate does not count them.
+installation. The Italian column of that table is the only Italian SOLIDWORKS text of
+the repository besides the names in the company templates and profile library the
+bench uses: they are listed in `Checks/language/exceptions.json` (class
+`solidworks-localized`), and the language gate does not count them.
 
 **Values outside any enum are English words too**: the `variant` of `mate`
 (`coincident`, `parallel`, `perpendicular`, `distance`) and its `alignment` (`aligned`,

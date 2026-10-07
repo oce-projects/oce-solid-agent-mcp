@@ -939,8 +939,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "After writing it I read it back, and I tell you which dimensions it drives and "
                         + "the volume before and after.\n\nI REFUSE IF the name is not made of letters, "
                         + "digits and «_», if you give me both (or neither) of «value_mm» and "
-                        + "«expression», or if SOLIDWORKS does not accept the name: in an Italian SOLIDWORKS "
-                        + "«spessore» (thickness, the reserved word of an Italian SOLIDWORKS) is already taken (measured) — use for example «wall».",
+                        + "«expression», or if SOLIDWORKS does not accept the name: it reserves some in its own language, such as "
+                        + "the word for the thickness (the refusal says which) — use for example «wall».",
                     Precondition = "an open part",
                     Schema = O(
                         "type", "object",
@@ -2737,8 +2737,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Description =
                         "CHECKS that every hole visible in the views has its center mark, and tries "
                         + "to add it where it is missing. SOLIDWORKS puts them in by itself when it creates "
-                        + "the view, if the document option «Croci di centro sui fori» (the one that "
-                        + "puts center marks on holes) is on: those holes I recognise "
+                        + "the view, if the document option that puts center marks on the holes of a new view "
+                        + "(Detailing, automatic insertion on view creation) is on: those holes I recognise "
                         + "(«circles_already_marked»). A new mark cannot be made from code (measured): a "
                         + "hole without a mark is a refusal, with the way out — the option on and the view rebuilt.\n\nWHY IT "
                         + "IS NEEDED. A drawing with twelve holes and no center mark prints and looks "
@@ -2826,8 +2826,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "extension lines and the title block are not checked. The dimensions are "
                         + "correct; a well laid out drawing is still a trade."
                         + "\n\nI DIMENSION HOLES AND CHAMFERS BY MYSELF, in every view that shows them, even if "
-                        + "you do not ask: holes with the HOLE CALLOUT («4× Ø8 PASSANTE» as an Italian "
-                        + "SOLIDWORKS writes it, one callout per diameter AND depth: two through Ø8 and two blind Ø8 get two "
+                        + "you do not ask: holes with the HOLE CALLOUT («4× Ø8 THRU», with the word for «through» "
+                        + "that SOLIDWORKS writes in the language of the installation, one callout per diameter AND depth: two through Ø8 and two blind Ø8 get two "
                         + "callouts, never one «4×») and the position from the two "
                         + "reference edges, the left one and the bottom one; chamfers with the CHAMFER "
                         + "DIMENSION («5 x 45°»), not with their edges — the hypotenuse and the "
@@ -2911,7 +2911,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Description =
                         "Puts on the drawing the HOLE TABLE of the drilled face seen in a view: for each "
                         + "hole a tag (A1, A2...), the X and Y position from a corner vertex of the "
-                        + "part, and the size («Ø8 PASSANTE»). It is the table needed by whoever drills "
+                        + "part, and the size («Ø8», with the depth or the word for «through» as SOLIDWORKS writes it). It is the table needed by whoever drills "
                         + "a plate with many holes, in place of one dimension per hole.\n\nThe view is "
                         + "the one in which the holes are seen as circles (usually V2, from above): "
                         + "the operation chooses the face among those that look toward the reader, the "
@@ -3319,7 +3319,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "label", O(
                                 "type", "string",
                                 "description", "the letter of the section: «A» gives the title "
-                                    + "«Vista in sezione A-A» (in the language of the installation). Default «A»."),
+                                    + "«Section View A-A» (in the language of the installation). Default «A»."),
                             "depth_mm", O(
                                 "type", "number",
                                 "description", "depth of the cut for a partial "

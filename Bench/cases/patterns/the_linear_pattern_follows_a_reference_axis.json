@@ -1,7 +1,7 @@
 {
   "name": "the_linear_pattern_follows_a_reference_axis",
   "family": "patterns",
-  "why": "Z-C21.9, finding L7-5, measured NOT REAL by the Z-C21.3 probe of L7-5 and M16 (28/9/2026, SOLIDWORKS 29.5.1): linear_pattern selects an axis made by create_axis with IFeature.Select2 and mark 1, a pairing the marks table of IFeatureManager~FeatureLinearPattern5.html does not list (it pairs Select2 with marks 4, 2097152 and 8388608 only). The probe made the pattern right all the same, by identity and by step reference, as a row and as a grid (cases L1, L2, G1, G2: the centres and the volume as expected). Until this case no bench case used an axis for a linear pattern: every one used an edge, and SelectionMarks.LinearPatternDirection1 said «measure before relying on it». This is the identity form a declared case can write: the axis is named «Assi1», as the state names the first axis of a new part (recognized_axis), and its signature goes in «_signatures».",
+  "why": "Z-C21.9, finding L7-5, measured NOT REAL by the Z-C21.3 probe of L7-5 and M16 (28/9/2026, SOLIDWORKS 29.5.1): linear_pattern selects an axis made by create_axis with IFeature.Select2 and mark 1, a pairing the marks table of IFeatureManager~FeatureLinearPattern5.html does not list (it pairs Select2 with marks 4, 2097152 and 8388608 only). The probe made the pattern right all the same, by identity and by step reference, as a row and as a grid (cases L1, L2, G1, G2: the centres and the volume as expected). Until this case no bench case used an axis for a linear pattern: every one used an edge, and SelectionMarks.LinearPatternDirection1 said «measure before relying on it». This is the identity form a declared case can write: the axis is named «Axis1», as the state names the first axis of a new part (recognized_axis), and its signature goes in «_signatures».",
   "_what_it_catches": "An axis that SOLIDWORKS does not take as the direction of a linear pattern: no pattern (a refusal where a pattern was asked), or a pattern along another direction, which moves the copies off y = -40 or out of the plate and changes the volume.",
   "_the_numbers": "Plate 200 x 120 x 20 on the front plane, centred: x from -100 to 100, y from -60 to 60, z from 0 to 20, 480000 mm3. The seed is a through hole D9 at (0, -40): pi x 4.5^2 x 20 = 1272.345 mm3. The tunnel is a through hole D6 drilled from the right face at y = 50, z = 10 (on the right face x_mm is the model Y and y_mm the model Z, as in hole_on_the_side_stays_at_half_thickness) and runs the 200 mm of the plate along X: pi x 3^2 x 200 = 5654.867 mm3. create_axis on its wall gives an axis along X through (0, 50, 10). Three instances 40 apart along it put two more D9 holes at x = +-40 and +-80 (the side is the axis's sense, which the case does not judge), still at y = -40, far from the tunnel at y = 50: 480000 - 5654.867 - 3 x 1272.345 = 470528.098 mm3.",
   "start": { "new_part": true },
@@ -37,9 +37,9 @@
           "tolerance_why": "a reference axis takes no material" } ] },
     { "operation": "linear_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
-                     "axis1_uid": "Assi1",
+                     "axis1_uid": "{SW:feature.axis}1",
                      "pitch1_mm": 40, "instance_count1": 3,
-                     "_signatures": { "Assi1": { "point_mm": [0, 50, 10], "direction": [1, 0, 0] } } },
+                     "_signatures": { "{SW:feature.axis}1": { "point_mm": [0, 50, 10], "direction": [1, 0, 0] } } },
       "_the_signature": "`_signatures` is what the bridge attaches with the signatures read from the state when the plan was confirmed; written by hand here, as in recognized_axis. (0, 50, 10) is a point on the tunnel's axis and the direction is X; the check compares the line, so the sense of the direction does not matter.",
       "expect": [
         { "what": "diameters_mm", "equal_to": [6, 9, 9, 9], "tolerance": 0.02,

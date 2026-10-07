@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
@@ -300,7 +301,7 @@ namespace Oce.Solid.Agent.Core
                 // The first drawing looked at did not dimension the holes: neither the diameter
                 // nor the position, that is exactly what the workshop needs
                 // most. The diameter with the HOLE CALLOUT (`AddHoleCallout2`,
-                // «Ø8 PASSANTE»), one per diameter AND depth (DimensionTheHoles), with the number of equal holes
+                // «Ø8 THRU»), one per diameter AND depth (DimensionTheHoles), with the number of equal holes
                 // in front («4× »: the prefix is added to what is there, which
                 // is the diameter symbol — replacing it erased it,
                 // measured). The position with dimensions from the two reference
@@ -1384,7 +1385,7 @@ namespace Oce.Solid.Agent.Core
                     "check it on the sheet)");
                 // THE DEPTH OF THE BLIND HOLE (entry GT12, point 1): the SOLIDWORKS
                 // callout puts it in the suffix by itself — measured on 26/9/2026,
-                // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» for a Ø8 5 deep, «PASSANTE»
+                // «<MOD-DIAM>8» + «<HOLE-DEPTH>5» for a Ø8 5 deep, «THRU»
                 // for the through one. It is read back and stated: a blind hole without
                 // depth on the drawing gets drilled through.
                 string suffix = "";
@@ -1394,8 +1395,11 @@ namespace Oce.Solid.Agent.Core
                 double pv;
                 if (mp.Success && double.TryParse(mp.Groups[1].Value.Replace(',', '.'), NumberStyles.Float, Ci, out pv))
                     depth = pv;
-                bool throughAll = suffix.IndexOf("PASSANTE", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                                suffix.IndexOf("THRU", StringComparison.OrdinalIgnoreCase) >= 0;
+                // The word of «through all» is written by SOLIDWORKS in its own language
+                // (solidworks-names.json, callout.through); every column of the table is
+                // recognised, and the geometry (head.ThroughAll, below) is read next to it.
+                bool throughAll = SolidWorksNameTable.Embedded().All("callout.through")
+                    .Any(w => suffix.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0);
                 if (depth == null) depthFrom = null;
                 if (head.ThroughAll == false && depth == null)
                     // A blind one, by the geometry, that leaves the drawing without
@@ -1879,7 +1883,7 @@ namespace Oce.Solid.Agent.Core
         /// without a reason when it is there but cannot be taken.
         ///
         /// «V2», AS THE STATE OF THE DRAWING WRITES IT (25/9/2026). The NAMES of the
-        /// views depend on the language of SOLIDWORKS — «Vista del disegno2»
+        /// views depend on the language of SOLIDWORKS — «Drawing View2»
         /// here, «Drawing View2» in English — and a plan that copies them holds on
         /// one installation only. The identifier of the state does not: V1 is the
         /// first view of the sheet, in the same order in which the state

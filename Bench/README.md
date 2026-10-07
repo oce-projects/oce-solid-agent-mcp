@@ -37,6 +37,8 @@ part and closes it.
 .\Bench\bench.ps1                        everything, and writes the report
 .\Bench\bench.ps1 -Group views          a single family
 .\Bench\bench.ps1 -Family reanchor    a single folder of declared cases
+.\Bench\bench.ps1 -Case a,b           single declared cases, by file name (twins come along)
+.\Bench\bench.ps1 -SolidWorksLanguage en   the same cases, SOLIDWORKS writing English names
 .\Bench\bench.ps1 -Slow                 also the ones that cost minutes
 .\Bench\bench.ps1 -SkipCompilation     the binary that is already there
 ```
@@ -811,6 +813,23 @@ cases/reanchor/    3   the edge named with the uid read BEFORE two holes is
 group alone is three quarters of an hour, and a new case can be seen to fail
 BEFORE writing the code. The run is partial as with `-Group`, and rewrites
 `last.json` like it does: put it back with `git checkout` before the whole run.
+
+**The language of SOLIDWORKS.** A case that names a feature, a sketch, an axis or a
+shell SOLIDWORKS wrote says `{SW:feature.cut_extrude}1`, not the word one installation
+uses: the bench replaces the placeholder, in the text of the case before it is parsed,
+with the word of `Oce.Solid.Agent.Core/Localization/solidworks-names.json` for the
+language of the run, so the same cases run on an Italian and on an English SOLIDWORKS.
+`-SolidWorksLanguage en` (`--sw-language en`) turns the toggle «Use English feature
+and file names» ON for the run (`swUseEnglishLanguageFeatureNames`, applied at once, no
+restart) and puts it back as it was when the run ends, also on Ctrl+C; if the run was
+killed the value to restore sits in `%TEMP%\oce-bench-language-restore.txt` and the next
+run puts it back before anything else. `it` turns it off, `native` (the default)
+leaves it alone. The toggle «Use English language menus» is NOT touched: it needs a
+restart of SOLIDWORKS. Two things stay as they are, on purpose: the texts of the
+interface (view names, hole callouts, cut-list property names) follow the language of
+the installation, and the names a TEMPLATE stores (its planes, its configurations, the
+sheet of a new drawing) stay in the language of the template. The first line of the
+bench output (`solidworks language: ...`) says which columns of the table the run used.
 
 `"uid_from_step": N` in a step takes selectors and signatures from the state
 BEFORE step N, as the bridge does with a plan written by looking at the state

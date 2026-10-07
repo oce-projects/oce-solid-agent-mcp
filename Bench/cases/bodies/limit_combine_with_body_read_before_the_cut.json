@@ -12,7 +12,7 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 50000 } ] },
     { "operation": "move_bodies",
-      "arguments": { "bodies_uid": [ "@body(name=Estrusione-Estrusione1)" ], "dx_mm": 60,
+      "arguments": { "bodies_uid": [ "@body(name={SW:feature.boss_extrude}1)" ], "dx_mm": 60,
                      "copy": true, "copy_count": 1 },
       "expect": [
         { "what": "bodies", "equal_to": 2 },
@@ -27,7 +27,7 @@
     { "operation": "combine_bodies",
       "uid_from_step": 3,
       "arguments": { "operation": "union",
-                     "main_body_uid": "@body(name=Estrusione-Estrusione1)" },
+                     "main_body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "must_fail": {
         "message_includes": [ "has changed since you confirmed", "I do not work on the wrong body" ],
         "volume_unchanged": true,

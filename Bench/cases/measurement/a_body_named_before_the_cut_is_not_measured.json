@@ -12,7 +12,7 @@
                      "thickness_mm": 10, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 50000 } ] },
     { "operation": "move_bodies",
-      "arguments": { "bodies_uid": [ "@body(name=Estrusione-Estrusione1)" ], "dx_mm": 60,
+      "arguments": { "bodies_uid": [ "@body(name={SW:feature.boss_extrude}1)" ], "dx_mm": 60,
                      "copy": true, "copy_count": 1 },
       "expect": [
         { "what": "bodies", "equal_to": 2 },
@@ -26,7 +26,7 @@
         { "what": "volume_mm3", "equal_to": 95000 } ] },
     { "operation": "body_bounding_box",
       "uid_from_step": 3,
-      "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "must_fail": {
         "message_includes": [ "no longer names the body the plan looked at" ],
         "volume_unchanged": true,
@@ -40,7 +40,7 @@
           "why": "the box of both bodies of now, from x = -40 to x = 110" } ] },
     { "operation": "mass_properties",
       "uid_from_step": 3,
-      "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "must_fail": {
         "message_includes": [ "no longer names the body the plan looked at" ],
         "volume_unchanged": true,
@@ -54,7 +54,7 @@
           "why": "both bodies of now: 45000 + 50000" } ] },
     { "operation": "check_body_geometry",
       "uid_from_step": 3,
-      "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "must_fail": {
         "message_includes": [ "no longer names the body the plan looked at" ],
         "volume_unchanged": true,

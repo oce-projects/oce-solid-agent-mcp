@@ -56,13 +56,13 @@ using SolidWorks.Interop.swconst;
 //
 //    PROBE FILL (W1.1) — SOLIDWORKS 29.5.1
 //          selected 3 (mark 4: 1, 5: 2, 1: 1, 16384: 1)
-//      A  official recipe: 4 + 1 + 16384 BEFORE CreateDefinition  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
+//      A  official recipe: 4 + 1 + 16384 BEFORE CreateDefinition  ->  «Fill Pattern1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
 //          selected 2 (mark 4: 1, 5: 1, 1: 0, 16384: 1)
 //      A2 as A, without direction  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (extra holes 0), bodies 1 -> 1, features in error 0
 //          selected 3 (mark 4: 1, 5: 2, 1: 1, 16384: 1)
-//      C  same selections, but AFTER CreateDefinition  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
+//      C  same selections, but AFTER CreateDefinition  ->  «Fill Pattern1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
 //          selected 3 (mark 4: 1, 5: 2, 1: 2, 16384: 1)
-//      D  hole face with mark 5 (FACES)  ->  «Ripetizione di riempimento1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
+//      D  hole face with mark 5 (FACES)  ->  «Fill Pattern1» [APattern], volume 71396.8 -> 62952.2 (extra holes 14), bodies 1 -> 1, features in error 0
 //      B  control: historical route, properties written, no selection  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (extra holes 0), bodies 1 -> 1, features in error 0
 //      T  table: seed mark 4, flat PointArray  ->  CreateFeature NULL, volume 71396.8 -> 71396.8 (extra holes 0), bodies 1 -> 1, features in error 0
 //    SUMMARY: 3/6 attempts created a feature.

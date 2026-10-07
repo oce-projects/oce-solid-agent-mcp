@@ -20,12 +20,12 @@
           "tolerance_why": "the axis of the cylinder is read in metres" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [130], "tolerance": 0.05,
           "tolerance_why": "the right side goes to 160, the pin stays at 30: 130" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "centers_y_mm", "equal_to": [30], "tolerance": 0.05,
           "tolerance_why": "the height goes from -60 to 120, in the middle there is 30" },

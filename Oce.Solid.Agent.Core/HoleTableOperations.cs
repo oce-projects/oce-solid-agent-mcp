@@ -20,7 +20,7 @@ namespace Oce.Solid.Agent.Core
     ///
     ///   corner vertex with mark 1, drilled face with mark 2
     ///       -> 5 rows: A1 (15,15), A2 (15,65), A3 (105,15), A4 (105,65),
-    ///          all «Ø8 PASSANTE»: the positions from the corner, right
+    ///          all «Ø8 THRU»: the positions from the corner, right
     ///   marks 2/1, or 0/0
     ///       -> the table is BORN EMPTY (the header only), without an error
     ///

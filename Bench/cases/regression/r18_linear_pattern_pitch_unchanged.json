@@ -25,7 +25,7 @@
       }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 460 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 460 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [460, 120, 20] },
     { "what": "centers_x_mm", "same_as_before": true,

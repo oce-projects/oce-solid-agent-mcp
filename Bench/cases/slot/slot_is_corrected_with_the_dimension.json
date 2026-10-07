@@ -16,7 +16,7 @@
         { "what": "volume_mm3", "equal_to": 457716.81, "tolerance": 0.05,
           "tolerance_why": "480000 minus (40*20 + pi*10^2) * 20" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo2,name=D2)", "value_mm": 60 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}2,name=D2)", "value_mm": 60 },
       "expect": [
         { "what": "measurements.before_mm", "equal_to": 40 },
         { "what": "measurements.now_mm", "equal_to": 60 },

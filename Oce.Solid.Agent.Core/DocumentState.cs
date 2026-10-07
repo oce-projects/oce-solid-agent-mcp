@@ -216,13 +216,13 @@ namespace Oce.Solid.Agent.Core
             /// by name. `-1` when it could not be read.
             ///
             /// WHY THE IDENTIFIER AND NOT THE NAME. The name is localized
-            /// («Estrusione1» / «Boss-Extrude1») and can be renamed by hand:
+            /// («Boss-Extrude1» in English, another word in another language) and can be renamed by hand:
             /// comparing it would mean that the same face stops being
             /// the same because somebody changed the language of
             /// SOLIDWORKS. `IFeature.GetID()` does not change.
             ///
             /// The name is kept all the same, but only FOR THE MESSAGES: whoever reads a
-            /// refusal wants to know «it comes from Taglio-Estrusione1», not «it comes
+            /// refusal wants to know «it comes from Cut-Extrude1», not «it comes
             /// from feature 42».
             ///
             /// `IFace2.GetFeature()` gives the GENERATING feature, not the last one that
@@ -549,6 +549,14 @@ namespace Oce.Solid.Agent.Core
                 ["kind"] = SwOperations.DocumentTypeName(docType),
             };
 
+            // THE LANGUAGE SOLIDWORKS WRITES NAMES IN, so that whoever reads the names of
+            // the tree knows which column of solidworks-names.json they come from, and
+            // so that an unknown language (no column) says it fell back to English.
+            if (sw != null)
+            {
+                try { data["solidworks_language"] = SolidWorksLanguage.Read(sw).ToState(); } catch { }
+            }
+
             // WHO ELSE IS OPEN.
             //
             // Up to 0.39.0 the state described ONE document and took it for
@@ -828,10 +836,10 @@ namespace Oce.Solid.Agent.Core
             // sometimes teaches not to look for it.
             //
             // The name often has something in angle brackets
-            // («Default<A macchina>»), and THAT IS THE NAME: it is not a label
+            // («Default<As Machined>»), and THAT IS THE NAME: it is not a label
             // that the name carries around. A part born from the template of
-            // this company has two real configurations, «Default<A macchina>»
-            // and «Default<Saldato>» — the weldment pair. It is reported as it is,
+            // this company has two real configurations, «Default<As Machined>»
+            // and «Default<As Welded>» — the weldment pair. It is reported as it is,
             // because it is what `activate_configuration` wants back.
             try
             {
@@ -1158,7 +1166,7 @@ namespace Oce.Solid.Agent.Core
                     // WRITTEN ON EVERY FACE HOWEVER IT COSTS AND LIES. Measured on
                     // 10 September 2026: on a four-bar frame the state
                     // went from 11,703 to 15,849 characters, and all the faces of
-                    // a bar said «Membro strutturale1[1]» — that is
+                    // a bar said «Structural Member1[1]» — that is
                     // exactly what the field «body» already said.
                     // Full cost, zero information.
                     //
@@ -2020,7 +2028,7 @@ namespace Oce.Solid.Agent.Core
         /// it is said how many, so the gap is not invisible.
         ///
         /// THE NAME IS WHAT IS NEEDED, NOT THE INDEX. An index changes if
-        /// somebody touches the tree; «D1@Schizzo1» does not, and it is what
+        /// somebody touches the tree; «D1@Sketch1» does not, and it is what
         /// is written to change it.
         /// </summary>
         private static void FeatureDimensions(IFeature f, Dictionary<string, object> entry)
@@ -2398,7 +2406,7 @@ namespace Oce.Solid.Agent.Core
             // parameters.
             //
             // A dimension has a NAME that can be cited
-            // («D1@Schizzo1») and a value. Putting them here is what
+            // («D1@Sketch1») and a value. Putting them here is what
             // makes `set_dimension` possible.
             FeatureDimensions(f, entryF);
             return entryF;

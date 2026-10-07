@@ -22,12 +22,12 @@
           "why": "radius, distance between the centres and the angle against the anchor edge" },
         { "what": "measurements.anchor.sketch", "equal_to": "fully defined" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [82.68, 117.32], "tolerance": 0.05,
           "tolerance_why": "the centre goes to 160 - 60 = 100, the angle does not change" } ] },
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Schizzo1,name=D2)", "value_mm": 180 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D2)", "value_mm": 180 },
       "expect": [
         { "what": "centers_x_mm", "equal_to": [82.68, 117.32], "tolerance": 0.05,
           "tolerance_why": "in x nothing moves" },

@@ -15,9 +15,9 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 396921.24, "tolerance": 0.5,
                     "tolerance_why": "400000 minus pi*7^2*20: the calculation has pi inside" } ] },
     { "operation": "delete_feature",
-      "arguments": { "feature_uid": "Estrusione-Estrusione1" },
+      "arguments": { "feature_uid": "{SW:feature.boss_extrude}1" },
       "must_fail": {
-        "message_includes": ["Taglio-Estrusione1", "without asking"],
+        "message_includes": ["{SW:feature.cut_extrude}1", "without asking"],
         "volume_unchanged": true,
         "twin": "delete_first_hole" } }
   ]
