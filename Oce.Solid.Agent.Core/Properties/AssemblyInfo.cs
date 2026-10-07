@@ -500,8 +500,19 @@ using System.Runtime.InteropServices;
 //          other. The Italian branches of the number reader of the tests and
 //          of the refusals table are gone with it. The surface has one name
 //          for everything.
-[assembly: AssemblyVersion("0.152.0.0")]
-[assembly: AssemblyFileVersion("0.152.0.0")]
+// 0.153.0: W3.1-bis.12, faces beyond the 60 largest. Every face of a part has an
+//          identifier, the rank of its area among ALL the faces (F1 the largest),
+//          listed or not: the state lists the 60 largest as before, and
+//          DocumentState.TryGetSignature builds the signature of any other face when
+//          a plan cites it. FaceFilter and DocumentState.ReadFaces list the faces a
+//          filter asks for (normal, area range, near a point, one body, a limit) with
+//          those identifiers, so a small face of a part with more than 60 can be
+//          named by a plan and by the model. The places that find a face by its
+//          identifier (a face, a shell, a gusset, a weld bead, a measurement) ask the
+//          state by rank. The state of a filtered reading says faces_total,
+//          faces_matched, faces_filter and faces_not_listed.
+[assembly: AssemblyVersion("0.153.0.0")]
+[assembly: AssemblyFileVersion("0.153.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -516,4 +527,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.152.0")]
+[assembly: AssemblyInformationalVersion("0.153.0")]

@@ -14,6 +14,7 @@ Bench/ClientPort.cs|Close	2
 Bench/ClientPort.cs|Delete	2
 Bench/ClientPort.cs|GetType	1
 Bench/ClientPort.cs|Text	2
+Bench/FacesBeyondSixty.cs|Close	1
 Bench/DeclaredCases.cs|Add	5
 Bench/DeclaredCases.cs|GetType	2
 Bench/DeclaredCases.cs|Label	3

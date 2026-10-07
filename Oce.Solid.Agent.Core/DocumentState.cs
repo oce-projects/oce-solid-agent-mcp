@@ -157,6 +157,56 @@ namespace Oce.Solid.Agent.Core
         public Dictionary<string, EntitySignature> Signatures { get; } =
             new Dictionary<string, EntitySignature>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// EVERY face of the part, largest first, with the body it belongs to
+        /// (an index into the bodies) and its area in m2: the ranking whose
+        /// positions are the face identifiers (the face at position 0 is F1).
+        /// The state lists some of them; the others are not described, but they
+        /// are here, and <see cref="TryGetSignature"/> reads one when a plan
+        /// cites it. Null on a document that is not a part.
+        /// </summary>
+        private List<Tuple<IFace2, int, double>> _ranked;
+
+        /// <summary>From which feature each body is born, as the state read it (indexed like the bodies).</summary>
+        private string[] _bodyFeatureOfFace;
+
+        /// <summary>The signatures built on demand, for the faces the state did not list.</summary>
+        private readonly Dictionary<string, EntitySignature> _lazySignatures =
+            new Dictionary<string, EntitySignature>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// THE SIGNATURE OF AN ENTITY BY ITS IDENTIFIER — including the faces
+        /// the state did not list (entry W3.1-bis.12).
+        ///
+        /// `Signatures` holds what the state described: the largest faces (or
+        /// the ones a filter asked for), the edges, the bodies, the features.
+        /// Every other face of the part has an identifier all the same, its rank
+        /// by area, and this method builds its signature the first time it is
+        /// asked for: a part of 8,000 faces pays for the faces a plan cites, not
+        /// for all of them at every reading.
+        ///
+        /// It answers for a face only by its rank in THIS reading. A plan that
+        /// carries the signature it was born with is still checked against it by
+        /// whoever resolves the face (the guard is the same as for a listed
+        /// face): rank 90 that is not the face the plan saw is refused there,
+        /// not here.
+        /// </summary>
+        public bool TryGetSignature(string uid, out EntitySignature signature)
+        {
+            signature = null;
+            if (string.IsNullOrEmpty(uid)) return false;
+            if (Signatures.TryGetValue(uid, out signature)) return true;
+            if (_lazySignatures.TryGetValue(uid, out signature)) return true;
+            int rank = FaceFilter.RankOf(uid);
+            if (rank < 1 || _ranked == null || rank > _ranked.Count) return false;
+            var built = FaceSignature(_ranked[rank - 1].Item1);
+            if (built == null) return false;
+            built.BoxPartMm = BoxPartMm;
+            _lazySignatures[uid] = built;
+            signature = built;
+            return true;
+        }
+
         public Dictionary<string, object> Data { get; private set; } =
             new Dictionary<string, object>();
 
@@ -534,6 +584,33 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         public static DocumentState ReadWithAnchor(
             IModelDoc2 model, ISldWorks sw, bool withAnchor)
+        {
+            return ReadListing(model, sw, withAnchor, null);
+        }
+
+        /// <summary>
+        /// Like <see cref="ReadWithAnchor"/>, listing the faces a filter asks
+        /// for instead of the largest ones (see <see cref="FaceFilter"/>).
+        /// With a null filter it is exactly <see cref="ReadWithAnchor"/>.
+        ///
+        /// A different name and not an overload, as for the other readers (see
+        /// the note on <see cref="Read"/>): the bench calls this class by
+        /// reflection.
+        ///
+        /// WHATEVER THE FILTER, EVERY FACE HAS AN IDENTIFIER: the rank of the
+        /// face among all the faces of the part, largest first. The faces not
+        /// listed are not described, but a plan that cites one by its number
+        /// finds it (<see cref="TryGetSignature"/>), and `faces_total` says
+        /// how many there are.
+        /// </summary>
+        public static DocumentState ReadFaces(
+            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter)
+        {
+            return ReadListing(model, sw, withAnchor, filter);
+        }
+
+        private static DocumentState ReadListing(
+            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter)
         {
             var docState = new DocumentState();
             if (model == null) return docState;
@@ -1057,7 +1134,7 @@ namespace Oce.Solid.Agent.Core
                 // The payload grew with the bars: ~11 KB for four, over
                 // 50 KB for twenty. Now everything is collected, sorted once
                 // and cut once.
-                var allFaces = new List<Tuple<IFace2, int>>();
+                var allFaces = new List<Tuple<IFace2, int, double>>();
                 var allEdges = new List<Tuple<IEdge, int>>();
                 // From which feature EACH BODY is born. It serves to avoid repeating
                 // on every face a thing that the field «body» already says: see
@@ -1071,7 +1148,7 @@ namespace Oce.Solid.Agent.Core
                         foreach (var o in facesObj)
                         {
                             var x = o as IFace2;
-                            if (x != null) allFaces.Add(Tuple.Create(x, i));
+                            if (x != null) allFaces.Add(Tuple.Create(x, i, AreaOrZero(x)));
                         }
                     var edgesObj = bodies[i].GetEdges() as object[];
                     if (edgesObj != null)
@@ -1086,23 +1163,73 @@ namespace Oce.Solid.Agent.Core
                 // works on, and they are the ones a short description must have.
                 // ZERO-E-ZERO: it is a sort key, not a statement —
                 // a face that does not give its area ends up at the bottom, and that is all.
-                var sorted = allFaces
-                    .OrderByDescending(t => { try { return t.Item1.GetArea(); } catch { return 0.0; } })
-                    .ToList();
-                if (sorted.Count > MaxFaces)
+                var sorted = allFaces.OrderByDescending(t => t.Item3).ToList();
+                docState._ranked = sorted;
+                docState._bodyFeatureOfFace = bodyFeature;
+
+                // WHICH FACES ARE LISTED. By default the largest MaxFaces; with a
+                // filter, the ones that match it (FaceFilter), with the SAME
+                // identifiers: the identifier of a face is its place in `sorted`,
+                // whatever is listed.
+                var listedRanks = new List<int>();
+                if (filter == null)
                 {
-                    truncated = true;
+                    for (int r = 0; r < sorted.Count && r < MaxFaces; r++) listedRanks.Add(r);
+                    if (sorted.Count > MaxFaces)
+                    {
+                        truncated = true;
+                        data["faces_total"] = sorted.Count;
+                    }
+                }
+                else
+                {
+                    var bodyNames = new List<string>();
+                    foreach (IBody2 named in bodies)
+                    {
+                        string n = null;
+                        try { n = named.Name; } catch { }
+                        bodyNames.Add(n ?? "");
+                    }
+                    int wantedBody = filter.BodyIndex(bodyNames);
+                    if (wantedBody == -1)
+                        data["faces_filter_problem"] =
+                            "«faces.body» names «" + filter.Body + "», and this part has " + bodies.Count +
+                            " bod" + (bodies.Count == 1 ? "y" : "ies") + ": C1 to C" + bodies.Count +
+                            (bodies.Count > 0 ? ", or one of the names in «bodies»" : "") + ".";
+                    int matched = 0;
+                    var normalsRead = new Dictionary<int, string>();
+                    listedRanks = wantedBody == -1
+                        ? new List<int>()
+                        : filter.Choose(
+                            sorted.Count,
+                            r => sorted[r].Item2,
+                            r => sorted[r].Item3 > 0 ? Units.Mm2(sorted[r].Item3) : (double?)null,
+                            r =>
+                            {
+                                string facing;
+                                if (!normalsRead.TryGetValue(r, out facing))
+                                    normalsRead[r] = facing = Facing(FaceNormalVector(sorted[r].Item1));
+                                return facing;
+                            },
+                            r => DistanceToFaceMm(sorted[r].Item1, filter.NearMm),
+                            wantedBody, out matched);
                     data["faces_total"] = sorted.Count;
+                    data["faces_matched"] = matched;
+                    data["faces_filter"] = filter.Describe();
+                    if (matched > listedRanks.Count)
+                    {
+                        truncated = true;
+                        data["faces_not_listed"] = matched - listedRanks.Count;
+                    }
                 }
                 // Face -> uid, to be able to say on which faces an
                 // edge rests. It is filled here because the faces are numbered
                 // before the edges, and it is needed there.
                 var faceUid = new Dictionary<IFace2, string>();
-                int faceIndex = 0;
-                foreach (var t in sorted.Take(MaxFaces))
+                foreach (var rankIndex in listedRanks)
                 {
-                    faceIndex++;
-                    var uid = "F" + faceIndex;
+                    var t = sorted[rankIndex];
+                    var uid = "F" + (rankIndex + 1);
                     // The area that cannot be read is null in the state, not 0 mm²
                     // (entry Z-C8). ZERO-E-ZERO: in the signature it stays 0, because whoever
                     // reads `Measure` always looks at `> 0` and takes it for «not
@@ -1473,12 +1600,21 @@ namespace Oce.Solid.Agent.Core
             // appear, instead of appearing empty. An empty description reads
             // as «there is nothing to say about this part», which is a
             // different thing from «I could not say it».
-            try
+            //
+            // NOT ON A READING WITH A FILTER (W3.1-bis.12): the sentence is told
+            // from the faces the state lists, and a filtered reading lists some
+            // faces of the part, not the largest ones — «one hole of Ø3» of a plate
+            // with sixty-five would be a true sentence about what was listed and a
+            // false one about the part. The key is absent, which reads «not said».
+            if (filter == null)
             {
-                string shape = ShapeToWords.Describe(data);
-                if (!string.IsNullOrEmpty(shape)) data["shape"] = shape;
+                try
+                {
+                    string shape = ShapeToWords.Describe(data);
+                    if (!string.IsNullOrEmpty(shape)) data["shape"] = shape;
+                }
+                catch { }
             }
-            catch { }
 
             // ── THE BOX OF THE PART IN EVERY SIGNATURE ───────────────────
             //
@@ -2402,6 +2538,44 @@ namespace Oce.Solid.Agent.Core
             // makes `set_dimension` possible.
             FeatureDimensions(f, entryF);
             return entryF;
+        }
+
+        /// <summary>
+        /// The area of a face in m2, or 0 when it cannot be read. It is a sort
+        /// key and nothing else — a face that does not give its area ends up at
+        /// the bottom of the ranking — and every place that WRITES an area
+        /// reads it again and turns an unreadable one into null.
+        /// </summary>
+        private static double AreaOrZero(IFace2 face)
+        {
+            // ZERO-E-ZERO: a sort key, not a statement. An unreadable area sorts
+            // last; the state writes null for it (readArea in the listing).
+            try { return face.GetArea(); } catch { return 0.0; }
+        }
+
+        /// <summary>
+        /// How far a point of the model (mm) is from a face (mm): the distance
+        /// to the closest point of the FACE, which is not the `point_mm` the
+        /// state writes. IFace2~GetClosestPointOn.html: «Array of five doubles
+        /// representing the X,Y,Z point on the face followed by the U, V
+        /// parameter on the face that is closest to the input point»; the
+        /// remarks: it «returns only one point, regardless of how many points
+        /// achieve the minimum distance» — the distance is the same. Null when
+        /// it cannot be read.
+        /// </summary>
+        private static double? DistanceToFaceMm(IFace2 face, double[] pointMm)
+        {
+            if (face == null || pointMm == null || pointMm.Length < 3) return null;
+            try
+            {
+                var p = face.GetClosestPointOn(Units.M(pointMm[0]), Units.M(pointMm[1]), Units.M(pointMm[2])) as double[];
+                if (p == null || p.Length < 3) return null;
+                double dx = Units.Mm(p[0]) - pointMm[0];
+                double dy = Units.Mm(p[1]) - pointMm[1];
+                double dz = Units.Mm(p[2]) - pointMm[2];
+                return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            }
+            catch { return null; }
         }
 
         private static double[] PointOnFace(IFace2 face)

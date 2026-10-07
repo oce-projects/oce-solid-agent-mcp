@@ -32,6 +32,82 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — W3.1-bis.12, faces beyond the 60 largest (branch `faces-beyond-60`) · bridge 0.130.0 · library 0.153.0
+
+Built on `w31bis-11` (f538914). Task: the state lists the 60 largest faces and says
+`truncated`; a small face of a part with more of them has no identifier, so no plan and
+no model can name it. On the tube stand of task 07 (17 solids, 177 faces) the walls of
+the third and fourth foot tie at 4,800 mm2 behind 40 larger faces of the frame, the
+prerequisite plan stopped at its first gusset («not found (the state lists only the 60
+largest faces of 177)»), and the autonomous run could not measure tasks 11 and 15.
+
+**1. Every face has an identifier: the rank of its area among ALL the faces** (F1 the
+largest). The default reading lists F1..F60 as before; the other faces are numbered, not
+described. `DocumentState.TryGetSignature` builds the signature of any face the first
+time a plan cites it (a part of 8,000 faces pays for the faces a plan cites, not for all
+of them at every reading), and the five places that find a face by its identifier — a
+face (`ResolveFace`: holes, pockets, fillets, drafts, and the rest), a shell, a gusset, a
+weld bead, a measurement — ask the state by rank. The check that stops a plan citing an
+identifier that was not in the part (`UidsThatDoNotExist`) accepts a rank up to
+`faces_total`. A face the reading did not list is protected as the listed ones are by the
+guard that stops a plan on a part that changed since it was read; the search by signature
+after a mismatch looks at the listed faces only, so an unlisted face that moved is refused,
+not searched for again (declared in the description of `inspect_part`).
+
+**2. `inspect_part` takes `faces`, a filter** (`FaceFilter`, `DocumentState.ReadFaces`):
+`normal` (up, down, front, back, left, right: the words of `facing`), `area_min_mm2` and
+`area_max_mm2`, `near_mm` with `within_mm` (the distance to the FACE, from
+`IFace2.GetClosestPointOn`, not to `point_mm`), `body` (C3 or the exact name) and `limit`
+(60 by default, 500 at most). The state then lists the matching faces with their ranks
+and says `faces_total`, `faces_matched`, `faces_filter` and `faces_not_listed`. The
+expensive reads are asked last (body, area, normal, point), the `shape` sentence is not
+written on a filtered reading (it would describe only the faces listed), a crooked filter
+is refused before the document is touched and a body the part does not have says how many
+it has. A reading with a filter keeps the signatures of the reading before when it is the
+same part, so it does not unprotect F1..F60. Only the faces are filtered.
+
+**3. The runner of the prerequisites reads every face, and builds the starting part with
+one bridge for both sides of D9.** A group of a plan that names a face by selector reads
+the state with `faces: {limit: 500}`; a bridge that does not answer the filter fails the
+build instead of resolving on the cut list. `run-autonomous.ps1` takes
+`-PrerequisiteBridge` (default: the bridge of this repository, the one AFTER) and builds
+every prerequisite with it, whatever bridge the session talks to: the starting part is a
+fixture, not a measure, and it is the same file on both sides (README of the tasks;
+`run.json` records `prerequisite_bridge` and its version).
+
+**4. The bench** reads every face when a step names a face by selector and the state is
+cut (`ReadStateEveryFace`), finds an unlisted face by its rank, has the case
+`a_face_beyond_the_largest_sixty_is_named_by_selector` (`red_before` 0.153.0) and the group
+`faces-beyond-sixty` through the bridge; `Checks/FacesBeyondSixty` is the probe. The
+contract `FacesBeyondSixtyContract` checks the filter's parsing, refusals and choice
+without SOLIDWORKS.
+
+**Measured live on 7/10/2026** (SOLIDWORKS 2021 SP5.1, the bridge of this branch):
+
+- **The six prerequisites of D9 build, with the new bridge and the new runner, every
+  expectation of their tasks checked**: `01_l_bracket` (4 expectations), `02_bolt_circle_flange`
+  (3), `03_slotted_plate` (3), `07_tube_stand` (10), `08_box_and_lid` (5), `09_bracket_pair` (6).
+  The stand: 17 bodies, 6 rows of cut list (17 bodies in it), `end_capped` 4, the four gussets
+  2,400 mm3 each; the part has 206 faces and three of the four gussets rest on foot walls the
+  ordinary state does not list (`F70`, `F80` and `F64` in the successive readings).
+- **Red before, green after.** The plan of 07 as it was (feet one by one, `end_cap` on the
+  bodies), with the new runner and the new bridge, built its four gussets and then held
+  neither number of the task: `end_cap` capped both ends of every foot (`end_capped` 8), 21
+  bodies and 21 in the cut list instead of 17 — the defect the old `_status` predicted, and
+  the reason for the rewrite of the plan (point 3). On the bridge before, the record of 6/10 is a
+  stop at the first gusset of its group (the state lists 60 faces of 177); a run of it on 7/10
+  was cut after 15 minutes, still building on a slow SOLIDWORKS, and proves nothing either way. The case
+  `a_face_beyond_the_largest_sixty_is_named_by_selector`: **green on 0.153.0** (the plate has
+  71 faces, the Ø3 wall is named by selector and measured at 8.5 mm, deviation 0) and **red
+  on 0.152.0** («@face(diameter_mm~=3): I did not find it», reported by the bench as «red before
+  0.153.0, as it should be»). The family `measurement` is 13 green of 13 on the new library
+  (77 of 77 expectations verified).
+- The probe `Checks/FacesBeyondSixty` on the part of 230 faces (the first stand): the ranking
+  by area is stable between two readings of the same geometry (0 ranks differ); the 60th face
+  has 4,800 mm2 and 32 faces share that area, 12 inside the first 60 and 20 left out, so the
+  order of the ties is what hid them and a higher ceiling would only have moved the problem;
+  `GetClosestPointOn` finds the wall of a foot at distance 0 from a point on it.
+
 ## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
 
 Last window of W3.1-bis. It closes what the first ten left open on purpose: the

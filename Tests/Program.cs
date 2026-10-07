@@ -416,6 +416,7 @@ namespace Oce.Solid.Agent.ContractTests
             Zc215ActivationRebuildContract.RunAll();
             Zc215HolePointIdentityContract.RunAll();
             Zc2113PartDimensionContract.RunAll();
+            FacesBeyondSixtyContract.RunAll();
             Zc2111ComponentsContract.RunAll();
             Zc14MateDirectionsContract.RunAll();
             Zc2114UndoHonestyContract.RunAll();

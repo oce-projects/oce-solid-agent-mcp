@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using Oce.Solid.Agent.Mcp;
 using Oce.Solid.Agent.Bridge;
+using FaceFilter = Oce.Solid.Agent.Core.FaceFilter;
+using DocumentState = Oce.Solid.Agent.Core.DocumentState;
 
 namespace Oce.Solid.Agent.Tools
 {
@@ -93,10 +95,93 @@ namespace Oce.Solid.Agent.Tools
                     "It costs: each view weighs more than the whole written " +
                     "state, so it is asked for when the shape is in doubt — after " +
                     "a shell, after a chamfer, before saying the part is " +
-                    "finished — not at every reading.",
+                    "finished — not at every reading.\n\n" +
+                    "The state lists the " + DocumentState.MaxFaces + " LARGEST faces and says " +
+                    "«truncated» when the part has more. A small face — the wall of a " +
+                    "tube, the seat of a gusset, one hole of a hundred — is then not " +
+                    "listed and has no identifier you can read. With «faces» the state " +
+                    "lists the faces you ask for instead: they keep the identifier " +
+                    "they have among ALL the faces of the part.",
                     Object(
                         new Dictionary<string, object>
                         {
+                            ["faces"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "object",
+                                ["description"] =
+                                    "WHICH FACES to list, instead of the " + DocumentState.MaxFaces +
+                                    " largest. Every condition you give must hold. Each face keeps " +
+                                    "its identifier among all the faces of the part (F1 is the " +
+                                    "largest, F70 the seventieth by area), so «F70» is the same " +
+                                    "face with or without the filter. The state then says " +
+                                    "«faces_total» (all the faces of the part), «faces_matched» " +
+                                    "(how many match) and «faces_not_listed» (the matching ones " +
+                                    "beyond «limit»). LIMITS: only the faces are filtered — edges, " +
+                                    "bodies and features are listed as always, and the «shape» sentence is not " +
+                                    "written (it would describe only the faces listed). An identifier " +
+                                    "holds for the reading that gave it: if an earlier step of " +
+                                    "the same plan changes the part, a face that was not among " +
+                                    "the " + DocumentState.MaxFaces + " largest is refused, not " +
+                                    "searched for again — read the part again. At most " +
+                                    FaceFilter.MaxLimit + " faces are listed in one reading.",
+                                ["properties"] = new Dictionary<string, object>
+                                {
+                                    ["normal"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["enum"] = FaceFilter.Facings,
+                                        ["description"] =
+                                            "which way the face looks (the words of «facing»: +X " +
+                                            "right, +Y up, +Z front). Only the six axis-aligned " +
+                                            "directions: a face that looks anywhere else matches none.",
+                                    },
+                                    ["area_min_mm2"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "smallest area, in mm2 (included).",
+                                    },
+                                    ["area_max_mm2"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "largest area, in mm2 (included).",
+                                    },
+                                    ["near_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "array",
+                                        ["items"] = new Dictionary<string, object> { ["type"] = "number" },
+                                        ["description"] =
+                                            "[x, y, z], a point of the model in mm: the faces whose " +
+                                            "closest point to it is within «within_mm».",
+                                    },
+                                    ["within_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] =
+                                            "how close «near_mm» must be, in mm. Default " +
+                                            FaceFilter.DefaultWithinMm.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                                            ". It is the distance to the FACE, not to the «point_mm» " +
+                                            "the state writes, which is the point of the face closest " +
+                                            "to the origin.",
+                                    },
+                                    ["body"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] =
+                                            "only the faces of one body: its identifier (C3) or its " +
+                                            "exact name, as «bodies» lists them. The identifiers C1, " +
+                                            "C2 ... can change from one reading to the next after a " +
+                                            "change to the part: prefer the name.",
+                                    },
+                                    ["limit"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "integer",
+                                        ["description"] =
+                                            "how many faces to list at most, from 1 to " +
+                                            FaceFilter.MaxLimit + ". Default " + DocumentState.MaxFaces +
+                                            ". When more match, the largest are listed.",
+                                    },
+                                },
+                            },
                             ["views"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
@@ -836,11 +921,50 @@ namespace Oce.Solid.Agent.Tools
         private Dictionary<string, object> InspectPart(
             Dictionary<string, object> arguments)
         {
-            var docState = _session.State(out var error);
+            // WHICH FACES (entry W3.1-bis.12). A filter is read BEFORE touching
+            // the document, so that a crooked one costs nothing; the default
+            // reading is the one that has always been.
+            FaceFilter facesWanted = null;
+            var facesRaw = Take(arguments, "faces");
+            if (facesRaw != null)
+            {
+                string facesProblem;
+                facesWanted = FaceFilter.Parse(facesRaw, out facesProblem);
+                if (facesWanted == null) return Protocol.Content(facesProblem, true);
+            }
+            var previousSeen = _seen;
+            var previousLight = _signatureSeen;
+            var previousSignatures = _seenSignatures;
+
+            string error;
+            var docState = facesWanted == null
+                ? _session.State(out error)
+                : _session.StateWithFaces(facesWanted, out error);
             if (docState == null) return Protocol.Content(error, true);
+            object facesFilterProblem;
+            if (docState.TryGetValue("faces_filter_problem", out facesFilterProblem))
+                return Protocol.Content(Convert.ToString(facesFilterProblem), true);
             _seen = StateIdentity(docState);
             _signatureSeen = LightSignature(docState);
             _seenSignatures = StateSignatures(docState);
+
+            // A READING WITH A FILTER MUST NOT UNDO THE LAST ONE. The signatures
+            // are what protects a plan from naming a face that is no longer
+            // the one it saw; a filtered reading lists other faces, and
+            // replacing the whole map would leave F1..F60 of the reading before
+            // without one. When the document is the same one and the part has
+            // not changed (the same test that stops a plan on a changed part),
+            // what the reading before knew about the faces this one does not
+            // list is kept. On a changed part it is not: those signatures speak
+            // of another part.
+            if (facesWanted != null && previousSignatures != null && previousSeen != null &&
+                Bridge.Session.SameDocument(previousSeen, _seen) &&
+                WhatChanged(previousLight, _signatureSeen) == null)
+            {
+                if (_seenSignatures == null) _seenSignatures = new Dictionary<string, object>();
+                foreach (var keptUid in previousSignatures.Keys)
+                    if (!_seenSignatures.ContainsKey(keptUid)) _seenSignatures[keptUid] = previousSignatures[keptUid];
+            }
             RemoveAnchors(docState);
 
             var requestedItems = RequestedViews(arguments);
@@ -3367,6 +3491,11 @@ namespace Oce.Solid.Agent.Tools
                 foreach (var uid in Strings(val))
                 {
                     if (existing.Contains(uid)) continue;
+                    // A FACE THE STATE DID NOT LIST EXISTS ALL THE SAME: every face
+                    // has the identifier of its rank by area, and the state says how
+                    // many there are (`faces_total`). Whether it is the face the plan
+                    // meant is the business of the signature and of the executor.
+                    if (IsFaceBeyondTheList(uid, docState)) continue;
 
                     // WE SAY WHAT IS THERE, not just what is missing. On an empty
                     // document the list is empty, and that is precisely the case in
@@ -3427,6 +3556,21 @@ namespace Oce.Solid.Agent.Tools
         /// risking a wrong refusal to gain a slightly better
         /// message.
         /// </summary>
+        /// <summary>
+        /// Whether an identifier names a face that exists but was not listed:
+        /// «F90» on a part whose state says `faces_total` 177. The face is
+        /// numbered, not described (W3.1-bis.12).
+        /// </summary>
+        private static bool IsFaceBeyondTheList(string uid, Dictionary<string, object> docState)
+        {
+            int rank = FaceFilter.RankOf(uid);
+            if (rank < 1 || docState == null) return false;
+            object total;
+            if (!docState.TryGetValue("faces_total", out total) || total == null) return false;
+            try { return rank <= Convert.ToInt32(total, System.Globalization.CultureInfo.InvariantCulture); }
+            catch (Exception) { return false; }
+        }
+
         private static HashSet<string> StateUid(Dictionary<string, object> docState)
         {
             var outside = new HashSet<string>(StringComparer.Ordinal);

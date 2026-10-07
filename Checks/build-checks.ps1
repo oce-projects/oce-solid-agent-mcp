@@ -112,7 +112,10 @@ $tools = @(
     # The four defects of the live proof of 6/10/2026 (D9 prerequisites), measured
     # before they are fixed: the cut list folders, the contact test of the gusset,
     # the empty assembly, CloseDoc by title or by path.
-    @{ name = 'D9Defects'; sw = $true; lib = $false }
+    @{ name = 'D9Defects'; sw = $true; lib = $false },
+    # Faces beyond the 60 largest (W3.1-bis.12): is the ranking by area stable between
+    # two readings, how does it tie at the cut, what does a closest-point read cost.
+    @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

@@ -53,6 +53,17 @@
 #  session would measure another part: the session is NOT run, the run says why
 #  (<task>-<n>.prerequisite.json, and run.json) and exits 1.
 #
+#  THE PREREQUISITES ARE BUILT WITH ONE BRIDGE FOR BOTH SIDES OF D9
+#  (-PrerequisiteBridge, by default the bridge of this repository, the one
+#  AFTER). The part a session starts from is a FIXTURE, not a measure: the run
+#  measures what the model does with it. Built by the bridge under test, the
+#  starting part of the two sides could differ by what the bridge builds
+#  differently (the stand of task 07 cannot even be built by the bridge before,
+#  which lists only the 60 largest faces), and the comparison would then
+#  measure the fixtures. So both sides start from the same file, built by the
+#  same bridge, and -Bridge is only what the session talks to. run.json says
+#  which bridge built them.
+#
 #  THE SESSION SEES THE BRIDGE AND NOTHING ELSE. A session started in the
 #  repository could read Bench/tasks/NN_*.md, with the table of the expected
 #  answers, and the cases; it would load the CLAUDE.md and the memories of the
@@ -79,6 +90,7 @@ param(
     [string]   $TasksDir = '',
     [int]      $Repeats = 1,
     [string]   $Bridge = '',
+    [string]   $PrerequisiteBridge = '',
     [string]   $Label = '',
     [string[]] $Only = @(),
     [int]      $MaxTurns = 80,
@@ -104,6 +116,9 @@ if (-not $TasksDir) {
 if (-not (Test-Path -LiteralPath $TasksDir)) { Write-Host "no folder $TasksDir" -ForegroundColor Red; exit 2 }
 if (-not $Bridge) { $Bridge = Join-Path $root 'bin\oce-solid-agent-mcp.exe' }
 if (-not (Test-Path -LiteralPath $Bridge)) { Write-Host "no bridge at $Bridge (build it with .\build.ps1)" -ForegroundColor Red; exit 2 }
+# The bridge that builds the starting parts: the one of this repository unless said (see the head of this file).
+if (-not $PrerequisiteBridge) { $PrerequisiteBridge = Join-Path $root 'bin\oce-solid-agent-mcp.exe' }
+if (-not (Test-Path -LiteralPath $PrerequisiteBridge)) { Write-Host "no bridge at $PrerequisiteBridge for the prerequisites (build it with .\build.ps1, or give -PrerequisiteBridge)" -ForegroundColor Red; exit 2 }
 if ($Repeats -lt 1) { Write-Host "-Repeats is at least 1" -ForegroundColor Red; exit 2 }
 
 # The tasks: the files NN_name.md, and in each the first blockquote (the words
@@ -141,6 +156,7 @@ if (-not $Out) {
 # absolute: every session runs in a temporary folder of its own
 $Out = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out)
 $Bridge = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Bridge)
+$PrerequisiteBridge = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PrerequisiteBridge)
 $catalogue = Join-Path (Split-Path -Parent $Bridge) 'catalog.json'
 $catalogueHash = if (Test-Path -LiteralPath $catalogue) { (Get-FileHash -LiteralPath $catalogue -Algorithm SHA256).Hash.Substring(0, 12) } else { '(none next to the bridge)' }
 
@@ -183,6 +199,14 @@ if (-not $DryRun) {
         exit 1
     }
     Write-Host ("bridge " + $bridgeInfo.version + ", protocol " + $bridgeInfo.protocol)
+    $prerequisiteInfo = $null
+    $prerequisiteLine = & node (Join-Path $PSScriptRoot 'score-autonomous.js') --bridge-info $PrerequisiteBridge
+    try { $prerequisiteInfo = $prerequisiteLine | ConvertFrom-Json } catch { $prerequisiteInfo = $null }
+    if ($null -eq $prerequisiteInfo -or $prerequisiteInfo.protocol -eq 'unknown') {
+        Write-Host ("the bridge of the prerequisites did not say its tools (" + $prerequisiteLine + "): no run") -ForegroundColor Red
+        exit 1
+    }
+    Write-Host ("prerequisites built by bridge " + $prerequisiteInfo.version + " (" + $PrerequisiteBridge + ")")
 }
 
 Write-Host ("autonomous run: " + $tasks.Count + " tasks x " + $Repeats + ", language " + $Language +
@@ -204,14 +228,14 @@ if ($DryRun) {
         $shown = (SessionArguments ('<' + $c.Text.Length + ' characters>') '<out>\mcp-config.json') | ForEach-Object { if ($_ -eq '' -or $_ -eq '""') { '""' } else { $_ } }
         Write-Host ("  " + $c.Task + " #" + $c.N + ", in an empty temporary folder: " + $Claude + " " + ($shown -join ' '))
         $needs = PrerequisiteOf $c.Task
-        if ($needs) { Write-Host ("      before it: the prerequisite " + $needs.plan + " (the result of task " + $needs.from_task + "), built in that folder, saved and open in front") }
+        if ($needs) { Write-Host ("      before it: the prerequisite " + $needs.plan + " (the result of task " + $needs.from_task + "), built in that folder by " + $PrerequisiteBridge + ", saved and open in front") }
     }
     # What can be checked without SOLIDWORKS: the reference plans against the
     # catalogue and the dry run of the bridge, the index against the texts of
     # the tasks, and the self-tests of the two scripts that close and prepare.
     $dryProblems = 0
     foreach ($check in @(
-            @('prerequisite.js', '--check', '--bridge', $Bridge, '--dir', $PrerequisitesDir),
+            @('prerequisite.js', '--check', '--bridge', $PrerequisiteBridge, '--dir', $PrerequisitesDir),
             @('prerequisite.js', '--self-test'),
             @('session-documents.js', '--self-test'))) {
         & node (Join-Path $PSScriptRoot $check[0]) @($check[1..($check.Count - 1)]) | Out-Host
@@ -269,7 +293,7 @@ foreach ($c in $commands) {
     $needs = PrerequisiteOf $c.Task
     if ($needs) {
         Write-Host ("    prerequisite: " + $needs.plan + " (the result of task " + $needs.from_task + ")")
-        & node (Join-Path $PSScriptRoot 'prerequisite.js') --build $Bridge $needs.plan $work --out ($base + '.prerequisite.json') --dir $PrerequisitesDir | Out-Host
+        & node (Join-Path $PSScriptRoot 'prerequisite.js') --build $PrerequisiteBridge $needs.plan $work --out ($base + '.prerequisite.json') --dir $PrerequisitesDir | Out-Host
         if ($LASTEXITCODE -ne 0) {
             Write-Host "    the prerequisite did not hold: the session is NOT run (it would measure another part); see the .prerequisite.json" -ForegroundColor Red
             $prerequisitesFailed += ($c.Task + '-' + $c.N)
@@ -306,6 +330,7 @@ if (-not (CloseAll)) { Write-Host "a document opened by the run is still open" -
 $run = [ordered]@{
     language = $Language; tasks_dir = $TasksDir; repeats = $Repeats; bridge = $Bridge
     bridge_version = $bridgeInfo.version; bridge_protocol = $bridgeInfo.protocol; isolation = $isolation
+    prerequisite_bridge = $PrerequisiteBridge; prerequisite_bridge_version = $prerequisiteInfo.version
     catalogue_sha256 = $catalogueHash; model = $Model; max_turns = $MaxTurns; label = $Label
     started = $started.ToString('s'); ended = (Get-Date).ToString('s'); sessions = $commands.Count; not_started = $failed
     documents_before_run = 'documents-before-run.json'

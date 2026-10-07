@@ -580,6 +580,19 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
+        /// The state of the document, anchor included, listing the faces a
+        /// filter asks for instead of the sixty largest (entry W3.1-bis.12; see
+        /// <see cref="Oce.Solid.Agent.Core.FaceFilter"/>). A new name, as for the
+        /// two above: a parameter added to a method the bench calls by
+        /// reflection breaks it.
+        /// </summary>
+        public Dictionary<string, object> StateWithFaces(
+            Oce.Solid.Agent.Core.FaceFilter filter, out string error)
+        {
+            return State(true, filter, out error);
+        }
+
+        /// <summary>
         /// THE STATE OF A GIVEN DOCUMENT, not of the window in front (Z-C21.14).
         ///
         /// After a plan the document in front may be another one: a
@@ -679,6 +692,12 @@ namespace Oce.Solid.Agent.Bridge
 
         private Dictionary<string, object> State(bool withAnchor, out string error)
         {
+            return State(withAnchor, null, out error);
+        }
+
+        private Dictionary<string, object> State(
+            bool withAnchor, Oce.Solid.Agent.Core.FaceFilter filter, out string error)
+        {
             error = null;
             var doc = ActiveDocument();
             if (doc == null)
@@ -688,7 +707,9 @@ namespace Oce.Solid.Agent.Bridge
             }
             try
             {
-                var docState = ReadState(doc, withAnchor);
+                var docState = filter == null
+                    ? ReadState(doc, withAnchor)
+                    : DocumentState.ReadFaces(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter);
                 return docState?.Data;
             }
             catch (Exception ex)

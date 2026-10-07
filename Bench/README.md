@@ -284,6 +284,21 @@ may return the same volume, and then it is green and proves nothing.
 The only ambiguity that is resolved is `n=` of `@feature`, where the order is
 decided by whoever writes the case.
 
+**A selector on a face reads EVERY face of the part**, not the 60 the ordinary state
+lists (W3.1-bis.12). The state lists the 60 largest faces and says `truncated`; a
+selector such as `@face(diameter_mm~=3)` was resolved against that list, and a small
+face of a part with more of them was «not found» although it was there. When the
+arguments of a step name a face by selector and the state says `faces_total`, the bench
+reads the state again with every face listed (`ReadFaces`, up to 500) and resolves
+against that one; the step still runs on the ordinary state, because every face has
+the identifier of its rank by area and the library finds an unlisted one by it. On a
+library older than 0.153.0 there is no `ReadFaces`, the selector meets the list of 60,
+and the case cannot be built: that is its red (`a_face_beyond_the_largest_sixty_is_named_by_selector`,
+`red_before` 0.153.0). The group `--group faces-beyond-sixty` walks the same road through
+the bridge: the ordinary reading lists 60, `faces: {near_mm}` finds the 71st, a plan
+cites its identifier and measures 8.5 mm, the identifier after the last face and a
+crooked filter are refused.
+
 Everything that prevents **measuring** is a bench error (exit 2), not a red
 test: a field that is not in the state or in the measures (with a message that
 says which ones there were), a case without `why`, a step **without
@@ -643,10 +658,11 @@ cases/sentence/        2   the shape told in words, and when it is silent
 cases/check/     7   how it came out: solid, closed, sound; the dangling hidden
                        body is seen (Z-C21.2); one sound body of two is
                        not the part (Z-C21.10, N61)
-cases/measurement/      12   how much it weighs, which box it fits in, how far it is; the
+cases/measurement/      13   how much it weighs, which box it fits in, how far it is; the
                        wall between two holes, measured as asked (Z-C21, M29);
                        a body named before the cut is not measured in place of
-                       another (Z-C21.5, S5)
+                       another (Z-C21.5, S5); a face beyond the 60 largest is
+                       named by selector and measured (W3.1-bis.12)
 cases/bodies/       15   the booleans, the variable fillet, the cosmetic thread;
                        the union of bodies that do not touch, refused (Z-C18);
                        the boolean with the body read before a cut,

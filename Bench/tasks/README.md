@@ -178,11 +178,27 @@ the prerequisite is not the part the task describes, the session is NOT run
 (`<task>-<n>.prerequisite.json` says why, `run.json` lists it, the scorer
 counts it NOT DONE) instead of measuring another part.
 
+**The starting part is a fixture, not a measure, and it is the SAME FILE on both sides
+of D9** (W3.1-bis.12). The runner builds the prerequisites with ONE bridge, given
+by `-PrerequisiteBridge` and by default the bridge of this repository (the one
+AFTER); `-Bridge` is only the bridge the session talks to, and `run.json` records
+both (`prerequisite_bridge`, `prerequisite_bridge_version`). Built by the bridge
+under test, the two sides could start from different parts (the stand of task 07
+could not even be built by the bridge before, which lists the 60 largest faces
+only), and the comparison would measure the fixtures instead of the model. What a
+session does with the part is still measured; how the part came to be is not.
+
+A group of a plan that names a face by selector reads the part with EVERY face
+listed (`inspect_part` with `faces: {limit: 500}`): the ordinary state lists the
+60 largest and a small face of a part with more of them was «not found» although
+it was there. A bridge that does not answer the filter fails the build instead of
+resolving on the cut list.
+
 | task | starts from | reference plan (`prerequisites/`) | what is in front, saved in the folder of the session |
 |---|---|---|---|
 | 09 mirrored pair | 01 L-bracket | `01_l_bracket` | `01_l_bracket.sldprt`: the bracket, 67,782 mm3, holes of 9 |
 | 10 pair drawing | 09 pair | `09_bracket_pair` | `base_plate`, `bracket` and `09_bracket_pair.sldasm`: plate fixed, bracket mated, its mirrored instance driven by the mirror, 300 x 70 x 120, no interference |
-| 11 stand drawing | 07 stand | `07_tube_stand` | `07_tube_stand.sldprt`: frame, crossbar, feet, gussets, caps, cut list (does NOT build on the bridge of today: see below) |
+| 11 stand drawing | 07 stand | `07_tube_stand` | `07_tube_stand.sldprt`: frame, crossbar, feet, gussets, caps, cut list (builds since W3.1-bis.12: see below) |
 | 12 flange weight | 02 flange | `02_bolt_circle_flange` | `02_bolt_circle_flange.sldprt`: 221,614 mm3, NO material (the task asks for it) |
 | 13 lid interference | 08 box | `08_box_and_lid` | `base`, `lid` and `08_box_and_lid.sldasm`: base fixed, lid mated on the rim, 23 tall, no interference |
 | 14 plate 3D print | 03 plate | `03_slotted_plate` | `03_slotted_plate.sldprt`: 111,489 mm3, one body, no material (see the plan: the name of the aluminium is Italian) |
@@ -238,22 +254,22 @@ bridges, every expectation of their tasks checked: on the bridge of today with t
 English mate values, on the bridge of before through a table of its mate words
 (removed from `prerequisite.js` in W3.1-bis.11 with that bridge).
 
-**The stand (`07_tube_stand`, tasks 11 and 15) still does not build**, on either
-bridge, and the runner refuses those sessions (on both sides, so the comparison is
-not tilted; the two tasks are not measured). **State after the integration (bridge
-0.128.0, library 0.151.0):** of the three defects below, `cut_list` and `gusset`
-are fixed, and so is the first insert into an empty assembly; the third (the list
-of the 60 largest faces) is not, and the live build of 6/10 evening goes through
-steps 1 to 9 and stops at step 10, the first gusset: «not found (the state lists
-only the 60 largest faces of 177)». The bridge of before keeps all of them. The
-text below is the state of the morning. Three defects of the library, each enough
-alone, are written in the plan's `_status` with what the probes measured: `cut_list` counts only the structural members (never the
-17 bodies and 6 rows of task 07, which no model can reach either); `gusset`
-refuses the faces of a foot at the END of the segment of the bar it rests on and
-accepts them at its START; the 60 largest faces leave out the walls of the third
-and fourth foot. The plan keeps the numbers of task 07; what the probes proved
-for the plan to come (one cap per foot through `trim_members` and `end_cap`
-`ends_ref`) is written there too.
+**The stand (`07_tube_stand`, tasks 11 and 15) builds since W3.1-bis.12**, on the bridge
+of that window (0.130.0, library 0.153.0) and by the runner that reads every face. Three
+defects of the library had each kept it from building, alone: `cut_list` counted only the
+structural members (fixed in 0.151.0: the gussets and the caps are in it, with their
+`item_type`); `gusset` refused the faces of a foot at the END of the segment of the bar it
+rests on (fixed in 0.151.0); and the state lists the 60 largest faces of the 177 of the stand,
+so the walls of the third and fourth foot, which tie at 4,800 mm2 behind 40 larger faces of
+the frame, had no identifier (fixed in 0.153.0: every face has the identifier of its rank by
+area, `inspect_part` takes a filter `faces`, and a group of a plan that names a face by
+selector reads the part with every face listed). The plan was also rewritten for ONE cap per
+foot: the four feet in a single step 20 mm short of the frame, extended to it by
+`trim_members` and capped by `end_cap` with `ends_ref` on that step (`end_cap` on the
+bodies capped both ends of every foot: 8 caps, 21 bodies, measured live on 7/10/2026 with
+every gusset built). The live numbers are in the plan's `_status` and in the CHANGELOG.
+The bridge before keeps the three defects: it cannot build the stand, which is why the
+prerequisites are built by ONE bridge for both sides of D9 (see above).
 
 **Still to know about the tools around the run:**
 

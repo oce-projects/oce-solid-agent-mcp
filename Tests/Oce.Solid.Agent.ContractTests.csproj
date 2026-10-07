@@ -111,6 +111,7 @@
     <Compile Include="Zc215ActivationRebuildContract.cs" />
     <Compile Include="Zc215HolePointIdentityContract.cs" />
     <Compile Include="Zc2113PartDimensionContract.cs" />
+    <Compile Include="FacesBeyondSixtyContract.cs" />
     <Compile Include="Zc2111ComponentsContract.cs" />
     <Compile Include="Zc14MateDirectionsContract.cs" />
     <Compile Include="Zc2114UndoHonestyContract.cs" />
