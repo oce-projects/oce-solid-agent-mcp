@@ -48,6 +48,16 @@ namespace Oce.Solid.Agent.Bench
         private static readonly double[] MitrePoint = { -498, 0, -298 };
         private const double OppositeSideX = 500, MitreEndX = -460;
 
+        /// <summary>
+        /// Waits ten minutes, not the usual ninety seconds: the plan that reads a part of seventy faces
+        /// through the bridge took 160 seconds a call on the tired SOLIDWORKS session of 8/10/2026 (the state
+        /// carries the anchor of every face it lists).
+        /// </summary>
+        private static string Slow(Mcp.Bridge p, int id, string request)
+        {
+            return Mcp.AskWithin(p, id, request, 600000);
+        }
+
         private static string FrameStep(string profilesFolder)
         {
             string profile = (profilesFolder + "\\TUBO STRUTTURALE QUADRO.SLDLFP").Replace("\\", "\\\\");
@@ -117,16 +127,16 @@ namespace Oce.Solid.Agent.Bench
                 doc = NewPart();
                 p = Mcp.Open(executable);
                 if (p == null) { BenchError(Name, "the bridge did not start"); return; }
-                var hello = Mcp.Ask(p, 1,
+                var hello = Slow(p, 1,
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"bench\",\"version\":\"1\"}}}");
                 if (hello == null) { BenchError(Name, "the bridge did not answer initialize"); return; }
                 Mcp.Write(p, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
-                ResponseText(Mcp.Ask(p, 2, Call(2, "inspect_part", "{}")));
+                ResponseText(Slow(p, 2, Call(2, "inspect_part", "{}")));
 
                 // ── THE PART ─────────────────────────────────────────────
-                var built = ResponseText(Mcp.Ask(p, 3, Call(3, "build", FrameStep(Expectations.Profiles))));
+                var built = ResponseText(Slow(p, 3, Call(3, "build", FrameStep(Expectations.Profiles))));
                 if (!Succeeded(built))
                 {
                     BenchError(Name, "the frame was not built: " + (built.Length > 400 ? built.Substring(0, 400) : built));
@@ -134,7 +144,7 @@ namespace Oce.Solid.Agent.Bench
                 }
 
                 // ── 1. THE ORDINARY READING: 60 faces, and it says there are more ─
-                var first = Mcp.Obj(ResponseText(Mcp.Ask(p, 4, Call(4, "inspect_part", "{}"))));
+                var first = Mcp.Obj(ResponseText(Slow(p, 4, Call(4, "inspect_part", "{}"))));
                 var listed = FacesOf(first);
                 int total = Count(Mcp.Inside(first, "faces_total"));
                 Check("faces beyond sixty: the ordinary reading lists the 60 largest and says the part has more (the premise)",
@@ -153,7 +163,7 @@ namespace Oce.Solid.Agent.Bench
                 if (rightUid == null) return;
 
                 // ── 2. THE READING WITH A POINT ──────────────────────────
-                var near = Mcp.Obj(ResponseText(Mcp.Ask(p, 5, Call(5, "inspect_part",
+                var near = Mcp.Obj(ResponseText(Slow(p, 5, Call(5, "inspect_part",
                     "{\"faces\":{\"near_mm\":[" + MitrePoint[0].ToString(CultureInfo.InvariantCulture) + "," + MitrePoint[1].ToString(CultureInfo.InvariantCulture) + "," + MitrePoint[2].ToString(CultureInfo.InvariantCulture) + "],\"within_mm\":0.5}}"))));
                 var nearFaces = FacesOf(near);
                 Check("faces beyond sixty: «near_mm» finds the two faces of the mitre at the corner, and nothing else",
@@ -172,43 +182,43 @@ namespace Oce.Solid.Agent.Bench
 
                 // ── 3. A PLAN CITES IT ───────────────────────────────────
                 double expected = OppositeSideX - MitreEndX;
-                var distance = ResponseText(Mcp.Ask(p, 6, Call(6, "build",
+                var distance = ResponseText(Slow(p, 6, Call(6, "build",
                     "{\"steps\":[{\"operation\":\"minimum_distance\",\"arguments\":{\"start_uid\":\"" + mitreUid + "\",\"end_uid\":\"" + rightUid + "\"}}]}")));
                 Check("faces beyond sixty: a plan that cites the identifier of the filtered reading is accepted, and the distance from the mitre face to the opposite side is the one computed by hand (" +
                       expected.ToString(CultureInfo.InvariantCulture) + " mm)",
                       Succeeded(distance) && HasDistance(distance, expected), Short(distance));
 
                 // ── 4. THE SAME IDENTIFIER AFTER AN ORDINARY READING ──────
-                var plain = Mcp.Obj(ResponseText(Mcp.Ask(p, 7, Call(7, "inspect_part", "{}"))));
+                var plain = Mcp.Obj(ResponseText(Slow(p, 7, Call(7, "inspect_part", "{}"))));
                 int plainTotal = Count(Mcp.Inside(plain, "faces_total"));
-                var again = ResponseText(Mcp.Ask(p, 8, Call(8, "build",
+                var again = ResponseText(Slow(p, 8, Call(8, "build",
                     "{\"steps\":[{\"operation\":\"minimum_distance\",\"arguments\":{\"start_uid\":\"" + mitreUid + "\",\"end_uid\":\"" + rightUid + "\"}}]}")));
                 Check("faces beyond sixty: after an ORDINARY reading (60 listed) the same identifier still names the same face: it is numbered even when it is not described",
                       plainTotal == total && FacesOf(plain).Count == 60 && Succeeded(again) && HasDistance(again, expected),
                       "faces_total " + plainTotal + "; " + Short(again));
 
                 // ── 5. THE REFUSALS ──────────────────────────────────────
-                var nonexistent = ResponseText(Mcp.Ask(p, 9, Call(9, "build",
+                var nonexistent = ResponseText(Slow(p, 9, Call(9, "build",
                     "{\"steps\":[{\"operation\":\"minimum_distance\",\"arguments\":{\"start_uid\":\"F" + (total + 1) + "\",\"end_uid\":\"" + rightUid + "\"}}]}")));
                 Check("faces beyond sixty: the identifier after the last face (F" + (total + 1) + ") is refused, and the reason is that it was not in the part",
                       !Succeeded(nonexistent) && nonexistent.IndexOf("not in the part", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(nonexistent));
 
-                var crooked = ResponseText(Mcp.Ask(p, 10, Call(10, "inspect_part", "{\"faces\":{\"normal\":\"north\"}}")));
+                var crooked = ResponseText(Slow(p, 10, Call(10, "inspect_part", "{\"faces\":{\"normal\":\"north\"}}")));
                 Check("faces beyond sixty: a direction that is not one of the six is refused before the document is touched, and says which are",
                       crooked.IndexOf("must be one of", StringComparison.OrdinalIgnoreCase) >= 0 && crooked.IndexOf("front", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(crooked));
-                var noBody = ResponseText(Mcp.Ask(p, 11, Call(11, "inspect_part", "{\"faces\":{\"body\":\"C99\"}}")));
+                var noBody = ResponseText(Slow(p, 11, Call(11, "inspect_part", "{\"faces\":{\"body\":\"C99\"}}")));
                 Check("faces beyond sixty: a body the part does not have is refused and says how many it has",
                       noBody.IndexOf("«C99»", StringComparison.OrdinalIgnoreCase) >= 0 && noBody.IndexOf("4 bodies", StringComparison.OrdinalIgnoreCase) >= 0,
                       Short(noBody));
 
                 // ── 6. THE LIMIT SAYS WHAT IT LEFT OUT ───────────────────
-                var cut = Mcp.Obj(ResponseText(Mcp.Ask(p, 12, Call(12, "inspect_part", "{\"faces\":{\"limit\":5}}"))));
+                var cut = Mcp.Obj(ResponseText(Slow(p, 12, Call(12, "inspect_part", "{\"faces\":{\"limit\":5}}"))));
                 Check("faces beyond sixty: a limit of 5 lists the 5 largest and says how many matching faces it left out",
                       FacesOf(cut).Count == 5 && Count(Mcp.Inside(cut, "faces_matched")) == total && Count(Mcp.Inside(cut, "faces_not_listed")) == total - 5,
                       FacesOf(cut).Count + " listed, matched " + Mcp.Inside(cut, "faces_matched") + ", not listed " + Mcp.Inside(cut, "faces_not_listed"));
-                var small = Mcp.Obj(ResponseText(Mcp.Ask(p, 13, Call(13, "inspect_part", "{\"faces\":{\"area_max_mm2\":700,\"limit\":500}}"))));
+                var small = Mcp.Obj(ResponseText(Slow(p, 13, Call(13, "inspect_part", "{\"faces\":{\"area_max_mm2\":700,\"limit\":500}}"))));
                 var smallFaces = FacesOf(small);
                 Check("faces beyond sixty: an area range lists only the faces inside it, every one beyond the 60 largest",
                       smallFaces.Count > 0 && smallFaces.All(f => RankFromUid(UidOf(f)) > 60 && Number(Mcp.Inside(f, "area_mm2")) <= 700.01) &&
