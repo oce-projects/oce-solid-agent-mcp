@@ -196,9 +196,8 @@ waits for). SOLIDWORKS 29.5.1, Italian interface.
 - *Proof of the review.* Bench `--case` on 7 cases (the two view cases, the cut list in the
   drawing and in the weldment, the reserved word, the blind hole, suppress twice): Italian 120
   tests, 0 failed; `-SolidWorksLanguage en` the same 120, 0 failed, the features born
-  `Boss-Extrude1`, `Cut-Extrude1`, `Cut-List-Item1`, and every view found by the model
-  (`*Anteriore`, `*Posteriore`, `*Destra`, `*Superiore`, `*Isometrico`: the interface stays
-  Italian). The toggle came back to off after the English run AND after a run that failed
+  `Boss-Extrude1`, `Cut-Extrude1`, `Cut-List-Item1`, and every view found by the model under
+  the name of the `it` column of the table (the interface stays Italian). The toggle came back to off after the English run AND after a run that failed
   before any case (`--case no_such_case_exists`, bench error, exit 2), read back by
   `SolidWorksLanguage.exe --columns`. `Checks/FaceFillet` on the Italian installation: the cubes
   are extruded (64000 mm3) and the four recipes give their fillet as before. Contracts 837
