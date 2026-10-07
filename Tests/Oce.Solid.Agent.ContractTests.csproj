@@ -96,6 +96,7 @@
     <Compile Include="Zc212DrawingContract.cs" />
     <Compile Include="AssembliesZc212terContract.cs" />
     <Compile Include="WeldmentConfigurationZc212terContract.cs" />
+    <Compile Include="ReadmeBadgesContract.cs" />
     <Compile Include="Zc2113ExportUnitsContract.cs" />
     <Compile Include="Zc2113SplineCentreMarksContract.cs" />
     <Compile Include="DocumentByPathContract.cs" />

@@ -208,6 +208,32 @@ left that it does not need; the
 gate with every entry signed (tried on a copy) holds, unsigned it fails only for them. The
 list for the owner is outside the repository.
 
+**7. The top of the README: two support buttons and a «Project information» section.** At the
+owner's request (his own words, typed in chat on 7/10/2026: the indications go in the
+README of every repository, to keep track of everything) the README opens with a
+«Buy me a coffee» button and a «Donate via PayPal» button, then a section of true badges
+only: bridge version, library version, platform (Windows x64), SOLIDWORKS 2021 SP5.1 (the
+version the README already says is the tested one), .NET Framework 4.8, license Apache-2.0,
+MCP over stdio, and the status badge of the real workflow `.github/workflows/tests.yml`
+(it renders only once the repository is public; an HTML comment in the README says so).
+There is no badge of code quality, lint or coverage: none of those services is configured.
+The new contract `ReadmeBadgesContract` keeps them true: the bridge badge must equal
+`VERSION.txt`, the library badge the `AssemblyVersion` of the library (both read from the
+source), every badge must be a static shields.io one or the status of a workflow that exists,
+and a service that is not configured is red. 16 fakes run in every run, each the good text
+with one change. Seen red on a mutated copy of the README, run by the executable from a
+folder of its own: library badge one minor behind (red, naming both numbers), bridge badge
+one patch ahead (red), original README (green). `Checks/check-publishability.ps1` forbids the
+author's name everywhere and both support addresses contain it: the rule now lets through
+exactly those two addresses (a lookahead on the shape, in exact case, wherever they stand), never
+a file; one letter of difference, another host, http, a longer name, or the name next to
+the address stays red (13 sample lines, all as expected, with the .NET regex of the working
+tree and with `git grep -P` of the history). Without the exemption the check was red on the README; with
+it, clean. `Tests/README.md` said 813 checks while 811 ran; it says 814 now, the 811 plus the three
+of this contract. Nothing was built outside the contracts project (its own output folder), the
+library, the bridge and `Bench/` were not touched, and the bench running from this tree was
+not disturbed. Versions unchanged (bridge 0.129.0, library 0.152.0): no library source changed.
+
 ---
 
 ## Unreleased — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0

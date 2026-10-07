@@ -193,6 +193,35 @@ $TrueAddress = '192\.168\.\d'
 # addresses and drive letters on these two files stay forbidden as elsewhere.
 $nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 
+# THE TWO SUPPORT ADDRESSES OF THE AUTHOR, AND NOTHING ELSE (W3.1-bis.11).
+#
+# The README opens with two buttons the owner asked for in his own words: «Buy me a
+# coffee» and «Donate via PayPal». Both addresses are the author's own pages, so both
+# contain the name, and a rule that forbids the name everywhere would refuse them.
+#
+# THE EXCEPTION IS ON THE SHAPE, NOT ON THE FILE. It does not exempt README.md (a
+# file that is exempt widens by itself: three real addresses left that way, see
+# above), it exempts exactly two strings, wherever they stand:
+#
+#   https://buymeacoffee.com/ + the one account name, then a character that
+#   cannot continue a name;
+#   https://www.paypal.biz/   + the one account code, in its exact case, then a
+#   character that cannot continue it.
+#
+# The name stays forbidden everywhere else, including on the same line as
+# these addresses, and in any URL of those two hosts that differs from the two
+# (another account, another case, http instead of https, a longer name). The
+# exemption is a negative lookahead that lets the match through only when the
+# text after the prefix is NOT the exact account, so a change of one letter
+# is red. `(?-i:...)` keeps the account case-exact while the rule itself is
+# case-insensitive. The same string serves the working tree (.NET regex) and the
+# history (`git grep -P`): the lookbehinds are of fixed length for that reason.
+$AuthorName = 'oscar'
+$AuthorNameButTheTwoSupportUrls =
+    '(?<!https://buymeacoffee\.com/)(?<!https://www\.paypal\.biz/)' + $AuthorName +
+    '|(?<=https://buymeacoffee\.com/)(?!(?-i:oscarcontatoengineering)(?![A-Za-z0-9]))' + $AuthorName +
+    '|(?<=https://www\.paypal\.biz/)(?!(?-i:OSCARCONTATO94)(?![A-Za-z0-9]))' + $AuthorName
+
 # Whoever replaces the scratchpad path must write it to find it:
 # `cleanup-history.js` (gone from the tree in W3.1-bis.10, but still in the history this check reads) had the schema, this check has the pattern.
 $sessionOnly = WithNamesOfBefore @('cleanup-history.js', 'check-publishability.ps1')   # the first one only exists in the history now
@@ -298,7 +327,7 @@ function Look($itemName, $pattern, $why, $caseSensitive, $except = @()) {
 }
 
 Write-Host "=== In the working tree"
-Look 'the user name' 'oscar' 'the name of the person working' $false $nameOnly
+Look 'the user name' $AuthorNameButTheTwoSupportUrls 'the name of the person working' $false $nameOnly
 Look 'a session path' 'AppData.Local.Temp' 'exists only on this machine' $false $sessionOnly
 Look 'an internal address' $TrueAddress 'a private network' $false
 Look 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks
@@ -417,7 +446,7 @@ if ($toPush.Count -eq 0) {
         Write-Host "        BEFORE the push - afterwards it becomes a force-push."
     }
 
-    LookAtHistory 'the user name' 'oscar' 'the name of the person working' $false $nameOnly
+    LookAtHistory 'the user name' $AuthorNameButTheTwoSupportUrls 'the name of the person working' $false $nameOnly
     LookAtHistory 'a session path' 'AppData.Local.Temp' 'exists only on this machine' $false $sessionOnly
     LookAtHistory 'an internal address' $TrueAddress 'a private network' $false
     LookAtHistory 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks

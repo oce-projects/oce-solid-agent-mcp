@@ -419,6 +419,7 @@ namespace Oce.Solid.Agent.ContractTests
             Zc2111ComponentsContract.RunAll();
             Zc14MateDirectionsContract.RunAll();
             Zc2114UndoHonestyContract.RunAll();
+            ReadmeBadgesContract.RunAll();
             LanguageGateTests.All();
             CaseKeysTests.All();
             BenchReportTests.All();

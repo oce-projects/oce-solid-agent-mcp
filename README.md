@@ -1,5 +1,28 @@
 # OCE Solid Agent
 
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-d9342b?logo=buymeacoffee&logoColor=white)](https://buymeacoffee.com/oscarcontatoengineering)
+[![Donate via PayPal](https://img.shields.io/badge/Donate%20via%20PayPal-0070ba?logo=paypal&logoColor=white)](https://www.paypal.biz/OSCARCONTATO94)
+
+## Project information
+
+![Bridge version](https://img.shields.io/badge/bridge-0.129.0-blue)
+![Library version](https://img.shields.io/badge/library-0.152.0-blue)
+![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
+![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
+![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
+![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)
+![MCP over stdio](https://img.shields.io/badge/MCP-stdio-black)
+[![Tests](https://github.com/oce-projects/oce-solid-agent-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/oce-projects/oce-solid-agent-mcp/actions/workflows/tests.yml)
+
+<!-- Every badge above is a fact or a real workflow, none is decoration. The two
+     version badges are read against VERSION.txt and the AssemblyVersion of
+     Oce.Solid.Agent.Core by Tests/ReadmeBadgesContract.cs: a release that moves
+     one and not the other turns the contracts red. The last badge is the status of
+     the workflow .github/workflows/tests.yml: it renders only once the repository
+     is public (until then GitHub answers "no status"). There is deliberately no
+     badge for code quality, lint or coverage: none of those services is
+     configured here, and a badge of a service that is not configured is a lie. -->
+
 *An independent project, not affiliated with Dassault Systèmes.*
 
 An MCP bridge for **drawing in the SOLIDWORKS® software**: it exposes ninety-nine
