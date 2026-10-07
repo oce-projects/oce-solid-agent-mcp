@@ -5,7 +5,7 @@
 
   "defect_caught": "A dimension that is missing, or that is there twice. The earlier expectations asked for the millimetres of the dimensions PLACED — and so a drawing without the holes and with the 120 repeated was green. Here we also ask what must NOT be there: the 120 in the view from above, the 10 in the side one, the hypotenuse of the chamfer, the strokes shortened by the chamfer.",
 
-  "_the_views_are_called_by_uid": "V1, V2, V3 as the state of the drawing numbers them: the NAMES depend on the language of SOLIDWORKS («Drawing View2» here). `standard_views` puts them in the order front, top, side — measured on the demonstration drawing, where the view with the holes is the second.",
+  "_the_views_are_called_by_uid": "V1, V2, V3 as the state of the drawing numbers them: the NAMES depend on the language of SOLIDWORKS («Drawing View2» in English, another word on an Italian installation). `standard_views` puts them in the order front, top, side — measured on the demonstration drawing, where the view with the holes is the second.",
 
   "start": { "new_part": true },
   "steps": [

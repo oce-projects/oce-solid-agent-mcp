@@ -24,8 +24,8 @@ namespace Oce.Solid.Agent.Core
     /// parentheses included, and in the DIN archive 1.0036 (S235JRG1),
     /// 1.0038 (S235JRG2), 1.0114 (S235J0), 1.0116 (S235J2G3), 1.0117
     /// (S235J2G4) coexist: they are not the same steel. Names that contain
-    /// words are moreover TRANSLATED («Alloy Steel» in Italian, «Alloy Steel»
-    /// in English), so they depend on the language of the installation.
+    /// words are moreover TRANSLATED («Alloy Steel» in English, another word on an
+    /// Italian installation), so they depend on the language of the installation.
     ///
     /// WHAT IS DONE HERE
     /// The databases that SolidWorks declares are read

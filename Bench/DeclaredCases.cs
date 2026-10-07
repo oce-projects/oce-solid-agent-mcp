@@ -1619,7 +1619,7 @@ namespace Oce.Solid.Agent.Bench
                         // regression that is not there.
                         // THE REFERENCE IS MARKED, NOT THE NAME (entry K12-bis).
                         //
-                        // Here the drawing is still called `Disegno38 -
+                        // Here the drawing is still called `Draw38 -
                         // Sheet1`; two steps after the case saves it and it becomes
                         // `drawing_dimensions_itself - Sheet1`. By marking the name of
                         // now, at the end of the case SOLIDWORKS was asked to

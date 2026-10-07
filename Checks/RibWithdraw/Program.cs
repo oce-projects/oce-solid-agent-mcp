@@ -8,7 +8,7 @@ using SolidWorks.Interop.swconst;
 //
 // Full bench on 0.141.0, limit_rib_on_a_plate_without_walls step 2: no rib is born in
 // either material direction (right: nothing to meet on a plate), and RibWithdraw answers
-// «I could not put the part back as I found it (removed «Schizzo2»)».
+// «I could not put the part back as I found it (removed «Sketch2»)».
 // The bridge: IGetChildCount > 0 -> give up; Select2(false,0); DeleteSelection2(swDelete_Absorbed).
 // This probe rebuilds the plate 40x40x2 on the Top plane, the sketch line on the Right plane at
 // y = 12 (z -15..15), calls InsertRib twice (flip false/true, IsNormToSketch false, as the bridge),

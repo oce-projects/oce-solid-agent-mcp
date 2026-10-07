@@ -51,12 +51,12 @@ namespace Oce.Solid.Agent.Core
     ///
     ///   L 60x60x10 deep 50, plane at z=25, line (10,40)->(40,10), thickness 6
     ///     normal to the sketch                  -> nothing    (55000 -> 55000)
-    ///     parallel, material straight           -> «Nervatura1», +2700 = 450 mm2 x 6
+    ///     parallel, material straight           -> «Rib1», +2700 = 450 mm2 x 6
     ///     parallel, material turned             -> nothing
-    ///     parallel, sketch left open            -> «Nervatura1», +2700
+    ///     parallel, sketch left open            -> «Rib1», +2700
     ///   box 40x40x20 shelled (2), right plane, line at y=12 from z=-15 to 15, thickness 2
     ///     parallel, material straight           -> nothing    (8672 -> 8672)
-    ///     parallel, material turned             -> «Nervatura1», +720 = 36 x 10 x 2
+    ///     parallel, material turned             -> «Rib1», +720 = 36 x 10 x 2
     ///   plate 40x40x2, same line                -> nothing in either direction
     ///
     /// **The direction of the material depends on the shape** (L: straight; box:

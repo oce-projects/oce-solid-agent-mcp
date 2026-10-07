@@ -693,7 +693,7 @@ cases/assemblies/     23   inserting is not mating; one constraint is not enough
                        after it blocks RY only (Z-C14); the first component goes
                        into an empty assembly, where the count was read off a
                        null array (D9 defect 3)
-cases/drawing/      42   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      43   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);
@@ -744,7 +744,9 @@ cases/drawing/      42   the first case that gets to the DRAWING (entry GT0);
                        frame reads its Ø back, and the flatness frame reads
                        none (Z-C21.8, M38); the BOM follows the configuration
                        of the view, not the active one (Z-C21.4, L16-2, L16-3);
-                       the indented BOM follows the tree (Z-C21.11, M23)
+                       the indented BOM follows the tree (Z-C21.11, M23); four
+                       standard views found by what they show, and named as
+                       the table of the SOLIDWORKS names names them (0.153.0)
 cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        two different places; the trim really shortens the bar,
                        and refuses between bars that do not meet; the bead

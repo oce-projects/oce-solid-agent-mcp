@@ -4805,8 +4805,8 @@ namespace Oce.Solid.Agent.Core
         /// had looked at?
         ///
         /// THE UID OF A FEATURE IS ITS NAME — there is nothing else
-        /// in the tree — and a name can be renamed. Whoever renames «Taglio1» and then
-        /// calls «Taglio1» another feature has transferred the
+        /// in the tree — and a name can be renamed. Whoever renames «Cut-Extrude1» and then
+        /// calls «Cut-Extrude1» another feature has transferred the
         /// identifier from one thing to another, and `SelectByID2` will
         /// obediently select the new one.
         ///
@@ -5756,8 +5756,8 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The chamfer or fillet that a new dimension has pushed out of measure,
-        /// said in words («the chamfer «Smusso1» takes a whole face of
-        /// «Extrude1» (6 -> 5 faces)»); null if there is none.
+        /// said in words («the chamfer «Chamfer1» takes a whole face of
+        /// «Boss-Extrude1» (6 -> 5 faces)»); null if there is none.
         ///
         /// Two conditions, both read: a feature that is not a
         /// cut (`Cut`, `ICE`, `HoleWzd`, and the revolve cuts) has FEWER
@@ -6289,8 +6289,8 @@ namespace Oce.Solid.Agent.Core
         /// should not assume that Sketch1 always appears before Sketch2».
         ///
         /// THE NAMES ARE READ, NEVER WRITTEN. Feature names are localized (an
-        /// Italian installation says «Sketch1» where an English one says
-        /// «Sketch1») and a SelectByID2 on a name we made up answers false in
+        /// English installation says «Sketch1», an Italian one another word
+        /// for it) and a SelectByID2 on a name we made up answers false in
         /// silence. Here a name is only compared with the names read from the
         /// same tree a moment before, and the feature is then selected as an
         /// object. IFeature~Name.html (Remarks): a new name «must be unique in
@@ -6523,8 +6523,8 @@ namespace Oce.Solid.Agent.Core
         /// The names of what depends on this feature.
         ///
         /// They serve to WRITE them in the refusal. «I cannot, it has children» sends the
-        /// reader to look for them by hand; «I cannot, Taglio1 and
-        /// Raccordo2 sit on it» tells them what to remove first, or lets them realize they
+        /// reader to look for them by hand; «I cannot, Cut-Extrude1 and
+        /// Fillet2 sit on it» tells them what to remove first, or lets them realize they
         /// picked the wrong feature.
         /// </summary>
         private static List<string> ChildrenOf(IFeature f)

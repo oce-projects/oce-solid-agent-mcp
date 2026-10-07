@@ -105,19 +105,19 @@ namespace Oce.Solid.Agent.Bench
                     bool read = sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swUseEnglishLanguageFeatureNames);
                     if (read != want)
                     {
-                        End();
+                        RestoreLanguage();
                         return "SOLIDWORKS did not take the toggle «Use English feature and file names» (set " + want + ", read back " + read + ").";
                     }
                 }
-                Console.CancelKeyPress += (s, e) => End();
-                AppDomain.CurrentDomain.ProcessExit += (s, e) => End();
+                Console.CancelKeyPress += (s, e) => RestoreLanguage();
+                AppDomain.CurrentDomain.ProcessExit += (s, e) => RestoreLanguage();
             }
             Language = SolidWorksLanguage.Read(sw);
             return null;
         }
 
         /// <summary>Puts the toggle back as it was before the run. Safe to call more than once.</summary>
-        internal static void End()
+        internal static void RestoreLanguage()
         {
             try
             {

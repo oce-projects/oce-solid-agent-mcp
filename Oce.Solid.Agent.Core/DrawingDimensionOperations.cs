@@ -1883,8 +1883,8 @@ namespace Oce.Solid.Agent.Core
         /// without a reason when it is there but cannot be taken.
         ///
         /// «V2», AS THE STATE OF THE DRAWING WRITES IT (25/9/2026). The NAMES of the
-        /// views depend on the language of SOLIDWORKS — «Drawing View2»
-        /// here, «Drawing View2» in English — and a plan that copies them holds on
+        /// views depend on the language of SOLIDWORKS — «Drawing View2» in
+        /// English, another word on an Italian installation — and a plan that copies them holds on
         /// one installation only. The identifier of the state does not: V1 is the
         /// first view of the sheet, in the same order in which the state
         /// lists them. A real name always wins: if a view is called «V2», it is

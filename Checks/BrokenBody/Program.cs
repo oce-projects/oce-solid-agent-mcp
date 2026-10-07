@@ -416,7 +416,7 @@ namespace Checks.BrokenBody
 
         /// <summary>
         /// The sketch just closed, taken from the tree and not by name: after the
-        /// first «Schizzo1» the names change, and a wrong name here means
+        /// first «Sketch1» the names change, and a wrong name here means
         /// an extrusion that does not start without saying why.
         /// </summary>
         private static bool SelectLastSketch(IModelDoc2 doc)

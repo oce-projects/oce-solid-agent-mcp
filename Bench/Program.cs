@@ -196,7 +196,13 @@ namespace Oce.Solid.Agent.Bench
                                   "the one that ends with \\SOLIDWORKS).");
                 return null;
             };
-            return Startup(lineArguments);
+            // THE LANGUAGE TOGGLE IS PUT BACK HERE, ON THE MAIN THREAD, whatever way
+            // Startup ends (a return, a red run, an exception). ProcessExit alone was not
+            // enough: it runs on another thread, a COM call to SOLIDWORKS from there needs
+            // the main thread to pump, and .NET gives the handlers about two seconds.
+            // CaseNames.RestoreLanguage is safe to call twice (ProcessExit still calls it).
+            try { return Startup(lineArguments); }
+            finally { CaseNames.RestoreLanguage(); }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(

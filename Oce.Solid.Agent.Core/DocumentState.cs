@@ -2076,7 +2076,7 @@ namespace Oce.Solid.Agent.Core
         /// multiplied by a thousand anything — the metres→mm conversion — and
         /// it came out as `mm`. On a revolution of 360 degrees:
         ///
-        ///     "name": "D1@Rivoluzione1", "mm": 6283.185
+        ///     "name": "D1@Revolve1", "mm": 6283.185
         ///
         /// which is **2π × 1000**. The state declared a dimension of six metres and
         /// twenty-eight on a part ninety millimetres long, and nobody
@@ -2371,7 +2371,7 @@ namespace Oce.Solid.Agent.Core
             // brought to 10. Two fillets of 8 on 10 mm do not
             // fit, and SOLIDWORKS says so —
             // `GetErrorCode2` = 12, `GetWhatsWrongCount` = 1 — but
-            // the state described «Raccordo1, radius 8» as any
+            // the state described «Fillet1, radius 8» as any
             // feature. The volume was 3,000, that is
             // **exactly** 100x10x3: the fillet had
             // done nothing, and whoever read saw a sound part.

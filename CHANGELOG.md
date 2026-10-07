@@ -161,6 +161,39 @@ waits for). SOLIDWORKS 29.5.1, Italian interface.
   fallback; and the planes, configurations and sheet that a template stores are not found by
   type (see 3).
 
+**7. Adversarial review (same version: the library and the bridge change only in comments).**
+- *A probe the translation had broken.* `Checks/FaceFillet` selected its sketches with
+  `SelectByID2` and the Italian name; the mechanical translation turned it into «Sketch1», which
+  selects nothing on the Italian installation, and `FeatureExtrusion3` was left without a profile.
+  It now takes the last feature of type `ProfileFeature` (IFeature~GetTypeName2.html) and selects
+  it with IFeature~Select2.html: no name, any language.
+- *The toggle is put back on the main thread.* The bench put «Use English feature and file
+  names» back only from `ProcessExit`, which runs on another thread with a time limit of about
+  two seconds, and a COM call to SOLIDWORKS from there needs the main thread to pump. `Main` now
+  calls `CaseNames.RestoreLanguage` in a `finally` (renamed from `End`, a name the obsolete-call
+  scanner cannot decide); `ProcessExit` and the restore file stay as the second and third net.
+- *The first level is now asserted.* Only the isometric was ever asked of `model_view`, and no
+  case said WHICH level had found the name: a first level finding nothing would have been rescued
+  by the table and stayed green. `drawing_exports_to_pdf` asserts `found_by: model`, and the new
+  case `drawing/model_view_finds_the_view_by_what_it_shows` asks for front, back, right and top,
+  each found by the model AND equal to the name the table has for it (`{SW:view.front}`...): the
+  swStandardViews_e mapping (front 1 / back 2, right 4 / left 3, top 5 / bottom 6) and the
+  table checked against each other.
+- *Sentences the translation made false.* ««Alloy Steel» in Italian, «Alloy Steel» in English»
+  and four more comparisons that said the same word twice (materials, `SwOperations` on localized
+  names, the drawing views, the PDF case, the callout case), the weldment case that called
+  «Weldment» the Italian name, the reserved-word case that called «thickness» the taken word,
+  and `Tools/api_knowledge.json` (a rename «to Cut-Extrude1» compared with «Cut-Extrude1»; and the
+  Italian reserved word with an Italian example name, now `wall`).
+- *Italian SOLIDWORKS names the gate does not see* (its lexicon has no feature names), left in
+  comments outside the table: fillet, rib, draft, revolve, chamfer and cut names in the library
+  (`DocumentState`, `DraftOperations`, `FaceFilletOperations`, `RibOperations`, `SwOperations`),
+  the probes (`Rib`, `RibWithdraw`, `BrokenBody`, `FaceFillet`, `CloseLeftovers`), `Bridge/Session.cs`,
+  `Tools/McpTools.cs` and `Bench/DeclaredCases.cs`: in English, as the rest of the library. Outside
+  the table and the signed template entries no Italian SOLIDWORKS name is left (searched by
+  pattern, not by the gate).
+- Counts: `Bench/README.md` drawing 42 -> 43, `Tests/README.md` 835 -> 837 checks.
+
 ---
 
 ## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0

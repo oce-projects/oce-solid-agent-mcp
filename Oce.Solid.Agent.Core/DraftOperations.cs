@@ -38,9 +38,9 @@ namespace Oce.Solid.Agent.Core
     /// **Neutral face mark 1, faces to draft mark 2.** Measured on
     /// 16/9/2026 on a 100x100x20 block, draft of 5 degrees:
     ///
-    ///   neutral=1, faces=2  ->  «Sformo1», sides at 5.00 degrees,
+    ///   neutral=1, faces=2  ->  «Draft1», sides at 5.00 degrees,
     ///                           volume 200000 -> 207080.7
-    ///   neutral=2, faces=1  ->  «Sformo1», sides at 0.00 degrees,
+    ///   neutral=2, faces=1  ->  «Draft1», sides at 0.00 degrees,
     ///                           volume 200000 -> 243744.3
     ///
     /// **The second row is the defect.** Swapping the marks the feature is born
