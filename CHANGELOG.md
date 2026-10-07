@@ -184,6 +184,30 @@ history table, `changelog-history`; `Checks/language/lexicon.json:884` and `:167
 `detector-lexicon`), 0 Italian outside the exceptions. No line is doubtful. The reading that
 went with the review (outside the sample) is what found the Italian translated above.
 
+**The entry `changelog-history` is narrow now.** It was `[^\n]+` from the heading of
+W3.1-bis.10b down: every line of the history, which would have hidden any Italian prose
+left there by mistake. Measured with the entry removed: 3,419 occurrences in `CHANGELOG.md`
+(86 lines of prose, 3,333 names). Every one of the 86 lines was read: a verbatim output that
+ran over two lines, or sat between straight quotes, is now on one line between guillemets;
+a name of before that stood bare is now between backticks; the block of
+«nota_assunto» and the message of the changed document («Mi fermo…», the output of the
+bench) are translated and say so; «L's notch» (read as an elided article) and
+«Università del Salento» are English now. The pattern covers a span between backticks on one line, or a name written as one
+token (snake_case, PascalCase, camelCase, `Namespace.Type`), and nothing else: 0 outside every
+entry with it, and the 188 occurrences that were left with backtick spans alone are all gone.
+The same measure on the other entries (every entry, every alternative of its pattern and every
+file of its file list taken out one at a time, 160 runs): the alternatives
+«Membro strutturale\d+» and «Elenco elementi\d+» in the entry for the library (the entry
+of the weldment files has them), `Tools/catalog.json` in the entry of the fill probes (no
+match there), the alternative «Default<…>» of the entry of the configurations (the two
+words after it are already covered), «tenut[ao] per» and «licenza commerciale» of the TODO
+readers (covered by a longer alternative, or matching nothing) are removed. The entry on
+the folder of the internal notes of the owner covers the folder name only; the two subfolders the snapshot tool names (and only in its two files)
+are a second entry. 40 entries wait for the signature, and the measure finds no alternative or file of them
+left that it does not need; the
+gate with every entry signed (tried on a copy) holds, unsigned it fails only for them. The
+list for the owner is outside the repository.
+
 ---
 
 ## Unreleased — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0
@@ -544,8 +568,8 @@ old backups and its old registry file next to the bridge (the uninstaller of thi
 version removes the new names only).
 
 **Kept on purpose, for the owner to read in .11** (pattern, reason, class):
-words Italian SOLIDWORKS itself writes and the code reads — «PASSANTE», «Croci di centro
-sui fori», «Vista in sezione», «Foglio» followed by a number, the reserved equation word
+words Italian SOLIDWORKS itself writes and the code reads — «PASSANTE»,
+«Croci di centro sui fori», «Vista in sezione», «Foglio» followed by a number, the reserved equation word
 «spessore», the standard-view fragments («anterior», «posterior», «superior»,
 «inferior», «destra», «sinistr», «isometri», «trimetri», «Isometrica»), the cut-list
 properties «LUNGHEZZA», «ANGOLO1», «ANGOLO2», «DESCRIZIONE», the header «QUANTITA»
@@ -1239,8 +1263,8 @@ stay Italian: W3.1-bis.8.
     the run, or it stops;
   - the code names in messages, comments and documents: only between
     backticks, guillemets or quotes, as a whole snake_case token, a selector or
-    a resource URI. **A common word is never replaced inside prose** («la
-    quota», «il foro» stay as they are), and the names an Italian SOLIDWORKS
+    a resource URI. **A common word is never replaced inside prose**
+    («la quota», «il foro» stay as they are), and the names an Italian SOLIDWORKS
     gives (`Taglio-Estrusione1`, «Piano frontale»; class
     `solidworks-localized` of `exceptions.json`) are never touched.
 - JSON is rewritten token by token: indentation, line ends, key order and the
@@ -1341,8 +1365,8 @@ literals of the sources, 971 messages and 1011 comments that quote a code name.
   from the map, not from the contract. **Seen red** with the map not embedded:
   11 of the 14 fail (the Italian tool is refused as unknown).
 - **The bench counts them**: every step whose answer carries `deprecated` adds
-  its lines to its case, and the run ends with a line `alias uses: N in M cases;
-  outside the alias cases: K` that `banco.ps1` writes into `last.json` as
+  its lines to its case, and the run ends with a line
+  `alias uses: N in M cases; outside the alias cases: K` that `banco.ps1` writes into `last.json` as
   `alias_uses`. K must be 0: a case of before the rename would otherwise hide
   behind the aliases until they go. `Alias.cs` and its contract are excluded
   from the window, which would otherwise rename the old names they quote.
@@ -1729,8 +1753,8 @@ comment lines of `.github/workflows/prove.yml` (a path), and carries
   freshness, which needs the bench run at the merge).
 - 136 twin references in 121 cases, all resolving, before and after.
 - **The bench has NOT run on this branch** (a full bench was running on the main
-  checkout): the bench and `snapshot.js compare --window 1 --ledger
-  Banco/report/tests.json` are to be run at the merge.
+  checkout): the bench and
+  `snapshot.js compare --window 1 --ledger Banco/report/tests.json` are to be run at the merge.
 - The untracked outputs of the bench stay where they are on a checkout: move
   `Banco/resoconto/*` (but `ultimo.json`, which git moves) into `Banco/report/`
   and `Banco/casi/forma/` into `Banco/cases/forma/` once, or `.gitignore` will
@@ -2603,7 +2627,7 @@ new group (17 as written, one added by the review).
   count goes from 1 to 2; step 4 is the probe's parallel state and checks the
   rule of the moved direction inside SOLIDWORKS); `un_accoppiamento_non_basta`
   now wants «still free in TX, TZ, RY», blocked TY, RX, RZ and 3 degrees
-  removed. Banco/LEGGIMI: assemblies 21 to 22.
+  removed. `Banco/LEGGIMI`: assemblies 21 to 22.
 - **Contracts:** `Zc14MateDirectionsContract`, 17 checks as written (18 after the review): the probe's S3 rows
   against both rules, six source rules each seen red on changed copies of the
   real source (26 mutants), and the pure rules by reflection on the built
@@ -2772,7 +2796,7 @@ parts: A + 3 x S_show(2 B) + B gives A 1, S_show 3, S_show > B 2, B 1.
   component, read back) and `reopen_lightweight` (saves, closes every document
   of the case, checks nothing is left loaded, reopens with 193 and checks
   `GetLightWeightComponentCount`), and a repeated child `nome` inside a
-  sub-assembly is a second instance of one part (Banco/LEGGIMI.md). Six new
+  sub-assembly is a second instance of one part (`Banco/LEGGIMI.md`). Six new
   cases: `assiemi/the_lightweight_assembly_has_a_box`,
   `the_lightweight_assembly_is_weighed_when_asked`, `the_envelope_does_not_weigh`,
   `the_hidden_component_is_not_in_the_step` (each red on 0.146.0: no box, the
@@ -2885,7 +2909,7 @@ a measurement; on 0.146.0 they are green.
 - **Integration:** catalogue texts of the operations above rewritten in English;
   new undecided obsolete-scanner calls removed by typing their receivers
   (`IConfiguration`, casts of `bool?`) instead of raising the frozen counts; floor of
-  refusals with a remedy 230 -> 232; Prove/LEGGIMI 639 checks (636 before the bench summary adds its own); Banco/LEGGIMI case
+  refusals with a remedy 230 -> 232; `Prove/LEGGIMI` 639 checks (636 before the bench summary adds its own); `Banco/LEGGIMI` case
   counts; language baseline lowered.
 - **Review:** the exclusion from the BOM falls back to the unnamed form when the
   named GetExcludeFromBOM2 throws, not only when it answers something that is not one
@@ -3124,7 +3148,7 @@ measured, cites its guide page and the probe numbers in the code, and takes its
 keys out of the exact ratchet of `Prove/ObsoleteCallsContract.cs`. Every
 bullet names the existing cases that must give the same answer (same volume,
 same box). **Full bench on library 0.143.0, 29/9/2026: 1934 tests, 0 failed**, after the
-bench families tavola and quote had shown that migration 9 (S1) breaks the
+bench families `tavola` and `quote` had shown that migration 9 (S1) breaks the
 drawing's own dimensions, and it was withdrawn (below). The same run is the green
 bench of 0.142.0 (entry 0.118.0).
 
@@ -3565,7 +3589,7 @@ inside SOLIDWORKS, so the full bench of 0.141.0 still stands.
 
 ## 0.116.0 — 28 September 2026 · library 0.141.0
 
-**Silent defects of the API audit, second round (TODO entry Z-C21.10-esito-2).**
+**Silent defects of the API audit, second round (TODO entry `Z-C21.10-esito-2`).**
 Every fix below is a case where a part, a file or an answer came out wrong
 with `riuscita: true`, decided from the SOLIDWORKS API help (quoted in the
 code) or from the library's own logic. The new bench cases are written to go
@@ -3624,7 +3648,7 @@ entry). Whether the new cases were RED on 0.140.0 has not been run yet
   (N61). IPartDoc~GetBodies2.html: "false gets all of the bodies in the part".
   `bodies_in_part` always counts every body, `verdict_about` says «part» or
   «body Cn», and a sound body of a multibody part no longer gets the sentence
-  "si puo' esportare". Case: `verifica/one_body_of_two_is_not_the_part`.
+  «si puo' esportare». Case: `verifica/one_body_of_two_is_not_the_part`.
 - **`esporta_iges` turns off the three toggles that add curves or turn the
   solid into curves, and counts the solids in the file** (N59).
   FileSaveAsIGESOptions.htm: swIGESExportAsWireframe "Specifies whether to
@@ -3692,7 +3716,7 @@ entry). Whether the new cases were RED on 0.140.0 has not been run yet
     29.5.1. DeleteSelection2 answers false with every option, EditDelete and
     three EditUndo2 leave it, a control sketch deletes normally, and
     EditSuppress2 works. The sketch is now suppressed and named in the refusal
-    ("resta nell'albero, SOPPRESSO"), and the volume check still says com'era.
+    («resta nell'albero, SOPPRESSO»), and the volume check still says «com'era».
     Before, the refusal declared a restore that had failed.
   - **Two bench cases corrected, no library change.**
     `guided_hole_counterbore_past_the_edge` step 3 selects the plate face with
@@ -3852,7 +3876,7 @@ there.
   Operations with a copyable example (`ProveGliEsempi`): 29 -> 30 (the rib).
   Two required fields get a written decision (`ProveICampiObbligatori`):
   `ripeti_riempimento.copie_per_giro`, `nervatura.piano`. Bench cases: 13 new
-  (lavorazioni 27 -> 34, ripeti 9 -> 13, saldature 5 -> 7).
+  (`lavorazioni` 27 -> 34, `ripeti` 9 -> 13, `saldature` 5 -> 7).
 
 ## 0.114.0 — 28 September 2026 · library 0.139.0
 
@@ -3884,7 +3908,7 @@ in the changes marked *behaviour* below.
     temporary sheet body (IFace2.CreateSheetBody), for faces. *Behaviour*: the
     flat length measured by the sheet-metal operations (LunghezzaSviluppata), the face boxes of
     `verifica_sovrasporgenze`, `incidi_testo` and the extreme-face choice
-    in Riferimenti now use the true box instead of GetBox/GetBodyBox, which the
+    in `Riferimenti` now use the true box instead of GetBox/GetBodyBox, which the
     guide calls approximate and "not for comparison or calculation". A face box
     that cannot be measured is null, not approximate, and each caller says so
     instead of turning it into a verdict (see the review corrections below). The approximate boxes that are
@@ -3907,7 +3931,7 @@ in the changes marked *behaviour* below.
   swFileSaveWarning_e decoded to their ENUM NAMES, from the interop enums (a
   mask as `swReadOnlySaveError | swFileLockError`). *Behaviour*: four
   messages now add the enum name after the raw code (two SaveAs3 exports, two
-  SetSystemValue3 refusals), e.g. "(codice 2: swSetValue_InvalidValue)". No
+  SetSystemValue3 refusals), e.g. «(codice 2: swSetValue_InvalidValue)». No
   sentence in either language: English words inside the Italian messages, or
   new Italian words past the language gate, were both wrong.
 - **Refined list of obsolete members**: `Controlli/obsolete-api-list.js`
@@ -3937,7 +3961,7 @@ in the changes marked *behaviour* below.
     array elements give a type, which found an obsolete `IView.Name` in
     OperazioniDistintaTavola and three `ISheetMetalFeatureData.KFactor` in
     OperazioniLamiera (both frozen, with reasons) and removed two false ones
-    (`.Select` of LINQ in Banco/Program.cs); the holes of interpolated
+    (`.Select` of LINQ in `Banco/Program.cs`); the holes of interpolated
     strings are scanned; the undecided calls have their ratchet; the ratchet is
     seen red both ways;
   - `OBSOLETE-MEASURED` now means "a bank case proves the effect of this very
@@ -3948,14 +3972,14 @@ in the changes marked *behaviour* below.
     `verifica_sovrasporgenze` counts it as not analysed (inconclusive, new
     `planar_faces_without_true_box`), `incidi_testo` refuses before touching
     the part instead of skipping the overflow check, and the extreme-face choice
-    of Riferimenti falls back to a point on the face (IFace2.GetClosestPointOn)
+    of `Riferimenti` falls back to a point on the face (IFace2.GetClosestPointOn)
     and says "could not be measured" instead of "there is no such face";
   - *behaviour* — putting a pattern back after a refused change of instances
     says "put back as it was" only when GetErrorCode2 says the pattern is sound;
   - the four sheet-metal operations, the anchor movement check and the
     feature-error count of `riordina_lavorazione` read GetErrorCode2 through
     `RebuildError` (*behaviour*: the sheet-metal and anchor messages give the
-    error in words instead of "codice N"); the three hand-written unions of
+    error in words instead of «codice N»); the three hand-written unions of
     approximate boxes and the one-axis extent go through `UnionOfBoxes`. The
     state (StatoDocumento) keeps its own reader: it also records warnings,
     which RebuildError leaves out by design.
@@ -3990,7 +4014,7 @@ red on the previous library and green on this one.
   asked through `ISldWorks.IsSame`. New `corpo_principale_rif` and
   `corpi_utensile_rif` name the bodies of an earlier step of the same plan —
   without them a "cut, then combine" plan had no valid way to name a body.
-  Names in the answer are state uids, or "C<n> (per posizione)" when the body
+  Names in the answer are state uids, or «C<n> (per posizione)» when the body
   was taken by position.
 - **`verifica_sovrasporgenze` checks hidden bodies too** (L12-1:
   `GetBodies2(swSolidBody, false)`) and **no longer treats a curved face
@@ -4285,7 +4309,7 @@ New case `piano/la_foto_sta_in_scala`. Ninety-two operations.
 **Reorder the tree (entry Z-F3).** A shell before a hole gives a different
 part from a shell after it, and moving the feature is a weekly gesture. New
 operation `riordina_lavorazione` (`feature_uid`, `rispetto_a_uid`, `dove`:
-prima/dopo). Measured first on a 100×60×40 box with a Ø10 through hole and a
+`prima`/`dopo`). Measured first on a 100×60×40 box with a Ø10 through hole and a
 3 mm shell opening the top: `ReorderFeature` returns true and the volume
 changes (hole then shell 56485.7 mm³, shell before the hole 51952.38), and
 putting it back gives 56485.7 again; an impossible move (the hole before the
@@ -4339,8 +4363,8 @@ transparency lives in `MaterialPropertyValues[7]` (0.75 after
 `FixComponent`/`UnfixComponent` on the selected component work both ways,
 including on the first component, which SOLIDWORKS fixes by itself.
 
-- Assembly state, per component: `accoppiamenti_tipi` (by name: coincidente,
-  concentrico, parallelo, …), `e_sottoassieme` (null when the component is
+- Assembly state, per component: `accoppiamenti_tipi` (by name: `coincidente`,
+  `concentrico`, `parallelo`, …), `e_sottoassieme` (null when the component is
   suppressed: «I don't know», not «no»), `visibile`, `trasparente`.
 - New operation `fissa_componente` (`componente`, `fisso` — both required:
   fixing and freeing are opposites). Both calls return nothing: the result is
@@ -4445,7 +4469,7 @@ of a planar face (the centre-mark rule); the outline of a round part gets a
 diameter dimension, read back (edge-on, `AddDiameterDimension2` says 60 for a
 Ø30 — measured), reported in `diametri_esterni`; edge-on circles are listed in
 `cerchi_di_taglio`, and a view with nothing else is refused saying so. Every
-hole also reports passante/depth READ FROM THE GEOMETRY (the cylinder and its
+hole also reports `passante`/depth READ FROM THE GEOMETRY (the cylinder and its
 other circle: inner loop of a plane = through; outer loop or cone = blind),
 holes are grouped by diameter AND depth, and when the callout does not appear
 the depth is written into the diameter dimension («Ø8 ↧5», tried and looked
@@ -5025,8 +5049,8 @@ confirmation and execution, `ripeti_circolare` patterned around the new one,
 silently. The state now carries a point on the axis line and its direction
 (from `IRefAxis.GetRefAxisParams`), the bridge attaches them to each step as a
 signature, and the step refuses when the axis has moved: parallel within one
-degree and the line within the point tolerance, otherwise «L'asse si e' spostato
-di N mm». It compares the LINE, not the start point, because an axis can be
+degree and the line within the point tolerance, otherwise
+«L'asse si e' spostato di N mm». It compares the LINE, not the start point, because an axis can be
 redrawn longer without changing. Two bench cases: the twin with a point halfway
 along the axis (six instances), and the refusal with the axis 30 mm away.
 
@@ -5126,7 +5150,7 @@ side only**, and a 120 mm slot in the middle comes out through the flank. Clean
 rebuild, one body, no error — and a closed slot has become an open notch, which
 is a different part. `modifica_quota` now counts the closed openings of planar
 faces (inner loops) before and after; if they drop, it **writes the old value
-back**, rebuilds, re-reads the volume, and refuses with "esce dal materiale".
+back**, rebuilds, re-reads the volume, and refuses with «esce dal materiale».
 Two new bench cases: the refusal, which also requires the volume to be exactly
 what it was, and its twin at 180 mm, where the slot stays inside.
 
@@ -5163,10 +5187,10 @@ opened file closes.
 ### Not installed is not "not open" (entry H16)
 
 One `catch (COMException)` gave the same sentence for both. Now
-`MK_E_UNAVAILABLE` says "non risulta aperto" (unchanged, word for word: the
+`MK_E_UNAVAILABLE` says «non risulta aperto» (unchanged, word for word: the
 installer looks for it), while `CO_E_CLASSSTRING` and `REGDB_E_CLASSNOTREG` say
-SOLIDWORKS is not installed or not registered — and **must not** contain "non
-risulta aperto", or an install on a machine without SOLIDWORKS would exit 0.
+SOLIDWORKS is not installed or not registered — and **must not** contain
+«non risulta aperto», or an install on a machine without SOLIDWORKS would exit 0.
 Six contract checks, by HRESULT, without SOLIDWORKS.
 
 ### File properties show the version (entry H14)
@@ -5184,8 +5208,8 @@ back from the file.
   and a failed write left a `.parziale` next to the real file. The lock is now
   detected before anything is touched, and the temporary file never stays.
 - Silent mode now warns when the client is open, like the window did.
-- Backups are pruned to the last three per file; reinstalling says "aggiorno
-  dalla X alla Y" or "reinstallo la X", reading the version embedded in the old
+- Backups are pruned to the last three per file; reinstalling says
+  «aggiorno dalla X alla Y» or «reinstallo la X», reading the version embedded in the old
   executable from its bytes (loading the file would lock it).
 
 `Controlli/prova-installatore.js`: 17 checks, 0 failed, including half of the
@@ -5193,7 +5217,7 @@ back from the file.
 
 ### The bench says two numbers (entry F15)
 
-It printed "catalogo: 73" while the served catalogue has 71; the difference
+It printed «catalogo: 73» while the served catalogue has 71; the difference
 was once explained, plausibly and wrongly, as the two library copies diverging.
 It now prints `eseguibili: 73 operazioni (a catalogo: 71)`, and the report
 carries both (`eseguibili`, `a_catalogo`; `catalogo` kept for readers).
@@ -5285,7 +5309,7 @@ contract check now catches that in a tenth of a second, before the bench.
 
 The third run found one more bench error of the same kind: the refusal
 "sviluppo_dxf on a never-saved part" and its twin called the operation with
-identical arguments ("gemella finta": the refusal depends on the save state,
+identical arguments («gemella finta»: the refusal depends on the save state,
 not on an argument). The pair now differs by `percorso`, with a note saying
 that is not what decides; and a second contract check compares every refusal
 with its twin before the bench — seen red on the copy, then refined when it
@@ -5686,7 +5710,7 @@ that describes a shape does not.*
 
 `CONFRONTO.md` (a competitive comparison against a named third-party project)
 and `PROVE-INSTALLATORE.md` (the results of one test session, stuck at
-Installa.exe 0.7.1 of 14/9/2026 while VERSION.txt says 0.84.0) are working
+`Installa.exe` 0.7.1 of 14/9/2026 while VERSION.txt says 0.84.0) are working
 notes: they teach a reader nothing about installing, using or contributing.
 `Controlli/voce-0.76.0.js` is a single-use scaffold that rewrites a CHANGELOG
 entry already written; it was the only one of the 24 scripts in `Controlli/`
@@ -5737,8 +5761,8 @@ K17 says the bench *"stops **saying so** and exits 4"* when SOLIDWORKS dies
 mid-run. On one path it did not: it **died**.
 
 ```
-Eccezione non gestita: Condiviso.PreparazioneFallita: SOLIDWORKS NON
-  PRODUCE PIU' DOCUMENTI: 3 tentativi di fila andati a vuoto...
+«Eccezione non gestita:» Condiviso.PreparazioneFallita: «SOLIDWORKS NON»
+  «PRODUCE PIU' DOCUMENTI: 3 tentativi di fila andati a vuoto...»
    in ProvaSaldatura.Program.ProvaFotografia()
    in ProvaSaldatura.Program.Gruppo.Corri()
    in ProvaSaldatura.Program.Main(String[])
@@ -5776,11 +5800,12 @@ direction:** if the bridge applies S235JR and says nothing, the model believes
 it chose it, next time it will not even ask, and then a part that needed
 stainless ships with nobody able to say where the decision was made.
 
-So every answer now carries `misure.nota_assunto`:
+So every answer now carries `misure.nota_assunto` (the two lines are translated
+from the Italian):
 
 ```
-materiale: «S235JR» — PREDEFINITO di questa officina, non l'hai chiesto tu.
-materiale: «AISI 304» — l'hai chiesto tu.
+material: «S235JR» — DEFAULT of this shop, you did not ask for it.
+material: «AISI 304» — you asked for it.
 ```
 
 **Written always**, including when the value was asked for. A field that only
@@ -6390,7 +6415,7 @@ the drawing's scale — a groove, a chamfer, a fillet with its dimension.
 Without it, on a real shop drawing those get dimensioned by eye.
 
 ```
-"vista_dettaglio":"Vista dettagliata B (2 : 1)", "tipo_vista":3,
+"vista_dettaglio":"«Vista dettagliata B (2 : 1)»", "tipo_vista":3,
 "e_un_dettaglio":true, "circonferenze_prima":0, "circonferenze_dopo":1
 ```
 
@@ -6429,8 +6454,8 @@ A full run died after 312 green checks: `NewDocument` started answering
 `null` and never stopped. The report said
 
 ```
-NO   il_dettaglio_ingrandisce   SOLIDWORKS non ha prodotto la parte nuova
-NO   il_loft_non_e_un_cono      SOLIDWORKS non ha prodotto la parte nuova
+NO   il_dettaglio_ingrandisce   «SOLIDWORKS non ha prodotto la parte nuova»
+NO   il_loft_non_e_un_cono      «SOLIDWORKS non ha prodotto la parte nuova»
 ```
 
 on nine cases that were written correctly, and then hung inside the next COM
@@ -6664,7 +6689,7 @@ asking for the view, and a line that **crosses** the view — one that grazes it
 gives an empty section without saying anything.
 
 ```
-"vista_sezione":"Vista in sezione A-A", "tipo_vista":2, "e_una_sezione":true,
+"vista_sezione":"«Vista in sezione A-A»", "tipo_vista":2, "e_una_sezione":true,
 "viste_prima":4, "viste_dopo":5, "tratteggi":1, "tratteggi_solidi":0
 ```
 
@@ -6696,11 +6721,12 @@ measured road again.
 ### The bridge could not save and then draw
 
 Preparing the drawing for that measurement, the most ordinary sequence there
-is — **extrude, cut, save, create drawing** — stopped at the fourth step:
+is — **extrude, cut, save, create drawing** — stopped at the fourth step, with
+this message (translated from the Italian):
 
 ```
-Mi fermo: il documento e' cambiato. Avevi guardato «Parte1597», adesso
-davanti c'e' «...\sonda_sezione.SLDPRT».
+I stop: the document changed. You had looked at «Parte1597», now
+in front there is «...\sonda_sezione.SLDPRT».
 ```
 
 True, and our fault. `salva_documento` changes the document's identity while the
@@ -6726,10 +6752,10 @@ Done, by taking the library to 0.104.0 and building only its project:
 0.104.0.0   Riscontro.Disegno\bin\Release\...   (what the bench measures)
 0.103.0.0   bin\...                             (what the bridge loads)
 
-NO   il ponte e il banco hanno la STESSA versione della libreria
-     BANCO 0.104.0.0 contro PONTE 0.103.0.0 — chi ha compilato il solo
-     progetto ha aggiornato il primo e non il secondo: si rilancia
-     .\build.ps1, che li allinea
+NO   «il ponte e il banco hanno la STESSA versione della libreria»
+     «BANCO 0.104.0.0 contro PONTE 0.103.0.0 — chi ha compilato il solo»
+     «progetto ha aggiornato il primo e non il secondo: si rilancia»
+     «.\build.ps1, che li allinea»
 ```
 
 That is the defect which on 18 September cost nine hours disguised as "the
@@ -6765,8 +6791,8 @@ case would have stayed mute. There is now a contract check for exactly that, and
 it was watched going red by removing `saldature` on purpose:
 
 ```
-NO   ogni cartella con dei casi dentro e' nell'elenco
-     MUTE, i loro casi non girano mai: saldature
+NO   «ogni cartella con dei casi dentro e' nell'elenco»
+     «MUTE, i loro casi non girano mai: saldature»
 ```
 
 Also measured: the other folders outside the list (`ponte`, `limiti`, `viste`,
@@ -6802,9 +6828,9 @@ The refusal case for the section passed `a_mm: 9999` while its green twin
 passed `etichetta: "A"` — **no argument in common**:
 
 ```
-!!  lim_sezione_fuori_dalla_vista · passo 6
-    ERRORE DI BANCO: gemella finta: non ha nemmeno un argomento in comune
-    col rifiuto: sono due operazioni che non si parlano
+!!  lim_sezione_fuori_dalla_vista · «passo 6»
+    «ERRORE DI BANCO: gemella finta: non ha nemmeno un argomento in comune»
+    «col rifiuto: sono due operazioni che non si parlano»
 ```
 
 The rule was already written, in a sentence copied into that very file from
@@ -6914,12 +6940,12 @@ operations the open document does not allow, and `guarda_il_pezzo`, which does
 not go through the executor at all.
 
 ```
-OK   porta: guarda_il_pezzo nomina il documento del banco   Parte1241
-OK   porta: il piano riesce
-OK   porta: e il pezzo e' cambiato davvero, misurato dal banco  0 -> 96000 mm3
-OK   porta: un'operazione di assieme su una PARTE e' rifiutata
-OK   porta: e il rifiuto dice su cosa sta lavorando
-OK   porta: il ponte e' ancora vivo dopo una notifica
+OK   «porta: guarda_il_pezzo nomina il documento del banco»   «Parte1241»
+OK   «porta: il piano riesce»
+OK   «porta: e il pezzo e' cambiato davvero, misurato dal banco»  0 -> 96000 mm3
+OK   «porta: un'operazione di assieme su una PARTE e' rifiutata»
+OK   «porta: e il rifiuto dice su cosa sta lavorando»
+OK   «porta: il ponte e' ancora vivo dopo una notifica»
 ```
 
 **The bridge says "riuscita"; the bench does not take its word.** It reads the
@@ -6977,8 +7003,8 @@ which, together, hide a third.
 **Where the characters are, measured rather than imagined:**
 
 ```
-    8,718  facce      60 entries   (145 each)
-    5,572  spigoli    60 entries   ( 93 each)
+    8,718  «facce»    60 entries   (145 each)
+    5,572  «spigoli»  60 entries   ( 93 each)
     1,799  everything else
 ```
 
@@ -6997,8 +7023,8 @@ were, `troncato` goes true.
 
 Measured after: **13,378 with two documents open**, a 16% margin.
 
-**And the check now demands the margin, not the ceiling.** It is called «stato:
-sotto i 16 KB con almeno il 15% di margine», and it prints the margin **always**,
+**And the check now demands the margin, not the ceiling.** It is called
+«stato: sotto i 16 KB con almeno il 15% di margine», and it prints the margin **always**,
 including on green — the only moment you can see the wall coming. *A check that
 says "passed" seventy-eight characters from the wall is not warning anyone.*
 
@@ -7020,16 +7046,16 @@ That matters because **face identifiers are positional**. A plan is born from
 one reading and its `F1`, `F2` speak of that moment; on changed geometry `F1`
 may be a different face and the operation succeeds in the wrong place — the
 defect already measured on 14 September with the two pockets, both of them
-"riuscita: true".
+«riuscita: true».
 
 `guarda_il_pezzo` now keeps a light signature — volume, number of features,
 file write time — and `disegna` compares it before executing. All three are
 already in hand: no extra reading, nothing new asked of SOLIDWORKS. *A check
 that costs as much as the thing it protects does not get run.*
 
-**It stops with the criterion, not with a verdict.** «il volume e' passato da
-96000 a 97125 mm3; le lavorazioni sono passate da 1 a 2» can be checked; «lo
-stato e' cambiato» has to be believed. The difference is the risk the entry
+**It stops with the criterion, not with a verdict.**
+«il volume e' passato da 96000 a 97125 mm3; le lavorazioni sono passate da 1 a 2» can be checked;
+«lo stato e' cambiato» has to be believed. The difference is the risk the entry
 itself named: an unverifiable warning is one you learn to ignore.
 
 **What it does not catch, said here rather than discovered:** a change that
@@ -7056,12 +7082,12 @@ dictionaries. They do not cover the wiring, and the wiring is where the bug
 was. The probe drives the bridge over stdio and proves both halves:
 
 ```
-=== 1. guarda -> disegna -> disegna, senza falsi positivi
-  OK   il secondo disegna passa (nessun falso positivo)
-=== 2. qualcuno cambia il pezzo da fuori, e il disegna dopo si ferma
-  OK   qualcuno ha cambiato il pezzo da fuori    volume: 96000 -> 97125 mm3
-  OK   il disegna dopo si ferma                  Mi fermo: il pezzo e' cambiato...
-  OK   e dopo aver riletto si riparte
+=== 1. «guarda -> disegna -> disegna, senza falsi positivi»
+  OK   «il secondo disegna passa (nessun falso positivo)»
+=== 2. «qualcuno cambia il pezzo da fuori, e il disegna dopo si ferma»
+  OK   «qualcuno ha cambiato il pezzo da fuori»  volume: 96000 -> 97125 mm3
+  OK   «il disegna dopo si ferma»                «Mi fermo: il pezzo e' cambiato...»
+  OK   «e dopo aver riletto si riparte»
 ```
 
 The change has to come from **outside the bridge** — while it comes through
@@ -7154,8 +7180,8 @@ remain it says so. A line that appears only when something did not work is the
 least that stops a silent defect from living another seven days.
 
 **How it was found is worth as much as the fix.** Not by reading the code, but
-by reading the run's own diary: the line `| da qui si lavora su «Disegno38 -
-Foglio1»` says the name the bench saw, and comparing it with what
+by reading the run's own diary: the line
+`| da qui si lavora su «Disegno38 - Foglio1»` says the name the bench saw, and comparing it with what
 `ChiudiScarti` listed after the run closes the diagnosis in a minute. *The bench
 had been saying it all along; nobody had put the two lists side by side.*
 
@@ -7209,7 +7235,7 @@ oblique ones off to the left on their own, and the three bands are stepped
 independently: 12 mm clear of the outline, 10 mm apart. Shortest nearest the
 part. Those are not invented numbers — UNI ISO
 129-1, as reported by the Zanichelli sheet (7–12 mm between parallel dimension
-lines on A3/A4) and the Università del Salento lecture notes (more than 10 mm
+lines on A3/A4) and the University of Salento lecture notes (more than 10 mm
 from the outline, more than 6 mm between lines). The two values the code
 already used satisfy all four constraints: *the defect was never the numbers,
 it was the direction.*
@@ -7268,8 +7294,8 @@ is another way of saying *believed*.
 
 ### The bench now refuses to start on a dirty SOLIDWORKS
 
-A full run — an hour and a quarter — went red on `stato: sotto i 16 KB su un
-telaio da quattro barre: 17435 caratteri, 15 documenti aperti`. Nothing in the
+A full run — an hour and a quarter — went red on
+`stato: sotto i 16 KB su un telaio da quattro barre: 17435 caratteri, 15 documenti aperti`. Nothing in the
 code had changed; fifteen documents had been left open by an earlier session,
 and a document's state lists `documenti_aperti`.
 
@@ -7306,7 +7332,7 @@ that entry asked *how many of them have a CAD document under them* — and the
 answer is now printed beside the total:
 
 ```
-prove con un documento CAD aperto: 806 - senza: 29
+«prove con un documento CAD aperto: 806 - senza: 29»
 ```
 
 **It is asked of SOLIDWORKS, not of the bench.** The first draft kept an
@@ -7348,8 +7374,8 @@ discovered.
   declaration is repeated at the foot of the README, because almost nobody
   opens a NOTICE.
 - **`AssemblyInformationalVersion` was two versions behind again**, and this
-  time a check said so instead of a comment: `assembly 0.101.0.0, proprietà del
-  file 0.100.0`. The comment warning about exactly this has been in
+  time a check said so instead of a comment:
+  `assembly 0.101.0.0, proprietà del file 0.100.0`. The comment warning about exactly this has been in
   `AssemblyInfo.cs` since the last occurrence — *a comment is not a check*. The
   fix landed after the bench run; it changes one metadata string and no
   behaviour, and `AssemblyVersion` — the number the report is checked against —
@@ -7394,8 +7420,8 @@ the first that does not carry a fresh report — a commit that carries one *is* 
 run.
 
 **Two documents described this machine instead of the repository.** The bench
-LEGGIMI counted `casi/forma/ 5`, which git does not track: the check «every
-folder named in the LEGGIMI exists» was green here and red for anyone cloning.
+`LEGGIMI` counted `casi/forma/ 5`, which git does not track: the check
+«every folder named in the LEGGIMI exists» was green here and red for anyone cloning.
 Found by cloning. And TODO.md pointed at `scratchpad/conta_todo.js`, which is
 not versioned — the tool meant to keep the counts honest could not be run by
 anyone. `Controlli/conta-todo.js` now exists, and the counts are 108 open of
@@ -7478,7 +7504,7 @@ the second that the bridge is still loading the old one. Both watched failing.
 ### And a red worth keeping on the record
 
 The first full run came back with three reds, all from one mistake of mine: the
-answer says "sia VERO" in capitals and the expectation looked for `vero` in
+answer says «sia VERO» in capitals and the expectation looked for `vero` in
 lower case. `contiene` is case-sensitive.
 
 The interesting part is the second and third red. The bench **refused to count
@@ -8220,8 +8246,8 @@ case, `lavoro` must be empty again. *A case that passes because a file from the
 previous run was still there is not a case, it is a memory.*
 
 **GA1 — `guarda_il_pezzo` describes assemblies.** It used to answer, for any
-assembly, one line: *"documento di assieme: l'assistente non lo modifica
-ancora"*. True, and blinding: the state is the only thing the model sees, so it
+assembly, one line: *«documento di assieme: l'assistente non lo modifica ancora»*.
+True, and blinding: the state is the only thing the model sees, so it
 could not know how many components there were, what they were called, which were
 suppressed. It could not even refuse with any understanding of what it was
 looking at.
@@ -8521,7 +8547,7 @@ not to ask for confirmation on the strength of that declaration.
 `title` sat only inside `annotations`, where older revisions of the spec put it.
 It is now **also** on the tool itself, where a newer client looks — written in
 both places, because choosing one would mean half the clients showing
-`guarda_il_pezzo` to a person instead of "Guarda il pezzo aperto".
+`guarda_il_pezzo` to a person instead of «Guarda il pezzo aperto».
 
 The unknown-tool error now lists the tools that exist, and says the thing the
 model actually gets wrong: **the sixty operations are not tools** — they go to
@@ -9069,7 +9095,7 @@ property. With the circular edge selected it works on the first try.
 **And the TODO entry's question had no answer.** The entry asked to find the
 right value of `Standard` using "the generated callout" as the judge. Measured:
 with `Standard` 0, 1, 2, 3 and 8 (ISO), with `StandardType` "Tapped hole",
-"Machine Threads", "Maschiatura", "Filettature macchina", and `Size` "M6x1.0",
+"Machine Threads", «Maschiatura», «Filettature macchina», and `Size` "M6x1.0",
 "M6", "M6x1" — the feature is always created, and reading it back:
 
 ```
@@ -10298,7 +10324,7 @@ making the third, so an equality and not an estimate:
 
 ```
 the volume returns to what it was with two holes     393842,478 against 393842,478
-the state shows it suppressed                        suppressed: true on Taglio-Estrusione3
+the state shows it suppressed                        suppressed: true on «Taglio-Estrusione3»
 reactivating it restores the volume as it was         390763,718
 deleting a hole with no children succeeds             and it is no longer in the list
 ```
@@ -11585,7 +11611,7 @@ vertex) states **what it is** without giving it a name.
 ### The name of features lives in a map, not on every face
 
 Writing it on every face pushed the state past its 16 KB ceiling: on a
-welded frame the names are "TUBO STRUTTURALE QUADRO 80X80X5(1)", and sixty
+welded frame the names are «TUBO STRUTTURALE QUADRO 80X80X5(1)», and sixty
 faces coming from four features repeated it sixty times —
 **18,629 characters**, against a limit the bench watches.
 
@@ -11614,7 +11640,7 @@ a whole one.
 
 ```
 Face "F5" has moved, and the only one that matches by position comes from
-"Estrusione-Estrusione1" instead of "Taglio-Estrusione1": it isn't the same
+«Estrusione-Estrusione1» instead of «Taglio-Estrusione1»: it isn't the same
 face, it's a different one that ended up in the same spot.
 ```
 
@@ -12297,7 +12323,7 @@ are legitimate outlines that **must** pass:
   doesn't skip adjacent pairs flags every triangle;
 * **the square**, which has four vertices and the fourth isn't a duplicate: always
   dropping the last point is the easy mistake to make in `Ring`;
-* **the point in the L's notch**, inside the bounding box and outside the material:
+* **the point in the notch of the L**, inside the bounding box and outside the material:
   it exposes an "is inside" check done with the box instead of the polygon.
 
 ---
@@ -12720,9 +12746,9 @@ inside it, in one case falls through to the other side.
 ### Now
 
 ```
-features_with_fewer_faces: ["Taglio-Estrusione1 2 -> 1"]
+features_with_fewer_faces: ["«Taglio-Estrusione1» 2 -> 1"]
 note: "The new dimension changed the tree, not just the measurements:
-       these lost faces: Taglio-Estrusione1 2 -> 1. A blind feature that
+       these lost faces: «Taglio-Estrusione1» 2 -> 1. A blind feature that
        loses a face has usually become THROUGH: the bottom is no longer there."
 ```
 
@@ -13258,9 +13284,9 @@ untested tool isn't measuring.
 ### An error that helps instead of just stating facts
 
 Whoever gets an operation's name wrong almost always has a nearby one in mind,
-and misses it by a letter. "asole" now gets back *"Did you mean:
-asola"*. The first attempt searched for the whole word inside the name, and on
-"asole" it didn't find "asola" — it failed in exactly the case it had been
+and misses it by a letter. `asole` now gets back *"Did you mean:
+`asola`"*. The first attempt searched for the whole word inside the name, and on
+`asole` it didn't find `asola` — it failed in exactly the case it had been
 written for.
 
 ### Measured
@@ -13274,7 +13300,7 @@ open:
 | `inspect_part` | full part state, with `documents_open` |
 | `list_operations` (family `drawing`) | 7 operations |
 | `describe_operation` (`asola`) | full schema |
-| misspelled name (`asole`) | "Did you mean: asola" |
+| misspelled name (`asole`) | "Did you mean: `asola`" |
 | plan with a non-existent operation | rejected **before** touching the part |
 | `build` → `apply_material` | "generic ABS," read from the state afterward |
 

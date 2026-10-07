@@ -29,10 +29,10 @@
  {
   "class": "changelog-history",
   "file": "^CHANGELOG\\.md$",
-  "pattern": "[^\\n]+",
+  "pattern": "`[^`\\n]*`|\\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\\b|\\b(?:[A-Z][a-z0-9]+){2,}\\b|\\b[a-z]+(?:[A-Z][a-z0-9]+)+\\b|\\b[A-Z][A-Za-z0-9]*(?:\\.[A-Z][A-Za-z0-9]*)+\\b",
   "scope": { "from": "^## Unreleased — W3\\.1-bis\\.10b," },
   "applies_to": ["detector", "translator"],
-  "reason": "the entries from W3.1-bis.10b down to the first one are the record of the rename into English and of the work before it: they quote the folders, files, operations and options by the names they had at the time, on purpose (decision D2: history is not rewritten). The scope starts at the heading of that entry, found in the text, and runs to the end of the file; the entries above it are written in English and judged",
+  "reason": "the entries from W3.1-bis.10b down to the first one are the record of the rename into English and of the work before it, and the history was translated in full (decision D2): what it keeps in Italian is only the names it quotes as they were before the rename (folders, files, projects, identifiers, operation and option names). The pattern covers a span between backticks on one line, or one name written as a single token (snake_case, PascalCase, camelCase, a dotted Namespace.Type), and nothing else: never a whole line, so Italian prose in the history is judged like everywhere else; outputs quoted verbatim sit between guillemets and belong to changelog-quote. The scope starts at the heading of that entry, found in the text, and runs to the end of the file; the entries above it are written in English and judged",
   "signed_by": null,
   "signed_on": null
  },
@@ -57,7 +57,7 @@
  {
   "class": "solidworks-localized",
   "file": "^Oce\\.Solid\\.Agent\\.Core/",
-  "pattern": "(?:Taglio-Estrusione|Estrusione-Estrusione|Estrusione|Schizzo|Assi|Svuota|Parte|SpecchiaComponente)\\d+|Membro strutturale\\d+|Immagine per schizzo\\d+|Ripetizione di riempimento\\d+|Elenco elementi\\d+|Accorcia/Estendi\\d+",
+  "pattern": "(?:Taglio-Estrusione|Estrusione-Estrusione|Estrusione|Schizzo|Assi|Svuota|Parte|SpecchiaComponente)\\d+|Immagine per schizzo\\d+|Ripetizione di riempimento\\d+|Accorcia/Estendi\\d+",
   "applies_to": ["detector", "translator"],
   "reason": "SOLIDWORKS names the features, sketches, axes, sheets and parts it creates in the language of the installation («Extrude1», «Sketch1» on an English one); the cases and the notes quote them as SOLIDWORKS wrote them on the Italian installation they were measured with (comments of the library that record what was measured)",
   "signed_by": null,
@@ -65,7 +65,7 @@
  },
  {
   "class": "solidworks-localized",
-  "file": "^(?:README\\.md|Checks/(?:FaceFillet|Fill)/Program\\.cs|Tools/api_knowledge\\.json|Tools/catalog\\.json)$",
+  "file": "^(?:README\\.md|Checks/(?:FaceFillet|Fill)/Program\\.cs|Tools/api_knowledge\\.json)$",
   "pattern": "Estrusione\\d|Schizzo\\d|Ripetizione di riempimento\\d|Taglio-Estruso\\d",
   "applies_to": ["detector", "translator"],
   "reason": "SOLIDWORKS names the features, sketches, axes, sheets and parts it creates in the language of the installation («Extrude1», «Sketch1» on an English one); the cases and the notes quote them as SOLIDWORKS wrote them on the Italian installation they were measured with",
@@ -192,7 +192,7 @@
  {
   "class": "solidworks-localized",
   "file": "^Oce\\.Solid\\.Agent\\.Core/(?:PropertyOperations|DocumentState|MaterialOperations)\\.cs$|^Bench/DeclaredCases\\.cs$|^Bench/cases/document_properties/(?:new_configuration_activates_itself|limit_default_is_not_named_default)\\.json$",
-  "pattern": "Default(?:<|&lt;)(?:A macchina|Saldato)(?:>|&gt;)|_Stato di visualizzazione \\d|A macchina|Saldato",
+  "pattern": "_Stato di visualizzazione \\d|A macchina|Saldato",
   "applies_to": ["detector", "translator"],
   "reason": "the configurations and the display states that the company template of the Italian installation creates, by the names it gives them",
   "signed_by": null,
@@ -246,7 +246,7 @@
  {
   "class": "todo-reader",
   "file": "^(?:Checks/count-todo\\.js|Tests/Program\\.cs)$",
-  "pattern": "traccia originale|progetto originale|tenut[ao] per riferimento|tenut[ao] per|per riferimento|com'era scritta|com'era|FATTO il",
+  "pattern": "traccia originale|progetto originale|tenut[ao] per riferimento|per riferimento|com'era scritta|com'era|FATTO il",
   "applies_to": ["detector", "translator"],
   "reason": "the TODO is written in Italian by the owner and the tools that count and check it read it by the words it uses; the marks of an entry that keeps an original trace",
   "signed_by": null,
@@ -255,7 +255,7 @@
  {
   "class": "todo-reader",
   "file": "^Checks/count-todo\\.js$",
-  "pattern": "decisa dal|licenza commerciale|decisione",
+  "pattern": "decisa dal|decisione",
   "applies_to": ["detector", "translator"],
   "reason": "the TODO is written in Italian by the owner and the tools that count and check it read it by the words it uses; the marks of an entry that waits for a decision of the owner",
   "signed_by": null,
@@ -345,9 +345,18 @@
  {
   "class": "todo-reader",
   "file": "^(?:\\.gitignore|Checks/(?:todo-signatures\\.ps1|where-is-the-todo\\.js|language/snapshot\\.(?:js|md))|Tests/Program\\.cs)$",
-  "pattern": "note-interne(?:[/\\\\]lingua(?:[/\\\\](?:snapshots|archivio))?)?",
+  "pattern": "note-interne",
   "applies_to": ["detector", "translator"],
-  "reason": "the folder of the internal notes of the owner, outside the tracked sources and excluded by the ignore file: the TODO lives there, and the tools that read it (and keep their snapshots next to it) name the folder",
+  "reason": "the folder of the internal notes of the owner, outside the tracked sources and excluded by the ignore file: the TODO lives there, and the tools that read it name the folder; only the folder name is covered here, not what is inside it",
+  "signed_by": null,
+  "signed_on": null
+ },
+ {
+  "class": "todo-reader",
+  "file": "^Checks/language/snapshot\\.(?:js|md)$",
+  "pattern": "lingua[/\\\\](?:snapshots|archivio)",
+  "applies_to": ["detector", "translator"],
+  "reason": "the snapshot tool keeps its snapshots and its archive next to the TODO, in two subfolders of the folder of the internal notes of the owner; its source and its document name them (the folder itself is covered by the entry above, this one covers only these two subfolders and only in these two files)",
   "signed_by": null,
   "signed_on": null
  }
