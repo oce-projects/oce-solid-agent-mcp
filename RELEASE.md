@@ -75,6 +75,72 @@ compare, then run `Installer.exe --verify` once on a machine other than the one 
 built it: it must exit 0, or 2 with warnings you can name
 ([INSTALL-FOR-AI.md](INSTALL-FOR-AI.md), step 4).
 
+## Before publishing: GitHub tests the installer on a clean machine
+
+The workstation builds the installer; a Windows machine that has never seen this
+project is the only honest place to try it. GitHub provides one, and this step
+uses it **before** anything is public. It is optional for the script of step 2
+and expected by the owner for the first public release.
+
+**1. Make a draft.** From the workstation, with the commit pushed and the tree clean:
+
+```
+.\Checks\release-candidate.ps1 -DryRun     # prints the plan, changes nothing
+.\Checks\release-candidate.ps1             # tag v<VERSION.txt>-rc1
+```
+
+It runs `build.ps1`, recomputes the SHA-256, and uploads `dist\Installer.exe` and
+`dist\Installer.exe.sha256` to a **draft prerelease** whose tag is
+`v<version>-rc1` (or the `-Tag` you give: it must be `v<version>-<suffix>`). It reads
+the release back and fails if GitHub does not say it is a draft. It never publishes,
+never tags, never pushes, and stops if a published release already has that tag. The
+last lines it prints are the command of the next step.
+
+**2. Run the smoke test.**
+
+```
+gh workflow run installer-smoke.yml --ref <the branch with the workflow> -f tag=v<version>-rc1
+gh run watch
+```
+
+`.github/workflows/installer-smoke.yml` runs by hand only, on `windows-latest` and
+`windows-2022`. It downloads the two files from the draft, checks the hash as
+[INSTALL-FOR-AI.md](INSTALL-FOR-AI.md) step 1 teaches, then runs `Installer.exe` as
+that page's step 2 says (`Start-Process -Wait -PassThru -NoNewWindow`, `--silent`,
+`--log`) in four scenarios, each with its assertions in
+`.github/steps/installer-smoke.ps1`. The logs, and a copy of each client file after
+each stage, are uploaded as an artifact.
+
+**What it proves, and what it cannot.** A runner has no SOLIDWORKS, and the installer
+refuses to install without it: its prerequisite "SOLIDWORKS installed" is blocking.
+So the right result on a clean machine is **exit 1 with nothing installed**, not a
+green install, and scenario 1 asserts exactly that: `[NO] SOLIDWORKS installed` is the
+only `[NO]` line, no file is written, no client configuration changes, `--verify`
+fails its five checks, an uninstall of nothing exits 0. Scenarios 2 to 4 then put an
+**empty placeholder file** with the name of the interop where the prerequisite looks
+(the check only asks whether the file exists; the placeholder is written by the
+script, it is not Dassault's and cannot be loaded) and set `OCE_NO_ATTACH=1`, so the
+bridge never tries to reach SOLIDWORKS. That proves the mechanics: the six files
+land; Claude Desktop and Claude Code are found by the installer itself and their
+entries are written without disturbing the other servers in the file; `--verify`
+exits 2 with exactly one warning (the self-test, exit 5) and the MCP handshake
+answers; a reinstall keeps a variable the user added; the uninstall removes files,
+entries and the archive of measured profile sections in the default folder. It does
+**not** prove that the bridge attaches to SOLIDWORKS, or that it works with the
+real interop: only the bench and a machine with SOLIDWORKS can.
+
+**Not yet measured.** The workflow has never run: there was no draft to run it on.
+Two things in it are written from documentation and are settled by its first run:
+that a token with `contents: write` sees a draft release (a read-only one may not;
+if the first step says "no release has the tag", that is why), and what the bridge's
+self-test answers on a machine without SOLIDWORKS when it is allowed to try (the
+workflow prints it, without asserting).
+
+**3. Then the final release.** When the run is green, the owner decides. The final
+release is steps 2 and 3 of "The rite" (`prepare-release.ps1`, then the three commands), made
+from the same commit. Delete the draft candidate from the Releases page: it was never
+public and it is not the release.
+
 ## Known gaps
 
 - `Installer.exe` is **not code-signed**. Windows SmartScreen will warn, and Windows 11
@@ -86,6 +152,7 @@ built it: it must exit 0, or 2 with warnings you can name
   time. Someone checking "which version did I download" that way will not find
   it. `Installer.exe --verify --json` reports it (`bridgeVersion`).
 - The installer has been exercised by `Checks/test-installer.js` and on the
-  developer's machine. A clean machine without development tools, SOLIDWORKS in
-  another language, a SOLIDWORKS version other than 2021 SP5.1 and Windows 11 with
-  Smart App Control on have not been tried.
+  developer's machine. A clean machine **with SOLIDWORKS**, SOLIDWORKS in another
+  language, a SOLIDWORKS version other than 2021 SP5.1 and Windows 11 with Smart App
+  Control on have not been tried. A clean machine **without** SOLIDWORKS is what the
+  smoke test above covers (the install refusing, and the mechanics against a placeholder).

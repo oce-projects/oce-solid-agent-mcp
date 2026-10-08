@@ -32,6 +32,20 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — GitHub tests the installer on a clean machine before publication (branch `ci-installer`) · bridge and library unchanged
+
+Tooling only: no change to the bridge, the library, the installer or the catalog, so no version bump
+(the rule above is about code that ships). New: `.github/workflows/installer-smoke.yml` (by hand, on
+`windows-latest` and `windows-2022`), its two steps `.github/steps/smoke-fetch-release.ps1` and
+`installer-smoke.ps1`, and `Checks/release-candidate.ps1` (builds, then creates or updates a DRAFT
+prerelease; `-DryRun` prints the plan). `Checks/check-workflow.ps1` now counts a step as called when ANY
+workflow calls it, and fails if `release-candidate.ps1` has a line that could publish. A section in
+RELEASE.md. A machine without SOLIDWORKS cannot install (exit 1, nothing written), so the workflow asserts
+that, and proves the install mechanics against a placeholder file with `OCE_NO_ATTACH=1`; see RELEASE.md for
+what that does and does not prove. The workflow has not run yet: it needs a draft release to run on.
+
+---
+
 ## Unreleased — Release 1: the SOLIDWORKS-language converter and the faces beyond the 60 largest, together (branch `release-1`) · bridge 0.130.0 · library 0.153.0
 
 Built on `w31bis-11` (f538914) by merging `sw-language` and `faces-beyond-60`. Both took the next
