@@ -71,6 +71,7 @@
 //    node Checks/language/snapshot.js compare <snapshot dir> [--ledger <tests.json>] [options]
 //        the current tree (and the ledger of a new run, if given) against it
 //    node Checks/language/snapshot.js --self-test
+//    node Checks/language/snapshot.js --check-registry [--root <tree>]
 //        a fake snapshot of a fake tree: every way of differing seen red,
 //        the same tree seen green, an unstable case listed apart
 //  Options:
@@ -2138,6 +2139,7 @@ function parseArgs(argv) {
     const x = argv[i];
     const next = () => { if (i + 1 >= argv.length) cannot(x + ' needs a value'); return argv[++i]; };
     if (x === '--self-test') a.mode = 'self-test';
+    else if (x === '--check-registry') a.mode = 'check-registry';
     else if (x === '--root') a.root = path.resolve(next());
     else if (x === '--out') a.out = next();
     else if (x === '--ledger') a.ledgers.push(next());
@@ -2156,7 +2158,7 @@ function parseArgs(argv) {
     else cannot('unexpected argument ' + x);
   }
   if (!['auto', 'stdio', 'reflection'].includes(a.toolsFrom)) cannot('--tools-from is auto, stdio or reflection');
-  if (!a.mode) cannot('say take, compare <snapshot> or --self-test');
+  if (!a.mode) cannot('say take, compare <snapshot>, --check-registry or --self-test');
   if (a.mode === 'compare' && !a.snapshot) cannot('compare needs the snapshot folder');
   if (!(a.show >= 0)) cannot('--show needs a number');
   return a;
@@ -2165,6 +2167,14 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.mode === 'self-test') return selfTest();
+  if (args.mode === 'check-registry') {
+    // Only the registry of the scripts, on the real tree: every script of its folders is run or
+    // skipped with a reason. A probe added to Checks/ without a row stops `take` (exit 2); this
+    // says so before, in the contracts, and not on the day of the snapshot.
+    const reg = loadRegistry(args.root);
+    console.log('registry: ' + reg.entries.length + ' entries name every script of ' + reg.folders.join(', '));
+    return 0;
+  }
   if (args.mode === 'take') return take(args);
   return compare(args.snapshot, args);
 }

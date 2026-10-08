@@ -1604,7 +1604,7 @@ namespace Oce.Solid.Agent.Core
             {
                 string u = uid[i];
                 DocumentState.EntitySignature signature;
-                if (docState == null || !docState.Signatures.TryGetValue(u, out signature) || signature.Type != "FACE")
+                if (docState == null || !docState.TryGetSignature(u, out signature) || signature.Type != "FACE")
                     return Failed(
                         "The face «" + u + "» is no longer in this document: read the state again and " +
                         "point to the two faces again.");
@@ -2103,7 +2103,7 @@ namespace Oce.Solid.Agent.Core
                         "«" + names[i] + "» is missing. The bead goes between TWO faces, " +
                         "one per body, taken from the state of the document (F1, F2...).");
                 DocumentState.EntitySignature signature;
-                if (docState == null || !docState.Signatures.TryGetValue(u, out signature) || signature.Type != "FACE")
+                if (docState == null || !docState.TryGetSignature(u, out signature) || signature.Type != "FACE")
                     return Failed("The face «" + u + "» is no longer in this document.");
                 string offset;
                 if (!SignatureMatches(a, u, signature, out offset)) return Failed(offset);

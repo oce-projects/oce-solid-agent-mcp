@@ -77,6 +77,7 @@
     <Compile Include="ReflectionLog.cs" />
     <Compile Include="Regression.cs" />
     <Compile Include="ClientPort.cs" />
+    <Compile Include="FacesBeyondSixty.cs" />
     <Compile Include="Orphans.cs" />
     <Compile Include="DimensionNumbers.cs" />
     <Compile Include="Program.cs" />

@@ -48,7 +48,14 @@
 //    - a selector (`@face(normal=down)`, `@body(name=...)`) is resolved on the
 //      state read just before the step, with the grammar of the bench
 //      (Bench/Expectations.cs, Select: `=` compares as text without case,
-//      `~=` is «within 0.5», `n=` takes the n-th, x, y and z read point_mm);
+//      `~=` is «within 0.5», `n=` takes the n-th, x, y and z read point_mm).
+//      A group that names a face by selector reads the state with EVERY face
+//      listed (inspect_part with `faces: {limit: 500}`, W3.1-bis.12): the
+//      ordinary state lists the 60 largest, and a small face of a part with
+//      more (the walls of the feet of the tube stand: 177 faces) was «not
+//      found» although it was there. The bridge must know the argument: one
+//      that does not answer with `faces_filter` fails the build, it does not
+//      resolve the selector on the cut list;
 //    - the bridge takes the steps of a plan in ONE call and a reference
 //      (`face_ref: {step: 1, ...}`) names a step of the same call, so the steps
 //      go in groups: a group starts at a step that has a selector (its state
@@ -76,7 +83,8 @@
 //  problem).
 //
 //  PREREQ_TRACE=<file> appends every request to the bridge and every answer to
-//  that file, one JSON line each: what a failed build read is then on the disk.
+//  that file, one JSON line each: what a failed build read is then on the disk,
+//  with the seconds each answer took (the stand of task 07 takes about 40 minutes).
 //
 //  Exit 0 on success, 1 when a check or a build failed, 2 on a bad argument or
 //  a bridge that cannot run here.
@@ -173,8 +181,13 @@ function resolveSelector(expression, state) {
     if (!Number.isInteger(k) || k < 1 || k > found.length) throw new Error(expression + ': found ' + found.length + ', the plan asks for number ' + nth.value);
     return found[k - 1].uid;
   }
-  const listed = family === 'faces' && facesCut(state) ? ' (the state lists only the ' + state.faces.length + ' largest faces of ' + state.faces_total + ': the face may not be listed)' : '';
+  const listed = family === 'faces' && facesCut(state)
+    ? ' (the state lists only ' + state.faces.length + ' of the ' + (typeof state.faces_matched === 'number' ? state.faces_matched + ' faces that match its filter' : state.faces_total + ' faces, the largest') + ': the face may not be listed)'
+    : '';
   if (found.length === 0) throw new Error(expression + ': not found' + listed);
+  // ONE face found on a cut list is not «the only one»: its twin may be beyond the cut (a part with more
+  // faces than one reading lists, 500). `n=` above is safe: the listing keeps the largest first.
+  if (found.length === 1 && listed) throw new Error(expression + ': found 1' + listed.replace('the face may not be listed', 'another face may match among the ones not listed') + '; add a condition, or «n=»');
   if (found.length > 1) throw new Error(expression + ': found ' + found.length + '; choosing one would be guessing, add a condition');
   return found[0].uid;
 }
@@ -183,6 +196,12 @@ function hasSelector(v) {
   if (typeof v === 'string') return v.startsWith('@');
   if (Array.isArray(v)) return v.some(hasSelector);
   if (isObject(v)) return Object.values(v).some(hasSelector);
+  return false;
+}
+function hasFaceSelector(v) {
+  if (typeof v === 'string') return v.startsWith('@face(');
+  if (Array.isArray(v)) return v.some(hasFaceSelector);
+  if (isObject(v)) return Object.values(v).some(hasFaceSelector);
   return false;
 }
 function mapStrings(v, fn) {
@@ -228,9 +247,15 @@ function rebaseRefs(args, groupFirst, label, ownIndex) {
 // The faces of a state are cut to the largest ones when faces_total is there and
 // larger than the list (the edges, the features and the equations have caps of
 // their own, and any of them sets `truncated`).
+// A reading with a filter (`faces_matched` is there) is cut only when the matching
+// faces are more than the ones listed; faces_total is then the whole part.
 function facesCut(state) {
-  return typeof state.faces_total === 'number' && Array.isArray(state.faces) && state.faces_total > state.faces.length;
+  if (!Array.isArray(state.faces)) return false;
+  if (typeof state.faces_matched === 'number') return state.faces_matched > state.faces.length;
+  return typeof state.faces_total === 'number' && state.faces_total > state.faces.length;
 }
+// How many faces the group asks the bridge to list: the most it lists in a reading.
+const EVERY_FACE = 500;
 
 function stateRoot(what) { return /^(volume_mm3|bodies|bounding_box_mm|diameters_mm|state\.)/.test(what); }
 
@@ -445,7 +470,8 @@ class Bridge {
       const id = this.next++;
       const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('the bridge did not answer «' + method + '» in ' + Math.round((timeoutMs || 600000) / 1000) + ' s')); }, timeoutMs || 600000);
       const trace = process.env.PREREQ_TRACE;
-      const settle = (fn) => (m) => { if (trace) { try { fs.appendFileSync(trace, JSON.stringify({ id, answer: m }) + '\n'); } catch (e) { /* the trace is a help, not a duty */ } } fn(m); };
+      const sent = Date.now();
+      const settle = (fn) => (m) => { if (trace) { try { fs.appendFileSync(trace, JSON.stringify({ id, seconds: Math.round((Date.now() - sent) / 100) / 10, answer: m }) + '\n'); } catch (e) { /* the trace is a help, not a duty */ } } fn(m); };
       this.pending.set(id, { resolve: settle(resolve), reject, timer });
       if (trace) { try { fs.appendFileSync(trace, JSON.stringify({ id, method, params }) + '\n'); } catch (e) { /* idem */ } }
       this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
@@ -500,6 +526,10 @@ function mateValueProblems(step, label) {
 function placeholderProblems(step, label) {
   const out = [];
   mapStrings(step.arguments || {}, (t) => {
+    // {PROFILES} is a folder WITHOUT a trailing separator (the variable of the bench, or the folder of a
+    // listed profile): a plan that writes it glued to the file name asks the bridge for a path that is not there
+    // (seen on the live run of 7/10/2026: the folder and «TUBO STRUTTURALE QUADRO.SLDLFP» came out glued).
+    if (/\{PROFILES\}(?![\\\/])/.test(t)) out.push(label + ': «{PROFILES}» must be followed by a separator (a backslash), or the folder and the file name come out glued');
     for (const m of t.matchAll(/\{([A-Z][A-Z_]*)\}/g)) {
       if (!PLACEHOLDERS.includes(m[1])) out.push(label + ': «{' + m[1] + '}» is not a placeholder the runner fills (it fills ' + PLACEHOLDERS.map(p => '{' + p + '}').join(', ') + ')');
     }
@@ -560,8 +590,8 @@ async function build(options) {
   let profilesDir = null;
 
   const documentsOpen = (state) => (state && Array.isArray(state.documents_open) ? state.documents_open : []);
-  const inspect = async (what) => {
-    const r = await bridge.tool(protocol.tool('inspect_part'), {}, 300000);
+  const inspect = async (what, args) => {
+    const r = await bridge.tool(protocol.tool('inspect_part'), args || {}, 300000);
     if (r.isError || !r.json) throw new Failed((what || 'reading the document') + ': ' + r.text.slice(0, 500));
     return protocol.answer(r.json);
   };
@@ -589,7 +619,10 @@ async function build(options) {
   // One group: the state first, selectors resolved on it, references
   // renumbered, one call of the bridge, then the outcomes and the expectations.
   const runGroup = async (list, group, label) => {
-    const state = await inspect(label + ': reading the document before the group');
+    // A group that names a face by selector reads every face of the part (see the head of this file).
+    const wantsFaces = group.steps.some(({ step }) => hasFaceSelector(step.arguments));
+    const state = await inspect(label + ': reading the document before the group', wantsFaces ? { faces: { limit: EVERY_FACE } } : {});
+    if (wantsFaces && !state.faces_filter) throw new Failed(label + ': the bridge did not answer the filter «faces» (no «faces_filter» in its state): it is older than the reader of faces, and the selectors would be resolved on the largest ones only. Build the prerequisites with the bridge that has it (-PrerequisiteBridge)');
     const resolved = [];
     for (const { index, step } of group.steps) {
       const here = label + ' · step ' + (index + 1) + ' (' + step.operation + ')';
@@ -769,12 +802,15 @@ const FAKE_BRIDGE = [
   "const mk = (kind) => { const d = { kind, shareKey: 'b' + process.pid + '-' + (++keys), title: (kind === 'part' ? 'Part' : 'Assembly') + (++counter[kind]), path: '', bodies: 0, volume: 0, bbox: [0, 0, 0], faces: [], components: [] }; docs.push(d); active = d; toShared(); return d; };",
   "const stateOf = (d) => ({ document_title: d.title, kind: d.kind, path: d.path, documents_open: docs.map(x => Object.assign({ document_title: x.title, kind: x.kind }, x.path ? { path: x.path } : {}, x === active ? { active: true } : {})),",
   "  bodies_total: d.bodies, volume_mm3: d.volume, bounding_box_mm: d.bbox, faces: d.faces, truncated: false, how_many_components: d.components.length, components: d.components });",
+  "// the ordinary state lists the 60 largest faces and says so; with the filter «faces» it lists what was asked, up to its limit",
+  "const listed = (d, f) => { const all = d.faces.slice().sort((x, y) => y.area_mm2 - x.area_mm2); if (!f) { const o = stateOf(d); if (all.length > 60) { o.faces = all.slice(0, 60); o.faces_total = all.length; o.truncated = true; } return o; } const o = stateOf(d); o.faces = all.slice(0, f.limit || 60); o.faces_total = all.length; o.faces_matched = all.length; o.faces_filter = f; return o; };",
   "const text = (o) => ({ content: [{ type: 'text', text: JSON.stringify(o) }] });",
   "function step(d, s) {",
   "  const a = s.arguments || {};",
   "  switch (s.operation) {",
   "    case 'extrude_rectangle': d.bodies = 1; d.volume = a.length_mm * a.width_mm * a.thickness_mm; d.bbox = [a.length_mm, a.thickness_mm, a.width_mm];",
   "      d.faces = [{ uid: 'F1', area_mm2: a.length_mm * a.width_mm, point_mm: [0, 0, 0], normal: [0, -1, 0], facing: 'down' }, { uid: 'F2', area_mm2: a.length_mm * a.width_mm, point_mm: [0, a.thickness_mm, 0], normal: [0, 1, 0], facing: 'up' }]; return { measurements: { length_mm: a.length_mm } };",
+  "    case 'many_faces': d.bodies = 1; d.volume = 1000; d.faces = []; for (let i = 1; i <= a.count; i++) d.faces.push({ uid: 'F' + i, area_mm2: 10000 - i * 10, point_mm: [i, 0, 0], normal: [0, 1, 0], facing: 'up' }); return { measurements: {} };",
   "    case 'hole_wizard': if (!d.faces.some(f => f.uid === a.face_uid)) return { error: 'the face ' + a.face_uid + ' is not in this document' }; if (!(a.positions || []).length) return { error: 'no positions' };",
   "      d.volume -= a.positions.length; return { measurements: {} };",
   "    case 'save_document': { fs.mkdirSync(path.dirname(a.path), { recursive: true }); fs.writeFileSync(a.path, 'fake'); d.path = a.path; d.title = path.basename(a.path, path.extname(a.path)) + path.extname(a.path).toUpperCase(); return { measurements: { path: a.path, byte: 4 } }; }",
@@ -793,7 +829,7 @@ const FAKE_BRIDGE = [
   "  if (m.method === 'initialize') return reply({ protocolVersion: '2025-06-18', capabilities: {}, serverInfo: { name: 'fake', version: '0.0.0' } });",
   "  if (m.method === 'tools/list') return reply({ tools: ['inspect_part', 'build', 'document'].map(name => ({ name })) });",
   "  const t = m.params.name, a = m.params.arguments || {};",
-  "  if (t === 'inspect_part') return reply(active ? text(stateOf(active)) : { isError: true, content: [{ type: 'text', text: 'no document' }] });",
+  "  if (t === 'inspect_part') return reply(active ? text(a.faces && process.env.FAKE_OLD_BRIDGE ? stateOf(active) : listed(active, a.faces)) : { isError: true, content: [{ type: 'text', text: 'no document' }] });",
   "  if (t === 'document') { if (a.action === 'create') { mk(a.variant || 'part'); return reply(text({ document_title: active.title })); } return reply({ isError: true, content: [{ type: 'text', text: 'not played' }] }); }",
   "  if (t === 'build') {",
   "    const outcomes = []; let failed = false;",
@@ -841,6 +877,18 @@ async function selfTest() {
         /may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', Object.assign({}, state, { truncated: true, faces_total: 99 }))) || ''));
   check('a state truncated by its edges only does not say the faces are cut',
         !/may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', Object.assign({}, state, { truncated: true }))) || ''));
+  // A reading with the filter «faces» lists what was asked for: the cut is judged on faces_matched, not on faces_total
+  const filtered = Object.assign({}, state, { faces_total: 177, faces_matched: 12, faces_filter: { limit: 500 } });
+  check('a state read with the faces filter that lists every match is not cut, whatever faces_total says (W3.1-bis.12)',
+        !facesCut(filtered) && !/may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', filtered)) || '') &&
+        facesCut(Object.assign({}, filtered, { faces_matched: 600 })) && /may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', Object.assign({}, filtered, { faces_matched: 600 }))) || ''));
+  // ...and on a cut list ONE face found is refused, not taken: its twin may be beyond the cut (seen red: it was taken)
+  const oneOnCut = Object.assign({}, state, { faces_total: 700, faces_matched: 700, faces_filter: { limit: 500 } });
+  const oneUid = state.faces.length ? state.faces[0].uid : null;
+  const oneSel = oneUid ? '@face(area~=' + state.faces[0].area_mm2 + ',x~=' + state.faces[0].point_mm[0] + ',y~=' + state.faces[0].point_mm[1] + ',z~=' + state.faces[0].point_mm[2] + ')' : null;
+  check('a selector that finds ONE face on a list cut at 500 is refused (another may match beyond the cut); the same selector on a full list is taken',
+        oneSel && resolveSelector(oneSel, filtered) === oneUid &&
+        /found 1 .*another face may match among the ones not listed/.test(throws(() => resolveSelector(oneSel, oneOnCut)) || ''));
   check('a body is named by its name', resolveSelector('@body(name=' + SQUARE_TUBE + ' 40x40x3(4))', state) === 'C2');
   check('a selector the runner does not read is refused by its name', /not a selector the runner reads/.test(throws(() => resolveSelector('@dimension(name=D1)', state)) || ''));
 
@@ -897,6 +945,9 @@ async function selfTest() {
   check('a mate value that is not one of the bridge, the variant and the alignment alike, is a problem (seen red)',
         wrong({ steps: [mateStep({ variant: 'far', distance_mm: 1 })] }).some(p => /«variant» = «far» is not a value of a mate/.test(p)) &&
         wrong({ steps: [mateStep({ alignment: 'reversed' })] }).some(p => /«alignment» = «reversed» is not a value of a mate/.test(p)));
+  check('a {PROFILES} glued to the file name is a problem (seen red on the live run of 7/10/2026)',
+        wrong({ steps: [saveStep('{PROFILES}x.sldprt')] }).some(p => /must be followed by a separator/.test(p)) &&
+        wrong({ steps: [saveStep('{PROFILES}\\x.sldprt')] }).every(p => !/separator/.test(p)));
   check('a placeholder nobody fills is a problem; the two the runner fills are not (seen red)',
         wrong({ steps: [saveStep('{PROFILE}\\x.sldprt')] }).some(p => /«\{PROFILE\}» is not a placeholder/.test(p)) &&
         wrong({ steps: [saveStep('{WORK}\\x.sldprt'), saveStep('{PROFILES}\\x.sldprt')] }).every(p => !/placeholder/.test(p)));
@@ -962,6 +1013,21 @@ async function selfTest() {
           ran.notes.some(n => /accepted on the state/.test(n)));
     check('a selector was read on the state of the part (the underside of the block), and a group per selector was sent',
           ran.steps.filter(s => s.operation === 'hole_wizard').length === 1 && ran.steps.filter(s => s.operation === 'hole_wizard').every(s => s.succeeded));
+    // FACES BEYOND THE 60 LARGEST (W3.1-bis.12): the part has 100 faces, the ordinary state lists 60, the face
+    // the selector names is the 90th. The group that names it reads every face, so it resolves; a bridge that
+    // does not take the filter fails the build instead of resolving on the cut list.
+    const beyond = { name: '94_beyond', why: 'a part whose face is beyond the 60 largest', steps: [
+      { operation: 'many_faces', arguments: { count: 100 } },
+      { operation: 'hole_wizard', arguments: { face_uid: '@face(area~=9100)', variant: 'clearance', size: 'M8', positions: [{ x_mm: 0, y_mm: 0 }] },
+        expect: [{ what: 'bodies', equal_to: 1 }, { what: 'volume_mm3', equal_to: 999, tolerance: 0.5, tolerance_why: 'the fake takes 1 mm3 for a hole' }] }] };
+    write('94_beyond', beyond);
+    const beyondRan = await build({ exe: fakeBridge, planName: '94_beyond', folder: folderOf(6), dir: plans });
+    check('a face beyond the 60 largest is resolved by a selector, because the group reads every face', beyondRan.ok && beyondRan.steps.some(s => s.operation === 'hole_wizard' && s.succeeded), beyondRan.error);
+    process.env.FAKE_OLD_BRIDGE = '1';
+    let oldRan;
+    try { oldRan = await build({ exe: fakeBridge, planName: '94_beyond', folder: folderOf(7), dir: plans }); } finally { delete process.env.FAKE_OLD_BRIDGE; }
+    check('a bridge that does not answer the faces filter fails the build and says so, it does not resolve on the 60 largest (seen red)',
+          !oldRan.ok && /did not answer the filter «faces»/.test(oldRan.error) && !oldRan.steps.some(s => s.operation === 'hole_wizard'), oldRan.error);
     const single = await build({ exe: fakeBridge, planName: '98_part', folder: folderOf(2), dir: plans });
     check('a part plan is built, saved as .sldprt and checked', single.ok && single.document_in_front === '98_part.SLDPRT' && single.checks.length === 2, JSON.stringify(single).slice(0, 400));
 

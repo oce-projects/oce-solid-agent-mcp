@@ -167,11 +167,22 @@ namespace Shared
 
         internal static string Ask(Bridge p, int id, string request)
         {
+            return AskWithin(p, id, request, TimeoutMs);
+        }
+
+        /// <summary>
+        /// Like <see cref="Ask"/> with a wait of one's own, in milliseconds. A plan that reads a part of
+        /// two hundred faces through the bridge takes minutes on a tired SOLIDWORKS session (the state is
+        /// read with the anchor of every face it lists), and the usual wait is for the questions that
+        /// answer at once.
+        /// </summary>
+        internal static string AskWithin(Bridge p, int id, string request, int waitMs)
+        {
             Write(p, request);
             // What is not the expected response is discarded: the bridge may
             // write other things, and looking for the id is the only way that does not depend
             // on the order.
-            var expiry = Environment.TickCount + TimeoutMs;
+            var expiry = Environment.TickCount + waitMs;
             while (Environment.TickCount < expiry)
             {
                 var line = Line(p, Math.Max(200, expiry - Environment.TickCount));

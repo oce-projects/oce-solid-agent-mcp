@@ -836,6 +836,10 @@ namespace Oce.Solid.Agent.Bench
                 new Group { Name = "client-port",
                              What = "the cases that go through the bridge (F14)",
                              Actions = one(TheClientPort) },
+                // FACES BEYOND THE 60 LARGEST (W3.1-bis.12): the same road with a point and a rank.
+                new Group { Name = "faces-beyond-sixty",
+                             What = "a face beyond the 60 largest: named by its rank, found by a point",
+                             Actions = one(TestFacesBeyondSixty) },
                 // «repeat», «mirror» and «remove» are no longer there: they
                 // became `cases/patterns/`, `cases/mirror/` and
                 // `cases/removal/`, and they are launched with `--group cases`.
@@ -2602,6 +2606,61 @@ namespace Oce.Solid.Agent.Bench
             var data = _tState.GetProperty("Data",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             return data.GetValue(docState) as Dictionary<string, object>;
+        }
+
+        /// <summary>
+        /// THE STATE WITH EVERY FACE LISTED, for resolving selectors (entry
+        /// W3.1-bis.12). A selector such as «@face(area~=4800,x~=-464,z~=-260)» is
+        /// resolved against the state, and the ordinary state lists only the 60
+        /// largest faces: a small face of a part with more (the wall of the third
+        /// foot of the tube stand, 177 faces) was «not found» although it was
+        /// there. Null when nothing was cut, or when the library under test is
+        /// older than the reader (it has no `ReadFaces`): the caller then goes
+        /// on with the ordinary state, as the bench always did.
+        ///
+        /// Read by reflection, like `Read`: see the note on that method.
+        /// </summary>
+        private static Dictionary<string, object> ReadStateEveryFace(IModelDoc2 doc)
+        {
+            var readFaces = _tState.GetMethod("ReadFaces",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+            var tFilter = _tState.Assembly.GetExportedTypes()
+                .FirstOrDefault(t => t.FullName == "Oce.Solid.Agent.Core.FaceFilter");
+            var tFilterConstructor = tFilter == null ? null : tFilter.GetConstructor(Type.EmptyTypes);
+            if (readFaces == null || tFilterConstructor == null) return null;
+            var filter = tFilterConstructor.Invoke(null);
+            var most = tFilter.GetField("MaxLimit", BindingFlags.Public | BindingFlags.Static);
+            var limit = tFilter.GetField("Limit", BindingFlags.Public | BindingFlags.Instance);
+            if (most == null || limit == null) return null;
+            limit.SetValue(filter, most.GetRawConstantValue());
+            var docState = readFaces.Invoke(null, new object[] { doc, _sw, false, filter });
+            var data = _tState.GetProperty("Data",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            return data.GetValue(docState) as Dictionary<string, object>;
+        }
+
+        /// <summary>
+        /// The state a selector is resolved against: the one given, unless it
+        /// cut the faces and the arguments name a face by selector — then the
+        /// state with every face (<see cref="ReadStateEveryFace"/>). The rest of
+        /// the state is the same, and the step still runs on the ordinary one.
+        /// </summary>
+        private static Dictionary<string, object> StateForSelectors(
+            IModelDoc2 doc, object raw, Dictionary<string, object> state)
+        {
+            if (state == null || !state.ContainsKey("faces_total") || !NamesAFaceBySelector(raw)) return state;
+            return ReadStateEveryFace(doc) ?? state;
+        }
+
+        private static bool NamesAFaceBySelector(object raw)
+        {
+            var text = raw as string;
+            if (text != null) return text.StartsWith("@face(", StringComparison.Ordinal);
+            var map = raw as Dictionary<string, object>;
+            if (map != null) return map.Values.Any(NamesAFaceBySelector);
+            var list = raw as System.Collections.IEnumerable;
+            if (list != null) foreach (var v in list) if (NamesAFaceBySelector(v)) return true;
+            return false;
         }
 
         /// <summary>The largest planar face: on a plate it is one of the two big ones.</summary>

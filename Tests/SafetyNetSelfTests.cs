@@ -79,6 +79,14 @@ namespace Oce.Solid.Agent.ContractTests
                 },
                 new SelfTest
                 {
+                    Title = "snapshot.js: every script and every probe of Checks/ has its row in the registry (a probe added without a row stops the snapshot)",
+                    Exe = "node", Script = Path.Combine(root, "Checks", "language", "snapshot.js"),
+                    Arguments = "--check-registry --root \"" + root + "\"",
+                    Summary = new Regex(@"registry: (\d+) entries name every script"),
+                    Enough = m => int.Parse(m.Groups[1].Value) >= 80,
+                },
+                new SelfTest
+                {
                     Title = "same-il.ps1: a changed literal, instruction, resource or unmapped rename is red",
                     Exe = "powershell.exe", Script = Path.Combine(root, "Checks", "language", "same-il.ps1"),
                     Arguments = "-SelfTest",

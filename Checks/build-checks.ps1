@@ -117,6 +117,9 @@ $tools = @(
     # name: the probe under the table of the names (Localization/solidworks-names.json). It uses
     # the library for the table and for the reading of the language, and reads the material XML.
     @{ name = 'SolidWorksLanguage'; sw = $true; lib = $true; extra = @('System.Xml.Linq.dll', 'System.Xml.dll') }
+    # Faces beyond the 60 largest (W3.1-bis.12): is the ranking by area stable between
+    # two readings, how does it tie at the cut, what does a closest-point read cost.
+    @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

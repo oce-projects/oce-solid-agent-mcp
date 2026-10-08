@@ -102,7 +102,7 @@ SOLIDWORKS closed. They are the first half of the generic layer; `api_objects` a
 
 | tool | what it is for |
 |---|---|
-| `inspect_part` | the state of the open document: bounding box, volume, bodies, features with their dimensions, faces and edges with their identifier. With `views` it also returns a **photograph** of the part |
+| `inspect_part` | the state of the open document: bounding box, volume, bodies, features with their dimensions, faces and edges with their identifier. With `views` it also returns a **photograph** of the part; with `faces` it lists the faces you ask for (a direction, an area range, a point, a body) instead of the 60 largest |
 | `list_operations` | the short list by family: a name and one line each |
 | `describe_operation` | the complete schema of one |
 | `build` | runs a sequence and **reports what came out**: the measurements of every step and the state afterwards |
@@ -129,6 +129,18 @@ expensive defect of the whole project.
 `views` — for example `["isometric"]` — and answers with one or more PNG images next
 to the state. The views are `isometric`, `trimetric`, `dimetric`, `front`, `back`,
 `left`, `right`, `top` and `bottom`.
+
+**A small face is not lost behind the 60 largest.** The state lists the 60 largest faces
+and says `truncated` when the part has more; every face has all the same an identifier,
+the rank of its area among ALL the faces of the part (`F1` the largest), so a plan can
+name one the state did not list. `inspect_part` takes `faces` to list the ones you are
+looking for, with those identifiers: `normal` (up, down, front, back, left, right),
+`area_min_mm2` and `area_max_mm2`, `near_mm` with `within_mm` (the distance to the
+face, not to its `point_mm`), `body` and `limit` (60 by default, 500 at most; the state
+says `faces_total`, `faces_matched` and `faces_not_listed`). Only the faces are
+filtered; and an identifier holds for the reading that gave it, like all of them: if an
+earlier step of the same plan changes the part, a face that was not among the 60
+largest is refused, not searched for again.
 
 **How much is needed, measured.** Five parts of different shapes (a plate with
 holes, a hollowed box, an L bracket, a flange with a ring of holes, a stepped

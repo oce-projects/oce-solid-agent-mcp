@@ -5206,7 +5206,7 @@ namespace Oce.Solid.Agent.Core
                 foreach (var u in uid)
                 {
                     DocumentState.EntitySignature signature;
-                    if (docState == null || !docState.Signatures.TryGetValue(u, out signature) ||
+                    if (docState == null || !docState.TryGetSignature(u, out signature) ||
                         signature.Type != "FACE")
                         return Failed("The face «" + u + "» is no longer in this document.");
                     string offset;
@@ -7151,7 +7151,7 @@ namespace Oce.Solid.Agent.Core
                     "step of this plan, it must be named with face_ref.";
                 return null;
             }
-            if (!docState.Signatures.TryGetValue(uid, out var signature) || signature.Type != "FACE")
+            if (!docState.TryGetSignature(uid, out var signature) || signature.Type != "FACE")
             {
                 reason = $"The face «{uid}» is no longer in this document.";
                 return null;

@@ -1526,7 +1526,11 @@ namespace Oce.Solid.Agent.Bench
                     // A SELECTOR THAT DOES NOT RESOLVE IS NOT A RED CHECK:
                     // the case could not be RUN, and calling it «failed»
                     // would make one believe that something was measured (entry F4).
-                    try { arguments = Resolve(rawArg, uidState) as Dictionary<string, object>; }
+                    // A face is named by selector over EVERY face of the part, not over
+                    // the 60 the ordinary state lists (W3.1-bis.12).
+                    var selectorState = ReferenceEquals(uidState, docState)
+                        ? StateForSelectors(current, rawArg, uidState) : uidState;
+                    try { arguments = Resolve(rawArg, selectorState) as Dictionary<string, object>; }
                     catch (CouldNotMeasure ex) { BenchError(label, ex.Message); return false; }
                     catch (Exception ex) { Check(label, false, ex.Message); return false; }
                     if (arguments == null) arguments = new Dictionary<string, object>();
@@ -1847,7 +1851,7 @@ namespace Oce.Solid.Agent.Bench
             uid = new List<string>();
             entity = new List<object>();
             object resolved;
-            try { resolved = Resolve(raw, uidState); }
+            try { resolved = Resolve(raw, StateForSelectors(doc, raw, uidState)); }
             catch (Exception ex) { why = ex.Message; return false; }
             var list = resolved as System.Collections.IList;
             if (list != null) { foreach (var u in list) uid.Add(Convert.ToString(u)); }
@@ -1861,9 +1865,17 @@ namespace Oce.Solid.Agent.Bench
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.GetValue(objectState) as System.Collections.IDictionary;
             if (signatures == null) { why = "the library's state has no «Signatures»"; return false; }
+            // A face the state did not list is found by its rank (TryGetSignature,
+            // W3.1-bis.12); a library without it keeps the dictionary alone.
+            var tryGet = _tState.GetMethod("TryGetSignature", BindingFlags.Public | BindingFlags.Instance);
             foreach (var u in uid)
             {
-                var signature = signatures.Contains(u) ? signatures[u] : null;
+                object signature = signatures.Contains(u) ? signatures[u] : null;
+                if (signature == null && tryGet != null)
+                {
+                    var asked = new object[] { u, null };
+                    if ((bool)tryGet.Invoke(objectState, asked)) signature = asked[1];
+                }
                 var e = signature == null ? null : ReflectionLog.Global.Field(signature.GetType(), "Entity")?.GetValue(signature);
                 if (e == null) { why = "the state has no «" + u + "»"; return false; }
                 entity.Add(e);

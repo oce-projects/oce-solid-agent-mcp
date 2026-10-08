@@ -512,6 +512,17 @@ using System.Runtime.InteropServices;
 //          every column; the «through» word of a hole callout and the
 //          reserved variable names through the table. The bench runs the same
 //          cases in both languages (--sw-language).
+// 0.153.0 (same version, second change of the release): W3.1-bis.12, faces beyond the 60 largest. Every face of a part has an
+//          identifier, the rank of its area among ALL the faces (F1 the largest),
+//          listed or not: the state lists the 60 largest as before, and
+//          DocumentState.TryGetSignature builds the signature of any other face when
+//          a plan cites it. FaceFilter and DocumentState.ReadFaces list the faces a
+//          filter asks for (normal, area range, near a point, one body, a limit) with
+//          those identifiers, so a small face of a part with more than 60 can be
+//          named by a plan and by the model. The places that find a face by its
+//          identifier (a face, a shell, a gusset, a weld bead, a measurement) ask the
+//          state by rank. The state of a filtered reading says faces_total,
+//          faces_matched, faces_filter and faces_not_listed.
 [assembly: AssemblyVersion("0.153.0.0")]
 [assembly: AssemblyFileVersion("0.153.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that

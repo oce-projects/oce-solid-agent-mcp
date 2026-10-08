@@ -627,7 +627,7 @@ namespace Oce.Solid.Agent.Core
                 return null;
             }
             DocumentState.EntitySignature signature;
-            if (!docState.Signatures.TryGetValue(uid, out signature))
+            if (!docState.TryGetSignature(uid, out signature))
             {
                 reason = "«" + uid + "» is not in this document. The identifiers of faces " +
                          "and edges are in the state, and they are renumbered at every " +
