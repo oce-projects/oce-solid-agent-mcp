@@ -182,7 +182,7 @@ screen and in the last line of `in-progress.txt` — says so in plain words, and
 how many groups it did not run.
 
 ```
-PARTIAL RUN (only views, 23 groups not launched) — 6 tests, 0 failed
+PARTIAL RUN (only views, 22 groups not launched) — 6 tests, 0 failed
 ```
 
 ### The cases that are files — `cases/features/`
