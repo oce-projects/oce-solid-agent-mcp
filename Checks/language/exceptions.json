@@ -42,8 +42,8 @@
   "pattern": "Estrusione-Estrusione|Taglio-Estrusione|Schizzo|Assi|Svuota",
   "applies_to": ["detector", "translator"],
   "reason": "the Italian names SOLIDWORKS gives to the features, sketches, axes and shells it creates (solidworks-names.json, rows feature.*): what an Italian installation writes, kept as SOLIDWORKS spells it, read by the library, the bench and the probes through the table; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
-  "signed_by": null,
-  "signed_on": null
+  "signed_by": "Oscar Contato",
+  "signed_on": "2026-10-08"
  },
  {
   "class": "solidworks-localized",
@@ -51,8 +51,8 @@
   "pattern": "\\*Anteriore|\\*Posteriore|\\*Superiore|\\*Inferiore|\\*Destra|\\*Sinistra|\\*Isometrico|\\*Dimetrico|\\*Trimetrico",
   "applies_to": ["detector", "translator"],
   "reason": "the Italian names of the nine standard views of a document (solidworks-names.json, rows view.*): the last resort of the search for a view, after what the view does when shown and the order of the system views; what an Italian installation writes, kept as SOLIDWORKS spells it; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
-  "signed_by": null,
-  "signed_on": null
+  "signed_by": "Oscar Contato",
+  "signed_on": "2026-10-08"
  },
  {
   "class": "solidworks-localized",
@@ -60,8 +60,8 @@
   "pattern": "PASSANTE|LUNGHEZZA|ANGOLO1|ANGOLO2|DESCRIZIONE|spessore",
   "applies_to": ["detector", "translator"],
   "reason": "the Italian words of the interface that end up in a document (solidworks-names.json, rows callout.*, cutlist.property.* and equation.*): the word of a hole callout, the names of the cut-list properties and the variable name SOLIDWORKS reserves; what an Italian installation writes, kept as SOLIDWORKS spells it; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
-  "signed_by": null,
-  "signed_on": null
+  "signed_by": "Oscar Contato",
+  "signed_on": "2026-10-08"
  },
  {
   "class": "solidworks-localized",
