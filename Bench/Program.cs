@@ -781,6 +781,11 @@ namespace Oce.Solid.Agent.Bench
                 // THE PRINTED NUMBER (entry Z-C2): no catalog operation
                 // overwrites a dimension, so the falsification is done here.
                 new Group { Name = "numbers",       What = "the printed number is the model's (Z-C2)", Actions = one(TestDimensionNumbers) },
+                // THE BARE VIEWS: no catalog operation turns off the document toggle
+                // that makes SOLIDWORKS put the centre marks on holes, so the
+                // remedy for a bare view is measured here, with the toggle turned
+                // off by COM on the drawing.
+                new Group { Name = "bare-views",    What = "the centre marks SOLIDWORKS did not put", Actions = one(TestBareViews) },
                 // THE CLIENT'S DOOR (entry F14): it does not call the library,
                 // it talks to the bridge over stdio as an MCP client would.
                 new Group { Name = "client-port",

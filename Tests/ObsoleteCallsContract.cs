@@ -74,8 +74,6 @@ namespace Oce.Solid.Agent.ContractTests
         /// </summary>
         internal static readonly Dictionary<string, MeasuredCall> Measured = new Dictionary<string, MeasuredCall>(StringComparer.Ordinal)
         {
-            ["Oce.Solid.Agent.Core/CenterMarkOperations.cs|IDrawingDoc.AddCenterMark|center_marks_on_the_holes"] =
-                new MeasuredCall(1, "tried, fails: InsertCenterMark2/3 answer True and add nothing (probes of 17/9 and 26/9/2026)"),
             ["Oce.Solid.Agent.Core/DrawingRoundOperations.cs|IModelDoc2.GraphicsRedraw2|stepped_shaft_dimensioned_from_the_side"] =
                 new MeasuredCall(2, "not measured: IModelView::GraphicsRedraw never tried here; the case proves the redraw makes " +
                                     "ISilhouetteEdge.GetFace answer (N20, remeasure in Z-C21.7)"),

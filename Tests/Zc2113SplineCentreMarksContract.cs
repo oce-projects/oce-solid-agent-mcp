@@ -21,14 +21,17 @@ namespace Oce.Solid.Agent.ContractTests
     ///    on a returned segment, so this group pins them in the source. The
     ///    obsolete call itself is kept out by ObsoleteCallsContract (its
     ///    frozen key is gone);
-    ///  * the views left with zero centre marks were seen in two long bench
-    ///    runs and never reproduced, and no operation of the bridge turns off
-    ///    the document option that makes SOLIDWORKS put them. So this group
+    ///  * the views left with zero centre marks were seen in long bench runs
+    ///    and no operation of the bridge turns off the document option that
+    ///    makes SOLIDWORKS put them (the bench group «bare-views» does it by
+    ///    COM, and is the red case since library 0.152.1). So this group
     ///    checks that the standard views walk every view with zero marks
     ///    through the SAME method the centre-mark operation uses
-    ///    (MarkHolesOfView, not a copy of it: one AddCenterMark call in the
-    ///    library, inside that method) and answer how many marks the bridge
-    ///    added next to the count after the rebuild.
+    ///    (MarkHolesOfView, not a copy of it: one AutoInsertCenterMarks2 call
+    ///    in the library, inside that method, never on a view where a hole is
+    ///    already marked because it doubles the marks, and no AddCenterMark,
+    ///    which adds nothing on a bare view: probe of 8/10/2026) and answer how
+    ///    many marks the bridge added next to the count after the rebuild.
     ///
     /// Every check also runs on changed copies of the real source, each of
     /// which must turn it red: a check never seen red proves nothing. No
@@ -86,9 +89,9 @@ namespace Oce.Solid.Agent.ContractTests
             Check("the standard views mark the holes of views with zero marks through the shared walk, and say how many",
                   centre.Count == 0,
                   centre.Count == 0
-                      ? "MarkHolesOfView called for the views with zero marks, no AddCenterMark of their own; the answer carries " +
-                        "centre_marks_after_rebuild and centre_marks_added_by_bridge; one AddCenterMark in the marks source, inside " +
-                        "MarkHolesOfView, which the centre-mark operation calls too"
+                      ? "MarkHolesOfView called for the views with zero marks, no insertion of their own; the answer carries " +
+                        "centre_marks_after_rebuild and centre_marks_added_by_bridge; one AutoInsertCenterMarks2 in the marks source, " +
+                        "inside MarkHolesOfView after the guard on holes already marked, no AddCenterMark; the centre-mark operation calls it too"
                       : string.Join(" | ", centre));
 
             // Source 0 is the drawing source, source 1 the marks source; each
@@ -100,11 +103,17 @@ namespace Oce.Solid.Agent.ContractTests
                 Change(0, "the views already on the sheet walked too", "if (viewName == null || viewsBefore == null || viewsBefore.Contains(viewName)) continue;", ""),
                 Change(0, "the count of the bridge not answered", "[\"centre_marks_added_by_bridge\"] = addedByBridge,", ""),
                 Change(0, "a walk of its own", "if (viewsWithoutMarks.Count > 0)",
+                       "if (viewsWithoutMarks.Count > 0) other.AutoInsertCenterMarks2(1, 0, true, true, true, 0.0025, 0.0025, false, false, 0);\n            if (viewsWithoutMarks.Count > 0)"),
+                Change(0, "the dead AddCenterMark back in the standard views", "if (viewsWithoutMarks.Count > 0)",
                        "if (viewsWithoutMarks.Count > 0) other.AddCenterMark(0.0025, false);\n            if (viewsWithoutMarks.Count > 0)"),
                 Change(1, "the centre-mark operation with a copy of the walk", "MarkHolesOfView(", "CopiedWalk("),
-                Change(1, "a second AddCenterMark in the marks source", "private static HoleCentreMarks MarkHolesOfView(",
+                Change(1, "a second AutoInsertCenterMarks2 in the marks source", "private static HoleCentreMarks MarkHolesOfView(",
+                       "private static void Other(IView v) { v.AutoInsertCenterMarks2(1, 0, true, true, true, 0.0025, 0.0025, false, false, 0); }\n" +
+                       "        private static HoleCentreMarks MarkHolesOfView("),
+                Change(1, "the dead AddCenterMark back in the marks source", "private static HoleCentreMarks MarkHolesOfView(",
                        "private static void Other(IDrawingDoc d) { d.AddCenterMark(0.0025, false); }\n" +
                        "        private static HoleCentreMarks MarkHolesOfView("),
+                Change(1, "the guard on holes already marked removed (the marks double)", "if (marks.AlreadyMarked > 0)", "if (false)"),
             };
             var centreRed = SeenRed("centre marks", new[] { drawing, marks }, s => CentreMarkProblems(s[0], s[1]), centreChanges);
             Check("the centre-mark check turns red on each changed copy", centreRed.Count == 0,
@@ -167,22 +176,34 @@ namespace Oce.Solid.Agent.ContractTests
                     problems.Add("the standard views do not keep only the views with zero marks for the walk");
                 if (views.IndexOf(".AddCenterMark(", StringComparison.Ordinal) >= 0)
                     problems.Add("the standard views call AddCenterMark themselves: a copy of the walk");
+                if (views.IndexOf(".AutoInsertCenterMarks2(", StringComparison.Ordinal) >= 0)
+                    problems.Add("the standard views call AutoInsertCenterMarks2 themselves: a copy of the walk");
                 if (!Regex.IsMatch(views, @"viewsBefore\.Contains\(\w+\)\)\s*continue\s*;"))
                     problems.Add("the standard views also walk the views that were on the sheet before the call");
                 foreach (var key in new[] { "\"centre_marks_after_rebuild\"", "\"centre_marks_added_by_bridge\"" })
                     if (views.IndexOf(key, StringComparison.Ordinal) < 0) problems.Add("the answer of the standard views has no " + key);
             }
 
-            // The walk: one AddCenterMark in the marks source, inside MarkHolesOfView,
-            // and the centre-mark operation calls it.
+            // The walk: one AutoInsertCenterMarks2 in the marks source, inside
+            // MarkHolesOfView and after the return on a view whose holes are
+            // partly marked (it doubles existing marks: 3 -> 6, probe of
+            // 8/10/2026); no AddCenterMark anywhere (it adds nothing on a bare
+            // view, same probe); and the centre-mark operation calls the walk.
             string walk = MemberBody(marks, "private static HoleCentreMarks MarkHolesOfView(");
             if (walk == null) problems.Add("MarkHolesOfView is not in the marks source");
             else
             {
-                int all = Count(marks, ".AddCenterMark("), inside = Count(walk, ".AddCenterMark(");
+                int all = Count(marks, ".AutoInsertCenterMarks2("), inside = Count(walk, ".AutoInsertCenterMarks2(");
                 if (all != 1 || inside != 1)
-                    problems.Add(all + " AddCenterMark call(s) in the marks source, " + inside + " inside MarkHolesOfView: expected 1 and 1");
+                    problems.Add(all + " AutoInsertCenterMarks2 call(s) in the marks source, " + inside + " inside MarkHolesOfView: expected 1 and 1");
+                var guard = Regex.Match(walk, @"if\s*\(\s*marks\.AlreadyMarked\s*>\s*0\s*\)\s*\{[^{}]*return\s+marks\s*;\s*\}");
+                int call = walk.IndexOf(".AutoInsertCenterMarks2(", StringComparison.Ordinal);
+                if (!guard.Success || call < 0 || guard.Index > call)
+                    problems.Add("no return before AutoInsertCenterMarks2 on a view where some hole already has its mark: the marks would double");
             }
+            int addCalls = Count(marks, ".AddCenterMark(") + Count(drawing, ".AddCenterMark(");
+            if (addCalls != 0)
+                problems.Add(addCalls + " AddCenterMark call(s): it adds nothing on a bare view (probe of 8/10/2026), expected none");
             int callers = Count(marks, "MarkHolesOfView(") - (walk == null ? 0 : 1);
             if (callers != 1)
                 problems.Add("the centre-mark operation calls MarkHolesOfView " + callers + " time(s), expected 1");

@@ -70,6 +70,7 @@
     <Compile Include="ClientPort.cs" />
     <Compile Include="Orphans.cs" />
     <Compile Include="DimensionNumbers.cs" />
+    <Compile Include="BareViews.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="NewOperationsTests.cs" />
     <Compile Include="NoPartTests.cs" />

@@ -363,11 +363,14 @@ namespace Oce.Solid.Agent.Core
             // the automatic marks in silence: draft quality views ("Some edges may
             // be missing, since not all model information is loaded in Draft
             // quality"), large assembly mode. Only views with ZERO marks: where
-            // SOLIDWORKS put some, the view is left as it is. What the operation
-            // measured on 26/9/2026 still holds: once the automatic marks were
-            // deleted, AddCenterMark put none back; so a hole may stay bare, and
-            // then the answer says it. A view with no hole seen end-on (the front
-            // and side views of a plate) is walked and left untouched.
+            // SOLIDWORKS put some, the view is left as it is. Up to library 0.152.0
+            // the walk called AddCenterMark, which adds nothing on a bare view
+            // (measured on 8/10/2026, three holes out of three), so the remedy
+            // never worked: the full bench of 0.152.0 went red on it. The walk now
+            // inserts them with AutoInsertCenterMarks2 and finds each one again at
+            // its hole (see MarkHolesOfView); a hole that still stays bare is said
+            // in the answer. A view with no hole seen end-on (the front and side
+            // views of a plate) is walked and left untouched.
             // ZERO-E-ZERO: the three counters below count what the walk found and
             // did; with no view without marks, or no hole in them, zero is real.
             int addedByBridge = 0;
@@ -378,7 +381,6 @@ namespace Oce.Solid.Agent.Core
             {
                 IMathUtility mu = null;
                 try { mu = _sw.GetMathUtility() as IMathUtility; } catch { }
-                var selMgr = model.SelectionManager as ISelectionMgr;
                 double size = DocumentCentreMarkSize(model, Units.M(DefaultCentreMarkSizeMm));
                 foreach (IView view in viewsWithoutMarks)
                 {
@@ -388,7 +390,7 @@ namespace Oce.Solid.Agent.Core
                     string viewName = null;
                     try { viewName = view.GetName2(); } catch { }
                     if (viewName == null || viewsBefore == null || viewsBefore.Contains(viewName)) continue;
-                    var marks = MarkHolesOfView(model, drawing, view, size, false, mu, selMgr);
+                    var marks = MarkHolesOfView(model, view, size, false, true, mu);
                     if (marks.Before < 0) continue;   // not counted this time: nothing was touched
                     holesInViewsWithoutMarks += marks.Holes;
                     addedByBridge += marks.Added;
@@ -411,6 +413,14 @@ namespace Oce.Solid.Agent.Core
                             (int)swUserPreferenceOption_e.swDetailingNoOptionSpecified);
                     }
                     catch { }
+                    // THE JOURNAL SAYS WHEN THE REMEDY FIRES (RAG note 82zz-duodecies, 1/10/2026:
+                    // «the bench journal cannot say whether the remedy fires, because
+                    // standard_views does not write it»). One line, only when SOLIDWORKS
+                    // left holes bare, with what the bridge did about them.
+                    _log("[agent] standard_views: SOLIDWORKS put no centre mark on " + holesInViewsWithoutMarks +
+                         (holesInViewsWithoutMarks == 1 ? " hole" : " holes") + " seen end-on (document option " +
+                         (autoMarksOption is bool o ? (o ? "on" : "off") : "unreadable") + "); the bridge added " +
+                         addedByBridge + (holesLeftWithoutMark > 0 ? ", " + holesLeftWithoutMark + " left bare" : ""));
                 }
             }
 
@@ -439,8 +449,8 @@ namespace Oce.Solid.Agent.Core
                 measurements["centre_marks_note"] =
                     "SOLIDWORKS put no centre mark on the " + holesInViewsWithoutMarks +
                     (holesInViewsWithoutMarks == 1 ? " hole" : " holes") + " seen end-on in views without marks, and the bridge " +
-                    "added " + addedByBridge + ": on the other " + holesLeftWithoutMark + " AddCenterMark added nothing (measured " +
-                    "on 26/9/2026: once the automatic marks are deleted it puts none back). " +
+                    "added " + addedByBridge + ": on the other " + holesLeftWithoutMark + " AutoInsertCenterMarks2 put no mark where the " +
+                    "hole is. " +
                     (autoMarksOption is bool optionOn
                         ? (optionOn ? "The option that inserts them is on, so something suppressed them in silence (the documented " +
                                       "cases: a draft quality view, large assembly mode): make the views again."

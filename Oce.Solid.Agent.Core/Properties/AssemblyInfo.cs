@@ -500,8 +500,15 @@ using System.Runtime.InteropServices;
 //          other. The Italian branches of the number reader of the tests and
 //          of the refusals table are gone with it. The surface has one name
 //          for everything.
-[assembly: AssemblyVersion("0.152.0.0")]
-[assembly: AssemblyFileVersion("0.152.0.0")]
+// 0.152.1: final bench fix. A view SOLIDWORKS left without centre marks gets them
+//          from IView.AutoInsertCenterMarks2 (hole type, after IDrawingDoc.ActivateView
+//          as the page asks), in standard_views and in
+//          center_marks, and each one is found again at its hole; AddCenterMark,
+//          which adds nothing on a bare view (probe of 8/10/2026), is gone. The call
+//          is never made on a view where a hole already has its mark: it doubles them.
+//          standard_views writes one journal line when it fires.
+[assembly: AssemblyVersion("0.152.1.0")]
+[assembly: AssemblyFileVersion("0.152.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -516,4 +523,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.152.0")]
+[assembly: AssemblyInformationalVersion("0.152.1")]
