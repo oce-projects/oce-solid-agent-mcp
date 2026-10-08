@@ -337,6 +337,16 @@ namespace Oce.Solid.Agent.ContractTests
             Check("a reading with a filter keeps the signatures of the reading before when it is the same part (it must not unprotect F1..F60)",
                   tools != null && tools.Contains("WhatChanged(previousLight, _signatureSeen) == null"),
                   "the merge of the seen signatures is missing");
+            Check("a filter the reading did not apply (an assembly, a drawing, a part without solid bodies) is refused, not answered with the ordinary state",
+                  tools != null && tools.Contains("facesWanted != null && !docState.ContainsKey(\"faces_filter\")") &&
+                  tools.Contains("«faces» was not applied"),
+                  "inspect_part answers an unapplied filter with the ordinary state");
+
+            var selectors = Source("Bench", "Expectations.cs");
+            Check("the bench refuses a selector that finds ONE face on a reading of every face that was cut all the same (over 500): its twin may be beyond the cut",
+                  selectors != null && selectors.Contains("string cutNote = family == \"faces\" ? FacesCutByFilter(docState) : null;") &&
+                  selectors.Contains("if (cutNote != null && foundOnes.Count <= 1)"),
+                  "Bench/Expectations.cs takes the one face it found on a cut list");
 
             var runner = Source("Bench", "tasks", "prerequisite.js");
             Check("the runner reads every face before it resolves a selector on a face, and refuses a bridge that does not answer the filter",

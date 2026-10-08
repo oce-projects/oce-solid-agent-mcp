@@ -246,6 +246,15 @@ function scoreRun(dir) {
   return summary;
 }
 
+// Whether the two runs started from parts built by different bridges: { refuse, text } or null.
+function fixtureProblem(runBefore, runAfter) {
+  const v = (r) => (r && r.prerequisite_bridge_version) || null;
+  const a = v(runBefore), b = v(runAfter);
+  if (a && b && a !== b) return { refuse: true, text: 'the prerequisites of the two runs were built by different bridges (' + a + ' before, ' + b + ' after): the starting parts are a fixture and must be the same on both sides; run both with the same -PrerequisiteBridge' };
+  if (!a || !b) return { refuse: false, text: 'note: ' + (!a && !b ? 'neither run says' : (!a ? 'the run before does not say' : 'the run after does not say')) + ' which bridge built its prerequisites (a run older than -PrerequisiteBridge): the starting parts are not proved the same' };
+  return null;
+}
+
 function compare(before, after) {
   const read = (dir) => {
     const j = JSON.parse(fs.readFileSync(path.join(dir, 'score.json'), 'utf8'));
@@ -253,6 +262,12 @@ function compare(before, after) {
     return j;
   };
   const ja = read(before), jb = read(after);
+  // THE STARTING PARTS ARE A FIXTURE (W3.1-bis.12): both sides must have built them with the SAME bridge
+  // (-PrerequisiteBridge), or the comparison measures the fixtures. A run older than the option does not say it:
+  // that is reported, not refused (the score of the run before is kept and still compares).
+  const fixture = fixtureProblem(ja.run, jb.run);
+  if (fixture && fixture.refuse) fail(fixture.text);
+  if (fixture) console.log(fixture.text);
   const protocols = (j) => [...new Set([].concat(...Object.values(j.summary).map(t => t.protocols || [])))].join(', ');
   console.log('before: ' + protocols(ja) + '; after: ' + protocols(jb));
   const a = ja.summary;
@@ -336,6 +351,13 @@ function selfTest() {
     check('a session whose prerequisite did not hold, and that has no transcript, is found: its task, its number and its reason',
           lost.length === 1 && lost[0].task === '11_tube_stand_drawing' && lost[0].n === 1 && /gusset/.test(lost[0].error));
   } finally { fs.rmSync(folder, { recursive: true, force: true }); }
+  // the starting parts are a fixture: two runs whose prerequisites came from different bridges are not compared
+  const sameFixture = fixtureProblem({ prerequisite_bridge_version: '0.130.0' }, { prerequisite_bridge_version: '0.130.0' });
+  const otherFixture = fixtureProblem({ prerequisite_bridge_version: '0.129.0' }, { prerequisite_bridge_version: '0.130.0' });
+  const oldRun = fixtureProblem({}, { prerequisite_bridge_version: '0.130.0' });
+  check('two runs whose prerequisites were built by different bridges are refused; the same bridge passes; a run older than the option is a note, not a refusal',
+        sameFixture === null && otherFixture && otherFixture.refuse && /different bridges/.test(otherFixture.text) &&
+        oldRun && !oldRun.refuse && /run before does not say/.test(oldRun.text));
   console.log(bad ? 'self-test: ' + bad + ' failed' : 'self-test: all held');
   return bad === 0;
 }

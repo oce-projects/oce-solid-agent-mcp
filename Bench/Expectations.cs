@@ -894,6 +894,18 @@ namespace Oce.Solid.Agent.Bench
                 return Convert.ToString(foundOnes[nth.Value - 1][fieldToReturn]);
             }
 
+            // A READING OF EVERY FACE THAT WAS CUT ALL THE SAME (W3.1-bis.12): the
+            // part has more faces than one reading lists (FaceFilter.MaxLimit).
+            // One face found on that list does not prove it is the only one —
+            // its twin may be beyond the cut, and that is the silent defect
+            // below. `n=` above is safe: the listing keeps the largest first, so
+            // the n-th found is the n-th of the part.
+            string cutNote = family == "faces" ? FacesCutByFilter(docState) : null;
+            if (cutNote != null && foundOnes.Count <= 1)
+                throw new CouldNotMeasure(expression + ": " + (foundOnes.Count == 0 ? "I did not find it" : "I found 1") +
+                                    " among the faces listed, and " + cutNote +
+                                    ": the face may be beyond them, or have a twin there. Add a condition, or «n=»");
+
             // ZERO OR MORE THAN ONE: IT IS REFUSED, the first is not chosen.
             // It is the silent defect that this entry names: a case that runs
             // on a face different from the one the file name promises, and
@@ -905,6 +917,27 @@ namespace Oce.Solid.Agent.Bench
                                     ". Picking one would be guessing: add a " +
                                     "condition, or «n=» if you decide the order yourself");
             return Convert.ToString(foundOnes[0][fieldToReturn]);
+        }
+
+        /// <summary>
+        /// Why a state read with a face filter (`faces_filter`) did not list every
+        /// face that matched it, or null when it did (or when it is an ordinary
+        /// reading: its cut at 60 is what the bench reads again, see
+        /// StateForSelectors in Program.cs).
+        /// </summary>
+        internal static string FacesCutByFilter(Dictionary<string, object> docState)
+        {
+            if (docState == null || !docState.ContainsKey("faces_filter")) return null;
+            object notListed;
+            if (!docState.TryGetValue("faces_not_listed", out notListed) || notListed == null) return null;
+            int n;
+            try { n = Convert.ToInt32(notListed, CultureInfo.InvariantCulture); }
+            catch (Exception) { return null; }
+            if (n <= 0) return null;
+            object total;
+            docState.TryGetValue("faces_total", out total);
+            return n + " of the " + Convert.ToString(total, CultureInfo.InvariantCulture) +
+                   " faces of the part were not listed (one reading lists at most 500)";
         }
 
         internal static string AFeature(

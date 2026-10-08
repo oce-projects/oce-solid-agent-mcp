@@ -83,7 +83,8 @@
 //  problem).
 //
 //  PREREQ_TRACE=<file> appends every request to the bridge and every answer to
-//  that file, one JSON line each: what a failed build read is then on the disk.
+//  that file, one JSON line each: what a failed build read is then on the disk,
+//  with the seconds each answer took (the stand of task 07 takes about 40 minutes).
 //
 //  Exit 0 on success, 1 when a check or a build failed, 2 on a bad argument or
 //  a bridge that cannot run here.
@@ -184,6 +185,9 @@ function resolveSelector(expression, state) {
     ? ' (the state lists only ' + state.faces.length + ' of the ' + (typeof state.faces_matched === 'number' ? state.faces_matched + ' faces that match its filter' : state.faces_total + ' faces, the largest') + ': the face may not be listed)'
     : '';
   if (found.length === 0) throw new Error(expression + ': not found' + listed);
+  // ONE face found on a cut list is not «the only one»: its twin may be beyond the cut (a part with more
+  // faces than one reading lists, 500). `n=` above is safe: the listing keeps the largest first.
+  if (found.length === 1 && listed) throw new Error(expression + ': found 1' + listed.replace('the face may not be listed', 'another face may match among the ones not listed') + '; add a condition, or «n=»');
   if (found.length > 1) throw new Error(expression + ': found ' + found.length + '; choosing one would be guessing, add a condition');
   return found[0].uid;
 }
@@ -466,7 +470,8 @@ class Bridge {
       const id = this.next++;
       const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('the bridge did not answer «' + method + '» in ' + Math.round((timeoutMs || 600000) / 1000) + ' s')); }, timeoutMs || 600000);
       const trace = process.env.PREREQ_TRACE;
-      const settle = (fn) => (m) => { if (trace) { try { fs.appendFileSync(trace, JSON.stringify({ id, answer: m }) + '\n'); } catch (e) { /* the trace is a help, not a duty */ } } fn(m); };
+      const sent = Date.now();
+      const settle = (fn) => (m) => { if (trace) { try { fs.appendFileSync(trace, JSON.stringify({ id, seconds: Math.round((Date.now() - sent) / 100) / 10, answer: m }) + '\n'); } catch (e) { /* the trace is a help, not a duty */ } } fn(m); };
       this.pending.set(id, { resolve: settle(resolve), reject, timer });
       if (trace) { try { fs.appendFileSync(trace, JSON.stringify({ id, method, params }) + '\n'); } catch (e) { /* idem */ } }
       this.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
@@ -877,6 +882,13 @@ async function selfTest() {
   check('a state read with the faces filter that lists every match is not cut, whatever faces_total says (W3.1-bis.12)',
         !facesCut(filtered) && !/may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', filtered)) || '') &&
         facesCut(Object.assign({}, filtered, { faces_matched: 600 })) && /may not be listed/.test(throws(() => resolveSelector('@face(normal=up)', Object.assign({}, filtered, { faces_matched: 600 }))) || ''));
+  // ...and on a cut list ONE face found is refused, not taken: its twin may be beyond the cut (seen red: it was taken)
+  const oneOnCut = Object.assign({}, state, { faces_total: 700, faces_matched: 700, faces_filter: { limit: 500 } });
+  const oneUid = state.faces.length ? state.faces[0].uid : null;
+  const oneSel = oneUid ? '@face(area~=' + state.faces[0].area_mm2 + ',x~=' + state.faces[0].point_mm[0] + ',y~=' + state.faces[0].point_mm[1] + ',z~=' + state.faces[0].point_mm[2] + ')' : null;
+  check('a selector that finds ONE face on a list cut at 500 is refused (another may match beyond the cut); the same selector on a full list is taken',
+        oneSel && resolveSelector(oneSel, filtered) === oneUid &&
+        /found 1 .*another face may match among the ones not listed/.test(throws(() => resolveSelector(oneSel, oneOnCut)) || ''));
   check('a body is named by its name', resolveSelector('@body(name=' + SQUARE_TUBE + ' 40x40x3(4))', state) === 'C2');
   check('a selector the runner does not read is refused by its name', /not a selector the runner reads/.test(throws(() => resolveSelector('@dimension(name=D1)', state)) || ''));
 

@@ -295,9 +295,13 @@ the identifier of its rank by area and the library finds an unlisted one by it. 
 library older than 0.153.0 there is no `ReadFaces`, the selector meets the list of 60,
 and the case cannot be built: that is its red (`a_face_beyond_the_largest_sixty_is_named_by_selector`,
 `red_before` 0.153.0). The group `--group faces-beyond-sixty` walks the same road through
-the bridge: the ordinary reading lists 60, `faces: {near_mm}` finds the 71st, a plan
-cites its identifier and measures 8.5 mm, the identifier after the last face and a
-crooked filter are refused.
+the bridge on the mitred frame of the stand (72 faces): the ordinary reading lists 60,
+`faces: {near_mm}` finds the two mitre faces at a corner (ranks above 60), a plan cites
+one of them and measures 960 mm to the opposite side, the same identifier still works
+after an ordinary reading, the identifier after the last face and a crooked filter are
+refused. A part with more faces than one reading lists (500) is cut there too: a
+selector that finds ONE face on a cut list is refused (the same face may be beyond the
+cut), not taken; `n=` still works, the listing keeps the largest first.
 
 Everything that prevents **measuring** is a bench error (exit 2), not a red
 test: a field that is not in the state or in the measures (with a message that

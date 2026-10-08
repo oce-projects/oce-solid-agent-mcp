@@ -123,7 +123,11 @@ namespace Oce.Solid.Agent.Tools
                                     "the same plan changes the part, a face that was not among " +
                                     "the " + DocumentState.MaxFaces + " largest is refused, not " +
                                     "searched for again — read the part again. At most " +
-                                    FaceFilter.MaxLimit + " faces are listed in one reading.",
+                                    FaceFilter.MaxLimit + " faces are listed in one reading, and " +
+                                    "every face listed costs time and text: narrow the filter rather " +
+                                    "than raise the limit. Faces of equal area are ranked in the order " +
+                                    "of the bodies. A part with solid bodies only: on an assembly or a " +
+                                    "drawing the call is refused.",
                                 ["properties"] = new Dictionary<string, object>
                                 {
                                     ["normal"] = new Dictionary<string, object>
@@ -944,6 +948,18 @@ namespace Oce.Solid.Agent.Tools
             object facesFilterProblem;
             if (docState.TryGetValue("faces_filter_problem", out facesFilterProblem))
                 return Protocol.Content(Convert.ToString(facesFilterProblem), true);
+            // A FILTER THAT WAS NOT APPLIED IS SAID, not answered with the ordinary state:
+            // an assembly, a drawing or a part with no solid body has no ranking of faces,
+            // and a state without «faces_filter» would read as «nothing matched».
+            if (facesWanted != null && !docState.ContainsKey("faces_filter"))
+            {
+                object kind;
+                docState.TryGetValue("kind", out kind);
+                return Protocol.Content(
+                    "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
+                    "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
+                    "») has none to rank. Ask again without «faces».", true);
+            }
             _seen = StateIdentity(docState);
             _signatureSeen = LightSignature(docState);
             _seenSignatures = StateSignatures(docState);

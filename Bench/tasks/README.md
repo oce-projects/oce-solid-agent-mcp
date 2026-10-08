@@ -178,11 +178,17 @@ the prerequisite is not the part the task describes, the session is NOT run
 (`<task>-<n>.prerequisite.json` says why, `run.json` lists it, the scorer
 counts it NOT DONE) instead of measuring another part.
 
-**The starting part is a fixture, not a measure, and it is the SAME FILE on both sides
-of D9** (W3.1-bis.12). The runner builds the prerequisites with ONE bridge, given
+**The starting part is a fixture, not a measure, and it is the SAME PART on both sides
+of D9** (W3.1-bis.12): not one file copied, but the same reference plan built by the
+same bridge in the folder of every session, and checked against the numbers of its
+task each time. The runner builds the prerequisites with ONE bridge, given
 by `-PrerequisiteBridge` and by default the bridge of this repository (the one
-AFTER); `-Bridge` is only the bridge the session talks to, and `run.json` records
-both (`prerequisite_bridge`, `prerequisite_bridge_version`). Built by the bridge
+AFTER: launch both sides from this repository, or give the same `-PrerequisiteBridge`
+to both); `-Bridge` is only the bridge the session talks to, and `run.json` records
+both (`prerequisite_bridge`, `prerequisite_bridge_version`). `score-autonomous.js
+--compare` refuses two runs whose prerequisites were built by different bridge
+versions, and notes a run older than the option. The bridge before only has to READ
+the part a session starts from, which is an ordinary SOLIDWORKS file in front. Built by the bridge
 under test, the two sides could start from different parts (the stand of task 07
 could not even be built by the bridge before, which lists the 60 largest faces
 only), and the comparison would measure the fixtures instead of the model. What a

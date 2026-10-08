@@ -60,9 +60,11 @@
 #  starting part of the two sides could differ by what the bridge builds
 #  differently (the stand of task 07 cannot even be built by the bridge before,
 #  which lists only the 60 largest faces), and the comparison would then
-#  measure the fixtures. So both sides start from the same file, built by the
-#  same bridge, and -Bridge is only what the session talks to. run.json says
-#  which bridge built them.
+#  measure the fixtures. So both sides start from the same part: the same plan,
+#  built by the same bridge in the folder of each session and checked each time;
+#  -Bridge is only what the session talks to. run.json says which bridge built
+#  them, and score-autonomous.js --compare refuses two runs whose prerequisites
+#  came from different bridge versions.
 #
 #  THE SESSION SEES THE BRIDGE AND NOTHING ELSE. A session started in the
 #  repository could read Bench/tasks/NN_*.md, with the table of the expected

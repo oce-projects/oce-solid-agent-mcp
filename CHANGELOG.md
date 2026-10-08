@@ -72,8 +72,9 @@ the state with `faces: {limit: 500}`; a bridge that does not answer the filter f
 build instead of resolving on the cut list. `run-autonomous.ps1` takes
 `-PrerequisiteBridge` (default: the bridge of this repository, the one AFTER) and builds
 every prerequisite with it, whatever bridge the session talks to: the starting part is a
-fixture, not a measure, and it is the same file on both sides (README of the tasks;
-`run.json` records `prerequisite_bridge` and its version).
+fixture, not a measure, and it is the same part on both sides: the same plan built by the
+same bridge in the folder of every session (README of the tasks; `run.json` records
+`prerequisite_bridge` and its version).
 
 **4. The bench** reads every face when a step names a face by selector and the state is
 cut (`ReadStateEveryFace`), finds an unlisted face by its rank, has the case
@@ -107,6 +108,34 @@ without SOLIDWORKS.
   has 4,800 mm2 and 32 faces share that area, 12 inside the first 60 and 20 left out, so the
   order of the ties is what hid them and a higher ceiling would only have moved the problem;
   `GetClosestPointOn` finds the wall of a foot at distance 0 from a point on it.
+
+**Adversarial review (8/10/2026), fixed:**
+
+- **A reading of every face can still be cut** (a part with more than 500 faces): a selector
+  that found ONE face on that list was taken, although its twin could be beyond the cut — the
+  silent defect the selectors exist to refuse. Now refused, in the bench (`Expectations.OnlyOne`,
+  `FacesCutByFilter`) and in the runner (`resolveSelector`), each with a self-test or contract
+  seen red without the fix; `n=` still works (the listing keeps the largest first).
+- **A filter the reading did not apply** (an assembly, a drawing, a part without solid
+  bodies) came back as the ordinary state, which reads as «nothing matched»: `inspect_part`
+  now refuses it and says why. The description of `faces` also says that every listed face
+  costs time and text, that ties are ranked in the order of the bodies, and that it is for
+  parts only.
+- **The group `faces-beyond-sixty` sent the same plan twice** on an unchanged part and the
+  bridge refused the repeat («I have already run this plan»): its step 4 swaps the two ends.
+  12 of 12 green live on a fresh SOLIDWORKS.
+- **«The same file on both sides» was not true**: every session builds its own copy from the
+  same plan with the same bridge. The READMEs and the runner say so, and
+  `score-autonomous.js --compare` now refuses two runs whose prerequisites were built by
+  different bridge versions (a run older than the option is a note).
+- `Bench/report/last.json` had been overwritten by a partial run: restored to the last full run.
+- The trace of the runner (`PREREQ_TRACE`) records the seconds of every answer.
+
+Measured live in the review: the six prerequisites build and hold every expectation of their
+tasks (01: 119 s, 02: 81 s, 03: 149 s, 08: 189 s, 09: 202 s, **07: 2,432 s**: 17 bodies, 6 rows,
+17 in the cut list, four gussets of 2,400 mm3, volume 1,814,624.9 mm3, the same as the build of
+7/10); the bridge BEFORE (0.129.0) opens that stand and reads it (17 bodies, the same volume,
+60 faces of 206 listed); the family `measurement` 13 of 13 green, 77 of 77 expectations.
 
 ## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
 

@@ -189,10 +189,13 @@ namespace Oce.Solid.Agent.Bench
                       Succeeded(distance) && HasDistance(distance, expected), Short(distance));
 
                 // ── 4. THE SAME IDENTIFIER AFTER AN ORDINARY READING ──────
+                // The two ends are swapped: the same plan sent twice on an unchanged part is refused by the
+                // bridge as a repeat («I have already run this plan»), which says nothing about the face
+                // (seen red on the run of 7/10/2026 at 23:57).
                 var plain = Mcp.Obj(ResponseText(Slow(p, 7, Call(7, "inspect_part", "{}"))));
                 int plainTotal = Count(Mcp.Inside(plain, "faces_total"));
                 var again = ResponseText(Slow(p, 8, Call(8, "build",
-                    "{\"steps\":[{\"operation\":\"minimum_distance\",\"arguments\":{\"start_uid\":\"" + mitreUid + "\",\"end_uid\":\"" + rightUid + "\"}}]}")));
+                    "{\"steps\":[{\"operation\":\"minimum_distance\",\"arguments\":{\"start_uid\":\"" + rightUid + "\",\"end_uid\":\"" + mitreUid + "\"}}]}")));
                 Check("faces beyond sixty: after an ORDINARY reading (60 listed) the same identifier still names the same face: it is numbered even when it is not described",
                       plainTotal == total && FacesOf(plain).Count == 60 && Succeeded(again) && HasDistance(again, expected),
                       "faces_total " + plainTotal + "; " + Short(again));
