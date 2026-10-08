@@ -208,6 +208,16 @@ $nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 #   https://www.paypal.biz/   + the one account code, in its exact case, then a
 #   character that cannot continue it.
 #
+# A THIRD SHAPE (W3.1-bis.12): THE OWNER'S SIGNATURE IN THE LANGUAGE EXCEPTIONS.
+# Every entry of `Checks/language/exceptions.json` carries the field `signed_by`
+# with the owner's name: it is the owner's signature on an exception, and the
+# language gate requires it. Exactly that field with exactly that value is
+# exempt: the key, a colon, a space, an opening quote, the name in its exact case
+# and the closing quote. The same name in any other field, with another
+# case or a longer value, stays forbidden, and so does the shape in any other file:
+# a separate rule below (the signature outside its own file) refuses it everywhere
+# except in `exceptions.json` itself. The file is NOT exempt as a whole.
+#
 # The name stays forbidden everywhere else, including on the same line as
 # these addresses, and in any URL of those two hosts that differs from the two
 # (another account, another case, http instead of https, a longer name). The
@@ -218,9 +228,16 @@ $nameOnly = @('LICENSE', 'NOTICE') + $twoChecks
 # history (`git grep -P`): the lookbehinds are of fixed length for that reason.
 $AuthorName = 'oscar'
 $AuthorNameButTheTwoSupportUrls =
-    '(?<!https://buymeacoffee\.com/)(?<!https://www\.paypal\.biz/)' + $AuthorName +
+    '(?<!https://buymeacoffee\.com/)(?<!https://www\.paypal\.biz/)(?<!"signed_by": ")' + $AuthorName +
     '|(?<=https://buymeacoffee\.com/)(?!(?-i:oscarcontatoengineering)(?![A-Za-z0-9]))' + $AuthorName +
-    '|(?<=https://www\.paypal\.biz/)(?!(?-i:OSCARCONTATO94)(?![A-Za-z0-9]))' + $AuthorName
+    '|(?<=https://www\.paypal\.biz/)(?!(?-i:OSCARCONTATO94)(?![A-Za-z0-9]))' + $AuthorName +
+    '|(?<="signed_by": ")(?!(?-i:Oscar Contato"))' + $AuthorName
+
+# The shape of the signature, written so that this file does not contain it (the
+# class around the space): it is searched for in every file and the one that holds
+# it on purpose is the exceptions file of the language gate.
+$OwnerSignature = '"signed_by": "Oscar[ ]Contato"'
+$onlyTheExceptionsFile = @('exceptions.json')
 
 # Whoever replaces the scratchpad path must write it to find it:
 # `cleanup-history.js` (gone from the tree in W3.1-bis.10, but still in the history this check reads) had the schema, this check has the pattern.
@@ -328,6 +345,7 @@ function Look($itemName, $pattern, $why, $caseSensitive, $except = @()) {
 
 Write-Host "=== In the working tree"
 Look 'the user name' $AuthorNameButTheTwoSupportUrls 'the name of the person working' $false $nameOnly
+Look 'the owner''s signature outside its file' $OwnerSignature 'it belongs to the language exceptions only' $false $onlyTheExceptionsFile
 Look 'a session path' 'AppData.Local.Temp' 'exists only on this machine' $false $sessionOnly
 Look 'an internal address' $TrueAddress 'a private network' $false
 Look 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks
@@ -447,6 +465,7 @@ if ($toPush.Count -eq 0) {
     }
 
     LookAtHistory 'the user name' $AuthorNameButTheTwoSupportUrls 'the name of the person working' $false $nameOnly
+    LookAtHistory 'the owner''s signature outside its file' $OwnerSignature 'it belongs to the language exceptions only' $false $onlyTheExceptionsFile
     LookAtHistory 'a session path' 'AppData.Local.Temp' 'exists only on this machine' $false $sessionOnly
     LookAtHistory 'an internal address' $TrueAddress 'a private network' $false
     LookAtHistory 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks

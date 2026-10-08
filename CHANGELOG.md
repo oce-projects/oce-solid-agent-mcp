@@ -44,6 +44,8 @@ RELEASE.md. A machine without SOLIDWORKS cannot install (exit 1, nothing written
 that, and proves the install mechanics against a placeholder file with `OCE_NO_ATTACH=1`; see RELEASE.md for
 what that does and does not prove. The workflow has not run yet: it needs a draft release to run on.
 
+`Checks/check-publishability.ps1` no longer reads the owner's signature as a leak: the field `signed_by` with the owner's exact name, which every entry of `Checks/language/exceptions.json` carries, is exempt by its shape (same style as the two support URLs), the same name in any other field or case stays red, and a new rule refuses that signature in any file but `exceptions.json`. Seen red without the pattern (25 lines in the tree, 450 in the history) and clean with it.
+
 ---
 
 ## Unreleased — final bench fix: the centre marks SOLIDWORKS leaves out are put by the bridge (branches `final-bench-fix` and `release-1` merged) · bridge 0.130.1 · library 0.153.1
