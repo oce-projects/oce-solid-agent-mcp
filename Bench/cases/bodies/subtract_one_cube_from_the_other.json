@@ -14,7 +14,7 @@
                      "copy": true, "copy_count": 1 },
       "expect": [ { "what": "bodies", "equal_to": 2 } ] },
     { "operation": "combine_bodies",
-      "arguments": { "operation": "subtract", "main_body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "operation": "subtract", "main_body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "expect": [
         { "what": "bodies", "equal_to": 1 },
         { "what": "center_of_mass_mm", "equal_to": [-0.667, 0, 3.333], "tolerance": 0.01,

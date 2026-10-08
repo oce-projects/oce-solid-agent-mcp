@@ -26,7 +26,7 @@
         { "what": "how_many_configuration_names", "equal_to": 4 } ] },
 
     { "operation": "set_dimension",
-      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "value_mm": 25 },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.boss_extrude}1,name=D1)", "value_mm": 25 },
       "expect": [
         { "what": "measurements.before_mm", "equal_to": 20, "why": "read before the change, through ReadDimension" },
         { "what": "measurements.now_mm", "equal_to": 25, "why": "read back after the rebuild, through ReadDimension" },
@@ -34,7 +34,7 @@
         { "what": "state.configuration", "equal_to": "Left", "why": "reading a dimension does not move the active configuration" } ] },
 
     { "operation": "dimension_tolerance",
-      "arguments": { "dimension": "D1@Estrusione-Estrusione1", "variant": "symmetric", "value_mm": 0.05 },
+      "arguments": { "dimension": "D1@{SW:feature.boss_extrude}1", "variant": "symmetric", "value_mm": 0.05 },
       "expect": [
         { "what": "measurements.nominal_mm", "equal_to": 25, "why": "the nominal value is read through ReadDimension" },
         { "what": "measurements.lower_limit_mm", "equal_to": 24.95, "tolerance": 0.0001,
@@ -47,7 +47,7 @@
       "expect": [ { "what": "measurements.value_mm", "equal_to": 12 } ] },
 
     { "operation": "link_dimension",
-      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"wall\"" },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.boss_extrude}1,name=D1)", "expression": "\"wall\"" },
       "expect": [
         { "what": "measurements.value_before_mm", "equal_to": 25, "why": "read before the equation, through ReadDimension" },
         { "what": "measurements.value_after_mm", "equal_to": 12, "why": "read after the equation drives it, through ReadDimension" },

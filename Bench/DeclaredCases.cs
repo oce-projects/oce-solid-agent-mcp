@@ -121,6 +121,29 @@ namespace Oce.Solid.Agent.Bench
             }
         }
 
+        /// <summary>
+        /// The names a case gives as «twin», wherever they are in it (a step's «must_fail»
+        /// holds it), for the selection of single cases.
+        /// </summary>
+        private static IEnumerable<string> TwinsIn(object node)
+        {
+            var map = node as Dictionary<string, object>;
+            if (map != null)
+            {
+                foreach (var key in map.Keys)
+                {
+                    var inside = map[key];
+                    if (key == "twin" && inside is string) yield return (string)inside;
+                    else foreach (var deeper in TwinsIn(inside)) yield return deeper;
+                }
+                yield break;
+            }
+            var items = node as System.Collections.IEnumerable;
+            if (items != null && !(node is string))
+                foreach (var item in items)
+                    foreach (var deeper in TwinsIn(item)) yield return deeper;
+        }
+
         private static void TestDeclaredCases()
         {
             Console.WriteLine();
@@ -150,6 +173,38 @@ namespace Oce.Solid.Agent.Bench
                     return;
                 }
                 file.AddRange(Directory.GetFiles(folder, "*.json"));
+            }
+            if (_casesOnly != null)
+            {
+                // The cases asked for, and the twins they name (judged in the same run).
+                var wanted = new HashSet<string>(_casesOnly, StringComparer.Ordinal);
+                bool grew = true;
+                while (grew)
+                {
+                    grew = false;
+                    foreach (var f in file)
+                    {
+                        if (!wanted.Contains(Path.GetFileNameWithoutExtension(f))) continue;
+                        Dictionary<string, object> theCase = null;
+                        try
+                        {
+                            theCase = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue }
+                                .DeserializeObject(CaseNames.ReadAllText(f)) as Dictionary<string, object>;
+                        }
+                        catch { }   // an unreadable file is reported when the case itself runs
+                        int before = wanted.Count;
+                        wanted.UnionWith(TwinsIn(theCase));
+                        if (wanted.Count != before) grew = true;
+                    }
+                }
+                var unknownCases = _casesOnly
+                    .Where(n => !file.Any(f => Path.GetFileNameWithoutExtension(f) == n)).ToList();
+                if (unknownCases.Count > 0)
+                {
+                    BenchError("declared cases: --case names a case that exists", string.Join(", ", unknownCases));
+                    return;
+                }
+                file = file.Where(f => wanted.Contains(Path.GetFileNameWithoutExtension(f))).ToList();
             }
             file = file.OrderBy(x => Path.GetFileName(x), StringComparer.Ordinal).ToList();
             if (file.Count == 0)
@@ -282,6 +337,13 @@ namespace Oce.Solid.Agent.Bench
 
             if (pairs.Count == 0)
             {
+                // A selection of single cases (--case) may hold no refusal at all: that is
+                // not a suite that lost its twins, and it is said.
+                if (_casesOnly != null)
+                {
+                    Console.WriteLine("  (the cases chosen with --case hold no «must_fail»: nothing to pair)");
+                    return;
+                }
                 Check("twins: there is at least one to check", false,
                       "no case with «must_fail»");
                 return;
@@ -351,7 +413,7 @@ namespace Oce.Solid.Agent.Bench
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
-                twin = s.DeserializeObject(File.ReadAllText(filePath)) as Dictionary<string, object>;
+                twin = s.DeserializeObject(CaseNames.ReadAllText(filePath)) as Dictionary<string, object>;
             }
             catch (Exception ex) { why = "the twin's JSON is unreadable: " + ex.Message; return false; }
 
@@ -572,7 +634,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 ["material"] = "1.0037 (S235JR)",
                 ["library"] = "solidworks materials",
-                ["class_name"] = "Acciaio",
+                ["class_name"] = "Steel",
             };
 
             string said = Why(() =>
@@ -688,7 +750,7 @@ namespace Oce.Solid.Agent.Bench
                 try
                 {
                     var s = new System.Web.Script.Serialization.JavaScriptSerializer();
-                    testCase = s.DeserializeObject(File.ReadAllText(filePath)) as Dictionary<string, object>;
+                    testCase = s.DeserializeObject(CaseNames.ReadAllText(filePath)) as Dictionary<string, object>;
                 }
                 catch (Exception ex) { BenchError(itemName, "unreadable JSON: " + Why(ex)); continue; }
                 // The same refusal as the normal run: a mutation of a case the
@@ -1076,7 +1138,7 @@ namespace Oce.Solid.Agent.Bench
             // HOW MANY CONFIGURATION NAMES THE PART DECLARES.
             //
             // THE NAMES CANNOT BE WRITTEN IN A CASE. The default one is
-            // called «Default<A macchina>»: the part between angle brackets is
+            // called «Default<As Machined>»: the part between angle brackets is
             // the display state and it is localized, so a case
             // that wrote it would be green on this installation and red
             // on the next. The COUNT instead is a fact: if
@@ -1085,7 +1147,7 @@ namespace Oce.Solid.Agent.Bench
             //
             // «NAMES» AND NOT «CONFIGURATIONS», and the distinction cost a
             // red: a part just born from this template declares TWO names
-            // -- «Default<A macchina>» and «Default<Saldato>» -- and a case that
+            // -- «Default<As Machined>» and «Default<As Welded>» -- and a case that
             // took for granted «a new part, one configuration» found
             // three where it expected two. The true count, the one that
             // `GetConfigurationCount()` answers, is the measurement below.
@@ -1268,7 +1330,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
                 s.MaxJsonLength = int.MaxValue;
-                return s.DeserializeObject(File.ReadAllText(filePath)) is object[];
+                return s.DeserializeObject(CaseNames.ReadAllText(filePath)) is object[];
             }
             catch { return false; }
         }
@@ -1280,7 +1342,7 @@ namespace Oce.Solid.Agent.Bench
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
-                testCase = s.DeserializeObject(File.ReadAllText(filePath)) as Dictionary<string, object>;
+                testCase = s.DeserializeObject(CaseNames.ReadAllText(filePath)) as Dictionary<string, object>;
             }
             // A BADLY WRITTEN CASE IS A BENCH ERROR, NOT A RED CHECK
             // (entry F4): «a check failed» says that something was
@@ -1557,8 +1619,8 @@ namespace Oce.Solid.Agent.Bench
                         // regression that is not there.
                         // THE REFERENCE IS MARKED, NOT THE NAME (entry K12-bis).
                         //
-                        // Here the drawing is still called `Disegno38 -
-                        // Foglio1`; two steps after the case saves it and it becomes
+                        // Here the drawing is still called `Draw38 -
+                        // Sheet1`; two steps after the case saves it and it becomes
                         // `drawing_dimensions_itself - Sheet1`. By marking the name of
                         // now, at the end of the case SOLIDWORKS was asked to
                         // close a document that no longer existed under that

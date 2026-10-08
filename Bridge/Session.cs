@@ -488,7 +488,7 @@ namespace Oce.Solid.Agent.Bridge
         ///
         /// WHY IT IS NEEDED, AND IT COST SOMEONE ELSE'S PART.
         /// On 14 September 2026 a test session extruded a 314x274x52
-        /// block inside «Parte4», which was not its document. Not because of a
+        /// block inside «Part4», which was not its document. Not because of a
         /// geometry defect: between the creation of its own part and the
         /// call, the ACTIVE document had changed — a window brought
         /// to the front, and the bridge worked on that one. No error, no

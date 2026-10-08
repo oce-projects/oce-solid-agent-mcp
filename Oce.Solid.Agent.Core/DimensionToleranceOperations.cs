@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.Core
             string dimensionName = Str(a, "dimension", "");
             if (string.IsNullOrWhiteSpace(dimensionName))
                 return Failed("You did not say which dimension. The names are in the state of the document, inside " +
-                               "each feature (for example «D1@Schizzo2»).");
+                               "each feature (for example «D1@Sketch2»).");
             string typ = (Str(a, "variant", "") ?? "").Trim().ToLowerInvariant();
             var dimension = FindDimension(model, dimensionName, out string location);
             if (dimension == null)

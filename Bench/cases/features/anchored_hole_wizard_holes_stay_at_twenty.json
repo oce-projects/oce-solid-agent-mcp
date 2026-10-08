@@ -108,7 +108,7 @@
     {
       "operation": "set_dimension",
       "arguments": {
-        "dimension": "@dimension(feature=Schizzo1,name=D2)",
+        "dimension": "@dimension(feature={SW:feature.sketch}1,name=D2)",
         "value_mm": 180
       },
       "expect": [
@@ -128,7 +128,7 @@
     {
       "operation": "set_dimension",
       "arguments": {
-        "dimension": "@dimension(feature=Schizzo1,name=D1)",
+        "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)",
         "value_mm": 260
       },
       "expect": [

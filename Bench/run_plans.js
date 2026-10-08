@@ -52,8 +52,39 @@ if (!planes.length) { console.error("give me the plans"); process.exit(2); }
 // `Bench/work`, which is in the .gitignore.
 const WORK = path.join(__dirname, "work");
 
+// THE NAMES SOLIDWORKS WRITES IN ITS OWN LANGUAGE. A plan that names a feature SOLIDWORKS
+// wrote says {SW:feature.cut_extrude}1; here the placeholder becomes the word of the table
+// (Oce.Solid.Agent.Core/Localization/solidworks-names.json) in the column SOLIDWORKS uses
+// now, asked of Checks/SolidWorksLanguage.exe --columns (the same reading the library does).
+const NAMES = path.join(ROOT, "Oce.Solid.Agent.Core", "Localization", "solidworks-names.json");
+const LANGUAGE = path.join(ROOT, "Checks", "SolidWorksLanguage", "bin", "SolidWorksLanguage.exe");
+let namesCache = null;
+function namesInUse() {
+  if (namesCache) return namesCache;
+  const table = JSON.parse(fs.readFileSync(NAMES, "utf8").replace(/^\uFEFF/, ""));
+  let columns = { feature: table.fallback_column, ui: table.fallback_column };
+  const asked = spawnSync(LANGUAGE, ["--columns"], { encoding: "utf8" });
+  const line = asked.status === 0 ? String(asked.stdout).trim() : "";
+  const m = /^feature=(\S+) ui=(\S+)$/.exec(line);
+  if (!m) throw new Error("cannot read the language of SOLIDWORKS from " + LANGUAGE + " --columns (build the checks: Checks/build-checks.ps1): «" + line + "»");
+  columns = { feature: m[1], ui: m[2] };
+  namesCache = { table, columns };
+  return namesCache;
+}
+function expandNames(text) {
+  if (text.indexOf("{SW:") < 0) return text;
+  const { table, columns } = namesInUse();
+  return text.replace(/\{SW:([A-Za-z0-9_.]+)\}/g, (all, key) => {
+    const row = table.names[key];
+    if (!row) throw new Error("the plan names {SW:" + key + "} and the table has no such key. It has: " + Object.keys(table.names).sort().join(", "));
+    const word = row[columns[row.domain]] || row[table.fallback_column];
+    if (!word) throw new Error("{SW:" + key + "} has no word in column " + columns[row.domain] + " nor in English");
+    return word;
+  });
+}
+
 function resolvePlaceholder(text) {
-  return text.split("{BENCH}").join(WORK.split("\\").join("/"));
+  return expandNames(text.split("{BENCH}").join(WORK.split("\\").join("/")));
 }
 
 // THE FOLDER WAS CREATED EMPTY, AND FIVE CASES COULD NOT RUN.

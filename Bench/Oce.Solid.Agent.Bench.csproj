@@ -61,6 +61,15 @@
     <Compile Include="..\Shared\SolidWorksSentinel.cs" />
     <Compile Include="..\Shared\PreparationFailed.cs" />
     <Compile Include="..\Shared\Leash.cs" />
+    <!-- The table of the SOLIDWORKS names and the reading of the language: the same files as the library,
+         compiled here too (no copy), so that the cases can say {SW:feature.cut_extrude}. -->
+    <Compile Include="..\Oce.Solid.Agent.Core\Localization\SolidWorksNameTable.cs">
+      <Link>SolidWorksNameTable.cs</Link>
+    </Compile>
+    <Compile Include="..\Oce.Solid.Agent.Core\Localization\SolidWorksLanguage.cs">
+      <Link>SolidWorksLanguage.cs</Link>
+    </Compile>
+    <Compile Include="CaseNames.cs" />
     <Compile Include="Expectations.cs" />
     <Compile Include="TestAssembly.cs" />
     <Compile Include="CaseKeys.cs" />
@@ -75,6 +84,12 @@
     <Compile Include="NoPartTests.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="TestLedger.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\Oce.Solid.Agent.Core\Localization\solidworks-names.json">
+      <Link>solidworks-names.json</Link>
+      <LogicalName>solidworks-names.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

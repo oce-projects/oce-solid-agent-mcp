@@ -1,7 +1,7 @@
 {
   "name": "wall_has_a_name",
   "family": "dimensions",
-  "why": "ENTRY Z-F1. Do not repeat a number, give it a name: a global variable «wall» and the thickness of the plate linked to it. Changing the variable changes the part, by construction. Measured on 27/9/2026 (probe0089 zf1, zf1b): Add3 returns the index; the linked dimension follows the variable (96000 -> 115200 -> 144000 mm3); get_Status cannot be read (-1 even when it works) and the outcome is taken from the values re-read; «spessore» is a name already taken in the Italian SOLIDWORKS.",
+  "why": "ENTRY Z-F1. Do not repeat a number, give it a name: a global variable «wall» and the thickness of the plate linked to it. Changing the variable changes the part, by construction. Measured on 27/9/2026 (probe0089 zf1, zf1b): Add3 returns the index; the linked dimension follows the variable (96000 -> 115200 -> 144000 mm3); get_Status cannot be read (-1 even when it works) and the outcome is taken from the values re-read; the Italian word for «thickness» is a name already taken in the Italian SOLIDWORKS (solidworks-names.json, equation.reserved.thickness).",
   "defect_caught": "A variable written that drives nothing; a link that the equation accepts and the dimension does not follow; the change of the variable that does not reach the part without EvaluateAll and a rebuild; the name refused by SOLIDWORKS taken for good.",
   "start": { "new_part": true },
   "steps": [
@@ -16,7 +16,7 @@
         { "what": "state.equations[0].global_variable", "equal_to": true, "why": "the state lists the equations" },
         { "what": "volume_mm3", "equal_to": 96000, "why": "a variable that nobody uses does not change the part" } ] },
     { "operation": "link_dimension",
-      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"wall\"" },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.boss_extrude}1,name=D1)", "expression": "\"wall\"" },
       "expect": [
         { "what": "measurements.value_before_mm", "equal_to": 10 },
         { "what": "measurements.value_after_mm", "equal_to": 12, "why": "the dimension re-read is worth as much as the equation" },
@@ -28,7 +28,7 @@
         { "what": "measurements.driven_dimensions[0].value_text", "equal_to": 15, "why": "the linked dimension follows" },
         { "what": "volume_mm3", "equal_to": 144000, "why": "120 x 80 x 15: changing the variable changes the part" } ] },
     { "operation": "global_variable",
-      "arguments": { "name": "spessore", "value_mm": 12 },
+      "arguments": { "name": "{SW:equation.reserved.thickness}", "value_mm": 12 },
       "must_fail": {
         "message_includes": ["does not accept", "another one, for example"],
         "twin": "wall_has_a_name" } }

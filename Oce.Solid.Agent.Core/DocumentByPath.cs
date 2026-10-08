@@ -533,7 +533,7 @@ namespace Oce.Solid.Agent.Core
         /// «...\work\gp3_solids.SLDPRT», a file that does not exist: the stem
         /// of the IGES with the part extension. CloseDoc given that path closed
         /// the reopened part AND the original part the export was made from
-        /// («Parte2115», never saved), discarding its changes; the collateral
+        /// («Part2115», never saved), discarding its changes; the collateral
         /// check saw it and said so, after the fact. Such a document is treated
         /// as never saved: its title, under the collision rule.
         /// </summary>

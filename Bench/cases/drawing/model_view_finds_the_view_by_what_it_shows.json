@@ -1,0 +1,71 @@
+{
+  "name": "model_view_finds_the_view_by_what_it_shows",
+  "family": "drawing",
+  "why": "THE FIRST LEVEL OF THE SOLIDWORKS-LANGUAGE CONVERTER, MEASURED ON FOUR VIEWS. `model_view` asks SOLIDWORKS for a named view of the model, and the name is in the language of the installation. Since library 0.153.0 the name is found by what the view DOES (DrawingOperations.StandardViewNames: IModelDoc2~ShowNamedView2.html with the swStandardViews_e id, then with every name the model declares, compared through IModelView~Orientation3), and the table solidworks-names.json (view.*) is only the second level. The isometric of `drawing_exports_to_pdf` was the only view a case asked for, so the mapping from the designer's word to the swStandardViews_e id (front 1, back 2, right 4, top 5) was never measured for the other views, and nothing said which level had found the name: a first level that found nothing would have been rescued by the table, and the run would have stayed green. Here every view must be found by the model, and the name it found must be the one the table has for that view in the language of the interface: two independent readings that agree.",
+  "defect_caught": "A swStandardViews_e id mapped to the wrong view (the front drawn as the back, the right as the left: the drawing prints and the part is mirrored); the first level silently finding nothing, with the table doing all the work; the table carrying a view name SOLIDWORKS does not write.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "120 x 80 x 10: if this does not add up, the views below are of another part" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\model_view_finds_the_view_by_what_it_shows.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the FILE of the part: without saving it there is nothing to put on the drawing" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the steps measure the drawing, not the part" } ] },
+
+    { "operation": "model_view",
+      "arguments": { "model": "{WORK}\\model_view_finds_the_view_by_what_it_shows.sldprt",
+                     "view": "front", "x_mm": 100, "y_mm": 200 },
+      "expect": [
+        { "what": "measurements.views_after", "equal_to": 1,
+          "why": "the view is there, counted by the operation after the call" },
+        { "what": "measurements.found_by", "equal_to": "model",
+          "why": "the name came from the first level, what the view does, not from the table: the part has a window, so the model view can be shown and read" },
+        { "what": "measurements.sw_name", "equal_to": "{SW:view.front}",
+          "why": "the name the first level found is the one the table has for the front view in the language of the interface (and not «*Normal To», which shows the same orientation when nothing is selected and comes first in the list)" } ] },
+
+    { "operation": "model_view",
+      "arguments": { "model": "{WORK}\\model_view_finds_the_view_by_what_it_shows.sldprt",
+                     "view": "back", "x_mm": 300, "y_mm": 200 },
+      "expect": [
+        { "what": "measurements.views_after", "equal_to": 2,
+          "why": "the second view is there" },
+        { "what": "measurements.found_by", "equal_to": "model",
+          "why": "the first level, as above" },
+        { "what": "measurements.sw_name", "equal_to": "{SW:view.back}",
+          "why": "the back, not the front: swBackView is 2 and the front 1, and the two show the same rectangle turned round" } ] },
+
+    { "operation": "model_view",
+      "arguments": { "model": "{WORK}\\model_view_finds_the_view_by_what_it_shows.sldprt",
+                     "view": "right", "x_mm": 100, "y_mm": 100 },
+      "expect": [
+        { "what": "measurements.views_after", "equal_to": 3,
+          "why": "the third view is there" },
+        { "what": "measurements.found_by", "equal_to": "model",
+          "why": "the first level, as above" },
+        { "what": "measurements.sw_name", "equal_to": "{SW:view.right}",
+          "why": "the right, not the left: swRightView is 4 and swLeftView 3, next to each other in the enum" } ] },
+
+    { "operation": "model_view",
+      "arguments": { "model": "{WORK}\\model_view_finds_the_view_by_what_it_shows.sldprt",
+                     "view": "top", "x_mm": 300, "y_mm": 100 },
+      "expect": [
+        { "what": "measurements.views_after", "equal_to": 4,
+          "why": "the fourth view is there" },
+        { "what": "measurements.found_by", "equal_to": "model",
+          "why": "the first level, as above" },
+        { "what": "measurements.sw_name", "equal_to": "{SW:view.top}",
+          "why": "the top, not the bottom: swTopView is 5 and swBottomView 6" } ] }
+  ]
+}

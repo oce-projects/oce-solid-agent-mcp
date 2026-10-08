@@ -77,7 +77,7 @@ internal static class Program
             // ── the open L-shaped sketch, on the front plane ─────────────
             doc.ClearSelection2(true);
             if (!SelectBasePlane(doc, 1))
-            { Console.WriteLine("  cannot find «Piano frontale»"); return 4; }
+            { Console.WriteLine("  cannot find «Front Plane»"); return 4; }
             doc.SketchManager.InsertSketch(true);
             doc.SketchManager.CreateLine(0, Side2Mm / 1000.0, 0, 0, 0, 0);
             doc.SketchManager.CreateLine(0, 0, 0, Side1Mm / 1000.0, 0, 0);

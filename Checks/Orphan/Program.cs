@@ -93,7 +93,7 @@ internal static class Program
 
             IView view = null;
             string taken = null;
-            foreach (var itemName in new[] { "*Frontale", "*Anteriore", "*Front" })
+            foreach (var itemName in Oce.Solid.Agent.Core.SolidWorksLanguage.Read(sw).Spellings("view.front"))
             {
                 try { view = drawing.CreateDrawViewFromModelView3(file, itemName, 0.15, 0.15, 0); } catch { view = null; }
                 if (view != null) { taken = itemName; break; }

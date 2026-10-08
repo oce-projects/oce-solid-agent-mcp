@@ -17,7 +17,7 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 56485.7, "tolerance": 0.5,
                     "tolerance_why": "measured by the probe (56485.7): the shell around the hole has no short formula" } ] },
     { "operation": "reorder_feature",
-      "arguments": { "feature_uid": "Svuota1", "relative_to_uid": "Taglio-Estrusione1", "placement": "before" },
+      "arguments": { "feature_uid": "{SW:feature.shell}1", "relative_to_uid": "{SW:feature.cut_extrude}1", "placement": "before" },
       "expect": [
         { "what": "measurements.volume_before_mm3", "equal_to": 56485.7, "tolerance": 0.5,
           "tolerance_why": "the same as the probe" },
@@ -28,13 +28,13 @@
         { "what": "volume_mm3", "equal_to": 51952.38, "tolerance": 0.5,
           "tolerance_why": "the same, read from the state" } ] },
     { "operation": "reorder_feature",
-      "arguments": { "feature_uid": "Svuota1", "relative_to_uid": "Taglio-Estrusione1", "placement": "after" },
+      "arguments": { "feature_uid": "{SW:feature.shell}1", "relative_to_uid": "{SW:feature.cut_extrude}1", "placement": "after" },
       "expect": [
         { "what": "measurements.volume_after_mm3", "equal_to": 56485.7, "tolerance": 0.5,
           "tolerance_why": "the same as the probe",
           "why": "put back where it was, the part returns to what it was before" } ] },
     { "operation": "reorder_feature",
-      "arguments": { "feature_uid": "Taglio-Estrusione1", "relative_to_uid": "Estrusione-Estrusione1", "placement": "before" },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}1", "relative_to_uid": "{SW:feature.boss_extrude}1", "placement": "before" },
       "must_fail": {
         "message_includes": ["SOLIDWORKS does not move", "I touched nothing"],
         "twin": "order_changes_the_part" } }

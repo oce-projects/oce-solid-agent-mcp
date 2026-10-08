@@ -869,7 +869,7 @@ namespace Oce.Solid.Agent.Tools
                 // and the measures of another. No error, no warning,
                 // an image that contradicts the list next to which it sits.
                 //
-                // It is exactly the defect that cost «Parte4» on 11 September,
+                // It is exactly the defect that cost «Part4» on 11 September,
                 // redone in its purest form: two readings of `ActiveDoc`
                 // treated as if they were one.
                 //
@@ -2256,11 +2256,11 @@ namespace Oce.Solid.Agent.Tools
                 // `_seen` used to be brought back to the identity read BEFORE
                 // executing, and a plan that contains `save_document` changes the
                 // document's identity while it runs: before the save
-                // it is «Parte1597» without a path, after it is a path on disk.
+                // it is «Part1597» without a path, after it is a path on disk.
                 //
                 // **The next `build` was refused**, with a correct
                 // message and a wrong cause: «the document has changed,
-                // you had looked at Parte1597». It had changed, yes — the bridge
+                // you had looked at Part1597». It had changed, yes — the bridge
                 // had changed it doing what it had been asked to do.
                 //
                 // Found on 23/9/2026 with a probe that prepared a drawing:

@@ -16,19 +16,22 @@ namespace Oce.Solid.Agent.Core
     /// Measured on 27/9/2026 (`probe0089 zf1`, `zf1b`, plate 120x80x10):
     ///
     ///  * `IEquationMgr.Add3(-1, "\"wall\" = 12mm", true, swAllConfiguration,
-    ///    null)` returns the index (0); `"\"D1@Estrusione-Estrusione1\" = \"wall\""`
+    ///    null)` returns the index (0); `"\"D1@Boss-Extrude1\" = \"wall\""`
     ///    links the thickness: volume 96000 -> 115200. `set_Equation` to 15mm, then
     ///    `EvaluateAll` and rebuild: 144000, and the dimension says 15.
     ///  * Expressions work: `"double" = 2 * "wall" + 1mm` is worth 31.
-    ///  * **«spessore» and «Spessore» are REFUSED** (Add3 -1) even with the part
-    ///    without properties: for the Italian SOLIDWORKS it is a name already taken, and
-    ///    an equation that uses it is worth 3. A refused name is stated, and
-    ///    another name is proposed.
+    ///  * **The word an Italian SOLIDWORKS reserves for the thickness is REFUSED**,
+    ///    in both capitalisations (Add3 -1), even with the part without properties:
+    ///    it is a name already taken, and an equation that uses it is worth 3. The
+    ///    English «Thickness» is accepted there (measured 7/10/2026, with the toggle
+    ///    «Use English feature and file names» on or off: the reserved words follow the
+    ///    language of the interface). A refused name is stated, with the words of
+    ///    solidworks-names.json (equation.reserved.thickness), and another name is proposed.
     ///  * `get_Status` is NOT reliable: -1 even after a successful EvaluateAll,
     ///    1 after a successful set_Equation. The outcome is read from the VALUES: that
     ///    of the equation and that of the dimension, read back.
-    ///  * The name of a dimension for the equation is «D1@Estrusione-Estrusione1»:
-    ///    the `FullName` without the part at the tail (`@Parte1089.Part`).
+    ///  * The name of a dimension for the equation is «D1@Boss-Extrude1»:
+    ///    the `FullName` without the part at the tail (`@Part1089.Part`).
     /// </summary>
     public partial class SwOperations
     {
@@ -117,8 +120,8 @@ namespace Oce.Solid.Agent.Core
             int i = WriteEquation(em, itemName, right);
             if (i < 0)
                 return Failed(
-                    "SOLIDWORKS does not accept «\"" + itemName + "\" = " + right + "». If the name is already taken — in " +
-                    "an Italian SOLIDWORKS «spessore» is taken (measured) — choose another one, for example «wall»; if " +
+                    "SOLIDWORKS does not accept «\"" + itemName + "\" = " + right + "». If the name is already taken — " +
+                    ReservedNames() + " — choose another one, for example «wall»; if " +
                     "it is an expression, check that the names between quotes exist.");
             try { em.EvaluateAll(); } catch { }
             bool rebuilt = false;
@@ -168,7 +171,7 @@ namespace Oce.Solid.Agent.Core
             string dimensionName = (Str(a, "dimension", "") ?? "").Trim();
             string expression = (Str(a, "expression", "") ?? "").Trim();
             if (string.IsNullOrWhiteSpace(dimensionName))
-                return Failed("Tell me «dimension»: the name of the dimension from the state of the document (for example «D1@Schizzo1»).");
+                return Failed("Tell me «dimension»: the name of the dimension from the state of the document (for example «D1@Sketch1»).");
             if (string.IsNullOrWhiteSpace(expression))
                 return Failed("Tell me «expression»: what to link it to, for example «\"wall\"» or «2 * \"wall\"».");
             var dimension = FindDimension(model, dimensionName, out string location);
@@ -344,6 +347,21 @@ namespace Oce.Solid.Agent.Core
                 return outside.ToArray();
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// The reserved variable name that SOLIDWORKS refuses, said in the words of
+        /// the language it runs in (solidworks-names.json, equation.reserved.thickness):
+        /// a name taken by the program is the one reason a good equation is refused
+        /// without a message, and the word depends on the language of the installation.
+        /// </summary>
+        private string ReservedNames()
+        {
+            var quoted = new List<string>();
+            foreach (var spelling in SolidWorksLanguage.Read(_sw).Spellings("equation.reserved.thickness"))
+                quoted.Add("«" + spelling + "»");
+            return "SOLIDWORKS reserves some names in its own language, for the thickness " +
+                   string.Join(" or ", quoted) + " (measured)";
         }
     }
 }

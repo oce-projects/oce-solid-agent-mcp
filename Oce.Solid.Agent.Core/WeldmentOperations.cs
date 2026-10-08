@@ -984,7 +984,7 @@ namespace Oce.Solid.Agent.Core
             // 0.113.0. Measured on 25/9/2026 on a T of two 80x80x5 tubes
             // (the second bar enters the first by 40 mm):
             //
-            //   object[]         -> returns a feature «Accorcia/Estendi1», which
+            //   object[]         -> returns a feature «Trim/Extend1», which
             //                       IS NOT IN THE TREE; volume unchanged
             //   Body2[]          -> the feature is there, volume -58798.23 mm3
             //   DispatchWrapper[]-> same as Body2[]
@@ -1109,14 +1109,14 @@ namespace Oce.Solid.Agent.Core
         /// Up to library 0.124.0 this operation called
         /// `InsertWeldmentCutList2` with ALL the bodies: ONE entry was born with all
         /// the bars inside. The bench's 1000 x 800 frame came out «QUANTITY 4,
-        /// LUNGHEZZA 1000» — in the shop, four 1000 bars where two are
+        /// LENGTH 1000» — in the shop, four 1000 bars where two are
         /// 800. The bench case was green: it asked only that the bodies be 4.
         ///
         /// The cause, measured (the historical probe of 0.89, case «cut list 2»): the part was not a
         /// WELDMENT (`IsWeldment` false: structural members do not put the
-        /// «Saldatura» feature), and the automatic cut list does not turn on on a
-        /// part that is not one. With the Saldatura feature — put even AFTER the
-        /// bars — and `SetAutomaticCutList(true)` on the «Corpi solidi» folder,
+        /// «Weldment» feature), and the automatic cut list does not turn on on a
+        /// part that is not one. With the Weldment feature — put even AFTER the
+        /// bars — and `SetAutomaticCutList(true)` on the «Solid Bodies» folder,
         /// SOLIDWORKS separates the entries by itself: 2 x 1000 and 2 x 800. And the same
         /// cause made `InsertWeldmentTable` return null in the drawing.
         ///
@@ -1270,6 +1270,9 @@ namespace Oce.Solid.Agent.Core
                 try { fc = c.GetFeature() as IFeature; } catch { }
                 if (beforeFolder == null) beforeFolder = fc;
                 string descriptionText = null, length = null, quantity = null;
+                // The name of the description property is the one SOLIDWORKS wrote in the language it ran in
+                // (solidworks-names.json, cutlist.property.description), in every column of the table.
+                var descriptionNames = SolidWorksNameTable.Embedded().All("cutlist.property.description");
                 try
                 {
                     var cpm = fc?.CustomPropertyManager;
@@ -1281,8 +1284,7 @@ namespace Oce.Solid.Agent.Core
                         if (v.IndexOf("TOTAL LENGTH@@@", StringComparison.OrdinalIgnoreCase) >= 0) continue;
                         if (v.IndexOf("LENGTH@@@", StringComparison.OrdinalIgnoreCase) >= 0) length = ris;
                         else if (v.IndexOf("QUANTITY@@@", StringComparison.OrdinalIgnoreCase) >= 0) quantity = ris;
-                        else if (itemName.Equals("Descrizione", StringComparison.OrdinalIgnoreCase) ||
-                                 itemName.Equals("Description", StringComparison.OrdinalIgnoreCase)) descriptionText = ris;
+                        else if (descriptionNames.Any(d => itemName.Equals(d, StringComparison.OrdinalIgnoreCase))) descriptionText = ris;
                     }
                 }
                 catch { }
@@ -3133,10 +3135,10 @@ namespace Oce.Solid.Agent.Core
         /// Two checks and not one: `Type` says what kind of folder it is
         /// (5 = cut list item), `GetCutListType` what kind of item (1 solid body,
         /// 2 sheet metal, 3 weldment; 0 is the folder that holds them). The
-        /// «Corpi solidi» folder answers the second and not the first, and without
+        /// «Solid Bodies» folder answers the second and not the first, and without
         /// the double check it would end up in the list.
-        /// Measured on 9 September 2026: Corpi solidi has Type=1 CutListType=0,
-        /// «Elenco elementi1» has Type=5 CutListType=3. Measured on 6 October 2026
+        /// Measured on 9 September 2026: Solid Bodies has Type=1 CutListType=0,
+        /// «Cut list1» has Type=5 CutListType=3. Measured on 6 October 2026
         /// (D9 defect 1): the items of the gussets and of the end caps have Type=5
         /// CutListType=1, and belong in the list too.
         /// </summary>
@@ -3167,7 +3169,7 @@ namespace Oce.Solid.Agent.Core
 
                 // THE SAME FOLDER APPEARS TWICE IN THE TREE.
                 //
-                // «Elenco elementi1» sits both inside «Corpi solidi» and at the
+                // «Cut list1» sits both inside «Solid Bodies» and at the
                 // first level: walking features and sub-features one
                 // meets it twice. Measured on 9 September 2026 — without
                 // this check a frame of four bars came out as
@@ -3193,7 +3195,7 @@ namespace Oce.Solid.Agent.Core
             if (partDoc == null) return outside;
             // THE CUT LIST FOLDERS ARE SUB-FEATURES.
             //
-            // They sit inside «Corpi solidi», and searching for them only among the
+            // They sit inside «Solid Bodies», and searching for them only among the
             // first-level features means never finding them — and then one believes
             // that a cut list is not there and creates a second one, with two
             // lists of the same metalwork in the shop.

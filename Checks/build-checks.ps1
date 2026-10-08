@@ -91,7 +91,7 @@ $tools = @(
     # for whoever asks for it.
     @{ name = 'DimXpert'; sw = $true; lib = $false; dimx = $true },
     # A dimension in the drawing that loses its edge (entry Z-A2).
-    @{ name = 'Orphan'; sw = $true; lib = $false },
+    @{ name = 'Orphan'; sw = $true; lib = $true },
     # Does the text of a drawing come out of the PDF as text? (entry GT3-bis)
     @{ name = 'PdfText'; sw = $true; lib = $false },
     # Does the guard against the modal trigger? (entry Z-C3)
@@ -112,7 +112,11 @@ $tools = @(
     # The four defects of the live proof of 6/10/2026 (D9 prerequisites), measured
     # before they are fixed: the cut list folders, the contact test of the gusset,
     # the empty assembly, CloseDoc by title or by path.
-    @{ name = 'D9Defects'; sw = $true; lib = $false }
+    @{ name = 'D9Defects'; sw = $true; lib = $false },
+    # The language SOLIDWORKS writes its names in, measured next to what the API says without a
+    # name: the probe under the table of the names (Localization/solidworks-names.json). It uses
+    # the library for the table and for the reading of the language, and reads the material XML.
+    @{ name = 'SolidWorksLanguage'; sw = $true; lib = $true; extra = @('System.Xml.Linq.dll', 'System.Xml.dll') }
 )
 
 foreach ($a in $tools) {
@@ -183,6 +187,8 @@ foreach ($a in $tools) {
     # an image instead of the geometry. Roslyn does not reference it by itself, and
     # without it you get a CS0246 on `Bitmap` that does not say where it comes from.
     if ($a.drawing) { $refObj += '-reference:System.Drawing.dll' }
+    # `extra`: other framework assemblies the probe names.
+    if ($a.extra) { foreach ($e in $a.extra) { $refObj += ('-reference:' + $e) } }
 
     $output = Join-Path $bin ($a.name + '.exe')
     & $csc -nologo -langversion:7.3 -target:exe "-out:$output" @refObj $source

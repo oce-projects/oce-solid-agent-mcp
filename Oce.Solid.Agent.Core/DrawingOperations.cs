@@ -470,13 +470,12 @@ namespace Oce.Solid.Agent.Core
             if (swPath == null)
                 return Failed("«" + modelPath + "» does not appear to be open.");
 
-            // THE NAMES OF THE VIEWS ARE SOLIDWORKS'S, NOT THE
-            // DESIGNER'S. Italian is accepted and translated: asking whoever
-            // writes the plan to remember «*Isometric» with the asterisk is
-            // a way of making the plan fail over a star.
+            // THE NAMES OF THE VIEWS ARE SOLIDWORKS'S, NOT THE DESIGNER'S, AND
+            // THE DESIGNER SAYS «isometric», NOT «*Isometric» (nor the name an
+            // installation in another language gives it).
             string requested = (Str(a, "view", "isometric") ?? "").Trim().ToLowerInvariant();
-            var swNames = SwViewNames(requested);
-            if (swNames == null)
+            int standardView = StandardViewId(requested);
+            if (standardView < 0)
                 return Failed(
                     "I do not know the view «" + requested + "». I know nine: " +
                     "isometric, dimetric, trimetric, front, back, top, " +
@@ -485,44 +484,54 @@ namespace Oce.Solid.Agent.Core
             double x = Units.M(Num(a, "x_mm", 0));
             double y = Units.M(Num(a, "y_mm", 0));
 
-            // THE NAME OF THE VIEW IS NOT GUESSED: IT IS TRIED.
+            // THE NAME OF THE VIEW IS NOT GUESSED, NOR TAKEN FROM A LIST OF
+            // LANGUAGES: IT IS READ FROM THE MODEL, BY WHAT THE VIEW IS.
             //
-            // A named view is asked for by NAME, and the name depends
-            // on the language of the installation: on Italian SolidWorks the
-            // isometric view is called «*Isometrica», on the English one
-            // «*Isometric». The call does not fail with a message: it returns
-            // `null` and nothing else, and from outside it looks as if the drawing does not want
-            // that view.
+            // A named view is asked for by NAME, and the name depends on the
+            // language of the installation: «*Isometric» on an English one, another
+            // word on an Italian one. The call does not fail with a message: it
+            // returns `null` and nothing else, and from outside it looks as if
+            // the drawing does not want that view.
             //
-            // It is the same thing already paid for with `ShowNamedView2`, where neither
-            // Italian nor English worked and the number was needed. Here
-            // there is no number, so the spellings are tried and which one
-            // worked is DECLARED: that way next time the
-            // fact is written down instead of remembered.
-            // FIRST THE MODEL IS ASKED WHAT IT CALLS THEM.
+            // THE FIRST LEVEL, which needs no language: WHAT THE VIEW DOES.
+            // Measured on 7/10/2026 (Checks/Language, Italian SOLIDWORKS, and the
+            // same with the toggle «Use English feature and file names» on):
+            // IModelDocExtension~GetNamedViewRotation answers nine ZEROS for
+            // every named view, standard ones included, so it cannot tell them
+            // apart. What can: showing the view. IModelDoc2~ShowNamedView2 with a
+            // swStandardViews_e id (page ShowNamedView2: «ID of the view to display
+            // as defined by swStandardViews_e») and the same call with the NAME of
+            // a view of the document leave the model view in the same
+            // IModelView~Orientation3 («Gets or sets the model view orientation
+            // matrix») when the name is that standard view, in any language:
+            // the ten names the part declares came out as front (twice: «*Normal
+            // To» is the front when nothing is selected), back, left, right, top,
+            // bottom, isometric, trimetric and dimetric. The orientation the
+            // window had is put back from a copy of its data (measured: identical).
             //
-            // `IModelDoc2.GetModelViewNames()` returns the real names of the
-            // views of THIS document on THIS installation. Trying a
-            // hand-written list works until somebody opens the
-            // program in another language; asking always works, and
-            // when it finds nothing it can say what was really there — which is
-            // the difference between a useful error and «it did not work».
+            // WHEN THE DOCUMENT HAS NO WINDOW (no ActiveView) the system views come
+            // in the order of the ids: «*Normal To», front, back, left, right, top,
+            // bottom, isometric, trimetric, dimetric (as measured), and that order
+            // is used, only if all ten are there.
+            //
+            // THE SECOND LEVEL, the table of the names (solidworks-names.json,
+            // keys view.*): the names SOLIDWORKS writes for that view, tried when
+            // the first level says nothing.
             var itsItems = ModelViewNames(swPath);
             var toTest = new List<string>();
-            // The ROOT is looked for inside the real name, not the whole name:
-            // «isometri» takes «*Isometrico», «*Isometrica» and «*Isometric»
-            // without having to know all three.
-            foreach (var root in swNames)
+            var byRotation = StandardViewNames(swPath, standardView);
+            foreach (var n in byRotation)
+                if (!toTest.Contains(n)) toTest.Add(n);
+            var spelled = SolidWorksLanguage.Read(_sw).Spellings("view." + requested);
+            foreach (var n in spelled)
             {
-                foreach (var n in itsItems)
-                {
-                    if (n.IndexOf(root, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                    if (!toTest.Contains(n)) toTest.Add(n);
-                }
+                // Among the names the model declares, the one that matches the
+                // spelling of the table (ignoring capitals): its real spelling.
+                var declared = itsItems.FirstOrDefault(i => string.Equals(i, n, StringComparison.OrdinalIgnoreCase));
+                if (declared != null && !toTest.Contains(declared)) toTest.Add(declared);
             }
-            // If the model declares nothing — it can happen on a
-            // document just opened — the known spellings remain.
-            foreach (var known in KnownNamesPerRoot(swNames))
+            // If the model declares nothing the known spellings remain.
+            foreach (var known in spelled)
                 if (!toTest.Contains(known)) toTest.Add(known);
 
             int before = CountViews(drawing);
@@ -558,6 +567,8 @@ namespace Oce.Solid.Agent.Core
             {
                 ["view"] = requested,
                 ["sw_name"] = swName,
+                // How the name was found: «model» (the first level, no language) or «table».
+                ["found_by"] = byRotation.Contains(swName) ? "model" : "table",
                 ["names_rejected"] = refused.Count > 0 ? (object)string.Join(",", refused) : null,
                 ["name"] = itemName,
                 ["scale"] = scale > 0 ? (object)Math.Round(scale, 4) : null,
@@ -1215,48 +1226,123 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// The name SolidWorks uses for a named view.
-        ///
-        /// The asterisk in front is NOT a typo: it is the way SolidWorks
-        /// tells the system views apart from those saved by the user.
+        /// The id of swStandardViews_e for the name the designer uses, or -1.
+        /// swStandardViews_e (SolidWorks.Interop.swconst~swStandardViews_e.html):
+        /// swFrontView 1, swBackView 2, swLeftView 3, swRightView 4, swTopView 5,
+        /// swBottomView 6, swIsometricView 7, swTrimetricView 8, swDimetricView 9.
         /// </summary>
-        /// <summary>
-        /// The ROOTS with which to recognise a view among those the
-        /// document declares. There are two per entry, one for the language
-        /// of the interface and one for English, and they are roots and not whole
-        /// words precisely because the ending changes: this installation
-        /// says «*Isometrico», another «*Isometrica».
-        /// </summary>
-        private static string[] SwViewNames(string requested)
+        internal static int StandardViewId(string requested)
         {
             switch (requested)
             {
-                case "isometric": return new[] { "isometri", "isometric" };
-                case "dimetric": return new[] { "dimetri", "dimetric" };
-                case "trimetric": return new[] { "trimetri", "trimetric" };
-                case "front": return new[] { "anterior", "front" };
-                case "back": return new[] { "posterior", "back" };
-                case "top": return new[] { "superior", "top" };
-                case "bottom": return new[] { "inferior", "bottom" };
-                case "right": return new[] { "destra", "right" };
-                case "left": return new[] { "sinistr", "left" };
-                default: return null;
+                case "isometric": return (int)swStandardViews_e.swIsometricView;
+                case "dimetric": return (int)swStandardViews_e.swDimetricView;
+                case "trimetric": return (int)swStandardViews_e.swTrimetricView;
+                case "front": return (int)swStandardViews_e.swFrontView;
+                case "back": return (int)swStandardViews_e.swBackView;
+                case "top": return (int)swStandardViews_e.swTopView;
+                case "bottom": return (int)swStandardViews_e.swBottomView;
+                case "right": return (int)swStandardViews_e.swRightView;
+                case "left": return (int)swStandardViews_e.swLeftView;
+                default: return -1;
             }
         }
 
-        /// <summary>The known spellings, for when the document declares nothing.</summary>
-        private static List<string> KnownNamesPerRoot(string[] roots)
+        /// <summary>
+        /// THE NAMES OF THE NAMED VIEWS OF A DOCUMENT THAT ARE A STANDARD VIEW, told
+        /// by what the view does and not by what it is called (see ModelView). The
+        /// system views (the ones that start with an asterisk) come first, the later
+        /// ones of the list before the earlier ones: «*Normal To» is the first of the
+        /// list and looks like the front view, and the front view must not be
+        /// confused with it. Empty when the document is not open or nothing can be
+        /// told.
+        /// </summary>
+        private List<string> StandardViewNames(string filePath, int standardView)
         {
             var outside = new List<string>();
-            foreach (var r in roots)
+            try
             {
-                // «*Root» is rebuilt with a capital initial: it is the
-                // form SolidWorks uses for the system views, and it counts
-                // as a last attempt, not as a rule.
-                if (r.Length == 0) continue;
-                outside.Add("*" + char.ToUpperInvariant(r[0]) + r.Substring(1));
+                var d = FindOpenDocument(filePath);
+                if (d == null) return outside;
+                var names = (d.GetModelViewNames() as string[] ?? new string[0])
+                    .Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+                var shown = StandardViewNamesByShowing(d, names, standardView);
+                if (shown != null)
+                {
+                    var system = shown.Where(n => n.StartsWith("*", StringComparison.Ordinal))
+                                      .OrderByDescending(n => names.IndexOf(n)).ToList();
+                    outside.AddRange(system);
+                    outside.AddRange(shown.Where(n => !system.Contains(n)));
+                    return outside;
+                }
+                // The order of the ids, with no window: only when it is all there.
+                var stars = names.Where(n => n.StartsWith("*", StringComparison.Ordinal)).ToList();
+                if (stars.Count == 10 && standardView >= 1 && standardView <= 9)
+                    outside.Add(stars[standardView]);
             }
+            catch { }
             return outside;
+        }
+
+        /// <summary>
+        /// The names whose view leaves the model view where the standard view leaves it,
+        /// or null when the document has no model view to look at. The orientation the
+        /// window had is put back, from a copy of its data, whatever happens.
+        /// </summary>
+        private List<string> StandardViewNamesByShowing(IModelDoc2 d, List<string> names, int standardView)
+        {
+            var view = d.ActiveView as IModelView;
+            var before = OrientationData(view);
+            if (before == null) return null;
+            var found = new List<string>();
+            try
+            {
+                d.ClearSelection2(true);   // with a face selected «*Normal To» turns to it
+                d.ShowNamedView2("", standardView);
+                var wanted = OrientationData(view);
+                if (wanted == null) return null;
+                // Another standard view is shown before every name: a name that SOLIDWORKS
+                // does not show would otherwise leave the view of the name before it.
+                int other = standardView == (int)swStandardViews_e.swBackView
+                    ? (int)swStandardViews_e.swFrontView : (int)swStandardViews_e.swBackView;
+                foreach (var n in names)
+                {
+                    d.ShowNamedView2("", other);
+                    d.ShowNamedView2(n, -1);
+                    if (SameRotation(wanted, OrientationData(view))) found.Add(n);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    var math = (IMathUtility)_sw.GetMathUtility();
+                    view.Orientation3 = (MathTransform)math.CreateTransform(before);
+                }
+                catch { }
+            }
+            return found;
+        }
+
+        /// <summary>The data of the orientation of a model view (16 doubles), or null.</summary>
+        private static double[] OrientationData(IModelView view)
+        {
+            try
+            {
+                var transform = view == null ? null : view.Orientation3 as IMathTransform;
+                var data = transform == null ? null : transform.ArrayData as double[];
+                return data != null && data.Length >= 9 ? (double[])data.Clone() : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Two orientations are the same one when their 3x3 rotations agree to a millionth.</summary>
+        internal static bool SameRotation(double[] a, double[] b)
+        {
+            if (a == null || b == null || a.Length < 9 || b.Length < 9) return false;
+            for (int i = 0; i < 9; i++)
+                if (Math.Abs(a[i] - b[i]) > 1e-6) return false;
+            return true;
         }
 
         /// <summary>

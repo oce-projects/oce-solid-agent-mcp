@@ -220,7 +220,7 @@
     },
     "IEquationMgr.Add3": {
       "state": "probed_read",
-      "why": "Reliable, unlike get_Status: returns the new equation's index, or -1 on failure. Also measured: an equation variable named 'spessore' or 'Spessore' is REJECTED even on a part with no such property, and silently binds to an unrelated value (3) instead of raising an error -- these are reserved words in the Italian SOLIDWORKS UI. Use a non-reserved example name (e.g. 'parete') and always reread the value.",
+      "why": "Reliable, unlike get_Status: returns the new equation's index, or -1 on failure. Also measured: an equation variable named with the Italian word for thickness (solidworks-names.json, equation.reserved.thickness), in either capitalisation, is REJECTED even on a part with no such property, and silently binds to an unrelated value (3) instead of raising an error -- it is a reserved word of the Italian SOLIDWORKS UI. Use a non-reserved example name (e.g. 'wall') and always reread the value.",
       "source": "memory:api_sw_equations; rag:82zs"
     },
     "IEquationMgr.EvaluateAll": {
@@ -235,7 +235,7 @@
     },
     "IEquationMgr.set_Equation": {
       "state": "probed_modifies",
-      "why": "Same get_Status caveat as EvaluateAll (reads 1 even on a successful write -- not a useful confirmation). Also subject to the 'spessore' reserved-name trap under Add3.",
+      "why": "Same get_Status caveat as EvaluateAll (reads 1 even on a successful write -- not a useful confirmation). Also subject to the reserved-name trap of the thickness word (equation.reserved.thickness) under Add3.",
       "source": "memory:api_sw_equations; rag:82zs"
     },
     "IExplodeStep.ExplodeDistance": {
@@ -613,7 +613,7 @@
     },
     "IModelDocExtension.SelectByID2": {
       "state": "probed_modifies",
-      "why": "IMPORTANT: exists ONLY on IModelDocExtension in this interop, not on IModelDoc2 -- must be called through Extension. Used with mark strings such as \"BODYFEATURE\"; measured that selecting by a feature's CURRENT display name (e.g. after a rename to \"Taglio-Estruso1\") returns false if the code still looks for the old name (\"Cut-Extrude1\"), i.e. selection by name is fragile across a language/rename change. SelectByID2 exists only on IModelDocExtension (9 arguments, with Mark and Callout); the other preselection is IEntity.Select4(Boolean Append, SelectData Data).",
+      "why": "IMPORTANT: exists ONLY on IModelDocExtension in this interop, not on IModelDoc2 -- must be called through Extension. Used with mark strings such as \"BODYFEATURE\"; measured that selecting by a feature's CURRENT display name (e.g. after a rename, or on an installation in another language) returns false if the code still looks for the English name (\"Cut-Extrude1\"), i.e. selection by name is fragile across a language/rename change. SelectByID2 exists only on IModelDocExtension (9 arguments, with Mark and Callout); the other preselection is IEntity.Select4(Boolean Append, SelectData Data).",
       "source": "rag:82h; rag:82zz_ter"
     },
     "IModelDocExtension.SetUserPreferenceDouble": {
@@ -700,7 +700,7 @@
     },
     "ISldWorks.ActivateDoc": {
       "state": "forbidden",
-      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test extrude_rectangle landed inside another session's Parte4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
+      "why": "Measured 2026-09-14: changes the active document seen by OTHER sessions on the same SOLIDWORKS process; a test extrude_rectangle landed inside another session's Part4 this way. Bridge must keep its own IModelDoc2 reference, never ActiveDoc/Activate*.",
       "source": "memory:solidworks_active_document"
     },
     "ISldWorks.ActivateDoc2": {

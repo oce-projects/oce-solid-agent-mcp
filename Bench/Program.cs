@@ -196,7 +196,13 @@ namespace Oce.Solid.Agent.Bench
                                   "the one that ends with \\SOLIDWORKS).");
                 return null;
             };
-            return Startup(lineArguments);
+            // THE LANGUAGE TOGGLE IS PUT BACK HERE, ON THE MAIN THREAD, whatever way
+            // Startup ends (a return, a red run, an exception). ProcessExit alone was not
+            // enough: it runs on another thread, a COM call to SOLIDWORKS from there needs
+            // the main thread to pump, and .NET gives the handlers about two seconds.
+            // CaseNames.RestoreLanguage is safe to call twice (ProcessExit still calls it).
+            try { return Startup(lineArguments); }
+            finally { CaseNames.RestoreLanguage(); }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
@@ -274,6 +280,23 @@ namespace Oce.Solid.Agent.Bench
             // `--mutate`, it is another run: it produces three numbers, not green
             // and red checks, and mixing them would tell nobody anything.
             _regression = arguments.Remove("--regression");
+
+            // `--sw-language <native|en|it>`: the language SOLIDWORKS writes the names of
+            // features, sheets and new documents in, for this run (see CaseNames).
+            // «native» (the default) leaves SOLIDWORKS as it is; «en» turns the toggle
+            // «Use English feature and file names» on and puts it back at the end.
+            string swLanguageChoice = "native";
+            int whereL = arguments.IndexOf("--sw-language");
+            if (whereL >= 0)
+            {
+                if (whereL + 1 >= arguments.Count)
+                {
+                    Console.WriteLine("«--sw-language» needs a value: native, en or it.");
+                    return 2;
+                }
+                swLanguageChoice = arguments[whereL + 1];
+                arguments.RemoveRange(whereL, 2);
+            }
 
             // `--pretend-no-solidworks`: make SOLIDWORKS DIE on command.
             //
@@ -361,6 +384,26 @@ namespace Oce.Solid.Agent.Bench
                 if (chosen == null) chosen = new List<string> { "cases" };
             }
 
+            // `--case <names>`: single declared cases, by file name without «.json», while
+            // working (the owner's rule for a shared SOLIDWORKS: single cases and
+            // families, never the whole run). Implies `--group cases`. The twin of a case
+            // that names one is added by itself: a must-fail case is judged against its twin
+            // in the SAME run.
+            int whereC = arguments.IndexOf("--case");
+            if (whereC >= 0)
+            {
+                if (whereC + 1 >= arguments.Count)
+                {
+                    Console.WriteLine("«--case» needs the name of a declared case (the file name without .json).");
+                    return 2;
+                }
+                var asked = arguments[whereC + 1].Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < asked.Length; i++) asked[i] = asked[i].Trim();
+                _casesOnly = new HashSet<string>(asked, StringComparer.Ordinal);
+                arguments.RemoveRange(whereC, 2);
+                if (chosen == null) chosen = new List<string> { "cases" };
+            }
+
             lineArguments = arguments.ToArray();
 
             // A WRONG NAME IS SAID AT ONCE, before attaching to SOLIDWORKS.
@@ -397,6 +440,13 @@ namespace Oce.Solid.Agent.Bench
             // anybody to copy things by hand.
             _addin = Assembly.Load(File.ReadAllBytes(_library));
             Console.WriteLine("SolidWorks " + _sw.RevisionNumber());
+            string languageProblem = CaseNames.Begin(_sw, swLanguageChoice);
+            if (languageProblem != null) { Console.WriteLine(languageProblem); return 2; }
+            Console.WriteLine("solidworks language: " + (CaseNames.Language.Language ?? "unknown") +
+                              ", names of the interface " + CaseNames.Language.InterfaceColumn +
+                              ", names of features " + CaseNames.Language.FeatureColumn +
+                              " (--sw-language " + swLanguageChoice + ")" +
+                              (CaseNames.Language.Warning != null ? "  WARNING: " + CaseNames.Language.Warning : ""));
             Console.WriteLine("library " + _addin.GetName().Version + "  (" + _library + ")");
             // ── THE LIBRARY DOES NOT LOAD IS NOT A RED RUN (entry F10) ─
             //
@@ -673,7 +723,7 @@ namespace Oce.Solid.Agent.Bench
                               " — without: " + _withoutDocument);
             WriteWithoutWaiting();
             WriteCountPerGroup();
-            WriteTheTestLedger(notLaunched.Count > 0 || _familiesOnly != null ? "partial" : "full");
+            WriteTheTestLedger(notLaunched.Count > 0 || _familiesOnly != null || _casesOnly != null ? "partial" : "full");
 
             CloseLog(summary + " · " + count);
 
@@ -2413,7 +2463,7 @@ namespace Oce.Solid.Agent.Bench
                     {
                         var d = v as Dictionary<string, object>;
                         if (d != null && d.ContainsKey("uid") &&
-                            Convert.ToString(d["uid"]).StartsWith("Estrusione"))
+                            Convert.ToString(d["uid"]).StartsWith(CaseNames.Word("feature.boss_extrude"), StringComparison.Ordinal))
                         { cAreTheOldOnes = true; break; }
                     }
                 Check("ceiling: the oldest was discarded", !cAreTheOldOnes,
@@ -2704,6 +2754,7 @@ namespace Oce.Solid.Agent.Bench
         /// `--group`, and the summary says so.
         /// </summary>
         private static List<string> _familiesOnly;
+        private static HashSet<string> _casesOnly;
 
         // ══════════════════════════════════════════════════════════════
         // THE DOCUMENT TEMPLATE IS COPIED LOCALLY (entry K19)

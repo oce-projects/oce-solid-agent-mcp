@@ -34,7 +34,7 @@ namespace Oce.Solid.Agent.Core
     ///     anchored at (30, 10)  ->  removed 111.20 mm3
     ///
     /// **Half of the lettering falls outside the face and vanishes silently.**
-    /// The feature is born green, it is called `Taglio-Estrusione1`, and in the part there is
+    /// The feature is born green, it is called `Cut-Extrude1`, and in the part there is
     /// «PRO». No error, anywhere — and on a serial number there is
     /// nothing to notice it by looking at the tree.
     ///

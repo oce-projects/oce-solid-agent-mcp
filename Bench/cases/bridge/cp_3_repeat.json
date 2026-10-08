@@ -2,7 +2,7 @@
  {
   "operation": "linear_pattern",
   "arguments": {
-   "feature_uid": "Taglio-Estrusione1",
+   "feature_uid": "{SW:feature.cut_extrude}1",
    "axis1_uid": "E1",
    "pitch1_mm": 30,
    "instance_count1": 4

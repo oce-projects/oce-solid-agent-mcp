@@ -1,8 +1,8 @@
 [
  {
-  "_why": "CASE A of entry E2, which entry E6 turned from a refusal into a resolution. F6 (the right face) is cited and then the part is lengthened: the face moves and the anchor on the point is lost. MEASURED on 14/9/2026: D1@Schizzo1 100 -> 160 brings the volume to 192,000, the bounding box to [160,60,20] and F6 from [50,0,0] to [110,0,0] -- sixty millimetres, because the part grows on one side only even if the sketch is centred. The uid stays F6: the areas are not reordered, so there is no ambiguity to resolve, there is only a lost anchor. Up to 0.25.2 step 2 was REFUSED. From 0.26.0 the persist ID finds the true face again and the operation SAYS how far it moved.",
+  "_why": "CASE A of entry E2, which entry E6 turned from a refusal into a resolution. F6 (the right face) is cited and then the part is lengthened: the face moves and the anchor on the point is lost. MEASURED on 14/9/2026: D1@Sketch1 100 -> 160 brings the volume to 192,000, the bounding box to [160,60,20] and F6 from [50,0,0] to [110,0,0] -- sixty millimetres, because the part grows on one side only even if the sketch is centred. The uid stays F6: the areas are not reordered, so there is no ambiguity to resolve, there is only a lost anchor. Up to 0.25.2 step 2 was REFUSED. From 0.26.0 the persist ID finds the true face again and the operation SAYS how far it moved.",
   "operation": "set_dimension",
-  "arguments": { "dimension": "D1@Schizzo1", "value_mm": 160 }
+  "arguments": { "dimension": "D1@{SW:feature.sketch}1", "value_mm": 160 }
  },
  {
   "_why": "y_mm 10 and not 0, and the why is worth more than the case. With y_mm 0 the hole ended up centred on the lower EDGE of the face (the face goes from Z=0 to Z=20) and came out half outside: volume removed 196.3 instead of 392.7, bottom of the hole a half disc of 39.27 mm2 instead of 78.54. The operation answered «succeeded: true» all the same -- a defect that gives no error, covered until now by the fact that this step was refused before getting there. At Z=10 the hole lies entirely on the face. EXPECTED: volume 192,000 - pi*5^2*5 = 191,607.3.",

@@ -577,7 +577,7 @@ namespace Oce.Solid.Agent.Core
         // 16/9/2026, the answer is that **`Standard` is no number at all**:
         //
         //   Standard = 0, 1, 2, 3, 8 (ISO), with StandardType «Tapped hole»,
-        //   «Machine Threads», «Maschiatura», «Filettature macchina», and Size
+        //   «Machine Threads» and the spelling of other languages, and Size
         //   «M6x1.0», «M6», «M6x1»:
         //       the feature is always born, and reading it back
         //       Standard = -2,  StandardType = «»,  Size = «»,  callout = «»

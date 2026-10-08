@@ -18,7 +18,7 @@
                                  "y": { "edge_uid": "@edge(axis=X,y~=60,z~=20)", "distance_mm": 20 } } }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 260 },
+  "modify": { "dimension": "@dimension(feature={SW:feature.sketch}1,name=D1)", "value_mm": 260 },
   "after": [
     { "what": "bounding_box_mm", "equal_to": [260, 120, 20] },
     { "what": "centers_x_mm", "equal_to": [140],

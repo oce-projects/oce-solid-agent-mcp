@@ -50,11 +50,22 @@
 #      .\Bench\bench.ps1 -Mutate                  perturbs the cases (entry F6)
 #      .\Bench\bench.ps1 -Regression           the references under modification (F8)
 #      .\Bench\bench.ps1 -SkipCompilation     the binary that is already there
+#      .\Bench\bench.ps1 -Case a,b           single declared cases, by file name
+#                                              (their twins come along)
+#      .\Bench\bench.ps1 -SolidWorksLanguage en
+#                                              the same cases with SOLIDWORKS writing
+#                                              English names of features and files
+#                                              (the toggle "Use English feature and
+#                                              file names", put back at the end);
+#                                              "native" (default) leaves it as it is,
+#                                              "it" turns it off
 # =============================================================================
 
 param(
     [string] $Group = "",
     [string] $Family = "",
+    [string] $Case = "",
+    [string] $SolidWorksLanguage = "",
     [switch] $Slow,
     [switch] $Mutate,
     [switch] $Regression,
@@ -142,7 +153,7 @@ if (Test-Path $close) {
 # families on a restarted SOLIDWORKS: 314/314, 492/492, 90/90. So a full run
 # starts on a fresh session, unless documents the bench did not open are still
 # there (those are someone's work: never killed) or -NoRestart is given.
-$fullRun = [string]::IsNullOrWhiteSpace($Group) -and [string]::IsNullOrWhiteSpace($Family)
+$fullRun = [string]::IsNullOrWhiteSpace($Group) -and [string]::IsNullOrWhiteSpace($Family) -and [string]::IsNullOrWhiteSpace($Case)
 if ($fullRun -and -not $NoRestart) {
     $openDocuments = $openAfterCleanup
     $process = Get-Process SLDWORKS -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -182,6 +193,12 @@ if (-not [string]::IsNullOrWhiteSpace($Group)) { $arguments += @("--group", $Gro
 # -Family: within the declared cases, only those folders; it implies the
 # «cases» group. Partial like -Group, and written in the summary.
 if (-not [string]::IsNullOrWhiteSpace($Family)) { $arguments += @("--family", $Family) }
+
+# -Case: single declared cases; implies the "cases" group, like -Family.
+if (-not [string]::IsNullOrWhiteSpace($Case)) { $arguments += @("--case", $Case) }
+# -SolidWorksLanguage: native (default), en or it. The bench switches the toggle
+# "Use English feature and file names" for the run and puts it back at the end.
+if (-not [string]::IsNullOrWhiteSpace($SolidWorksLanguage)) { $arguments += @("--sw-language", $SolidWorksLanguage) }
 
 $executable = Join-Path $Bench "bin\Oce.Solid.Agent.Bench.exe"
 if (-not (Test-Path $executable)) { Die 2 ("cannot find " + $executable) }
@@ -279,6 +296,7 @@ function Take($regex) {
 }
 
 $sw_ver  = Take "^SolidWorks (.+)$"
+$sw_language = Take "^solidworks language: (.+)$"
 $lib_ver = Take "^library ([0-9.]+)"
 # TWO NUMBERS, with their name (entry F15): the ones executable from the library and the ones
 # served in the catalog. The «catalog» field of the JSON stays, with the same value
@@ -339,6 +357,8 @@ $md.Add("| commit | " + $commit + " |")
 $md.Add("| duration | " + [int]$duration.TotalSeconds + " s |")
 if (-not [string]::IsNullOrWhiteSpace($Group)) { $md.Add("| group | " + $Group + " |") }
 if (-not [string]::IsNullOrWhiteSpace($Family)) { $md.Add("| family | " + $Family + " |") }
+if (-not [string]::IsNullOrWhiteSpace($Case)) { $md.Add("| cases | " + $Case + " |") }
+$md.Add("| solidworks language | " + $sw_language + " |")
 $md.Add("")
 $md.Add("**" + $fine + "**")
 $md.Add("")
@@ -410,6 +430,8 @@ $obj = [ordered]@{
     commit       = $commit
     batch        = $Group
     family       = $Family
+    cases        = $Case
+    solidworks_language = $sw_language
     slow         = [bool]$Slow
     duration_s   = [int]$duration.TotalSeconds
     summary      = $fine

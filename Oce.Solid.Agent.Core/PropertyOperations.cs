@@ -47,17 +47,17 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── THE NAME OF THE CONFIGURATION IS NOT WHAT IT SEEMS ─────────────
     ///
-    ///   ActiveConfiguration.Name       ->  «Default&lt;A macchina&gt;»
+    ///   ActiveConfiguration.Name       ->  «Default&lt;As Machined&gt;»
     ///   ShowConfiguration2("Default")  ->  FALSE
-    ///   ShowConfiguration2("Default&lt;A macchina&gt;")  ->  TRUE
+    ///   ShowConfiguration2("Default&lt;As Machined&gt;")  ->  TRUE
     ///
     /// The angle brackets are **inside the name**, and they are not something else
     /// that the name carries around: a part freshly born from this company's
-    /// template has TWO real configurations — «Default&lt;A macchina&gt;» and
-    /// «Default&lt;Saldato&gt;», the weldment pair — and `GetConfigurationCount()`
+    /// template has TWO real configurations — «Default&lt;As Machined&gt;» and
+    /// «Default&lt;As Welded&gt;», the weldment pair — and `GetConfigurationCount()`
     /// answers **2**. (The display states are another thing
     /// altogether: they live on `IConfiguration.GetDisplayStates()`, here there is one
-    /// per configuration and it is called «&lt;Default&gt;_Stato di visualizzazione 1».)
+    /// per configuration and it is called «&lt;Default&gt;_Display State 1».)
     ///
     /// The only good source is `GetConfigurationNames()`: names are not
     /// constructed, they are asked for.
@@ -359,8 +359,8 @@ namespace Oce.Solid.Agent.Core
         /// ── WHY THE SHORT NAME IS NOT GUESSED ─────────────────────────────
         ///
         /// `ShowConfiguration2("Default")` answers **false** if the
-        /// configurations are called «Default&lt;A macchina&gt;» and
-        /// «Default&lt;Saldato&gt;»: the piece between angle brackets is part of
+        /// configurations are called «Default&lt;As Machined&gt;» and
+        /// «Default&lt;As Welded&gt;»: the piece between angle brackets is part of
         /// the name.
         ///
         /// The temptation is to translate the short name into the long one. It is not done,

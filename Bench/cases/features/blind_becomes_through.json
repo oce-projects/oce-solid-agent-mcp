@@ -13,28 +13,28 @@
       "expect": [ { "what": "volume_mm3", "equal_to": 95748.67, "tolerance": 0.05,
                     "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 5" } ] },
     { "operation": "edit_extrusion",
-      "arguments": { "feature_uid": "Taglio-Estrusione1", "through_all": true },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}1", "through_all": true },
       "expect": [
         { "what": "measurements.end_before", "equal_to": "blind" },
         { "what": "measurements.end_after", "equal_to": "through_all", "why": "read back from the definition" },
         { "what": "volume_mm3", "equal_to": 95497.35, "tolerance": 0.05,
           "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 10" } ] },
     { "operation": "edit_extrusion",
-      "arguments": { "feature_uid": "Taglio-Estrusione1", "depth_mm": 7 },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}1", "depth_mm": 7 },
       "expect": [
         { "what": "measurements.end_after", "equal_to": "blind" },
         { "what": "measurements.depth_after_mm", "equal_to": 7 },
         { "what": "volume_mm3", "equal_to": 95648.14, "tolerance": 0.05,
           "tolerance_why": "pi inside: 96000 minus pi x 4^2 x 7" } ] },
     { "operation": "edit_extrusion",
-      "arguments": { "feature_uid": "Estrusione-Estrusione1", "depth_mm": 12 },
+      "arguments": { "feature_uid": "{SW:feature.boss_extrude}1", "depth_mm": 12 },
       "expect": [
         { "what": "measurements.depth_before_mm", "equal_to": 10 },
         { "what": "measurements.features_in_error", "equal_to": 0, "why": "the hole on the top face follows the plate" },
         { "what": "volume_mm3", "equal_to": 114848.14, "tolerance": 0.05,
           "tolerance_why": "pi inside: 120 x 80 x 12 minus pi x 4^2 x 7" } ] },
     { "operation": "edit_extrusion",
-      "arguments": { "feature_uid": "Estrusione-Estrusione1", "through_all": true },
+      "arguments": { "feature_uid": "{SW:feature.boss_extrude}1", "through_all": true },
       "must_fail": {
         "message_includes": ["«through_all» applies to a cut", "depth_mm"],
         "twin": "blind_becomes_through" } }

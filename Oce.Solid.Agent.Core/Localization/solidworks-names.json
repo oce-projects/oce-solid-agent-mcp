@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "about": "The names that SOLIDWORKS writes only as localized text, one row per name and one column per language. The code asks for a key (feature.cut_extrude), never for a word: the column is chosen by the language SOLIDWORKS runs in (ISldWorks.GetCurrentLanguage) and, for the names of features, documents and sheets, by the toggle Use English feature and file names. A language with no column falls back to English with a warning in the document state. Whatever the API can answer without a name (types, ids, column types, rotations) is read from the API and is NOT in this table.",
+  "fallback_column": "en",
+  "columns": {
+    "it": { "solidworks_language": "italian" },
+    "en": { "solidworks_language": "english" }
+  },
+  "domains": {
+    "feature": "names of features, sketches, axes, sheets and new documents (the names a template stores, such as its planes, its configurations and the sheet of a new drawing, stay in the language of the template): SOLIDWORKS writes them in English when the toggle Use English feature and file names is on, whatever the language of the interface",
+    "ui": "texts of the interface that end up in a document (view names, hole callouts, cut-list property names, reserved variable names): they follow the language of the interface"
+  },
+  "names": {
+    "feature.boss_extrude":      { "domain": "feature", "it": "Estrusione-Estrusione", "en": "Boss-Extrude" },
+    "feature.cut_extrude":       { "domain": "feature", "it": "Taglio-Estrusione",     "en": "Cut-Extrude" },
+    "feature.sketch":            { "domain": "feature", "it": "Schizzo",               "en": "Sketch" },
+    "feature.axis":              { "domain": "feature", "it": "Assi",                  "en": "Axis" },
+    "feature.shell":             { "domain": "feature", "it": "Svuota",                "en": "Shell" },
+
+    "view.front":                { "domain": "ui", "it": "*Anteriore",  "en": "*Front" },
+    "view.back":                 { "domain": "ui", "it": "*Posteriore", "en": "*Back" },
+    "view.top":                  { "domain": "ui", "it": "*Superiore",  "en": "*Top" },
+    "view.bottom":               { "domain": "ui", "it": "*Inferiore",  "en": "*Bottom" },
+    "view.right":                { "domain": "ui", "it": "*Destra",     "en": "*Right" },
+    "view.left":                 { "domain": "ui", "it": "*Sinistra",   "en": "*Left" },
+    "view.isometric":            { "domain": "ui", "it": "*Isometrico", "en": "*Isometric" },
+    "view.dimetric":             { "domain": "ui", "it": "*Dimetrico",  "en": "*Dimetric" },
+    "view.trimetric":            { "domain": "ui", "it": "*Trimetrico", "en": "*Trimetric" },
+
+    "callout.through":           { "domain": "ui", "it": "PASSANTE", "en": "THRU" },
+
+    "cutlist.property.length":      { "domain": "ui", "it": "LUNGHEZZA",   "en": "LENGTH" },
+    "cutlist.property.angle1":      { "domain": "ui", "it": "ANGOLO1",     "en": "ANGLE1" },
+    "cutlist.property.angle2":      { "domain": "ui", "it": "ANGOLO2",     "en": "ANGLE2" },
+    "cutlist.property.description": { "domain": "ui", "it": "DESCRIZIONE", "en": "DESCRIPTION" },
+
+    "equation.reserved.thickness":  { "domain": "ui", "it": "spessore", "en": "Thickness" }
+  }
+}

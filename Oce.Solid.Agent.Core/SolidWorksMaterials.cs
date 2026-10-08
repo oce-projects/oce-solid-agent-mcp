@@ -14,7 +14,7 @@ namespace Oce.Solid.Agent.Core
     /// `IPartDoc.SetMaterialPropertyName2(config, database, name)` returns
     /// **void**. If the database or the name do not exist it raises nothing and does not
     /// change anything: the previous material is read back. Measured on 9 September
-    /// 2026 — asking for «AISI 304» in the «materiali personalizzati» database
+    /// 2026 — asking for «AISI 304» in the «custom materials» database
     /// (which contains a single plastic) the re-read came back empty, without a
     /// single signal. An operation built on that signature without a re-read is
     /// a silent failure by construction.
@@ -24,8 +24,8 @@ namespace Oce.Solid.Agent.Core
     /// parentheses included, and in the DIN archive 1.0036 (S235JRG1),
     /// 1.0038 (S235JRG2), 1.0114 (S235J0), 1.0116 (S235J2G3), 1.0117
     /// (S235J2G4) coexist: they are not the same steel. Names that contain
-    /// words are moreover TRANSLATED («Acciaio legato» in Italian, «Alloy Steel»
-    /// in English), so they depend on the language of the installation.
+    /// words are moreover TRANSLATED («Alloy Steel» in English, another word on an
+    /// Italian installation), so they depend on the language of the installation.
     ///
     /// WHAT IS DONE HERE
     /// The databases that SolidWorks declares are read
@@ -47,7 +47,7 @@ namespace Oce.Solid.Agent.Core
         {
             /// <summary>The name of the database as SetMaterialPropertyName2 wants it.</summary>
             public string Archive;
-            /// <summary>The class inside the database: «Acciaio», «Leghe di alluminio»...</summary>
+            /// <summary>The class inside the database: «Steel», «Aluminum Alloys»...</summary>
             public string Class = "";
             /// <summary>The EXACT name, to be copied without touching it.</summary>
             public string Name;

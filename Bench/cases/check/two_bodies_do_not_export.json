@@ -27,7 +27,7 @@
           "includes": ["I would not export it", "2 bodies", "only one"],
           "does_not_include": ["as geometry it can be exported"] } ] },
     { "operation": "check_body_geometry",
-      "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "_why_the_name": "Entry Z-C16: the number of a body changes from one run to the next (measured on 25/9/2026 on this same part: the copy was C1 in one run out of three). The body is named by NAME, and the expectation «measurements.bodies[0].body = C1» -- which asked for the order, not the body -- is no longer there. The two bodies here are equal, and the check of only one has the same judgement: the case proves the road of the single body, not which of the two.",
       "expect": [
         { "what": "measurements.bodies_total", "equal_to": 1,

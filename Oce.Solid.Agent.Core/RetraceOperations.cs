@@ -16,7 +16,7 @@ namespace Oce.Solid.Agent.Core
     ///
     ///  * `ISketchManager.InsertSketchPicture(file)` in the sketch opened on a
     ///    plane: it enters at 1 px = 1 mm (400 x 200 mm), origin 0,0; the feature is
-    ///    «Immagine per schizzo1», type `SketchBitmap`.
+    ///    «Sketch Picture1», type `SketchBitmap`.
     ///  * `SetSize(0,12, 0,06, true)` + `SetOrigin(0,01, 0,02)`: 120 x 60 mm with
     ///    the bottom-left corner at 10,20.
     ///  * **`GetPointOnSketchFromPixel(Row, Column)` HAS ITS ARGUMENTS THE

@@ -34,7 +34,7 @@ namespace Checks.CloseLeftovers
     ///
     ///     CloseLeftovers.exe                       only lists
     ///     CloseLeftovers.exe --close [folders]    really closes
-    ///     CloseLeftovers.exe --close --spare "Parte1,Parte2"
+    ///     CloseLeftovers.exe --close --spare "Part1,Part2"
     ///
     /// `--spare` serves the bench, and it is the difference between «I close my
     /// leftovers» and «I close everything that is not saved». The bench reads which

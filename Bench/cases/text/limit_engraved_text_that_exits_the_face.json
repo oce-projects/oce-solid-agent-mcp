@@ -1,7 +1,7 @@
 {
   "name": "limit_engraved_text_that_exits_the_face",
   "family": "text",
-  "why": "THE REASON THIS OPERATION EXISTS THIS WAY. An inscription that sticks out of the face is cut away IN SILENCE: the feature is born green, it is called Taglio-Estrusione1, and the part holds «PRO» instead of «PROVA». No error anywhere, and on a serial number there is nothing to notice it from by looking at the tree.",
+  "why": "THE REASON THIS OPERATION EXISTS THIS WAY. An inscription that sticks out of the face is cut away IN SILENCE: the feature is born green, it is called Cut-Extrude1, and the part holds «PRO» instead of «PROVA». No error anywhere, and on a serial number there is nothing to notice it from by looking at the tree.",
   "_why_measured_and_not_deduced": "«PROVA» 10 mm high, engraved 2 mm, on a 100x100 square: anchored at the centre it removes 230.70 mm3, anchored at (30, 10) it removes 111.20. Half. The volume is the only place where the difference shows, and nobody looks at it.",
   "_why_the_width_is_not_computed": "The width of an inscription cannot be derived from the string: it depends on the drawing of the glyphs. «PROVA» 10 mm high in Century Gothic is 47.05 mm wide -- a number that can only be MEASURED, by reading the outlines that SOLIDWORKS built. That is why the check sits after the sketch text and before the cut: it is the only moment when the inscription exists and the part is not yet ruined.",
   "start": { "new_part": true },

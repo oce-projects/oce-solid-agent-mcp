@@ -1,7 +1,7 @@
 {
   "name": "blind_hole_says_how_deep_it_is",
   "family": "drawing",
-  "why": "ENTRY GT12, points 1, 2 and 3. A 120 x 80 x 10 plate with a through Ø12 and a blind Ø8 5 deep. Measured with the little test rig on 26/9/2026: the callout of SOLIDWORKS puts the depth in the suffix by itself («<HOLE-DEPTH>5») and «PASSANTE» (THRU in an English installation) for the through hole; from the side view the holes are not dimensioned (their contours are not edges). And the text of every dimension has a rectangle that can be read (IDisplayData): none must fall on another text or on a line of the part.",
+  "why": "ENTRY GT12, points 1, 2 and 3. A 120 x 80 x 10 plate with a through Ø12 and a blind Ø8 5 deep. Measured with the little test rig on 26/9/2026: the callout of SOLIDWORKS puts the depth in the suffix by itself («<HOLE-DEPTH>5») and the word for «through» (THRU in English, the Italian word on the installation it was measured on, solidworks-names.json callout.through) for the through hole; from the side view the holes are not dimensioned (their contours are not edges). And the text of every dimension has a rectangle that can be read (IDisplayData): none must fall on another text or on a line of the part.",
   "defect_caught": "The blind hole dimensioned without a depth (in the workshop it gets drilled through), a hole dimensioned also from the side view, and a dimension text on top of another text or on top of the drawing.",
   "_the_views_are_called_by_uid": "V1 front (the thickness), V2 from above (the holes as circles), V3 side.",
   "start": { "new_part": true },
@@ -33,7 +33,7 @@
         { "what": "measurements.holes[0].diameter_mm", "equal_to": 8, "why": "the holes in order of diameter: the Ø8 first" },
         { "what": "measurements.holes[0].depth_mm", "equal_to": 5,
           "why": "the depth of the blind hole, re-read from the callout: without it, in the workshop it gets drilled through" },
-        { "what": "measurements.holes[0].through_all", "equal_to": false, "why": "the blind one does not say PASSANTE" },
+        { "what": "measurements.holes[0].through_all", "equal_to": false, "why": "the blind one does not say THRU" },
         { "what": "measurements.holes[1].through_all", "equal_to": true, "why": "the Ø12 does" },
         { "what": "measurements.holes[0].depth_from_geometry_mm", "equal_to": 5,
           "why": "the depth read from the cylinder and its bottom: it is the one the bridge writes when the callout is not born" },

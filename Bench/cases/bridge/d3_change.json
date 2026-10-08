@@ -1,6 +1,6 @@
 [
  {
   "operation": "set_dimension",
-  "arguments": { "dimension": "D1@Schizzo2", "value_mm": 20 }
+  "arguments": { "dimension": "D1@{SW:feature.sketch}2", "value_mm": 20 }
  }
 ]

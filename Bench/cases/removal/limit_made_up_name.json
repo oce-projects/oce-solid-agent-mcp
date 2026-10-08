@@ -1,7 +1,7 @@
 {
   "name": "limit_made_up_name",
   "family": "removal",
-  "why": "A name that does not exist must be refused by LISTING THE REAL ONES. Without the list, whoever reads only knows they were wrong and not where to look -- and the names of the features cannot be guessed: «Taglio-Estrusione2» looks like nothing the model has written.",
+  "why": "A name that does not exist must be refused by LISTING THE REAL ONES. Without the list, whoever reads only knows they were wrong and not where to look -- and the names of the features cannot be guessed: «Cut-Extrude2» looks like nothing the model has written.",
   "start": { "new_part": true },
   "steps": [
     { "operation": "extrude_rectangle",

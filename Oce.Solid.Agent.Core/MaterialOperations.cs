@@ -76,14 +76,14 @@ namespace Oce.Solid.Agent.Core
             // Until library 0.141.0 this was one SetMaterialPropertyName2("")
             // and one re-read of "". The Z-C21.3 probe of the material per
             // configuration (28/9/2026, SOLIDWORKS 2021 SP5.1, verdicts in the
-            // TODO), on the company part template with «Default<A macchina>» and
-            // its derived «Default<Saldato>», plus one plain configuration made
+            // TODO), on the company part template with «Default<As Machined>» and
+            // its derived «Default<As Welded>», plus one plain configuration made
             // like create_configuration) measured what "" reaches:
             //   - with the first configuration active, Set("") reached it and
             //     the configurations DERIVED from it, and NOT the plain one:
             //     that one kept no material, density 1000 instead of 7800;
-            //   - with the derived «Default<Saldato>» active, Set("") wrote on
-            //     «Default<Saldato>» ONLY; «Default<A macchina>» stayed empty;
+            //   - with the derived «Default<As Welded>» active, Set("") wrote on
+            //     «Default<As Welded>» ONLY; «Default<As Machined>» stayed empty;
             //   - Set(explicit name) on a configuration that is NOT active was
             //     applied, and the active configuration did not move;
             //   - Set(explicit name) does NOT reach the derived ones.

@@ -32,6 +32,180 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — the SOLIDWORKS-language converter: the code writes English and reads any language (branch `sw-language`) · bridge 0.130.0 · library 0.153.0
+
+Built on `w31bis-11` (f538914). The owner's words of 7/10/2026 are applied, «prima di v0.1.0» for
+the time and, for the reason:
+«così noi scriviamo tutto il programma in inglese e poi lui può usare quello italiano».
+Between the English program and the names SOLIDWORKS writes there is a converter, two levels deep.
+It was measured first (probe `Checks/SolidWorksLanguage`, on the Italian SOLIDWORKS 29.5.1 and with
+the toggle «Use English feature and file names» on), then written.
+
+**1. First level: language-neutral wherever the API allows.**
+- *The standard views* are no longer found by name. `IModelDocExtension.GetNamedViewRotation`
+  answers nine zeros for every named view (measured), so it cannot tell them apart; what can is
+  showing the view: `IModelDoc2.ShowNamedView2` with an id of `swStandardViews_e` and with each
+  name the document declares leave `IModelView.Orientation3` in the same place when the name IS
+  that view, in any language (front, back, left, right, top, bottom, isometric, trimetric,
+  dimetric; «*Normal To» looks like the front and is dropped by taking the later name). The
+  orientation the window had is put back from a copy of its data (measured: identical). With no
+  window the order of the ids is used (only when all ten system views are there), and then the
+  table. `model_view` says in `found_by` which one answered.
+- *The columns of the cut-list table* are told by TYPE (`swWeldTableColumnType_ItemNumber` and
+  `_Quantity`, as before) and by role: `ColumnRole` gives item number, quantity, length, angle1,
+  angle2, description. The measurement `workshop_columns_visible` lists the roles, and the case
+  `cut_list_in_the_drawing` asserts it instead of the headers the template prints. The column
+  types are read once (`GetColumnType2` is a frozen obsolete call with a count: no call added).
+- *Base planes* (by their normal), *materials* (the databases `GetMaterialDatabases` lists),
+  *feature kinds* (`GetTypeName2`), *cut-list folders* (their type) and the *bill of materials*
+  columns (their type) were already language-neutral: nothing to change in the code, and the
+  Italian names in their comments are English now.
+
+**2. Second level: one table.** `Oce.Solid.Agent.Core/Localization/solidworks-names.json` (embedded
+in the library, compiled as a link into the bench and the probes) has a row per name SOLIDWORKS
+writes only as text and a column per language (`it`, `en`; a language is added with a
+`solidworks_language` and the words). `SolidWorksNameTable` (no interop) holds it;
+`SolidWorksLanguage` reads `ISldWorks.GetCurrentLanguage` and the toggles `swUseEnglishLanguage` and
+`swUseEnglishLanguageFeatureNames` (API pages ISldWorks~GetCurrentLanguage, swUserPreferenceToggle_e,
+SO_General.htm) and chooses the column. Measured: the names of FEATURES, sketches and new documents
+follow the toggle at once, with no restart (`Boss-Extrude1`, `Sketch1`, `Cut-Extrude1`, `Shell1`,
+`Part368`, `Draw53`, `Cut-List-Item1`, the weldment feature `Weldment`); the texts of the INTERFACE (view
+names, the word of a hole callout, cut-list property names, reserved variable names) follow the
+language of the interface, so the table has two domains. A language with no column (German,
+French...) falls back to English and the state says so: `solidworks_language` in the state of
+every document (`language`, `names`, `feature_names` when it differs, `warning`). Used by: the
+view fallback; the word «through» of a hole callout (`callout.through`, every column
+recognised, with the geometry read next to it); the property names of the cut list
+(`cutlist.property.*`, every column recognised); the reserved word of the equations
+(`equation.reserved.thickness`: measured, the English word is accepted on an Italian SOLIDWORKS
+and the Italian one is refused).
+
+**3. What a template stores does NOT follow the language, and is not in the table.** Measured
+with the toggle on: the planes of the company part template, its configurations and display
+state, the sheet of a new drawing from the company drawing template, the cut-list property
+«MATERIALE» and the view names stay as the file or the interface has them. They are data of the
+template, not language: the bench quotes the configuration pair and the sheet as the template
+has them (two narrowed exceptions, below). An English part and drawing template (the plan of
+the previous window) is what makes them English; the cases are not written to find them by
+type yet.
+
+**4. The bench runs the same cases in both languages.** The cases say `{SW:feature.cut_extrude}1`,
+`{SW:equation.reserved.thickness}`...: `CaseNames` replaces the placeholder, in the text of the
+case before it is parsed, with the word of the table for the language of the run; `run_plans.js`
+does the same for the plans (it asks `Checks/SolidWorksLanguage.exe --columns`). 72 case and plan
+files changed, 103 placeholders. New switches: `bench.ps1 -SolidWorksLanguage en|it|native`
+(`--sw-language`: the toggle «Use English feature and file names» ON or OFF for the run, put back
+at the end, also on Ctrl+C, and by the next run if the run was killed: the value to restore sits in
+`%TEMP%\oce-bench-language-restore.txt`; `SolidWorksLanguage.exe --english-names off` does it by
+hand) and `-Case a,b` (`--case`: single declared cases by file name, the twins they name come
+along; a selection with no refusal does not fail the «there is a twin» check). The ceiling test
+looked for a feature name that starts with the Italian word; it asks the table. The report names
+the language of the run. `Tests/SolidWorksNamesContract.cs`: 21 new checks without SOLIDWORKS
+(the table parses, the column of a language and the fallback with its warning, the placeholder,
+every key in use exists, the nine views and their ids, the cut-list roles, a malformed table
+refused, the gate entries equal to the Italian column).
+
+**5. The exceptions: 40 entries to 28, THREE NEW ONES WAIT FOR THE OWNER'S SIGNATURE.**
+`solidworks-localized` goes from 21 entries to 9.
+- *New, unsigned (3):* the Italian column of the table, `Oce.Solid.Agent.Core/Localization/solidworks-names.json`:
+  the five names of features, sketches, axes and shells; the nine names of the standard views; the six
+  words of the interface (the callout word, the four cut-list properties, the reserved variable name).
+  The detector does flag them (a first try with no entry passed only because the new files were not
+  tracked yet). Three and not one because the gate refuses an entry that takes away ten hits or more
+  of a file (`exception_limits`) and the column has 24: split by what the words are, each is under the
+  limit. The gate says «3 exception entries wait for the owner's signature» and that the 24 occurrences
+  are covered only by them: nothing else is left. A contract (`ItalianColumnAndTheGate`) keeps the
+  three patterns equal to the Italian column, no word more and none less.
+- *Narrowed (2):* the sheet of the company drawing template (one case, «Foglio1») and the
+  configuration pair of the company part template («A macchina», «Saldato», three files).
+- *Untouched (4), company data and not language:* the square-tube and BHP profile files of the
+  company weldment library, the title-block properties and the drawing template name (the last two
+  wait for the English template of the previous window).
+- *Removed (15):* the names of features, sketches, axes, shells wherever they were quoted (cases,
+  library, probes, README), the hole callout word, the center-mark option, the section and drawing
+  view names, the reserved word, the standard views, the cut-list columns, the mirror, weldment
+  and solid-body names, the hole wizard thread type, the material classes, the three base planes.
+  The Italian name of a SOLIDWORKS feature in a comment is its English name now.
+
+**6. Proof.**
+
+The owner's rule for a shared SOLIDWORKS held: probes, single cases and families only, under the
+shared lock, never the full bench (the run of the owner's session is the one the contract suite
+waits for). SOLIDWORKS 29.5.1, Italian interface.
+- *Probe* `Checks/SolidWorksLanguage`, native and with the toggle on: the names of the new
+  features, document titles and the folders of a weldment in each language, the ten named views
+  and what each does when shown, the reserved variable names, the material classes, the
+  configurations. The toggle was put back to «off» every time (read back).
+- *Bench, Italian* (`--case`, 20 cases, 252 tests): green. They cover every key of the table
+  (boss, cut, sketch, axis, shell, the reserved word) and every operation touched here
+  (`model_view`, `drawing_cut_list` twice, the hole callout three times, `global_variable`, a
+  weldment cut list).
+- *Bench, English* (`-SolidWorksLanguage en`, the toggle on, the interface still Italian): the 40
+  declared cases that hold a placeholder or exercise a touched operation, in two runs of 20, green
+  (227 and 202 tests; the first of the two runs was repeated on the final library: 227, green),
+  plus the four refusals of the group with their twins (`--case` first did not find a twin that
+  sits inside a step: 62 tests, twins 4/4 green once it did). The families are bodies, check,
+  dimensions, drawing, extrusions, features, measurement, patterns, removal, slot, weldments.
+- *Regression references* (`-Regression`, 19 cases): Italian 17 hold, 2 come loose and say so,
+  none in silence, 45 of 45 expectations. English: the same, 17 hold, 2 come loose and say so, none in silence, 45 of 45 (the first English run had one bench error: r12 asked for its dimension by the sketch name that the profile file of the library keeps in Italian; it asks for the dimension by its name alone now).
+- *Plans* of `cases/bridge` (15, by `run_plans.js`) in both languages: the same outcome in both,
+  and the only difference in the answers is the name SOLIDWORKS wrote (they are plans of the
+  hand runs that need an earlier state: they fail alike in both languages).
+- *Contracts* 835 checks, 3 red: the same three as on f538914 (the bench of 6/10/2026 is older
+  than the code; they turn green with the owner's full bench). `see-it-fail.js` is red the same
+  way on f538914 in a worktree. The gate waits only for the three signatures of 5 (its own words: 24 occurrences covered only by entries that wait; 0 outside every entry).
+- *Not done*: the interface itself in English (the toggle «Use English language menus» needs a
+  restart of a SOLIDWORKS other people use), so the English column of the interface texts (view
+  names, callout word, cut-list properties, reserved word) is read from the guide and from the
+  old code, not measured live; a language without a column (German, French) only has the
+  fallback; and the planes, configurations and sheet that a template stores are not found by
+  type (see 3).
+
+**7. Adversarial review (same version: the library and the bridge change only in comments).**
+- *A probe the translation had broken.* `Checks/FaceFillet` selected its sketches with
+  `SelectByID2` and the Italian name; the mechanical translation turned it into «Sketch1», which
+  selects nothing on the Italian installation, and `FeatureExtrusion3` was left without a profile.
+  It now takes the last feature of type `ProfileFeature` (IFeature~GetTypeName2.html) and selects
+  it with IFeature~Select2.html: no name, any language.
+- *The toggle is put back on the main thread.* The bench put «Use English feature and file
+  names» back only from `ProcessExit`, which runs on another thread with a time limit of about
+  two seconds, and a COM call to SOLIDWORKS from there needs the main thread to pump. `Main` now
+  calls `CaseNames.RestoreLanguage` in a `finally` (renamed from `End`, a name the obsolete-call
+  scanner cannot decide); `ProcessExit` and the restore file stay as the second and third net.
+- *The first level is now asserted.* Only the isometric was ever asked of `model_view`, and no
+  case said WHICH level had found the name: a first level finding nothing would have been rescued
+  by the table and stayed green. `drawing_exports_to_pdf` asserts `found_by: model`, and the new
+  case `drawing/model_view_finds_the_view_by_what_it_shows` asks for front, back, right and top,
+  each found by the model AND equal to the name the table has for it (`{SW:view.front}`...): the
+  swStandardViews_e mapping (front 1 / back 2, right 4 / left 3, top 5 / bottom 6) and the
+  table checked against each other.
+- *Sentences the translation made false.* ««Alloy Steel» in Italian, «Alloy Steel» in English»
+  and four more comparisons that said the same word twice (materials, `SwOperations` on localized
+  names, the drawing views, the PDF case, the callout case), the weldment case that called
+  «Weldment» the Italian name, the reserved-word case that called «thickness» the taken word,
+  and `Tools/api_knowledge.json` (a rename «to Cut-Extrude1» compared with «Cut-Extrude1»; and the
+  Italian reserved word with an Italian example name, now `wall`).
+- *Italian SOLIDWORKS names the gate does not see* (its lexicon has no feature names), left in
+  comments outside the table: fillet, rib, draft, revolve, chamfer and cut names in the library
+  (`DocumentState`, `DraftOperations`, `FaceFilletOperations`, `RibOperations`, `SwOperations`),
+  the probes (`Rib`, `RibWithdraw`, `BrokenBody`, `FaceFillet`, `CloseLeftovers`), `Bridge/Session.cs`,
+  `Tools/McpTools.cs` and `Bench/DeclaredCases.cs`: in English, as the rest of the library. Outside
+  the table and the signed template entries no Italian SOLIDWORKS name is left (searched by
+  pattern, not by the gate).
+- Counts: `Bench/README.md` drawing 42 -> 43, `Tests/README.md` 835 -> 837 checks.
+- *Proof of the review.* Bench `--case` on 7 cases (the two view cases, the cut list in the
+  drawing and in the weldment, the reserved word, the blind hole, suppress twice): Italian 120
+  tests, 0 failed; `-SolidWorksLanguage en` the same 120, 0 failed, the features born
+  `Boss-Extrude1`, `Cut-Extrude1`, `Cut-List-Item1`, and every view found by the model under
+  the name of the `it` column of the table (the interface stays Italian). The toggle came back to off after the English run AND after a run that failed
+  before any case (`--case no_such_case_exists`, bench error, exit 2), read back by
+  `SolidWorksLanguage.exe --columns`. `Checks/FaceFillet` on the Italian installation: the cubes
+  are extruded (64000 mm3) and the four recipes give their fillet as before. Contracts 837
+  checks, the same 3 red as f538914 (the freshness of the full bench); the gate: 0 outside the
+  entries, the same three entries waiting for the signature.
+
+---
+
 ## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
 
 Last window of W3.1-bis. It closes what the first ten left open on purpose: the

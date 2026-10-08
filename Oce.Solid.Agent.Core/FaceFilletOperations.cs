@@ -47,11 +47,11 @@ namespace Oce.Solid.Agent.Core
     /// 40·5²·(1 − π/4) = 214.60 mm³:
     ///
     ///   FeatureFillet3 + Ftyp=Face + marks 1/2 (the old one)     NULL, removed 0
-    ///   recipe of the guide (marks 2/4, circular profile)        «Raccordo1» (Fillet), removed 214.6
+    ///   recipe of the guide (marks 2/4, circular profile)        «Fillet1» (Fillet), removed 214.6
     ///   recipe of the guide with marks 1/2                       NULL, removed 0
-    ///   recipe without ConicTypeForCrossSectionProfile           «Raccordo1» (Fillet), removed 214.6
-    ///   SetFaces with typed Face2[], without selection           «Raccordo1» (Fillet), removed 214.6
-    ///   SelectByID2 by coordinates, marks 2/4                    «Raccordo1» (Fillet), removed 214.6
+    ///   recipe without ConicTypeForCrossSectionProfile           «Fillet1» (Fillet), removed 214.6
+    ///   SetFaces with typed Face2[], without selection           «Fillet1» (Fillet), removed 214.6
+    ///   SelectByID2 by coordinates, marks 2/4                    «Fillet1» (Fillet), removed 214.6
     ///
     /// The second row is used, word for word: selection with mark 2 and 4 on
     /// real faces (IEntity.Select4), profile declared as the guide asks.

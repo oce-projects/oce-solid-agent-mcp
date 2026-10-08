@@ -110,12 +110,12 @@ using SolidWorks.Interop.swconst;
 //  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    0. CONTROL (original bug: FeatureFillet3 + Ftyp=Face + marks 1/2) : NULL   volume 64000 -> 64000 mm3 (removed 0, expected 214,6)   bodies 1 -> 1
-//    1. RECIPE OF THE GUIDE (CreateDefinition+Initialize(swFaceFillet)+marks 2/4+profile) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
+//    1. RECIPE OF THE GUIDE (CreateDefinition+Initialize(swFaceFillet)+marks 2/4+profile) : «Fillet1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
 //    2. VARIANT H2 (new API, WRONG marks 1/2) : NULL   volume 64000 -> 64000 mm3 (removed 0, expected 214,6)   bodies 1 -> 1
-//    3. VARIANT H3 (API and marks right, WITHOUT ConicTypeForCrossSectionProfile) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
-//    4. BONUS (explicit SetFaces, typed Face2[], no selection) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
+//    3. VARIANT H3 (API and marks right, WITHOUT ConicTypeForCrossSectionProfile) : «Fillet1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
+//    4. BONUS (explicit SetFaces, typed Face2[], no selection) : «Fillet1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
 //       SelectByID2: True/True
-//    5. RECIPE OF THE GUIDE with SelectByID2 by coordinates (marks 2/4) : «Raccordo1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
+//    5. RECIPE OF THE GUIDE with SelectByID2 by coordinates (marks 2/4) : «Fillet1» (Fillet)   volume 64000 -> 63785,4 mm3 (removed 214,6, expected 214,6)   bodies 1 -> 1
 //
 //  USAGE   Checks\FaceFillet\bin\FaceFillet.exe, with SOLIDWORKS open
 //        (built by Checks\build-checks.ps1 (and by build.ps1, step 1c)).
@@ -520,7 +520,7 @@ internal static class FaceFilletProbe
         sm.InsertSketch(true);
         sm.CreateCornerRectangle(-0.02, -0.02, 0, 0.02, 0.02, 0);
         sm.InsertSketch(false);
-        doc.Extension.SelectByID2("Schizzo1", "SKETCH", 0, 0, 0, false, 0, null, 0);
+        SelectLastSketch(doc);
         doc.FeatureManager.FeatureExtrusion3(
             true, false, false, (int)swEndConditions_e.swEndCondBlind, 0, 0.040, 0,
             false, false, false, false, 0, 0, false, false, false, false,
@@ -562,12 +562,35 @@ internal static class FaceFilletProbe
         // (0.020): the raised block turns out 0.030 x 0.030, centred.
         sm.CreateCornerRectangle(-0.015, -0.015, 0, 0.015, 0.015, 0);
         sm.InsertSketch(false);
-        doc.Extension.SelectByID2("Schizzo2", "SKETCH", 0, 0, 0, false, 0, null, 0);
+        SelectLastSketch(doc);
         doc.FeatureManager.FeatureExtrusion3(
             true, false, false, (int)swEndConditions_e.swEndCondBlind, 0, 0.020, 0,
             false, false, false, false, 0, 0, false, false, false, false,
             true, true, true, 0, 0, false);
         return doc;
+    }
+
+    // THE SKETCH JUST CLOSED, BY ITS TYPE AND NOT BY ITS NAME. Up to 0.152.0 this
+    // probe selected it with SelectByID2 and the name an Italian installation gives
+    // it; translated to «Sketch1» it selected nothing on that same installation
+    // (the name follows the language of SOLIDWORKS and the toggle «Use English
+    // feature and file names»), and FeatureExtrusion3 then had no profile. The last
+    // feature of type «ProfileFeature» (IFeature~GetTypeName2.html: «Gets the type
+    // of feature») of a part just made from the template, with no flat pattern at
+    // the bottom of the tree, is the sketch just closed; IFeature~Select2.html
+    // selects it. Throws when there is none, so the probe does not go on blind.
+    private static void SelectLastSketch(IModelDoc2 doc)
+    {
+        IFeature last = null;
+        var f = doc.FirstFeature() as IFeature;
+        while (f != null)
+        {
+            if (f.GetTypeName2() == "ProfileFeature") last = f;
+            f = f.GetNextFeature() as IFeature;
+        }
+        doc.ClearSelection2(true);
+        if (last == null || !last.Select2(false, 0))
+            throw new Exception("cannot select the sketch just closed (no ProfileFeature in the tree).");
     }
 
     // W3.1-bis.2 point 10: base planes by position, not by their localized name

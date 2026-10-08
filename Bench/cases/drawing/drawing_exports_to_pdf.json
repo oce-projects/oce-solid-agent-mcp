@@ -45,8 +45,10 @@
           "why": "ONE view, counted by the operation after the call: `CreateDrawViewFromModelView3` returns just `null` when the name is wrong, and without counting it would look like a drawing that does not want the isometric" },
         { "what": "state.views_total", "equal_to": 1,
           "why": "THE TWO READINGS AGREE: the operation says one, the state re-read from scratch finds one" },
+        { "what": "measurements.found_by", "equal_to": "model",
+          "why": "the name came from the first level of the SOLIDWORKS-language converter, what the view does when shown, and not from the table of the names: a first level that finds nothing would otherwise be rescued by the table and the case would stay green" },
         { "what": "measurements.sw_name", "includes": ["Iso"],
-          "why": "the TRUE name with which SOLIDWORKS accepted it (`*Isometrica` here, `*Isometric` in English): it is the fact the operation declares so that next time it is written instead of remembered" } ] },
+          "why": "the TRUE name with which SOLIDWORKS accepted it (`*Isometric` in English, the Italian word on the installation it was measured on): it is the fact the operation declares so that next time it is written instead of remembered" } ] },
 
     { "operation": "note",
       "arguments": { "text": "TEST123", "x_mm": 20, "y_mm": 250 },

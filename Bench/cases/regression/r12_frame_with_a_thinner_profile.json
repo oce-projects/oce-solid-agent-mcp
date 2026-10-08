@@ -3,6 +3,7 @@
   "family": "regression",
   "why": "A welded frame whose PROFILE is changed: the tube goes from 80 to 60. The mitre at the corners is redone with different faces, and if a corner does not close two bars merge into a single body or one is left detached. Four bars must stay four.",
   "_why_it_is_not_the_length": "Entry F8 here asked for «frame 1000x800, 1000 -> 1400». IT CANNOT BE EXPRESSED TODAY: the path of a frame is a `3DProfileFeature`, and the state does not publish its dimensions -- `set_dimension` has nothing to name. The only dimensions the state exposes are those of the tube PROFILE (D1 = 80, D2 = 6, D3 = 5), and that is the one changed here. Found out by measuring, after two cases had been misclassified by guessing the name.",
+  "_why_the_dimension_names_no_sketch": "D1 is the side of the profile, and the sketch that holds it came from the profile file of the library, whose names stay in the language the file was made in: the dimension is asked for by its name alone (the frame has no other D1), so the case does not depend on the language of SOLIDWORKS.",
   "intent": "anchored_to_absolute",
   "intent_why": "the path of the frame does not change: four bars remain laid out as before, and the centroid of a symmetric frame stays where it is. If a corner is lost, the symmetry goes and it shows.",
   "build": [
@@ -19,7 +20,7 @@
       }
     }
   ],
-  "modify": { "dimension": "@dimension(feature=Schizzo1,name=D1)", "value_mm": 60 },
+  "modify": { "dimension": "@dimension(name=D1)", "value_mm": 60 },
   "after": [
     { "what": "bodies", "equal_to": 4 },
     { "what": "center_of_mass_mm", "same_as_before": true,

@@ -27,7 +27,7 @@
           "tolerance_why": "the cylinder axis is read from CylinderParams, which returns metres" },
         { "what": "how_many_features", "equal_to": 4 } ] },
     { "operation": "delete_feature",
-      "arguments": { "feature_uid": "Taglio-Estrusione1" },
+      "arguments": { "feature_uid": "{SW:feature.cut_extrude}1" },
       "expect": [
         { "what": "volume_mm3", "equal_to": 393842.48, "tolerance": 0.5,
           "tolerance_why": "the volume goes up by one hole: the calculation has pi inside" },

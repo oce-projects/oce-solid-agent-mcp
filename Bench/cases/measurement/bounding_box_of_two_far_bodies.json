@@ -19,7 +19,7 @@
         { "what": "measurements.bodies[0].bounding_box_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
           "tolerance_why": "the single body has stayed what it was" } ] },
     { "operation": "body_bounding_box",
-      "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "expect": [
         { "what": "measurements.bounding_box_mm", "equal_to": [100, 100, 20], "tolerance": 0.01,
           "tolerance_why": "asking for ONE body gets the answer for that one, and the 620 disappears" },

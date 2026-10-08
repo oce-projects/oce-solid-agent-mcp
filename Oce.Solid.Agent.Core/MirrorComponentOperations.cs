@@ -13,7 +13,7 @@ namespace Oce.Solid.Agent.Core
     /// Measured on 27/9/2026 (`probe0089 ga11`, base 120x80x10 + bracket
     /// 20x40x10 at x = +40, assembly right plane) with the modern way,
     /// `FeatureManager.CreateDefinition(swFmMirrorComponent)` →
-    /// `IMirrorComponentFeatureData` → `CreateFeature` («SpecchiaComponente1»,
+    /// `IMirrorComponentFeatureData` → `CreateFeature` («MirrorComponent1»,
     /// `MirrorCompFeat`), TYPED arrays (`Component2[]`):
     ///
     ///  * INSTANCE (`ComponentsToInstanceAlignToComponentOrigin`): one more
@@ -359,7 +359,7 @@ namespace Oce.Solid.Agent.Core
                 catch { }
                 if (linked == null)
                     return Failed("The new file «" + Path.GetFileName(newFile) + "» is there, but I cannot read its tree: I cannot " +
-                                   "tell you whether it follows the original. Open it and look whether the first feature is «Specchiato»." +
+                                   "tell you whether it follows the original. Open it and look whether the first feature of its tree is a MirrorStock (a mirrored part)." +
                                    RemoveMirror(model, newOne, newFile));
                 if (linked.Value != (mode == "opposite_linked"))
                     return Failed("I asked for a file " + (mode == "opposite_linked" ? "linked" : "unlinked") + " to the original and «" +

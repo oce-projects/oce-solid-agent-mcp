@@ -151,7 +151,7 @@ namespace Oce.Solid.Agent.Bench
             try
             {
                 var s = new System.Web.Script.Serialization.JavaScriptSerializer();
-                testCase = s.DeserializeObject(File.ReadAllText(filePath)) as Dictionary<string, object>;
+                testCase = s.DeserializeObject(CaseNames.ReadAllText(filePath)) as Dictionary<string, object>;
             }
             catch (Exception ex)
             {

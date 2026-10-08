@@ -54,14 +54,14 @@ using SolidWorks.Interop.swconst;
 //  OUTCOME OF 28/9/2026, SOLIDWORKS 29.5.1 (the output of the probe, as it was):
 //
 //    PROBE RIB (W1.2) — SOLIDWORKS 29.5.1
-//      [  -  ] L0 L, normal to the sketch (like the historical probes) (expected nothing)  ->  «Schizzo2» selected True, Rib none, volume 55000 -> 55000 (0), bodies 1 -> 1
-//      [BORN]  L1 L, parallel, material straight (expected +2700)  ->  «Schizzo2» selected True, Rib «Nervatura1», volume 55000 -> 57700 (+2700), bodies 1 -> 1
-//      [  -  ] L2 L, parallel, material flipped (expected +2700)  ->  «Schizzo2» selected True, Rib none, volume 55000 -> 55000 (0), bodies 1 -> 1
-//      [BORN]  L3 L, parallel, sketch left OPEN (expected +2700)  ->  sketch open, no selection, Rib «Nervatura1», volume 55000 -> 57700 (+2700), bodies 1 -> 1
-//      [  -  ] S1 hollowed box, parallel, material straight (expected +720)  ->  «Schizzo2» selected True, Rib none, volume 8672 -> 8672 (0), bodies 1 -> 1
-//      [BORN]  S2 hollowed box, parallel, material flipped (expected +720)  ->  «Schizzo2» selected True, Rib «Nervatura1», volume 8672 -> 9392 (+720), bodies 1 -> 1
-//      [  -  ] P1 plate without walls, parallel, material straight (expected ?)  ->  «Schizzo2» selected True, Rib none, volume 3200 -> 3200 (0), bodies 1 -> 1
-//      [  -  ] P2 plate without walls, parallel, material flipped (expected ?)  ->  «Schizzo2» selected True, Rib none, volume 3200 -> 3200 (0), bodies 1 -> 1
+//      [  -  ] L0 L, normal to the sketch (like the historical probes) (expected nothing)  ->  «Sketch2» selected True, Rib none, volume 55000 -> 55000 (0), bodies 1 -> 1
+//      [BORN]  L1 L, parallel, material straight (expected +2700)  ->  «Sketch2» selected True, Rib «Rib1», volume 55000 -> 57700 (+2700), bodies 1 -> 1
+//      [  -  ] L2 L, parallel, material flipped (expected +2700)  ->  «Sketch2» selected True, Rib none, volume 55000 -> 55000 (0), bodies 1 -> 1
+//      [BORN]  L3 L, parallel, sketch left OPEN (expected +2700)  ->  sketch open, no selection, Rib «Rib1», volume 55000 -> 57700 (+2700), bodies 1 -> 1
+//      [  -  ] S1 hollowed box, parallel, material straight (expected +720)  ->  «Sketch2» selected True, Rib none, volume 8672 -> 8672 (0), bodies 1 -> 1
+//      [BORN]  S2 hollowed box, parallel, material flipped (expected +720)  ->  «Sketch2» selected True, Rib «Rib1», volume 8672 -> 9392 (+720), bodies 1 -> 1
+//      [  -  ] P1 plate without walls, parallel, material straight (expected ?)  ->  «Sketch2» selected True, Rib none, volume 3200 -> 3200 (0), bodies 1 -> 1
+//      [  -  ] P2 plate without walls, parallel, material flipped (expected ?)  ->  «Sketch2» selected True, Rib none, volume 3200 -> 3200 (0), bodies 1 -> 1
 //    SUMMARY: 3/8 cases gave birth to a «Rib».
 // =============================================================================
 

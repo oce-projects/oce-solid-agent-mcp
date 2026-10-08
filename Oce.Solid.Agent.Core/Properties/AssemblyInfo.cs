@@ -211,7 +211,7 @@ using System.Runtime.InteropServices;
 //            matrix (Y mirrored in the rotated views) and added the position
 //            of the view instead of the translation (5 mm of error). Now
 //            `MathPoint.MultiplyTransform`;
-//          - the holes not dimensioned: hole callout («4× Ø8 PASSANTE») and
+//          - the holes not dimensioned: hole callout («4× Ø8 THRU») and
 //            positions in parallel from the reference edges;
 //          - the chamfer dimensioned 7.071 obliquely with the 5/75 chain: now the
 //            chamfer dimension «5 x 45°», and legs and hypotenuse are skipped;
@@ -302,7 +302,7 @@ using System.Runtime.InteropServices;
 // 0.125.0: `cut_list` right (entry GT2). It put ALL the bars in a single
 //          entry («4 x 1000» for a 1000 x 800 frame) and the case was green.
 //          Cause: the part was not a weldment. Now it puts the feature
-//          «Saldatura» if it is missing, turns on the automatic cut list on the folder
+//          «Weldment» if it is missing, turns on the automatic cut list on the folder
 //          of the bodies, reads the entries (description, length, quantity) and
 //          checks that the quantities add up to the bodies. With the same care
 //          `drawing_cut_list` is born: tested (and takes the view by uid,
@@ -372,7 +372,7 @@ using System.Runtime.InteropServices;
 // 0.130.0: Z-F1, global variables and equations. `global_variable` (a
 //          value in mm or an expression) and `link_dimension` (the dimension driven by
 //          an expression), re-read from the VALUES (get_Status cannot be read);
-//          «spessore» is a name already taken in SOLIDWORKS in Italian. The state
+//          the word an Italian SOLIDWORKS reserves for the thickness is a name already taken. The state
 //          lists the equations of the part.
 // 0.131.0: Z-F3, `reorder_feature`: ReorderFeature before or after another
 //          feature, name checked with the feature_id, order and volume re-read;
@@ -500,8 +500,20 @@ using System.Runtime.InteropServices;
 //          other. The Italian branches of the number reader of the tests and
 //          of the refusals table are gone with it. The surface has one name
 //          for everything.
-[assembly: AssemblyVersion("0.152.0.0")]
-[assembly: AssemblyFileVersion("0.152.0.0")]
+// 0.153.0: the SOLIDWORKS-language converter. The names SOLIDWORKS writes only as
+//          localized text are one table (Localization/solidworks-names.json, a
+//          column per language, chosen by ISldWorks.GetCurrentLanguage and by
+//          the toggle «Use English feature and file names»; an unknown language
+//          falls back to English and the document state says so in
+//          solidworks_language). A standard view is found by what the model
+//          view does when shown (IModelDoc2.ShowNamedView2 and
+//          IModelView.Orientation3, put back afterwards), not by its name; a
+//          cut-list column by its type and the property names of the table in
+//          every column; the «through» word of a hole callout and the
+//          reserved variable names through the table. The bench runs the same
+//          cases in both languages (--sw-language).
+[assembly: AssemblyVersion("0.153.0.0")]
+[assembly: AssemblyFileVersion("0.153.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -516,4 +528,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.152.0")]
+[assembly: AssemblyInformationalVersion("0.153.0")]

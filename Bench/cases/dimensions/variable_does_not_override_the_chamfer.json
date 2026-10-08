@@ -16,7 +16,7 @@
       "arguments": { "name": "wall", "value_mm": 20 },
       "expect": [ { "what": "measurements.is_new", "equal_to": true } ] },
     { "operation": "link_dimension",
-      "arguments": { "dimension": "@dimension(feature=Estrusione-Estrusione1,name=D1)", "expression": "\"wall\"" },
+      "arguments": { "dimension": "@dimension(feature={SW:feature.boss_extrude}1,name=D1)", "expression": "\"wall\"" },
       "expect": [
         { "what": "measurements.value_after_mm", "equal_to": 20 },
         { "what": "volume_mm3", "equal_to": 191760, "tolerance": 0.05, "tolerance_why": "the same: the thickness does not change" } ] },

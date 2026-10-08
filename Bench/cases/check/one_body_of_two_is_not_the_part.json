@@ -11,13 +11,13 @@
                      "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
     { "operation": "move_bodies",
-      "arguments": { "bodies_uid": [ "@body(name=Estrusione-Estrusione1)" ], "dz_mm": 600,
+      "arguments": { "bodies_uid": [ "@body(name={SW:feature.boss_extrude}1)" ], "dz_mm": 600,
                      "copy": true, "copy_count": 1 },
       "expect": [
         { "what": "bodies", "equal_to": 2 },
         { "what": "volume_mm3", "equal_to": 400000 } ] },
     { "operation": "check_body_geometry",
-      "arguments": { "body_uid": "@body(name=Estrusione-Estrusione1)" },
+      "arguments": { "body_uid": "@body(name={SW:feature.boss_extrude}1)" },
       "expect": [
         { "what": "measurements.verdict",
           "includes": [ "only", "the part has 2 bodies", "body_uid" ],
