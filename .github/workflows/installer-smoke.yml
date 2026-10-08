@@ -1,0 +1,124 @@
+# =============================================================================
+#  The installer on a machine that is not ours  (TODO entry H19, lots L4-L5, B8)
+# =============================================================================
+#
+#  The owner asked that GitHub test the repository before it is published, and
+#  the TODO wants the installer proven on a clean machine. tests.yml cannot do
+#  it: no GitHub runner can BUILD the installer (the project compiles against the
+#  SOLIDWORKS interop). So the installer is built where SOLIDWORKS is, uploaded
+#  as a DRAFT prerelease by Checks/release-candidate.ps1, and this workflow
+#  takes it from there. Nothing here builds, publishes or tags anything.
+#
+#  RUN IT BY HAND, never on a push:
+#
+#      gh workflow run installer-smoke.yml -f tag=v0.1.0-rc1
+#
+#  WHAT IT PROVES, AND WHAT IT CANNOT
+#
+#  A runner has no SOLIDWORKS, and the installer REFUSES to install without it
+#  (the prerequisite "SOLIDWORKS installed" is blocking: exit 1, nothing
+#  installed). So there are two kinds of scenario, and the header of
+#  .github/steps/installer-smoke.ps1 says exactly which is which:
+#
+#    absent           nothing faked: exit 1, the SOLIDWORKS check is the only [NO],
+#                     nothing is written, no client file is touched; --verify
+#                     fails all five checks; the uninstall of nothing is exit 0.
+#    install-temp     a stand-in folder (an empty file with the name of the
+#    install-default  interop, written by the script; not Dassault's) lets the
+#                     install through, with OCE_NO_ATTACH=1 so that the bridge
+#                     never tries COM. It proves the mechanics: files, client
+#                     entries (Claude Desktop and Claude Code, found by the
+#                     installer itself, with other servers already in their
+#                     files), --verify, an MCP handshake, a reinstall that keeps
+#                     what the user added, and an uninstall that removes the files,
+#                     the entries and the archives the bridge writes.
+#
+#  It does NOT prove that the bridge attaches to SOLIDWORKS. Nothing on a machine
+#  without SOLIDWORKS can; that stays with the bench and Checks/test-installer.js.
+#
+#  THE POWERSHELL LIVES IN FILES, NOT IN HERE (see tests.yml, entry F9-bis):
+#  .github/steps/smoke-fetch-release.ps1 and .github/steps/installer-smoke.ps1,
+#  which Checks/check-workflow.ps1 parses and requires some workflow to call.
+# =============================================================================
+
+name: installer-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The tag of the release to test, a draft made by Checks/release-candidate.ps1 (for example v0.1.0-rc1)'
+        required: true
+        type: string
+
+# contents: write is NOT used to write. Listing the releases of a repository
+# shows DRAFTS only to a token with push access, and a read-only token would
+# answer "no such release". Whether this is the minimum that works is measured
+# by the first run, not known: if a read-only token turns out to see drafts, take
+# it down to read. The steps below never create, edit or delete anything.
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    name: smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, windows-2022 ]
+    env:
+      # The tag is typed by a person: it reaches the scripts through the
+      # environment, never pasted into a command line, and the script checks its shape.
+      OCE_SMOKE_TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+
+      - name: Check out the scripts
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download Installer.exe from the draft release and check its hash
+        id: fetch
+        shell: pwsh
+        run: .\.github\steps\smoke-fetch-release.ps1 -Out "$env:RUNNER_TEMP\oce-smoke\download"
+
+      # 1. A machine like a person's who has never installed SOLIDWORKS.
+      #    Both clients are "installed" (their folders and files exist, with other
+      #    servers in them), so that "nothing was touched" means something.
+      - name: Smoke 1, no SOLIDWORKS - the install stops with exit 1 and touches nothing
+        if: ${{ !cancelled() && steps.fetch.outcome == 'success' }}
+        shell: pwsh
+        run: .\.github\steps\installer-smoke.ps1 -Installer "$env:RUNNER_TEMP\oce-smoke\download\Installer.exe" -Scenario absent -Clients discover
+
+      # 2. The install, in a temporary folder, with the clients found by the installer.
+      - name: Smoke 2, install - verify - reinstall - uninstall in a temporary folder
+        if: ${{ !cancelled() && steps.fetch.outcome == 'success' }}
+        shell: pwsh
+        run: .\.github\steps\installer-smoke.ps1 -Installer "$env:RUNNER_TEMP\oce-smoke\download\Installer.exe" -Scenario install-temp -Clients discover
+
+      # 3. The same with --config: one file named on the command line, no client looked for.
+      - name: Smoke 3, the same with --config
+        if: ${{ !cancelled() && steps.fetch.outcome == 'success' }}
+        shell: pwsh
+        run: .\.github\steps\installer-smoke.ps1 -Installer "$env:RUNNER_TEMP\oce-smoke\download\Installer.exe" -Scenario install-temp -Clients config-file
+
+      # 4. The default folder: the one place where the archive of measured profile
+      #    sections lives and where an uninstall must remove it.
+      - name: Smoke 4, the default folder and the files the bridge writes beside itself
+        if: ${{ !cancelled() && steps.fetch.outcome == 'success' }}
+        shell: pwsh
+        run: .\.github\steps\installer-smoke.ps1 -Installer "$env:RUNNER_TEMP\oce-smoke\download\Installer.exe" -Scenario install-default -Clients discover
+
+      - name: Upload the logs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-smoke-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/oce-smoke/logs
+            ${{ runner.temp }}/oce-smoke/download/release.json
+          if-no-files-found: warn

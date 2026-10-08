@@ -67,15 +67,54 @@ if (-not (Test-Path $workflow)) {
     Write-Host "  XX  .github\workflows\tests.yml is not there" -ForegroundColor Red
     exit 1
 }
-$text = Get-Content $workflow -Raw
+# EVERY workflow counts, not only tests.yml: installer-smoke.yml has steps of its own.
+$text = (Get-ChildItem (Split-Path -Parent $workflow) -Filter *.yml | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 
 foreach ($p in $steps) {
     if ($text -like ('*' + $p.Name + '*')) {
         Write-Host ("  ok  " + $p.Name + " is invoked")
     } else {
         $trouble++
-        Write-Host ("  XX  " + $p.Name + " does not appear in tests.yml: it is a") -ForegroundColor Red
+        Write-Host ("  XX  " + $p.Name + " does not appear in any workflow: it is a") -ForegroundColor Red
         Write-Host  "      script nobody runs, that is, nothing." -ForegroundColor Red
+    }
+}
+
+Write-Host ""
+Write-Host "=== And the release candidate cannot publish"
+
+# Checks/release-candidate.ps1 uploads the installer for the smoke test of
+# installer-smoke.yml. It must only ever make DRAFTS: a line that could turn a
+# draft public, or create a release that is not a draft, is a failure here, so
+# it is found before the push and not after a release is public. Comments are
+# not code and are skipped.
+$candidate = Join-Path $root 'Checks\release-candidate.ps1'
+if (-not (Test-Path $candidate)) {
+    $trouble++
+    Write-Host "  XX  Checks\release-candidate.ps1 is not there" -ForegroundColor Red
+} else {
+    # It lives in Checks/, not in .github/steps, so the loop at the top did not parse it.
+    $errors = $null
+    $token = $null
+    $null = [System.Management.Automation.Language.Parser]::ParseFile($candidate, [ref] $token, [ref] $errors)
+    if ($errors -and $errors.Count -gt 0) {
+        $trouble++
+        Write-Host "  XX  release-candidate.ps1 cannot be read" -ForegroundColor Red
+        foreach ($e in $errors) { Write-Host ("        line " + $e.Extent.StartLineNumber + ": " + $e.Message) }
+    } else {
+        Write-Host "  ok  release-candidate.ps1 can be read"
+    }
+    $code = @(Get-Content $candidate | Where-Object { $_ -notmatch '^\s*#' })
+    $bad = @($code | Where-Object { $_ -match '--draft\s*=\s*false|--latest|--prerelease\s*=\s*false|release\s+(publish|delete)' })
+    $writers = @($code | Where-Object { $_ -match 'release (create|edit)' })
+    $withoutDraft = @($writers | Where-Object { $_ -notmatch '--draft' })
+    if ($bad.Count -eq 0 -and $withoutDraft.Count -eq 0 -and $writers.Count -gt 0) {
+        Write-Host ("  ok  release-candidate.ps1: " + $writers.Count + " release-writing command(s), all with --draft, none that publishes")
+    } else {
+        $trouble++
+        Write-Host "  XX  release-candidate.ps1 could publish, or has no release-writing command to check:" -ForegroundColor Red
+        ($bad + $withoutDraft) | ForEach-Object { Write-Host ("        " + $_.Trim()) }
+        if ($writers.Count -eq 0) { Write-Host "        (no line matched: the pattern in this check is out of date)" }
     }
 }
 

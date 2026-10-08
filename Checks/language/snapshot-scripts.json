@@ -11,6 +11,8 @@
     "needs": ["Tests/bin/Oce.Solid.Agent.ContractTests.exe", "bin/oce-solid-agent-mcp.exe"] },
   { "script": ".github/steps/language-gate.ps1", "run": true, "varies_with": ["head"] },
   { "script": ".github/steps/how-much-did-not-run.ps1", "run": true, "needs": ["Tests/bin/results.xml"], "varies_with": ["Tests/bin/results.xml"] },
+  { "script": ".github/steps/smoke-fetch-release.ps1", "skip": "downloads Installer.exe from a draft release of the repository with gh: it needs a release candidate, a tag and a token, and runs only in installer-smoke.yml" },
+  { "script": ".github/steps/installer-smoke.ps1", "skip": "runs a downloaded Installer.exe against a stand-in for SOLIDWORKS and, with -Clients discover, against the profile of whoever runs it: it refuses off a throw-away machine, and runs only in installer-smoke.yml" },
 
   { "script": "Checks/check-workflow.ps1", "run": true },
   { "script": "Checks/check-catalog.ps1", "run": true, "needs": ["bin/catalog.json", "Oce.Solid.Agent.Core/bin/Release/Oce.Solid.Agent.Core.dll"] },
@@ -34,6 +36,7 @@
   { "script": "Checks/test-x2.js", "run": true, "args": ["--self-test"] },
   { "script": "Checks/test-x2.js", "skip": "without --self-test it drives SOLIDWORKS through the bridge and the ChangeByHand probe" },
   { "script": "Checks/test-installer.js", "skip": "needs dist/Installer.exe (a full build.ps1), and it installs, verifies and uninstalls some forty times in a temporary folder (about a minute); since H19 it does not attach to SOLIDWORKS unless given --attach (OCE_NO_ATTACH)" },
+  { "script": "Checks/release-candidate.ps1", "skip": "builds the installer (build.ps1, which needs SOLIDWORKS and rewrites dist/) and creates or updates a DRAFT release on GitHub: an action outside this machine; its -DryRun prints the plan, and Checks/check-workflow.ps1 reads the script for anything that could publish" },
   { "script": "Checks/prepare-release.ps1", "skip": "prepares a release: runs build.ps1 (which rewrites Tools/catalog.json and dist/), fetches origin and runs the contract suite, which starts the bridge; it stops on an uncommitted tree by design" },
   { "script": "Checks/obsolete-api-list.js", "skip": "rebuilds the tracked Tests/data/obsolete-api-members.tsv from the SOLIDWORKS help extracted outside the repository: it writes a tracked file, and its input is not here" },
   { "script": "Checks/library-of-the-time.ps1", "skip": "needs a version, and builds that old library in a git worktree under the temporary folder: a tool for the history, not a check of the tree" },
