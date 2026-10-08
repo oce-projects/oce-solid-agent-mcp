@@ -136,6 +136,11 @@ tasks (01: 119 s, 02: 81 s, 03: 149 s, 08: 189 s, 09: 202 s, **07: 2,432 s**: 17
 17 in the cut list, four gussets of 2,400 mm3, volume 1,814,624.9 mm3, the same as the build of
 7/10); the bridge BEFORE (0.129.0) opens that stand and reads it (17 bodies, the same volume,
 60 faces of 206 listed); the family `measurement` 13 of 13 green, 77 of 77 expectations.
+**What a reading costs on the stand** (206 faces, 17 bodies, `inspect_part` timed through the
+bridge): the ordinary reading 50 s (97 s the first time), every face (`limit` 500) 86 s, a
+narrow filter (8 faces) 47 s. The filter is not where the 40 minutes of the stand go: the
+reading itself costs 50 s on 17 bodies and every build step of the plan costs minutes; that
+cost was there before this window and is still open.
 
 ## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
 
