@@ -32,6 +32,86 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## Unreleased — final bench fix: the centre marks SOLIDWORKS leaves out are put by the bridge (branches `final-bench-fix` and `release-1` merged) · bridge 0.130.1 · library 0.153.1
+
+**The full bench of `w31bis-11` (7/10/2026, 16:09, library 0.152.0) went red on three
+lines of the drawing:** `center_marks_on_the_holes` step 8 («3 holes are without a
+center mark»), `drawing_is_a_second_document` step 7 (`state.center_marks_total` 0
+instead of 3) and `dimensions_come_from_the_model` step 7 (3 dimensions of 4). What was
+found, in order:
+
+1. **It is not a regression of window .11.** The families `drawing` and `dimensions`
+   alone are green on library 0.151.0 and on 0.152.0, twice each, on a restarted
+   SOLIDWORKS. The full bench of `integration-1` (library 0.151.0) ran the same sequence,
+   with the same drawing created at the same point («Disegno7» for the centre marks), and
+   was green; a run of all the case families on 0.152.0 (no C# group first) passed the
+   centre marks too. The red is SOLIDWORKS leaving the hole views of a fresh drawing
+   **without its automatic centre marks**, now and then, with the document option on.
+2. **What it is not.** Not the age of the session: the red came 49 minutes into a
+   session restarted by the bench, and the same point was green in another run. Not the
+   access violation SOLIDWORKS logs in `slduiu.dll` (offset 0x94d513): the Application
+   event log has one per SOLIDWORKS process since 26/9, in green runs as in red ones, and
+   the process goes on working after it. The documented causes (a draft quality view,
+   large assembly mode) were read on the views of an earlier long run, but that run did not
+   reproduce the red, so they are neither confirmed nor excluded. The cause inside
+   SOLIDWORKS stays unidentified; what the bridge does about it is not.
+3. **The remedy never worked.** Since 0.144.0 `standard_views` walks the views born
+   with zero marks and calls `IDrawingDoc.AddCenterMark` on each bare hole. A probe on
+   8/10/2026 made the bare views on purpose (the document toggle
+   `swDetailingAutoInsertCenterMarksForHoles` turned off on the drawing before the
+   views): `AddCenterMark` on the selected circle returns an object and adds nothing,
+   three holes out of three, with the view activated or not; `IView.AutoInsertCenterMarks2`
+   with the hole type puts one mark per hole (0 → 3, at −40/0, 0/0 and 40/0), and on a view
+   that already has them it **doubles** them (3 → 6, then 6 → 9).
+4. **The fix.** `MarkHolesOfView`, shared by `standard_views` and `center_marks`, now
+   inserts the marks with `AutoInsertCenterMarks2` (hole type, no connection lines, the
+   document's settings unless the call asked for its own size or extended lines), after
+   `IDrawingDoc.ActivateView` as the Remarks of `IView~AutoInsertCenterMarks2.html` ask,
+   and looks for every bare hole again at its centre: only a mark found there counts as
+   added. It is called only on a view where **no** hole has its mark; on a view where some
+   are marked and some are not, nothing is inserted (it would double the existing ones) and
+   the bare holes are refused with the way that works. `AddCenterMark` is gone from the
+   library (its entry leaves `ObsoleteCallsContract` and the frozen list). `standard_views`
+   writes one journal line when it fires.
+5. **The bench group `bare-views`** (new, `Bench/BareViews.cs`): the plate of
+   `center_marks_on_the_holes`, the toggle turned off by COM on each new drawing (no catalog
+   operation can turn it off, so no declared case could build a bare view), then four
+   checks: `standard_views` marks the three holes, the state counts three, `center_marks`
+   afterwards finds the three and adds none, `center_marks` on a single bare top view adds
+   three. It refuses to measure if the views come out with marks anyway. On library
+   0.152.0 the four are red; on 0.152.1 the four are green (also on the last build, where
+   the activation reads the view name with `GetName2` instead of the obsolete `IView.Name`
+   that the contract on obsolete calls refused, at 08:55 in the long session).
+6. **The dimensions are another matter.** On the views born bare, `model_dimensions`
+   inserts the same dimensions with and without the marks (6 and 6 on the plate with three
+   holes, library 0.152.0 against 0.152.1): the 3 of 4 is not explained by the bare views,
+   and this fix does not claim it. It did not come back in the long run below.
+7. **The long run.** One SOLIDWORKS session, restarted once at the start (04:25 on
+   8/10/2026) and never again, driven in four bench runs of at most 44 minutes each (the
+   machine is shared and a hold of SOLIDWORKS lasts 45 minutes at most; between the runs
+   the lock passed to another agent, and the session stayed the same process): first
+   every C# group the full bench runs before the cases, `bare-views` included, then the
+   case families `text`, `bodies`, `slot`;
+   then `features`, `patterns`, `measurement`, `export`; then `weldments`, `sheet_metal`,
+   `removal`, `extrusions`, `pairs`, `assemblies`, `chamfer`; last `check`, `reanchor`,
+   `plane`, `mirror`, `axis`, `revolve`, `sentence`, `document_properties`, `drawing`,
+   `dimensions`. **1,364 checks, 0 red**, handles 1,924 → 7,686, the access violation of
+   `slduiu.dll` logged at 04:38 and the session working for four more hours after it.
+   `center_marks_on_the_holes` step 8, `drawing_is_a_second_document` step 7 (3 marks) and
+   `dimensions_come_from_the_model` step 7 (4 dimensions) green nearly four hours into
+   the session. SOLIDWORKS did not leave a view bare by itself this time: the journal line of
+   the remedy fired only in `bare-views`, where the bare view is made on purpose. Each run
+   was stopped at its 44th minute, so the last cases of each set of families did not run
+   there; the full bench before the merge is still the measure.
+8. **The crash at 01:35 of the previous attempt was not one.** The run was a background
+   task of the agent with a timeout of one hour: started at 00:35, killed at 01:35, in the
+   middle of `cut_without_gap_does_not_inherit`. SOLIDWORKS had logged its access violation
+   in `slduiu.dll` at 01:04 and gone on (the centre marks were green at 01:12, after it).
+
+`Tests/Zc2113SplineCentreMarksContract.cs` now pins one `AutoInsertCenterMarks2` call in the
+marks source, inside `MarkHolesOfView`, after the return on a view with holes already
+marked, and no `AddCenterMark` anywhere; each of these is seen red on a changed copy.
+
 ## Unreleased — Release 1: the SOLIDWORKS-language converter and the faces beyond the 60 largest, together (branch `release-1`) · bridge 0.130.0 · library 0.153.0
 
 Built on `w31bis-11` (f538914) by merging `sw-language` and `faces-beyond-60`. Both took the next
