@@ -46,7 +46,7 @@ not name the two new probes, `Checks/SolidWorksLanguage/` and `Checks/FacesBeyon
 stops `snapshot.js take`, a thing no check saw (each branch had passed without a snapshot). Both are now rows (skipped:
 SOLIDWORKS probes), and `snapshot.js --check-registry` runs in the contracts on the real tree (seen red by taking a row out).
 
-Proof of the merged tree, 8/10/2026 (SOLIDWORKS 29.5 Italian, the lock `SW-LOCK` held in two windows of 13+25 and 41 minutes, single
+Proof of the merged tree, 8/10/2026 (SOLIDWORKS 29.5 Italian, the lock `SW-LOCK` held in two windows of 39 and 42 minutes, single
 families only, never the full bench): `build.ps1` ok; contracts 861, the same 3 red as f538914 (the freshness of the full bench,
 which the owner's run closes); `catalog.json` differs from f538914 in five descriptions (the language converter) and nothing else;
 `test-installer.js` exit 0; `prerequisite.js --check` holds on the new bridge and on the bridge of f538914 (0.129.0); the six
