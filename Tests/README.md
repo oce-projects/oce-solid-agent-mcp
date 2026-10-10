@@ -9,7 +9,7 @@ It exits **0** if nothing fails, **1** otherwise, and writes
 `Tests\bin\results.xml` in JUnit format — the one that every CI can read without
 anybody teaching it anything.
 
-**861 checks, a few seconds, no licence.**
+**863 checks, a few seconds, no licence.**
 
 That number is not decorative: **there is a check that rereads it from this file
 and compares it with how many really run**, and it is the last one of the run
