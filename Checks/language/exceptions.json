@@ -30,7 +30,7 @@
   "class": "changelog-history",
   "file": "^CHANGELOG\\.md$",
   "pattern": "`[^`\\n]*`|\\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\\b|\\b(?:[A-Z][a-z0-9]+){2,}\\b|\\b[a-z]+(?:[A-Z][a-z0-9]+)+\\b|\\b[A-Z][A-Za-z0-9]*(?:\\.[A-Z][A-Za-z0-9]*)+\\b",
-  "scope": { "from": "^## Unreleased — W3\\.1-bis\\.10b," },
+  "scope": { "from": "^## Part of 0\\.130\\.1 — W3\\.1-bis\\.10b," },
   "applies_to": ["detector", "translator"],
   "reason": "the entries from W3.1-bis.10b down to the first one are the record of the rename into English and of the work before it, and the history was translated in full (decision D2): what it keeps in Italian is only the names it quotes as they were before the rename (folders, files, projects, identifiers, operation and option names). The pattern covers a span between backticks on one line, or one name written as a single token (snake_case, PascalCase, camelCase, a dotted Namespace.Type), and nothing else: never a whole line, so Italian prose in the history is judged like everywhere else; outputs quoted verbatim sit between guillemets and belong to changelog-quote. The scope starts at the heading of that entry, found in the text, and runs to the end of the file; the entries above it are written in English and judged",
   "signed_by": "Oscar Contato",

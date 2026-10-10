@@ -32,7 +32,56 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## Unreleased — GitHub tests the installer on a clean machine before publication (branch `ci-installer`) · bridge and library unchanged
+## 0.130.1 — 10 October 2026 · library 0.153.1 · first public release
+
+The first version published. It is the bridge of 0.124.1 brought to English
+in every file (W3.1-bis), able to work with an Italian or an English SOLIDWORKS,
+with an installer that a person or an AI can run alone. The entries below marked
+«Part of 0.130.1» are the steps that led here, one per branch.
+
+**What it does.** An MCP server that lets a model drive SOLIDWORKS: 99 operations
+in 12 families (parts, sheet metal, weldments, assemblies, drawings, dimensions,
+measurements, exports...), each with its limits and its refusals written in the
+catalogue the model reads. Every operation re-reads what SOLIDWORKS really did
+and says so: a step that could not be verified is reported, never assumed.
+
+**What changed since 0.124.1, for whoever uses it.**
+- Everything is in English: tool names, arguments, values, messages, documents.
+  The Italian names are gone (no aliases): an Italian name is an unknown tool or
+  argument.
+- It works with SOLIDWORKS in Italian or in English: features, planes, standard
+  views and cut-list columns are found by type or by what they do, not by name;
+  the few words SOLIDWORKS writes as text live in one table
+  (`Oce.Solid.Agent.Core/Localization/solidworks-names.json`).
+- `inspect_part` can return faces filtered by normal, area or position, and plan
+  selectors address every face, not only the 60 largest.
+- Fixed: `cut_list` counts gussets and end caps; `gusset` and `weld_bead` read
+  an edge running either way; `insert_component` accepts the first component of
+  an empty assembly; the centre marks SOLIDWORKS sometimes leaves out of a new
+  view are put back.
+- Installer (`Installer.exe`, one file): `--silent`, `--dir`, `--no-client`,
+  `--uninstall`, `--verify [--json]`, with exit codes a script can trust; see
+  INSTALL-FOR-AI.md and QUICKSTART.md.
+- Environment variables are `OCE_*` (`OCE_WELDMENT_PROFILES` and the others in the
+  README); whoever set the old Italian ones sets them again.
+
+**How it was proven.** The full bench, run with SOLIDWORKS in Italian and with
+SOLIDWORKS in English (menus and feature names): 2,248 tests, 0 failed, 1,824 of
+1,824 expectations, in both. The autonomous run (decision D9: a model with only
+the bridge, 15 tasks, Italian x3 and English x1) is not worse than the bridge
+before the rename beyond its threshold (one task of fifteen). The installer
+was run on two clean Windows machines of GitHub (windows-2022 and windows-latest).
+
+**Requirements.** Windows x64, SOLIDWORKS 2021 SP5.1 (tested; other versions not
+yet), .NET Framework 4.8, an MCP client (Claude Desktop, Claude Code, others).
+
+**Known limits.** After about four hours in one SOLIDWORKS session a call can
+hang (the bench restarts SOLIDWORKS; a long working session may meet it). The
+drawing title block is read through the custom properties of the template in use.
+
+---
+
+## Part of 0.130.1 — GitHub tests the installer on a clean machine before publication (branch `ci-installer`) · bridge and library unchanged
 
 Tooling only: no change to the bridge, the library, the installer or the catalog, so no version bump
 (the rule above is about code that ships). New: `.github/workflows/installer-smoke.yml` (by hand, on
@@ -48,7 +97,7 @@ what that does and does not prove. The workflow has not run yet: it needs a draf
 
 ---
 
-## Unreleased — final bench fix: the centre marks SOLIDWORKS leaves out are put by the bridge (branches `final-bench-fix` and `release-1` merged) · bridge 0.130.1 · library 0.153.1
+## Part of 0.130.1 — final bench fix: the centre marks SOLIDWORKS leaves out are put by the bridge (branches `final-bench-fix` and `release-1` merged) · bridge 0.130.1 · library 0.153.1
 
 **The full bench of `w31bis-11` (7/10/2026, 16:09, library 0.152.0) went red on three
 lines of the drawing:** `center_marks_on_the_holes` step 8 («3 holes are without a
@@ -130,7 +179,7 @@ marked, and no `AddCenterMark` anywhere; each of these is seen red on a changed 
 
 ---
 
-## Unreleased — Release 1: the SOLIDWORKS-language converter and the faces beyond the 60 largest, together (branch `release-1`) · bridge 0.130.0 · library 0.153.0
+## Part of 0.130.1 — Release 1: the SOLIDWORKS-language converter and the faces beyond the 60 largest, together (branch `release-1`) · bridge 0.130.0 · library 0.153.0
 
 Built on `w31bis-11` (f538914) by merging `sw-language` and `faces-beyond-60`. Both took the next
 MINOR (bridge 0.130.0, library 0.153.0) from the same base; together they are ONE minor above
@@ -156,7 +205,7 @@ SOLIDWORKS); the `en` column of the views, the callout, the cut-list properties 
 
 ---
 
-## Unreleased — the SOLIDWORKS-language converter: the code writes English and reads any language (branch `sw-language`) · bridge 0.130.0 · library 0.153.0
+## Part of 0.130.1 — the SOLIDWORKS-language converter: the code writes English and reads any language (branch `sw-language`) · bridge 0.130.0 · library 0.153.0
 
 Built on `w31bis-11` (f538914). The owner's words of 7/10/2026 are applied, «prima di v0.1.0» for
 the time and, for the reason:
@@ -330,7 +379,7 @@ waits for). SOLIDWORKS 29.5.1, Italian interface.
 
 ---
 
-## Unreleased — W3.1-bis.12, faces beyond the 60 largest (branch `faces-beyond-60`) · bridge 0.130.0 · library 0.153.0
+## Part of 0.130.1 — W3.1-bis.12, faces beyond the 60 largest (branch `faces-beyond-60`) · bridge 0.130.0 · library 0.153.0
 
 Built on `w31bis-11` (f538914). Task: the state lists the 60 largest faces and says
 `truncated`; a small face of a part with more of them has no identifier, so no plan and
@@ -440,7 +489,7 @@ narrow filter (8 faces) 47 s. The filter is not where the 40 minutes of the stan
 reading itself costs 50 s on 17 bodies and every build step of the plan costs minutes; that
 cost was there before this window and is still open.
 
-## Unreleased — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
+## Part of 0.130.1 — W3.1-bis.11, the translation closed: no alias, a gate of zero (branch `w31bis-11`) · bridge 0.129.0 · library 0.152.0
 
 Last window of W3.1-bis. It closes what the first ten left open on purpose: the
 dictionary that still accepted the Italian names on input, and a language gate that
@@ -644,7 +693,7 @@ not disturbed. Versions unchanged (bridge 0.129.0, library 0.152.0): no library 
 
 ---
 
-## Unreleased — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0
+## Part of 0.130.1 — Integration 1: d9-defects and d9-fix on top of .10-bis, `Bench/tasks` in English (branch `integration-1`) · bridge 0.128.0 · library 0.151.0
 
 **One branch, from the tip of `w31bis-10b` (33451b7: windows .7 to .10-bis on main
 11d7fc2), that carries the three lines of work that were built apart, so that one
@@ -773,7 +822,7 @@ against 33451b7 held, every commit judged against its own parent.
 
 ---
 
-## Unreleased — D9 defects: the cut list counts every body, the gusset at the end of a bar, the empty assembly (branch `d9-defects`) · bridge 0.128.0 · library 0.151.0
+## Part of 0.130.1 — D9 defects: the cut list counts every body, the gusset at the end of a bar, the empty assembly (branch `d9-defects`) · bridge 0.128.0 · library 0.151.0
 
 **Four defects found on 6/10/2026 by the live proof of the D9 prerequisites
 (the tube stand of task 07 and the plans that start from it), each measured
@@ -864,7 +913,7 @@ window 5 (a7108a5) translated in the assertion though SOLIDWORKS prints it.
 
 ---
 
-## Unreleased — W3.1-bis.10b, the names the code still held in Italian (branch `w31bis-10b`) · bridge 0.127.3 · library 0.150.2
+## Part of 0.130.1 — W3.1-bis.10b, the names the code still held in Italian (branch `w31bis-10b`) · bridge 0.127.3 · library 0.150.2
 
 **Why this window exists.** Window .11 makes the language detector blocking at 0
 everywhere outside closed classes of exceptions. After .10 what still kept it
@@ -1057,7 +1106,7 @@ value was followed to its producer. What it found, and what changed:
 
 ---
 
-## Unreleased — W3.1-bis.10, the documents, the scripts and the options in English (branch `w31bis-10`) · bridge 0.127.2 · library 0.150.1 (unchanged)
+## Part of 0.130.1 — W3.1-bis.10, the documents, the scripts and the options in English (branch `w31bis-10`) · bridge 0.127.2 · library 0.150.1 (unchanged)
 
 **The tenth window of W3.1-bis (TODO entry W3.1-bis.10, installer entry H19 lot
 L3, decision D13): the user documents, every other tracked Markdown file, the
@@ -1120,7 +1169,7 @@ exceptions in W3.1-bis.11.
 
 ---
 
-## Unreleased — W3.1-bis.6, rename window 3: namespaces, projects and identifiers (branch `w31bis-6`) · bridge 0.127.1 · library 0.150.1
+## Part of 0.130.1 — W3.1-bis.6, rename window 3: namespaces, projects and identifiers (branch `w31bis-6`) · bridge 0.127.1 · library 0.150.1
 
 **The third rename window of W3.1-bis (TODO entry W3.1-bis.6, decision D6): the
 root folders, the projects and assemblies, the namespaces, the 35 probes and the
@@ -1398,7 +1447,7 @@ prose (data the bridge serves, not code). Proofs after the review: contracts 821
 the three bench-freshness checks red; reverse proof 0 not explained;
 `same-il -Mode Renames` as above; `name-map-extract.js --check` passes.
 
-## Unreleased — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
+## Part of 0.130.1 — H19 L1+L2: the installer tells the truth and verifies itself (branch `installatore-l1`) · bridge 0.126.0 · library 0.149.0 (unchanged)
 
 **Bench, 3/10/2026, on 4c9e465 (window 2 and H19 L1+L2 together, bridge 0.127.0,
 library 0.150.0): 2191 tests, 0 failed, 1 skipped (`--lento`), expectations 1783
@@ -1643,7 +1692,7 @@ claude mcp remove", the probe entry left alone. The real `.claude.json` and Clau
 Desktop config were unchanged. Still not measured: a LIVE Claude Code session that
 rewrites `.claude.json` while the installer writes it by the file route (L4, B8).
 
-## Unreleased — W3.1-bis.5, rename window 2: the MCP surface (branch w31bis-5) · bridge 0.127.0 (with H19 L1+L2) · library 0.150.0
+## Part of 0.130.1 — W3.1-bis.5, rename window 2: the MCP surface (branch w31bis-5) · bridge 0.127.0 (with H19 L1+L2) · library 0.150.0
 
 Merged together with H19 L1+L2 (below), on a branch rebased on main e49d4d6.
 `Banco/banco.ps1` also counts the documents left open from the last line of
@@ -2013,7 +2062,7 @@ The full list is the map (`Controlli/lingua/name-map.tsv`): 205 arguments and
 | `tavola` | `drawing` | `tavola illeggibile` | `unreadable drawing` | `terzo` | `third` |
 | `triangolare` | `triangular` | `unisci` | `merge` | `verticale` | `vertical` |
 
-## Unreleased — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
+## Part of 0.130.1 — W3.1-bis.4, rename window 1: the bench cases (branch w31bis-4)
 
 **Bench, 2/10/2026, on e49d4d6 (W3.1-bis.3, Z-C21.14 and this window together):
 2179 tests, 0 failed, 1 skipped (`--lento`), expectations 1771 of 1771.** Three
@@ -2293,7 +2342,7 @@ comment lines of `.github/workflows/prove.yml` (a path), and carries
 - `Banco/compiti/` → `Banco/tasks/` (3): `LEGGIMI.md` → `README.md`, `staffa_a_elle.json` → `l_bracket.json`, `telaio_da_un_metro.json` → `one_meter_frame.json`
 - `Banco/resoconto/` → `Banco/report/` (1): `ultimo.json` → `last.json`
 
-## Unreleased — Z-C21.14, `annulla` tells the truth (branch `zc21-14`) · bridge 0.125.0 · library 0.149.0
+## Part of 0.130.1 — Z-C21.14, `annulla` tells the truth (branch `zc21-14`) · bridge 0.125.0 · library 0.149.0
 
 **What the live probe M19 and the probe `redo` (1/10/2026) found on the way of
 `annulla`** (TODO entry Z-C21.14; RAG note 82zz_duodecies, the section on the live
@@ -2398,7 +2447,7 @@ red until it does. Prove.Contratti: 772 checks (759 on b5f7506, whose
   property, a configuration) needs its own design (where the counter lives, who resets
   it, a crash in between).
 
-## Unreleased — W3.1-bis.3, the name map (branch w31bis-3)
+## Part of 0.130.1 — W3.1-bis.3, the name map (branch w31bis-3)
 
 Tooling, data and documents only: the bridge and the library are unchanged, so
 `VERSION.txt` is not raised (the practice of W3.1-bis.2).
@@ -2655,7 +2704,7 @@ tube stand, reopened and compared.
   it is (above). Notes are written in English, without Italian words outside
   the names the tree already has.
 
-## Unreleased — W3.1-bis.2 item 11, the snapshot tool (branch `w31bis-2-foto`)
+## Part of 0.130.1 — W3.1-bis.2 item 11, the snapshot tool (branch `w31bis-2-foto`)
 
 Tooling only: the bridge and the library are unchanged, so `VERSION.txt` is
 not raised (the practice of W3.1-bis.2 on its branch).
