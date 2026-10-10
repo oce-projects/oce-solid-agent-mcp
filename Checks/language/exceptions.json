@@ -59,9 +59,9 @@
   "file": "^Oce\\.Solid\\.Agent\\.Core/Localization/solidworks-names\\.json$",
   "pattern": "PASSANTE|LUNGHEZZA|ANGOLO1|ANGOLO2|DESCRIZIONE|spessore",
   "applies_to": ["detector", "translator"],
-  "reason": "the Italian words of the interface that end up in a document (solidworks-names.json, rows callout.*, cutlist.property.* and equation.*): the word of a hole callout, the names of the cut-list properties and the variable name SOLIDWORKS reserves; what an Italian installation writes, kept as SOLIDWORKS spells it; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
+  "reason": "the Italian words of the interface that end up in a document (solidworks-names.json, rows callout.*, cutlist.property.* and equation.*): words the bridge must recognise in the Italian column: the hole-callout word and the three generated cut-list properties (rows callout.through, cutlist.property.length, .angle1, .angle2), written by the Italian SOLIDWORKS (an English one writes THRU, LENGTH, ANGLE1, ANGLE2: measured on 9/10/2026); the reserved variable name (row equation.reserved.thickness), refused by an Italian installation even with the English interface; the description property (row cutlist.property.description), carried in Italian by the company weldment-profile library in both languages; kept as spelled; the English column, the keys and the descriptions of the file are checked, and a contract keeps the patterns of the entries on this file equal to its Italian column",
   "signed_by": "Oscar Contato",
-  "signed_on": "2026-10-08"
+  "signed_on": "2026-10-10"
  },
  {
   "class": "solidworks-localized",
