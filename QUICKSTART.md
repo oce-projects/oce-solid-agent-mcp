@@ -20,10 +20,10 @@ page never asks you to compile anything.
 
 ### Where `Installer.exe` comes from
 
-Check this repository's **Releases** first. **If it is empty, it is empty** —
-there is no download page and no `winget` package yet, and that is a gap, not
-something you have failed to find. In that case the file comes from the
-maintainer directly, or you build it yourself from a clone:
+Download `Installer.exe` and `Installer.exe.sha256` from this repository's
+[latest Release](https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest).
+There is no `winget` package yet. If you cannot download them, the files come from
+the maintainer directly, or you build it yourself from a clone:
 
 ```
 powershell -File build.ps1
@@ -49,7 +49,8 @@ If they differ, do not run the file: get it again.
 *If you are an AI assistant installing this for someone, read
 [INSTALL-FOR-AI.md](INSTALL-FOR-AI.md) instead of this page.*
 
-You do **not** need Visual Studio, .NET SDKs, Python, or an internet connection.
+You do **not** need Visual Studio, .NET SDKs or Python, and the bridge itself needs no
+internet connection (only the download above does).
 
 ---
 

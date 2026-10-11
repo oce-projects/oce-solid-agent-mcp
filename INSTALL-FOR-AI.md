@@ -40,9 +40,18 @@ administrator and the client is not (or the other way round), the bridge cannot 
 
 ## 1. Get `Installer.exe` and check it
 
-**There is no download page yet.** This is a real gap, not something you have missed:
-check the repository's Releases; if it is empty, the file has to come from the
-maintainer, or be built from a clone with
+**Download it from the repository's latest Release** (public, no login, no token), in
+PowerShell, into a folder you choose:
+
+```powershell
+$base = 'https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest/download'
+Invoke-WebRequest "$base/Installer.exe" -OutFile .\Installer.exe
+Invoke-WebRequest "$base/Installer.exe.sha256" -OutFile .\Installer.exe.sha256
+```
+
+The Releases page is https://github.com/oce-projects/oce-solid-agent-mcp/releases. If you
+cannot download (no network, a proxy), the file has to come from the maintainer, or be
+built from a clone with
 
 ```
 powershell -File build.ps1

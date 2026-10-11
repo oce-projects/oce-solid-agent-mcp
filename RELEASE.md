@@ -66,8 +66,8 @@ gh release create vX.Y.Z dist\Installer.exe dist\Installer.exe.sha256 --title "v
 ```
 
 The script does not run these on purpose: publishing is an action outside this
-machine, and it is decided, not scripted. While the repository is private, the
-Release is private too.
+machine, and it is decided, not scripted. The repository is public, so the
+Release is public the moment it is created.
 
 **4. Check what was published.** Download `Installer.exe` and `Installer.exe.sha256`
 from the Release (not from `dist\`), compute the hash as QUICKSTART teaches and
