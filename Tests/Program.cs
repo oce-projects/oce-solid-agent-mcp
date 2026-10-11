@@ -448,9 +448,10 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 Console.WriteLine();
                 Console.WriteLine("  «NOT RUNNABLE HERE» does not mean passed.");
-                Console.WriteLine("  On this machine SOLIDWORKS is not there, so the bridge");
-                Console.WriteLine("  could not even BUILD, and the checks that talk to it did not");
-                Console.WriteLine("  run. This number is the only place where the difference between");
+                Console.WriteLine("  Some checks need something this machine does not have: the");
+                Console.WriteLine("  bridge (without SOLIDWORKS it cannot even BUILD) or the private");
+                Console.WriteLine("  TODO (not published). Each skipped check printed its own reason");
+                Console.WriteLine("  above. This number is the only place where the difference between");
                 Console.WriteLine("  «proven and passes» and «not proven» stays visible.");
             }
 
@@ -1089,8 +1090,16 @@ namespace Oce.Solid.Agent.ContractTests
             var todo = WhereTheTodoIs();
             if (todo == null)
             {
-                Console.WriteLine("  --   the TODO is not in this clone: it is internal and is not published.");
-                Console.WriteLine("       THIS CHECK WAS NOT DONE. With TODO_MD you point to a copy.");
+                // Counted as «not runnable here», not only printed: a bare
+                // Console.WriteLine leaves no outcome behind, so the total of a
+                // clone (861) differed from the README's (863) and the check
+                // «the README says how many checks there are» turned the suite
+                // RED on every fresh clone. Seen on a clone of v0.130.1, built
+                // with build.ps1, no TODO. NotHere makes that check step aside
+                // and says why.
+                NotHere("in the TODO no two entries have the same name",
+                        "the TODO is not in this clone: it is internal and is not " +
+                        "published. THIS CHECK WAS NOT DONE. With TODO_MD you point to a copy.");
                 return;
             }
             string[] lines;

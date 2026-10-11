@@ -17,6 +17,10 @@
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
     <LangVersion>7.3</LangVersion>
+    <!-- Two builds of the same source give the same bytes, like the bridge
+         and the library: without it every build of Installer.exe differs and
+         nobody can check the published file against the source. -->
+    <Deterministic>true</Deterministic>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <WarningLevel>4</WarningLevel>
