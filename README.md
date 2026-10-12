@@ -5,7 +5,7 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.130.1-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.130.2-blue)
 ![Library version](https://img.shields.io/badge/library-0.153.1-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
@@ -256,8 +256,9 @@ taken from the installation, so the version is always the one that is running.
 ## What is measured, and how
 
 This project's premise is that a claim without a number is an opinion. The figures
-below are the ones of the current release (bridge 0.130.1, library 0.153.1, run on
-SOLIDWORKS software 29.5.1, i.e. 2021 SP5.1). Each says what was run and what it
+below are the ones of the current release (library 0.153.1, run on SOLIDWORKS software
+29.5.1, i.e. 2021 SP5.1, with bridge 0.130.1; 0.130.2 changes nothing the bench
+exercises). Each says what was run and what it
 does **not** say.
 
 **1. The bench: the operations against the real software.** `Bench/` builds parts

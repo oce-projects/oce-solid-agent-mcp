@@ -58,9 +58,24 @@ for ($i = 0; $i -lt $cl.Count; $i++) {
     if ($cl[$i] -match ('^## ' + [regex]::Escape($version) + '\b')) { $start = $i; break }
 }
 if ($start -lt 0) { Stop "CHANGELOG.md has no entry '## $version'" }
+# THE ENTRY ENDS AT THE NEXT `## ` HEADING OF ANY KIND, not only at the next version number.
+# This stopped at `^## \d`, and the CHANGELOG also holds `## Part of 0.130.1 - ...`
+# entries (the work of each branch, kept for the maintainers): the notes of 0.130.1 took in
+# seventeen of them, 223 thousand characters, and GitHub refused them (the limit of a
+# Release body is 125000). The notes of a version are its own entry; the `###`
+# headings inside it are part of it.
 $entryEnd = $cl.Count
-for ($i = $start + 1; $i -lt $cl.Count; $i++) { if ($cl[$i] -match '^## \d') { $entryEnd = $i; break } }
+for ($i = $start + 1; $i -lt $cl.Count; $i++) { if ($cl[$i] -match '^## ') { $entryEnd = $i; break } }
 Ok ("CHANGELOG.md has the entry, " + ($entryEnd - $start) + " lines")
+
+# AND IF THE ENTRY IS TOO BIG, SAY SO NOW, not at the `gh release create` that fails with a
+# message about the body. 125000 characters is the limit GitHub puts on a Release body.
+$notesLimit = 125000
+$notesLength = (($cl[$start..($entryEnd - 1)]) -join "`n").Length
+if ($notesLength -gt $notesLimit) {
+    Stop ("the CHANGELOG entry of $version is $notesLength characters and a GitHub Release body takes at most ${notesLimit}: shorten the entry, and move the detail to a '## Part of $version' entry, which the notes do not include")
+}
+Ok "the notes are $notesLength characters, under the $notesLimit that GitHub takes"
 
 Write-Output ""
 Write-Output "=== the repository"
@@ -134,5 +149,5 @@ Write-Output "  git tag -a $tag -m ""$tag"""
 Write-Output "  git push origin $tag"
 Write-Output "  gh release create $tag dist\Installer.exe dist\Installer.exe.sha256 --title ""$tag"" --notes-file ""$note"""
 Write-Output ""
-Write-Output "The repository is private: the Release is too."
+Write-Output "The repository is public: the Release is public the moment it is created."
 exit 0

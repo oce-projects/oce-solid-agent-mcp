@@ -32,6 +32,40 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.130.2 — 12 October 2026 · library 0.153.1 (unchanged)
+
+Documents, tests and installer only. **No operation, no answer of the bridge and no
+file of the library or of the bench changes**, so the bench of 0.130.1 (2,248 tests, 0
+failed, in Italian and in English) still describes this version.
+
+**For whoever installs it.**
+
+- The README is rewritten for a visitor of the public page: what it is, what it needs,
+  how to install it and connect a client, what is measured and how, what is not proven.
+- QUICKSTART and INSTALL-FOR-AI point to the latest Release for `Installer.exe` and
+  its `.sha256`; they no longer say the page may be empty.
+- `Installer.exe` is now built deterministically: two clean builds of the same source
+  give the same file, so the published one can be checked against the source.
+
+**For whoever builds it from a clone.**
+
+- The contract suite no longer ends red on a fresh clone without the TODO: it runs 862
+  checks, 0 failed, 2 reported as «not runnable here», exit 0.
+- Italian words that the language gate does not see (names of locals, strings of the
+  tests, comments, a few English slips) are swept from the tests, the checks, the
+  installer and the MCP layer. The library and the bench are left for the next version.
+
+**For the maintainers.** `Checks/prepare-release.ps1` took into the Release notes
+everything up to the next `## <number>` heading, so the seventeen «Part of 0.130.1»
+entries went in (223,562 characters) and GitHub refused the body (limit 125,000). The
+notes now stop at the next `## ` heading of any kind, and the script stops with a clear
+message if the notes are longer than 125,000 characters. `Checks/check-publishability.ps1`
+now also catches a folder of the maintainer's `S:` share (the working folders and the
+settings and libraries folders), in the tree and in the history; it was seen red on the
+five places that held one, and clean after they were rewritten.
+
+---
+
 ## 0.130.1 — 10 October 2026 · library 0.153.1 · first public release
 
 The first version published. It is the bridge of 0.124.1 brought to English
