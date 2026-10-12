@@ -31,8 +31,8 @@ operation reads the document again after it runs and reports what SOLIDWORKS
 software really did; a step that could not be verified is reported as such, never
 assumed.
 
-It installs with a single file and needs nothing more than a SOLIDWORKS software
-installation with a license of your own.
+It installs with a single file and needs nothing more than an MCP client and a
+SOLIDWORKS software installation with a license of your own.
 
 > **Do you only want to use it?** → **[QUICKSTART.md](QUICKSTART.md)**, six steps,
 > in plain English. If you are an AI assistant installing it on someone's behalf,
@@ -104,8 +104,8 @@ You do not need Visual Studio, a .NET SDK, Python or an internet connection to
 
 The installer writes to your own user folder, needs no administrator rights, adds an
 entry named `solidworks` to the MCP clients it finds **without overwriting** the
-servers already there (it keeps a backup first), and removes all of it again on
-uninstall.
+servers already there (it keeps a backup first). Uninstalling removes its files and
+its client entry again; the backup copies of the client configuration stay.
 
 ## Connect a client
 
@@ -271,12 +271,14 @@ it with expectations written beforehand (a number, a tolerance, and why).
 > hours. The record of the Italian run is committed as `Bench/report/last.json`; the
 > contract suite refuses a delivery where the library is newer than that record.
 
-Commands and the structure of a case are in [Bench/README.md](Bench/README.md);
-`.\Bench\bench.ps1 -SolidWorksLanguage en` repeats the English run.
+Commands and the structure of a case are in [Bench/README.md](Bench/README.md). To
+repeat the English run: turn on «Use English language menus» in SOLIDWORKS software,
+restart it, then run `.\Bench\bench.ps1 -SolidWorksLanguage en` (the bench switches
+«Use English language feature and file names» by itself, and puts it back at the end).
 
 **2. The contract suite: the bridge without the software.**
-`Tests/Oce.Solid.Agent.ContractTests.exe` runs hundreds of checks (the exact count is
-in [Tests/README.md](Tests/README.md)) in a few seconds, with no SOLIDWORKS software:
+`Tests\bin\Oce.Solid.Agent.ContractTests.exe` runs hundreds of checks (the exact count is
+in [Tests/README.md](Tests/README.md)) in about two minutes, with no SOLIDWORKS software:
 the MCP protocol over stdio, the catalog, the badges and numbers of this page, the
 consistency of the sources. A check that finds nothing always passes, so the suite
 also checks that its own checks can fail.
@@ -288,19 +290,26 @@ Claude model, driven by Claude Code, worked through the bridge. The question ask
 run was narrow: does moving the bridge to English, with SOLIDWORKS software in
 Italian or in English, make the model worse?
 
-| | right sessions |
-|---|---|
-| bridge before the move to English, Italian software (3 sessions per task) | 26 of 45 |
-| bridge now, Italian software (3 per task) | 24 of 45 |
-| bridge now, English software (1 per task) | 9 of 15 |
+| | right sessions | of which with rows to read by hand |
+|---|---|---|
+| bridge before the move to English, Italian software (3 sessions per task) | 26 of 45 | 9 |
+| bridge now, Italian software (3 per task) | 24 of 45 | 9 |
+| bridge now, English software (1 per task) | 9 of 15 | 3 |
+
+Tasks 03, 08 and 09 have rows the scorer cannot read by itself (such as one component
+of an assembly); every other row of those sessions held, and the scorer marks them
+"right, N rows by hand". They are counted as right in the table above, the
+same way on both sides. The verdict below does not lean on them: the comparison of
+the scorer counts those three tasks as not right, before and after.
 
 The rule was to accept at most one task of fifteen getting worse: it held, at exactly
 that limit. The one is task 12 (weight and envelope of a flange): the weight is right
-in every Italian session, but the models read it from `inspect_part` and never call
+in all three Italian sessions of the current bridge, but the model reads it from
+`inspect_part` and never calls
 `mass_properties`, which sits in family `checks` while the family they browse,
-`physical_properties`, lists only the material. Six of the fifteen tasks are wrong on
-both sides, so those are defects of the model, the task or the measure, not of the
-language. **This run says that translating did not make things worse. It does not say
+`physical_properties`, lists only the material. Six of the fifteen tasks are wrong in
+every Italian session, before and after, so those are defects of the model, the task
+or the measure, not of the language. **This run says that translating did not make things worse. It does not say
 how good the model is.**
 
 **4. The installer on machines that are not ours.** A GitHub workflow
@@ -313,7 +322,8 @@ bridge starts with `OCE_NO_ATTACH`: this proves the **mechanics** of the install
 (files, client entries, handshake, reinstall that keeps what you added, clean
 uninstall), not that the bridge attaches.
 
-**5. The CI.** On every push GitHub builds and runs the contract suite and checks that
+**5. The CI.** On every push to `main`, every tag and every pull request, GitHub
+builds and runs the contract suite and checks that
 a bench record exists and matches the library. It does **not** build the bridge and
 does not run the bench: both need Dassault's interop, which is not in the repository
 and not on a GitHub runner. What cannot run is reported as "not runnable here",
@@ -334,9 +344,10 @@ the CI would believe it.
   machine whose templates and profile libraries are in English, or in another
   language, has not been run.
 - **Long sessions.** After about four hours of continuous driving, SOLIDWORKS
-  software went to 100% CPU and stopped answering twice (once in a bench run, once in
-  the autonomous run). Each time the run was discarded and repeated on a fresh
-  session; the figures above come from the runs that completed. A session of many
+  software stopped answering twice (once in a bench run, once in the autonomous run).
+  The bench run was discarded and run again in full on a fresh session; in the
+  autonomous run the three tasks not yet done were run again on a fresh session. The
+  figures above come from the runs that completed. A session of many
   hours without a restart has not been shown to be stable.
 - **The bridge attaching, in the installer test.** Only a machine with a license can
   show that; it is covered by the bench and by the installer's own local tests, not by
@@ -359,9 +370,11 @@ the CI would believe it.
   document with unsaved changes is never closed for you.
 - **A language the table does not know falls back to English** and the state says so
   in `solidworks_language`.
-- **The restart warning for the English-names switch never fires**: SOLIDWORKS software
-  reports English as soon as the switch is turned on, before the restart that makes it
-  true. After changing that switch, restart the software yourself.
+- **The restart warning for «Use English language menus» never fires**: SOLIDWORKS
+  software reports English as soon as that switch is turned on, before the restart that
+  makes it true, so until the restart the bridge may pick the English column while the
+  software still writes in its own language. After changing that switch, restart the
+  software yourself.
 - **The installer is not code-signed**, so Windows SmartScreen shows a warning.
 - **Pull requests are not merged yet and there is no support commitment**; see
   [Contributing](#contributing).
@@ -378,7 +391,8 @@ is an unknown name: an unknown tool is an `isError` answer that lists the tools 
 are, an unknown operation is refused with the operations it resembles, an argument the
 schema does not have is reported as ignored, and a value the schema does not list is
 refused. Nothing is translated on the way in. New text is written in English, and a
-language gate (`Checks/language/detect-italian.js`) runs on every push and in the CI.
+language gate (`Checks/language/detect-italian.js`) runs in the pre-push hook and in
+the CI.
 
 **What comes from SOLIDWORKS software stays in the language of the installation, and
 the bridge reads it in Italian and in English.** The names it gives to features,
@@ -391,7 +405,7 @@ feature by its type, a base plane by its normal, a standard view by its rotation
 table column by its type); the rest is in one table,
 `Oce.Solid.Agent.Core/Localization/solidworks-names.json`, with a column per
 language. The column is chosen by `ISldWorks.GetCurrentLanguage` and, for the names of
-features, documents and sheets, by the switch «Use English feature and file names».
+features, documents and sheets, by the switch «Use English language feature and file names».
 
 | language of the software | status |
 |---|---|
@@ -399,10 +413,12 @@ features, documents and sheets, by the switch «Use English feature and file nam
 | English | measured: full bench green, autonomous run done, **on an Italian installation with the English switches** (see [What is not proven](#what-is-not-proven)) |
 | any other | not measured: falls back to the English column and says so in `solidworks_language`; things found by type or by API still work, things found by a word may not |
 
-Adding a language is a new column in that table. The Italian column is the only
-Italian SOLIDWORKS text in the repository besides the names in the company templates
-the bench uses; both are listed in `Checks/language/exceptions.json`, signed, and the
-language gate does not count them.
+Adding a language is a new column in that table. That Italian column, and the other
+Italian text the repository keeps on purpose (names stored in the company templates
+and in the Italian weldment-profile library the bench uses, the history in the
+changelog, the words the tools that read the maintainer's notes look for), are listed
+in `Checks/language/exceptions.json`, 28 entries, each with its reason and a
+signature; the language gate does not count them.
 
 ## Building from source
 
@@ -437,8 +453,14 @@ the language gate and `check-publishability.ps1`, and **stops the push** if one 
 user name or a private network address). Git does not version `.git\hooks`, so until
 you run that line the hook is in the repository and is not on.
 
-To run the tests: `Tests\Oce.Solid.Agent.ContractTests.exe` needs no license;
-`.\Bench\bench.ps1` needs SOLIDWORKS software and a clean desk. See
+To run the tests: the contract suite needs no license, only MSBuild —
+
+```
+msbuild Tests\Oce.Solid.Agent.ContractTests.csproj -p:Configuration=Release
+Tests\bin\Oce.Solid.Agent.ContractTests.exe
+```
+
+— and `.\Bench\bench.ps1` needs SOLIDWORKS software and a clean desk. See
 [Tests/README.md](Tests/README.md) and [Bench/README.md](Bench/README.md). Every code
 change bumps the version in `VERSION.txt` and adds an entry to
 [CHANGELOG.md](CHANGELOG.md), where the history of this project lives: what was
