@@ -129,12 +129,13 @@ entries and the archive of measured profile sections in the default folder. It d
 **not** prove that the bridge attaches to SOLIDWORKS, or that it works with the
 real interop: only the bench and a machine with SOLIDWORKS can.
 
-**Not yet measured.** The workflow has never run: there was no draft to run it on.
-Two things in it are written from documentation and are settled by its first run:
-that a token with `contents: write` sees a draft release (a read-only one may not;
-if the first step says "no release has the tag", that is why), and what the bridge's
-self-test answers on a machine without SOLIDWORKS when it is allowed to try (the
-workflow prints it, without asserting).
+**Measured on 10 October 2026.** The workflow ran once, by hand, on the draft
+`v0.130.1-rc1` (run 38033725360 on `main`, both runners green). The two things that
+were written from documentation turned out like this: the workflow's token sees a
+draft release (the run prints `draft: True`), and the bridge's self-test, when it is
+allowed to try on a machine without SOLIDWORKS, exits **4** (not installed or not
+registered) on `windows-latest` and on `windows-2022` alike. The workflow still
+prints that exit code without asserting it.
 
 **3. Then the final release.** When the run is green, the owner decides. The final
 release is steps 2 and 3 of "The rite" (`prepare-release.ps1`, then the three commands), made

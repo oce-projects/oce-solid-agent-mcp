@@ -282,18 +282,18 @@ namespace Checks.D9Defects
                 Console.WriteLine("    (edge " + (i + 1) + ": IsLine " + curve.IsLine() + ", u0 " + u0.ToString("0.#####", Inv) + ", u1 " + u1.ToString("0.#####", Inv) +
                                   ", start " + Pt((double[])par.StartPoint) + ", end " + Pt((double[])par.EndPoint) + ", Sense " + par.Sense + ")");
                 string line = "    edge " + (++i) + " len " + (curve.GetLength3(u0, u1) * 1000).ToString("0.###", Inv) + " mm; distances (µm) at start/mid/end: ";
-                bool sta = true;
+                bool lies = true;
                 foreach (double t in new[] { u0, (u0 + u1) / 2, u1 })
                 {
                     var p = curve.Evaluate2(t, 0) as double[];
                     var q = other.GetClosestPointOn(p[0], p[1], p[2]) as double[];
-                    if (q == null) { line += "null "; sta = false; continue; }
+                    if (q == null) { line += "null "; lies = false; continue; }
                     double d = Math.Sqrt(Math.Pow(p[0] - q[0], 2) + Math.Pow(p[1] - q[1], 2) + Math.Pow(p[2] - q[2], 2));
                     line += (d * 1e6).ToString("0.###", Inv) + " [p " + Pt(p) + " -> q " + Pt(q) + "] ";
-                    if (d > 1e-6) sta = false;
+                    if (d > 1e-6) lies = false;
                 }
-                Console.WriteLine(line + (sta ? "  -> LIES" : "  -> no"));
-                if (sta) total += curve.GetLength3(u0, u1) * 1000.0;
+                Console.WriteLine(line + (lies ? "  -> LIES" : "  -> no"));
+                if (lies) total += curve.GetLength3(u0, u1) * 1000.0;
             }
             return total;
         }

@@ -248,20 +248,21 @@ and the backup copies of the client configuration stay where they are.
 
 It is not signed, on purpose. A certificate that removes that warning either
 does not build SmartScreen reputation instantly (OV) or requires a formal
-company verification measured in weeks (EV). While this is handed to people
-directly, being told about the warning in advance costs nothing — and this
-paragraph is that. When it is published to strangers, that decision gets
-revisited.
+company verification measured in weeks (EV). Being told about the
+warning in advance costs nothing — and this paragraph is that. Signing is a
+decision about buying a certificate, not a missing step; RELEASE.md lists it
+among the known gaps.
 
 One more thing we have **not tested**: Windows 11 has a setting called Smart App
 Control which, when it is on, can block an unsigned program outright, with no
 "Run anyway" button. If you meet that, the file is not damaged: the setting is what
-stops it. Say so to whoever gave you the file, and run the installer on a machine
-that does not have the setting on while this is open.
+stops it. Say so (an issue on this repository is the place), and run the installer on a
+machine that does not have the setting on.
 
-**Distribution today:** the file, plus its checksum, handed over directly. There
-is no public download page, and no winget package. If you found this file
-somewhere else, you did not get it from us.
+**Distribution:** `Installer.exe` and `Installer.exe.sha256` are attached to each
+[Release](https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest) of
+this repository. There is no winget package. If you found the file somewhere
+else, check its hash against the one on the Release page before you run it.
 
 ---
 

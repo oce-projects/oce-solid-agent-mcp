@@ -180,13 +180,13 @@ internal static class Program
 
     // Geometry of the test T, in metres.
     private const double LongX0 = 0.0, LongX1 = 0.6;
-    private const double CortaZ0 = 0.0, CortaZ1 = 0.3;
-    private const double CortaX = 0.3;
+    private const double ShortZ0 = 0.0, ShortZ1 = 0.3;
+    private const double ShortX = 0.3;
 
     // The two faces expected after the trim (see the comment at the top of the file).
     private const double TallLongArea = 0.0408;      // m^2 : 0.6 x 0.068
-    private const double AreaLateraleCorta = 0.01768; // m^2 : 0.26 x 0.068
-    private const double AreaTolerance = 0.0006;      // +-6 cm^2, generosa
+    private const double ShortSideArea = 0.01768; // m^2 : 0.26 x 0.068
+    private const double AreaTolerance = 0.0006;      // +-6 cm^2, generous
     private const double DimensionTolerance = 0.0003;     // +-0.3 mm on the constant coordinate of the face
 
     private static bool _keep;
@@ -232,9 +232,9 @@ internal static class Program
         }
         Console.WriteLine("attached to SOLIDWORKS " + sw.RevisionNumber());
 
-        var varianti = new List<Ricetta>
+        var recipes = new List<Recipe>
         {
-            new Ricetta
+            new Recipe
             {
                 Title = "0 — CONTROL: the exact recipe shipped in the bridge (WeldmentOperations.cs)",
                 Call = "InsertGussetFeature3",
@@ -250,7 +250,7 @@ internal static class Program
                     "degenerate profile: BIsProfile=true (polygon) with D3=0 and D4=0 (BUseLenDim=true) is a " +
                     "polygon with zero side — the same shape shipped in the bridge, never changed in 16 variants.",
             },
-            new Ricetta
+            new Recipe
             {
                 Title = "1 — RECIPE FROM THE GUIDE (Insert_Gusset_Feature_Example_CSharp.htm): triangle, mark 1/1",
                 Call = "InsertGussetFeature3",
@@ -266,7 +266,7 @@ internal static class Program
                     "recipe read word for word from the example page (same values, 60 mm sides instead of " +
                     "25/25 mm to weigh as much as entry GP20 asks: 60x60/2x5 = 9000 mm3 with full sides).",
             },
-            new Ricetta
+            new Recipe
             {
                 Title = "2 — HYPOTHESIS «a non-degenerate profile is enough»: polygon with real D3/D4",
                 Call = "InsertGussetFeature3",
@@ -282,7 +282,7 @@ internal static class Program
                     "the same POLYGONAL shape the bridge intended (BIsProfile=true), but with D3 and D4 " +
                     "different from zero: it isolates «the profile was degenerate» from «the triangle was needed».",
             },
-            new Ricetta
+            new Recipe
             {
                 Title = "3 — HYPOTHESIS «the mark was enough»: the bridge's recipe (degenerate profile included) with mark 1/1",
                 Call = "InsertGussetFeature3",
@@ -299,7 +299,7 @@ internal static class Program
                     "none: if it fails like 0, the mark alone is not the cause (the TODO already gave it " +
                     "as proven, but not necessarily with THESE same parameters put together).",
             },
-            new Ricetta
+            new Recipe
             {
                 Title = "4 — HYPOTHESIS «it is the array, not the selection»: same recipe as 1, via InsertGussetFeature2",
                 Call = "InsertGussetFeature2",
@@ -318,7 +318,7 @@ internal static class Program
         };
 
         int failedInExpectations = 0;
-        foreach (var r in varianti)
+        foreach (var r in recipes)
         {
             _step = 0;
             Console.WriteLine();
@@ -339,7 +339,7 @@ internal static class Program
     }
 
     /// <summary>A recipe of arguments for InsertGussetFeature2/3, plus how to select.</summary>
-    private sealed class Ricetta
+    private sealed class Recipe
     {
         public string Title;
         public string WhyItFailsOrMaybe;
@@ -355,7 +355,7 @@ internal static class Program
     }
 
     /// <summary>Builds a fresh T, tries the recipe, measures, closes the part. Returns true if the outcome is the expected one.</summary>
-    private static bool RunVariant(ISldWorks sw, string profilePath, Ricetta r)
+    private static bool RunVariant(ISldWorks sw, string profilePath, Recipe r)
     {
         IModelDoc2 doc = null;
         try
@@ -508,7 +508,7 @@ internal static class Program
             Console.WriteLine("    the long bar was not created.");
             return null;
         }
-        if (!AddMember(doc, profilePath, CortaX, 0, CortaZ0, CortaX, 0, CortaZ1))
+        if (!AddMember(doc, profilePath, ShortX, 0, ShortZ0, ShortX, 0, ShortZ1))
         {
             Console.WriteLine("    the short bar was not created.");
             return null;
@@ -624,7 +624,7 @@ internal static class Program
         out IFace2 tallLongFace, out IFace2 shortSideFace)
     {
         tallLongFace = FindFace(longBody, TallLongArea, 2 /* Z */, +0.04);
-        shortSideFace = FindFace(shortBody, AreaLateraleCorta, 0 /* X */, null);
+        shortSideFace = FindFace(shortBody, ShortSideArea, 0 /* X */, null);
         return tallLongFace != null && shortSideFace != null;
     }
 

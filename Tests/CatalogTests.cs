@@ -439,19 +439,19 @@ namespace Oce.Solid.Agent.ContractTests
             }
             catch (Exception ex) { Check("Catalog.Similar: it loads", false, ex.ToString()); return; }
 
-            Func<string, List<string>> di = n =>
+            Func<string, List<string>> didYouMean = n =>
                 (similar.Invoke(catalog, new object[] { n }) as System.Collections.IEnumerable)
                     ?.Cast<object>().Select(Convert.ToString).ToList() ?? new List<string>();
 
-            Check("«slots» finds «slot»", di("slots").Contains("slot"),
-                  string.Join(", ", di("slots")));
-            Check("«hole» finds «hole_wizard»", di("hole").Contains("hole_wizard"),
-                  string.Join(", ", di("hole")));
-            Check("an empty name does not blow up and does not invent", di("").Count == 0);
+            Check("«slots» finds «slot»", didYouMean("slots").Contains("slot"),
+                  string.Join(", ", didYouMean("slots")));
+            Check("«hole» finds «hole_wizard»", didYouMean("hole").Contains("hole_wizard"),
+                  string.Join(", ", didYouMean("hole")));
+            Check("an empty name does not blow up and does not invent", didYouMean("").Count == 0);
             Check("a name that resembles nothing does not invent",
-                  di("qwertyuiop").Count == 0, string.Join(", ", di("qwertyuiop")));
-            Check("it offers no more than five", di("a_slot_hole_cut_plane").Count <= 5,
-                  di("a_slot_hole_cut_plane").Count + " offered");
+                  didYouMean("qwertyuiop").Count == 0, string.Join(", ", didYouMean("qwertyuiop")));
+            Check("it offers no more than five", didYouMean("a_slot_hole_cut_plane").Count <= 5,
+                  didYouMean("a_slot_hole_cut_plane").Count + " offered");
         }
 
         // ================================================================

@@ -102,7 +102,7 @@ namespace Oce.Solid.Agent.Mcp
             private double _last;
 
             /// <summary>How many notifications really went out.</summary>
-            public int Mandate { get; private set; }
+            public int Sent { get; private set; }
 
             /// <summary>How many steps were discarded because they did not grow.</summary>
             public int Discarded { get; private set; }
@@ -160,7 +160,7 @@ namespace Oce.Solid.Agent.Mcp
             /// `message` is the only field of the notification that a human reads,
             /// and putting raw seconds in it would mean making them do the division.
             /// </summary>
-            private string ColTempo(string message)
+            private string WithElapsed(string message)
             {
                 var t = Elapsed;
                 if (t < TimeSpan.Zero) t = TimeSpan.Zero;
@@ -177,9 +177,9 @@ namespace Oce.Solid.Agent.Mcp
                 if (_token == null) return;
                 if (done <= _last) { Discarded++; return; }
                 _last = done;
-                Mandate++;
+                Sent++;
                 Protocol.NotifyOnChannel(
-                    Notify(_token, done, Total, ColTempo(message)));
+                    Notify(_token, done, Total, WithElapsed(message)));
             }
         }
     }

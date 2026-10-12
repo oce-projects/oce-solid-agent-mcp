@@ -211,7 +211,7 @@ Expect "GT5 GetUserPreferenceStringValue returns String" "String" ((Method "ISld
 Expect "GT5 ...and takes 1 argument" "1" ((Method "ISldWorks" "GetUserPreferenceStringValue").GetParameters().Count)
 
 # GT2: the insertion of the bill of materials sits on IView, not on the annotation.
-Expect "GT2 InsertWeldmentTable sta su IView" "True" ([bool](Method "IView" "InsertWeldmentTable"))
+Expect "GT2 InsertWeldmentTable is on IView" "True" ([bool](Method "IView" "InsertWeldmentTable"))
 
 # GA6: why GetTotalTransform and not GetXform -- a reason, not a taste.
 Expect "GA6 GetTotalTransform returns MathTransform" "MathTransform" ((Method "IComponent2" "GetTotalTransform").ReturnType.Name)
@@ -220,8 +220,8 @@ Expect "GA6 GetMates returns a bare Object" "Object" ((Method "IComponent2" "Get
 
 # X2: the thread line said three things and two were wrong.
 Expect "X2 InsertHelix is NOT on IFeatureManager" "False" ([bool](Method "IFeatureManager" "InsertHelix"))
-Expect "X2 ...sta su IModelDoc2" "True" ([bool](Method "IModelDoc2" "InsertHelix"))
-Expect "X2 ...torna Void" "Void" ((Method "IModelDoc2" "InsertHelix").ReturnType.Name)
+Expect "X2 ...is on IModelDoc2" "True" ([bool](Method "IModelDoc2" "InsertHelix"))
+Expect "X2 ...returns Void" "Void" ((Method "IModelDoc2" "InsertHelix").ReturnType.Name)
 Expect "X2 ...with 10 arguments" "10" ((Method "IModelDoc2" "InsertHelix").GetParameters().Count)
 Expect "X2 InsertCutSwept5 returns Feature, not void" "Feature" ((Method "IFeatureManager" "InsertCutSwept5").ReturnType.Name)
 Expect "X2 ...and has 22 arguments, not 21" "22" ((Method "IFeatureManager" "InsertCutSwept5").GetParameters().Count)
@@ -250,7 +250,7 @@ if (-not $sim) {
     Expect "S3 static study = 0" "0" (EnumValue "swsAnalysisStudyType_e" "swsAnalysisStudyTypeStatic")
 
     # 4. the material, which is NOT on the study
-    Expect "S3 SetLibraryMaterial sta su ICWSolidBody" "True" ([bool](MethodSim "ICWSolidBody" "SetLibraryMaterial"))
+    Expect "S3 SetLibraryMaterial is on ICWSolidBody" "True" ([bool](MethodSim "ICWSolidBody" "SetLibraryMaterial"))
     Expect "S3 ...and takes 2 arguments" "2" ((MethodSim "ICWSolidBody" "SetLibraryMaterial").GetParameters().Count)
     # And there is NO way to READ IT BACK: no GetMaterial. It is the same
     # shape found for transparency (entry Z-D4): a setter without a

@@ -119,7 +119,7 @@ internal static class Program
             Console.WriteLine("  run again with --load.");
             return 3;
         }
-        Says("Utilities caricato: " + addin.GetType().Name);
+        Says("Utilities loaded: " + addin.GetType().Name);
 
         var utility = addin as IUtilities;
         if (utility == null)

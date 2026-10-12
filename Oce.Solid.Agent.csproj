@@ -73,7 +73,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Mcp\Protocol.cs" />
-    <Compile Include="Mcp\Risorse.cs" />
+    <Compile Include="Mcp\McpResources.cs" />
     <Compile Include="Mcp\Elicitation.cs" />
     <Compile Include="Mcp\Progress.cs" />
     <Compile Include="Bridge\PlanInMemory.cs" />

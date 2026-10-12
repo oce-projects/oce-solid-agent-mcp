@@ -131,7 +131,7 @@ to the state. The views are `isometric`, `trimetric`, `dimetric`, `front`, `back
 `left`, `right`, `top` and `bottom`.
 
 **A small face is not lost behind the 60 largest.** The state lists the 60 largest faces
-and says `truncated` when the part has more; every face has all the same an identifier,
+and says `truncated` when the part has more; every face still has an identifier,
 the rank of its area among ALL the faces of the part (`F1` the largest), so a plan can
 name one the state did not list. `inspect_part` takes `faces` to list the ones you are
 looking for, with those identifiers: `normal` (up, down, front, back, left, right),
@@ -349,10 +349,10 @@ schema lists one, the selectors (`@face(normal=front)`), the fields of every ans
 the keys of `Tools/catalog.json`, the MCP resources (`catalog://operations`,
 `catalog://operation/{name}`), the tool titles, the texts of the answers, the
 descriptions in the catalog, the code, its comments and these documents. New text is
-written in English, and a language gate (`Checks/language/detect-italian.js`) keeps
-the Italian from growing, on every push and on the CI: every commit is judged
-against its parent, with its parent's rules, and a raise needs a signed trailer on
-the commit that raises.
+written in English, and a language gate (`Checks/language/detect-italian.js`) holds
+the Italian at zero, on every push and on the CI: the tree is judged by itself,
+outside the signed exceptions of `Checks/language/exceptions.json`, and a change to
+the gate itself needs a `Language-Gate-Config-Change` trailer on its commit.
 
 **What comes from SOLIDWORKS stays in the language of the installation, and the
 bridge reads it in any language.** The names SOLIDWORKS gives to features, sketches,
@@ -471,7 +471,7 @@ What the CI really does:
 | the MCP protocol, `Session.SameDocument`, the catalog exporter | only there |
 
 **And what does not run does not turn green.** The groups that need the bridge write
-an entry **"not runnable here"**: it is counted apart, printed, and ends up in the
+an entry **"not runnable here"**: it is counted separately, printed, and ends up in the
 JUnit report as `<skipped>` and in the summary of the run. The summary line gives the
 number of checks, how many failed, how many were "not runnable here" and, in
 brackets, how many were really done; the declared minimum is measured on the **real
@@ -485,7 +485,7 @@ defect the file itself exists not to have.*
 > commit ourselves**. It checks that it declares a whole run, consistent with the
 > library of now and later than the last change to the operations.
 >
-> It is a guard against **our own** distraction — the commit made without having rerun
+> It is a guard against **our own** oversight — the commit made without having rerun
 > the bench — not against a report that said something false. If the report lied, the
 > CI would believe it.
 >

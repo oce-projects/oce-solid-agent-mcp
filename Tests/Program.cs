@@ -341,7 +341,7 @@ namespace Oce.Solid.Agent.ContractTests
                   wrong.Count == 0
                       ? real + " checks"
                       : "running: " + real + ", the README says " +
-                        string.Join(" e ", wrong));
+                        string.Join(" and ", wrong));
         }
 
         private static int Main(string[] arguments)
@@ -884,7 +884,7 @@ namespace Oce.Solid.Agent.ContractTests
             // know everything: a family they do not know is RED, not green.
             // This way the list cannot age in silence — whoever adds
             // one must say what it runs on.
-            var serve = new Dictionary<string, string>(StringComparer.Ordinal)
+            var runsOn = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 { "assemblies",      "swDocASSEMBLY" },
                 { "drawing",       "swDocDRAWING"  },
@@ -901,7 +901,7 @@ namespace Oce.Solid.Agent.ContractTests
                 { "dimensions",        "swDocPART"     },
             };
 
-            var unknown = families.Where(f => !serve.ContainsKey(f)).ToList();
+            var unknown = families.Where(f => !runsOn.ContainsKey(f)).ToList();
             Check("every family of the catalog is classified in here",
                   unknown.Count == 0,
                   unknown.Count == 0
@@ -910,8 +910,8 @@ namespace Oce.Solid.Agent.ContractTests
                         " — say what type of document it runs on, in Tests\\Program.cs");
 
             var promises = families
-                .Where(f => serve.ContainsKey(f) && !allowed.Contains(serve[f]))
-                .Select(f => f + " (needs " + serve[f] + ")")
+                .Where(f => runsOn.ContainsKey(f) && !allowed.Contains(runsOn[f]))
+                .Select(f => f + " (needs " + runsOn[f] + ")")
                 .ToList();
 
             Check("no served family is refused before the first step",
@@ -1115,13 +1115,13 @@ namespace Oce.Solid.Agent.ContractTests
             // name -> how many times, and how many of those were traces
             var howMany = new Dictionary<string, int>(StringComparer.Ordinal);
             var traces = new Dictionary<string, int>(StringComparer.Ordinal);
-            int totali = 0;
+            int headingCount = 0;
 
             foreach (var r in lines)
             {
                 var m = header.Match(r);
                 if (!m.Success) continue;
-                totali++;
+                headingCount++;
                 var itemName = m.Groups[2].Value;
                 howMany[itemName] = (howMany.ContainsKey(itemName) ? howMany[itemName] : 0) + 1;
                 if (trace.IsMatch(m.Groups[3].Value))
@@ -1131,7 +1131,7 @@ namespace Oce.Solid.Agent.ContractTests
             // A CHECK THAT FINDS NOTHING ALWAYS PASSES. If one day the
             // headings change shape, this line turns red instead of
             // letting the check switch itself off silently.
-            Check("there are entries to check", totali >= 100, totali + " headings");
+            Check("there are entries to check", headingCount >= 100, headingCount + " headings");
 
             var doubled = new List<string>();
             foreach (var v in howMany)
@@ -1146,7 +1146,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("two different entries do not have the same name",
                   doubled.Count == 0,
                   doubled.Count == 0
-                      ? totali + " headings, no name used twice for two things"
+                      ? headingCount + " headings, no name used twice for two things"
                       : "SAME NAME, DIFFERENT ENTRIES: " + string.Join("; ", doubled));
         }
 

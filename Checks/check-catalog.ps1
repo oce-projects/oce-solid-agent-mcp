@@ -210,8 +210,8 @@ if (Test-Path -LiteralPath $Source) {
     $body = $text
     $start = $text.IndexOf("public Outcome Run(")
     if ($start -ge 0) {
-        $fine = $text.IndexOf("`n        }", $start)
-        if ($fine -gt $start) { $body = $text.Substring($start, $fine - $start) }
+        $bodyEnd = $text.IndexOf("`n        }", $start)
+        if ($bodyEnd -gt $start) { $body = $text.Substring($start, $bodyEnd - $start) }
     }
     $fromSource = @([regex]::Matches($body, 'case\s+"([a-z_0-9]+)"\s*:') |
                      ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)

@@ -1087,7 +1087,7 @@ namespace Oce.Solid.Agent.Tools
                         images.Add(new KeyValuePair<string, byte[]>("image/png", png));
                         succeeded.Add("cutaway on plane " + plane +
                                      (Math.Abs(offset) > 1e-9
-                                         ? " a " + offset.ToString("0.##",
+                                         ? " at " + offset.ToString("0.##",
                                              System.Globalization.CultureInfo.InvariantCulture) + " mm"
                                          : ""));
                     }
@@ -2193,7 +2193,7 @@ namespace Oce.Solid.Agent.Tools
                 //
                 // ONLY THE FORM, NEVER THE MERIT: see Bridge/Shape.cs.
                 //
-                // AND THE FORMA REWRITES `its` IN PLACE (Z-C21.10, S20): an
+                // AND THE SHAPE REWRITES `its` IN PLACE (Z-C21.10, S20): an
                 // enum value accepted with a different case («Top»)
                 // comes out spelled as the catalogue spells it («top»).
                 // `its` is the very dictionary the step below hands to the
@@ -3019,7 +3019,7 @@ namespace Oce.Solid.Agent.Tools
             if (changedSince.Count > 0)
                 return RefusalChangedSinceThePlan(memory, changedSince, NamesComparedOnlyInPart(after, now));
 
-            // ── SI PREME ─────────────────────────────────────────────────
+            // ── UNDO IS PRESSED ─────────────────────────────────────────────────
             var undoError = _session.StepBack();
             if (undoError != null)
                 return Protocol.Content(undoError, true);

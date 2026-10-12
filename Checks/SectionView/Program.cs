@@ -172,7 +172,7 @@ namespace Checks.SectionView
             {
                 int howMany1 = -1, returned1 = -1;
                 try { returned1 = lastView.GetSolidHatchCount(out howMany1); } catch (Exception e)
-                { Console.WriteLine("  GetSolidHatchCount (prima): " + e.Message); }
+                { Console.WriteLine("  GetSolidHatchCount (before): " + e.Message); }
                 Console.WriteLine("hatching BEFORE the recalculation: return=" + returned1 +
                                   "  out=" + howMany1);
             }

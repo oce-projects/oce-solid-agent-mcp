@@ -94,14 +94,14 @@ internal static class Program
             data.ViewPdfAfterSaving = false;
             data.SetSheets((int)swExportDataSheetsToExport_e.swExportData_ExportAllSheets, null);
             try { if (File.Exists(pdf)) File.Delete(pdf); } catch { }
-            int err = 0, avv = 0;
+            int err = 0, warnings = 0;
             bool ok = doc.Extension.SaveAs(pdf, (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
-                (int)swSaveAsOptions_e.swSaveAsOptions_Silent, data, ref err, ref avv);
+                (int)swSaveAsOptions_e.swSaveAsOptions_Silent, data, ref err, ref warnings);
             if (!ok || !File.Exists(pdf)) { Console.WriteLine("  PDF not written, code " + err); return 4; }
             byte[] rawItems = File.ReadAllBytes(pdf);
             Says("PDF written: " + rawItems.Length + " bytes");
 
-            // ── LE TRE LETTURE ──────────────────────────────────────────
+            // ── THE THREE READINGS ──────────────────────────────────────────
             string rawText = Encoding.GetEncoding(28591).GetString(rawItems);
             int flows, decompressed;
             string inside = Decompress(rawItems, out flows, out decompressed);
@@ -128,8 +128,8 @@ internal static class Program
                     decoded.Contains(s),
                 };
                 outcomes[s] = r;
-                Console.WriteLine("      " + s.PadRight(14) + " " + Si(r[0]).PadRight(7) + " " + Si(r[1]).PadRight(7) + " " +
-                                  Si(r[3]).PadRight(7) + " " + (extracted == null ? "-" : Si(r[2])));
+                Console.WriteLine("      " + s.PadRight(14) + " " + Yes(r[0]).PadRight(7) + " " + Yes(r[1]).PadRight(7) + " " +
+                                  Yes(r[3]).PadRight(7) + " " + (extracted == null ? "-" : Yes(r[2])));
             }
             Console.WriteLine();
 
@@ -193,7 +193,7 @@ internal static class Program
         }
     }
 
-    private static string Si(bool b) { return b ? "SI" : "no"; }
+    private static string Yes(bool b) { return b ? "YES" : "no"; }
 
     private static int Count(string text, string what)
     {
@@ -227,10 +227,10 @@ internal static class Program
             int start = i + 6;
             if (start < s.Length && s[start] == '\r') start++;
             if (start < s.Length && s[start] == '\n') start++;
-            int fine = s.IndexOf("endstream", start, StringComparison.Ordinal);
-            if (fine < 0) break;
+            int endIndex = s.IndexOf("endstream", start, StringComparison.Ordinal);
+            if (endIndex < 0) break;
             flows++;
-            int len = fine - start;
+            int len = endIndex - start;
             string text = null;
             if (len > 2)
             {
@@ -248,7 +248,7 @@ internal static class Program
                 catch { text = null; }
             }
             outside.Append(text ?? s.Substring(start, len)).Append('\n');
-            i = fine + 9;
+            i = endIndex + 9;
         }
         return outside.ToString();
     }
@@ -273,9 +273,9 @@ internal static class Program
         int i = 0;
         while ((i = flows.IndexOf("begincmap", i, StringComparison.Ordinal)) >= 0)
         {
-            int fine = flows.IndexOf("endcmap", i, StringComparison.Ordinal);
-            if (fine < 0) break;
-            var block = flows.Substring(i, fine - i);
+            int endIndex = flows.IndexOf("endcmap", i, StringComparison.Ordinal);
+            if (endIndex < 0) break;
+            var block = flows.Substring(i, endIndex - i);
             var t = new Dictionary<int, string>();
             foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
                          block, @"beginbfchar(.*?)endbfchar", System.Text.RegularExpressions.RegexOptions.Singleline))
@@ -292,7 +292,7 @@ internal static class Program
                     for (int k = da; k <= a && k - da < 65536; k++) t[k] = char.ConvertFromUtf32(base0 + (k - da));
                 }
             if (t.Count > 0) tables.Add(t);
-            i = fine + 7;
+            i = endIndex + 7;
         }
 
         // 2. the hexadecimal strings of the text blocks, decoded with

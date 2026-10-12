@@ -109,7 +109,7 @@ internal static class Program
             Console.WriteLine("  Tick it (the «Start Up» column too, if you want it always) and run again.");
             return 3;
         }
-        Says("Simulation caricato");
+        Says("Simulation loaded");
 
         IModelDoc2 doc = null;
         try
@@ -188,15 +188,15 @@ internal static class Program
             if (handler == null) { Console.WriteLine("  .StudyManager is null"); return 5; }
             Says("Simulation sees the document");
 
-            // ── 1. LO STUDIO ─────────────────────────────────────────────
-            int errStudio;
-            CWStudy studio = handler.CreateNewStudy3("bracket-s3", StaticStudy, 0, out errStudio);
-            if (studio == null)
+            // ── 1. THE STUDY ─────────────────────────────────────────────
+            int errStudy;
+            CWStudy study = handler.CreateNewStudy3("bracket-s3", StaticStudy, 0, out errStudy);
+            if (study == null)
             {
-                Console.WriteLine("  CreateNewStudy3 -> null, error " + errStudio);
+                Console.WriteLine("  CreateNewStudy3 -> null, error " + errStudy);
                 return 5;
             }
-            Says("static study created (error " + errStudio + ")");
+            Says("static study created (error " + errStudy + ")");
 
             // ── 2. THE MATERIAL, WHICH LIVES ON THE BODY ─────────────────
             //
@@ -214,7 +214,7 @@ internal static class Program
             // The hypothesis tried first: an `object[]` of `IFace2`,
             // which is the shape the whole SOLIDWORKS API uses for «a
             // set of entities».
-            CWLoadsAndRestraintsManager loadsHandler = studio.LoadsAndRestraintsManager;
+            CWLoadsAndRestraintsManager loadsHandler = study.LoadsAndRestraintsManager;
             if (loadsHandler == null) { Console.WriteLine("  LoadsAndRestraintsManager is null"); return 5; }
 
             IFace2 fixedFace, loadFace;
@@ -305,13 +305,13 @@ internal static class Program
 
             foreach (double side in sides)
             {
-                int eMesh = studio.CreateMesh(Millimeters, side, side / 20.0);
+                int eMesh = study.CreateMesh(Millimeters, side, side / 20.0);
                 if (eMesh != 0)
                 {
                     Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    mesh failed (outcome " + eMesh + ")");
                     continue;
                 }
-                int runCode = studio.RunAnalysis();
+                int runCode = study.RunAnalysis();
                 if (runCode != 0)
                 {
                     Console.WriteLine("  " + side.ToString("0.0").PadLeft(7) + " mm    run failed (outcome " + runCode + ")");
@@ -319,7 +319,7 @@ internal static class Program
                 }
 
                 int errS;
-                object read = studio.Results.GetMinMaxStress(
+                object read = study.Results.GetMinMaxStress(
                     VonMises, 0, 0, null, NewtonSuMm2, out errS);
                 double sigma = TrueMaximum(read);
                 if (double.IsNaN(sigma))

@@ -46,7 +46,7 @@
     <!-- [CallerFilePath] of the bench recorders gives the path as seen from the
          repository, not the absolute path of this checkout: the same source
          builds the same bytes in any folder (W3.1-bis.2, item 7). -->
-    <PathMap>$(MSBuildProjectDirectory)=Prove</PathMap>
+    <PathMap>$(MSBuildProjectDirectory)=Tests</PathMap>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
   </PropertyGroup>
 

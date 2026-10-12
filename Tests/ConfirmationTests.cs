@@ -83,7 +83,7 @@ namespace Oce.Solid.Agent.ContractTests
                           message.IndexOf("cannot be undone", StringComparison.OrdinalIgnoreCase) >= 0,
                           Short(message));
 
-                    // ── SI RISPONDE DI NO ────────────────────────────────
+                    // ── THE ANSWER IS NO ────────────────────────────────
                     Write(p,
                         "{\"jsonrpc\":\"2.0\",\"id\":" + Convert.ToString(questionId) +
                         ",\"result\":{\"action\":\"decline\"}}");

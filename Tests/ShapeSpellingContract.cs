@@ -10,7 +10,7 @@ using static Oce.Solid.Agent.ContractTests.Program;
 namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
-    /// THE FORMA HANDS EVERY ENUM VALUE ON IN THE CATALOGUE'S SPELLING
+    /// THE SHAPE HANDS EVERY ENUM VALUE ON IN THE CATALOGUE'S SPELLING
     /// (Z-C21.10, pattern S20).
     ///
     /// Bridge/Shape.cs accepts an enum value ignoring case: the case of a word
@@ -23,7 +23,7 @@ namespace Oce.Solid.Agent.ContractTests
     /// rewrite in the Shape, in the very dictionary that «build» then hands
     /// to the library (Tools/McpTools.cs).
     ///
-    /// This group runs the Forma of the BUILT bridge, by reflection, against
+    /// This group runs the Shape of the BUILT bridge, by reflection, against
     /// the schemas of the served catalogue: no SOLIDWORKS. The library half of
     /// the fix (an unknown plane name is refused, never the front plane) needs
     /// the CAD and is the bench case
@@ -54,7 +54,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             // The refusal, or null; the arguments are rewritten in place, as
             // «build» sees them. An exception comes back as a refusal that
-            // says so: a Forma that throws (say, writing into the dictionary it
+            // says so: a Shape that throws (say, writing into the dictionary it
             // is walking) must turn these checks red, not stop the whole run.
             Func<string, Dictionary<string, object>, Dictionary<string, object>, string> shape =
                 (operation, schema, args) =>
@@ -75,18 +75,18 @@ namespace Oce.Solid.Agent.ContractTests
             Check("extrude_rectangle: «Top» passes the Shape, as it always did",
                   refusal == null, refusal ?? "accepted");
             Check("and reaches the library as «top», not «Top» (N33)",
-                  Same(plate["plane"], "top"), "piano = " + Show(plate["plane"]));
+                  Same(plate["plane"], "top"), "plane = " + Show(plate["plane"]));
 
             var allCaps = Plate("RIGHT");
             onCatalogue("extrude_rectangle", allCaps);
             Check("«RIGHT» reaches the library as «right»",
-                  Same(allCaps["plane"], "right"), "piano = " + Show(allCaps["plane"]));
+                  Same(allCaps["plane"], "right"), "plane = " + Show(allCaps["plane"]));
 
             var right = Plate("top");
             refusal = onCatalogue("extrude_rectangle", right);
             Check("the catalogue's own spelling is accepted and left as it is",
                   refusal == null && Same(right["plane"], "top"),
-                  (refusal ?? "accepted") + ", piano = " + Show(right["plane"]));
+                  (refusal ?? "accepted") + ", plane = " + Show(right["plane"]));
 
             // ── THE CATALOGUE'S SPELLING, WHICH IS NOT ALWAYS LOWER CASE ────
             var sheet = new Dictionary<string, object> { ["paper_size"] = "a4v" };

@@ -32,7 +32,7 @@
     },
     "IAssemblyDoc.CreateExplodedView": {
       "state": "probed_modifies",
-      "why": "CORRECTION of an earlier note in the same source: initial reflection guessed this was a zero-arg UI-button opener like EditExplodeParameters/ViewExplodeAssembly. Actual measurement on 2026-09-17 disproved that: the call returns True and creates a real exploded view step (\"Vista esplosa1\"), no blocking dialog. Trust the runtime measurement over the earlier hypothesis.",
+      "why": "CORRECTION of an earlier note in the same source: initial reflection guessed this was a zero-arg UI-button opener like EditExplodeParameters/ViewExplodeAssembly. Actual measurement on 2026-09-17 disproved that: the call returns True and creates a real exploded view step (named by the language of the installation), no blocking dialog. Trust the runtime measurement over the earlier hypothesis.",
       "source": "rag:82d (section 15, explicitly correcting section 14)"
     },
     "IAssemblyDoc.CreateMateData": {
@@ -533,7 +533,7 @@
     },
     "IModelDocExtension.AddDimension": {
       "state": "forbidden",
-      "why": "Measured 2026-09-11: opens the \"Modifica\" modal dialog and the COM call never returns while swInputDimValOnCreate is on. Also measured to return null in every sketch-point+model-edge combination tried, and for point-to-point (arc centers) dimensions, and for two silhouette entities. This is exactly the AddDimension the U1.4 forbidden list names.",
+      "why": "Measured 2026-09-11: opens the Modify modal dialog and the COM call never returns while swInputDimValOnCreate is on. Also measured to return null in every sketch-point+model-edge combination tried, and for point-to-point (arc centers) dimensions, and for two silhouette entities. This is exactly the AddDimension the U1.4 forbidden list names.",
       "source": "memory:api_sw_that_open_windows; memory:api_sw_point_edge_dimension; rag:82zd; rag:82zf; rag:82zp; rag:82zz_ter"
     },
     "IModelDocExtension.AddSpecificDimension": {
@@ -569,7 +569,7 @@
     "IModelDocExtension.GetObjectByPersistReference3": {
       "state": "probed_read",
       "why": "Second Int32& ErrorCode parameter carries the real result. Measured (case 80z): 6 of 8 references resolved after a feature suppression, the 2 missing ones came back with ErrorCode=1 -- whether a persistent reference survives a suppression specifically is still to be re-measured before relying on it there.",
-      "source": "rag:82zz (rischi, U1.2)"
+      "source": "rag:82zz (risks, U1.2)"
     },
     "IModelDocExtension.GetPersistReference3": {
       "state": "probed_read",
@@ -845,7 +845,7 @@
     },
     "ISldWorks.SetUserPreferenceToggle": {
       "state": "confirm",
-      "why": "Application-wide preference, persists in the Windows registry: confirm by rule for general use. Two specific values are the known measured exception, flipped and restored automatically by the call guard itself (not user-facing confirm): swInputDimValOnCreate(=10) before any call that could pop the \"Modifica\" quote dialog, and swShowErrorsEveryRebuild(=77) around rebuilds, both saved to a %LOCALAPPDATA% file and mutex-guarded across processes so two overlapping bridge/bench/add-in instances cannot leave the toggle stuck off.",
+      "why": "Application-wide preference, persists in the Windows registry: confirm by rule for general use. Two specific values are the known measured exception, flipped and restored automatically by the call guard itself (not user-facing confirm): swInputDimValOnCreate(=10) before any call that could pop the Modify dimension dialog, and swShowErrorsEveryRebuild(=77) around rebuilds, both saved to a %LOCALAPPDATA% file and mutex-guarded across processes so two overlapping bridge/bench/add-in instances cannot leave the toggle stuck off.",
       "source": "memory:api_sw_that_open_windows; rag:82zz; code:PlanExecutor.cs:252-266,441-450; code:AnchorOperations.cs:736",
       "enums": {
         "UserPreferenceValue": "swUserPreferenceToggle_e"

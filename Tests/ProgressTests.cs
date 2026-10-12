@@ -210,7 +210,7 @@ namespace Oce.Solid.Agent.ContractTests
             planStep(off, 1, "one");
             planStep(off, 2, "two");
             Check("and off it sends nothing",
-                  Convert.ToInt32(read(off, "Mandate")) == 0,
+                  Convert.ToInt32(read(off, "Sent")) == 0,
                   "whoever did not ask to be updated is not disturbed");
 
             // ── ON ───────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ namespace Oce.Solid.Agent.ContractTests
             planStep(isOn, 1, "one");
             planStep(isOn, 2, "two");
             Check("with a token it sends one step at a time",
-                  Convert.ToInt32(read(isOn, "Mandate")) == 2,
+                  Convert.ToInt32(read(isOn, "Sent")) == 2,
                   "2 notifications");
             Check("and it remembers how far it got",
                   Convert.ToDouble(read(isOn, "Last")) == 2,
@@ -229,12 +229,12 @@ namespace Oce.Solid.Agent.ContractTests
             planStep(isOn, 2, "two again");
             planStep(isOn, 1, "back to one");
             Check("a step that does NOT grow is discarded",
-                  Convert.ToInt32(read(isOn, "Mandate")) == 2 &&
+                  Convert.ToInt32(read(isOn, "Sent")) == 2 &&
                   Convert.ToInt32(read(isOn, "Discarded")) == 2,
                   "the specification demands that `progress` grows, and here it has to grow");
             planStep(isOn, 3, "three");
             Check("and after a discarded one the next one goes through anyway",
-                  Convert.ToInt32(read(isOn, "Mandate")) == 3,
+                  Convert.ToInt32(read(isOn, "Sent")) == 3,
                   "discarding does not block the thread, it discards that step");
         }
 
@@ -277,13 +277,13 @@ namespace Oce.Solid.Agent.ContractTests
 
             // To read what it WRITES without an open channel, do we look at
             // `Elapsed` and rebuild the string? No: we would be looking at
-            // a copy of the rule instead of the rule. `ColTempo` is
+            // a copy of the rule instead of the rule. `WithElapsed` is
             // called directly.
-            var colTempo = wireT.GetMethod("ColTempo", Everywhere);
-            if (colTempo == null)
-            { Check("ColTempo() is there", false, ""); return; }
+            var withElapsed = wireT.GetMethod("WithElapsed", Everywhere);
+            if (withElapsed == null)
+            { Check("WithElapsed() is there", false, ""); return; }
             Func<string, string> write =
-                m => (string)colTempo.Invoke(wire, new object[] { m });
+                m => (string)withElapsed.Invoke(wire, new object[] { m });
 
             Check("right after the start the time is zero seconds",
                   write("running step 1 of 3") == "running step 1 of 3 \u2014 0s",
@@ -313,7 +313,7 @@ namespace Oce.Solid.Agent.ContractTests
                   "674 seconds");
 
             // And the time REALLY ends up in the notification, not only in
-            // `ColTempo`: the difference between the two things is a correct method
+            // `WithElapsed`: the difference between the two things is a correct method
             // that nobody calls.
             wireT.GetProperty("Total", Everywhere).SetValue(wire, 3.0);
             planStep.Invoke(wire, new object[] { 1.0, "step 1" });
@@ -385,7 +385,7 @@ namespace Oce.Solid.Agent.ContractTests
             }
 
             Check("the execution sends one progress per step",
-                  Convert.ToInt32(wireT.GetProperty("Mandate", Everywhere).GetValue(wire)) == 4,
+                  Convert.ToInt32(wireT.GetProperty("Sent", Everywhere).GetValue(wire)) == 4,
                   "1 from the check + 3 from the execution");
             Check("and it resumes the count from where the check left it",
                   seen[0] == 4 && seen[1] == 5 && seen[2] == 6,

@@ -104,7 +104,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("and none uses a word outside the vocabulary",
                   outsideVocabulary.Count == 0,
                   outsideVocabulary.Count == 0
-                      ? "solo: " + string.Join(", ", Allowed)
+                      ? "only: " + string.Join(", ", Allowed)
                       : string.Join(" | ", outsideVocabulary));
 
             // ── THE PROOF THAT THE FIELD WAS NEEDED ──────────────────────

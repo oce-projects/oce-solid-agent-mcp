@@ -218,7 +218,7 @@ internal static class Program
         if (!SelectBasePlane(doc, 2)) return "top plane not selected";
         sm.InsertSketch(true);
         sm.CreateCornerRectangle(-0.020, -0.020, 0, 0.020, 0.020, 0);
-        if (!Extrude(doc, height)) return "estruso -> null";
+        if (!Extrude(doc, height)) return "extrusion -> null";
         double[] box = Box(doc);
         if (Math.Abs((box[4] - box[1]) - height) > 1e-6) return "the extrusion did not grow along Y as expected (Y bounding box " + ((box[4] - box[1]) * 1000) + " mm)";
         double yTop = box[4];

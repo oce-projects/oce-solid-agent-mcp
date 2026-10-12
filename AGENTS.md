@@ -29,7 +29,8 @@ outside pull requests are not merged for now). Then:
 
 - **Write everything in English**: code, identifiers, comments, messages, documents.
   `node Checks/language/detect-italian.js` is the language gate; the `pre-push` hook
-  and the CI run it, and a commit may not make the Italian in the repository grow.
+  and the CI run it, and the repository must stay at zero Italian outside the signed
+  exceptions.
 - **Every code change bumps `VERSION.txt` and adds an entry to `CHANGELOG.md`.** It is a
   rule of the project, written at the top of the changelog.
 - **The check that needs no SOLIDWORKS** is the contract suite:

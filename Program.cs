@@ -239,20 +239,20 @@ namespace Oce.Solid.Agent
                 // ── THE RESOURCES (entry W2.12) ─────────────────────────────
                 //
                 // Same catalog as the tools, taken from another door:
-                // `Risorse` receives the `Catalog` object that is already in hand and
+                // `McpResources` receives the `Catalog` object that is already in hand and
                 // does not build another one. Building another would mean
                 // rereading the file, and two readings of the same file at different
                 // moments are two catalogs that may differ.
                 case "resources/list":
                     return Protocol.Response(id, new Dictionary<string, object>
                     {
-                        ["resources"] = new Risorse(catalog).Items(),
+                        ["resources"] = new McpResources(catalog).Items(),
                     });
 
                 case "resources/templates/list":
                     return Protocol.Response(id, new Dictionary<string, object>
                     {
-                        ["resourceTemplates"] = new Risorse(catalog).Models(),
+                        ["resourceTemplates"] = new McpResources(catalog).Models(),
                     });
 
                 case "resources/read":
@@ -263,20 +263,20 @@ namespace Oce.Solid.Agent
                         return Protocol.Error(
                             id, Protocol.InvalidParameters, "«uri» is missing");
 
-                    var risorse = new Risorse(catalog);
-                    var content = risorse.Read(uri);
+                    var mcpResources = new McpResources(catalog);
+                    var content = mcpResources.Read(uri);
                     if (content != null)
                         return Protocol.Response(id, content);
 
                     // A URI THAT DOES NOT EXIST SAYS WHAT EXISTS. A bare «not
                     // found» leaves the asker the only remedy that does not
                     // work: trying again the same.
-                    var similar = risorse.Similar(uri);
+                    var similar = mcpResources.Similar(uri);
                     return Protocol.Error(
                         id, Protocol.InvalidParameters,
                         "I do not know the resource «" + uri + "». There is «" +
-                        Risorse.UriList + "» (all the operations in brief) and " +
-                        "«" + Risorse.OperationPrefix + "<name>» for a single one." +
+                        McpResources.UriList + "» (all the operations in brief) and " +
+                        "«" + McpResources.OperationPrefix + "<name>» for a single one." +
                         (similar.Count == 0
                             ? ""
                             : " Did you mean: " + string.Join(", ", similar) + "."));
@@ -380,7 +380,7 @@ namespace Oce.Solid.Agent
         // The installer reads these, and no longer the sentences: a sentence
         // is for a person and gets translated, a code does not. The same
         // numbers are written in Installer/Steps.cs (SelfTest*), which cannot
-        // reference this assembly; a contract in Prove reads both.
+        // reference this assembly; a contract in Tests reads both.
         //
         //   0  attached (with or without a document)
         //   1  anything else: the library did not load, an unknown HRESULT,
@@ -398,7 +398,7 @@ namespace Oce.Solid.Agent
         //
         // 6 IS NOT 3 (H19 review). Until then the elevated case exited 3, the
         // installer accepted 3 as "SOLIDWORKS is simply closed" and said
-        // "Installato" with exit 0, and the hint about administrator rights
+        // "Installed" with exit 0, and the hint about administrator rights
         // was a line among the others: whoever read only the code (an AI, as
         // INSTALL-FOR-AI asks) concluded the bridge would attach, and it
         // never does until the two are started the same way.

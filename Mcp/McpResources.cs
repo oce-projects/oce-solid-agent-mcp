@@ -50,7 +50,7 @@ namespace Oce.Solid.Agent.Mcp
     /// It is the same two-level catalog that holds up the tools, said in the
     /// vocabulary of resources.
     /// </summary>
-    internal sealed class Risorse
+    internal sealed class McpResources
     {
         /// <summary>
         /// The short list. Written only once because it appears in three
@@ -64,7 +64,7 @@ namespace Oce.Solid.Agent.Mcp
 
         private readonly Catalog _catalog;
 
-        public Risorse(Catalog catalog) { _catalog = catalog; }
+        public McpResources(Catalog catalog) { _catalog = catalog; }
 
         /// <summary>
         /// What there is to attach. A single entry: see above.

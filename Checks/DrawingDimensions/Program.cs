@@ -61,7 +61,7 @@ namespace Checks.DrawingDimensions
                     viewNames.Add(v.GetName2());
                 v = v.GetNextView() as IView;
             }
-            Console.WriteLine("dimensions on the drawing, before: " + Quote());
+            Console.WriteLine("dimensions on the drawing, before: " + CountDimensions());
 
             // 2. ARE THE DIMENSIONS OF THE PART MARKED FOR THE DRAWING?
             // It is the question that decides whether the problem is in the drawing or in the
@@ -77,9 +77,9 @@ namespace Checks.DrawingDimensions
             Console.WriteLine("referenced model: " + (modelPath ?? "-"));
             if (modelPath != null) LookAtPartDimensions(sw, modelPath);
 
-            // 3. I TENTATIVI.
+            // 3. THE ATTEMPTS.
             Console.WriteLine();
-            Console.WriteLine("=== Tentativi");
+            Console.WriteLine("=== Attempts");
 
             int fromModel = (int)swImportModelItemsSource_e.swImportModelItemsFromEntireModel;
             int marked = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
@@ -133,7 +133,7 @@ namespace Checks.DrawingDimensions
             {
                 int f = source;
                 Test("v3 source=" + f + " marked", () => V3(f, marked, true, false));
-                Test("v3 fonte=" + f + " generic", () => V3(f, generic, true, false));
+                Test("v3 source=" + f + " generic", () => V3(f, generic, true, false));
             }
 
             // The real values of the constants, because a wrong enum gives zero
@@ -159,14 +159,14 @@ namespace Checks.DrawingDimensions
                 _drawing.InsertModelAnnotations2(fromModel, true, generic, true, false, false);
                 return -1;
             });
-            Test("v1 fonte=1 AllTypes", () =>
+            Test("v1 source=1 AllTypes", () =>
             {
                 _drawing.InsertModelAnnotations(1, true, 0, true);
                 return -1;
             });
 
             Console.WriteLine();
-            Console.WriteLine("dimensions on the drawing, at the end: " + Quote());
+            Console.WriteLine("dimensions on the drawing, at the end: " + CountDimensions());
             // WE RECOUNT IN ANOTHER WAY. If «zero dimensions» came from a wrong
             // count instead of a missed insertion, the number of
             // ANNOTATIONS would say so: they are two different roads to the same
@@ -192,7 +192,7 @@ namespace Checks.DrawingDimensions
 
         private static void Test(string what, Func<int> that)
         {
-            int before = Quote();
+            int before = CountDimensions();
             int returnedItems;
             try { returnedItems = that(); }
             catch (Exception e)
@@ -200,7 +200,7 @@ namespace Checks.DrawingDimensions
                 Console.WriteLine("  XX " + what + " -> raised: " + e.Message);
                 return;
             }
-            int after = Quote();
+            int after = CountDimensions();
             string outcome = after > before ? "  ok " : "  -- ";
             Console.WriteLine(outcome + what + " -> returned " +
                 (returnedItems < 0 ? "?" : returnedItems.ToString()) +
@@ -208,7 +208,7 @@ namespace Checks.DrawingDimensions
         }
 
         /// <summary>How many dimensions the views of the drawing have in all.</summary>
-        private static int Quote()
+        private static int CountDimensions()
         {
             int n = 0;
             try
@@ -243,7 +243,7 @@ namespace Checks.DrawingDimensions
                 return;
             }
 
-            int totali = 0, marked = 0;
+            int totals = 0, marked = 0;
             try
             {
                 var f = part.FirstFeature() as IFeature;
@@ -252,7 +252,7 @@ namespace Checks.DrawingDimensions
                     var d = f.GetFirstDisplayDimension() as IDisplayDimension;
                     while (d != null)
                     {
-                        totali++;
+                        totals++;
                         try { if (d.MarkedForDrawing) marked++; } catch { }
                         d = f.GetNextDisplayDimension(d) as IDisplayDimension;
                     }
@@ -263,7 +263,7 @@ namespace Checks.DrawingDimensions
                         var ds = below.GetFirstDisplayDimension() as IDisplayDimension;
                         while (ds != null)
                         {
-                            totali++;
+                            totals++;
                             try { if (ds.MarkedForDrawing) marked++; } catch { }
                             ds = below.GetNextDisplayDimension(ds) as IDisplayDimension;
                         }
@@ -273,7 +273,7 @@ namespace Checks.DrawingDimensions
                 }
             }
             catch (Exception e) { Console.WriteLine("  dimension loop: " + e.Message); }
-            Console.WriteLine("  part dimensions: " + totali + ", of which marked for the drawing: " + marked);
+            Console.WriteLine("  part dimensions: " + totals + ", of which marked for the drawing: " + marked);
         }
     }
 }

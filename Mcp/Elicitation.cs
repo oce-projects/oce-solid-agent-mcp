@@ -110,8 +110,8 @@ namespace Oce.Solid.Agent.Mcp
                 },
             });
 
-            var fine = Environment.TickCount + expiryMs;
-            while (Environment.TickCount < fine)
+            var deadline = Environment.TickCount + expiryMs;
+            while (Environment.TickCount < deadline)
             {
                 string line;
                 try { line = input.ReadLine(); }

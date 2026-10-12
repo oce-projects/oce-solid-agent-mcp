@@ -144,7 +144,7 @@ internal static class Program
             Says("D (Ø8): dimensions at the edge " + (qD1 == null ? "NOT CREATED" : Mm(qD1.SystemValue)) + " (right), " +
                  (qD2 == null ? "NOT CREATED" : Mm(qD2.SystemValue)) + " (top)");
 
-            // B: in the centre. Two variants, one per run (--b=bordi | --b=convertiti).
+            // B: in the centre. Two variants, one per run (--b=edges | --b=converted).
             var cB = Circle(tr, 0.0, 0.0, zFront, 0.005);
             var pB = (ISketchPoint)((ISketchArc)cB).GetCenterPoint2();
             ISketchSegment line = null;

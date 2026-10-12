@@ -425,12 +425,12 @@ if (-not $exists) {
 } else {
     $remote = ($upstream -split '/')[0]
     $branch   = ($upstream -split '/', 2)[1]
-    $la = (RunGit @('ls-remote', '--heads', $remote, $branch))
-    if (-not $la) {
+    $remoteLine = (RunGit @('ls-remote', '--heads', $remote, $branch))
+    if (-not $remoteLine) {
         $allHistory = $true
         $why = "the remote does not answer, and a local reference is not enough"
     } else {
-        $remoteSha = ($la -split "\s+")[0]
+        $remoteSha = ($remoteLine -split "\s+")[0]
         $shaLocale = (RunGit @('rev-parse', $upstream))
         if ($remoteSha -ne $shaLocale) {
             $allHistory = $true

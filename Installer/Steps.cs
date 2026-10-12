@@ -277,16 +277,16 @@ namespace Oce.Solid.Agent.Installer
                 // The older ones can be tried when needed, the newer ones cannot
                 // (the license on which we test does not install them).
                 int main = MainVersion(v);
-                string anno = main > 0 ? (main + 1992).ToString() : null;
+                string solidworksYear = main > 0 ? (main + 1992).ToString() : null;
                 bool tested = main == TestedVersion;
                 return new CheckItem
                 {
                     Title = "SOLIDWORKS installed",
                     Outcome = tested || main <= 0 ? Outcome.Fine : Outcome.Warning,
                     Detail = redist + (string.IsNullOrWhiteSpace(v) ? "" : "  (interop " + v +
-                                (anno == null ? "" : ", SOLIDWORKS " + anno) + ")"),
+                                (solidworksYear == null ? "" : ", SOLIDWORKS " + solidworksYear) + ")"),
                     WhatToDo = tested || main <= 0 ? null :
-                        "The bridge is only tested on SOLIDWORKS 2021 SP5.1. With " + anno + " it installs just the " +
+                        "The bridge is only tested on SOLIDWORKS 2021 SP5.1. With " + solidworksYear + " it installs just the " +
                         "same, but nobody has measured it: " + (main > TestedVersion
                             ? "it is newer than the one tested, and some APIs may have moved."
                             : "it is older than the one tested; you can try, and if something goes wrong, say so."),

@@ -32,12 +32,12 @@ namespace Oce.Solid.Agent.Installer
     {
         private const string Prefix = "Oce.Solid.Agent.Installer.Payload.";
 
-        private static string[] Risorse =>
+        private static string[] ResourceNames =>
             Assembly.GetExecutingAssembly().GetManifestResourceNames();
 
         /// <summary>Is at least the bridge there, embedded?</summary>
         public static bool Embedded =>
-            Risorse.Any(r => r.EndsWith(
+            ResourceNames.Any(r => r.EndsWith(
                 Steps.ExecutableName, StringComparison.OrdinalIgnoreCase));
 
         private static string ResourceName(string file)
@@ -46,7 +46,7 @@ namespace Oce.Solid.Agent.Installer
             // builds the name of the resource from the path, and one folder more
             // or less would change the string without anyone
             // noticing until the installation.
-            return Risorse.FirstOrDefault(r =>
+            return ResourceNames.FirstOrDefault(r =>
                 r.EndsWith("." + file, StringComparison.OrdinalIgnoreCase) ||
                 r.Equals(Prefix + file, StringComparison.OrdinalIgnoreCase));
         }

@@ -34,7 +34,7 @@ namespace Shared
         /// </summary>
         internal const int TimeoutMs = 90000;
         // ==================================================================
-        // IL SOTTOPROCESSO
+        // THE SUBPROCESS
         // ==================================================================
         internal sealed class Bridge : IDisposable
         {

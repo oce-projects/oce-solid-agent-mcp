@@ -46,7 +46,7 @@ function RunGit($arguments) {
 Write-Output "=== the version"
 $version = (Get-Content (Join-Path $root "VERSION.txt") -Raw).Trim()
 if ($version -notmatch '^\d+\.\d+\.\d+$') { Stop "VERSION.txt is not an X.Y.Z version: '$version'" }
-Ok "VERSION.txt dice $version"
+Ok "VERSION.txt says $version"
 $tag = "v$version"
 
 # AN ENTRY IN THE CHANGELOG, and not just any one: that of THIS version. The
@@ -58,9 +58,9 @@ for ($i = 0; $i -lt $cl.Count; $i++) {
     if ($cl[$i] -match ('^## ' + [regex]::Escape($version) + '\b')) { $start = $i; break }
 }
 if ($start -lt 0) { Stop "CHANGELOG.md has no entry '## $version'" }
-$fine = $cl.Count
-for ($i = $start + 1; $i -lt $cl.Count; $i++) { if ($cl[$i] -match '^## \d') { $fine = $i; break } }
-Ok ("CHANGELOG.md has the entry, " + ($fine - $start) + " lines")
+$entryEnd = $cl.Count
+for ($i = $start + 1; $i -lt $cl.Count; $i++) { if ($cl[$i] -match '^## \d') { $entryEnd = $i; break } }
+Ok ("CHANGELOG.md has the entry, " + ($entryEnd - $start) + " lines")
 
 Write-Output ""
 Write-Output "=== the repository"
@@ -124,7 +124,7 @@ Ok ("contract suite: " + $line.Trim())
 Write-Output ""
 Write-Output "=== the Release notes"
 $note = Join-Path $root ("dist\release-notes-" + $version + ".md")
-$cl[$start..($fine - 1)] | Out-File $note -Encoding utf8
+$cl[$start..($entryEnd - 1)] | Out-File $note -Encoding utf8
 Ok ("dist\release-notes-" + $version + ".md, from the CHANGELOG entry")
 
 Write-Output ""

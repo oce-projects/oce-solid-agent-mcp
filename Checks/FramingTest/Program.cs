@@ -164,7 +164,7 @@ namespace Checks.FramingTest
                     int beforeTheFailed = _failed;
                     Measure(which, png);
 
-                    // A TOOL THAT SAYS «TAGLIATA» MUST SHOW WHAT.
+                    // A TOOL THAT SAYS «CROPPED» MUST SHOW WHAT.
                     // The first version of this measurement was wrong — the
                     // background threshold was taken by eye — and the only way
                     // to notice was to LOOK at the image. Now, if
@@ -250,7 +250,7 @@ namespace Checks.FramingTest
             // not to let it vanish: it is what whoever uses the bridge pays for.
             if (touches)
             {
-                Check("    " + which, false, "TAGLIATA -- " + detail);
+                Check("    " + which, false, "CROPPED -- " + detail);
                 return;
             }
             Check("    " + which, true, detail);

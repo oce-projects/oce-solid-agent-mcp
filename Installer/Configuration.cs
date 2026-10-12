@@ -409,8 +409,8 @@ namespace Oce.Solid.Agent.Installer
                 // A broken file is NOT silently replaced with a new one:
                 // inside there might be ten servers configured by hand.
                 throw new Exception(
-                    "The configuration file \"" + file + "\" is not valid JSON and I do not " +
-                    "feel like rewriting it: there may be other work inside. " +
+                    "The configuration file \"" + file + "\" is not valid JSON and I will " +
+                    "not rewrite it: there may be other work inside. " +
                     "Open it and fix it, then try again. (" + ex.Message + ")");
             }
         }

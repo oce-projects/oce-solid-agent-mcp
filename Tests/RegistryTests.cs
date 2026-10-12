@@ -342,7 +342,7 @@ namespace Oce.Solid.Agent.ContractTests
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  4. MAI SU STDOUT
+        //  4. NEVER ON STDOUT
         // ─────────────────────────────────────────────────────────────────
 
         private static void DoesNotTouchStdout()

@@ -74,8 +74,8 @@ function openBridge() {
       try { o = JSON.parse(line); } catch (e) { continue; }
       // Without `id` it is a notification: it is nobody's answer.
       if (o.id === undefined || o.id === null) continue;
-      const chi = expectedValues.get(o.id);
-      if (chi) { expectedValues.delete(o.id); chi(o); } else arrived.set(o.id, o);
+      const handler = expectedValues.get(o.id);
+      if (handler) { expectedValues.delete(o.id); handler(o); } else arrived.set(o.id, o);
     }
   });
   return {
@@ -83,12 +83,12 @@ function openBridge() {
     ask(body, waitMs) {
       return new Promise((resolve, refuse) => {
         const id = body.id;
-        const tempo = setTimeout(() => {
+        const deadline = setTimeout(() => {
           expectedValues.delete(id);
           refuse(new Error('no answer to the ' + id + ' within ' +
                             (waitMs || 120000) + ' ms'));
         }, waitMs || 120000);
-        const take = (o) => { clearTimeout(tempo); resolve(o); };
+        const take = (o) => { clearTimeout(deadline); resolve(o); };
         if (arrived.has(id)) { const o = arrived.get(id); arrived.delete(id); take(o); }
         else expectedValues.set(id, take);
         p.stdin.write(JSON.stringify(body) + '\n');

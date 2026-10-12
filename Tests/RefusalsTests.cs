@@ -167,7 +167,7 @@ namespace Oce.Solid.Agent.ContractTests
         /// `hole_wizard` (before the positioning) are no longer there, and counted
         /// only because «RemoveCut» held a remedy root — and plus three: in
         /// `combine_bodies` uid and `_ref` given together («remove one of the two»), and the
-        /// step of `main_body_ref` that leaves several bodies («nominalo con
+        /// step of `main_body_ref` that leaves several bodies («name it with
         /// «main_body_uid»»).
         /// **213 from the four features of the guide (28/9/2026, branch
         /// four-features):** +67, as much as the check counted on the merged

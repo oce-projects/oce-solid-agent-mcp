@@ -56,12 +56,12 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":" +
                     "{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
-                Check("initialize risponde", r != null,
+                Check("initialize answers", r != null,
                       r != null ? Short(r)
                                 : "nothing within " + (TimeoutMs / 1000) + "s. Lines seen so far: " +
                                   string.Join(" | ", p.Views.Take(3)));
-                var iniz = Obj(r);
-                var result = Inside(iniz, "result") as Dictionary<string, object>;
+                var initReply = Obj(r);
+                var result = Inside(initReply, "result") as Dictionary<string, object>;
                 Check("initialize sends back the protocol version received",
                       result != null &&
                       Convert.ToString(Inside(result, "protocolVersion")) == "2024-11-05",
@@ -85,7 +85,7 @@ namespace Oce.Solid.Agent.ContractTests
                       expected != null && called == expected,
                       expected == null
                           ? "VERSION.txt cannot be read"
-                          : "annunciata «" + called + "», VERSION.txt dice «" + expected + "»");
+                          : "announced «" + called + "», VERSION.txt says «" + expected + "»");
 
                 // ── A NOTIFICATION RECEIVES NO ANSWER ──────────────────────
                 //
@@ -355,12 +355,12 @@ namespace Oce.Solid.Agent.ContractTests
                 // to test, and the third is the one that counts.
                 var resourceList = Obj(Ask(p, 40,
                     "{\"jsonrpc\":\"2.0\",\"id\":40,\"method\":\"resources/list\",\"params\":{}}"));
-                var risorse = Inside(Inside(resourceList, "result"), "resources") as object[];
+                var resourceItems = Inside(Inside(resourceList, "result"), "resources") as object[];
                 Check("resources/list gives the catalog",
-                      risorse != null && risorse.Length == 1 &&
-                      Convert.ToString(Inside(risorse[0], "uri")) == "catalog://operations",
-                      risorse == null ? "(nothing)" : risorse.Length + ": " +
-                          string.Join(", ", risorse.Select(x => Convert.ToString(Inside(x, "uri")))));
+                      resourceItems != null && resourceItems.Length == 1 &&
+                      Convert.ToString(Inside(resourceItems[0], "uri")) == "catalog://operations",
+                      resourceItems == null ? "(nothing)" : resourceItems.Length + ": " +
+                          string.Join(", ", resourceItems.Select(x => Convert.ToString(Inside(x, "uri")))));
 
                 var models = Obj(Ask(p, 41,
                     "{\"jsonrpc\":\"2.0\",\"id\":41,\"method\":\"resources/templates/list\",\"params\":{}}"));
@@ -376,7 +376,7 @@ namespace Oce.Solid.Agent.ContractTests
                 //
                 // The resource and the tool must answer the SAME text.
                 // If one day somebody writes the list «also» inside
-                // `Risorse`, here it turns red — and it is the only place that
+                // `McpResources`, here it turns red — and it is the only place that
                 // would notice, because the two roads never meet by
                 // themselves. *Two doors on the same thing become two things the
                 // day one of the two is written separately.*
@@ -421,14 +421,14 @@ namespace Oce.Solid.Agent.ContractTests
                       messageUri.IndexOf("catalog://operations", StringComparison.Ordinal) >= 0,
                       Short(messageUri));
 
-                // ── JSON MALFORMATO: -32700, id nullo ─────────────────────
+                // ── MALFORMED JSON: -32700, null id ─────────────────────
                 Write(p, "{this is not json");
                 var crooked = Obj(Line(p, TimeoutMs));
                 var error = Inside(crooked, "error") as Dictionary<string, object>;
                 Check("malformed JSON gives -32700",
                       error != null && Convert.ToString(Inside(error, "code")) == "-32700",
                       Convert.ToString(Inside(error, "code")));
-                Check("JSON malformato risponde con id nullo",
+                Check("malformed JSON answers with a null id",
                       crooked != null && crooked.ContainsKey("id") && crooked["id"] == null,
                       crooked == null ? "(nothing)" : Convert.ToString(crooked["id"]));
 

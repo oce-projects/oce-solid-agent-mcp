@@ -71,7 +71,7 @@ namespace Checks.HoleOrFillet
                 Console.WriteLine("=== is a cylindrical face a hole or a fillet? ===");
                 Console.WriteLine();
                 Console.WriteLine("  {0,-6} {1,-10} {2,-12} {3,-10} {4}",
-                                  "uid", "diameter", "FaceInSurf", "area", "da");
+                                  "uid", "diameter", "FaceInSurf", "area", "made by");
 
                 var partDoc = doc as IPartDoc;
                 var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
@@ -90,8 +90,8 @@ namespace Checks.HoleOrFillet
                         try { sense = f.FaceInSurfaceSense(); } catch { }
                         double area = 0;
                         try { area = f.GetArea() * 1e6; } catch { }
-                        string da = "";
-                        try { da = (f.GetFeature() as IFeature)?.Name ?? ""; } catch { }
+                        string madeBy = "";
+                        try { madeBy = (f.GetFeature() as IFeature)?.Name ?? ""; } catch { }
 
                         if (sense) concave++; else convex++;
 
@@ -100,7 +100,7 @@ namespace Checks.HoleOrFillet
                                           (radius * 2000).ToString("0.##"),
                                           sense ? "true" : "false",
                                           area.ToString("0.#"),
-                                          da);
+                                          madeBy);
                     }
                     f = f.IGetNextFace();
                 }

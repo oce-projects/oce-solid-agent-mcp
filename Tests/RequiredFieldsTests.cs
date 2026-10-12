@@ -274,7 +274,7 @@ namespace Oce.Solid.Agent.ContractTests
                 Check(operation + "." + theField + " has its default, and is no longer mandatory",
                       Convert.ToString(d) == expected && !mandatoryAnchor,
                       "default=" + (d == null ? "(none)" : "«" + Convert.ToString(d) + "»") +
-                      ", obbligatorio=" + mandatoryAnchor);
+                      ", mandatory=" + mandatoryAnchor);
                 return;
             }
             Check(operation + "." + theField + " has its default, and is no longer mandatory",

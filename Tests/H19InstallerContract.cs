@@ -94,7 +94,7 @@ namespace Oce.Solid.Agent.ContractTests
             // THE ELEVATED CASE HAS ITS OWN CODE (H19 review). "Not running"
             // while a SLDWORKS process runs in this session exited 3, which the
             // installer accepts: an install with SOLIDWORKS started as
-            // administrator said "Installato" and exit 0.
+            // administrator said "Installed" and exit 0.
             var seen = Load.Class(Load.Bridge(bridgeExe), "Program")
                 ?.GetMethod("SelfTestCodeSeen", BindingFlags.NonPublic | BindingFlags.Static);
             if (seen == null) { Check("Program.SelfTestCodeSeen exists (not running + a SLDWORKS process = 6)", false, "missing"); return; }

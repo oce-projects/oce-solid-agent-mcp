@@ -79,8 +79,8 @@ internal static class Program
                  "), block «" + block.Name + "»");
 
             try { if (File.Exists(file)) File.Delete(file); } catch { }
-            int err = 0, avv = 0;
-            if (!part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref err, ref avv))
+            int err = 0, warnings = 0;
+            if (!part.Extension.SaveAs(file, 0, (int)swSaveAsOptions_e.swSaveAsOptions_Silent, null, ref err, ref warnings))
             { Console.WriteLine("  SaveAs -> false, errors " + err); return 4; }
             Says("saved in " + file);
 
@@ -137,14 +137,14 @@ internal static class Program
             off = true;
 
             var contour = view.GetOutline() as double[];
-            int dimensionsBefore = Quote(drawing);
+            int dimensionsBefore = CountDimensions(drawing);
             drawingDoc.ClearSelection2(true);
             if (!chosen.Select4(false, null)) { Console.WriteLine("  the edge cannot be selected"); return 4; }
             var born = drawingDoc.Extension.AddDimension(
                 (contour[0] + contour[2]) / 2, contour[3] + 0.012, 0, 0) as IDisplayDimension;
             drawingDoc.ClearSelection2(true);
             drawingDoc.EditRebuild3();
-            int dimensionsAfter = Quote(drawing);
+            int dimensionsAfter = CountDimensions(drawing);
             if (dimensionsAfter <= dimensionsBefore) { Console.WriteLine("  AddDimension did not bring the dimension into being"); return 4; }
             double val = double.NaN;
             try { val = born.GetDimension2(0).SystemValue * 1000; } catch { }
@@ -152,7 +152,7 @@ internal static class Program
 
             // ── GREEN: before suppressing ───────────────────────────────
             var stateBefore = Read(drawing);
-            Says("PRIMA  — " + stateBefore.Summary);
+            Says("BEFORE — " + stateBefore.Summary);
             // The green direction of the independent detector: before suppressing,
             // the attached edge MUST be among the visible ones.
             int seenBefore = 0;
@@ -301,7 +301,7 @@ internal static class Program
         return s;
     }
 
-    private static int Quote(IDrawingDoc drawing)
+    private static int CountDimensions(IDrawingDoc drawing)
     {
         int n = 0;
         var v = drawing.GetFirstView() as IView;

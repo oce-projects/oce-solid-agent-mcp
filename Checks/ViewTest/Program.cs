@@ -79,8 +79,8 @@ namespace Checks.ViewTest
                       a != null && !Equal(a, b),
                       a == null ? "not readable" : "");
 
-                // ── 1. riassegnare Transform ─────────────────────────────
-                Test(doc, view, "riassegnare Transform", restore =>
+                // ── 1. reassign Transform ─────────────────────────────
+                Test(doc, view, "reassign Transform", restore =>
                 {
                     var kept = view.Transform;
                     restore(() => { try { view.Transform = kept; } catch { } });
