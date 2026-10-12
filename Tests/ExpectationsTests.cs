@@ -395,7 +395,7 @@ namespace Oce.Solid.Agent.ContractTests
             Check("selector: no face, it is refused",
                   Raise(() => Expectations.Select("@face(normal=up)", docState), "I did not find it"));
 
-            var due = new Dictionary<string, object>
+            var twoFaces = new Dictionary<string, object>
             {
                 ["faces"] = new List<object>
                 {
@@ -404,7 +404,7 @@ namespace Oce.Solid.Agent.ContractTests
                 },
             };
             Check("selector: two equal faces, it is refused instead of guessing",
-                  Raise(() => Expectations.Select("@face(normal=front)", due), "I found 2"));
+                  Raise(() => Expectations.Select("@face(normal=front)", twoFaces), "I found 2"));
 
             // THE BODY BY NAME (25/9/2026): the numbers C1, C2... do not follow
             // the order of creation and change between one run and the next. The state

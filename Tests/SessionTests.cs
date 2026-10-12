@@ -342,10 +342,10 @@ namespace Oce.Solid.Agent.ContractTests
             // Stopping at the first difference would make «the volume has
             // changed» be read by whoever also has one more feature, and the second
             // would come out only on the next run.
-            var due = whichOne(signature(96000.0, 3), signature(94500.0, 4));
+            var both = whichOne(signature(96000.0, 3), signature(94500.0, 4));
             Check("two differences are both reported",
-                  due != null && due.Contains("volume") && due.Contains("features"),
-                  due ?? "(null)");
+                  both != null && both.Contains("volume") && both.Contains("features"),
+                  both ?? "(null)");
 
             // ── «IT WAS NOT THERE» AND «NOW IT IS» IS A DIFFERENCE ───────
             //
