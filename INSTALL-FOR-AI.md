@@ -40,18 +40,9 @@ administrator and the client is not (or the other way round), the bridge cannot 
 
 ## 1. Get `Installer.exe` and check it
 
-**Download it from the repository's latest Release** (public, no login, no token), in
-PowerShell, into a folder you choose:
-
-```powershell
-$base = 'https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest/download'
-Invoke-WebRequest "$base/Installer.exe" -OutFile .\Installer.exe
-Invoke-WebRequest "$base/Installer.exe.sha256" -OutFile .\Installer.exe.sha256
-```
-
-The Releases page is https://github.com/oce-projects/oce-solid-agent-mcp/releases. If you
-cannot download (no network, a proxy), the file has to come from the maintainer, or be
-built from a clone with
+Download `Installer.exe` and `Installer.exe.sha256` from the repository's latest
+release, `https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest`. The
+other route is to build them from a clone with
 
 ```
 powershell -File build.ps1
@@ -300,7 +291,7 @@ one is found it exits 0. If the user expects a specific client, check `--verify`
 file with `--config`.
 
 **4. A malformed client config is never overwritten.** The installer refuses and the message
-says `is not valid JSON and I will not rewrite it`. This is deliberate: that file can
+says `is not valid JSON and I do not feel like rewriting it`. This is deliberate: that file can
 hold ten other servers someone configured by hand. **Do not "fix" it by replacing it.** Open it,
 show the user the broken part, let them decide.
 

@@ -20,10 +20,10 @@ page never asks you to compile anything.
 
 ### Where `Installer.exe` comes from
 
-Download `Installer.exe` and `Installer.exe.sha256` from this repository's
-[latest Release](https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest).
-There is no `winget` package yet. If you cannot download them, the files come from
-the maintainer directly, or you build it yourself from a clone:
+Download `Installer.exe` and `Installer.exe.sha256` from the
+[latest release](https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest)
+of this repository. There is no `winget` package yet. The other route is to build
+it yourself from a clone:
 
 ```
 powershell -File build.ps1
@@ -49,8 +49,7 @@ If they differ, do not run the file: get it again.
 *If you are an AI assistant installing this for someone, read
 [INSTALL-FOR-AI.md](INSTALL-FOR-AI.md) instead of this page.*
 
-You do **not** need Visual Studio, .NET SDKs or Python, and the bridge itself needs no
-internet connection (only the download above does).
+You do **not** need Visual Studio, .NET SDKs, Python, or an internet connection.
 
 ---
 
@@ -248,21 +247,20 @@ and the backup copies of the client configuration stay where they are.
 
 It is not signed, on purpose. A certificate that removes that warning either
 does not build SmartScreen reputation instantly (OV) or requires a formal
-company verification measured in weeks (EV). Being told about the
-warning in advance costs nothing — and this paragraph is that. Signing is a
-decision about buying a certificate, not a missing step; RELEASE.md lists it
-among the known gaps.
+company verification measured in weeks (EV). While this is handed to people
+directly, being told about the warning in advance costs nothing — and this
+paragraph is that. When it is published to strangers, that decision gets
+revisited.
 
 One more thing we have **not tested**: Windows 11 has a setting called Smart App
 Control which, when it is on, can block an unsigned program outright, with no
 "Run anyway" button. If you meet that, the file is not damaged: the setting is what
-stops it. Say so (an issue on this repository is the place), and run the installer on a
-machine that does not have the setting on.
+stops it. Say so to whoever gave you the file, and run the installer on a machine
+that does not have the setting on while this is open.
 
-**Distribution:** `Installer.exe` and `Installer.exe.sha256` are attached to each
-[Release](https://github.com/oce-projects/oce-solid-agent-mcp/releases/latest) of
-this repository. There is no winget package. If you found the file somewhere
-else, check its hash against the one on the Release page before you run it.
+**Distribution today:** the file, plus its checksum, handed over directly. There
+is no public download page, and no winget package. If you found this file
+somewhere else, you did not get it from us.
 
 ---
 
