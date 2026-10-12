@@ -6214,8 +6214,8 @@ single named file, and `*.bak`.
 
 ### A fallback path that only helped the machine it named
 
-`controlla-documenti-senza-file.ps1` fell back to `S:\PDM\OpenPDM\client-windows`
-when `RISCONTRO_ADDIN` was unset — this machine's path into **another**
+`controlla-documenti-senza-file.ps1` fell back to a hard-wired folder of the
+maintainer's workstation when `RISCONTRO_ADDIN` was unset — a path into **another**
 repository, one that is not publishable. On every other machine the path did not
 exist and the check skipped that half while saying so, which means the fallback
 helped nobody and published where things are kept. Removed. The guard is now
@@ -10562,12 +10562,12 @@ not a line changes. It is told here because entry B6 lives in this TODO, and
 because the test clone found something worth knowing.
 
 `OpenPDMSwAddin.csproj` pointed at the library with an **absolute**
-path, `S:\PDM\SolidWorksMcp\...`. Now it is a submodule at
-`client-windows/esterni/riscontro-disegno` with a relative path.
+path, into the developer's working folder. Now it is a submodule of that
+repository, with a relative path.
 
 **What the test clone found.** Before the commit, a clean clone of the
 monorepo in a new folder compiled **just the same** — fetching the
-library from `S:\PDM\SolidWorksMcp`, that is, from this machine's working
+library from that absolute path, that is, from this machine's working
 copy, whatever happened to be inside it at that moment.
 
 On this workstation the absolute path never failed. **It only failed

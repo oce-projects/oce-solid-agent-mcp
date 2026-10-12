@@ -115,7 +115,7 @@ namespace Oce.Solid.Agent.ContractTests
             // ── NO PATH OF THIS MACHINE ───────────────────────────────────
             //
             // The catalogue is read by a model, and will end up in a package that
-            // goes elsewhere. An «S:\PDM\...» inside a description is an
+            // goes elsewhere. A drive path from the maintainer's workstation inside a description is an
             // address that does not exist from that machine, and whoever reads has no
             // way of knowing it.
             // ── AND THE CHECK HAS ALREADY TRIGGERED FOR THE WRONG REASON ──
@@ -126,7 +126,7 @@ namespace Oce.Solid.Agent.ContractTests
             // proves nothing and looks identical to one that works.
             //
             // A drive letter is a letter **not preceded by another
-            // letter**: so «NO:\n» and «type:\n» are not one, and «S:\PDM» is.
+            // letter**: so «NO:\n» and «type:\n» are not one, and «S:\a» is.
             var text = File.ReadAllText(json);
             var bad = new List<string>();
             foreach (System.Text.RegularExpressions.Match m in

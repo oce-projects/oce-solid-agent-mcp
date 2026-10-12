@@ -282,6 +282,27 @@ $InsideAnotherRepo = '([A-Za-z0-9_]+/[A-Za-z0-9_/]*\.py|\.py:\d)'
 # stay covered.
 $talkAboutDisks = (WithNamesOfBefore @('CHANGELOG.md', 'CatalogTests.cs')) + $twoChecks
 
+# THE OWNER'S SHARES ON THE S: DRIVE (0.130.2).
+#
+# `O:` and `W:` are whole drives of the company network, so the drive letter alone says
+# it. `S:` is different: it is also the letter of every fake path in the tests and of the
+# examples in the documents (see section 3, which only LISTS it). What is the owner's
+# and must not go out is the folder under it: the working copies of the projects and the
+# folders of settings and libraries, which are named with a leading underscore. A
+# CHANGELOG entry of the public release still told, in full, the path of the other
+# repository the add-in fell back to; nothing looked at it, because the only rule on this
+# drive was the informative list.
+#
+# THE SHAPE IS NARROW ON PURPOSE: `S:` + backslash + `PDM`, or `S:` + backslash +
+# an underscore and a letter. `S:\a\b.SLDPRT` in a test, `S:\CAD` in an example, `NS:\`
+# in anything stay free. NO FILE HAS A PASS ON THIS ONE (the lesson of the address: an
+# exception on a file widens by itself); the two files that used to quote the folder
+# say it now without writing it.
+#
+# The text of the rule does not match itself: after `S:` + backslash it has a second
+# backslash, not the name.
+$OwnerShare = '(?<![A-Za-z])S:\\(PDM|_[A-Za-z])'
+
 # This function CANNOT be called `Git`: PowerShell does not distinguish upper
 # and lower case in command names, so `& git` in here would resolve to the
 # function itself instead of the executable - infinite recursion, and the error
@@ -351,6 +372,7 @@ Look 'an internal address' $TrueAddress 'a private network' $false
 Look 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks
 Look 'the O: drive' '(?<![A-Za-z])O:\\' 'a company network drive' $true $talkAboutDisks
 Look 'the W: drive' '(?<![A-Za-z])W:\\' 'a company network drive' $true $talkAboutDisks
+Look 'a folder of the owner''s S: share' $OwnerShare 'working copies and libraries of this workstation' $true
 
 # ==============================================================================
 # 2. The history about to be pushed
@@ -471,6 +493,7 @@ if ($toPush.Count -eq 0) {
     LookAtHistory 'the inside of another repository' $InsideAnotherRepo 'folders and lines of other people''s homes' $false $twoChecks
     LookAtHistory 'the O: drive' '(?<![A-Za-z])O:\\' 'a company network drive' $true $talkAboutDisks
     LookAtHistory 'the W: drive' '(?<![A-Za-z])W:\\' 'a company network drive' $true $talkAboutDisks
+    LookAtHistory 'a folder of the owner''s S: share' $OwnerShare 'working copies and libraries of this workstation' $true
 }
 
 # ==============================================================================
