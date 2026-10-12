@@ -291,7 +291,7 @@ one is found it exits 0. If the user expects a specific client, check `--verify`
 file with `--config`.
 
 **4. A malformed client config is never overwritten.** The installer refuses and the message
-says `is not valid JSON and I do not feel like rewriting it`. This is deliberate: that file can
+says `is not valid JSON and I will not rewrite it`. This is deliberate: that file can
 hold ten other servers someone configured by hand. **Do not "fix" it by replacing it.** Open it,
 show the user the broken part, let them decide.
 

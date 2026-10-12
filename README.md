@@ -327,8 +327,8 @@ builds and runs the contract suite and checks that
 a bench record exists and matches the library. It does **not** build the bridge and
 does not run the bench: both need Dassault's interop, which is not in the repository
 and not on a GitHub runner. What cannot run is reported as "not runnable here",
-counted apart and never green. The check on the bench record is a guard against our
-own distraction — a commit made without rerunning the bench — not an independent
+counted separately and never green. The check on the bench record is a guard against our
+own oversight — a commit made without rerunning the bench — not an independent
 verification: the record is produced and committed by the maintainer, and if it lied
 the CI would believe it.
 
@@ -391,8 +391,10 @@ is an unknown name: an unknown tool is an `isError` answer that lists the tools 
 are, an unknown operation is refused with the operations it resembles, an argument the
 schema does not have is reported as ignored, and a value the schema does not list is
 refused. Nothing is translated on the way in. New text is written in English, and a
-language gate (`Checks/language/detect-italian.js`) runs in the pre-push hook and in
-the CI.
+language gate (`Checks/language/detect-italian.js`) holds the Italian at zero, in the
+pre-push hook and in the CI: the tree is judged by itself, outside the signed exceptions
+of `Checks/language/exceptions.json`, and a change to the gate itself needs a
+`Language-Gate-Config-Change` trailer on its commit.
 
 **What comes from SOLIDWORKS software stays in the language of the installation, and
 the bridge reads it in Italian and in English.** The names it gives to features,
