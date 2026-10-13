@@ -34,9 +34,12 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ## 0.130.2 — 12 October 2026 · library 0.153.1 (unchanged)
 
-Documents, tests and installer only. **No operation, no answer of the bridge and no
-file of the library or of the bench changes**, so the bench of 0.130.1 (2,248 tests, 0
-failed, in Italian and in English) still describes this version.
+Documents, tests and installer. **No operation and no file of the library or of the
+bench changes**, so the bench of 0.130.1 (2,248 tests, 0 failed, in Italian and in
+English) still describes this version. Two texts the bridge sends do change, both in
+wording only: one message that still carried an Italian preposition (« a » before an
+offset now reads « at »), and a few notes `api_search` returns (an Italian dialog name
+and a source label, now in English).
 
 **For whoever installs it.**
 
