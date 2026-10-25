@@ -427,6 +427,8 @@ namespace Oce.Solid.Agent.ContractTests
             BenchReportTests.All();
             ConsumedStringsContract.RunAll();
             SafetyNetSelfTests.All();
+            MaterialNameMatchTests.All();
+            UsageFeedbackContract.RunAll();
             // Last group: it reads the lookup log that every group above fills.
             ReflectionTests.All();
             TheReadmeSaysHowManyThereAre();
