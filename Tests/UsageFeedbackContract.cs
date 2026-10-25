@@ -18,7 +18,7 @@ namespace Oce.Solid.Agent.ContractTests
 
             var assemblyStatePath = Path.Combine(Root(), "Oce.Solid.Agent.Core", "AssemblyState.cs");
             var assemblyState = Read(assemblyStatePath);
-            Check("the assembly state lists the operations that now exist (R9)",
+            Check("the assembly state lists the operations that now exist (R6)",
                   Has(assemblyState, "are insert_component, mate, fix_component, replace_component and mirror_component")
                       && !Has(assemblyState, "are not operations yet"),
                   assemblyState == null ? assemblyStatePath
@@ -42,19 +42,27 @@ namespace Oce.Solid.Agent.ContractTests
 
             var toolsPath = Path.Combine(Root(), "Tools", "McpTools.cs");
             var tools = Read(toolsPath);
+            bool refusedAnchors =
+                Has(tools, "bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);")
+                && Has(tools, "[\"state_after\"] = refusedBeforeWriting ? null : after,")
+                && Has(tools, "if (refusedBeforeWriting && frontIsThePlans)");
+            bool declaredBeforeBranch = refusedAnchors
+                && tools.IndexOf("bool refusedBeforeWriting = ", StringComparison.Ordinal)
+                    < tools.IndexOf("if (refusedBeforeWriting && frontIsThePlans)", StringComparison.Ordinal);
             Check("a refusal before writing keeps the state out of the answer (R3)",
-                  Has(tools, "bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);")
-                      && Has(tools, "[\"state_after\"] = refusedBeforeWriting ? null : after,"),
+                  refusedAnchors && declaredBeforeBranch,
                   tools == null ? toolsPath
-                      : Has(tools, "bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);")
-                        && Has(tools, "[\"state_after\"] = refusedBeforeWriting ? null : after,")
-                          ? "both anchors found" : "an anchor is missing from McpTools.cs");
+                      : refusedAnchors && declaredBeforeBranch
+                          ? "the refused plan answers without state_after and adopts no reading"
+                          : "an anchor is missing from McpTools.cs or the declaration comes after the branch");
 
-            Check("a part with no solid body says so in faces_note (R6)",
-                  Has(tools, "[\"faces_note\"]") && Has(tools, "This part has no solid body yet"),
+            Check("a part with no solid body says so in faces_note, a part with bodies is refused (R9)",
+                  Has(tools, "[\"faces_note\"]") && Has(tools, "This part has no solid body yet")
+                      && Has(tools, "docState.ContainsKey(\"bodies\")"),
                   tools == null ? toolsPath
                       : Has(tools, "[\"faces_note\"]") && Has(tools, "This part has no solid body yet")
-                          ? "both anchors found" : "an anchor is missing from McpTools.cs");
+                        && Has(tools, "docState.ContainsKey(\"bodies\")")
+                          ? "all anchors found" : "an anchor is missing from McpTools.cs");
         }
 
         private static string Read(string path)
