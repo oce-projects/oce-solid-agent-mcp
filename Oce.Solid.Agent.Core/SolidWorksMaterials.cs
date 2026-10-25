@@ -23,7 +23,7 @@ namespace Oce.Solid.Agent.Core
     /// The real name of an S235JR is `1.0037 (S235JR)`, numeric code and
     /// parentheses included, and in the DIN archive 1.0036 (S235JRG1),
     /// 1.0038 (S235JRG2), 1.0114 (S235J0), 1.0116 (S235J2G3), 1.0117
-    /// (S235J2G4) coexist: they are not the same steel. Names that contain
+    /// (S235J2G4) coexist: they are different steels. Names that contain
     /// words are moreover TRANSLATED («Alloy Steel» in English, another word on an
     /// Italian installation), so they depend on the language of the installation.
     ///
@@ -118,7 +118,7 @@ namespace Oce.Solid.Agent.Core
         ///   2. the exact name ignoring capitals and spaces;
         ///   3. the name inside the parentheses — «1.0037 (S235JR)» asked for as
         ///      «S235JR», which is how a designer calls it;
-        ///   4. the name contained somewhere.
+        ///   4. every word asked for appears as a whole word in the name.
         ///
         /// If a stage finds more than one it stops there and lists them: between
         /// two different steels one does not guess.
@@ -149,32 +149,18 @@ namespace Oce.Solid.Agent.Core
                 if (restricted.Count > 0) theField = restricted;
             }
 
-            var stages = new Func<List<Material>>[]
+            var foundItems = MaterialNameMatch.Candidates(theField.Select(m => m.Name).ToList(), searched)
+                .Select(i => theField[i]).ToList();
+            if (foundItems.Count == 1) return foundItems[0];
+            if (foundItems.Count > 1)
             {
-                () => theField.Where(m => string.Equals(m.Name, searched, StringComparison.Ordinal)).ToList(),
-                () => theField.Where(m => string.Equals(
-                    Compact(m.Name), Compact(searched), StringComparison.OrdinalIgnoreCase)).ToList(),
-                () => theField.Where(m => string.Equals(
-                    Compact(InParentheses(m.Name)), Compact(searched),
-                    StringComparison.OrdinalIgnoreCase)).ToList(),
-                () => theField.Where(m => Compact(m.Name).IndexOf(
-                    Compact(searched), StringComparison.OrdinalIgnoreCase) >= 0).ToList(),
-            };
-
-            foreach (var stage in stages)
-            {
-                var foundItems = stage();
-                if (foundItems.Count == 1) return foundItems[0];
-                if (foundItems.Count > 1)
-                {
-                    why =
-                        "«" + searched + "» matches " + foundItems.Count +
-                        " different materials, and they are not the same steel: " +
-                        string.Join(", ", foundItems.Take(8).Select(m => "«" + m.Name + "»")) +
-                        (foundItems.Count > 8 ? ", and more" : "") +
-                        ". Tell me which one.";
-                    return null;
-                }
+                why =
+                    "«" + searched + "» matches " + foundItems.Count +
+                    " different materials, and they are not the same material: " +
+                    string.Join(", ", foundItems.Take(8).Select(m => "«" + m.Name + "»")) +
+                    (foundItems.Count > 8 ? ", and more" : "") +
+                    ". Tell me which one.";
+                return null;
             }
 
             var similar = theField
@@ -192,21 +178,6 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-        private static string Compact(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return "";
-            var sb = new System.Text.StringBuilder(s.Length);
-            foreach (var c in s) if (!char.IsWhiteSpace(c)) sb.Append(c);
-            return sb.ToString();
-        }
-
-        private static string InParentheses(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return "";
-            int a = s.IndexOf('(');
-            int b = s.LastIndexOf(')');
-            return (a >= 0 && b > a) ? s.Substring(a + 1, b - a - 1) : s;
-        }
 
         /// <summary>
         /// Coarse similarity for the error message: it is enough that
@@ -216,8 +187,8 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static bool Resemble(string itemName, string searched)
         {
-            string a = Compact(itemName).ToUpperInvariant();
-            string b = Compact(searched).ToUpperInvariant();
+            string a = MaterialNameMatch.Compact(itemName).ToUpperInvariant();
+            string b = MaterialNameMatch.Compact(searched).ToUpperInvariant();
             if (b.Length < 3) return false;
             for (int i = 0; i + 3 <= b.Length; i++)
                 if (a.IndexOf(b.Substring(i, 3), StringComparison.Ordinal) >= 0) return true;
