@@ -48,7 +48,9 @@ assembly note) is in this version; this entry describes what it does.
   adopts no reading: the identity and the signatures the next plan is compared with stay
   those of the last state the caller received.
 - **Material search by whole words (R4).** Stage 4 of the material search matches whole
-  words only: "PLA" no longer matches "Plastic..." or "PVC ... plasticized". The ambiguity
+  words only: "PLA" no longer matches "Plastic..." or "PVC ... plasticized". Adjacent whole
+  words written without the space still match, so "AISI304" finds "AISI 304 Stainless
+  Steel". The ambiguity
   message says "material", not "steel". The matching is in `MaterialNameMatch`, a pure
   class with no SOLIDWORKS dependency, covered by the contract suite.
 - **Assembly note names the operations (R6).** The note on assemblies names
@@ -74,7 +76,7 @@ assembly note) is in this version; this entry describes what it does.
   SOLIDWORKS file on that machine, not in this repository.
 
 **For whoever runs it.** The bench must be run again on this library: until then the
-check "the bench has been run" is red, by design. The contract suite has 875 checks.
+check "the bench has been run" is red, by design. The contract suite has 876 checks.
 
 ## 0.130.2 — 12 October 2026 · library 0.153.1 (unchanged)
 

@@ -178,7 +178,6 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
-
         /// <summary>
         /// Coarse similarity for the error message: it is enough that
         /// they share three characters in a row. It serves to suggest, not to
