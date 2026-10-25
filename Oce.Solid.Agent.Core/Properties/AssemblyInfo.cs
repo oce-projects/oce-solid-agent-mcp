@@ -530,8 +530,19 @@ using System.Runtime.InteropServices;
 //          which adds nothing on a bare view (probe of 8/10/2026), is gone. The call
 //          is never made on a view where a hole already has its mark: it doubles them.
 //          standard_views writes one journal line when it fires.
-[assembly: AssemblyVersion("0.153.1.0")]
-[assembly: AssemblyFileVersion("0.153.1.0")]
+// 0.153.2: usage report of 24 October 2026.
+//          Materials are matched by whole words (MaterialNameMatch): "PLA" no longer
+//          matches an unrelated plastic, and the ambiguity message says "material"
+//          instead of "steel". The plan log writes, for each step, the time of the
+//          state readings, of the operation and of the rebuild, and when the window
+//          in front changes during a plan it writes the step and the time since the
+//          start. The assembly note names the assembly operations (insert_component,
+//          mate, fix_component, replace_component, mirror_component, origin_mm).
+//          The state after a build is left out only when the plan wrote nothing, and
+//          inspect_part with "faces" on a part with no solid body answers empty with
+//          faces_note.
+[assembly: AssemblyVersion("0.153.2.0")]
+[assembly: AssemblyFileVersion("0.153.2.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -546,4 +557,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.153.1")]
+[assembly: AssemblyInformationalVersion("0.153.2")]
