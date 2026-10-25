@@ -957,8 +957,11 @@ namespace Oce.Solid.Agent.Tools
                 object kind;
                 docState.TryGetValue("kind", out kind);
                 // R9: an empty result instead of an error. A part with no solid body yet has no face to rank,
-                // so the filter is answered as empty; every other kind still refuses the filter.
-                if (Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) != "part")
+                // so the filter is answered as empty; every other kind still refuses the filter. A part that
+                // lists «bodies» has solid bodies: a missing «faces_filter» there is not an empty part, so it
+                // is refused too and never answered with zero faces.
+                if (Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) != "part" ||
+                    docState.ContainsKey("bodies"))
                     return Protocol.Content(
                         "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
                         "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
@@ -2400,7 +2403,20 @@ namespace Oce.Solid.Agent.Tools
             // saying «someone touched the part by hand». It would be the
             // false positive that entry X2 listed among the risks, and it would be
             // annoying in just the right measure to teach people to ignore the warning.
-            if (after != null && frontIsThePlans)
+            // R3: a plan that wrote nothing changed nothing, so its state is not repeated.
+            // «planRun» is null when the executor never ran: a step was refused by the checks
+            // above (path, shape, identifiers) and nothing was written. A throw of the executor
+            // is said by «executorThrew», and then what it wrote is not known.
+            bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);
+
+            // R3: AND WHAT IS NOT SENT IS NOT ADOPTED. The answer below carries no «state_after»,
+            // so the caller still holds the last reading it received: identity and signatures
+            // stay as they were, and a reading the caller never saw does not become «seen».
+            if (refusedBeforeWriting && frontIsThePlans)
+            {
+                // Nothing to adopt: see above.
+            }
+            else if (after != null && frontIsThePlans)
             {
                 _seenSignatures = StateSignatures(after);
                 _signatureSeen = LightSignature(after);
@@ -2435,9 +2451,6 @@ namespace Oce.Solid.Agent.Tools
                 _signatureSeen = null;
             }
             if (after != null) RemoveAnchors(after);
-
-            // R3: a plan that wrote nothing changed nothing, so its state is not repeated.
-            bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);
 
             var result = new Dictionary<string, object>
             {

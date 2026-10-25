@@ -44,7 +44,9 @@ assembly note) is in this version; this entry describes what it does.
   runs, or the executor stops before writing anything, `state_after` is now null and
   `note_state` says why. Before, the full state of a part, about 20,000 characters, was
   sent back after a refusal that had changed nothing. The full state is still sent after
-  any write, because the next plan must use the identifiers it carries.
+  any write, because the next plan must use the identifiers it carries. A refused plan also
+  adopts no reading: the identity and the signatures the next plan is compared with stay
+  those of the last state the caller received.
 - **Material search by whole words (R4).** Stage 4 of the material search matches whole
   words only: "PLA" no longer matches "Plastic..." or "PVC ... plasticized". The ambiguity
   message says "material", not "steel". The matching is in `MaterialNameMatch`, a pure
@@ -53,7 +55,8 @@ assembly note) is in this version; this entry describes what it does.
   insert_component, mate, fix_component, replace_component, mirror_component and
   origin_mm.
 - **`inspect_part` with "faces" on a part with no solid body (R9).** It answers an empty
-  list with `faces_note` instead of an error.
+  list with `faces_note` instead of an error. A part that has solid bodies is never
+  answered with zero faces.
 - **Bridge log: times and window changes (R1, R2).** For each step the bridge log writes
   the time of the state readings, of the operation and of the rebuild. When the window in
   front changes during a plan, it writes the step and the time since the plan started, to
