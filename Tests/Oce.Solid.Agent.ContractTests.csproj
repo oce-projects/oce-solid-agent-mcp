@@ -122,6 +122,8 @@
     <Compile Include="H19InstallerContract.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="SafetyNetSelfTests.cs" />
+    <Compile Include="MaterialNameMatchTests.cs" />
+    <Compile Include="UsageFeedbackContract.cs" />
     <!-- THE EVALUATOR OF THE EXPECTATIONS, the same file that the bench compiles.
          Not a copy: a copy diverges, and the day it diverges the suite
          with the CAD starts passing for reasons that are not seen here.-->
@@ -136,6 +138,9 @@
     </Compile>
     <Compile Include="..\Bench\ReflectionLog.cs">
       <Link>ReflectionLog.cs</Link>
+    </Compile>
+    <Compile Include="..\Oce.Solid.Agent.Core\MaterialNameMatch.cs">
+      <Link>MaterialNameMatch.cs</Link>
     </Compile>
   </ItemGroup>
 
