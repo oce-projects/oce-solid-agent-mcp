@@ -32,6 +32,52 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.130.3 — 25 October 2026 · library 0.153.2
+
+Documentation, version numbers and README badges. The code of the four parts before
+this one (material matching, plan log, build state, faces beyond the largest sixty,
+assembly note) is in this version; this entry describes what it does.
+
+**What changes.**
+
+- **`build` refused before writing (R3).** When a plan is refused before the executor
+  runs, or the executor stops before writing anything, `state_after` is now null and
+  `note_state` says why. Before, the full state of a part, about 20,000 characters, was
+  sent back after a refusal that had changed nothing. The full state is still sent after
+  any write, because the next plan must use the identifiers it carries. A refused plan also
+  adopts no reading: the identity and the signatures the next plan is compared with stay
+  those of the last state the caller received.
+- **Material search by whole words (R4).** Stage 4 of the material search matches whole
+  words only: "PLA" no longer matches "Plastic..." or "PVC ... plasticized". Adjacent whole
+  words written without the space still match, so "AISI304" finds "AISI 304 Stainless
+  Steel". The ambiguity
+  message says "material", not "steel". The matching is in `MaterialNameMatch`, a pure
+  class with no SOLIDWORKS dependency, covered by the contract suite.
+- **Assembly note names the operations (R6).** The note on assemblies names
+  insert_component, mate, fix_component, replace_component, mirror_component and
+  origin_mm.
+- **`inspect_part` with "faces" on a part with no solid body (R9).** It answers an empty
+  list with `faces_note` instead of an error. A part that has solid bodies is never
+  answered with zero faces.
+- **Bridge log: times and window changes (R1, R2).** For each step the bridge log writes
+  the time of the state readings, of the operation and of the rebuild. When the window in
+  front changes during a plan, it writes the step and the time since the plan started, to
+  be compared with the 20-second poll of the add-in.
+
+**What does NOT change, and why.**
+
+- R1, the cause of the window change, is not found here: it is outside the bridge. The
+  log above is the measurement that will locate it.
+- R5 (dimensioned profiles) and R7 (axis mapping in the catalogue descriptions) come in a
+  later version. R7 needs a regeneration of `Tools/catalog.json`.
+- R8 already exists: the "configuration" argument of `set_property` writes to a
+  configuration.
+- The PLA material must be added to the material library of the workstation. It is a
+  SOLIDWORKS file on that machine, not in this repository.
+
+**For whoever runs it.** The bench must be run again on this library: until then the
+check "the bench has been run" is red, by design. The contract suite has 876 checks.
+
 ## 0.130.2 — 12 October 2026 · library 0.153.1 (unchanged)
 
 Documents, tests and installer. **No operation and no file of the library or of the

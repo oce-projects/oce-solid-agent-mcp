@@ -500,12 +500,15 @@ namespace Oce.Solid.Agent.Core
             // A model that reads «I see four components but I do not know how to
             // mate them» knows what it can ask; one that reads «I do not modify it»
             // can only stop.
+            //
+            // The note had fallen behind the operations (R6 of the usage report of 24/10/2026):
+            // it now names them, and says what is still missing.
             data["solid_body"] = false;
             data["what_cannot_be_done_yet"] =
-                "Of this assembly I can say how it is made, not change it: inserting " +
-                "components, mating them and reading their remaining degrees of " +
-                "freedom are not operations yet. The positions of the components " +
-                "are not in this state.";
+                "The assembly operations are insert_component, mate, fix_component, replace_component and mirror_component " +
+                "(«list_operations» with family «assemblies»). Each component says where its origin is in «origin_mm». " +
+                "What is still missing: SOLIDWORKS does not always give the remaining degrees of freedom; when a component " +
+                "says «degrees_of_freedom_state: unavailable», only «resting» (not fixed and with no mates) is known about it.";
         }
 
         /// <summary>

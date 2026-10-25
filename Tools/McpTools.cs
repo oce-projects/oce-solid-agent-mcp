@@ -298,7 +298,8 @@ namespace Oce.Solid.Agent.Tools
                     "so in «document_in_front» and «note_document_in_front» (after " +
                     "a drawing step it is the new drawing, and the next plan works " +
                     "on it). «undo_entry_recorded» says whether the plan left its " +
-                    "own undo entry, the one an undo takes away.",
+                    "own undo entry, the one an undo takes away. When the plan wrote nothing " +
+                    "(refused before its first write), «state_after» is null and «note_state» says so.",
                     Object(
                         new Dictionary<string, object>
                         {
@@ -955,10 +956,21 @@ namespace Oce.Solid.Agent.Tools
             {
                 object kind;
                 docState.TryGetValue("kind", out kind);
-                return Protocol.Content(
-                    "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
-                    "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
-                    "») has none to rank. Ask again without «faces».", true);
+                // R9: an empty result instead of an error. A part with no solid body yet has no face to rank,
+                // so the filter is answered as empty; every other kind still refuses the filter. A part that
+                // lists «bodies» has solid bodies: a missing «faces_filter» there is not an empty part, so it
+                // is refused too and never answered with zero faces.
+                if (Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) != "part" ||
+                    docState.ContainsKey("bodies"))
+                    return Protocol.Content(
+                        "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
+                        "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
+                        "») has none to rank. Ask again without «faces».", true);
+
+                docState["faces_total"] = 0;
+                docState["faces_matched"] = 0;
+                docState["faces_filter"] = facesWanted.Describe();
+                docState["faces_note"] = "This part has no solid body yet: there is no face to filter, so none is listed.";
             }
             _seen = StateIdentity(docState);
             _signatureSeen = LightSignature(docState);
@@ -1513,6 +1525,11 @@ namespace Oce.Solid.Agent.Tools
         private const string NothingTouched =
             " The plan was not run at all: the document is left " +
             "as it was. Fix this step and send the whole plan again.";
+
+        // R3: a refusal of form returned about 20,000 characters of state.
+        private const string StateNotRepeated =
+            "The plan wrote nothing, so the state of the document is not repeated here: it is as your last " +
+            "reading left it. Ask «inspect_part» if you need it again.";
 
         /// <summary>
         /// `measure` — `build` without the permission to touch.
@@ -2386,7 +2403,20 @@ namespace Oce.Solid.Agent.Tools
             // saying «someone touched the part by hand». It would be the
             // false positive that entry X2 listed among the risks, and it would be
             // annoying in just the right measure to teach people to ignore the warning.
-            if (after != null && frontIsThePlans)
+            // R3: a plan that wrote nothing changed nothing, so its state is not repeated.
+            // «planRun» is null when the executor never ran: a step was refused by the checks
+            // above (path, shape, identifiers) and nothing was written. A throw of the executor
+            // is said by «executorThrew», and then what it wrote is not known.
+            bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);
+
+            // R3: AND WHAT IS NOT SENT IS NOT ADOPTED. The answer below carries no «state_after»,
+            // so the caller still holds the last reading it received: identity and signatures
+            // stay as they were, and a reading the caller never saw does not become «seen».
+            if (refusedBeforeWriting && frontIsThePlans)
+            {
+                // Nothing to adopt: see above.
+            }
+            else if (after != null && frontIsThePlans)
             {
                 _seenSignatures = StateSignatures(after);
                 _signatureSeen = LightSignature(after);
@@ -2429,8 +2459,8 @@ namespace Oce.Solid.Agent.Tools
                 // was not.
                 ["document"] = ReadableName(now),
                 ["outcomes"] = outcomes,
-                ["state_after"] = after,
-                ["note_state"] = after == null ? stateError : null,
+                ["state_after"] = refusedBeforeWriting ? null : after,
+                ["note_state"] = refusedBeforeWriting ? StateNotRepeated : (after == null ? stateError : null),
                 ["volume_before_mm3"] = Volume(before),
                 // On the plan's document, like the line above (Z-C21.14).
                 ["volume_after_mm3"] = Volume(planStateAfter),
@@ -2444,6 +2474,10 @@ namespace Oce.Solid.Agent.Tools
                 result["note_document_in_front"] =
                     NoteDocumentInFront(ReadableName(planIdentity), ReadableName(frontIdentity), frontIsThePlans) +
                     (planStateAfter == null && planStateError != null ? " " + planStateError : "");
+                // R3: say why «state_after» is not attached when the plan wrote nothing.
+                if (refusedBeforeWriting)
+                    result["note_document_in_front"] = Convert.ToString(result["note_document_in_front"], CultureInfo.InvariantCulture) +
+                        " This plan wrote nothing, so «state_after» is not attached: call «inspect_part» on the document you want to work on.";
             }
 
             // WHETHER THE PLAN LEFT AN UNDO ENTRY (Z-C21.14): true, one entry

@@ -209,6 +209,7 @@ namespace Oce.Solid.Agent.Core
             CancellationToken undo = default(CancellationToken))
         {
             var result = new Result();
+            var planClock = System.Diagnostics.Stopwatch.StartNew();
 
             // If the plan does not say which document it applies to, the active
             // one now is taken — but ONCE only, and from here on that is the one.
@@ -353,8 +354,11 @@ namespace Oce.Solid.Agent.Core
                     // The state of the document the plan works on (M19), not
                     // of whatever window is in front: a changed window is
                     // caught right before the step writes, below.
+                    var stepClock = System.Diagnostics.Stopwatch.StartNew();
+                    long stateForSourceMs = 0, readingMs = 0, operationMs = 0, rebuildMs = 0;
                     var docState = (Dictionary<string, object>)await _onSwThread(() =>
                         DocumentState.Read(expectedDocument)?.Data);
+                    stateForSourceMs = stepClock.ElapsedMilliseconds;
 
                     var next = await _source.NextAsync(docState);
 
@@ -401,6 +405,9 @@ namespace Oce.Solid.Agent.Core
                         // to AFTER. Between the two there is the whole HTTP round trip.
                         if (!SameObject(model, expectedDocument))
                         {
+                            // The cause of R1 (usage report of 24/10/2026) is not known yet. The time
+                            // since the plan started is what is compared with the 20-second poll of an add-in.
+                            _log("[agent] the window in front changed during the plan: step " + planStep.Order + " (" + planStep.Operation + "), expected «" + expectedPath + "», in front «" + Identity(model) + "», " + planClock.ElapsedMilliseconds + " ms after the plan started");
                             return new SwOperations.Outcome
                             {
                                 Succeeded = false,
@@ -412,7 +419,9 @@ namespace Oce.Solid.Agent.Core
                             };
                         }
 
+                        var readingClock = System.Diagnostics.Stopwatch.StartNew();
                         var reading = DocumentState.Read(model);
+                        readingMs = readingClock.ElapsedMilliseconds;
                         var operations = new SwOperations(_sw, _log);
 
                         // Entry Z-C4: it announces what it is about to do. The
@@ -424,13 +433,18 @@ namespace Oce.Solid.Agent.Core
                         // `SwOperations.Outcome` with the full name: `Outcome` is a
                         // nested class, and without the prefix the compiler
                         // does not find it.
+                        var operationClock = System.Diagnostics.Stopwatch.StartNew();
                         SwOperations.Outcome e;
                         try
                         {
                             e = operations.Run(
                                 model, planStep.Operation, planStep.Arguments, reading, stepsDone);
                         }
-                        finally { _leash.Finished(); }
+                        finally
+                        {
+                            _leash.Finished();
+                            operationMs = operationClock.ElapsedMilliseconds;
+                        }
                         if (e.Succeeded)
                         {
                             // What this step created stays at the
@@ -450,7 +464,9 @@ namespace Oce.Solid.Agent.Core
                             // A rebuild after every step: that way an error is
                             // seen at once and not at the end, when it is no
                             // longer known which step caused it.
+                            var rebuildClock = System.Diagnostics.Stopwatch.StartNew();
                             try { model.EditRebuild3(); } catch { }
+                            rebuildMs = rebuildClock.ElapsedMilliseconds;
 
                             // IF THE STEP DECLARED THAT IT CHANGED
                             // DOCUMENT, we follow it. Only if it declares it:
@@ -493,6 +509,10 @@ namespace Oce.Solid.Agent.Core
                             }
                             : null,
                         outcome.Error);
+
+                    // R2: measure before optimising. Every step reads the state twice and rebuilds;
+                    // these timings show which of those costs the time.
+                    _log("[agent] step timing: step " + planStep.Order + " (" + planStep.Operation + ") " + stepClock.ElapsedMilliseconds + " ms in all: state for the source " + stateForSourceMs + " ms, state for the step " + readingMs + " ms, operation " + operationMs + " ms, rebuild " + rebuildMs + " ms");
 
                     if (!outcome.Succeeded)
                     {
