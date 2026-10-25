@@ -41,6 +41,10 @@ namespace Oce.Solid.Agent.ContractTests
             var blank = Oce.Solid.Agent.Core.MaterialNameMatch.Candidates(plastics, "  ");
             Check("a blank search finds nothing", blank.Count == 0, Describe(blank));
 
+            var stainless = new List<string> { "AISI 304 Stainless Steel", "AISI 316 Stainless Steel", "Plastic Blend" };
+            var joined = Oce.Solid.Agent.Core.MaterialNameMatch.Candidates(stainless, "AISI304");
+            Check("AISI304 finds AISI 304 Stainless Steel (adjacent words without the space)", Exactly(joined, 0), Describe(joined));
+
             var sourcePath = Path.Combine(Root(), "Oce.Solid.Agent.Core", "SolidWorksMaterials.cs");
             bool present = File.Exists(sourcePath);
             string source = present ? File.ReadAllText(sourcePath) : "";

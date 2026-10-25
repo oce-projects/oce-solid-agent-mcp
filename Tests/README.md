@@ -9,7 +9,7 @@ It exits **0** if nothing fails, **1** otherwise, and writes
 `Tests\bin\results.xml` in JUnit format — the one that every CI can read without
 anybody teaching it anything.
 
-**875 checks, a few seconds, no licence.**
+**876 checks, a few seconds, no licence.**
 
 That number is not decorative: **there is a check that rereads it from this file
 and compares it with how many really run**, and it is the last one of the run
@@ -39,7 +39,7 @@ by talking to them **over stdio**, as any client would.
 
 | group | |
 |---|---|
-| **the material is found by whole words (R4)** | 7 checks: a name is found by its whole words only, so PLA finds no plastic, and Steel finds Alloy Steel but not Stainless Steelwork. The source must call the whole-word match. |
+| **the material is found by whole words (R4)** | 8 checks: a name is found by its whole words only, so PLA finds no plastic, and Steel finds Alloy Steel but not Stainless Steelwork. AISI304 still finds AISI 304 Stainless Steel, because adjacent whole words may be written without the space. The source must call the whole-word match. |
 | **the usage report of 24/10/2026** | 5 checks: the source anchors of the fixes in the assembly state, the executor and the tools (window in front, step timing, refusal before writing, faces note). They read the sources; the behaviour is in the bench. |
 | **the sources are in the projects** | every `.cs` of `Oce.Solid.Agent.Core`, `Bridge`, `Tools`, `Mcp`, `Bench`, `Tests` and `Installer` appears among the `<Compile Include>` of its `.csproj`. **A file that is not there is not compiled**, and if nobody references it yet the build stays GREEN and the code does not exist: the defect that gives no error, applied to the project instead of the part |
 | **the expectation evaluator** | right/wrong number, absolute tolerances, missing field, lists, indexes, selectors. It is the **same file** that the bench compiles (`..\Bench\Expectations.cs`), not a copy |

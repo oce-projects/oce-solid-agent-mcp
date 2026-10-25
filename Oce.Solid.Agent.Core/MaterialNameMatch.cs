@@ -42,9 +42,9 @@ namespace Oce.Solid.Agent.Core
                 if (string.Equals(Compact(InParentheses(names[i])), compactSearched, StringComparison.OrdinalIgnoreCase)) result.Add(i);
             if (result.Count > 0) return result;
 
-            // 4. every word asked for appears as a whole word in the name
+            // 4. every word asked for appears as a whole word in the name, or the search is adjacent whole words written without spaces: «AISI304» for «AISI 304 ...»
             for (int i = 0; i < names.Count; i++)
-                if (ContainsWholeWords(names[i], searched)) result.Add(i);
+                if (ContainsWholeWords(names[i], searched) || JoinsAdjacentWords(names[i], searched)) result.Add(i);
             return result;
         }
 
@@ -83,6 +83,39 @@ namespace Oce.Solid.Agent.Core
             foreach (var token in tokens)
                 if (!OccursAsWord(name, token)) return false;
             return true;
+        }
+
+        /// <summary>
+        /// True if a run of one or more CONSECUTIVE words of <paramref name="name"/> (a word is
+        /// a maximal run of letters or digits), joined without spaces, equals
+        /// <paramref name="searched"/> with its whitespace removed, ignoring case.
+        /// «AISI304» finds «AISI 304 Stainless Steel».
+        /// </summary>
+        internal static bool JoinsAdjacentWords(string name, string searched)
+        {
+            string c = Compact(searched);
+            if (string.IsNullOrEmpty(name) || c.Length == 0) return false;
+
+            var words = new List<string>();
+            var current = new System.Text.StringBuilder();
+            foreach (var ch in name)
+            {
+                if (char.IsLetterOrDigit(ch)) current.Append(ch);
+                else if (current.Length > 0) { words.Add(current.ToString()); current.Clear(); }
+            }
+            if (current.Length > 0) words.Add(current.ToString());
+
+            for (int first = 0; first < words.Count; first++)
+            {
+                var joined = new System.Text.StringBuilder();
+                for (int last = first; last < words.Count; last++)
+                {
+                    joined.Append(words[last]);
+                    if (joined.Length > c.Length) break;
+                    if (string.Equals(joined.ToString(), c, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+            return false;
         }
 
         private static bool OccursAsWord(string name, string token)
