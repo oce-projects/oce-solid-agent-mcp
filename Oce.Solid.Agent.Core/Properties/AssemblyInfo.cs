@@ -570,8 +570,12 @@ using System.Runtime.InteropServices;
 //          the sketch as before. Origin selection and the two dimension calls not
 //          measured yet: probe Checks\DrivenSketch, bench case
 //          a_profile_is_driven_by_its_vertices.
-[assembly: AssemblyVersion("0.162.0.0")]
-[assembly: AssemblyFileVersion("0.162.0.0")]
+// 0.162.1: brief R16 seen on SOLIDWORKS, an «expect» of volume on a step that
+//          measures none (extrude_profile) failed after the step had run; the
+//          plan executor now reads the volume of the part when it is asked for
+//          and the step did not give it (PlanExecutor.WithVolumeIfAsked).
+[assembly: AssemblyVersion("0.162.1.0")]
+[assembly: AssemblyFileVersion("0.162.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -586,4 +590,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.162.0")]
+[assembly: AssemblyInformationalVersion("0.162.1")]

@@ -32,6 +32,30 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.140.2 — 26 October 2026 · library 0.162.1 · the volume an «expect» asks for is read from the part (brief R16; branch `night-2026-10-26-asm`)
+
+- **First run of this branch on SOLIDWORKS** (26/10/2026, bridge 0.140.1, scenarios
+  t9 to t12 and the probes `DrivenSketch` and `UndoSplit`). What held: placing and
+  mating components, the side of a distance mate, a face named by a point (R12, R21);
+  the `edges` filter (R17); the `scope` of properties (R8); a wrong `expect` stops the
+  plan (R16); a profile driven by its vertices, linked to a global variable, gives the
+  volumes computed beforehand, 16,500 and 17,000 mm³ (R5). What did not: the three
+  points below, and two more still open, R11 (one undo of a profile plus a chamfer
+  takes away only the chamfer, in the three lock modes of the probe: locking the
+  sketch is not the cause) and R23 (on an assembly `FinishRecordingUndoObject`
+  answers false after every plan, and the memory of a plan is never made there).
+- **R16: `expect` `volume_mm3` on a step that measures no volume.** `extrude_profile`
+  answered «this step does not measure it», and only after the step had run, so the
+  plan stopped with the body made. The volume of the part is the same for every
+  operation: `PlanExecutor.WithVolumeIfAsked` reads it once, from the part, when the
+  expectation asks for `volume_mm3` or `volume_after_mm3` and the step did not give
+  it. When it cannot be read, the miss says so as before. `SwOperations.VolumeMm3`
+  is now internal.
+- **R5, seen on the probe.** A vertex with a zero coordinate gets no dimension from
+  the origin: it gets a vertical or horizontal relation with it, so that coordinate
+  cannot be driven later. 10 dimensions out of 12 on the L profile of the probe.
+  Not changed yet.
+
 ## 0.140.1 — 26 October 2026 · library 0.162.0 · ten calls at once, and the probe of the split undo (briefs R14 and R11; branch `night-2026-10-26-asm`)
 
 - **R14, ten calls at once.** On 25/10/2026 six `api_search` sent together got one

@@ -530,7 +530,8 @@ namespace Oce.Solid.Agent.Core
                             // what the step made stays, and «undo» withdraws the plan.
                             if (planStep.Expect != null)
                             {
-                                var misses = StepExpectations.Misses(planStep.Expect, e.Measurements);
+                                var misses = StepExpectations.Misses(
+                                    planStep.Expect, WithVolumeIfAsked(planStep.Expect, e.Measurements, expectedDocument));
                                 if (misses.Count > 0)
                                 {
                                     e.Succeeded = false;
@@ -610,6 +611,35 @@ namespace Oce.Solid.Agent.Core
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Brief R16, seen on SOLIDWORKS on 26/10/2026 (scenarios t11 and t12): a
+        /// step whose operation measures no volume (extrude_profile) answered
+        /// «volume_mm3: this step does not measure it» to its «expect», and only
+        /// after it had run. The volume of the part is the same for every
+        /// operation, so it is read here, once, when the expectation asks for it
+        /// and the step did not give it. Read from the part, never assumed: when
+        /// it cannot be read the measurements go on as they were, and the miss
+        /// says so.
+        /// </summary>
+        internal static Dictionary<string, object> WithVolumeIfAsked(
+            Dictionary<string, object> expect, Dictionary<string, object> measurements, IModelDoc2 document)
+        {
+            if (expect == null || document == null) return measurements;
+            if (!expect.ContainsKey("volume_mm3") && !expect.ContainsKey("volume_after_mm3")) return measurements;
+            object given;
+            if (measurements != null &&
+                ((measurements.TryGetValue("volume_after_mm3", out given) && given != null) ||
+                 (measurements.TryGetValue("volume_mm3", out given) && given != null)))
+                return measurements;
+            double? volume = SwOperations.VolumeMm3(document);
+            if (volume == null) return measurements;
+            var withVolume = measurements == null
+                ? new Dictionary<string, object>()
+                : new Dictionary<string, object>(measurements);
+            withVolume["volume_after_mm3"] = Math.Round((double)volume, 2);
+            return withVolume;
         }
 
         /// <summary>

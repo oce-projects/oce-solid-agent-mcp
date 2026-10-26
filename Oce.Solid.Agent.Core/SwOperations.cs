@@ -6598,7 +6598,7 @@ namespace Oce.Solid.Agent.Core
         /// and so for all eleven sizes from M3 to M24. On a vector
         /// read wrong those numbers would not add up.
         /// </summary>
-        private static double? VolumeMm3(IModelDoc2 model)
+        internal static double? VolumeMm3(IModelDoc2 model)
         {
             var partDoc = model as IPartDoc;
             if (partDoc == null) return null;
