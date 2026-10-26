@@ -364,6 +364,7 @@ namespace Oce.Solid.Agent.ContractTests
             NoInterop();
             EverySourceIsInItsOwnProject();
             EveryEnvironmentVariableIsInTheReadme();
+            TheOperationsWithoutStateMatchTheSwitch();
             TheBenchReadmeCountsTheRightFiles();
             EveryCatalogFamilyHasAnAllowedDocument();
             EveryCasesFolderIsInTheList();
@@ -637,6 +638,72 @@ namespace Oce.Solid.Agent.ContractTests
         /// variable explained at length in a paragraph is documented. The
         /// check does not demand a form, it demands that the name be there.
         /// </summary>
+        /// <summary>
+        /// THE OPERATIONS THAT SKIP THE READING ARE THE ONES THAT NEVER RECEIVE IT
+        /// (brief R2, 26/10/2026).
+        ///
+        /// `SwOperations.OperationsWithoutState` tells the executor which steps
+        /// need no reading of the document. It is a list written by hand next to
+        /// the switch of `SwOperations.Run`, and a list next to a switch goes
+        /// stale: an operation that starts to look at `docState` and stays in
+        /// the list would get an empty reading, find no identifier, and fail
+        /// on a plan that was right. Here the switch is read as text, case by
+        /// case, and the two must say the same thing.
+        /// </summary>
+        private static void TheOperationsWithoutStateMatchTheSwitch()
+        {
+            Group("the operations read without state are the ones the switch does not pass it to");
+
+            var file = Path.Combine(Root(), "Oce.Solid.Agent.Core", "SwOperations.cs");
+            string source;
+            try { source = File.ReadAllText(file); }
+            catch (Exception ex) { Check("SwOperations.cs can be read", false, ex.Message); return; }
+
+            // The list, from its literal.
+            var listStart = source.IndexOf("OperationsWithoutState =", StringComparison.Ordinal);
+            var listEnd = listStart < 0 ? -1 : source.IndexOf("};", listStart, StringComparison.Ordinal);
+            if (listStart < 0 || listEnd < 0) { Check("the list is there", false, file); return; }
+            var listed = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (System.Text.RegularExpressions.Match m in
+                     System.Text.RegularExpressions.Regex.Matches(
+                         source.Substring(listStart, listEnd - listStart), "\"([a-z_0-9]+)\""))
+                listed.Add(m.Groups[1].Value);
+
+            // The switch: every group of `case` labels takes the first `return`
+            // after it; the group uses the state when that return passes `docState`.
+            var lines = source.Replace("\r\n", "\n").Split('\n');
+            int start = Array.FindIndex(lines, l => l.Contains("switch (operation)"));
+            if (start < 0) { Check("the switch of Run is there", false, file); return; }
+            var withoutState = new SortedSet<string>(StringComparer.Ordinal);
+            var withState = new SortedSet<string>(StringComparer.Ordinal);
+            var pending = new List<string>();
+            var caseShape = new System.Text.RegularExpressions.Regex("^case \"([a-z_0-9]+)\":\\s*(.*)$");
+            for (int i = start + 1; i < lines.Length; i++)
+            {
+                var l = lines[i].Trim();
+                if (l.StartsWith("default:", StringComparison.Ordinal)) break;
+                var m = caseShape.Match(l);
+                string rest = null;
+                if (m.Success) { pending.Add(m.Groups[1].Value); rest = m.Groups[2].Value; }
+                else if (pending.Count > 0 && l.StartsWith("return", StringComparison.Ordinal)) rest = l;
+                if (rest == null || !rest.StartsWith("return", StringComparison.Ordinal)) continue;
+                foreach (var p in pending) (rest.Contains("docState") ? withState : withoutState).Add(p);
+                pending.Clear();
+            }
+
+            Check("the switch has operations to compare", withoutState.Count + withState.Count >= 60,
+                  (withoutState.Count + withState.Count) + " operations");
+            var wrong = listed.Where(withState.Contains).ToList();
+            Check("no operation in the list passes the state on", wrong.Count == 0,
+                  wrong.Count == 0 ? listed.Count + " listed" : "THEY USE IT: " + string.Join(", ", wrong));
+            var missing = withoutState.Where(x => !listed.Contains(x)).ToList();
+            Check("every operation that does not pass the state on is in the list", missing.Count == 0,
+                  missing.Count == 0 ? withoutState.Count + " without state" : "MISSING: " + string.Join(", ", missing));
+            var unknown = listed.Where(x => !withoutState.Contains(x) && !withState.Contains(x)).ToList();
+            Check("every operation in the list is in the switch", unknown.Count == 0,
+                  unknown.Count == 0 ? "all known" : "NOT IN THE SWITCH: " + string.Join(", ", unknown));
+        }
+
         private static void EveryEnvironmentVariableIsInTheReadme()
         {
             Group("the environment variables are in the README");

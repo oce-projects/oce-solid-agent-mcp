@@ -477,6 +477,14 @@ namespace Oce.Solid.Agent.Core
             // only when things went wrong teaches not to look for it.*
             DescribeExplodedView(assemblyDoc, data);
 
+            // ── THE MATES BY NAME (brief R22) ────────────────────────────
+            //
+            // On 25/10/2026 a wrong distance mate could not be taken out: the
+            // state had the count of mates of each component and their kinds,
+            // and no name to cite. «suppress_feature "Distanza1"» was refused
+            // because the name was not in the reading.
+            DescribeMates(assemblyDoc as IModelDoc2, entries, data);
+
             // ── THE ACTIVE CONFIGURATION ─────────────────────────────────
             // An assembly has one just like a part, and getting it wrong means measuring
             // a different variant from the one that was confirmed.
@@ -619,6 +627,89 @@ namespace Oce.Solid.Agent.Core
         /// because whoever reads the name believes it.
         /// </summary>
         /// <summary>The types of the mates of a component, by name; null if they cannot be read.</summary>
+        /// <summary>
+        /// Every mate of the assembly, in the order of the tree: its uid («M1» is
+        /// the first, positional like «C1» and renumbered when a mate goes), its
+        /// name (SOLIDWORKS's, in the language of the session: «Coincidente1» in
+        /// Italian, «Coincident1» in English), both taken by «suppress_mate» and
+        /// «delete_mate»; its kind, whether it is
+        /// suppressed, and the components it holds by their uid. The mates are
+        /// the sub-features of the MateGroup feature, as in
+        /// <c>OnlyStandardMates</c>; IMate2~MateEntity.html gives each entity and
+        /// IMateEntity2~ReferenceComponent.html its component. A component of a
+        /// sub-assembly, or one the list did not name, is given by its name.
+        /// Written as an empty list when there is no mate; left out with
+        /// «mates_note» when the tree could not be read.
+        /// </summary>
+        private static void DescribeMates(
+            IModelDoc2 model, List<KeyValuePair<string, IComponent2>> entries, Dictionary<string, object> data)
+        {
+            if (model == null) return;
+            var uidOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < entries.Count; i++) uidOf[entries[i].Key] = "C" + (i + 1);
+
+            var list = new List<Dictionary<string, object>>();
+            int total = 0, suppressed = 0;
+            try
+            {
+                IFeature group = null;
+                var f = model.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    if (f.GetTypeName2() == "MateGroup") { group = f; break; }
+                    f = f.GetNextFeature() as IFeature;
+                }
+                var sub = group == null ? null : group.GetFirstSubFeature() as IFeature;
+                while (sub != null)
+                {
+                    var mate = sub.GetSpecificFeature2() as IMate2;
+                    if (mate != null)
+                    {
+                        total++;
+                        var entry = new Dictionary<string, object> { ["uid"] = "M" + total };
+                        string name = null;
+                        try { name = sub.Name; } catch { }
+                        entry["name"] = name;
+                        try { entry["kind"] = TypeName(mate.Type); } catch { entry["kind"] = null; }
+                        bool? off = null;
+                        try { off = ApiHelpers.IsSuppressedHere(sub); } catch { }
+                        entry["suppressed"] = off;
+                        if (off == true) suppressed++;
+                        var held = new List<string>();
+                        try
+                        {
+                            int n = mate.GetMateEntityCount();
+                            for (int k = 0; k < n; k++)
+                            {
+                                var e = mate.MateEntity(k) as IMateEntity2;
+                                var c = e == null ? null : e.ReferenceComponent as IComponent2;
+                                string cn = null;
+                                try { cn = c == null ? null : c.Name2; } catch { }
+                                string uid;
+                                held.Add(cn == null ? "?" : uidOf.TryGetValue(cn, out uid) ? uid : cn);
+                            }
+                        }
+                        catch { }
+                        entry["components"] = held;
+                        if (list.Count < MaxMates) list.Add(entry);
+                    }
+                    sub = sub.GetNextSubFeature() as IFeature;
+                }
+            }
+            catch (Exception ex)
+            {
+                data["mates_note"] = "The list of mates could not be read: " + ex.Message;
+                return;
+            }
+            data["mates_list"] = list;
+            data["mates_total"] = total;
+            data["mates_suppressed"] = suppressed;
+            if (total > MaxMates) data["mates_not_listed"] = total - MaxMates;
+        }
+
+        /// <summary>How many mates the state lists by name.</summary>
+        private const int MaxMates = 60;
+
         private static string[] MateTypes(IComponent2 c)
         {
             try

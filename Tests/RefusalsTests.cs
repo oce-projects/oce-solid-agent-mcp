@@ -271,8 +271,16 @@ namespace Oce.Solid.Agent.ContractTests
         /// **228, W3.1-bis.10b (6/10/2026): +1.** The mate refuses an alignment that is
         /// neither «aligned» nor «opposite» (it used to build an aligned mate in silence),
         /// and the refusal says what to write: 228 of 938.
+        /// **231, brief of 25/10/2026 (26/10/2026): +3.** A hole or a pocket that
+        /// SOLIDWORKS did not draw where it was asked, and a through hole that
+        /// drilled no wall, are refused (they used to answer «succeeded»), and each
+        /// refusal says what to try: 231 of 941. **240 the same day: +9.** suppress_mate
+        /// and delete_mate (brief R22) say in each refusal what to send or read
+        /// again: 240 of 952. **241: +1.** save_document, refused on its own file,
+        /// names the two causes measured that night and says to save under a new
+        /// name: 241 of 952.
         /// </summary>
-        private const int Floor = 228;
+        private const int Floor = 241;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -286,8 +294,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 228;   // 6/10/2026, W3.1-bis.10b: 228 of 938 (W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 938;
+        private const int ShareFloorWithRemedy = 241;   // 26/10/2026, briefs R10 and R22, and save_document: 241 of 952 (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 952;
 
         /// <summary>
         /// The openings with which this code says no.

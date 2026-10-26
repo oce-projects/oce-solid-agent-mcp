@@ -685,7 +685,7 @@ cases/document_properties/   12   the two drawers, and the code that goes into t
                        material reaches every configuration (Z-C21, M10)
 cases/text/        6   engraving, and the lettering that comes out of the face
 cases/frames/        1   the welded profiles, read from the standard library ({PROFILES})
-cases/assemblies/     23   inserting is not mating; one constraint is not enough;
+cases/assemblies/     24   inserting is not mating; one constraint is not enough;
                        two equal bases and a STEP: one shape per part,
                        the mass per instance (Z-C20);
                        the rebuilt cover keeps the constraints and breaks them;
@@ -712,7 +712,9 @@ cases/assemblies/     23   inserting is not mating; one constraint is not enough
                        is refused as redundant and taken out, and a parallel
                        after it blocks RY only (Z-C14); the first component goes
                        into an empty assembly, where the count was read off a
-                       null array (D9 defect 3)
+                       null array (D9 defect 3); a wrong mate is taken out by its
+                       uid: listed in the state, suppressed, turned back on and
+                       deleted, each read back (brief R22)
 cases/drawing/      43   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the

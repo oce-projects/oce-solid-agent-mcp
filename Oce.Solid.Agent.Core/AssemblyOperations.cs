@@ -59,6 +59,12 @@ namespace Oce.Solid.Agent.Core
                     "full path of the file, and it must be one of the documents " +
                     "already open. You find them in «documents_open» of the state.");
 
+            // THE PATH IN WINDOWS FORM (26/10/2026): «C:/folder/part.SLDPRT» found
+            // the open document (IsOpen compares normalised paths) and AddComponent5
+            // answered null with it, while the same path with backslashes inserted
+            // the component. Path.GetFullPath turns the slashes round.
+            try { filePath = Path.GetFullPath(filePath.Trim()); } catch (Exception) { }
+
             if (!File.Exists(filePath))
                 return Failed(
                     "The file «" + filePath + "» does not exist. " + WhatIsOpen());

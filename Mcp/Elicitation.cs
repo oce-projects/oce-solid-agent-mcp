@@ -77,6 +77,16 @@ namespace Oce.Solid.Agent.Mcp
         private static int _nextId = 9000;
 
         /// <summary>
+        /// WHAT THE CLIENT REALLY ANSWERED to the last confirmation (brief R22),
+        /// in words: «accept», «decline», «cancel», an error with its code and
+        /// message, no answer before the deadline, the client gone. On
+        /// 25/10/2026 the bridge said «the confirmation did not arrive» when an
+        /// answer HAD arrived within a millisecond, and nobody could tell what it
+        /// was: the refusal now quotes it.
+        /// </summary>
+        public static string LastAnswer { get; private set; }
+
+        /// <summary>
         /// Asks the user for confirmation and returns **true only if they said yes**.
         ///
         /// It returns false for `decline`, for `cancel`, for an answer that is not
@@ -87,6 +97,7 @@ namespace Oce.Solid.Agent.Mcp
         public static bool Confirm(TextWriter output, TextReader input,
                                     string message, int expiryMs = 300000)
         {
+            LastAnswer = "nothing asked";
             if (output == null || input == null) return false;
 
             int id = System.Threading.Interlocked.Increment(ref _nextId);
@@ -115,8 +126,8 @@ namespace Oce.Solid.Agent.Mcp
             {
                 string line;
                 try { line = input.ReadLine(); }
-                catch { return false; }
-                if (line == null) return false;          // the client has gone away
+                catch (Exception ex) { LastAnswer = "the channel could not be read: " + ex.Message; return false; }
+                if (line == null) { LastAnswer = "the client closed the channel"; return false; }
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
                 Dictionary<string, object> m;
@@ -136,12 +147,27 @@ namespace Oce.Solid.Agent.Mcp
 
                 var result = (m.TryGetValue("result", out var r)
                     ? r as Dictionary<string, object> : null);
-                if (result == null) return false;      // an `error` is a no
+                if (result == null)
+                {
+                    // an `error` is a no, and it is quoted as it came
+                    var error = m.TryGetValue("error", out var e) ? e as Dictionary<string, object> : null;
+                    LastAnswer = error == null
+                        ? "an answer with neither result nor error"
+                        : "an error, code " + Convert.ToString(error.TryGetValue("code", out var c) ? c : "?") +
+                          ": «" + Convert.ToString(error.TryGetValue("message", out var msg) ? msg : "") + "»";
+                    return false;
+                }
                 object action;
-                if (!result.TryGetValue("action", out action)) return false;
+                if (!result.TryGetValue("action", out action))
+                {
+                    LastAnswer = "a result without «action»";
+                    return false;
+                }
+                LastAnswer = "«" + Convert.ToString(action) + "»";
                 return string.Equals(Convert.ToString(action), "accept",
                                      StringComparison.OrdinalIgnoreCase);
             }
+            LastAnswer = "no answer within " + (expiryMs / 1000) + " s";
             return false;
         }
     }

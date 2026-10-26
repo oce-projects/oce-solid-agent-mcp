@@ -292,7 +292,16 @@ namespace Oce.Solid.Agent.Tools
                     "{step: 1, kind: \"top_face\"}): it is the only way, " +
                     "because that face has no identifier yet.\n\n" +
                     "The plan runs on the document you looked at; if another window " +
-                    "came to the front in between, it stops before writing. " +
+                    "comes to the front while it runs, the plan's document is brought " +
+                    "back (see «on_window_change»). " +
+                    "THE ANSWER IS SHORT BY DEFAULT: the outcomes with their measures " +
+                    "and warnings, «state_summary» (volume, box, mass, the features added " +
+                    "and removed) and «timing_ms» for the whole plan. Of a step that " +
+                    "succeeded it leaves out long explanations that are not warnings, " +
+                    "and measures that came back equal to the argument of the same name " +
+                    "(«note_outcomes» counts them). The identifiers of faces and edges are NOT in it: read " +
+                    "them with «inspect_part» before a plan that cites them, or send " +
+                    "«response»: «full» to get the whole «state_after». " +
                     "«volume_after_mm3» is the plan's document; «state_after» is the " +
                     "document in front, and when that is another one the answer says " +
                     "so in «document_in_front» and «note_document_in_front» (after " +
@@ -335,6 +344,30 @@ namespace Oce.Solid.Agent.Tools
                                     "Naming it means «I know which part " +
                                     "I am touching», and a name that does not match " +
                                     "is refused.",
+                            },
+                            ["response"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new[] { "summary", "full" },
+                                ["description"] =
+                                    "«summary» (the default): outcomes, measures, warnings, " +
+                                    "«state_summary» and the time of the whole plan. «full»: also " +
+                                    "the explanations and the time of each step, and the " +
+                                    "whole «state_after», with the identifiers of faces " +
+                                    "and edges (tens of thousands of characters on a real part).",
+                            },
+                            ["on_window_change"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new[] { "reactivate", "stop" },
+                                ["description"] =
+                                    "What to do when another window comes to the front " +
+                                    "while the plan runs (someone working in the same " +
+                                    "SOLIDWORKS session). «reactivate» (the default): the " +
+                                    "plan's document is brought back to the front, at most " +
+                                    "3 times, and «reactivations» in the answer says when " +
+                                    "and which window was there. «stop»: the plan stops " +
+                                    "before the next step and touches nothing more.",
                             },
                             ["dry_run"] = new Dictionary<string, object>
                             {
@@ -955,6 +988,19 @@ namespace Oce.Solid.Agent.Tools
             {
                 object kind;
                 docState.TryGetValue("kind", out kind);
+                // A PART WITHOUT A BODY YET HAS NO FACES, and that is an answer,
+                // not an error (brief R9): on 24/10/2026 the first reading of a
+                // new part with «faces» failed and had to be asked again.
+                object solid;
+                bool part = string.Equals(Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture),
+                                          "part", StringComparison.Ordinal);
+                if (part && docState.TryGetValue("solid_body", out solid) && solid is bool && !(bool)solid)
+                {
+                    docState["faces"] = new object[0];
+                    docState["faces_filter_note"] =
+                        "The part has no solid body yet: there is no face to list.";
+                }
+                else
                 return Protocol.Content(
                     "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
                     "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
@@ -1570,6 +1616,213 @@ namespace Oce.Solid.Agent.Tools
         /// The three measures taken here change when the PART changes, and do not
         /// change when only the way it was looked at changes.
         /// </summary>
+        /// <summary>
+        /// THE STATE IN A FEW LINES (brief R3): what a plan changed, without the
+        /// lists of faces and edges. The fields are copied as the state names
+        /// them; the features added and removed are the difference of the two
+        /// lists of names, before and after.
+        /// </summary>
+        private static Dictionary<string, object> SummaryOfState(
+            Dictionary<string, object> before, Dictionary<string, object> after)
+        {
+            var summary = new Dictionary<string, object>();
+            foreach (var key in SummaryFields)
+            {
+                object v;
+                if (after.TryGetValue(key, out v) && v != null) summary[key] = v;
+            }
+            object list;
+            if (after.TryGetValue("faces", out list) && list is System.Collections.ICollection)
+                summary["faces_listed"] = ((System.Collections.ICollection)list).Count;
+            if (after.TryGetValue("bodies", out list) && list is System.Collections.ICollection)
+                summary["bodies"] = ((System.Collections.ICollection)list).Count;
+            var namesBefore = FeatureNamesInOrder(before) ?? new List<string>();
+            var namesAfter = FeatureNamesInOrder(after) ?? new List<string>();
+            var added = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+            var removed = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+            if (added.Count > 0) summary["features_added"] = added;
+            if (removed.Count > 0) summary["features_removed"] = removed;
+            return summary;
+        }
+
+        /// <summary>
+        /// THE TIME OF THE WHOLE PLAN BY PHASE (brief R2): the sum of each step's
+        /// «timing_ms», and the slowest step. Null when no step was timed, as in
+        /// a plan refused before it ran.
+        /// </summary>
+        private static Dictionary<string, object> PlanTiming(List<object> outcomes)
+        {
+            var totals = new Dictionary<string, double>();
+            int order = 0, slowestOrder = 0;
+            double slowest = -1;
+            string slowestOperation = null;
+            foreach (var o in outcomes)
+            {
+                order++;
+                var outcome = o as Dictionary<string, object>;
+                object t;
+                if (outcome == null || !outcome.TryGetValue("timing_ms", out t)) continue;
+                var timing = t as Dictionary<string, object>;
+                if (timing == null) continue;
+                foreach (string phase in timing.Keys)
+                {
+                    double ms;
+                    if (!TryNumber(timing[phase], out ms)) continue;
+                    double sum;
+                    totals.TryGetValue(phase, out sum);
+                    totals[phase] = sum + ms;
+                    if (phase == "total" && ms > slowest)
+                    {
+                        slowest = ms;
+                        slowestOrder = order;
+                        object op;
+                        outcome.TryGetValue("operation", out op);
+                        slowestOperation = Convert.ToString(op, CultureInfo.InvariantCulture);
+                    }
+                }
+            }
+            if (totals.Count == 0) return null;
+            var plan = new Dictionary<string, object>();
+            foreach (string phase in totals.Keys) plan[phase] = Math.Round(totals[phase]);
+            plan["slowest_step"] = slowestOrder + " " + slowestOperation + " " + Math.Round(slowest) + " ms";
+            return plan;
+        }
+
+        private static bool TryNumber(object v, out double d)
+        {
+            d = 0;
+            if (v == null || v is string || v is bool) return false;
+            try { d = Convert.ToDouble(v, CultureInfo.InvariantCulture); return true; }
+            catch (FormatException) { return false; }
+            catch (InvalidCastException) { return false; }
+        }
+
+        /// <summary>
+        /// THE OUTCOMES OF A «summary» ANSWER (brief R3). On 26/10/2026 a plan of
+        /// 21 steps answered 9,782 characters after the state had left: the
+        /// outcomes were 95% of them. Of a step that succeeded it drops what the
+        /// reader does not need to write the next plan:
+        ///   - «error», which is null;
+        ///   - «timing_ms», summed for the whole plan in the answer's
+        ///     «timing_ms»;
+        ///   - «volume_before_mm3» and «volume_after_mm3» when they are the
+        ///     same: the step did not change the volume, and the absence says it;
+        ///   - texts longer than <see cref="LongExplanation"/> characters that
+        ///     explain rather than warn. A key that names a warning, a problem,
+        ///     a verdict or an error always stays, whatever its length;
+        ///   - a measure with the SAME NAME and the SAME VALUE as an argument the
+        ///     caller sent in that step (26/10/2026: «value_text», «material»,
+        ///     «name», «value_mm» came back as they went). Only the same name: a
+        ///     measure that happens to equal another argument is a measure;
+        ///   - «value_before_*» when it equals its «value_after_*».
+        /// A step that failed keeps everything. Returns how many texts it left
+        /// out, and in <paramref name="echoes"/> how many echoes, so the answer
+        /// can say so.
+        /// </summary>
+        private static int CompactOutcomes(List<object> outcomes, object[] steps, out int echoes)
+        {
+            int leftOut = 0;
+            echoes = 0;
+            for (int i = 0; i < outcomes.Count; i++)
+            {
+                var outcome = outcomes[i] as Dictionary<string, object>;
+                if (outcome == null) continue;
+                object ok;
+                if (!outcome.TryGetValue("succeeded", out ok) || !(ok is bool) || !(bool)ok) continue;
+                object error;
+                if (outcome.TryGetValue("error", out error) && error == null) outcome.Remove("error");
+                outcome.Remove("timing_ms");
+                object m;
+                var measurements = outcome.TryGetValue("measurements", out m) ? m as Dictionary<string, object> : null;
+                if (measurements == null) continue;
+                object rawBefore, rawAfter;
+                double before, after;
+                if (measurements.TryGetValue("volume_before_mm3", out rawBefore) && TryNumber(rawBefore, out before) &&
+                    measurements.TryGetValue("volume_after_mm3", out rawAfter) && TryNumber(rawAfter, out after) &&
+                    Math.Abs(before - after) < VolumeUnchangedMm3)
+                {
+                    measurements.Remove("volume_before_mm3");
+                    measurements.Remove("volume_after_mm3");
+                }
+                foreach (var key in measurements.Keys.ToList())
+                {
+                    var text = measurements[key] as string;
+                    if (text == null || text.Length <= LongExplanation || Warns(key)) continue;
+                    measurements.Remove(key);
+                    leftOut++;
+                }
+                foreach (var key in measurements.Keys.ToList())
+                {
+                    if (!key.StartsWith("value_before_", StringComparison.Ordinal)) continue;
+                    object afterValue;
+                    if (measurements.TryGetValue("value_after_" + key.Substring("value_before_".Length), out afterValue) &&
+                        SameValue(measurements[key], afterValue))
+                        measurements.Remove(key);
+                }
+                // The step's arguments, only when the step is the one this outcome
+                // speaks of: outcomes and steps go in the same order, but a name
+                // that differs means the pairing cannot be trusted.
+                var step = steps != null && i < steps.Length ? steps[i] as Dictionary<string, object> : null;
+                object sentOperation, sentArguments;
+                var sent = step != null && step.TryGetValue("operation", out sentOperation) &&
+                           string.Equals(sentOperation as string, Text(outcome, "operation"), StringComparison.OrdinalIgnoreCase) &&
+                           step.TryGetValue("arguments", out sentArguments)
+                    ? sentArguments as Dictionary<string, object> : null;
+                if (sent == null) continue;
+                foreach (var key in measurements.Keys.ToList())
+                {
+                    object sentValue;
+                    if (Warns(key) || !sent.TryGetValue(key, out sentValue) || !SameValue(measurements[key], sentValue)) continue;
+                    measurements.Remove(key);
+                    echoes++;
+                }
+            }
+            return leftOut;
+        }
+
+        /// <summary>Two scalar values that say the same: numbers within 1e-9, texts equal ignoring case and outer blanks.</summary>
+        private static bool SameValue(object one, object other)
+        {
+            double a, b;
+            if (TryNumber(one, out a) && TryNumber(other, out b)) return Math.Abs(a - b) < 1e-9;
+            var s = one as string;
+            var t = other as string;
+            if (s != null && t != null) return string.Equals(s.Trim(), t.Trim(), StringComparison.OrdinalIgnoreCase);
+            return false;
+        }
+
+        /// <summary>Longer than this, a text of a successful step is an explanation.</summary>
+        private const int LongExplanation = 100;
+
+        /// <summary>Two volumes closer than this are the same (they come rounded to 0.01).</summary>
+        private const double VolumeUnchangedMm3 = 0.005;
+
+        private static bool Warns(string key)
+        {
+            var k = key.ToLowerInvariant();
+            return k.Contains("warn") || k.Contains("problem") || k.Contains("verdict") ||
+                   k.Contains("error") || k.Contains("fail");
+        }
+
+        private static readonly string[] SummaryFields =
+        {
+            "path", "document_title", "kind", "solid_body", "volume_mm3", "mass_kg", "material",
+            "bounding_box_mm", "bounding_box_from_mm", "shape", "feature_total", "faces_total",
+            "edges_total", "features_in_error", "rebuild_needed", "equations_total",
+            "configuration", "property", "configuration_properties",
+        };
+
+        /// <summary>
+        /// The problem with the material of an `apply_material` step, or null
+        /// (brief R4). Asked to the workstation's archives, the same that the
+        /// step will search.
+        /// </summary>
+        private string MaterialProblemOf(string operation, Dictionary<string, object> arguments)
+        {
+            if (!string.Equals(operation, "apply_material", StringComparison.Ordinal)) return null;
+            return _session.MaterialProblem(Text(arguments, "material"), Text(arguments, "library"));
+        }
+
         private static string StateSummary(Dictionary<string, object> docState)
         {
             if (docState == null) return null;
@@ -1697,16 +1950,17 @@ namespace Oce.Solid.Agent.Tools
 
             var trouble = new List<string>();
 
-            // THE PROGRESS OF THE DRY RUN (entry W2.2). Nothing is executed
-            // here, so the total is the number of steps and that is all:
-            // there is no second half to wait for.
-            _wire.Total = steps.Length;
+            // NO PROGRESS FROM THE DRY RUN (brief R13). It answers in
+            // milliseconds, and on 24/10/2026 its notifications reached the
+            // client AFTER the answer: the client no longer knew the token and
+            // wrote «Connection error ... STDIO connection dropped» eight times
+            // for a bridge that was working. A progress for something that is
+            // already over tells nobody anything.
 
             for (int i = 0; i < steps.Length; i++)
             {
                 var planStep = steps[i] as Dictionary<string, object>;
                 string location = "step " + (i + 1);
-                _wire.Step(i + 1, "checking " + location + " of " + steps.Length);
                 if (planStep == null) { trouble.Add(location + ": is not an object"); continue; }
 
                 var itemName = Text(planStep, "operation");
@@ -1762,6 +2016,11 @@ namespace Oce.Solid.Agent.Tools
                                  "and would be IGNORED");
                     }
 
+                // The material, when SOLIDWORKS is there to say (brief R4).
+                var materialTrouble = MaterialProblemOf(itemName, data);
+                if (materialTrouble != null)
+                    trouble.Add(location + " («" + itemName + "»): " + materialTrouble);
+
                 // The references to a previous step: `{step: N, kind: ...}`.
                 foreach (var pair in data)
                 {
@@ -1811,6 +2070,19 @@ namespace Oce.Solid.Agent.Tools
             var requested = Take(arguments, "dry_run");
             bool test = false;
             if (requested != null) { try { test = Convert.ToBoolean(requested); } catch { } }
+            // A RULE FOR THE WINDOWS THAT IS NOT ONE OF THE TWO IS REFUSED, not
+            // read as the default (brief R1): «Stop» taken for «reactivate»
+            // would do the opposite of what was asked.
+            var windowRule = Text(arguments, "on_window_change");
+            if (windowRule != null && windowRule != "reactivate" && windowRule != "stop")
+                return Protocol.Content(
+                    "«on_window_change» is «" + windowRule + "»: it is «reactivate» or «stop». " +
+                    "Nothing was run.", true);
+            var answerShape = Text(arguments, "response");
+            if (answerShape != null && answerShape != "summary" && answerShape != "full")
+                return Protocol.Content(
+                    "«response» is «" + answerShape + "»: it is «summary» or «full». " +
+                    "Nothing was run.", true);
             if (test) return TestThePlan(arguments);
             return RunPlan(arguments, checkIfRepeated: true);
         }
@@ -1850,7 +2122,7 @@ namespace Oce.Solid.Agent.Tools
         /// stops reading what they confirm, and it is the same reason
         /// `measure` exists separate from `build`.
         /// </summary>
-        private static readonly string[] CannotBeUndone = { "delete_feature" };
+        private static readonly string[] CannotBeUndone = { "delete_feature", "delete_mate" };
 
         private Dictionary<string, object> RunPlan(
             Dictionary<string, object> arguments, bool checkIfRepeated)
@@ -1901,9 +2173,17 @@ namespace Oce.Solid.Agent.Tools
                     if (Oce.Solid.Agent.Mcp.Elicitation.ClientCanAsk)
                     {
                         if (!Oce.Solid.Agent.Mcp.Elicitation.Confirm(Console.Out, Console.In, question))
+                        {
+                            // WHAT THE CLIENT ANSWERED, quoted (brief R22).
+                            var answered = Oce.Solid.Agent.Mcp.Elicitation.LastAnswer;
+                            Protocol.Note("[bridge] confirmation not given; the client answered " + answered);
                             return Protocol.Content(
-                                "Stopped: the confirmation did not arrive, and I " +
-                                "touched nothing. " + question, true);
+                                "Stopped: I asked the client for a confirmation and it did not " +
+                                "say yes (it answered " + answered + "), so I touched nothing. " +
+                                "If nobody was asked anything, the client does not show this " +
+                                "question: ask the person yourself, in words, before trying again. " +
+                                question, true);
+                        }
                     }
                     else
                     {
@@ -2212,6 +2492,21 @@ namespace Oce.Solid.Agent.Tools
                     break;
                 }
 
+                // THE MATERIAL IS FOUND BEFORE THE FIRST STEP, not at its own
+                // (brief R4): see MaterialProblem.
+                var crookedMaterial = MaterialProblemOf(itemName, itsItems);
+                if (crookedMaterial != null)
+                {
+                    outcomes.Add(new Dictionary<string, object>
+                    {
+                        ["operation"] = itemName,
+                        ["succeeded"] = false,
+                        ["error"] = crookedMaterial + NothingTouched,
+                    });
+                    everythingFine = false;
+                    break;
+                }
+
                 // DO THE IDENTIFIERS CITED REALLY EXIST?
                 //
                 // It is the other half of the anti-drift defence, and it catches a case
@@ -2262,6 +2557,21 @@ namespace Oce.Solid.Agent.Tools
             // What the executor said about its document and its undo entry
             // (Z-C21.14). Stays null when the plan never reached it: refused
             // above, before anything was written.
+            // A PLAN REFUSED BEFORE RUNNING IS ANSWERED WITHOUT A READING
+            // (brief R3). Nothing was touched, so the document is the one read in
+            // `before`: on 24/10/2026 such a refusal carried 10,804 characters
+            // of state and cost a second full reading (46 s on a part with a body).
+            if (!everythingFine)
+            {
+                var refused = new Dictionary<string, object>
+                {
+                    ["document"] = ReadableName(now),
+                    ["outcomes"] = outcomes,
+                    ["volume_before_mm3"] = Volume(before),
+                };
+                return Protocol.ContentWithData(Protocol.InJson(refused), refused, true);
+            }
+
             Oce.Solid.Agent.Core.PlanExecutor.Result planRun = null;
             bool executorThrew = false;
             object turnRefusedOn = null;
@@ -2273,6 +2583,10 @@ namespace Oce.Solid.Agent.Tools
                 // `before` and this call got the plan, and the memory mixed the
                 // numbers of two documents. It now stops before writing when
                 // the active document is not `now`.
+                // ANOTHER WINDOW IN FRONT IS BROUGHT BACK unless the caller
+                // said «stop» (brief R1).
+                _session.ReactivateWindowInPlans =
+                    !string.Equals(Text(arguments, "on_window_change"), "stop", StringComparison.Ordinal);
                 var done = _session.ExecutePlan(toDo, out var runError, _wire,
                                                   IdentityForTheExecutor(now));
                 planRun = _session.LastPlanResult;
@@ -2386,9 +2700,16 @@ namespace Oce.Solid.Agent.Tools
             // saying «someone touched the part by hand». It would be the
             // false positive that entry X2 listed among the risks, and it would be
             // annoying in just the right measure to teach people to ignore the warning.
+            bool fullAnswer = string.Equals(Text(arguments, "response"), "full", StringComparison.Ordinal);
             if (after != null && frontIsThePlans)
             {
-                _seenSignatures = StateSignatures(after);
+                // THE SIGNATURES ARE THOSE OF THE READING THE CALLER SAW (brief
+                // R3). With «full» the caller sees `after` and writes the next plan
+                // on its identifiers. With «summary» it did not see them: the
+                // identifiers it may cite are those of its last «inspect_part»,
+                // so those signatures stay, and a face that moved is re-anchored
+                // or refused instead of being taken by its new number.
+                if (fullAnswer) _seenSignatures = StateSignatures(after);
                 _signatureSeen = LightSignature(after);
 
                 // ── AND ALSO WHO IT IS, NOT JUST HOW IT IS MADE ─────────────
@@ -2422,6 +2743,14 @@ namespace Oce.Solid.Agent.Tools
             }
             if (after != null) RemoveAnchors(after);
 
+            // WHERE THE PLAN'S TIME WENT, in one line (brief R2), and the
+            // outcomes without what only a reader of the whole answer needs
+            // (brief R3). Taken before the compaction, which drops the times of
+            // each step.
+            var planTiming = PlanTiming(outcomes);
+            int echoesLeftOut = 0;
+            int explanationsLeftOut = fullAnswer ? 0 : CompactOutcomes(outcomes, steps, out echoesLeftOut);
+
             var result = new Dictionary<string, object>
             {
                 // WE ALWAYS SAY WHAT WAS WORKED ON. Even when it is obvious:
@@ -2429,12 +2758,43 @@ namespace Oce.Solid.Agent.Tools
                 // was not.
                 ["document"] = ReadableName(now),
                 ["outcomes"] = outcomes,
-                ["state_after"] = after,
-                ["note_state"] = after == null ? stateError : null,
+                ["note_state"] = after == null
+                    ? stateError
+                    : fullAnswer
+                        ? null
+                        : "The identifiers of faces and edges are not in this answer: read them with " +
+                          "«inspect_part» before a plan that cites them, or send «response»: «full».",
                 ["volume_before_mm3"] = Volume(before),
                 // On the plan's document, like the line above (Z-C21.14).
                 ["volume_after_mm3"] = Volume(planStateAfter),
             };
+
+            // THE WHOLE STATE ONLY WHEN ASKED FOR (brief R3): on 24/10/2026 it was
+            // 95% of the characters of every answer of `build`.
+            if (fullAnswer) result["state_after"] = after;
+            else if (after != null)
+            {
+                var summary = SummaryOfState(before, after);
+                // The path is already in «document»: the same string twice.
+                object path;
+                if (summary.TryGetValue("path", out path) &&
+                    string.Equals(Convert.ToString(path, CultureInfo.InvariantCulture),
+                                  Convert.ToString(result["document"], CultureInfo.InvariantCulture),
+                                  StringComparison.OrdinalIgnoreCase))
+                    summary.Remove("path");
+                result["state_summary"] = summary;
+            }
+            if (planTiming != null) result["timing_ms"] = planTiming;
+            if (explanationsLeftOut > 0 || echoesLeftOut > 0)
+                result["note_outcomes"] =
+                    (explanationsLeftOut > 0
+                        ? explanationsLeftOut + " explanation(s) of successful steps left out (none is a warning). "
+                        : "") +
+                    (echoesLeftOut > 0
+                        ? echoesLeftOut + " measure(s) left out because they came back equal to the argument " +
+                          "of the same name you sent. "
+                        : "") +
+                    "Send «response»: «full» to have them, and the times of each step.";
 
             // WHICH DOCUMENT IS IN FRONT, when it is not the plan's (Z-C21.14),
             // and whether the next plan may work on it (review F5).
@@ -2453,6 +2813,11 @@ namespace Oce.Solid.Agent.Tools
             // undecided, probe M19 phase H4); null, not known.
             if (planRun != null)
                 result["undo_entry_recorded"] = planRun.UndoEntryOnPlanDocument;
+
+            // WHEN ANOTHER WINDOW CAME TO THE FRONT and the plan's document was
+            // brought back (brief R1): said, never hidden.
+            if (planRun != null && planRun.Reactivations.Count > 0)
+                result["reactivations"] = planRun.Reactivations;
 
             // THE COUNT OF ERRORS IS GIVEN AS A DELTA, NOT AS A NUMBER.
             //
@@ -2475,7 +2840,9 @@ namespace Oce.Solid.Agent.Tools
                     errorsAfter > errorsBefore
                         ? "The part has " + errorsAfter + " features in error, and before it " +
                           "had " + errorsBefore + ": this plan broke " +
-                          (errorsAfter - errorsBefore) + ". Look at «state_after» to see which."
+                          (errorsAfter - errorsBefore) + (fullAnswer
+                              ? ". Look at «state_after» to see which."
+                              : ". Read «inspect_part» to see which.")
                         : errorsAfter < errorsBefore
                             ? "The features in error went from " + errorsBefore +
                               " to " + errorsAfter + ": this plan repaired " +

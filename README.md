@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.130.2-blue)
-![Library version](https://img.shields.io/badge/library-0.153.1-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.132.0-blue)
+![Library version](https://img.shields.io/badge/library-0.155.0-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -25,7 +25,7 @@
 *An independent project, not affiliated with Dassault Systèmes.*
 
 An MCP server for the **SOLIDWORKS® software**: it lets any model — local or
-remote — build a part, an assembly or a drawing through 99 operations, each one
+remote — build a part, an assembly or a drawing through 101 operations, each one
 measured inside the software, and above all **look at what came out**. Every
 operation reads the document again after it runs and reports what SOLIDWORKS
 software really did; a step that could not be verified is reported as such, never
@@ -144,7 +144,7 @@ read it (`inspect_part`). Only then ask for a change: the identifiers a plan nee
 
 ## The tools
 
-Nine tools, not one per operation: exposing a tool for each of the 99 operations
+Nine tools, not one per operation: exposing a tool for each of the 101 operations
 would cost tens of thousands of characters of schemas in every request
 and would make it easy to skip the first step. The operations sit behind `build`
 and `measure`, and are discovered on demand.
@@ -198,12 +198,12 @@ Why some of this is built the way it is:
 
 ## The operations
 
-`Tools/catalog.json` lists 99 operations in 12 families. It is an exported copy,
+`Tools/catalog.json` lists 101 operations in 12 families. It is an exported copy,
 written by the bridge itself (see [Tools/update.md](Tools/update.md)), and holds only
 the operations **measured inside the SOLIDWORKS software**: an operation that exists
 in the library but could not be shown to create what it promises stays out of the
 file, so a client cannot call it. The bench prints both numbers in its header
-("runnable: 99 operations (in catalog: 99)").
+("runnable: 101 operations (in catalog: 101)").
 
 Each operation carries its limits and its refusals in the description the model
 reads. The same operations are the ones the OpenPDM add-in runs, so what is tested
@@ -240,6 +240,8 @@ None is required. They exist to move files and to restrict what the bridge may d
 | `OCE_QUESTION_REGISTRY` | where the bridge writes **what it was asked for and was not there**: one JSON line per question, only the name and the nearby names, never the arguments. A `.jsonl` file; if the variable is missing it is written next to the executable (the uninstall removes it); **set to an empty string it means "record nothing"**. If it cannot be written, the bridge stays quiet and goes on |
 | `SW_INSTALL_PATH` | where the SOLIDWORKS software is installed: the **root**, the one that ends with `\SOLIDWORKS`. It holds both for building and for running — `api\redist` is derived from it |
 | `SW_REDIST` | the old name, still read. It wanted the `api\redist` subfolder and not the root; if both are set, `SW_INSTALL_PATH` wins |
+| `OCE_LOG` | where the bridge writes **its own log**: one JSON line per tool call (start and end, milliseconds, the time of each phase, whether the answer is an error, how many characters it has; for `build` the names of the operations, never the values of the arguments) and every line it writes on stderr. A folder; if the variable is missing, `%LOCALAPPDATA%\Oce.Solid.Agent\logs`, one file per day (`bridge-yyyy-MM-dd.jsonl`). Set to `off`, `0`, `false` or an empty string it writes nothing. The log carries local paths: it stays on the machine. If it cannot be written, the bridge stays quiet and goes on |
+| `OCE_API_SEQUENCE` | set to `0`, `false` or `off`, the bridge **does not** tell SOLIDWORKS software that a sequence of API calls is coming (`ISldWorks.CommandInProgress`). By default it sets it for the length of every call, and only when it was off: if another program left it on, the bridge leaves it alone and a plan is refused as before. The switch exists to measure the two ways one against the other |
 | `OCE_WRITE_ROOT` | the only folder the bridge may write into. If it is set, everything else on the disk is out |
 | `OCE_READ_ONLY_FOLDERS` | folders the bridge must not write, separated by `;` — for example `D:\CAD;D:\LIBRARIES`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
 | `OCE_WELDMENT_PROFILES` | the folder of the weldment profiles (`.sldlfp`) that `weldment_profiles` reads. No default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>`, or from the folder SOLIDWORKS software is set to (Tools > Options > File Locations > Weldment Profiles), or from the one it installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
@@ -364,7 +366,7 @@ the CI would believe it.
   starts one.
 - **Only measured operations are exposed.** There is no generic "call any API method"
   tool yet: `api_search` and `api_signature` read the API, but the changes go through
-  the 99 operations.
+  the 101 operations.
 - **Identifiers are positional** and valid for one reading; plans must name faces from
   a fresh `inspect_part`.
 - **Writes are fenced** by `OCE_WRITE_ROOT` and `OCE_READ_ONLY_FOLDERS`, and a
@@ -382,7 +384,7 @@ the CI would believe it.
 
 ## Languages of SOLIDWORKS software
 
-**The project is in English**: the nine tools and their sub-actions, the 99
+**The project is in English**: the nine tools and their sub-actions, the 101
 operations and their families, every argument and the value of every argument whose
 schema lists one, the selectors (`@face(normal=front)`), the fields of every answer,
 the keys of `Tools/catalog.json`, the MCP resources (`catalog://operations`,

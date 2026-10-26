@@ -1141,13 +1141,24 @@ namespace Oce.Solid.Agent.Core
             int errors = 0, warnings = 0;
             bool ok;
 
+            string its = "";
+            try { its = model.GetPathName() ?? ""; } catch { }
             if (string.IsNullOrWhiteSpace(location))
             {
-                string its = "";
-                try { its = model.GetPathName() ?? ""; } catch { }
                 if (string.IsNullOrWhiteSpace(its))
                     return Failed(
                         "The document has never been saved: tell me where to put it.");
+                location = its;
+            }
+            else if (SameFile(its, location))
+            {
+                // ITS OWN FILE IS SAVED WITH THE VERY STRING SOLIDWORKS HOLDS
+                // (26/10/2026). SaveAs compares the path as text: a document
+                // whose path SOLIDWORKS keeps with forward slashes (it was saved
+                // that way once) answered swGenericSaveError to the same path
+                // with backslashes, and the other way round. Four calls on a copy
+                // of the part of 13/10/2026, each with its control, gave the same
+                // rule; with the string of GetPathName the save went through.
                 location = its;
             }
 
@@ -1193,7 +1204,22 @@ namespace Oce.Solid.Agent.Core
                         "if it is in a PDM.");
 
                 // L13-7: the codes by their enum names (ErrorCodeDecoder).
+                // ITS OWN FILE REFUSED WITH THE GENERIC CODE: the two causes
+                // measured on 26/10/2026, and the road that worked. A document
+                // saved once with forward slashes in its path, and a part that
+                // got a new equation while another window was in front, both
+                // answer swGenericSaveError to every save on their own file; a
+                // save under a NEW name went through in both, and the document
+                // was savable again afterwards (the old name stayed refused).
+                bool ownFile = SameFile(its, location);
+                bool generic = (errors & (int)swFileSaveError_e.swGenericSaveError) != 0;
                 return Failed("The document was not saved (code " + errors + SaveErrorNames(errors) + ")." +
+                               (ownFile && generic
+                                   ? " SOLIDWORKS refuses to write this document onto its own file. Measured causes: " +
+                                     "the document was saved once with forward slashes in its path, or a new equation " +
+                                     "was added while another window was in front. Save it under a new name (pass a " +
+                                     "new «path»): that worked in both cases, and the document saves again afterwards."
+                                   : "") +
                                SaveWarningsTail(warnings));
             }
 

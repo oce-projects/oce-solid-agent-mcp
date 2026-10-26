@@ -36,6 +36,22 @@ namespace Oce.Solid.Agent.Core
     }
 
     /// <summary>
+    /// A source that never looks at the state it is given: the executor does
+    /// not read the document for it (brief R2).
+    ///
+    /// A separate interface and not a member of <see cref="IPlanSource"/>: a
+    /// new member would break every source already compiled against this
+    /// library (the add-in has its own), and the executor would refuse to load
+    /// them. Up to library 0.153.1 the state was read before every step for a
+    /// source that threw it away (the bridge's own, «The state is not
+    /// needed»): measured on 26/10/2026, it was one of the two full readings
+    /// of every step.
+    /// </summary>
+    public interface IPlanSourceWithoutState : IPlanSource
+    {
+    }
+
+    /// <summary>
     /// The answer to «what is the next step»: either there is one, or the plan is
     /// finished.
     ///

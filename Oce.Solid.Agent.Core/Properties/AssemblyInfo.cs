@@ -530,8 +530,24 @@ using System.Runtime.InteropServices;
 //          which adds nothing on a bare view (probe of 8/10/2026), is gone. The call
 //          is never made on a view where a hole already has its mark: it doubles them.
 //          standard_views writes one journal line when it fires.
-[assembly: AssemblyVersion("0.153.1.0")]
-[assembly: AssemblyFileVersion("0.153.1.0")]
+// 0.155.0: brief of 25/10/2026, measured on 26/10/2026 (0.154.0 is the number of the
+//          branch release-0.131.0, not merged yet: this one is cut from main).
+//          PhaseClock times each phase of a call. PlanExecutor writes «timing_ms»
+//          for each step, skips the state reading for a source that does not use
+//          it (IPlanSourceWithoutState) and for the 40 operations that never cite
+//          an identifier (SwOperations.OperationsWithoutState), lets the bridge own
+//          CommandInProgress, and brings the plan's document back when another
+//          window comes to the front (ReactivateWindow, MaxReactivations). A
+//          plan of 21 steps went from 1,243.8 s to 63.6 s (same plan, a new part each time).
+//          cylindrical_cut and rectangular_cut always add the sketch entities to
+//          the database (SOLIDWORKS no longer snaps a centre), read the circle or
+//          the rectangle back before the cut and refuse one that moved; a through
+//          hole that drilled no wall fails. apply_material: a name shorter than
+//          four letters counts only as a whole word (PLA was matching
+//          «Plastiche»). extrude_profile tells the model axes of the sketch
+//          («sketch_axes») and accepts a part that has bodies already.
+[assembly: AssemblyVersion("0.155.0.0")]
+[assembly: AssemblyFileVersion("0.155.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -546,4 +562,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.153.1")]
+[assembly: AssemblyInformationalVersion("0.155.0")]

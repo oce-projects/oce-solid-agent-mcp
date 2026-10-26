@@ -457,11 +457,19 @@ namespace Oce.Solid.Agent.ContractTests
                     "{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{}," +
                     "\"clientInfo\":{\"name\":\"tests\",\"version\":\"1\"}}}");
 
-                // ── WITH THE TOKEN ─────────────────────────────────────────
+                // ── WITH THE TOKEN, THE DRY RUN IS SILENT (brief R13) ───────
                 //
                 // `dry_run: true` checks the plan step by step and touches
                 // nothing: it runs with SOLIDWORKS closed, and it is the only run of the
                 // bridge that can be looked at in full on this machine.
+                // Up to bridge 0.130.2 it sent one progress per step, and this
+                // check asked for them. On 24/10/2026 the client received them
+                // AFTER the answer of a dry run that lasts milliseconds, no longer
+                // knew the token and wrote «STDIO connection dropped» eight times
+                // for a bridge that was working. Since 0.132.0 the dry run sends
+                // none: the token, the shape of the notification, `progress` that
+                // grows and the progress of a real execution are checked in
+                // sections 1 to 4, on the same classes the bridge uses.
                 const string three =
                     "{\"operation\":\"extrude_rectangle\",\"arguments\":" +
                     "{\"length_mm\":100,\"width_mm\":50,\"thickness_mm\":5}}," +
@@ -476,21 +484,11 @@ namespace Oce.Solid.Agent.ContractTests
                     "\"name\":\"build\",\"arguments\":{\"dry_run\":true,\"steps\":[" + three + "]}}}");
 
                 var withToken = Progresses(p, beforeWith);
-                Check("with a progressToken progress notifications arrive",
-                      withToken.Count >= 3,
-                      withToken.Count + " `notifications/progress` for a plan of 3 steps");
-
-                Check("and they carry the token that the client sent",
-                      withToken.Count > 0 &&
-                      withToken.All(n => Convert.ToString(Inside(n, "progressToken")) == "pt-77"),
-                      "pt-77 on all of them");
-
-                var numbers = withToken
-                    .Select(n => Convert.ToDouble(Inside(n, "progress"))).ToList();
-                Check("and `progress` always grows, as the specification demands",
-                      numbers.Count > 1 &&
-                      Enumerable.Range(1, numbers.Count - 1).All(i => numbers[i] > numbers[i - 1]),
-                      string.Join(", ", numbers));
+                Check("with a progressToken the dry run sends no progress (brief R13)",
+                      withToken.Count == 0,
+                      withToken.Count == 0
+                          ? "zero notifications for a plan of 3 steps checked in milliseconds"
+                          : withToken.Count + " `notifications/progress`: they reach the client after the answer");
 
                 // ── WITHOUT THE TOKEN: SILENCE ─────────────────────────────
                 //

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -193,6 +194,22 @@ namespace Oce.Solid.Agent.Core
             public bool? UndoEntryOnPlanDocument;
 
             /// <summary>
+            /// The times the plan's document was brought back to the front
+            /// (brief R1): step, which document was in front, when, and
+            /// whether it came back. Empty when no window changed.
+            /// </summary>
+            public List<Dictionary<string, object>> Reactivations =
+                new List<Dictionary<string, object>>();
+
+            /// <summary>Adds one entry to <see cref="Reactivations"/>.</summary>
+            internal void WriteDownReactivation(Dictionary<string, object> entry)
+            {
+                // AddRange and not Add: «Add» is also a SOLIDWORKS member, and the
+                // scanner of obsolete calls cannot type a field's receiver.
+                Reactivations.AddRange(new[] { entry });
+            }
+
+            /// <summary>
             /// Z-C21.14: true when the plan stopped before opening its undo
             /// recording and before any step: the preliminary checks refused,
             /// or the document was not the one the caller named. Nothing was
@@ -353,8 +370,19 @@ namespace Oce.Solid.Agent.Core
                     // The state of the document the plan works on (M19), not
                     // of whatever window is in front: a changed window is
                     // caught right before the step writes, below.
-                    var docState = (Dictionary<string, object>)await _onSwThread(() =>
-                        DocumentState.Read(expectedDocument)?.Data);
+                    // THE TIME OF THIS STEP, phase by phase (brief R2): each
+                    // phase is the total before the step subtracted from the
+                    // total after it, so the answer can say where one step went.
+                    var stepClock = System.Diagnostics.Stopwatch.StartNew();
+                    var phasesBefore = StepPhases.ToDictionary(x => x, PhaseClock.Milliseconds);
+
+                    // A SOURCE THAT DOES NOT LOOK AT THE STATE IS NOT GIVEN ONE
+                    // (brief R2): reading it cost a full reading per step.
+                    var docState = _source is IPlanSourceWithoutState
+                        ? null
+                        : (Dictionary<string, object>)await _onSwThread(() =>
+                            PhaseClock.Time("plan.state_read_source",
+                                () => DocumentState.Read(expectedDocument)?.Data));
 
                     var next = await _source.NextAsync(docState);
 
@@ -372,6 +400,14 @@ namespace Oce.Solid.Agent.Core
                     }
                     if (next.Done)
                     {
+                        // THE PLAN ENDS ON ITS OWN DOCUMENT when a window came
+                        // to the front after the last step (R1): what the bridge
+                        // reads afterwards is then the plan's document.
+                        await _onSwThread(() =>
+                        {
+                            BringBackIfMoved(expectedDocument, "end", result);
+                            return null;
+                        });
                         result.Completed = true;
                         break;
                     }
@@ -393,7 +429,8 @@ namespace Oce.Solid.Agent.Core
 
                     var outcome = (SwOperations.Outcome)await _onSwThread(() =>
                     {
-                        var model = _sw.IActiveDoc2;
+                        // ANOTHER WINDOW IN FRONT: brought back, when allowed (R1).
+                        var model = BringBackIfMoved(expectedDocument, planStep.Order, result);
 
                         // THE CHECK THAT WAS MISSING, AND THIS IS WHERE IT GOES.
                         // The state sent to the server was read BEFORE the
@@ -412,8 +449,12 @@ namespace Oce.Solid.Agent.Core
                             };
                         }
 
-                        var reading = DocumentState.Read(model);
-                        var operations = new SwOperations(_sw, _log);
+                        // THE STEP IS READ ONLY IF ITS OPERATION LOOKS AT THE
+                        // READING (brief R2): forty operations never receive it.
+                        var reading = SwOperations.UsesState(planStep.Operation)
+                            ? PhaseClock.Time("plan.state_read_step", () => DocumentState.Read(model))
+                            : DocumentState.WithoutReading(model);
+                        var operations = new SwOperations(_sw, _log) { MayBringDocumentBack = ReactivateWindow };
 
                         // Entry Z-C4: it announces what it is about to do. The
                         // `finally` is mandatory -- without it, a step that
@@ -427,8 +468,8 @@ namespace Oce.Solid.Agent.Core
                         SwOperations.Outcome e;
                         try
                         {
-                            e = operations.Run(
-                                model, planStep.Operation, planStep.Arguments, reading, stepsDone);
+                            e = PhaseClock.Time("plan.operation", () => operations.Run(
+                                model, planStep.Operation, planStep.Arguments, reading, stepsDone));
                         }
                         finally { _leash.Finished(); }
                         if (e.Succeeded)
@@ -450,7 +491,10 @@ namespace Oce.Solid.Agent.Core
                             // A rebuild after every step: that way an error is
                             // seen at once and not at the end, when it is no
                             // longer known which step caused it.
-                            try { model.EditRebuild3(); } catch { }
+                            PhaseClock.Time("plan.rebuild", () =>
+                            {
+                                try { model.EditRebuild3(); } catch { }
+                            });
 
                             // IF THE STEP DECLARED THAT IT CHANGED
                             // DOCUMENT, we follow it. Only if it declares it:
@@ -482,6 +526,7 @@ namespace Oce.Solid.Agent.Core
                         return e;
                     });
 
+                    var stepTiming = StepTiming(phasesBefore, stepClock);
                     await _source.OutcomeAsync(
                         planStep.Order,
                         outcome.Succeeded,
@@ -490,8 +535,9 @@ namespace Oce.Solid.Agent.Core
                             {
                                 ["feature"] = outcome.CreatedFeature,
                                 ["measurements"] = outcome.Measurements,
+                                ["timing_ms"] = stepTiming,
                             }
-                            : null,
+                            : new Dictionary<string, object> { ["timing_ms"] = stepTiming },
                         outcome.Error);
 
                     if (!outcome.Succeeded)
@@ -718,7 +764,108 @@ namespace Oce.Solid.Agent.Core
             new Shared.Leash(120000);
 
         private static System.Threading.Thread _guardian;
+
+        /// <summary>
+        /// Where the guardian's report goes; stderr when nobody set it. The
+        /// bridge sets it so the report also lands in its own log (brief
+        /// R24): the client keeps stderr only while connecting, and a hung
+        /// call reported there was read by nobody. It is called from the
+        /// guardian's thread, so it must not write on the JSON-RPC channel.
+        /// </summary>
+        public static Action<string> GuardianReport;
+
+        /// <summary>
+        /// True when the caller itself set ISldWorks.CommandInProgress for the
+        /// length of this call (the bridge does, brief R2): then a true value is
+        /// not «another program driving SOLIDWORKS», and the preliminary check
+        /// does not refuse on it.
+        /// </summary>
+        public bool CommandInProgressIsOurs { get; set; }
+
+        /// <summary>
+        /// WHEN ANOTHER WINDOW COMES TO THE FRONT, THE PLAN'S DOCUMENT IS BROUGHT
+        /// BACK (brief R1) instead of stopping, at most
+        /// <see cref="MaxReactivations"/> times per plan.
+        ///
+        /// On 24/10/2026 three plans out of sixteen stopped because a person
+        /// was working in the same SOLIDWORKS session: they clicked another window
+        /// or saved, and the add-in of the PDM answered the save (journal of
+        /// SOLIDWORKS and log of the add-in, same second). The plan's document
+        /// is held by reference (it does not depend on the window), so it can
+        /// be brought back; what was in front is written down, never hidden.
+        /// Off by default: the add-in's assistant keeps stopping.
+        /// </summary>
+        public bool ReactivateWindow { get; set; }
+
+        /// <summary>See <see cref="ReactivateWindow"/>: past this, the plan stops as before.</summary>
+        public int MaxReactivations { get; set; } = 3;
+
+        /// <summary>
+        /// Brings <paramref name="document"/> back to the front if another window
+        /// is there and <see cref="ReactivateWindow"/> allows it; writes it down in
+        /// <paramref name="result"/>. Returns the document in front afterwards.
+        /// The front is read here once per step (Z-C5 counts the reads of the
+        /// active document in this file); after the activation it is asked by
+        /// comparison, not taken as the document to work on.
+        /// </summary>
+        private IModelDoc2 BringBackIfMoved(IModelDoc2 document, object step, Result result)
+        {
+            IModelDoc2 inFront = _sw.IActiveDoc2;
+            if (SameObject(inFront, document) || !ReactivateWindow ||
+                result.Reactivations.Count >= MaxReactivations)
+                return inFront;
+            var wasInFront = Identity(inFront);
+            int activationErrors;
+            string problem;
+            bool asked = DocumentByPath.ActivateAndReadBack(_sw, document, out activationErrors, out problem);
+            bool back = DocumentByPath.IsFrontDocument(_sw, document);
+            // ActivateDoc3 is asked not to rebuild: when it says the plan's
+            // document needs it, it is rebuilt before the step reads it.
+            string rebuilt = back ? DocumentByPath.RebuildIfActivationAsked(document, activationErrors) : null;
+            var entry = new Dictionary<string, object>
+            {
+                ["step"] = step,
+                ["was_in_front"] = wasInFront,
+                ["at"] = DateTime.Now.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                ["brought_back"] = back,
+            };
+            if (!asked && problem != null) entry["problem"] = problem;
+            if (rebuilt != null) entry["rebuilt_on_activation"] = rebuilt;
+            result.WriteDownReactivation(entry);
+            _log("[agent] «" + wasInFront + "» had come to the front; the plan's document was brought back" +
+                 (back ? "" : " — and it did NOT come back"));
+            return back ? document : inFront;
+        }
         private static readonly object _guardianKey = new object();
+
+        /// <summary>
+        /// The phases of one step that its outcome reports in `timing_ms`
+        /// (brief R2). The names are the ones of <see cref="PhaseClock"/>.
+        /// </summary>
+        private static readonly string[] StepPhases =
+        {
+            "plan.state_read_source", "plan.state_read_step", "plan.operation", "plan.rebuild",
+        };
+
+        /// <summary>
+        /// The time of one step: each phase as the difference of its total
+        /// before and after the step, and the whole step from its own clock.
+        /// Null when no call is collecting (the bench, the probes), so the
+        /// outcomes there stay as they were.
+        /// </summary>
+        private static Dictionary<string, object> StepTiming(
+            Dictionary<string, double> phasesBefore, System.Diagnostics.Stopwatch stepClock)
+        {
+            if (!PhaseClock.Collecting) return null;
+            var timing = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (var phase in StepPhases)
+            {
+                double spent = PhaseClock.Milliseconds(phase) - phasesBefore[phase];
+                if (spent > 0) timing[phase.Substring("plan.".Length)] = PhaseClock.Round(spent);
+            }
+            timing["total"] = PhaseClock.Round(stepClock.Elapsed.TotalMilliseconds);
+            return timing;
+        }
 
         private static void TurnOnGuardian()
         {
@@ -739,7 +886,12 @@ namespace Oce.Solid.Agent.Core
                         // read any more.
                         if (report == said) continue;
                         said = report;
-                        try { Console.Error.WriteLine("[bridge] " + report); }
+                        try
+                        {
+                            var sink = GuardianReport;
+                            if (sink != null) sink("[bridge] " + report);
+                            else Console.Error.WriteLine("[bridge] " + report);
+                        }
                         catch { }
                     }
                 });
@@ -819,7 +971,7 @@ namespace Oce.Solid.Agent.Core
 
             try
             {
-                if (_sw.CommandInProgress)
+                if (!CommandInProgressIsOurs && _sw.CommandInProgress)
                     return "SOLIDWORKS says a sequence of API calls is in progress " +
                            "(ISldWorks.CommandInProgress is true): another program driving " +
                            "SOLIDWORKS set it and has not cleared it. Let that program finish, " +

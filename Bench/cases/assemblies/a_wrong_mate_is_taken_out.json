@@ -1,0 +1,62 @@
+{
+  "name": "a_wrong_mate_is_taken_out",
+  "family": "assemblies",
+  "why": "BRIEF R22 (25/10/2026). A distance mate put the second half of a channel under the first instead of on top, and it could not be taken out: the state of an assembly listed no mate by name, so «suppress_feature» refused the name, and «delete_feature» waited for a confirmation the client never showed. The state now lists the mates («mates_list», with a uid M1, M2 ... and the name SOLIDWORKS gives), «suppress_mate» turns one off and back on, «delete_mate» deletes it. Measured on 26/10/2026: an assembly of two parts with a coincident and a distance mate read back as Coincidente1 and Distanza1, kinds and components right.",
+  "defect_caught": "A mate missing from the state, or listed without the components it holds; a suppression that SetSuppression2 answers true and that on re-reading did not happen; a deletion where the mate is still there, or where a uid points to the next mate once the first is gone; a name that does not exist that is not refused.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
+        ] },
+      { "name": "cover",
+        "position_mm": [0, 7, 0],
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
+        ] }
+    ]
+  },
+  "steps": [
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincident", "alignment": "opposite"
+      },
+      "expect": [
+        { "what": "state.mates_total", "equal_to": 1, "why": "R22: the mates are in the state of the assembly" },
+        { "what": "state.mates_list[0].uid", "equal_to": "M1", "why": "the uid does not depend on the language of the session" },
+        { "what": "state.mates_list[0].kind", "equal_to": "coincident" },
+        { "what": "state.mates_list[0].components", "equal_to": ["C1", "C2"], "why": "which components it holds, by the uids of the state" },
+        { "what": "state.mates_list[0].suppressed", "equal_to": false } ] },
+    { "operation": "suppress_mate",
+      "arguments": { "mate": "M1" },
+      "expect": [
+        { "what": "measurements.suppressed", "equal_to": true, "why": "read back with IsSuppressed2, not taken from SetSuppression2" },
+        { "what": "state.mates_suppressed", "equal_to": 1 },
+        { "what": "state.mates_list[0].suppressed", "equal_to": true } ] },
+    { "operation": "suppress_mate",
+      "arguments": { "mate": "M7" },
+      "must_fail": {
+        "message_includes": ["There is no mate «M7»"],
+        "twin": "a_wrong_mate_is_taken_out" } },
+    { "operation": "suppress_mate",
+      "arguments": { "mate": "M1", "reactivate": true },
+      "expect": [
+        { "what": "measurements.suppressed", "equal_to": false, "why": "the road back: the mate holds again" },
+        { "what": "state.mates_suppressed", "equal_to": 0 } ] },
+    { "operation": "delete_mate",
+      "arguments": { "mate": "M9" },
+      "must_fail": {
+        "message_includes": ["There is no mate"],
+        "twin": "a_wrong_mate_is_taken_out" } },
+    { "operation": "delete_mate",
+      "arguments": { "mate": "M1" },
+      "expect": [
+        { "what": "measurements.mates_before", "equal_to": 1 },
+        { "what": "measurements.mates_after", "equal_to": 0, "why": "read back: the name is gone and there is one mate fewer" },
+        { "what": "state.mates_total", "equal_to": 0 } ] }
+  ]
+}

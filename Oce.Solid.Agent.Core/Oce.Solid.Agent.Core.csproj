@@ -101,6 +101,7 @@
 
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PhaseClock.cs" />
     <Compile Include="Catalog\Node.cs" />
     <Compile Include="Catalog\OperationSpec.cs" />
     <Compile Include="Catalog\Operations.cs" />
@@ -124,6 +125,7 @@
     <Compile Include="DrawingRoundOperations.cs" />
     <Compile Include="AssemblyMeasureOperations.cs" />
     <Compile Include="FixComponentOperations.cs" />
+    <Compile Include="MateStateOperations.cs" />
     <Compile Include="EquationOperations.cs" />
     <Compile Include="GuardOperations.cs" />
     <Compile Include="ReorderOperations.cs" />

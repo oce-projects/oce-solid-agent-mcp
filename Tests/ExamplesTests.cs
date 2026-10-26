@@ -54,8 +54,10 @@ namespace Oce.Solid.Agent.ContractTests
         /// other three features of the guide (`fillet_face`,
         /// `fill_pattern`, `gusset`) are born without one: their green cases
         /// name the faces with the bench selectors.
+        /// **32** (26/10/2026, brief R22): `suppress_mate` and `delete_mate`
+        /// (`a_wrong_mate_is_taken_out`).
         /// </summary>
-        private const int Floor = 30;
+        private const int Floor = 32;
 
         /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };

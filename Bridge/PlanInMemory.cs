@@ -32,7 +32,7 @@ namespace Oce.Solid.Agent.Bridge
     /// first two already built, that is, leaving half a part lying around for an
     /// error that could have been seen without opening anything.
     /// </summary>
-    internal sealed class PlanInMemory : IPlanSource
+    internal sealed class PlanInMemory : IPlanSourceWithoutState
     {
         private readonly List<PlanStep> _steps;
         private int _next;
@@ -93,13 +93,19 @@ namespace Oce.Solid.Agent.Bridge
             object numbers = null;
             if (measurements != null) measurements.TryGetValue("measurements", out numbers);
 
-            Outcomes.Add(new Dictionary<string, object>
+            var outcome = new Dictionary<string, object>
             {
                 ["operation"] = Name(order),
                 ["succeeded"] = succeeded,
                 ["error"] = succeeded ? null : error,
                 ["measurements"] = numbers,
-            });
+            };
+            // WHERE THE STEP'S TIME WENT (brief R2): present only when the
+            // executor measured it, so an outcome never carries an empty field.
+            object timing = null;
+            if (measurements != null && measurements.TryGetValue("timing_ms", out timing) && timing != null)
+                outcome["timing_ms"] = timing;
+            Outcomes.Add(outcome);
             return Task.FromResult(0);
         }
 

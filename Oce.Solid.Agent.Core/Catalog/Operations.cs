@@ -158,7 +158,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "it touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
                         + "counts the bodies afterwards.",
-                    Precondition = "document_without_body",
+                    // AN OPEN PART, with or without bodies (brief R20): the
+                    // description above says it merges with the bodies it
+                    // touches, and on 24/10/2026 every extrusion after the first
+                    // ran on a part with a body.
+                    Precondition = "an open part (empty, or with bodies to add to)",
                     Schema = O(
                         "type", "object",
                         "properties", O(
@@ -168,7 +172,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     "front",
                                     "top",
                                     "right"),
-                                "description", "construction plane: front, top or right"),
+                                "description", "construction plane: front, top or right. WHERE THE "
+                                    + "CONTOUR'S AXES GO (brief R7): «sketch_axes» in the answer names, for "
+                                    + "the plane used, the model axis each contour axis runs along and the "
+                                    + "direction of the extrusion."),
                             "contours", O(
                                 "type", "array",
                                 "description", "The FIRST contour is the outer edge, the following ones are the voids "
@@ -4723,6 +4730,60 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "boolean",
                                 "description", "true to fix it, false to free it.")),
                         "required", A("component", "grounded")),
+                },
+                new OperationSpec
+                {
+                    Name = "suppress_mate",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Example = "{\"mate\":\"M1\"}",   // from `a_wrong_mate_is_taken_out`
+                    Summary = "Turns a mate of the assembly off, or back on, by its uid or name, and reads it back.",
+                    Description =
+                        "Turns a mate off without losing it: the components it held stay where they are, "
+                        + "but the directions it blocked are free. «reactivate»: true turns it back on. It is "
+                        + "the road back from a wrong mate, and it can be walked back, so it asks no "
+                        + "confirmation.\n\nTHE MATE IS NAMED from «mates_list» in the state of the assembly: "
+                        + "its uid («M1» is the first mate of the tree, renumbered when one is deleted) or its "
+                        + "name as SOLIDWORKS writes it («Distanza1» in an Italian session, «Distance1» in an "
+                        + "English one). I read it back after the change."
+                        + "\n\nI REFUSE IF the mate is not there (I tell you which ones there are) or if it is "
+                        + "already as you ask (nothing changes, and I say so).",
+                    Precondition = "an open assembly with at least one mate",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "mate", O(
+                                "type", "string",
+                                "description", "the uid («M1», «M2», ...) or the name of the mate, from «mates_list»."),
+                            "reactivate", O(
+                                "type", "boolean",
+                                "description", "true to turn a suppressed mate back on. Default false: suppress it.")),
+                        "required", A("mate")),
+                },
+                new OperationSpec
+                {
+                    Name = "delete_mate",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Example = "{\"mate\":\"M1\"}",   // from `a_wrong_mate_is_taken_out`
+                    Summary = "Deletes a mate of the assembly by its uid or name, and reads back that it is gone.",
+                    Description =
+                        "Deletes a mate. It cannot be undone with another operation, only with «undo»: the "
+                        + "bridge asks for a confirmation before running a plan that contains it. To turn a "
+                        + "mate off and keep it, use «suppress_mate».\n\nTHE MATE IS NAMED from «mates_list» "
+                        + "in the state of the assembly, by uid («M1») or by name, as in «suppress_mate». I "
+                        + "read back that the name is gone and that there is one mate fewer."
+                        + "\n\nI REFUSE IF the mate is not there (I tell you which ones there are).",
+                    Precondition = "an open assembly with at least one mate",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "mate", O(
+                                "type", "string",
+                                "description", "the uid («M1», «M2», ...) or the name of the mate, from «mates_list».")),
+                        "required", A("mate")),
                 },
                 new OperationSpec
                 {

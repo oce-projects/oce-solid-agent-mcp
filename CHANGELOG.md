@@ -32,6 +32,125 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.132.0 — 26 October 2026 · library 0.155.0 · the brief of 25 October (branch `night-2026-10-26`)
+
+On 24 and 25 October a client drew a part and an assembly through the bridge for
+hours, and wrote down 23 problems with their evidence (brief of 25/10/2026). This
+version takes the first of them, in the order of the brief, **after measuring
+them**: every number below comes from a run on SOLIDWORKS 2021 SP5.1, with the
+script and the output kept beside it, not from an estimate.
+
+**The measure that drove it (scenario T1).** The plan of 21 steps of 24/10 (six
+extrusions, a chamfer, five variables, six links, material, a property, a save),
+replayed on a new part each time:
+
+| | 0.130.2 | readings cut | + API sequence | 0.132.0 |
+|---|---|---|---|---|
+| time of the plan | 1,243.8 s | 672.7 s | 63.6 s | **55.9 s** |
+| characters of the answer | 21,663 | 9,831 | 9,782 | **5,103** |
+
+A plan refused in validation answers **377 characters** (10,804 on 24/10; the
+brief asked under 600). The brief asked the answer of that plan under 3,000
+characters: **not reached**, 5,103. What is left is the measures of each step
+and the summary of the state; going lower means leaving out measures, which the
+brief itself wants kept. To be decided.
+
+**Speed (briefs R2 and R24).**
+
+- `ISldWorks.CommandInProgress` is set for the length of a call when it was
+  off, and put back after (`Session.BeginApiSequence`): on the plan above,
+  **x10.6** (672.7 s to 63.6 s). On by default; `OCE_API_SEQUENCE=0` turns it off.
+- A plan held in memory no longer reads the state to know its source
+  (`IPlanSourceWithoutState`), and 42 operations that do not need the state of
+  the document no longer read it before their step
+  (`SwOperations.OperationsWithoutState`). A contract keeps that list equal to
+  the switch of `Run`.
+- `PhaseClock` times every phase of a call. In `full` each step has its
+  `timing_ms`; the answer always has `timing_ms` for the whole plan, with the
+  slowest step.
+- **Log of the bridge** (`Bridge/CallLog.cs`): one JSON line per tool call, with
+  the times of each phase and the notes that went to stderr, in
+  `%LOCALAPPDATA%\Oce.Solid.Agent\logs` (`OCE_LOG` moves it). Unhandled
+  exceptions go there too (brief R14), and the bridge warns when its exe runs
+  from a network disk. The log holds local paths: it is not for publishing.
+
+**Another window comes to the front during a plan (brief R1).**
+
+- The plan's document is brought back to the front, before the next step and at
+  the end (`on_window_change`: `reactivate`, the default, or `stop`). The answer
+  lists the `reactivations`, and says when SOLIDWORKS asked for a rebuild on
+  activation.
+- **The cause of a part that could not be saved any more.** Measured with probes:
+  `IEquationMgr.Add3` of a NEW equation on a document that is not in front leaves
+  it unsavable — every `SaveAs` after it answers `swGenericSaveError` and writes
+  a file of 0 bytes, even after a rebuild and a reactivation. `set_Equation`,
+  `Delete`, properties and rebuilds behind are harmless. The remedy that worked:
+  rewrite each equation in place (`set_Equation` with its own text) with the
+  document in front. `global_variable` and `link_dimension` now bring the part
+  to the front before adding (in `stop` mode they refuse instead), and if
+  another window came in front during the call they apply the remedy and say so
+  in `warning_window`.
+
+**Saving with forward slashes (the part of 13 October).** Measured on copies:
+a `SaveAs` with `/` in the path onto a new file leaves the document unable to
+save on its own file afterwards, and on its own file `SaveAs` compares the path
+as text. Every path argument (`path`, `profile_path`, `template`, `model`) now
+goes through `Path.GetFullPath` before any operation; `save_document` onto the
+document's own file uses the very string SOLIDWORKS holds; `insert_component`
+normalizes its path. A document already damaged that way still refuses its own
+name: `save_document` now names the two measured causes and says to save under a
+new name, which worked in both (the old name stays refused).
+
+**Holes and pockets (brief R10).** `cylindrical_cut` and `rectangular_cut` draw
+their sketch without snapping (`AddToDB`, `DisplayWhenAdded` off) and read the
+circle or the rectangle back: a centre SOLIDWORKS moved (tolerance 1e-7 m) is a
+refusal with a remedy, not a «succeeded». `diameter_mm` is the measured one,
+beside `diameter_requested_mm` and `centre_offset_mm`. A through hole that
+drilled no wall fails.
+
+**Sketch axes (brief R7).** An extrusion says where the axes of its sketch go in
+the model (`sketch_axes`: `x`, `y`, `extrusion`), read from the inverse of
+`ModelToSketchTransform`; measured on front, right and top.
+
+**Mates (brief R22).** The state of an assembly lists its mates (`mates_list`:
+`uid` M1, M2..., name, kind, suppressed, components; at most 60). Two new
+operations: **`suppress_mate`** (and `reactivate`) on every configuration, read
+back; **`delete_mate`**, which asks for confirmation like `delete_feature` and
+reads back that the mate is gone. Bench case `a_wrong_mate_is_taken_out`. A
+refused confirmation quotes what the client answered. 99 operations become 101.
+
+**Short answers (brief R3).** `response`: `summary` (default) or `full`.
+`summary` gives the outcomes with their measures and warnings, `state_summary`
+(volume, box, mass, features added and removed) and `timing_ms`; the whole
+`state_after` only in `full`, and a plan refused in validation does not read the
+state at all. Of a successful step, `summary` leaves out: `error` when null, the
+times of the step, volumes before and after when equal, texts over 100
+characters that are not warnings, a `value_before_*` equal to its
+`value_after_*`, and a measure with the same name and value as an argument the
+caller sent. `note_outcomes` counts what was left out. The sentence
+`link_dimension` writes after every link is now `meaning`, not `verdict`.
+
+**Smaller ones.** Materials (R4): a name under four letters matches only as a
+whole word, the refusal of a name that matches several materials no longer says
+«steel», and the name is resolved in validation and in `dry_run`, before anything
+runs. On 24/10 «PLA» was found wrong only at its step, after 1,069 s, and the
+`dry_run` before had said yes; now the `dry_run` refuses it in 74 ms. A `dry_run` sends no progress notifications
+(R13: they arrived after the answer, and the client counted eight dropped
+connections). `faces` on a part without a body is an empty list with a note
+(R9). The precondition of `extrude_profile` says an empty part is fine (R20).
+
+**Tests.** 864 checks, 4 failed: the four that compare the bench with the code
+(the last run is of 9/10 on library 0.153.1, and the new case has no green run
+yet). Refusals that say what to do: 241 of 952. Language gate held. **The bench
+has not run on this version yet.**
+
+**Still open from the brief.** P0: R12 (transforms of components, placing and
+rotating, a mate on an explicit face), R21 (the side of a distance mate, and the
+origin in the verdict), R19. P1: R11, R23, R5, R16. P2: R6, R8, R15, R17, R18,
+and a heartbeat for long plans (R13).
+
+---
+
 ## 0.130.2 — 12 October 2026 · library 0.153.1 (unchanged)
 
 Documents, tests and installer. **No operation and no file of the library or of the

@@ -290,6 +290,90 @@ namespace Oce.Solid.Agent.Bridge
         /// except empty, "0" and "false". A variable that is set to "0" and
         /// still switches something off would be the surprise this avoids.
         /// </summary>
+        /// <summary>
+        /// THE SEQUENCE OF API CALLS IS ANNOUNCED TO SOLIDWORKS (brief R2).
+        ///
+        /// The guide, ISldWorks~CommandInProgress.html: «Improves performance of
+        /// out-of-process applications by informing SOLIDWORKS that a sequence
+        /// of API calls will be made by the out-of-process application», and
+        /// «Set to True before calling the sequence of API calls, then set to
+        /// false after». The bridge is exactly that application, and up to
+        /// 0.130.2 it never set it: on 26/10/2026 reading the tree of an EMPTY
+        /// part (fifteen features) cost 0.6-1.3 s, tens of milliseconds per call.
+        ///
+        /// IT IS SET ONLY IF IT WAS FALSE. True at the start of a call means
+        /// another program driving SOLIDWORKS left it on: it is not ours to
+        /// clear, and the plan refuses as before (PreliminaryChecks). The
+        /// answer says whether it is ours, and only ours is put back.
+        ///
+        /// `OCE_API_SEQUENCE` set to `0`, `false` or `off` turns it off, so the
+        /// two ways can be measured one against the other.
+        /// </summary>
+        public bool BeginApiSequence()
+        {
+            ApiSequenceOurs = false;
+            if (!Attached || !ApiSequenceWanted()) return false;
+            try
+            {
+                var sw = _sw as ISldWorks;
+                if (sw == null || sw.CommandInProgress) return false;
+                sw.CommandInProgress = true;
+                ApiSequenceOurs = true;
+                return true;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>Puts back what <see cref="BeginApiSequence"/> set, and only that.</summary>
+        public void EndApiSequence(bool ours)
+        {
+            ApiSequenceOurs = false;
+            if (!ours) return;
+            try
+            {
+                var sw = _sw as ISldWorks;
+                if (sw != null) sw.CommandInProgress = false;
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Whether the next plan brings its document back to the front when
+        /// another window comes there (brief R1). The `build` tool sets it from
+        /// `on_window_change` before every plan; on by default.
+        /// </summary>
+        public bool ReactivateWindowInPlans { get; set; } = true;
+
+        /// <summary>
+        /// Why a material name would not resolve on this workstation, or null
+        /// (brief R4). Null also when the bridge is not attached: then nobody
+        /// can tell, and the step will say it when it runs.
+        /// </summary>
+        public string MaterialProblem(string requested, string archive)
+        {
+            if (!Attached) return null;
+            try
+            {
+                return Oce.Solid.Agent.Core.SolidWorksMaterials.ProblemWith(
+                    _sw as ISldWorks, requested, archive);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>True while the call in progress is the one that set CommandInProgress.</summary>
+        public bool ApiSequenceOurs { get; private set; }
+
+        /// <summary>What `OCE_API_SEQUENCE` means: on unless `0`, `false` or `off`.</summary>
+        internal static bool ApiSequenceWanted()
+        {
+            var v = System.Environment.GetEnvironmentVariable("OCE_API_SEQUENCE");
+            if (string.IsNullOrWhiteSpace(v)) return true;
+            v = v.Trim();
+            return !(v == "0" ||
+                     string.Equals(v, "false", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(v, "off", StringComparison.OrdinalIgnoreCase));
+        }
+
         internal static bool NoAttachRequested()
         {
             var v = System.Environment.GetEnvironmentVariable("OCE_NO_ATTACH");
@@ -616,7 +700,8 @@ namespace Oce.Solid.Agent.Bridge
             }
             try
             {
-                var docState = ReadState(model, false);
+                var docState = Oce.Solid.Agent.Core.PhaseClock.Time(
+                    "session.state_read", () => ReadState(model, false));
                 return docState?.Data;
             }
             catch (Exception ex)
@@ -707,9 +792,11 @@ namespace Oce.Solid.Agent.Bridge
             }
             try
             {
-                var docState = filter == null
-                    ? ReadState(doc, withAnchor)
-                    : DocumentState.ReadFaces(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter);
+                var docState = Oce.Solid.Agent.Core.PhaseClock.Time(
+                    withAnchor ? "session.state_read_anchor" : "session.state_read",
+                    () => filter == null
+                        ? ReadState(doc, withAnchor)
+                        : DocumentState.ReadFaces(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter));
                 return docState?.Data;
             }
             catch (Exception ex)
@@ -1023,6 +1110,14 @@ namespace Oce.Solid.Agent.Bridge
                 // catalog with the allowed types — `Tests\Program.cs` →
                 // `EveryCatalogFamilyHasAnAllowedDocument`.
                 AlsoOnAssemblies = true,
+
+                // CommandInProgress set by THIS call is not someone else's
+                // (brief R2): see BeginApiSequence.
+                CommandInProgressIsOurs = ApiSequenceOurs,
+
+                // Another window in front is brought back, not a reason to
+                // stop, unless the caller asked to stop (brief R1).
+                ReactivateWindow = ReactivateWindowInPlans,
             };
 
             try

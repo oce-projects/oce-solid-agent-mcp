@@ -72,6 +72,95 @@ namespace Oce.Solid.Agent.Core
             catch { return -1; }
         }
 
+        /// <summary>
+        /// A NEW EQUATION IS ADDED WITH ITS DOCUMENT IN FRONT (brief R1, measured on
+        /// 26/10/2026 with SOLIDWORKS 2021 SP5.1). IEquationMgr.Add3 on a document
+        /// that is not the active one leaves it UNSAVABLE: every later SaveAs answers
+        /// false with swGenericSaveError and writes a file of 0 bytes. Probe
+        /// of equations behind: in front 45,040 bytes; behind 0 bytes, with or
+        /// without ForceRebuild3 and with or without CommandInProgress; a rebuild
+        /// alone behind does no harm. The probe of writes behind: set_Equation,
+        /// Delete and a custom property written behind do no harm either: only Add3.
+        /// Found because a plan whose window changed during a global_variable could
+        /// not save its part any more, not even with a save of its own afterwards.
+        /// Null when the document is in front (<paramref name="broughtBack"/> says
+        /// whether it had to be brought there); otherwise the refusal.
+        /// </summary>
+        private string EquationDocumentInFront(IModelDoc2 model, out bool broughtBack)
+        {
+            broughtBack = false;
+            if (DocumentByPath.IsFrontDocument(_sw, model)) return null;
+            if (!MayBringDocumentBack)
+                return "Another window is in front, and this plan stops on a window change instead of bringing " +
+                       "its document back: I do not add an equation to a document behind, because SOLIDWORKS then " +
+                       "no longer saves it (measured). I touched nothing. Bring the part to the front and try again.";
+            int errors;
+            string problem;
+            if (DocumentByPath.ActivateAndReadBack(_sw, model, out errors, out problem))
+            {
+                broughtBack = true;
+                string rebuilt = DocumentByPath.RebuildIfActivationAsked(model, errors);
+                _log("[agent] the part was not in front: brought back before adding the equation" +
+                     (rebuilt == null ? "" : "; " + rebuilt));
+                return null;
+            }
+            return "I add a new equation only with its document in front: written on a document behind, " +
+                   "SOLIDWORKS no longer saves it (measured). I could not bring it to the front: " +
+                   (problem ?? "SOLIDWORKS did not say why") + ". I touched nothing. Bring the part to the front " +
+                   "and try again.";
+        }
+
+        /// <summary>
+        /// THE REPAIR, MEASURED (probe of the repair, 26/10/2026): writing each
+        /// equation again with its own text, WITH THE DOCUMENT IN FRONT, makes a
+        /// document broken by an Add3 behind savable again. Written behind it does
+        /// not, and neither do EditUndo2, EvaluateAll or a SaveAs as a copy. Called
+        /// right after the Add3: when the document is still in front nothing is
+        /// done and null comes back. Otherwise the document is brought back, its
+        /// equations are written again, and the sentence for the answer says so;
+        /// up to three tries if the window keeps changing. It is done even when
+        /// <see cref="MayBringDocumentBack"/> is false: a part that can no longer be
+        /// saved costs more than a window brought back.
+        /// </summary>
+        private string RepairIfAnotherCameToFront(IModelDoc2 model, IEquationMgr em)
+        {
+            if (DocumentByPath.IsFrontDocument(_sw, model)) return null;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                int errors;
+                string problem;
+                if (!DocumentByPath.ActivateAndReadBack(_sw, model, out errors, out problem)) continue;
+                string rebuilt = DocumentByPath.RebuildIfActivationAsked(model, errors);
+                if (rebuilt != null) _log("[agent] " + rebuilt);
+                int n = 0;
+                try { n = em.GetCount(); } catch { }
+                for (int k = 0; k < n; k++)
+                {
+                    try { em.set_Equation(k, em.get_Equation(k)); } catch { }
+                }
+                if (DocumentByPath.IsFrontDocument(_sw, model))
+                {
+                    _log("[agent] another window came to the front during an equation: " + n +
+                         " equation(s) written again in front");
+                    return "Another window came to the front while the equation was being written, and " +
+                           "SOLIDWORKS then refuses to save the part (measured). I brought the part back and wrote " +
+                           "its " + n + " equation(s) again with the same text, which makes it savable again.";
+                }
+            }
+            return "Another window came to the front while the equation was being written, and I could not " +
+                   "keep the part in front to repair it: SOLIDWORKS may refuse to save it (swGenericSaveError, " +
+                   "a file of 0 bytes). Bring the part to the front and write any of its equations again with " +
+                   "the same text before saving.";
+        }
+
+        private static string BroughtBackNote(bool broughtBack)
+        {
+            return broughtBack
+                ? "Another window was in front when the equation was about to be written: I brought the part " +
+                  "back first, because an equation added to a document behind leaves it unsavable (measured)."
+                : null;
+        }
+
         private static bool GoodVariableName(string itemName)
         {
             if (string.IsNullOrWhiteSpace(itemName) || itemName.Length > 40) return false;
@@ -117,6 +206,12 @@ namespace Oce.Solid.Agent.Core
             bool newOne = existing < 0;
             string old = null;
             if (!newOne) { try { old = em.get_Equation(existing); } catch { } }
+            bool broughtBack = false;
+            if (newOne)
+            {
+                string notInFront = EquationDocumentInFront(model, out broughtBack);
+                if (notInFront != null) return Failed(notInFront);
+            }
             int i = WriteEquation(em, itemName, right);
             if (i < 0)
                 return Failed(
@@ -126,6 +221,7 @@ namespace Oce.Solid.Agent.Core
             try { em.EvaluateAll(); } catch { }
             bool rebuilt = false;
             try { rebuilt = model.ForceRebuild3(false); } catch { }
+            string windowNote = newOne ? RepairIfAnotherCameToFront(model, em) ?? BroughtBackNote(broughtBack) : null;
             i = EquationOf(em, itemName);
             double read = double.NaN;
             try { if (i >= 0) read = em.get_Value(i); } catch { }
@@ -160,6 +256,7 @@ namespace Oce.Solid.Agent.Core
             if (double.IsNaN(readMm))
                 measurements["warning"] = "I do not know what units the document is in: the variable is " + read.ToString("0.######", Inv) +
                                        " in its units, and I did not compare it with the requested value.";
+            if (windowNote != null) measurements["warning_window"] = windowNote;
             return SucceededWithoutCreating(measurements);
         }
 
@@ -202,6 +299,12 @@ namespace Oce.Solid.Agent.Core
             int existing = EquationOf(em, eqName);
             string old = null;
             if (existing >= 0) { try { old = em.get_Equation(existing); } catch { } }
+            bool broughtBack = false;
+            if (existing < 0)
+            {
+                string notInFront = EquationDocumentInFront(model, out broughtBack);
+                if (notInFront != null) return Failed(notInFront);
+            }
             int i = WriteEquation(em, eqName, expression);
             if (i < 0)
                 return Failed("SOLIDWORKS does not accept «\"" + eqName + "\" = " + expression + "». Check that the " +
@@ -209,6 +312,7 @@ namespace Oce.Solid.Agent.Core
             try { em.EvaluateAll(); } catch { }
             bool rebuilt = false;
             try { rebuilt = model.ForceRebuild3(false); } catch { }
+            string windowNote = existing < 0 ? RepairIfAnotherCameToFront(model, em) ?? BroughtBackNote(broughtBack) : null;
             i = EquationOf(em, eqName);
             double expected = double.NaN;
             try { if (i >= 0) expected = em.get_Value(i); } catch { }
@@ -227,7 +331,7 @@ namespace Oce.Solid.Agent.Core
                                IsBackAsItWas(model, photo, putBack(), what));
             string broken = WhatBroke(model, photo, rebuilt, true);
             if (broken != null)
-                return Failed("Legando «" + eqName + "» a «" + expression + "» " + broken + "." +
+                return Failed("Linking «" + eqName + "» to «" + expression + "» " + broken + "." +
                                IsBackAsItWas(model, photo, putBack(), what));
             double? volumeAfter = VolumeMm3(model);
             double afterSystem = ApiHelpers.ReadDimension(dimension);
@@ -237,7 +341,11 @@ namespace Oce.Solid.Agent.Core
                 ["equation"] = em.get_Equation(i),
                 ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
                 ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
-                ["verdict"] = "The dimension «" + eqName + "» is now driven by «" + expression + "»: changing the variable changes " +
+                // «meaning», not «verdict» (26/10/2026): the same sentence after
+                // every link, an explanation of what a link is. A «verdict» stays
+                // in a short answer whatever its length; this one cost 190
+                // characters a step in a plan of 21.
+                ["meaning"] = "The dimension «" + eqName + "» is now driven by «" + expression + "»: changing the variable changes " +
                                "it. With «set_dimension» it cannot be changed any more (it is driven).",
             };
             if (angular)
@@ -253,6 +361,7 @@ namespace Oce.Solid.Agent.Core
             // A LINK THAT REPLACES ANOTHER IS STATED (review of 27/9/2026):
             // before it was rewritten silently.
             if (old != null) measurements["link_replaced"] = old;
+            if (windowNote != null) measurements["warning_window"] = windowNote;
             return SucceededWithoutCreating(measurements);
         }
 

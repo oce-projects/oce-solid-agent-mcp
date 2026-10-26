@@ -157,8 +157,16 @@ namespace Oce.Solid.Agent.Core
                 () => theField.Where(m => string.Equals(
                     Compact(InParentheses(m.Name)), Compact(searched),
                     StringComparison.OrdinalIgnoreCase)).ToList(),
-                () => theField.Where(m => Compact(m.Name).IndexOf(
-                    Compact(searched), StringComparison.OrdinalIgnoreCase) >= 0).ToList(),
+                // A SHORT NAME COUNTS ONLY AS A WHOLE WORD (brief R4). On
+                // 24/10/2026 «PLA» was found inside «Plastiche personalizzate»,
+                // «Custom Plastic» and «PVC 0.007 plastificato»: three materials
+                // that are not PLA, and a plan of fifteen steps stopped after
+                // 1,069 s on a name a check could have refused at once.
+                () => Compact(searched).Length < WholeWordBelow
+                    ? theField.Where((Material m) => Words(m.Name).Any(w => string.Equals(
+                        w, searched, StringComparison.OrdinalIgnoreCase))).ToList()
+                    : theField.Where(m => Compact(m.Name).IndexOf(
+                        Compact(searched), StringComparison.OrdinalIgnoreCase) >= 0).ToList(),
             };
 
             foreach (var stage in stages)
@@ -169,7 +177,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     why =
                         "«" + searched + "» matches " + foundItems.Count +
-                        " different materials, and they are not the same steel: " +
+                        " different materials, and they are not the same material: " +
                         string.Join(", ", foundItems.Take(8).Select(m => "«" + m.Name + "»")) +
                         (foundItems.Count > 8 ? ", and more" : "") +
                         ". Tell me which one.";
@@ -190,6 +198,40 @@ namespace Oce.Solid.Agent.Core
                     ? " There are: " + string.Join(", ", similar) + "."
                     : " Ask the user which material to use among those they have in their library.");
             return null;
+        }
+
+        /// <summary>
+        /// Under this many letters a requested name is looked for only as a
+        /// whole word of a material's name (brief R4).
+        /// </summary>
+        internal const int WholeWordBelow = 4;
+
+        /// <summary>The words of a name: runs of letters and digits.</summary>
+        internal static IEnumerable<string> Words(string s)
+        {
+            if (string.IsNullOrEmpty(s)) yield break;
+            var word = new List<char>();
+            foreach (var c in s)
+            {
+                if (char.IsLetterOrDigit(c)) { word.Add(c); continue; }
+                if (word.Count > 0) { yield return new string(word.ToArray()); word.Clear(); }
+            }
+            if (word.Count > 0) yield return new string(word.ToArray());
+        }
+
+        /// <summary>
+        /// Why <paramref name="requested"/> would not resolve to one material,
+        /// or null when it would (brief R4): the same stages as
+        /// <see cref="Resolve"/>, asked BEFORE the plan runs so a wrong name
+        /// stops the plan before its first step and not at its fifteenth.
+        /// An empty name is not a problem here: the operation assumes its
+        /// default material and says so.
+        /// </summary>
+        public static string ProblemWith(ISldWorks sw, string requested, string requestedArchive)
+        {
+            if (string.IsNullOrWhiteSpace(requested)) return null;
+            string why;
+            return Resolve(sw, requested, requestedArchive, null, out why) == null ? why : null;
         }
 
         private static string Compact(string s)

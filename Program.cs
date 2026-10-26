@@ -62,10 +62,65 @@ namespace Oce.Solid.Agent
             return "unknown";
         }
 
+        /// <summary>
+        /// The warning for an executable on a network drive, or null (brief R14).
+        ///
+        /// Windows maps the executable and its libraries into memory from where
+        /// they are, and reads their pages again when it needs them. From a
+        /// network drive a page that cannot be read in that moment is an
+        /// EXCEPTION_IN_PAGE_ERROR, which .NET raises as a SEHException that no
+        /// `catch` sees: the process ends. It is the most likely cause of the
+        /// crash of 25/10/2026 (bridge started from a network share, first
+        /// `api_search` after 22 idle minutes); it was not reproduced.
+        /// </summary>
+        internal static string NetworkLocation(string path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path)) return null;
+                bool network = path.StartsWith(@"\", StringComparison.Ordinal);
+                if (!network)
+                {
+                    var root = Path.GetPathRoot(path);
+                    network = !string.IsNullOrEmpty(root) &&
+                              new DriveInfo(root).DriveType == DriveType.Network;
+                }
+                return network
+                    ? "the bridge runs from a network drive (" + Path.GetDirectoryName(path) + "): if the " +
+                      "network drops while Windows reads a page of the program, the bridge ends without " +
+                      "an answer. Install it on a local disk (Installer.exe) and point the client there."
+                    : null;
+            }
+            catch { return null; }
+        }
+
         private static int Main(string[] arguments)
         {
             Console.OutputEncoding = new UTF8Encoding(false);
             Console.InputEncoding = new UTF8Encoding(false);
+
+            // THE BRIDGE'S OWN LOG, before anything can go wrong (brief R24).
+            CallLog.Start(Version);
+
+            // A CRASH LEAVES ITS CAUSE IN THE LOG (brief R14). On 25/10/2026 the
+            // bridge died of a SEHException inside `api_search`, the client
+            // said «Connection closed», and the cause was found only in the
+            // Windows event log. An exception of that kind (a corrupted-state
+            // exception) is not caught by the loop's `catch`: this handler is
+            // the last place where it can at least be written down.
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                try { Protocol.Note("[bridge] crashed: " + e.ExceptionObject); } catch { }
+            };
+
+            // FROM A NETWORK DRIVE THE BRIDGE CAN DIE OF THE NETWORK (brief R14).
+            var fromNetwork = NetworkLocation(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (fromNetwork != null) Protocol.Note("[bridge] " + fromNetwork);
+            Oce.Solid.Agent.Core.PlanExecutor.GuardianReport = text =>
+            {
+                Console.Error.WriteLine(text);
+                CallLog.Note(text);
+            };
 
             var session = new Session();
             var reason = session.Attach();
@@ -296,8 +351,26 @@ namespace Oce.Solid.Agent
                     // `arguments`: it belongs to the PROTOCOL, not to the tool,
                     // and a generic client puts it there without knowing anything
                     // about what this bridge does.
-                    return Protocol.Response(
-                        id, tools.Invoke(itemName, itsItems, Progress.Token(parameters)));
+                    // ONE LINE OF THE BRIDGE'S LOG PER CALL (brief R24), with
+                    // the time of each phase; written also when the tool throws.
+                    var call = CallLog.Begin(itemName, itsItems, id);
+                    Dictionary<string, object> answer = null;
+                    // THE SEQUENCE IS ANNOUNCED TO SOLIDWORKS for the length of
+                    // the call (brief R2), and put back whatever happens.
+                    bool sequence = Core.PhaseClock.Time("session.api_sequence", () => session.BeginApiSequence());
+                    try
+                    {
+                        answer = tools.Invoke(itemName, itsItems, Progress.Token(parameters));
+                    }
+                    catch (Exception ex)
+                    {
+                        session.EndApiSequence(sequence);
+                        CallLog.End(call, null, ex);
+                        throw;
+                    }
+                    session.EndApiSequence(sequence);
+                    CallLog.End(call, answer, null);
+                    return Protocol.Response(id, answer);
                 }
 
                 // ── CANCELLATION, AND A NO THAT IS SAID (entry W2.2) ─────────────

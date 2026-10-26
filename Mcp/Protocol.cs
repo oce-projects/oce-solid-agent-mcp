@@ -123,6 +123,9 @@ namespace Oce.Solid.Agent.Mcp
         {
             Console.Error.WriteLine(text);
             Console.Error.Flush();
+            // ALSO IN THE BRIDGE'S OWN LOG (brief R24): the client keeps stderr
+            // only while it connects.
+            Bridge.CallLog.Note(text);
             SendAsNotification(text, "info");
         }
 

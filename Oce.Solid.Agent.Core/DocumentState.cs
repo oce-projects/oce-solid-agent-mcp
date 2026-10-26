@@ -239,6 +239,17 @@ namespace Oce.Solid.Agent.Core
         public IModelDoc2 Model { get; private set; }
 
         /// <summary>
+        /// A state that holds the document and nothing read from it: for a step
+        /// whose operation never looks at the state (brief R2, see
+        /// <see cref="SwOperations.UsesState"/>). No identifier, no signature:
+        /// an operation that needed them would find none and say so.
+        /// </summary>
+        public static DocumentState WithoutReading(IModelDoc2 model)
+        {
+            return new DocumentState { Model = model };
+        }
+
+        /// <summary>
         /// A feature waiting to know whether it goes into the list.
         ///
         /// It carries only what the walk over the tree has already read — the type and the
@@ -615,6 +626,7 @@ namespace Oce.Solid.Agent.Core
             var docState = new DocumentState();
             if (model == null) return docState;
             docState.Model = model;
+            var lap = PhaseClock.Laps("state");
 
             int docType = 0;
             try { docType = model.GetType(); } catch { }
@@ -688,6 +700,7 @@ namespace Oce.Solid.Agent.Core
                 return docState;
             }
 
+            lap.Next("header");
             // ── features of the tree, and axes ──────────────────────────────
             //
             // INCLUSION FILTER, NOT EXCLUSION.
@@ -845,6 +858,7 @@ namespace Oce.Solid.Agent.Core
                 if (entryF != null) feature.Add(entryF);
             }
 
+            lap.Next("features");
             // ── bodies, faces, edges ──────────────────────────────────────
             //
             // THE BODIES ARE THE NOVELTY OF 0.30.0, AND THEY ANSWER A QUESTION
@@ -947,6 +961,7 @@ namespace Oce.Solid.Agent.Core
             // are not inherited and do not see each other. A single field,
             // «properties», would be a merge that does not exist in the file,
             // and whoever read it back would have no way of knowing where to look.
+            lap.Next("bodies_box");
             var document = ReadProperty(model, "");
             if (document.Count > 0) data["property"] = document;
             try
@@ -960,6 +975,7 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
 
+            lap.Next("properties");
             if (bodies.Count > 0)
             {
                 hasBody = true;
@@ -1087,6 +1103,7 @@ namespace Oce.Solid.Agent.Core
                     };
                 }
 
+                lap.Next("bodies_each");
                 // ── the mass, ONLY if there is a material ─────────────────
                 //
                 // Without a material SolidWorks uses a default density anyway
@@ -1134,6 +1151,7 @@ namespace Oce.Solid.Agent.Core
                 if (unreadableVolume) data["volume_mm3"] = null;
                 else if (volume > 0) data["volume_mm3"] = Math.Round(volume, 1);
 
+                lap.Next("mass");
                 // ── faces and edges, with the ceiling on the TOTAL ────────
                 //
                 // The ceiling was INSIDE the loop over the bodies: on a four-bar
@@ -1443,6 +1461,7 @@ namespace Oce.Solid.Agent.Core
                     };
                 }
 
+                lap.Next("faces");
                 var sortedItems = allEdges
                     .OrderByDescending(t => LengthMm(t.Item1))
                     .ToList();
@@ -1508,6 +1527,7 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
+            lap.Next("edges");
             data["solid_body"] = hasBody;
             data["planes_available"] = nPlanes;
 
@@ -1579,6 +1599,7 @@ namespace Oce.Solid.Agent.Core
             // THE EQUATIONS AND THE GLOBAL VARIABLES (entry Z-F1), if there are any: whoever
             // reads the state must know that a dimension is driven before trying
             // to change it by hand.
+            lap.Next("errors_selection");
             int totalEquations;
             var equations = SwOperations.DocumentEquations(model, out totalEquations);
             if (equations != null)
@@ -1635,6 +1656,7 @@ namespace Oce.Solid.Agent.Core
                 foreach (var signed in docState.Signatures.Values)
                     if (signed != null) signed.BoxPartMm = partBox;
 
+            lap.Next("equations_shape");
             docState.Data = data;
             return docState;
         }

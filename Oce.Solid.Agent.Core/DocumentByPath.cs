@@ -631,6 +631,15 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
+        /// <summary>Whether <paramref name="doc"/> is the document in front, by object or by path.</summary>
+        public static bool IsFrontDocument(ISldWorks sw, IModelDoc2 doc)
+        {
+            if (sw == null || doc == null) return false;
+            string path = "";
+            try { path = PathOnDisk(doc); } catch (Exception) { }
+            return IsFront(sw, doc, path);
+        }
+
         private static bool IsFront(ISldWorks sw, IModelDoc2 doc, string path)
         {
             try

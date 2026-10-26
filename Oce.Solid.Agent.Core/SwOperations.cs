@@ -82,6 +82,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// Whether an operation that must work on the document in front may bring
+        /// it back when another window came there (brief R1). True by default;
+        /// PlanExecutor passes its own ReactivateWindow, so a plan that stops on a
+        /// window change is refused instead.
+        /// </summary>
+        public bool MayBringDocumentBack { get; set; } = true;
+
+        /// <summary>
         /// WHEN A CHECK REJECTS A SHAPE, THE SHAPE IS ALREADY IN THE PART.
         ///
         /// The operations that check themselves — the slot counts the
@@ -269,7 +277,7 @@ namespace Oce.Solid.Agent.Core
             "circular_pattern", "fill_pattern", "set_property",
             "linear_pattern", "revolve", "save_document",
             "draft", "rib", "chamfer_edges", "suppress_instance", "suppress_feature",
-            "replace_component", "fix_component", "mirror_component",
+            "replace_component", "fix_component", "mirror_component", "suppress_mate", "delete_mate",
             "center_marks", "drawing_dimension", "note", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
             "surface_finish", "datum", "geometric_tolerance",
             "section_view", "detail_view",
@@ -293,6 +301,75 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         public const string UnknownOperation = "Unknown operation: ";
 
+        /// <summary>
+        /// The operations whose case in <see cref="Run"/> does not pass the
+        /// reading of the document on (brief R2). For them the executor does not
+        /// read the document before the step: on 24/10/2026 a full reading of a
+        /// part with a body was one of the two that every step paid.
+        ///
+        /// A list written by hand next to a switch goes stale; the contract
+        /// suite reads the switch and fails when an operation here passes
+        /// `docState` on, or one that does not pass it is missing.
+        /// </summary>
+        internal static readonly HashSet<string> OperationsWithoutState =
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                "extrude_rectangle", "extrude_circle", "extrude_section", "spur_gear",
+                "extrude_profile", "apply_material", "dimension_tolerance", "create_plane",
+                "base_flange", "flat_pattern_dxf", "mirror", "revolve", "create_drawing",
+                "set_sheet", "standard_views", "model_view", "model_dimensions",
+                "center_marks", "drawing_dimension", "note", "hole_table",
+                "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
+                "surface_finish", "datum", "geometric_tolerance", "section_view",
+                "detail_view", "new_sheet", "activate_sheet", "drawing_cut_list",
+                "title_block", "export_pdf", "save_document", "structural_member",
+                "rectangular_frame", "cut_list", "rib", "suppress_mate", "delete_mate",
+            };
+
+        /// <summary>True when the operation looks at the reading of the document.</summary>
+        public static bool UsesState(string operation)
+        {
+            return operation == null || !OperationsWithoutState.Contains(operation);
+        }
+
+        /// <summary>
+        /// THE PATHS IN WINDOWS FORM, for every operation (26/10/2026). A path
+        /// written with forward slashes, «C:/folder/part.SLDPRT», is a path
+        /// Windows accepts and SOLIDWORKS does not always: SaveAs with it on the
+        /// file the document already is answered swGenericSaveError (the
+        /// unexplained failure of 13/10/2026, reproduced: the same call with
+        /// backslashes saved 140,100 bytes), and AddComponent5 answered null.
+        /// A model writes forward slashes because they need no escaping in JSON.
+        /// The arguments that name a file are turned with Path.GetFullPath when
+        /// they are rooted and hold a forward slash; anything else is left as it
+        /// came. A copy: the caller's dictionary is not touched.
+        /// </summary>
+        internal static Dictionary<string, object> WithWindowsPaths(Dictionary<string, object> arguments)
+        {
+            if (arguments == null) return null;
+            Dictionary<string, object> copy = null;
+            foreach (var key in PathArguments)
+            {
+                object raw;
+                if (!arguments.TryGetValue(key, out raw)) continue;
+                var text = raw as string;
+                if (string.IsNullOrWhiteSpace(text) || text.IndexOf('/') < 0) continue;
+                string full;
+                try
+                {
+                    if (!System.IO.Path.IsPathRooted(text.Trim())) continue;
+                    full = System.IO.Path.GetFullPath(text.Trim());
+                }
+                catch (Exception) { continue; }
+                if (copy == null) copy = new Dictionary<string, object>(arguments, StringComparer.Ordinal);
+                copy[key] = full;
+            }
+            return copy ?? arguments;
+        }
+
+        /// <summary>The arguments of the catalogue that name a file on disk.</summary>
+        internal static readonly string[] PathArguments = { "path", "profile_path", "template", "model" };
+
         public Outcome Run(
             IModelDoc2 model,
             string operation,
@@ -312,6 +389,7 @@ namespace Oce.Solid.Agent.Core
             // in each operation, because every operation comes through here.
             _featuresAtStepStart = CountFeature(model);
             _featureNamesAtStepStart = FeatureNamesNow(model);
+            arguments = WithWindowsPaths(arguments);
             try
             {
                 switch (operation)
@@ -397,6 +475,12 @@ namespace Oce.Solid.Agent.Core
                     // that changes how the assembly rebuilds. FixComponentOperations.cs.
                     case "fix_component":
                         return FixComponent(model, arguments, docState);
+                    // A mate taken out by its uid or its name (brief R22).
+                    // MateStateOperations.cs.
+                    case "suppress_mate":
+                        return SuppressMate(model, arguments);
+                    case "delete_mate":
+                        return DeleteMate(model, arguments);
                     // The right bracket and the left one (entry GA11). MirrorComponentOperations.cs.
                     case "mirror_component":
                         return MirrorComponent(model, arguments, docState);
@@ -1005,6 +1089,43 @@ namespace Oce.Solid.Agent.Core
         /// case, even if something goes wrong: it is a setting of the environment
         /// of whoever is working, not ours.
         /// </summary>
+        /// <summary>
+        /// THE MODEL AXIS EACH SKETCH AXIS RUNS ALONG (brief R7): «x» and «y» of
+        /// the contours, and «extrusion», the normal of the sketch along which
+        /// the extrusion goes. On 24/10/2026 a contour drawn on «top» came out
+        /// with its y along -Z of the model, and only a measure afterwards said
+        /// so: the description of the plane did not.
+        ///
+        /// The unit vectors of the sketch are carried into the model by the
+        /// inverse of ModelToSketchTransform, through IMathVector, so nothing
+        /// depends on the order of the nine numbers of a rotation. Each answer is
+        /// the dominant model axis with its sign.
+        /// </summary>
+        private Dictionary<string, object> SketchAxes(ISketch sketch)
+        {
+            if (sketch == null) return null;
+            var math = _sw.GetMathUtility() as IMathUtility;
+            var toSketch = sketch.ModelToSketchTransform;
+            if (math == null || toSketch == null) return null;
+            var toModel = toSketch.Inverse() as IMathTransform;
+            if (toModel == null) return null;
+            Func<double[], string> along = v =>
+            {
+                var vector = math.CreateVector(v) as IMathVector;
+                var moved = vector?.MultiplyTransform(toModel) as IMathVector;
+                var r = moved?.ArrayData as double[];
+                if (r == null || r.Length < 3) return null;
+                int k = 0;
+                for (int i = 1; i < 3; i++) if (Math.Abs(r[i]) > Math.Abs(r[k])) k = i;
+                return (r[k] >= 0 ? "+" : "-") + "XYZ"[k];
+            };
+            var x = along(new[] { 1.0, 0, 0 });
+            var y = along(new[] { 0, 1.0, 0 });
+            var normal = along(new[] { 0, 0, 1.0 });
+            if (x == null || y == null || normal == null) return null;
+            return new Dictionary<string, object> { ["x"] = x, ["y"] = y, ["extrusion"] = normal };
+        }
+
         private Outcome ExtrudeProfile(
             IModelDoc2 model, Dictionary<string, object> a,
             int maxVertices = MaxModelVertices)
@@ -1028,6 +1149,7 @@ namespace Oce.Solid.Agent.Core
             try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
 
             int segments = 0;
+            Dictionary<string, object> axesOfSketch = null;
             try
             {
                 sketches.InsertSketch(true);
@@ -1037,6 +1159,10 @@ namespace Oce.Solid.Agent.Core
                 {
                     segments += DrawContour(sketches, contour);
                 }
+
+                // WHERE THE CONTOUR'S AXES WENT (brief R7), read from the open
+                // sketch and not from a table.
+                try { axesOfSketch = SketchAxes(sketches.ActiveSketch as ISketch); } catch { }
             }
             finally
             {
@@ -1066,6 +1192,7 @@ namespace Oce.Solid.Agent.Core
                 ["segments"] = segments,
                 ["thickness_mm"] = thickness,
             };
+            if (axesOfSketch != null) measurements["sketch_axes"] = axesOfSketch;
             // Up to library 0.141.0 the note was computed and dropped: whoever
             // reads a sketch that is not locked must be able to read why.
             if (noteBlock != null) measurements["sketch_lock_note"] = noteBlock;
@@ -2217,6 +2344,76 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
+        /// <summary>
+        /// How far a drawn sketch entity may be from where it was asked, in
+        /// metres (brief R10): 0.0001 mm.
+        /// </summary>
+        internal const double SketchToleranceM = 1e-7;
+
+        /// <summary>
+        /// Why the circle is not the one asked for, or null (brief R10): its
+        /// centre and its radius read back from the sketch.
+        /// </summary>
+        private static string MisplacedCircle(
+            ISketchSegment circle, double[] centre, double radiusM,
+            out double measuredRadiusM, out double centreOffsetM)
+        {
+            measuredRadiusM = radiusM;
+            centreOffsetM = 0;
+            var arc = circle as ISketchArc;
+            if (arc == null) return "SOLIDWORKS gave back no circle.";
+            ISketchPoint point = null;
+            try { point = arc.GetCenterPoint2() as ISketchPoint; measuredRadiusM = arc.GetRadius(); }
+            catch (Exception ex) { return "its centre could not be read back (" + ex.Message + ")."; }
+            if (point == null) return "its centre could not be read back.";
+            double du = point.X - centre[0], dv = point.Y - centre[1];
+            centreOffsetM = Math.Sqrt(du * du + dv * dv);
+            var problems = new List<string>();
+            if (centreOffsetM > SketchToleranceM)
+                problems.Add("its centre is " + (centreOffsetM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                             " mm away from the point asked");
+            if (Math.Abs(measuredRadiusM - radiusM) > SketchToleranceM)
+                problems.Add("its diameter is " + (2 * measuredRadiusM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                             " mm instead of " + (2 * radiusM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+            return problems.Count == 0 ? null : string.Join(", and ", problems) + ".";
+        }
+
+        /// <summary>
+        /// Why the rectangle is not the one asked for, or null (brief R10): the
+        /// box of the end points of its sides against the two corners asked.
+        /// </summary>
+        private static string MisplacedRectangle(object[] sides, double[] p1, double[] p2, out double cornerOffsetM)
+        {
+            cornerOffsetM = 0;
+            if (sides == null || sides.Length < 4) return "SOLIDWORKS gave back no rectangle.";
+            double minU = double.MaxValue, minV = double.MaxValue, maxU = double.MinValue, maxV = double.MinValue;
+            try
+            {
+                foreach (var s in sides)
+                {
+                    var line = s as ISketchLine;
+                    if (line == null) continue;
+                    foreach (var end in new[] { line.GetStartPoint2() as ISketchPoint, line.GetEndPoint2() as ISketchPoint })
+                    {
+                        if (end == null) return "a corner could not be read back.";
+                        minU = Math.Min(minU, end.X); maxU = Math.Max(maxU, end.X);
+                        minV = Math.Min(minV, end.Y); maxV = Math.Max(maxV, end.Y);
+                    }
+                }
+            }
+            catch (Exception ex) { return "its corners could not be read back (" + ex.Message + ")."; }
+            if (minU == double.MaxValue) return "its sides could not be read back.";
+            cornerOffsetM = new[]
+            {
+                Math.Abs(minU - Math.Min(p1[0], p2[0])), Math.Abs(maxU - Math.Max(p1[0], p2[0])),
+                Math.Abs(minV - Math.Min(p1[1], p2[1])), Math.Abs(maxV - Math.Max(p1[1], p2[1])),
+            }.Max();
+            return cornerOffsetM > SketchToleranceM
+                ? "a side is " + (cornerOffsetM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                  " mm away from where it was asked."
+                : null;
+        }
+
         private Outcome CylindricalCut(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             string uidFace = Str(a, "face_uid", "");
@@ -2269,19 +2466,42 @@ namespace Oce.Solid.Agent.Core
                 try { sketches.InsertSketch(false); } catch { }
                 return Failed(error);
             }
-            // WITH THE ANCHOR, `AddToDB` true around the creation: the
-            // relations SOLIDWORKS guesses (center on the origin, on a
-            // midpoint) would add up with the anchor and overconstrain the
-            // sketch. Without an anchor the hole is born as it has always been born.
+            // `AddToDB` TRUE AROUND THE CREATION, ALWAYS (brief R10). With it
+            // false SOLIDWORKS infers: on 24/10/2026, on 26P000012, four holes
+            // of 0.992 asked at four points came out with their centres moved
+            // up to 0.09 mm onto nearby edges and diameters of 1.036 and 1.144
+            // (journal: CreateCircle(-0.005802, ...) for a centre asked at
+            // -0.00578), and every step answered «succeeded» with the diameter
+            // asked for. Up to library 0.153.1 it was set only with an anchor,
+            // where the guessed relations would also overconstrain the sketch.
             ISketchSegment cutCircle;
             bool addBefore = sketches.AddToDB;
+            bool displayBefore = sketches.DisplayWhenAdded;
             try
             {
-                if (!anchor.Empty) sketches.AddToDB = true;
+                sketches.AddToDB = true;
+                sketches.DisplayWhenAdded = false;
                 cutCircle = sketches.CreateCircleByRadius(
                     center[0], center[1], center[2], Units.M(diameter / 2));
             }
-            finally { sketches.AddToDB = addBefore; }
+            finally
+            {
+                sketches.AddToDB = addBefore;
+                sketches.DisplayWhenAdded = displayBefore;
+            }
+
+            // AND WHAT WAS DRAWN IS READ BACK before anything is built on it.
+            double measuredRadiusM, centreOffsetM;
+            string misplaced = MisplacedCircle(
+                cutCircle, center, Units.M(diameter / 2), out measuredRadiusM, out centreOffsetM);
+            if (misplaced != null)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed("The hole of " + diameter.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm was not drawn where it was asked: " + misplaced +
+                              " Try a centre a little away from the edges already on the face, or check «x_mm» " +
+                              "and «y_mm» against the face." + WithoutSketch(model));
+            }
 
             // THE DIAMETER, ON THE HOLE'S SKETCH.
             //
@@ -2364,9 +2584,22 @@ namespace Oce.Solid.Agent.Core
             string doesNotHold = MovementTest(model, anchor, feature);
             if (doesNotHold != null) return Failed(doesNotHold + RemoveCut(model, feature, volumeBefore));
 
+            // A THROUGH HOLE THAT DRILLED NO WALL IS NOT A HOLE (brief R10): on
+            // 26P000012 two of them answered «succeeded» with walls_drilled 0.
+            if (throughAll && walls == 0)
+                return Failed(
+                    "The through hole drilled no wall: no face of " +
+                    diameter.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    " mm came out of the cut, so it did not go through the material where it was asked. " +
+                    "Check that the centre lies on material of the face, in the face's coordinates, and try again." +
+                    RemoveCut(model, feature, volumeBefore));
+
             var measurements = new Dictionary<string, object>
             {
-                ["diameter_mm"] = diameter,
+                // MEASURED, not repeated from the request (brief R10).
+                ["diameter_mm"] = Math.Round(2 * measuredRadiusM * 1000, 4),
+                ["diameter_requested_mm"] = diameter,
+                ["centre_offset_mm"] = Math.Round(centreOffsetM * 1000, 4),
                 ["through_all"] = throughAll,
                 ["walls_drilled"] = walls >= 0 ? (object)walls : null,
                 ["dimensions_on_sketch"] = placedDimensions,
@@ -2528,15 +2761,32 @@ namespace Oce.Solid.Agent.Core
                 try { sketches.InsertSketch(false); } catch { }
                 return Failed(error);
             }
+            // `AddToDB` TRUE AROUND THE CREATION, ALWAYS, and read back: the same
+            // inference that moved the holes moves the corners (brief R10).
             object[] cutSides;
             bool addBefore = sketches.AddToDB;
+            bool displayBefore = sketches.DisplayWhenAdded;
             try
             {
-                if (!anchor.Empty) sketches.AddToDB = true;
+                sketches.AddToDB = true;
+                sketches.DisplayWhenAdded = false;
                 cutSides = sketches.CreateCornerRectangle(
                     p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) as object[];
             }
-            finally { sketches.AddToDB = addBefore; }
+            finally
+            {
+                sketches.AddToDB = addBefore;
+                sketches.DisplayWhenAdded = displayBefore;
+            }
+            double cornerOffsetM;
+            string misplacedRectangle = MisplacedRectangle(cutSides, p1, p2, out cornerOffsetM);
+            if (misplacedRectangle != null)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed("The pocket was not drawn where it was asked: " + misplacedRectangle +
+                              " Try a position a little away from the edges already on the face, or check " +
+                              "«x_mm» and «y_mm» against the face." + WithoutSketch(model));
+            }
 
             // THE POCKET'S TWO DIMENSIONS, for the same reason as the round hole.
             //
