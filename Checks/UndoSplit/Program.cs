@@ -50,20 +50,44 @@ namespace Checks.UndoSplit
             new[] { -50.0, -50 }, new[] { -30.0, -50 }, new[] { -30.0, -30 }, new[] { -50.0, -30 },
         };
 
+        private static ISldWorks _sw;
+
         private static int Main(string[] arguments)
         {
-            var ways = arguments.Length > 0 ? new[] { arguments[0] } : new[] { "none", "after", "open" };
+            // «nodb» (26/10/2026, after the first run: the three locks split the
+            // same way): no lock, and AddToDB left as it is. The API help says
+            // that with AddToDB true «It is not possible to undo the creation of
+            // some types of sketch entities» (ISketchManager~AddToDB.html), and
+            // extrude_rectangle, whose undo held on t10, does not set it.
+            // Then (same evening, «nodb» held the whole plan) the ways became a
+            // lock (none, after, open) and flags joined by «+»: «nodb» leaves
+            // AddToDB alone, «noinf» turns sketch inference (snapping) off while
+            // the lines are drawn, the other way to keep a vertex from snapping.
+            // «norel» (the third run: «nodb» added one automatic relation per
+            // line, «noinf» left the ends of the lines apart) turns the automatic
+            // relations off and leaves snapping on.
+            var ways = arguments.Length > 0 ? new[] { arguments[0] }
+                : new[] { "none", "after", "open", "none+nodb", "after+nodb", "open+nodb", "open+nodb+noinf",
+                          "none+nodb+norel", "open+nodb+norel" };
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
             var sw = (ISldWorks)raw;
+            _sw = sw;
+            Console.WriteLine("swSketchTurnOffAutomaticSolveModeAndUndo = " +
+                              sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSketchTurnOffAutomaticSolveModeAndUndo) +
+                              ", swSketchAutomaticRelations = " +
+                              sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swSketchAutomaticRelations));
             string template = Template(sw);
             if (template == null) { Console.Error.WriteLine("No part template (.prtdot) found."); return 2; }
 
             int worst = 0;
             foreach (var way in ways)
             {
-                if (way != "none" && way != "after" && way != "open") { Console.Error.WriteLine("Unknown way: " + way); return 2; }
+                var parts = way.Split('+');
+                bool known = parts[0] == "none" || parts[0] == "after" || parts[0] == "open";
+                for (int i = 1; i < parts.Length; i++) known = known && (parts[i] == "nodb" || parts[i] == "noinf" || parts[i] == "norel");
+                if (!known) { Console.Error.WriteLine("Unknown way: " + way); return 2; }
                 var doc = (IModelDoc2)sw.NewDocument(template, 0, 0, 0);
                 if (doc == null) { Console.Error.WriteLine("NewDocument returned null."); return 2; }
                 string title = doc.GetTitle();
@@ -104,18 +128,38 @@ namespace Checks.UndoSplit
             if (!SelectPlane(doc, planeIndex)) { Console.WriteLine("  plane " + planeIndex + " not selected"); return -1; }
             var sm = doc.SketchManager;
             sm.InsertSketch(true);
+            var parts = way.Split('+');
+            string lockWay = parts[0];
+            bool keepDb = Array.IndexOf(parts, "nodb") > 0;
+            bool noInference = Array.IndexOf(parts, "noinf") > 0;
             bool addToDb = sm.AddToDB, display = sm.DisplayWhenAdded;
-            sm.AddToDB = true;
-            sm.DisplayWhenAdded = false;
+            if (!keepDb)
+            {
+                sm.AddToDB = true;
+                sm.DisplayWhenAdded = false;
+            }
+            int inference = (int)swUserPreferenceToggle_e.swSketchInference;
+            bool inferenceBefore = _sw.GetUserPreferenceToggle(inference);
+            bool noRelations = Array.IndexOf(parts, "norel") > 0;
+            int automatic = (int)swUserPreferenceToggle_e.swSketchAutomaticRelations;
+            bool automaticBefore = _sw.GetUserPreferenceToggle(automatic);
+            if (noInference) _sw.SetUserPreferenceToggle(inference, false);
+            if (noRelations) _sw.SetUserPreferenceToggle(automatic, false);
             for (int i = 0; i < vertices.Length; i++)
             {
                 var a = vertices[i];
                 var b = vertices[(i + 1) % vertices.Length];
                 sm.CreateLine(a[0] / 1000, a[1] / 1000, 0, b[0] / 1000, b[1] / 1000, 0);
             }
+            if (noInference) _sw.SetUserPreferenceToggle(inference, inferenceBefore);
+            if (noRelations) _sw.SetUserPreferenceToggle(automatic, automaticBefore);
             sm.AddToDB = addToDb;
             sm.DisplayWhenAdded = display;
-            if (way == "open")
+            var drawn = sm.ActiveSketch as ISketch;
+            if (drawn != null)
+                Console.WriteLine("  sketch " + planeIndex + ": " + drawn.GetSketchPointsCount2() + " points for " +
+                                  vertices.Length + " vertices, " + drawn.RelationManager.GetRelationsCount(0) + " relations");
+            if (lockWay == "open")
             {
                 try { Lock(sm.ActiveSketch as ISketch); }
                 catch (Exception ex) { Console.WriteLine("  FIXED in the open sketch threw: " + ex.Message); }
@@ -129,7 +173,7 @@ namespace Checks.UndoSplit
                 thicknessMm / 1000, 0, false, false, false, false, 0, 0, false, false, false, false,
                 true, true, true, (int)swStartConditions_e.swStartSketchPlane, 0, false) as IFeature;
             if (feature == null) { Console.WriteLine("  extrusion not created"); return -1; }
-            if (way == "after")
+            if (lockWay == "after")
             {
                 doc.ClearSelection2(true);
                 if (sketchFeature.Select2(false, 0))

@@ -91,7 +91,11 @@ namespace Oce.Solid.Agent.ContractTests
             int close = drive < 0 ? -1 : text.IndexOf("sketches.InsertSketch(false);", drive, StringComparison.Ordinal);
             if (drive < 0) missing.Add("ExtrudeProfile does not call DriveProfile on the open sketch");
             else if (close < 0 || close - drive > 400) missing.Add("the sketch is not closed right after the dimensions");
-            if (text.IndexOf("bool locked = !driven && LockSketch(", StringComparison.Ordinal) < 0) missing.Add("a driven sketch is still locked");
+            // Since 0.141.0 (brief R11) the lock goes on in the open sketch, in the
+            // «else» of the driven branch, and no longer after the extrusion.
+            int lockOpen = drive < 0 ? -1 : text.IndexOf("locked = LockOpenSketch(", drive, StringComparison.Ordinal);
+            if (lockOpen < 0 || text.IndexOf("else", drive, lockOpen - drive, StringComparison.Ordinal) < 0)
+                missing.Add("a driven sketch is still locked");
             if (text.IndexOf("swInputDimValOnCreate, false", text.IndexOf("private List<Dictionary<string, object>> DriveProfile(", StringComparison.Ordinal) + 1, StringComparison.Ordinal) < 0)
                 missing.Add("DriveProfile does not switch the value box off");
             if (!Regex.IsMatch(catalogText, "\"dimensions\", O\\(\\s*\"type\", \"string\",\\s*\"enum\", A\\(\\s*\"fixed\",\\s*\"driven\"\\)"))

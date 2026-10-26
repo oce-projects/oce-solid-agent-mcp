@@ -574,8 +574,12 @@ using System.Runtime.InteropServices;
 //          measures none (extrude_profile) failed after the step had run; the
 //          plan executor now reads the volume of the part when it is asked for
 //          and the step did not give it (PlanExecutor.WithVolumeIfAsked).
-[assembly: AssemblyVersion("0.162.1.0")]
-[assembly: AssemblyFileVersion("0.162.1.0")]
+// 0.163.0: brief R11, extrude_profile draws without AddToDB (its entities could
+//          not be undone), with the automatic relations off while drawing, locks
+//          the sketch while it is open and reads every vertex back
+//          (LockOpenSketch, VerticesNotDrawn; probe Checks\UndoSplit).
+[assembly: AssemblyVersion("0.163.0.0")]
+[assembly: AssemblyFileVersion("0.163.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -590,4 +594,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.162.1")]
+[assembly: AssemblyInformationalVersion("0.163.0")]

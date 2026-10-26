@@ -32,6 +32,33 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.141.0 — 26 October 2026 · library 0.163.0 · one undo withdraws a profile again (brief R11; branch `night-2026-10-26-asm`)
+
+- **The cause, measured.** `Checks\UndoSplit` now takes a lock (`none`, `after`,
+  `open`) and flags joined by `+` (`nodb` leaves `AddToDB` alone, `noinf` turns sketch
+  inference off, `norel` turns the automatic relations off), and prints the points and
+  relations of each sketch. On SOLIDWORKS, 26/10/2026, two profiles in one recorded
+  entry, then one undo:
+  - `AddToDB` true, any lock: the first extrusion stayed. The API help says why: with
+    it «It is not possible to undo the creation of some types of sketch entities»
+    (`ISketchManager~AddToDB.html`);
+  - lock `after` (EditSketch and a rebuild after the extrusion):
+    `FinishRecordingUndoObject` answered false and the undo took nothing away;
+  - `nodb`: the whole plan went, but one automatic relation per line;
+  - `nodb+noinf`: the whole plan went, but 12 points for 6 vertices (the ends of the
+    lines not joined);
+  - `nodb+norel`, lock `none` or `open`: 6 points for 6 vertices, 0 relations, the
+    whole plan went.
+- **`extrude_profile` follows the last way.** No `AddToDB`; the automatic relations
+  are off while the lines are drawn and set back after; the FIXED relations go on
+  while the sketch is still open (`LockOpenSketch`, a typed `SketchSegment[]`), not
+  after the extrusion. Snapping stays on, so every vertex of the straight strokes is
+  read back (`VerticesNotDrawn`, a ten-thousandth of a mm): one that is not where it
+  was asked fails the step, because a vertex drawn wrong gives no error, it gives
+  another shape.
+- **Not changed:** `cylindrical_cut` and `rectangular_cut` still set `AddToDB` (brief
+  R10); whether their undo holds is not measured yet.
+
 ## 0.140.2 — 26 October 2026 · library 0.162.1 · the volume an «expect» asks for is read from the part (brief R16; branch `night-2026-10-26-asm`)
 
 - **First run of this branch on SOLIDWORKS** (26/10/2026, bridge 0.140.1, scenarios

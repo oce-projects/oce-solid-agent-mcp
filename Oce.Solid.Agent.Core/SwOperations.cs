@@ -1165,16 +1165,25 @@ namespace Oce.Solid.Agent.Core
                 return Failed($"I did not find the plane «{plane}» in the tree.");
 
             var sketches = model.SketchManager;
-            bool addToDbBefore = false;
-            bool displayBefore = false;
-            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
+            // NO AddToDB (brief R11, measured on 26/10/2026 with Checks\UndoSplit):
+            // with AddToDB true one undo of the plan left the first extrusion in
+            // the part, in every lock tried, because «It is not possible to undo
+            // the creation of some types of sketch entities»
+            // (ISketchManager~AddToDB.html). What AddToDB gave, no relation added
+            // to the lines, is kept by turning the automatic relations off while
+            // they are drawn: on the probe 6 points for 6 vertices, 0 relations,
+            // and the whole plan undone. Snapping stays on, so every vertex is
+            // read back below.
+            int automaticRelations = (int)swUserPreferenceToggle_e.swSketchAutomaticRelations;
+            bool automaticBefore = true;
+            try { automaticBefore = _sw.GetUserPreferenceToggle(automaticRelations); } catch { }
 
             int segments = 0;
             Dictionary<string, object> axesOfSketch = null;
             try
             {
                 sketches.InsertSketch(true);
-                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, false); } catch { }
 
                 foreach (var contour in contours)
                 {
@@ -1187,7 +1196,22 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, automaticBefore); } catch { }
+            }
+
+            // SNAPPING CAN MOVE A VERTEX (the price of leaving AddToDB off): one
+            // that sits near another point may be drawn on it. A vertex read
+            // wrong gives no error, it gives another shape, so the step fails.
+            var notDrawn = VerticesNotDrawn(sketches.ActiveSketch as ISketch, contours);
+            if (notDrawn != null && notDrawn.Count > 0)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed(notDrawn.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                              " vertex(es) of the profile are not where they were asked, the first at (" +
+                              notDrawn[0][0].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                              notDrawn[0][1].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              ") mm: snapping drew it on a point nearby. The sketch is in the part and the extrusion " +
+                              "was not made: undo the step, move that vertex away from the points near it and try again.");
             }
 
             // THE DIMENSIONS GO IN WHILE THE SKETCH IS OPEN (brief R5), as
@@ -1198,8 +1222,13 @@ namespace Oce.Solid.Agent.Core
             string drivenNote = null;
             int notDriven = 0;
             bool? fullyDefined = null;
+            string noteBlock = null;
+            int fixedRelations = 0;
+            bool locked = false;
             if (driven)
                 vertexDimensions = DriveProfile(model, sketches.ActiveSketch as ISketch, contours, out drivenNote, out notDriven, out fullyDefined);
+            else
+                locked = LockOpenSketch(sketches.ActiveSketch as ISketch, out noteBlock, out fixedRelations);
             sketches.InsertSketch(false);
 
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
@@ -1208,15 +1237,9 @@ namespace Oce.Solid.Agent.Core
             var feature = Extrude(model, thickness, merge: true, symmetric: symmetric);
             if (feature == null) return Failed("The extrusion was not created." + WithoutSketch(model));
 
-            // The sketch is locked AFTER the extrusion: a FIXED relation added
-            // while the sketch was still being drawn raised RPC_E_SERVERFAULT
-            // in the probe of 28/9/2026 (finding M5, case R4, which passed an
-            // object[]: the typed array was measured only after the feature).
-            // A driven sketch is not locked: its dimensions hold it.
-            string noteBlock = null;
-            int fixedRelations = 0;
-            bool locked = !driven && LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
-
+            // The sketch was locked while still open (brief R11, see
+            // LockOpenSketch); a driven sketch is not locked: its dimensions
+            // hold it.
             var measurements = new Dictionary<string, object>
             {
                 ["contours"] = contours.Count,
@@ -1530,6 +1553,65 @@ namespace Oce.Solid.Agent.Core
                 return manager == null ? -1 : manager.GetRelationsCount((int)swSketchRelationFilterType_e.swAll);
             }
             catch { return -1; }
+        }
+
+        /// <summary>
+        /// Brief R11: the vertices of the straight strokes (mm) that no point of
+        /// the open sketch holds, within a ten-thousandth of a mm; empty when
+        /// every one is there, null when the points cannot be read. Circles and
+        /// splines are not checked: their points are not vertices.
+        /// </summary>
+        private static List<double[]> VerticesNotDrawn(ISketch sketch, List<Contour> contours)
+        {
+            object[] points = sketch == null ? null : sketch.GetSketchPoints2() as object[];
+            if (points == null) return null;
+            var notDrawn = new List<double[]>();
+            foreach (Contour contour in contours)
+            {
+                if (contour.Circle) continue;
+                foreach (Stroke stroke in contour.Strokes)
+                {
+                    if (stroke.Spline) continue;
+                    foreach (double[] vertex in stroke.Points)
+                        if (SketchPointAt(points, vertex) == null) notDrawn.Add(vertex);
+                }
+            }
+            return notDrawn;
+        }
+
+        /// <summary>
+        /// Brief R11: the FIXED relations go on while the sketch is still open.
+        /// Locked after the extrusion (EditSketch, then a rebuild)
+        /// FinishRecordingUndoObject answered false and one undo took nothing
+        /// away; locked open, with a typed SketchSegment[], the whole plan was
+        /// undone (Checks\UndoSplit, ways «after» and «open», 26/10/2026). The
+        /// RPC_E_SERVERFAULT of 28/9/2026 (finding M5) came with an object[].
+        /// False with the reason in <paramref name="note"/> when the relations
+        /// read back are fewer than the segments.
+        /// </summary>
+        private static bool LockOpenSketch(ISketch sketch, out string note, out int fixedRelations)
+        {
+            note = null;
+            fixedRelations = 0;
+            if (sketch == null) { note = "the sketch is not open"; return false; }
+            int before = FixedRelationCount(sketch);
+            if (before < 0) { note = "the relations of the sketch cannot be read"; return false; }
+            object[] segments = sketch.GetSketchSegments() as object[];
+            if (segments == null || segments.Length == 0) { note = "the sketch has no segments to lock"; return false; }
+            var typedSegments = new SketchSegment[segments.Length];
+            for (int i = 0; i < segments.Length; i++) typedSegments[i] = (SketchSegment)segments[i];
+            ISketchRelationManager relations = sketch.RelationManager;
+            try { relations.AddRelation(typedSegments, (int)swConstraintType_e.swConstraintType_FIXED); }
+            catch (Exception ex) { note = "AddRelation FIXED failed: " + ex.Message; return false; }
+            int after = FixedRelationCount(sketch);
+            if (after < 0) { note = "the relations of the sketch cannot be read after the lock"; return false; }
+            fixedRelations = after - before;
+            if (fixedRelations < segments.Length)
+            {
+                note = fixedRelations + " FIXED relation(s) read back for " + segments.Length + " segment(s)";
+                return false;
+            }
+            return true;
         }
 
         /// <summary>The point of the sketch at a vertex (mm), within a ten-thousandth of a mm, or null.</summary>
