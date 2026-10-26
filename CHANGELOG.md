@@ -32,6 +32,47 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.138.0 — 26 October 2026 · library 0.161.0 · which edges the state lists: «edges» of inspect_part (brief R17; branch `night-2026-10-26-asm`)
+
+On 25/10, on 26P000007, the edges to fillet were picked by hand among the thirty
+longest the state lists (E3, E5, E13, E16, E17, E20, E29, E30), reading lengths
+and points one by one; an edge shorter than the thirtieth had no identifier at
+all. The faces had a filter since W3.1-bis.12; the edges had none.
+
+- **`inspect_part` takes `edges`**, the twin of `faces`: `along` (x, y or z: a
+  straight edge along that axis), `curved` (true or false), `length_min_mm` /
+  `length_max_mm`, `near_mm` + `within_mm` (the distance to the EDGE, from
+  `IEdge.GetClosestPointOn`), `face` (a face identifier: the edges that bound it),
+  `body`, `limit` (default 30, at most 500). Every condition must hold. The two
+  filters can be given together. The state then says `edges_total`,
+  `edges_matched`, `edges_not_listed` and echoes `edges_filter`.
+- **The identifier of an edge is its rank among ALL the edges** of the part,
+  longest first, whatever is listed: the default reading lists E1..E30 as
+  before, a filtered one lists the matching edges with the same numbers.
+- **A plan can cite E45.** The state keeps the whole ranking, and
+  `TryGetSignature` builds the signature of an edge it did not list the first
+  time a plan cites it; the two places of the library that resolve an edge ask it
+  (they read only the dictionary of the listed ones before). The check of the
+  identifiers before a plan accepts an edge up to `edges_total`, as it accepts a
+  face up to `faces_total`. Whether it is the edge the plan meant is still the
+  business of the signature it carries (length and point).
+- Each property of an edge is asked only when a condition needs it, cheapest
+  first: a curve, the adjacent faces or the closest point are COM calls, not paid
+  for an edge already out by its body or length. A filter that cannot be applied
+  is refused (13 forms: an unknown key, an axis that is not x, y or z, `along` with
+  `curved` true, an empty range, `within_mm` without a point, a face that is not
+  an identifier...); a face beyond the part or a body that does not exist is
+  refused with what the part has.
+
+The rules are in `Oce.Solid.Agent.Core/EdgeFilter.cs`, pure.
+
+**Tests.** `R17EdgesFilterContract`: a full filter read, `x` read as X, an empty
+filter as the ordinary reading, 13 refusals, `RankOf` in its canonical spelling;
+eight filters on eight edges known by construction, with the count of the curve,
+face and distance reads (asked only of the edges still in); the wiring in five
+places. Contract suite: 880 checks, 4 failed — the 4 of the bench. **Not tried on
+SOLIDWORKS yet.**
+
 ## 0.137.0 — 26 October 2026 · library 0.160.0 · `mesh`: an STL file measured and cut into contours (brief R15; branch `night-2026-10-26-asm`)
 
 On 24-25/10 the parts of 26M000002 were drawn from the customer's STL files, and

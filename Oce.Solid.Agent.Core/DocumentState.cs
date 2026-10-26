@@ -167,6 +167,14 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private List<Tuple<IFace2, int, double>> _ranked;
 
+        /// <summary>
+        /// EVERY edge of the part, longest first, with the index of its body:
+        /// the ranking whose positions are the edge identifiers (E1 is the
+        /// longest), whatever the state lists (brief R17). Null on a document
+        /// that is not a part.
+        /// </summary>
+        private List<Tuple<IEdge, int>> _rankedEdges;
+
         /// <summary>From which feature each body is born, as the state read it (indexed like the bodies).</summary>
         private string[] _bodyFeatureOfFace;
 
@@ -197,6 +205,18 @@ namespace Oce.Solid.Agent.Core
             if (string.IsNullOrEmpty(uid)) return false;
             if (Signatures.TryGetValue(uid, out signature)) return true;
             if (_lazySignatures.TryGetValue(uid, out signature)) return true;
+            // AN EDGE BEYOND THE THIRTY LISTED (brief R17): its rank among all
+            // the edges of this reading, as a filtered reading named it.
+            int edgeRank = EdgeFilter.RankOf(uid);
+            if (edgeRank >= 1)
+            {
+                if (_rankedEdges == null || edgeRank > _rankedEdges.Count) return false;
+                var edgeBuilt = EdgeSignature(_rankedEdges[edgeRank - 1].Item1);
+                if (edgeBuilt == null) return false;
+                _lazySignatures[uid] = edgeBuilt;
+                signature = edgeBuilt;
+                return true;
+            }
             int rank = FaceFilter.RankOf(uid);
             if (rank < 1 || _ranked == null || rank > _ranked.Count) return false;
             var built = FaceSignature(_ranked[rank - 1].Item1);
@@ -596,7 +616,7 @@ namespace Oce.Solid.Agent.Core
         public static DocumentState ReadWithAnchor(
             IModelDoc2 model, ISldWorks sw, bool withAnchor)
         {
-            return ReadListing(model, sw, withAnchor, null);
+            return ReadListing(model, sw, withAnchor, null, null);
         }
 
         /// <summary>
@@ -617,11 +637,25 @@ namespace Oce.Solid.Agent.Core
         public static DocumentState ReadFaces(
             IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter)
         {
-            return ReadListing(model, sw, withAnchor, filter);
+            return ReadListing(model, sw, withAnchor, filter, null);
+        }
+
+        /// <summary>
+        /// Like <see cref="ReadFaces"/>, with a filter on the edges too (brief
+        /// R17; see <see cref="EdgeFilter"/>): the state lists the edges that
+        /// match instead of the thirty longest, each with its rank among ALL
+        /// the edges of the part. Either filter may be null. A new name, for the
+        /// same reason as <see cref="ReadFaces"/>: the bench calls this class by
+        /// reflection.
+        /// </summary>
+        public static DocumentState ReadFiltered(
+            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter faces, EdgeFilter edges)
+        {
+            return ReadListing(model, sw, withAnchor, faces, edges);
         }
 
         private static DocumentState ReadListing(
-            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter)
+            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter, EdgeFilter edgeFilter)
         {
             var docState = new DocumentState();
             if (model == null) return docState;
@@ -1465,16 +1499,82 @@ namespace Oce.Solid.Agent.Core
                 var sortedItems = allEdges
                     .OrderByDescending(t => LengthMm(t.Item1))
                     .ToList();
-                if (sortedItems.Count > MaxEdges)
+                docState._rankedEdges = sortedItems;
+
+                // WHICH EDGES ARE LISTED (brief R17). By default the longest
+                // MaxEdges; with a filter, the ones that match it, with the SAME
+                // identifiers: the identifier of an edge is its place in
+                // `sortedItems`, whatever is listed.
+                var listedEdges = new List<int>();
+                if (edgeFilter == null)
                 {
-                    truncated = true;
-                    data["edges_total"] = sortedItems.Count;
+                    for (int r = 0; r < sortedItems.Count && r < MaxEdges; r++) listedEdges.Add(r);
+                    if (sortedItems.Count > MaxEdges)
+                    {
+                        truncated = true;
+                        data["edges_total"] = sortedItems.Count;
+                    }
                 }
-                int edgeIndex = 0;
-                foreach (var t in sortedItems.Take(MaxEdges))
+                else
                 {
-                    edgeIndex++;
-                    var uid = "E" + edgeIndex;
+                    var edgeBodyNames = new List<string>();
+                    foreach (IBody2 named in bodies)
+                    {
+                        string n = null;
+                        try { n = named.Name; } catch { }
+                        edgeBodyNames.Add(n ?? "");
+                    }
+                    int wantedEdgeBody = edgeFilter.BodyIndex(edgeBodyNames);
+                    if (wantedEdgeBody == -1)
+                        data["edges_filter_problem"] =
+                            "«edges.body» names «" + edgeFilter.Body + "», and this part has " + bodies.Count +
+                            " bod" + (bodies.Count == 1 ? "y" : "ies") + ": C1 to C" + bodies.Count +
+                            (bodies.Count > 0 ? ", or one of the names in «bodies»" : "") + ".";
+                    IFace2 boundedFace = null;
+                    if (edgeFilter.Face != null)
+                    {
+                        int faceRank = FaceFilter.RankOf(edgeFilter.Face);
+                        if (faceRank > sorted.Count)
+                            data["edges_filter_problem"] =
+                                "«edges.face» names " + edgeFilter.Face + ", and this part has " + sorted.Count +
+                                " faces: read the part again and use one of them.";
+                        else boundedFace = sorted[faceRank - 1].Item1;
+                    }
+                    int matchedEdges = 0;
+                    var curveRead = new Dictionary<int, string>();
+                    var straightRead = new Dictionary<int, bool>();
+                    Action<int> readCurve = r =>
+                    {
+                        if (straightRead.ContainsKey(r)) return;
+                        string along;
+                        double radius;
+                        straightRead[r] = EdgeDirection(sortedItems[r].Item1, out along, out radius);
+                        curveRead[r] = along;
+                    };
+                    listedEdges = data.ContainsKey("edges_filter_problem")
+                        ? new List<int>()
+                        : edgeFilter.Choose(
+                            sortedItems.Count,
+                            r => sortedItems[r].Item2,
+                            r => { double len = LengthMm(sortedItems[r].Item1); return len >= 0 ? len : (double?)null; },
+                            r => { readCurve(r); return !straightRead[r]; },
+                            r => { readCurve(r); return curveRead[r]; },
+                            r => EdgeBoundsFace(sortedItems[r].Item1, boundedFace),
+                            r => DistanceToEdgeMm(sortedItems[r].Item1, edgeFilter.NearMm),
+                            wantedEdgeBody, out matchedEdges);
+                    data["edges_total"] = sortedItems.Count;
+                    data["edges_matched"] = matchedEdges;
+                    data["edges_filter"] = edgeFilter.Describe();
+                    if (matchedEdges > listedEdges.Count)
+                    {
+                        truncated = true;
+                        data["edges_not_listed"] = matchedEdges - listedEdges.Count;
+                    }
+                }
+                foreach (var edgeRankIndex in listedEdges)
+                {
+                    var t = sortedItems[edgeRankIndex];
+                    var uid = "E" + (edgeRankIndex + 1);
                     double len = LengthMm(t.Item1);
                     var point = PointOnEdge(t.Item1);
                     var entry = new Dictionary<string, object>
@@ -2145,6 +2245,81 @@ namespace Oce.Solid.Agent.Core
                 return true;
             }
             catch { return true; }
+        }
+
+        /// <summary>
+        /// The signature of an edge the state did not list (brief R17): the same
+        /// fields the listed ones get. Null when its length cannot be read.
+        /// </summary>
+        private static EntitySignature EdgeSignature(IEdge edge)
+        {
+            double len = LengthMm(edge);
+            if (len < 0) return null;
+            return new EntitySignature
+            {
+                Type = "EDGE",
+                Measure = Math.Round(len, 2),
+                PointMm = PointOnEdge(edge),
+                Entity = edge,
+            };
+        }
+
+        /// <summary>
+        /// Whether an edge bounds that face: one of its two adjacent faces is the
+        /// same COM object (by IUnknown, not by reference: two reads of the same
+        /// face may come back as two wrappers). False when unread.
+        /// </summary>
+        private static bool EdgeBoundsFace(IEdge edge, IFace2 face)
+        {
+            if (edge == null || face == null) return false;
+            try
+            {
+                var two = edge.GetTwoAdjacentFaces2() as object[];
+                if (two == null) return false;
+                foreach (object o in two)
+                    if (SameComObject(o, face)) return true;
+                return false;
+            }
+            catch { return false; }
+        }
+
+        private static bool SameComObject(object a, object b)
+        {
+            if (a == null || b == null) return false;
+            if (ReferenceEquals(a, b)) return true;
+            IntPtr pa = IntPtr.Zero, pb = IntPtr.Zero;
+            try
+            {
+                pa = System.Runtime.InteropServices.Marshal.GetIUnknownForObject(a);
+                pb = System.Runtime.InteropServices.Marshal.GetIUnknownForObject(b);
+                return pa == pb;
+            }
+            catch { return false; }
+            finally
+            {
+                if (pa != IntPtr.Zero) System.Runtime.InteropServices.Marshal.Release(pa);
+                if (pb != IntPtr.Zero) System.Runtime.InteropServices.Marshal.Release(pb);
+            }
+        }
+
+        /// <summary>
+        /// How far a point of the model (mm) is from an edge (mm), by the closest
+        /// point of the EDGE. IEdge~GetClosestPointOn.html: «[ PointX, PointY,
+        /// PointZ, UParameter, NotUsed ]», the point in metres. Null when unread.
+        /// </summary>
+        private static double? DistanceToEdgeMm(IEdge edge, double[] pointMm)
+        {
+            if (edge == null || pointMm == null) return null;
+            try
+            {
+                var p = edge.GetClosestPointOn(Units.M(pointMm[0]), Units.M(pointMm[1]), Units.M(pointMm[2])) as double[];
+                if (p == null || p.Length < 3) return null;
+                double dx = Units.Mm(p[0]) - pointMm[0];
+                double dy = Units.Mm(p[1]) - pointMm[1];
+                double dz = Units.Mm(p[2]) - pointMm[2];
+                return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            }
+            catch { return null; }
         }
 
         /// <summary>The two faces that meet on this edge, by uid.</summary>

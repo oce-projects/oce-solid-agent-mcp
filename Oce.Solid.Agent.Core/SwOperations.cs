@@ -4934,7 +4934,9 @@ namespace Oce.Solid.Agent.Core
             DocumentState.EntitySignature signature;
             var signatureInPlane = ExpectedSignature(a, uid);
             bool wasAnEdge = signatureInPlane != null && signatureInPlane.ContainsKey("length_mm");
-            if ((docState != null && docState.Signatures.TryGetValue(uid, out signature) && signature.Type == "EDGE") ||
+            // By rank too (brief R17): an edge beyond the thirty listed is found
+            // by TryGetSignature, not by the dictionary of the listed ones.
+            if ((docState != null && docState.TryGetSignature(uid, out signature) && signature.Type == "EDGE") ||
                 wasAnEdge)
             {
                 signature = EdgeSignature(
@@ -7853,7 +7855,7 @@ namespace Oce.Solid.Agent.Core
         {
             reason = null;
             DocumentState.EntitySignature signature = null;
-            bool present = docState != null && docState.Signatures.TryGetValue(uid, out signature) &&
+            bool present = docState != null && docState.TryGetSignature(uid, out signature) &&
                             signature.Type == "EDGE";
             if (present && SignatureMatches(a, uid, signature, out reason)) return signature;
             string refusal = present ? reason : disappeared;

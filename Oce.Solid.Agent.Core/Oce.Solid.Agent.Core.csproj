@@ -171,6 +171,7 @@
     <Compile Include="ProfileOperations.cs" />
     <Compile Include="DocumentState.cs" />
     <Compile Include="FaceFilter.cs" />
+    <Compile Include="EdgeFilter.cs" />
     <Compile Include="MateOperations.cs" />
     <Compile Include="AssemblyOperations.cs" />
     <Compile Include="ReplaceOperations.cs" />

@@ -673,7 +673,17 @@ namespace Oce.Solid.Agent.Bridge
         public Dictionary<string, object> StateWithFaces(
             Oce.Solid.Agent.Core.FaceFilter filter, out string error)
         {
-            return State(true, filter, out error);
+            return State(true, filter, null, out error);
+        }
+
+        /// <summary>
+        /// The state with a filter on the faces, on the edges, or both (brief
+        /// R17; see <see cref="Oce.Solid.Agent.Core.EdgeFilter"/>). Either may be null.
+        /// </summary>
+        public Dictionary<string, object> StateWithFilters(
+            Oce.Solid.Agent.Core.FaceFilter faces, Oce.Solid.Agent.Core.EdgeFilter edges, out string error)
+        {
+            return State(true, faces, edges, out error);
         }
 
         /// <summary>
@@ -777,11 +787,11 @@ namespace Oce.Solid.Agent.Bridge
 
         private Dictionary<string, object> State(bool withAnchor, out string error)
         {
-            return State(withAnchor, null, out error);
+            return State(withAnchor, null, null, out error);
         }
 
         private Dictionary<string, object> State(
-            bool withAnchor, Oce.Solid.Agent.Core.FaceFilter filter, out string error)
+            bool withAnchor, Oce.Solid.Agent.Core.FaceFilter filter, Oce.Solid.Agent.Core.EdgeFilter edges, out string error)
         {
             error = null;
             var doc = ActiveDocument();
@@ -794,9 +804,9 @@ namespace Oce.Solid.Agent.Bridge
             {
                 var docState = Oce.Solid.Agent.Core.PhaseClock.Time(
                     withAnchor ? "session.state_read_anchor" : "session.state_read",
-                    () => filter == null
+                    () => filter == null && edges == null
                         ? ReadState(doc, withAnchor)
-                        : DocumentState.ReadFaces(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter));
+                        : DocumentState.ReadFiltered(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter, edges));
                 return docState?.Data;
             }
             catch (Exception ex)

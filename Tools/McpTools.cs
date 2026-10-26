@@ -186,6 +186,69 @@ namespace Oce.Solid.Agent.Tools
                                     },
                                 },
                             },
+                            ["edges"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "object",
+                                ["description"] =
+                                    "WHICH EDGES to list, instead of the " + DocumentState.MaxEdges + " longest (brief R17). " +
+                                    "Every condition you give must hold. Each edge keeps its identifier among ALL " +
+                                    "the edges of the part (E1 is the longest, E45 the forty-fifth), so a plan can cite " +
+                                    "E45 even though the plain state lists E1..E" + DocumentState.MaxEdges + ". The state " +
+                                    "then says «edges_total», «edges_matched» and «edges_not_listed». " +
+                                    "Only the edges are filtered; «faces» filters the faces, and the two can be given together.",
+                                ["properties"] = new Dictionary<string, object>
+                                {
+                                    ["along"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["enum"] = new object[] { "x", "y", "z" },
+                                        ["description"] = "a straight edge along that axis of the model (a diagonal matches none).",
+                                    },
+                                    ["curved"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "boolean",
+                                        ["description"] = "true: only curved edges (arcs, circles); false: only straight ones.",
+                                    },
+                                    ["length_min_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "shortest length, in mm (included).",
+                                    },
+                                    ["length_max_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "longest length, in mm (included).",
+                                    },
+                                    ["near_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "array",
+                                        ["items"] = new Dictionary<string, object> { ["type"] = "number" },
+                                        ["description"] = "[x, y, z] in mm: the edges whose closest point to it is within «within_mm».",
+                                    },
+                                    ["within_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "how close «near_mm» must be, in mm. Default " +
+                                            Oce.Solid.Agent.Core.EdgeFilter.DefaultWithinMm.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".",
+                                    },
+                                    ["face"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "a face identifier (F3) of the same reading: the edges that bound that face.",
+                                    },
+                                    ["body"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "only the edges of one body: its identifier (C3) or its exact name.",
+                                    },
+                                    ["limit"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "integer",
+                                        ["description"] = "how many edges to list at most, from 1 to " +
+                                            Oce.Solid.Agent.Core.EdgeFilter.MaxLimit + ". Default " + DocumentState.MaxEdges + ".",
+                                    },
+                                },
+                            },
                             ["views"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
@@ -1182,15 +1245,47 @@ namespace Oce.Solid.Agent.Tools
                 facesWanted = FaceFilter.Parse(facesRaw, out facesProblem);
                 if (facesWanted == null) return Protocol.Content(facesProblem, true);
             }
+            // WHICH EDGES (brief R17), read before touching the document too.
+            Oce.Solid.Agent.Core.EdgeFilter edgesWanted = null;
+            var edgesRaw = Take(arguments, "edges");
+            if (edgesRaw != null)
+            {
+                string edgesProblem;
+                edgesWanted = Oce.Solid.Agent.Core.EdgeFilter.Parse(edgesRaw, out edgesProblem);
+                if (edgesWanted == null) return Protocol.Content(edgesProblem, true);
+            }
             var previousSeen = _seen;
             var previousLight = _signatureSeen;
             var previousSignatures = _seenSignatures;
 
             string error;
-            var docState = facesWanted == null
-                ? _session.State(out error)
-                : _session.StateWithFaces(facesWanted, out error);
+            var docState = edgesWanted != null
+                ? _session.StateWithFilters(facesWanted, edgesWanted, out error)
+                : facesWanted == null
+                    ? _session.State(out error)
+                    : _session.StateWithFaces(facesWanted, out error);
             if (docState == null) return Protocol.Content(error, true);
+            object edgesFilterProblem;
+            if (docState.TryGetValue("edges_filter_problem", out edgesFilterProblem))
+                return Protocol.Content(Convert.ToString(edgesFilterProblem), true);
+            // The same as for the faces: a filter that was not applied is said.
+            if (edgesWanted != null && !docState.ContainsKey("edges_filter"))
+            {
+                object edgeKind, edgeSolid;
+                docState.TryGetValue("kind", out edgeKind);
+                bool edgePart = string.Equals(Convert.ToString(edgeKind, System.Globalization.CultureInfo.InvariantCulture),
+                                              "part", StringComparison.Ordinal);
+                if (edgePart && docState.TryGetValue("solid_body", out edgeSolid) && edgeSolid is bool && !(bool)edgeSolid)
+                {
+                    docState["edges"] = new object[0];
+                    docState["edges_filter_note"] = "The part has no solid body yet: there is no edge to list.";
+                }
+                else
+                    return Protocol.Content(
+                        "«edges» was not applied: it filters the edges of the solid bodies of a part, and the document " +
+                        "in front (kind «" + Convert.ToString(edgeKind, System.Globalization.CultureInfo.InvariantCulture) +
+                        "») has none to rank. Ask again without «edges».", true);
+            }
             object facesFilterProblem;
             if (docState.TryGetValue("faces_filter_problem", out facesFilterProblem))
                 return Protocol.Content(Convert.ToString(facesFilterProblem), true);
@@ -4120,6 +4215,8 @@ namespace Oce.Solid.Agent.Tools
                     // many there are (`faces_total`). Whether it is the face the plan
                     // meant is the business of the signature and of the executor.
                     if (IsFaceBeyondTheList(uid, docState)) continue;
+                    // And an edge beyond the thirty, by its rank (brief R17).
+                    if (IsEdgeBeyondTheList(uid, docState)) continue;
 
                     // WE SAY WHAT IS THERE, not just what is missing. On an empty
                     // document the list is empty, and that is precisely the case in
@@ -4191,6 +4288,20 @@ namespace Oce.Solid.Agent.Tools
             if (rank < 1 || docState == null) return false;
             object total;
             if (!docState.TryGetValue("faces_total", out total) || total == null) return false;
+            try { return rank <= Convert.ToInt32(total, System.Globalization.CultureInfo.InvariantCulture); }
+            catch (Exception) { return false; }
+        }
+
+        /// <summary>
+        /// Whether an identifier names an edge that exists but was not listed:
+        /// «E45» on a part whose state says `edges_total` 120 (brief R17).
+        /// </summary>
+        private static bool IsEdgeBeyondTheList(string uid, Dictionary<string, object> docState)
+        {
+            int rank = Oce.Solid.Agent.Core.EdgeFilter.RankOf(uid);
+            if (rank < 1 || docState == null) return false;
+            object total;
+            if (!docState.TryGetValue("edges_total", out total) || total == null) return false;
             try { return rank <= Convert.ToInt32(total, System.Globalization.CultureInfo.InvariantCulture); }
             catch (Exception) { return false; }
         }
