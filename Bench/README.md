@@ -681,8 +681,9 @@ cases/export/     15   STL, STEP and IGES: the file read back byte by byte,
                        directory counted (Z-C21.10, N59);
                        AP242 through SOLIDWORKS MBD, refused
                        without its licence or with a .step path (Z-C21.13)
-cases/document_properties/   12   the two drawers, and the code that goes into the BOM; the
-                       material reaches every configuration (Z-C21, M10)
+cases/document_properties/   13   the two drawers, and the code that goes into the BOM; the
+                       material reaches every configuration (Z-C21, M10);
+                       one property written in both drawers by «scope» (R8)
 cases/text/        6   engraving, and the lettering that comes out of the face
 cases/frames/        1   the welded profiles, read from the standard library ({PROFILES})
 cases/assemblies/     26   inserting is not mating; one constraint is not enough;

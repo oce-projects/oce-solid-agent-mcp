@@ -5703,6 +5703,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the document and only on the document. I repeat it to you in the answer "
                         + "every time, because it is the error that gives no error: the "
                         + "drawing number is written on the document, read back from the configuration, it is not there, and nobody says why."
+                        + " «scope» says it outright: «file», «configuration» (the one you name, or the "
+                        + "active one) or «both», which writes it in the two and reads it back from each."
                         + "\n\nIF IT ALREADY "
                         + "EXISTS, I REPLACE IT. I do not let you believe you changed a revision that stayed the one it was."
                         + "\n\nAFTER WRITING I READ BACK. The command "
@@ -5727,7 +5729,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "string",
                                 "description", "the name of the configuration to write it on. If you do not say it "
                                     + "I write it on the DOCUMENT, and that is a different place. The "
-                                    + "names are in the document state, inside «configurations».")),
+                                    + "names are in the document state, inside «configurations»."),
+                            "scope", O(
+                                "type", "string",
+                                "enum", A("file", "configuration", "both"),
+                                "description", "where: «file» is the document, «configuration» the one named in "
+                                    + "«configuration» or else the active one, «both» the document and that "
+                                    + "configuration. Left out: «configuration» if you name one, «file» otherwise. "
+                                    + "«file» together with a configuration named is refused.")),
                         "required", A("name", "value_text")),
                 },
                 new OperationSpec

@@ -2027,10 +2027,14 @@ namespace Oce.Solid.Agent.Tools
                         if (property.ContainsKey(theField)) continue;
                         // AN UNKNOWN ARGUMENT IS NOT A DETAIL: it is
                         // ignored in silence, and the part comes out different from
-                        // how it was asked for, without any error.
+                        // how it was asked for, without any error. The near name is
+                        // said (brief R8: «value» for «value_text»), not taken: one
+                        // name per argument.
+                        var near = NearArguments(theField, property.Keys);
                         trouble.Add(location + " («" + itemName + "»): «" + theField +
                                  "» is not an argument of this operation, " +
-                                 "and would be IGNORED");
+                                 "and would be IGNORED" +
+                                 (near.Count > 0 ? ". Did you mean «" + string.Join("», «", near) + "»?" : ""));
                     }
 
                 // The material, when SOLIDWORKS is there to say (brief R4).
@@ -4150,6 +4154,47 @@ namespace Oce.Solid.Agent.Tools
             object v;
             if (!docState.TryGetValue("features_in_error", out v) || v == null) return 0;
             try { return Convert.ToInt32(v); } catch { return 0; }
+        }
+
+        /// <summary>
+        /// The arguments of the operation whose name is near an unknown one
+        /// (brief R8: «value» for «value_text»): one that begins with it and an
+        /// underscore, one it begins with and an underscore, or one at most two
+        /// letters away when both have four letters or more. Said in the refusal,
+        /// never taken in its place.
+        /// </summary>
+        internal static List<string> NearArguments(string given, IEnumerable<string> names)
+        {
+            var near = new List<string>();
+            if (string.IsNullOrEmpty(given) || names == null) return near;
+            foreach (string name in names)
+            {
+                if (string.IsNullOrEmpty(name) || name == given) continue;
+                bool close = name.StartsWith(given + "_", StringComparison.Ordinal) ||
+                             given.StartsWith(name + "_", StringComparison.Ordinal) ||
+                             (given.Length >= 4 && name.Length >= 4 && LettersApart(given, name) <= 2);
+                if (close) near.Add(name);
+            }
+            return near;
+        }
+
+        /// <summary>The edit distance of two names (insert, delete, change one letter).</summary>
+        private static int LettersApart(string a, string b)
+        {
+            var row = new int[b.Length + 1];
+            for (int j = 0; j <= b.Length; j++) row[j] = j;
+            for (int i = 1; i <= a.Length; i++)
+            {
+                int diagonal = row[0];
+                row[0] = i;
+                for (int j = 1; j <= b.Length; j++)
+                {
+                    int above = row[j];
+                    row[j] = Math.Min(Math.Min(row[j] + 1, row[j - 1] + 1), diagonal + (a[i - 1] == b[j - 1] ? 0 : 1));
+                    diagonal = above;
+                }
+            }
+            return row[b.Length];
         }
 
         private static object Take(Dictionary<string, object> d, string key)

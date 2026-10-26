@@ -107,12 +107,39 @@ namespace Oce.Solid.Agent.Core
 
             string configuration = Str(a, "configuration", null);
             bool onConfiguration = !string.IsNullOrWhiteSpace(configuration);
-            if (onConfiguration)
+
+            // WHERE, SAID (brief R8). On 25/10/2026 a drawing number written on
+            // the document was «NOT visible» from the configuration the drawing
+            // reads, and the only way to have it in both drawers was two steps.
+            // «scope»: «file» (the document), «configuration» (the one named, or
+            // the active one), «both». Left out, it is «configuration» when a
+            // configuration is named and «file» otherwise, as before.
+            string scope = Str(a, "scope", null);
+            string scopeProblem = PropertyScopeProblem(scope, onConfiguration);
+            if (scopeProblem != null) return Failed(scopeProblem);
+            if (scope == null) scope = onConfiguration ? "configuration" : "file";
+            if (scope != "file" && !onConfiguration)
+            {
+                try
+                {
+                    var handler = model.ConfigurationManager as IConfigurationManager;
+                    IConfiguration active = handler == null ? null : handler.ActiveConfiguration as IConfiguration;
+                    configuration = active == null ? null : active.Name;
+                }
+                catch { configuration = null; }
+                if (string.IsNullOrEmpty(configuration))
+                    return Failed("«scope» «" + scope + "» needs a configuration, and I cannot read the active one: " +
+                                  "name it with «configuration».");
+                onConfiguration = true;
+            }
+            else if (onConfiguration)
             {
                 string why;
                 configuration = TrueConfigurationName(model, configuration, out why);
                 if (configuration == null) return Failed(why);
             }
+            if (scope == "both")
+                return SetPropertyOnBoth(model, itemName, val, configuration);
 
             // NO ACTIVATION AROUND THIS, ON PURPOSE (Z-C21.4, finding L8-5, NOT
             // REAL). The doubt was that writing and reading the properties of a
@@ -228,9 +255,75 @@ namespace Oce.Solid.Agent.Core
             if (resolved != null && !string.Equals(resolved, read, StringComparison.Ordinal))
                 measurements["resolved_value"] = resolved;
 
+            measurements["scope"] = scope;
             _log("[agent] property «" + itemName + "» = «" + read + "» on " +
                  (onConfiguration ? configuration : "document"));
             return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// Why «scope» cannot be taken, or null. «file» with a configuration named
+        /// is a contradiction, not a choice to make in silence. Pure, so the
+        /// contract suite reads it by reflection.
+        /// </summary>
+        internal static string PropertyScopeProblem(string scope, bool configurationNamed)
+        {
+            if (scope == null) return null;
+            if (scope != "file" && scope != "configuration" && scope != "both")
+                return "«scope» is «file» (the document), «configuration» or «both», not «" + scope + "»: write one of the three.";
+            if (scope == "file" && configurationNamed)
+                return "«scope» «file» writes on the document, and «configuration» names a configuration: " +
+                       "choose one, or pass «scope» «both» to write on the two.";
+            return null;
+        }
+
+        /// <summary>
+        /// The same property written on the document and on a configuration, each
+        /// read back (brief R8). One that does not come back as written fails the
+        /// step and says whether the other was already written.
+        /// </summary>
+        private Outcome SetPropertyOnBoth(IModelDoc2 model, string itemName, string val, string configuration)
+        {
+            var places = new[] { "", configuration };
+            var labels = new[] { "the document", "the configuration «" + configuration + "»" };
+            var readBack = new string[2];
+            for (int i = 0; i < 2; i++)
+            {
+                string done = i == 0 ? "" : " The document has it already.";
+                ICustomPropertyManager manager;
+                try { manager = model.Extension.get_CustomPropertyManager(places[i]) as ICustomPropertyManager; }
+                catch (Exception ex) { return Failed("I cannot reach the properties of " + labels[i] + ": " + ex.Message + done + " To write on one drawer at a time, pass «scope» «file» or «configuration»."); }
+                if (manager == null) return Failed(labels[i] + " does not expose the custom properties." + done + " To write on one drawer at a time, pass «scope» «file» or «configuration».");
+                int outcome;
+                try
+                {
+                    outcome = manager.Add3(itemName, (int)swCustomInfoType_e.swCustomInfoText, val,
+                                           (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
+                }
+                catch (Exception ex) { return Failed("The property was not written on " + labels[i] + ": " + ex.Message + done + " To write on one drawer at a time, pass «scope» «file» or «configuration»."); }
+                if (outcome != (int)swCustomInfoAddResult_e.swCustomInfoAddResult_AddedOrChanged)
+                    return Failed("SOLIDWORKS refused the property «" + itemName + "» on " + labels[i] + ": " +
+                                  PropertyOutcomeName(outcome) + "." + done + " To write on one drawer at a time, pass «scope» «file» or «configuration».");
+                string read, resolved;
+                bool present = ReadPropertyBack(manager, itemName, out read, out resolved);
+                if (!PropertyWrittenAsAsked(val, present, read))
+                    return Failed("I wrote «" + val + "» in «" + itemName + "» on " + labels[i] + " and reading back I find " +
+                                  (read == null ? "nothing" : "«" + read + "»") + "." + done + " To write on one drawer at a time, pass «scope» «file» or «configuration».");
+                readBack[i] = read;
+            }
+            _log("[agent] property «" + itemName + "» = «" + readBack[1] + "» on the document and on " + configuration);
+            return SucceededWithoutCreating(new Dictionary<string, object>
+            {
+                ["property"] = itemName,
+                ["value_text"] = readBack[1],
+                ["scope"] = "both",
+                ["location"] = "the document and the configuration «" + configuration + "»",
+                ["configuration"] = configuration,
+                ["visible_from_other_list"] = true,
+                ["two_lists"] =
+                    "The properties of the document and those of a configuration are two separate lists. " +
+                    "I wrote it in both and read it back from both: a later change to one does not reach the other.",
+            });
         }
 
         private Outcome CreateConfiguration(

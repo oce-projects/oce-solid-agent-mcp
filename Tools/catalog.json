@@ -4365,7 +4365,7 @@
    "name": "set_property",
    "family": "identity",
    "summary": "Writes a custom property -- drawing number, revision, customer -- on the document or on a configuration.",
-   "details": "Writes a custom property: it is what ends up in the title block of the drawing and in the PDM data card. «Numero disegno» (drawing number), «Revision», «Cliente» (customer), «Descrizione» (description).\n\nTHE DOCUMENT AND A CONFIGURATION ARE TWO SEPARATE DRAWERS. A property written on the document is NOT SEEN from a configuration, and the other way round: they are not inherited. If you say «configuration» I write it there and only there; if you do not say it I write it on the document and only on the document. I repeat it to you in the answer every time, because it is the error that gives no error: the drawing number is written on the document, read back from the configuration, it is not there, and nobody says why.\n\nIF IT ALREADY EXISTS, I REPLACE IT. I do not let you believe you changed a revision that stayed the one it was.\n\nAFTER WRITING I READ BACK. The command answers a code, not the value: if on reading back I do not find what I wrote I fail instead of confirming a data card that is not the one you think.\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is checked as the TEXT written, and resolved_value gives what SOLIDWORKS evaluates it to, when the two differ.",
+   "details": "Writes a custom property: it is what ends up in the title block of the drawing and in the PDM data card. «Numero disegno» (drawing number), «Revision», «Cliente» (customer), «Descrizione» (description).\n\nTHE DOCUMENT AND A CONFIGURATION ARE TWO SEPARATE DRAWERS. A property written on the document is NOT SEEN from a configuration, and the other way round: they are not inherited. If you say «configuration» I write it there and only there; if you do not say it I write it on the document and only on the document. I repeat it to you in the answer every time, because it is the error that gives no error: the drawing number is written on the document, read back from the configuration, it is not there, and nobody says why. «scope» says it outright: «file», «configuration» (the one you name, or the active one) or «both», which writes it in the two and reads it back from each.\n\nIF IT ALREADY EXISTS, I REPLACE IT. I do not let you believe you changed a revision that stayed the one it was.\n\nAFTER WRITING I READ BACK. The command answers a code, not the value: if on reading back I do not find what I wrote I fail instead of confirming a data card that is not the one you think.\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is checked as the TEXT written, and resolved_value gives what SOLIDWORKS evaluates it to, when the two differ.",
    "schema": {
     "type": "object",
     "properties": {
@@ -4380,6 +4380,15 @@
      "configuration": {
       "type": "string",
       "description": "the name of the configuration to write it on. If you do not say it I write it on the DOCUMENT, and that is a different place. The names are in the document state, inside «configurations»."
+     },
+     "scope": {
+      "type": "string",
+      "enum": [
+       "file",
+       "configuration",
+       "both"
+      ],
+      "description": "where: «file» is the document, «configuration» the one named in «configuration» or else the active one, «both» the document and that configuration. Left out: «configuration» if you name one, «file» otherwise. «file» together with a configuration named is refused."
      }
     },
     "required": [

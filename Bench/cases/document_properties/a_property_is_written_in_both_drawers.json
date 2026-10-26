@@ -1,0 +1,36 @@
+{
+  "name": "a_property_is_written_in_both_drawers",
+  "family": "document_properties",
+  "why": "BRIEF R8, 25/10/2026: the drawing number written on the document was «NOT visible» from the configuration the drawing reads, and filling both drawers took two steps. «scope» names the drawer: «both» writes the property in the document and in the configuration and reads it back from each; «configuration» without a name means the active one; «file» together with a configuration named is a contradiction, refused before anything is written.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "set_property",
+      "arguments": { "name": "DrawingNumber", "value_text": "DIS-0007", "scope": "both" },
+      "expect": [
+        { "what": "measurements.scope", "equal_to": "both" },
+        { "what": "measurements.value_text", "equal_to": "DIS-0007" },
+        { "what": "measurements.location", "includes": ["the document and the configuration"] },
+        { "what": "state.property.DrawingNumber", "equal_to": "DIS-0007",
+          "why": "in the drawer of the document" },
+        { "what": "state.configuration_properties.DrawingNumber", "equal_to": "DIS-0007",
+          "why": "and in the drawer of the active configuration, from the same step" } ] },
+    { "operation": "set_property",
+      "arguments": { "name": "Hand", "value_text": "DX", "scope": "configuration" },
+      "expect": [
+        { "what": "measurements.scope", "equal_to": "configuration" },
+        { "what": "measurements.location", "includes": ["the configuration"],
+          "why": "no configuration named: the active one" },
+        { "what": "measurements.visible_from_other_list", "equal_to": false,
+          "why": "written on the configuration only, the document does not see it" },
+        { "what": "state.configuration_properties.Hand", "equal_to": "DX" } ] },
+    { "operation": "set_property",
+      "arguments": { "name": "DrawingNumber", "value_text": "DIS-0007", "scope": "file", "configuration": "Left" },
+      "must_fail": {
+        "message_includes": ["«file»", "«both»"],
+        "twin": "a_property_is_written_in_both_drawers" } }
+  ]
+}

@@ -32,6 +32,39 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.136.0 — 26 October 2026 · library 0.159.0 · where a property goes, said; the near name of an unknown argument (brief R8; branch `night-2026-10-26-asm`)
+
+On 25/10 «set_property» wrote the drawing number on the document and answered
+that from the configuration «Default<A macchina>» it was NOT visible: two
+drawers, and one step could fill only one of them.
+
+- **`scope`**: `file` (the document), `configuration` (the one named in
+  `configuration`, or else **the active one**) or `both`. Left out it is
+  `configuration` when a configuration is named and `file` otherwise, as before.
+  **`both` writes the property in the document and in the configuration and
+  reads it back from each**; one that does not come back as written fails the
+  step and says whether the document already had it. `file` together with a
+  configuration named is refused («choose one, or pass «scope» «both»»), and so
+  is a word that is not one of the three. The answer carries `scope`.
+- **`value` is not taken for `value_text`.** The repository keeps one name per
+  argument (no alias). Instead, **an unknown argument now names the near ones**
+  in the refusal: ««value» is not an argument of this operation, and would be
+  IGNORED. Did you mean «value_text»?». Near is: one that begins with it and an
+  underscore (`radius` → `radius_mm`), one it begins with and an underscore, or
+  one at most two letters away when both have four letters or more (a typo).
+  It holds for every operation, not only this one.
+
+Every new refusal says what to pass instead: the floor of the refusals with a
+way forward goes from 251 of 970 to **257 of 976** (26.3%).
+
+**Tests.** `R8PropertyScopeContract`: 7 combinations of `scope` taken and 4
+refused, the refusal of `file` with a configuration naming `both`; 6 near names
+(`value`, `radius`, a typo, a longer name, a far one, `x`). Bench: new case
+`document_properties/a_property_is_written_in_both_drawers` (both drawers from
+one step, the active configuration when none is named, the contradiction
+refused). Contract suite: 873 checks, 4 failed — the 4 of the bench, which has
+not run on this branch yet. **Not tried on SOLIDWORKS yet.**
+
 ## 0.135.0 — 26 October 2026 · library 0.158.0 · the assembly state says what is true, and a long step beats (briefs R6, R13; branch `night-2026-10-26-asm`)
 
 **The assembly state (R6).** On 25/10 the state of 26M000002 said that inserting
