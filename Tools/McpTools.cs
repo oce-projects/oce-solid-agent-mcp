@@ -1055,17 +1055,35 @@ namespace Oce.Solid.Agent.Tools
             if (card == null) return Protocol.Content(error, true);
 
             // THE DOCUMENT IN FRONT HAS CHANGED (or might have): what
-            // had been looked at and its signatures are thrown away TOGETHER. «build» at
-            // this point answers «I have not looked at any part yet», which
-            // is the truth.
+            // had been looked at and its signatures are thrown away TOGETHER.
             _seen = null;
             _signatureSeen = null;
             _seenSignatures = null;
+            _seenByDocument = null;
 
-            card["next_step"] =
-                "In front now is «" + Convert.ToString(card["document_title"]) + "». " +
-                "Before drawing, call «inspect_part»: what you looked at " +
-                "before is no longer valid.";
+            // WHICH DOCUMENT IS KNOWN, HOW IT IS MADE IS NOT (brief R18). The card
+            // says the document this call put in front; «build» takes it as the
+            // document looked at, for a plan that cites no identifier. A plan
+            // that cites one is still sent to «inspect_part».
+            object cardInFront;
+            bool putInFront = card.TryGetValue("in_front", out cardInFront) && cardInFront is bool && (bool)cardInFront;
+            if (putInFront)
+            {
+                _seen = new Dictionary<string, object>
+                {
+                    ["document_title"] = card.TryGetValue("document_title", out var cardTitle) ? cardTitle : "",
+                    ["path"] = card.TryGetValue("path", out var cardPath) ? cardPath ?? "" : "",
+                };
+                _seenByDocument = _seen;
+            }
+
+            card["next_step"] = putInFront
+                ? "In front now is «" + Convert.ToString(card["document_title"]) + "». A plan that cites no " +
+                  "identifier (a sketch on a plane, an extrusion, a property) can run now; before citing a face, an " +
+                  "edge or a component, call «inspect_part»: identifiers are born there."
+                : "In front now is «" + Convert.ToString(card["document_title"]) + "». " +
+                  "Before drawing, call «inspect_part»: what you looked at " +
+                  "before is no longer valid.";
             return Protocol.ContentWithData(Protocol.InJson(card), card);
         }
 
@@ -1141,6 +1159,15 @@ namespace Oce.Solid.Agent.Tools
         /// A plan is born by looking at ONE document, and must be executed on THAT one.
         /// </summary>
         private Dictionary<string, object> _seen;
+
+        /// <summary>
+        /// The identity «document» put in `_seen` when it brought a document to
+        /// the front, without reading it (brief R18). While `_seen` is this very
+        /// object, the document is known and its content is not: a plan that
+        /// cites no identifier runs, one that cites one is sent to «inspect_part».
+        /// Any reading puts another object in `_seen`, and the difference ends.
+        /// </summary>
+        private Dictionary<string, object> _seenByDocument;
 
         /// <summary>
         /// HOW THE PART WAS MADE when «inspect_part» looked at it
@@ -1910,6 +1937,94 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
+        /// The first identifier of the part a plan cites, or null (brief R18).
+        ///
+        /// TWO KINDS, read in every argument at any depth:
+        ///  * any text under a key that ends in «_uid» or «_uids»: those name
+        ///    what was already in the document (faces, edges, features);
+        ///  * a text that has the shape of an identifier the state hands out:
+        ///    one letter among C, E, F, M, S, V and a number («F3», «C2», «M1»),
+        ///    under a key that names what identifiers name («component_a»,
+        ///    «face_b», «mate», «plane»: see <see cref="IdentifierKeys"/>).
+        ///    Under any other key it is a value: «S235» in «value_text» is a steel.
+        /// The keys of a size or a thread («size», «thread_size») are skipped:
+        /// «M6» there is a screw, not a mate. «*_ref» cites a step of the plan,
+        /// not the part, and is not an identifier.
+        /// </summary>
+        internal static string FirstIdentifierCited(object[] steps)
+        {
+            if (steps == null) return null;
+            foreach (var step in steps)
+            {
+                var s = step as Dictionary<string, object>;
+                object arguments;
+                if (s == null || !s.TryGetValue("arguments", out arguments)) continue;
+                string found = IdentifierIn(arguments, null);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The words of a key under which a text shaped like «F3» is an
+        /// identifier. Under any other key it is a value: «S235» is a steel,
+        /// «C45» another. Compared WORD BY WORD («component_a» has «component»):
+        /// a substring would read «material» as «mate».
+        /// </summary>
+        private static readonly string[] IdentifierKeys =
+        {
+            "component", "components", "mate", "mates", "face", "faces", "edge", "edges", "body", "bodies",
+            "sketch", "sketches", "feature", "features", "axis", "axes", "plane", "planes", "view", "views",
+            "vertex", "vertices", "entity", "entities", "reference", "references", "target", "targets",
+        };
+
+        /// <summary>One of C, E, F, M, S, V and only digits after it: «F3», «C12».</summary>
+        private static bool HasIdentifierShape(string t)
+        {
+            if (t.Length < 2 || "CEFMSV".IndexOf(t[0]) < 0) return false;
+            for (int i = 1; i < t.Length; i++) if (t[i] < '0' || t[i] > '9') return false;
+            return true;
+        }
+
+        private static string IdentifierIn(object value, string key)
+        {
+            string text = value as string;
+            if (text != null)
+            {
+                string k = (key ?? "").ToLowerInvariant();
+                if (k.Contains("size") || k.Contains("thread")) return null;
+                string t = text.Trim();
+                if (t.Length == 0) return null;
+                if (k.EndsWith("_uid", StringComparison.Ordinal) || k.EndsWith("_uids", StringComparison.Ordinal)) return t;
+                if (!HasIdentifierShape(t)) return null;
+                foreach (string word in k.Split('_'))
+                    if (Array.IndexOf(IdentifierKeys, word) >= 0) return t;
+                return null;
+            }
+            var map = value as Dictionary<string, object>;
+            if (map != null)
+            {
+                foreach (string name in map.Keys)
+                {
+                    if (name.EndsWith("_ref", StringComparison.Ordinal)) continue;
+                    string found = IdentifierIn(map[name], name);
+                    if (found != null) return found;
+                }
+                return null;
+            }
+            var list = value as System.Collections.IEnumerable;
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    string found = IdentifierIn(item, key);
+                    if (found != null) return found;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// How the document stands, in a few measures: volume, bodies, how many
         /// features.
         ///
@@ -2590,6 +2705,25 @@ namespace Oce.Solid.Agent.Tools
                         "what is there now, call again passing «document»: \"" +
                         ReadableName(now) + "\".", true);
             }
+
+            // ── PUT IN FRONT BY «document», NOT READ (brief R18) ──────────
+            //
+            // On 24/10/2026 a reading was asked before every plan: 19 calls of
+            // «document» and «inspect_part» for 16 plans, also before plans that
+            // cite nothing of the part (a sketch on «top», a property). The
+            // document is known — «document» put it in front — and a plan that
+            // cites no identifier needs nothing else. One that cites an
+            // identifier still needs the reading: identifiers are born there and
+            // hold for it.
+            string identifierCited = FirstIdentifierCited(steps);
+            bool seenWithoutReading = _seen != null && ReferenceEquals(_seen, _seenByDocument) &&
+                                      Bridge.Session.SameDocument(_seen, now);
+            if (seenWithoutReading && identifierCited != null)
+                return Protocol.Content(
+                    "Your plan cites «" + identifierCited + "», and I have not read «" + ReadableName(now) +
+                    "» since «document» brought it to the front. Identifiers are born from «inspect_part» and hold for " +
+                    "that reading: call «inspect_part» first and copy them from there. A plan that cites no " +
+                    "identifier runs without it.", true);
             // ── THE SAME DOCUMENT, WITH SOMETHING ELSE INSIDE (entry X2) ──
             //
             // The check above asks «is it the same document?». This one
@@ -2604,10 +2738,18 @@ namespace Oce.Solid.Agent.Tools
             bool theCheckedOne =
                 _seen != null && Bridge.Session.SameDocument(_seen, now);
 
+            // A PLAN THAT CITES NO IDENTIFIER (brief R18) is not stopped by a
+            // change: what the refusal protects is the meaning of «F1», and the
+            // plan has none. It runs on the part as it is now, and the answer
+            // says the part had changed.
+            string partChangedNote = null;
             if (theCheckedOne)
             {
                 var changed = WhatChanged(_signatureSeen, LightSignature(before));
-                if (changed != null)
+                if (changed != null && identifierCited == null)
+                    partChangedNote = "The part had changed since it was last read — " + changed + ". The plan cites no " +
+                                      "identifier, so it ran on the part as it is now.";
+                else if (changed != null)
                     return Protocol.Content(
                         "I am stopping: the part has changed since you looked at it — " +
                         changed + ".\n\n" +
@@ -2653,6 +2795,9 @@ namespace Oce.Solid.Agent.Tools
                 _signatureSeen = null;
             }
             _seen = now;
+            // Still not read (brief R18): a plan refused further down must not
+            // turn the document into one that was read.
+            if (seenWithoutReading) _seenByDocument = _seen;
 
             // ── THE SAME PLAN, TWICE (entry W2.7) ──────────────────────
             //
@@ -3149,6 +3294,10 @@ namespace Oce.Solid.Agent.Tools
             // undecided, probe M19 phase H4); null, not known.
             if (planRun != null)
                 result["undo_entry_recorded"] = planRun.UndoEntryOnPlanDocument;
+
+            // The part had changed and the plan cited no identifier (brief R18).
+            if (partChangedNote != null)
+                result["warning_part_changed"] = partChangedNote;
 
             // WHEN ANOTHER WINDOW CAME TO THE FRONT and the plan's document was
             // brought back (brief R1): said, never hidden.

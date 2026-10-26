@@ -119,7 +119,10 @@ $tools = @(
     @{ name = 'SolidWorksLanguage'; sw = $true; lib = $true; extra = @('System.Xml.Linq.dll', 'System.Xml.dll') }
     # Faces beyond the 60 largest (W3.1-bis.12): is the ranking by area stable between
     # two readings, how does it tie at the cut, what does a closest-point read cost.
-    @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false }
+    @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false },
+    # Dimensions from the sketch origin to every vertex of a profile (brief R5): how
+    # the origin is selected, what the two dimension calls give, what a driven value does.
+    @{ name = 'DrivenSketch'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

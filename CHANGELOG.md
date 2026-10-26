@@ -32,6 +32,53 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.139.0 — 26 October 2026 · library 0.161.0 · a plan that cites nothing of the part needs no reading (brief R18, first half; branch `night-2026-10-26-asm`)
+
+On 24/10/2026 a session called `document` and `inspect_part` 19 times for 16
+plans. After every `document` the bridge forgot which document was in front,
+although it had just put it there and written its title in the answer; and after
+a change made by hand it stopped every plan, also one that cites no face.
+
+- **`document` keeps the document it put in front.** After `create`, `open` and
+  `activate`, when the card says the document is in front, `build` takes it as the
+  document looked at. A plan that cites **no identifier** (a sketch on a plane, an
+  extrusion, a property) runs on it without `inspect_part`; `next_step` says so.
+- **A plan that cites an identifier is still sent to `inspect_part`**, with the
+  identifier named in the refusal: identifiers are born from a reading and hold for
+  it. Cited means any text under a key ending in `_uid` or `_uids`, or a text with
+  the shape of an identifier the state hands out (one of C, E, F, M, S, V and a
+  number: `F3`, `C2`, `M1`) under a key that names what identifiers name
+  (component, mate, face, edge, body, sketch, feature, axis, plane, view, vertex,
+  entity, reference, target, and their plurals, compared word by word: `material`
+  is not `mate`); under any other key it is a value (`S235` in `value_text` is a
+  steel). `*_ref` cites a step of the plan and is not an
+  identifier; the keys of a size or a thread are skipped (`M6` there is a screw).
+- **A change by hand stops only a plan that cites an identifier** (entry X2). A plan
+  that cites none runs on the part as it is now, and the answer carries
+  `warning_part_changed` with what changed.
+- A plan refused further down does not turn a document that was not read into one
+  that was.
+
+Not done: stable identifiers from the persistent reference (the second half of R18).
+
+**A probe for brief R5, not run yet.** `Checks\DrivenSketch` (built by
+`Checks\build-checks.ps1`) measures what the driven dimensions of `extrude_profile`
+need before the library writes them: how the sketch origin is selected from outside
+the process in any language (by position, or through the sketch of the origin
+feature), whether `AddHorizontalDimension2` / `AddVerticalDimension2` give the
+coordinates of a sketch point against it, and what a driven value does afterwards
+(a vertex on the negative side, two vertices moved together, a dimension of zero),
+against the volume the shoelace formula gives. Each run works on a new part and
+closes it without saving.
+
+**Tests.** `R18DocumentWithoutReadingContract`: twelve plans read for the identifier
+they cite (a rectangle on top, a property, a fillet by step reference, an M6 hole by
+size, an edge, a feature, a mate, a face in the second step, an empty uid, a steel
+named C45 — «material» is not «mate» —, faces in a list, a face given as plane),
+and the six places of the source that use the rule. Contract suite: 882 checks, 4
+failed — the 4 of the bench, not run on this branch yet. **Not tried on SOLIDWORKS
+yet.**
+
 ## 0.138.0 — 26 October 2026 · library 0.161.0 · which edges the state lists: «edges» of inspect_part (brief R17; branch `night-2026-10-26-asm`)
 
 On 25/10, on 26P000007, the edges to fillet were picked by hand among the thirty
