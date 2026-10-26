@@ -522,6 +522,25 @@ namespace Oce.Solid.Agent.Core
                                 _log("[agent] from here on the plan works on «" +
                                      Identity(expectedDocument) + "», with its own undo entry");
                             }
+
+                            // WHAT THE PLAN SAID THIS STEP MUST MEASURE (brief R16).
+                            // After the bookkeeping above, so that a step that moved
+                            // the plan to a new document leaves it right even when
+                            // its numbers do not hold. A miss stops the plan here;
+                            // what the step made stays, and «undo» withdraws the plan.
+                            if (planStep.Expect != null)
+                            {
+                                var misses = StepExpectations.Misses(planStep.Expect, e.Measurements);
+                                if (misses.Count > 0)
+                                {
+                                    e.Succeeded = false;
+                                    e.Error = "The step ran, but it did not measure what «expect» asked: " +
+                                              string.Join("; ", misses) + ". The plan stops here, and what this " +
+                                              "step made is still in the document: «undo» withdraws the plan, or " +
+                                              "fix the step and send the plan again.";
+                                    _log("[agent] " + e.Error);
+                                }
+                            }
                         }
                         return e;
                     });

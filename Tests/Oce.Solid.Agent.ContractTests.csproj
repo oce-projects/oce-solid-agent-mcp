@@ -115,6 +115,7 @@
     <Compile Include="FacesBeyondSixtyContract.cs" />
     <Compile Include="Zc2111ComponentsContract.cs" />
     <Compile Include="Zc14MateDirectionsContract.cs" />
+    <Compile Include="R16StepExpectationsContract.cs" />
     <Compile Include="Zc2114UndoHonestyContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <Compile Include="CaseKeysTests.cs" />

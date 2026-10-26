@@ -103,6 +103,12 @@ namespace Oce.Solid.Agent.Core
         /// <summary>The arguments of the operation.</summary>
         public Dictionary<string, object> Arguments;
 
+        /// <summary>
+        /// What the step must measure (brief R16), as the plan wrote it next to its
+        /// arguments; null when it says nothing. See <see cref="StepExpectations"/>.
+        /// </summary>
+        public Dictionary<string, object> Expect;
+
         /// <summary>A line in Italian on what the step does, for the log.</summary>
         public string Summary;
     }

@@ -32,6 +32,46 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.134.0 — 26 October 2026 · library 0.157.0 · what a step must measure, written in the plan (brief R16; branch `night-2026-10-26-asm`)
+
+On 24-25/10 every check of a plan was made by hand afterwards: the window of
+the clamp had to remove 36 mm³ (3 × 6 × 2), and the only way to know was to
+read the outcome and do the sum. The plan said what to do, never what the step
+had to come out as.
+
+**A step of `build` can carry `expect`, next to `arguments`.** Its keys are the
+step's own measurements, by the name the outcome answers them
+(`removed_mm3`, `diameter_mm`, `walls_drilled`, `bounding_box_mm`, `kind`...);
+`volume_mm3` is the volume after the step (`volume_after_mm3`). A value is a
+number, a text, true/false or a list of numbers, or
+`{"equal_to": value, "tolerance": number}`.
+
+- A plain number holds within **0.01**, the rounding of the measures that come
+  rounded to 0.01; a list is compared element by element; texts and true/false
+  must be equal.
+- After the step the executor compares each key. **One that does not hold makes
+  the step fail and the plan stop there**, with the numbers side by side:
+  «The step ran, but it did not measure what «expect» asked: removed_mm3:
+  expected 36 ±0.01, measured 35.2». The step is not withdrawn: `undo` is
+  still the way back, as for any failed step.
+- **A key the step does not measure is a miss, not a pass**: an expectation
+  nobody checked would read as kept. The sentence lists what the step does
+  measure.
+- A form that cannot be checked (not an object, empty, an object without
+  `equal_to`, a negative tolerance, a key other than `equal_to`/`tolerance`, a
+  list of texts) is **refused before anything runs**, and `dry_run` lists it with
+  the other troubles of the plan.
+
+The rules are in `Oce.Solid.Agent.Core/StepExpectations.cs`, pure (no interop
+type); `PlanStep.Expect` carries them from the tool to the executor.
+
+**Tests.** `R16StepExpectationsContract`: 12 rows of `Misses` against one set of
+measurements (plain number, explicit tolerance, lists, texts, true,
+`volume_mm3`, a key not measured, two keys with one off) and the two sentences
+(the numbers side by side, the names the step measures); 6 good forms taken and
+9 bad ones refused. Contract suite: 867 checks, 4 failed — the 4 of the bench,
+which has not run on this branch yet. **Not tried on SOLIDWORKS yet.**
+
 ## 0.133.0 — 26 October 2026 · library 0.156.0 · placing and turning components, the side of a distance mate, a face named by a point (briefs R12, R21; branch `night-2026-10-26-asm`)
 
 The assembly of 25/10 could not be put together: «insert_component» places the

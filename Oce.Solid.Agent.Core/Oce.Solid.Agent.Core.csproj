@@ -127,6 +127,7 @@
     <Compile Include="FixComponentOperations.cs" />
     <Compile Include="MateStateOperations.cs" />
     <Compile Include="PlacementOperations.cs" />
+    <Compile Include="StepExpectations.cs" />
     <Compile Include="EquationOperations.cs" />
     <Compile Include="GuardOperations.cs" />
     <Compile Include="ReorderOperations.cs" />

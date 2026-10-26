@@ -330,6 +330,17 @@ namespace Oce.Solid.Agent.Tools
                                             ["description"] =
                                                 "the arguments, as in «describe_operation»",
                                         },
+                                        ["expect"] = new Dictionary<string, object>
+                                        {
+                                            ["type"] = "object",
+                                            ["description"] =
+                                                "optional: what this step must measure, by the names of its " +
+                                                "measurements, e.g. {\"removed_mm3\": 36} or {\"diameter_mm\": " +
+                                                "{\"equal_to\": 0.992, \"tolerance\": 0.001}} («volume_mm3» is the " +
+                                                "volume after the step; a plain number has a tolerance of 0.01). " +
+                                                "One that does not hold, or that the step does not measure, makes " +
+                                                "the step fail and the plan stop there, with the numbers side by side.",
+                                        },
                                     },
                                     new[] { "operation" }),
                             },
@@ -1978,6 +1989,12 @@ namespace Oce.Solid.Agent.Tools
                     continue;
                 }
 
+                // The form of «expect» (brief R16); its numbers only after a run.
+                object rawExpect;
+                planStep.TryGetValue("expect", out rawExpect);
+                var expectProblem = Oce.Solid.Agent.Core.StepExpectations.FormProblem(rawExpect);
+                if (expectProblem != null) trouble.Add(location + " («" + itemName + "»): " + expectProblem);
+
                 var schema = _catalog.Schema(itemName);
                 var data = Take(planStep, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
@@ -2412,6 +2429,23 @@ namespace Oce.Solid.Agent.Tools
                 var itsItems = Take(planStep, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
 
+                // WHAT THE STEP MUST MEASURE (brief R16): its form is checked
+                // here, before anything runs; the numbers after the step.
+                object rawExpect;
+                planStep.TryGetValue("expect", out rawExpect);
+                var expectProblem = Oce.Solid.Agent.Core.StepExpectations.FormProblem(rawExpect);
+                if (expectProblem != null)
+                {
+                    outcomes.Add(new Dictionary<string, object>
+                    {
+                        ["operation"] = itemName,
+                        ["succeeded"] = false,
+                        ["error"] = "Step " + order + ": " + expectProblem + NothingTouched,
+                    });
+                    everythingFine = false;
+                    break;
+                }
+
                 // THE NAME IS CHECKED BEFORE EXECUTING. The add-in, faced with
                 // a name it does not know but with some «contours» inside, falls back
                 // on the profile extrusion: handy for the server's recipes,
@@ -2547,6 +2581,7 @@ namespace Oce.Solid.Agent.Tools
                     Operation = itemName,
                     Arguments = itsItems,
                     Summary = itemName,
+                    Expect = rawExpect as Dictionary<string, object>,
                 });
             }
 

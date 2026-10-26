@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.133.0-blue)
-![Library version](https://img.shields.io/badge/library-0.156.0-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.134.0-blue)
+![Library version](https://img.shields.io/badge/library-0.157.0-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -154,7 +154,7 @@ and `measure`, and are discovered on demand.
 | `inspect_part` | the state of the open document: bounding box, volume, bodies, features with their dimensions, faces and edges with their identifier, and a one-line `shape` that sums the part up. With `views` it also returns a **picture** of the part; with `section` a **cutaway**; with `faces` it lists the faces you ask for instead of the 60 largest |
 | `list_operations` | the short list by family: a name and one line each |
 | `describe_operation` | the complete schema of one operation |
-| `build` | runs a sequence of operations and **reports what came out**: the measurements of every step and the state afterwards. With `dry_run: true` it validates the plan with SOLIDWORKS software closed and says what it could not check |
+| `build` | runs a sequence of operations and **reports what came out**: the measurements of every step and the state afterwards. With `dry_run: true` it validates the plan with SOLIDWORKS software closed and says what it could not check. A step can carry `expect`, the measurements it must come out with (`{"removed_mm3": 36}`): one that does not hold stops the plan there |
 | `measure` | the same operations, but **only the ones that read** (family `checks`). It declares itself read-only, so the client does not ask for confirmation for a measurement |
 | `undo` | withdraws the last plan, all of it — but only if the part is still as `build` left it |
 | `document` | creates an empty part or assembly, opens a file from disk, lists the open documents, brings one to the front, closes one — and **refuses to close** a document with unsaved changes. It always says whether a file is open **read-only** |
