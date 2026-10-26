@@ -32,6 +32,29 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.141.1 — 26 October 2026 · library 0.163.1 · a profile is drawn with snapping off (brief R11; branch `night-2026-10-26-asm`)
+
+- **What 0.141.0 broke, on SOLIDWORKS.** The t11 case of R16 and R18 with the right
+  `expect` (a star of 20 vertices on the top plane) was refused: «6 vertex(es) of the profile are not where they were asked, the first at
+  (11.76; 16.18) mm». With `AddToDB` off, sketch inference (snapping) puts a vertex on
+  a point nearby, and its distance is in pixels, so it follows the zoom: the probe's
+  L of 6 vertices never showed it. The check of 0.141.0 (`VerticesNotDrawn`) caught it
+  instead of giving another shape.
+- **Measured.** `Checks\UndoSplit` takes two more flags: `star` (the star of t11 as the
+  first profile) and `merge` (`ISketch.MergePoints(1e-7)` after drawing), and prints
+  the vertices that are not where they were asked. On SOLIDWORKS, 26/10/2026:
+  - `open+nodb+norel+star` (the way of 0.141.0): 20 points, 6 vertices moved, volume
+    26243.214 mm³ instead of 26720.964;
+  - `open+nodb+noinf+star`: 40 points for 20 vertices, every vertex where asked;
+  - `open+nodb+noinf+merge+star`: `MergePoints` 40 → 20 points, every vertex where
+    asked, volume 26720.964 mm³, one undo took the whole plan away;
+  - `open+nodb+noinf+merge` and `none+nodb+noinf+merge` on the L: 12 → 6 points,
+    volume 10000 mm³, the whole plan undone.
+- **`extrude_profile`** turns sketch inference off too while the lines are drawn (and
+  sets it back), then joins the ends with `ISketch.MergePoints(1e-7)`. Every vertex is
+  still read back; the refusal now says «it was drawn on a point nearby».
+- **Not changed:** `revolve`, `cylindrical_cut` and `rectangular_cut` still set
+  `AddToDB` (brief R10); whether their undo holds is not measured yet.
 ## 0.141.0 — 26 October 2026 · library 0.163.0 · one undo withdraws a profile again (brief R11; branch `night-2026-10-26-asm`)
 
 - **The cause, measured.** `Checks\UndoSplit` now takes a lock (`none`, `after`,

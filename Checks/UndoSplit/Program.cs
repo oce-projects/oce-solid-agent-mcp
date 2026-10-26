@@ -50,6 +50,18 @@ namespace Checks.UndoSplit
             new[] { -50.0, -50 }, new[] { -30.0, -50 }, new[] { -30.0, -30 }, new[] { -50.0, -30 },
         };
 
+        // The star of the t11 case of R16 and R18 with the right «expect»: with
+        // 0.141.0 (AddToDB left alone, automatic relations off) snapping moved 6
+        // of its 20 vertices, the first at (11.76; 16.18) mm.
+        private static readonly double[][] Star =
+        {
+            new[] { 40.0, 0 }, new[] { 19.02, 6.18 }, new[] { 32.36, 23.51 }, new[] { 11.76, 16.18 },
+            new[] { 12.36, 38.04 }, new[] { 0.0, 20 }, new[] { -12.36, 38.04 }, new[] { -11.76, 16.18 },
+            new[] { -32.36, 23.51 }, new[] { -19.02, 6.18 }, new[] { -40.0, 0 }, new[] { -19.02, -6.18 },
+            new[] { -32.36, -23.51 }, new[] { -11.76, -16.18 }, new[] { -12.36, -38.04 }, new[] { 0.0, -20 },
+            new[] { 12.36, -38.04 }, new[] { 11.76, -16.18 }, new[] { 32.36, -23.51 }, new[] { 19.02, -6.18 },
+        };
+
         private static ISldWorks _sw;
 
         private static int Main(string[] arguments)
@@ -66,9 +78,16 @@ namespace Checks.UndoSplit
             // «norel» (the third run: «nodb» added one automatic relation per
             // line, «noinf» left the ends of the lines apart) turns the automatic
             // relations off and leaves snapping on.
+            // «star» and «merge» (26/10/2026 night, after t11: the way of 0.141.0,
+            // open+nodb+norel, let snapping move 6 vertices of a star, because
+            // the snapping distance is in pixels and follows the zoom): «star»
+            // draws the star of t11 as the first profile, «merge» joins the ends
+            // with ISketch.MergePoints after drawing, for snapping turned off
+            // («noinf») left them apart. Every way now prints the vertices that
+            // are not where they were asked, as the library reads them back.
             var ways = arguments.Length > 0 ? new[] { arguments[0] }
-                : new[] { "none", "after", "open", "none+nodb", "after+nodb", "open+nodb", "open+nodb+noinf",
-                          "none+nodb+norel", "open+nodb+norel" };
+                : new[] { "open+nodb+norel+star", "open+nodb+noinf+star", "open+nodb+noinf+merge+star",
+                          "open+nodb+noinf+merge", "none+nodb+noinf+merge" };
             object raw;
             try { raw = Marshal.GetActiveObject("SldWorks.Application"); }
             catch (COMException) { Console.Error.WriteLine("SOLIDWORKS is not open."); return 2; }
@@ -86,7 +105,8 @@ namespace Checks.UndoSplit
             {
                 var parts = way.Split('+');
                 bool known = parts[0] == "none" || parts[0] == "after" || parts[0] == "open";
-                for (int i = 1; i < parts.Length; i++) known = known && (parts[i] == "nodb" || parts[i] == "noinf" || parts[i] == "norel");
+                for (int i = 1; i < parts.Length; i++)
+                    known = known && (parts[i] == "nodb" || parts[i] == "noinf" || parts[i] == "norel" || parts[i] == "star" || parts[i] == "merge");
                 if (!known) { Console.Error.WriteLine("Unknown way: " + way); return 2; }
                 var doc = (IModelDoc2)sw.NewDocument(template, 0, 0, 0);
                 if (doc == null) { Console.Error.WriteLine("NewDocument returned null."); return 2; }
@@ -103,7 +123,7 @@ namespace Checks.UndoSplit
         {
             Console.WriteLine("before: " + Count(doc) + " extrusions, volume " + VolumeText(doc));
             doc.Extension.StartRecordingUndoObject();
-            int fixedFirst = Extrude(doc, 0, Ell, 10, way);
+            int fixedFirst = Extrude(doc, 0, Array.IndexOf(way.Split('+'), "star") > 0 ? Star : Ell, 10, way);
             int fixedSecond = Extrude(doc, 1, Square, 5, way);
             bool finished = false;
             try { finished = doc.Extension.FinishRecordingUndoObject("UndoSplit probe"); }
@@ -156,9 +176,18 @@ namespace Checks.UndoSplit
             sm.AddToDB = addToDb;
             sm.DisplayWhenAdded = display;
             var drawn = sm.ActiveSketch as ISketch;
+            if (drawn != null && Array.IndexOf(parts, "merge") > 0)
+            {
+                int pointsBefore = drawn.GetSketchPointsCount2();
+                bool merged = false;
+                try { merged = drawn.MergePoints(1e-7); }
+                catch (Exception ex) { Console.WriteLine("  MergePoints threw: " + ex.Message); }
+                Console.WriteLine("  MergePoints(1e-7 m) " + merged + ": " + pointsBefore + " -> " + drawn.GetSketchPointsCount2() + " points");
+            }
             if (drawn != null)
                 Console.WriteLine("  sketch " + planeIndex + ": " + drawn.GetSketchPointsCount2() + " points for " +
-                                  vertices.Length + " vertices, " + drawn.RelationManager.GetRelationsCount(0) + " relations");
+                                  vertices.Length + " vertices, " + drawn.RelationManager.GetRelationsCount(0) + " relations, " +
+                                  NotDrawn(drawn, vertices));
             if (lockWay == "open")
             {
                 try { Lock(sm.ActiveSketch as ISketch); }
@@ -196,6 +225,28 @@ namespace Checks.UndoSplit
             var typed = new SketchSegment[segments.Length];
             for (int i = 0; i < segments.Length; i++) typed[i] = (SketchSegment)segments[i];
             sketch.RelationManager.AddRelation(typed, (int)swConstraintType_e.swConstraintType_FIXED);
+        }
+
+        /// <summary>
+        /// The vertices with no sketch point within 1e-4 mm, the tolerance of
+        /// SwOperations.SketchPointAt.
+        /// </summary>
+        private static string NotDrawn(ISketch sketch, double[][] vertices)
+        {
+            var points = sketch.GetSketchPoints2() as object[];
+            if (points == null) return "no points read";
+            var off = new List<string>();
+            foreach (var v in vertices)
+            {
+                bool found = false;
+                foreach (var o in points)
+                {
+                    var p = o as ISketchPoint;
+                    if (p != null && Math.Abs(p.X * 1000 - v[0]) <= 1e-4 && Math.Abs(p.Y * 1000 - v[1]) <= 1e-4) { found = true; break; }
+                }
+                if (!found) off.Add("(" + v[0].ToString(CultureInfo.InvariantCulture) + "; " + v[1].ToString(CultureInfo.InvariantCulture) + ")");
+            }
+            return off.Count == 0 ? "every vertex where asked" : off.Count + " vertex(es) moved: " + string.Join(" ", off);
         }
 
         private static int FixedCount(ISketch sketch)

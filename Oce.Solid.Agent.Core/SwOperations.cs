@@ -1172,11 +1172,19 @@ namespace Oce.Solid.Agent.Core
             // (ISketchManager~AddToDB.html). What AddToDB gave, no relation added
             // to the lines, is kept by turning the automatic relations off while
             // they are drawn: on the probe 6 points for 6 vertices, 0 relations,
-            // and the whole plan undone. Snapping stays on, so every vertex is
-            // read back below.
+            // and the whole plan undone.
+            // SNAPPING OFF TOO (0.141.1, t11 the same night): with snapping on,
+            // 6 of the 20 vertices of a star went onto points nearby (the
+            // snapping distance is in pixels, so it follows the zoom). With
+            // snapping off the ends of the lines stay apart (40 points for 20
+            // vertices), and ISketch.MergePoints joins them: on Checks\UndoSplit
+            // 20 points, every vertex where asked, the volume right and the
+            // whole plan undone.
             int automaticRelations = (int)swUserPreferenceToggle_e.swSketchAutomaticRelations;
-            bool automaticBefore = true;
+            int inference = (int)swUserPreferenceToggle_e.swSketchInference;
+            bool automaticBefore = true, inferenceBefore = true;
             try { automaticBefore = _sw.GetUserPreferenceToggle(automaticRelations); } catch { }
+            try { inferenceBefore = _sw.GetUserPreferenceToggle(inference); } catch { }
 
             int segments = 0;
             Dictionary<string, object> axesOfSketch = null;
@@ -1184,11 +1192,14 @@ namespace Oce.Solid.Agent.Core
             {
                 sketches.InsertSketch(true);
                 try { _sw.SetUserPreferenceToggle(automaticRelations, false); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, false); } catch { }
 
                 foreach (var contour in contours)
                 {
                     segments += DrawContour(sketches, contour);
                 }
+                var drawnSketch = sketches.ActiveSketch as ISketch;
+                if (drawnSketch != null) drawnSketch.MergePoints(1e-7);
 
                 // WHERE THE CONTOUR'S AXES WENT (brief R7), read from the open
                 // sketch and not from a table.
@@ -1197,11 +1208,12 @@ namespace Oce.Solid.Agent.Core
             finally
             {
                 try { _sw.SetUserPreferenceToggle(automaticRelations, automaticBefore); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, inferenceBefore); } catch { }
             }
 
-            // SNAPPING CAN MOVE A VERTEX (the price of leaving AddToDB off): one
-            // that sits near another point may be drawn on it. A vertex read
-            // wrong gives no error, it gives another shape, so the step fails.
+            // EVERY VERTEX IS READ BACK: with snapping off none should move, but
+            // a vertex read wrong gives no error, it gives another shape, so the
+            // step fails (it caught the star of t11 when snapping was on).
             var notDrawn = VerticesNotDrawn(sketches.ActiveSketch as ISketch, contours);
             if (notDrawn != null && notDrawn.Count > 0)
             {
@@ -1210,7 +1222,7 @@ namespace Oce.Solid.Agent.Core
                               " vertex(es) of the profile are not where they were asked, the first at (" +
                               notDrawn[0][0].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "; " +
                               notDrawn[0][1].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
-                              ") mm: snapping drew it on a point nearby. The sketch is in the part and the extrusion " +
+                              ") mm: it was drawn on a point nearby. The sketch is in the part and the extrusion " +
                               "was not made: undo the step, move that vertex away from the points near it and try again.");
             }
 
