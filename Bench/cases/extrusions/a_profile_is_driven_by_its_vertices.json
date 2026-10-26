@@ -1,0 +1,27 @@
+{
+  "name": "a_profile_is_driven_by_its_vertices",
+  "family": "extrusions",
+  "why": "BRIEF R5, 24/10/2026: every extrude_profile came back locked with FIXED relations, and the only dimension a variable could drive was the depth: the width of a rib, a slot, the inside of a clamp could not follow a name. With «dimensions» «driven» every vertex gets a horizontal and a vertical dimension from the origin, in the order of the vertices, x before y; a coordinate of zero gets a relation instead. The L has three vertices on the negative side and two on the Y axis, so the dimensions are D1..D10: (-30,10) D1 D2, (30,10) D3 D4, (30,20) D5 D6, (0,20) y D7, (0,50) y D8, (-30,50) D9 D10. Moving a vertex must give the volume of the shoelace formula for the moved vertex (computed by script: 15000, 15750, 16500, 18500 mm3), and the vertex at -30 driven to 40 must stay on its side.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_profile",
+      "arguments": { "plane": "front", "thickness_mm": 10, "dimensions": "driven",
+                     "contours": [ [ [-30, 10], [30, 10], [30, 20], [0, 20], [0, 50], [-30, 50] ] ] },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 15000 },
+        { "what": "measurements.dimensions", "equal_to": "driven" },
+        { "what": "measurements.sketch_fully_defined", "equal_to": true,
+          "why": "ten dimensions and two relations hold the six vertices" } ] },
+    { "operation": "set_dimension",
+      "arguments": { "dimension": "D3@{SW:feature.sketch}1", "value_mm": 45 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 15750,
+                    "why": "only the vertex (30,10) moves, to (45,10)" } ] },
+    { "operation": "set_dimension",
+      "arguments": { "dimension": "D5@{SW:feature.sketch}1", "value_mm": 45 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 16500 } ] },
+    { "operation": "set_dimension",
+      "arguments": { "dimension": "D1@{SW:feature.sketch}1", "value_mm": 40 },
+      "expect": [ { "what": "volume_mm3", "equal_to": 18500,
+                    "why": "the vertex at x = -30 goes to -40: a dimension is a distance, the side stays" } ] }
+  ]
+}

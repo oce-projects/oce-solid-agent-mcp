@@ -1141,6 +1141,23 @@ namespace Oce.Solid.Agent.Core
             bool symmetric = Bool(a, "symmetric", false);
             string plane = Str(a, "plane", "front");
 
+            // FIXED OR DRIVEN (brief R5): locked where it is, or dimensioned
+            // from the origin so that a variable can move a vertex.
+            string dimensionsMode = Str(a, "dimensions", "fixed");
+            int curved = 0, vertices = 0;
+            foreach (var contour in contours)
+            {
+                if (contour.Circle) { vertices++; continue; }
+                foreach (var stroke in contour.Strokes)
+                {
+                    if (stroke.Spline) curved++;
+                    vertices += stroke.Points.Count;
+                }
+            }
+            string modeProblem = DimensionsModeProblem(dimensionsMode, curved, vertices);
+            if (modeProblem != null) return Failed(modeProblem);
+            bool driven = dimensionsMode == "driven";
+
             // Before the sketch: it is selected, and locked after the
             // extrusion, as the one sketch born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(model);
@@ -1172,6 +1189,17 @@ namespace Oce.Solid.Agent.Core
             {
                 try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
             }
+
+            // THE DIMENSIONS GO IN WHILE THE SKETCH IS OPEN (brief R5), as
+            // `cylindrical_cut` puts its own: after the extrusion the sketch would
+            // have to be edited again, and editing it is what the FIXED relations
+            // cost (EditSketch, rebuild).
+            List<Dictionary<string, object>> vertexDimensions = null;
+            string drivenNote = null;
+            int notDriven = 0;
+            bool? fullyDefined = null;
+            if (driven)
+                vertexDimensions = DriveProfile(model, sketches.ActiveSketch as ISketch, contours, out drivenNote, out notDriven, out fullyDefined);
             sketches.InsertSketch(false);
 
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
@@ -1184,18 +1212,33 @@ namespace Oce.Solid.Agent.Core
             // while the sketch was still being drawn raised RPC_E_SERVERFAULT
             // in the probe of 28/9/2026 (finding M5, case R4, which passed an
             // object[]: the typed array was measured only after the feature).
-            string noteBlock;
-            int fixedRelations;
-            bool locked = LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
+            // A driven sketch is not locked: its dimensions hold it.
+            string noteBlock = null;
+            int fixedRelations = 0;
+            bool locked = !driven && LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
 
             var measurements = new Dictionary<string, object>
             {
-                ["sketch_locked"] = locked,
-                ["fixed_relations"] = fixedRelations,
                 ["contours"] = contours.Count,
                 ["segments"] = segments,
                 ["thickness_mm"] = thickness,
             };
+            if (driven)
+            {
+                measurements["dimensions"] = "driven";
+                measurements["vertex_dimensions"] = vertexDimensions;
+                measurements["sketch_fully_defined"] = fullyDefined;
+                if (notDriven > 0 || drivenNote != null)
+                    measurements["warning_dimensions"] =
+                        (notDriven > 0 ? notDriven + " coordinate(s) of the vertices could not be dimensioned: the shape is right, " +
+                                         "but those vertices do not follow a variable" : "") +
+                        (drivenNote != null ? (notDriven > 0 ? "; " : "") + drivenNote : "") + ".";
+            }
+            else
+            {
+                measurements["sketch_locked"] = locked;
+                measurements["fixed_relations"] = fixedRelations;
+            }
             if (axesOfSketch != null) measurements["sketch_axes"] = axesOfSketch;
             // Up to library 0.141.0 the note was computed and dropped: whoever
             // reads a sketch that is not locked must be able to read why.
@@ -1206,6 +1249,366 @@ namespace Oce.Solid.Agent.Core
             // body, and whoever thought they were making a hole must be able to read it.
             if (noteContours != null) measurements["note_contours"] = noteContours;
             return Succeeded(feature, measurements, References.PlaneNormal(plane));
+        }
+
+        /// <summary>
+        /// At most this many vertices in a driven profile (brief R5): two
+        /// dimensions each. PROVISIONAL: the probe Checks\DrivenSketch gives the
+        /// time of forty dimensions, and this number follows it.
+        /// </summary>
+        internal const int MaxDrivenVertices = 100;
+
+        /// <summary>A coordinate closer to zero than this sits on the axis (mm).</summary>
+        private const double VertexOnAxisMm = 1e-6;
+
+        /// <summary>Where the text of a vertex dimension goes, off the vertex (m).</summary>
+        private const double DimensionTextOffsetM = 0.005;
+
+        /// <summary>
+        /// Whether «dimensions» can be applied to this profile (brief R5); null
+        /// when it can. Pure, so that a contract can call it.
+        /// </summary>
+        internal static string DimensionsModeProblem(string mode, int curvedStrokes, int vertices)
+        {
+            if (mode != "fixed" && mode != "driven")
+                return "«dimensions» takes «fixed» (the sketch locked where it is, the default) or «driven» (a dimension " +
+                       "from the origin to every vertex, which a variable can move): write one of them. I received «" +
+                       (mode ?? "") + "».";
+            if (mode == "fixed") return null;
+            if (curvedStrokes > 0)
+                return "«dimensions»: «driven» dimensions the vertices of straight contours and the centres of circles; " +
+                       "this profile has " + curvedStrokes.ToString(System.Globalization.CultureInfo.InvariantCulture) + " curved stretch(es), " +
+                       "whose shape no dimension from the origin holds. Pass «dimensions» «fixed» for this profile, or give " +
+                       "the curve as straight segments.";
+            if (vertices > MaxDrivenVertices)
+                return "«dimensions»: «driven» puts two dimensions on every vertex, and this profile has " +
+                       vertices.ToString(System.Globalization.CultureInfo.InvariantCulture) + " (at most " +
+                       MaxDrivenVertices.ToString(System.Globalization.CultureInfo.InvariantCulture) + "). Pass «dimensions» «fixed», or drive " +
+                       "only the profile that a variable must move.";
+            return null;
+        }
+
+        /// <summary>
+        /// DIMENSIONS FROM THE ORIGIN TO EVERY VERTEX (brief R5), put while the
+        /// sketch is still open.
+        ///
+        /// On 24/10/2026 every `extrude_profile` came back locked with FIXED
+        /// relations, and the only dimension a variable could drive was the
+        /// depth: a width, a slot, the inside of a clamp could not follow a name.
+        /// Here every vertex gets a horizontal and a vertical dimension from the
+        /// sketch origin (IModelDoc2~AddHorizontalDimension2.html, «Creates a
+        /// horizontal dimension for the currently selected entities at the
+        /// specified location»; the vertical one the same), selected point first
+        /// and origin second; a circle gets the two of its centre. A coordinate of
+        /// zero gets a relation instead (the vertex vertical or horizontal with the
+        /// origin, sgVERTICALPOINTS2D / sgHORIZONTALPOINTS2D of
+        /// IModelDoc2~SketchAddConstraints.html): a dimension of zero has no side.
+        ///
+        /// A DIMENSION IS A DISTANCE. A vertex at x = -30 has a dimension of 30,
+        /// and «x_side» says «negative»: driving it keeps the vertex on its side,
+        /// and no value carries it across the axis.
+        ///
+        /// EVERY DIMENSION IS READ BACK against the coordinate it was asked for:
+        /// a sketch whose origin is not the origin of the contours (a sketch on a
+        /// face) would give dimensions from another point, and such a vertex is
+        /// said instead of named.
+        ///
+        /// `swInputDimValOnCreate` is switched off around the calls and put back,
+        /// as in <see cref="DimensionSegments"/>: with it on a dimension opens its
+        /// value box and the COM call does not return.
+        ///
+        /// A CIRCLE gets the dimension of its size too (`Extension.AddDimension`
+        /// on the circle, as `cylindrical_cut` does), under «diameter» or
+        /// «radius», whichever SOLIDWORKS made.
+        ///
+        /// NOT MEASURED YET: how the origin is selected from outside the process
+        /// (first through the sketch of the origin feature, then by position) and
+        /// whether the two calls give a sketch point against it. The probe
+        /// Checks\DrivenSketch measures both; the bench case is its judge.
+        /// </summary>
+        private List<Dictionary<string, object>> DriveProfile(
+            IModelDoc2 model, ISketch sketch, List<Contour> contours, out string note, out int notDriven, out bool? fullyDefined)
+        {
+            note = null;
+            notDriven = 0;
+            fullyDefined = null;
+            var entries = new List<Dictionary<string, object>>();
+            var points = sketch == null ? null : sketch.GetSketchPoints2() as object[];
+            if (points == null)
+            {
+                note = "the points of the sketch cannot be read";
+                notDriven = 1;
+                return entries;
+            }
+
+            var wanted = new List<double[]>();
+            foreach (var contour in contours)
+            {
+                if (contour.Circle)
+                {
+                    if (IndexOfVertex(wanted, contour.Center) < 0) wanted.Add(new[] { contour.Center[0], contour.Center[1] });
+                    continue;
+                }
+                foreach (var stroke in contour.Strokes)
+                    foreach (var p in stroke.Points)
+                        if (IndexOfVertex(wanted, p) < 0) wanted.Add(new[] { p[0], p[1] });
+            }
+
+            bool asked = true;
+            try
+            {
+                asked = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
+                _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
+            }
+            catch { }
+            try
+            {
+                foreach (var v in wanted)
+                {
+                    var entry = new Dictionary<string, object>
+                    {
+                        ["vertex_mm"] = new object[] { Math.Round(v[0], 4), Math.Round(v[1], 4) },
+                    };
+                    entries.Add(entry);
+                    var point = SketchPointAt(points, v);
+                    if (point == null)
+                    {
+                        entry["problem"] = "no point of the sketch at this vertex";
+                        notDriven += 2;
+                        continue;
+                    }
+                    foreach (bool horizontal in new[] { true, false })
+                    {
+                        string axis = horizontal ? "x" : "y";
+                        string problem;
+                        string name = DriveCoordinate(model, sketch, point, horizontal, horizontal ? v[0] : v[1], out problem);
+                        if (name == null)
+                        {
+                            entry[axis + "_problem"] = problem;
+                            notDriven++;
+                            continue;
+                        }
+                        entry[axis] = name;
+                        if ((horizontal ? v[0] : v[1]) < -VertexOnAxisMm) entry[axis + "_side"] = "negative";
+                    }
+                }
+                foreach (var contour in contours)
+                {
+                    if (!contour.Circle) continue;
+                    var entry = entries[IndexOfVertex(wanted, contour.Center)];
+                    string kind, problem;
+                    string name = DriveCircleSize(model, sketch, contour, out kind, out problem);
+                    if (name == null) { entry["size_problem"] = problem; notDriven++; continue; }
+                    // Two concentric circles share the centre and its entry.
+                    string key = kind;
+                    for (int n = 2; entry.ContainsKey(key); n++) key = kind + "_" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    entry[key] = name;
+                }
+                // FULLY DEFINED, read on the sketch still open
+                // (swConstrainedStatus_e.swFullyConstrained = 3).
+                try { fullyDefined = sketch.GetConstrainedStatus() == (int)swConstrainedStatus_e.swFullyConstrained; } catch { }
+            }
+            finally
+            {
+                try { model.ClearSelection2(true); } catch { }
+                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, asked); } catch { }
+            }
+            return entries;
+        }
+
+        /// <summary>
+        /// One coordinate of a vertex: the name of its dimension for an equation
+        /// («D3@Sketch1»), «on_axis» when it sits on the axis and a relation ties
+        /// it there, or null with the reason in <paramref name="problem"/>.
+        /// </summary>
+        private string DriveCoordinate(
+            IModelDoc2 model, ISketch sketch, ISketchPoint point, bool horizontal, double coordinateMm, out string problem)
+        {
+            problem = null;
+            try
+            {
+                if (Math.Abs(coordinateMm) <= VertexOnAxisMm)
+                {
+                    int before = SketchRelationCount(sketch);
+                    model.ClearSelection2(true);
+                    if (!point.Select4(false, null) || !SelectSketchOrigin(model, true))
+                    {
+                        problem = "the vertex or the origin could not be selected";
+                        return null;
+                    }
+                    model.SketchAddConstraints(horizontal ? "sgVERTICALPOINTS2D" : "sgHORIZONTALPOINTS2D");
+                    model.ClearSelection2(true);
+                    if (before < 0 || SketchRelationCount(sketch) <= before)
+                    {
+                        problem = "the relation that keeps the vertex on the axis was not born";
+                        return null;
+                    }
+                    return "on_axis";
+                }
+
+                model.ClearSelection2(true);
+                if (!point.Select4(false, null) || !SelectSketchOrigin(model, true))
+                {
+                    problem = "the vertex or the origin could not be selected";
+                    return null;
+                }
+                double xM = point.X, yM = point.Y;
+                var made = (horizontal
+                    ? model.AddHorizontalDimension2(xM / 2, yM + DimensionTextOffsetM, 0)
+                    : model.AddVerticalDimension2(xM + DimensionTextOffsetM, yM / 2, 0)) as IDisplayDimension;
+                model.ClearSelection2(true);
+                IDimension dimension = made == null ? null : made.GetDimension2(0);
+                if (dimension == null)
+                {
+                    problem = "SOLIDWORKS gave no dimension";
+                    return null;
+                }
+                double readMm = ApiHelpers.ReadDimensionInConfiguration(dimension, "") * 1000.0;
+                if (double.IsNaN(readMm) || Math.Abs(readMm - Math.Abs(coordinateMm)) > 1e-3)
+                {
+                    problem = "the dimension reads " + readMm.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm for a coordinate of " + Math.Abs(coordinateMm).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm: it does not measure from the origin of the contours";
+                    return null;
+                }
+                string complete = "";
+                try { complete = dimension.FullName ?? ""; } catch { }
+                var parts = complete.Split('@');
+                if (parts.Length < 2)
+                {
+                    problem = "the name of the dimension cannot be read («" + complete + "»)";
+                    return null;
+                }
+                return parts[0] + "@" + parts[1];
+            }
+            catch (Exception ex)
+            {
+                problem = "the call threw: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Selects the origin of the part for a dimension or a relation of the
+        /// open sketch: the point of the sketch of the origin feature (type
+        /// `OriginProfileFeature`, any language), else the sketch point at 0,0,0
+        /// by position (IModelDocExtension~SelectByID2.html: «Name of object to
+        /// select or an empty string»). Which of the two works from outside the
+        /// process is what the probe Checks\DrivenSketch measures.
+        /// </summary>
+        private bool SelectSketchOrigin(IModelDoc2 model, bool append)
+        {
+            try
+            {
+                var f = model.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    string type = "";
+                    try { type = f.GetTypeName2(); } catch { }
+                    if (type == PartOrigin)
+                    {
+                        var originSketch = f.GetSpecificFeature2() as ISketch;
+                        var originPoints = originSketch == null ? null : originSketch.GetSketchPoints2() as object[];
+                        var origin = originPoints != null && originPoints.Length > 0 ? originPoints[0] as ISketchPoint : null;
+                        if (origin != null && origin.Select4(append, null)) return true;
+                        break;
+                    }
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            try { return model.Extension.SelectByID2("", "EXTSKETCHPOINT", 0, 0, 0, append, 0, null, 0); }
+            catch { return false; }
+        }
+
+        /// <summary>All the relations of a sketch (swAll), or -1 when they cannot be read.</summary>
+        private static int SketchRelationCount(ISketch sketch)
+        {
+            try
+            {
+                var manager = sketch == null ? null : sketch.RelationManager;
+                return manager == null ? -1 : manager.GetRelationsCount((int)swSketchRelationFilterType_e.swAll);
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>The point of the sketch at a vertex (mm), within a ten-thousandth of a mm, or null.</summary>
+        private static ISketchPoint SketchPointAt(object[] points, double[] vertexMm)
+        {
+            foreach (var raw in points)
+            {
+                var p = raw as ISketchPoint;
+                if (p == null) continue;
+                if (Math.Abs(p.X * 1000.0 - vertexMm[0]) < 1e-4 && Math.Abs(p.Y * 1000.0 - vertexMm[1]) < 1e-4) return p;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The size of a circle of the open sketch, dimensioned: the name of the
+        /// dimension, and in <paramref name="kind"/> «diameter» or «radius» from
+        /// the value read back; null with the reason in <paramref name="problem"/>.
+        /// </summary>
+        private string DriveCircleSize(IModelDoc2 model, ISketch sketch, Contour circle, out string kind, out string problem)
+        {
+            kind = null;
+            problem = null;
+            try
+            {
+                var segments = sketch == null ? null : sketch.GetSketchSegments() as object[];
+                ISketchSegment found = null;
+                double radiusM = 0, cxM = 0, cyM = 0;
+                if (segments != null)
+                    foreach (var raw in segments)
+                    {
+                        var arc = raw as ISketchArc;
+                        var centre = arc == null ? null : arc.GetCenterPoint2() as ISketchPoint;
+                        if (centre == null) continue;
+                        double r = arc.GetRadius();
+                        if (Math.Abs(centre.X * 1000.0 - circle.Center[0]) < 1e-4 &&
+                            Math.Abs(centre.Y * 1000.0 - circle.Center[1]) < 1e-4 &&
+                            Math.Abs(r * 2000.0 - circle.Diameter) < 1e-4)
+                        {
+                            found = raw as ISketchSegment;
+                            radiusM = r; cxM = centre.X; cyM = centre.Y;
+                            break;
+                        }
+                    }
+                if (found == null) { problem = "the circle is not in the sketch"; return null; }
+                model.ClearSelection2(true);
+                if (!found.Select4(false, null)) { problem = "the circle could not be selected"; return null; }
+                var made = model.Extension.AddDimension(cxM + radiusM, cyM + radiusM, 0, 0) as IDisplayDimension;
+                model.ClearSelection2(true);
+                IDimension dimension = made == null ? null : made.GetDimension2(0);
+                if (dimension == null) { problem = "SOLIDWORKS gave no dimension"; return null; }
+                double readMm = ApiHelpers.ReadDimensionInConfiguration(dimension, "") * 1000.0;
+                if (Math.Abs(readMm - circle.Diameter) < 1e-3) kind = "diameter";
+                else if (Math.Abs(readMm - circle.Diameter / 2.0) < 1e-3) kind = "radius";
+                else
+                {
+                    problem = "the dimension of the circle reads " + readMm.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm for a diameter of " + circle.Diameter.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + " mm";
+                    return null;
+                }
+                string complete = "";
+                try { complete = dimension.FullName ?? ""; } catch { }
+                var parts = complete.Split('@');
+                if (parts.Length < 2) { problem = "the name of the dimension cannot be read («" + complete + "»)"; return null; }
+                return parts[0] + "@" + parts[1];
+            }
+            catch (Exception ex)
+            {
+                problem = "the call threw: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>The index of a vertex (mm) in the list, within a ten-thousandth of a mm, or -1.</summary>
+        private static int IndexOfVertex(List<double[]> vertices, double[] p)
+        {
+            for (int i = 0; i < vertices.Count; i++)
+                if (Math.Abs(vertices[i][0] - p[0]) < 1e-4 && Math.Abs(vertices[i][1] - p[1]) < 1e-4) return i;
+            return -1;
         }
 
         /// <summary>

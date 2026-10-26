@@ -427,6 +427,7 @@ namespace Oce.Solid.Agent.ContractTests
             R15MeshContract.RunAll();
             R17EdgesFilterContract.RunAll();
             R18DocumentWithoutReadingContract.RunAll();
+            R5DrivenProfileContract.RunAll();
             Zc2114UndoHonestyContract.RunAll();
             ReadmeBadgesContract.RunAll();
             LanguageGateTests.All();

@@ -175,6 +175,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "of the sketch got its FIXED relation, counted again after the rebuild. It "
                         + "also carries «fixed_relations» (how many were added) and, when the sketch is not "
                         + "locked, «sketch_lock_note» with the reason."
+                        + "\n\nWITH «dimensions»: «driven» the sketch is not locked: every vertex gets a "
+                        + "horizontal and a vertical dimension from the origin, and a circle the two of its "
+                        + "centre and the one of its size, so that a variable can move them («link_dimension» "
+                        + "with the names). «vertex_dimensions» lists, for each vertex, «x» and «y»: the name "
+                        + "of the dimension (for example «D3@Sketch1»), or «on_axis» when the vertex sits on "
+                        + "the axis and a relation keeps it there. A dimension is a distance: a vertex at "
+                        + "x = -30 has a dimension of 30 and «x_side» «negative»; driving it keeps the vertex "
+                        + "on its side, and no value carries it across the axis. «sketch_fully_defined» says "
+                        + "whether SOLIDWORKS reads the sketch as fully defined. Straight contours and circles "
+                        + "only, at most 100 vertices."
                         + "\n\nOn a part that already has a body, the new shape merges with the bodies "
                         + "it touches (merge and automatic body selection are on, as the guide describes "
                         + "them); it cannot merge with a body it does not touch, and the document state "
@@ -220,7 +230,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "how far it is extruded, in mm"),
                             "symmetric", O(
                                 "type", "boolean",
-                                "description", "extrusion half on one side and half on the other of the plane (default: no)")),
+                                "description", "extrusion half on one side and half on the other of the plane (default: no)"),
+                            "dimensions", O(
+                                "type", "string",
+                                "enum", A(
+                                    "fixed",
+                                    "driven"),
+                                "description", "«fixed» (default): the sketch locked where it is with FIXED relations. "
+                                    + "«driven» (brief R5): a dimension from the origin to every vertex, named in "
+                                    + "«vertex_dimensions», so that «link_dimension» can tie a width or a position to "
+                                    + "a variable. Straight contours and circles only, at most 100 vertices.")),
                         "required", A(
                             "contours",
                             "thickness_mm")),

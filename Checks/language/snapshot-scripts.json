@@ -90,6 +90,7 @@
   { "script": "Checks/FaceFillet/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/Fill/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/FacesBeyondSixty/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
+  { "script": "Checks/DrivenSketch/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/SolidWorksLanguage/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/SketchOnSheet/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/FollowTheEdge/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },

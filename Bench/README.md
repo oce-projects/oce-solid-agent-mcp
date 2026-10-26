@@ -798,14 +798,16 @@ cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        counts the gussets and the end caps, not only the bars,
                        and the gusset at the END of a bar is found like the one
                        at its start (D9 defects 1 and 2)
-cases/extrusions/  10   the tube has the hole; the extruded slot is as long as
+cases/extrusions/  11   the tube has the hole; the extruded slot is as long as
                        the bounding box, ends included, and is a polygon; the
                        17-tooth wheel can be made, the 16 one refuses; the fin
                        grows from the face outwards (entry Z-C6); the round and
                        rectangular anchored boss, and the triangle refused
                        (entry E18); a plane name that is not one of the three is
                        refused, never the front plane (Z-C21.10, N33); the
-                       sketch of the L locked for real (Z-C21, M5)
+                       sketch of the L locked for real (Z-C21, M5); the L
+                       driven by its vertices, a vertex moved by its dimension
+                       and the one on the negative side kept there (brief R5)
 cases/sheet_metal/     13   the L unfolds as long as the hand calculation; dated
                        the other way round, the points become the outer faces; the
                        flat pattern without a file refused; the stretch shorter

@@ -123,7 +123,7 @@ namespace Checks.DrivenSketch
 
             var watch = Stopwatch.StartNew();
             var dims = new Dictionary<string, IDimension>();
-            int born = 0, refusedOrigin = 0;
+            int born = 0, refusedOrigin = 0, relationsInstead = 0;
             try
             {
                 for (int i = 0; i < points.Length; i++)
@@ -150,6 +150,22 @@ namespace Checks.DrivenSketch
                         if (dim == null)
                         {
                             Console.WriteLine("  vertex " + key + ": no dimension (point " + pointTaken + ", origin " + originTaken + ")");
+                            // ON AN AXIS: a relation instead of a dimension of zero.
+                            // A point with x = 0 is vertical with the origin, one
+                            // with y = 0 horizontal (sgVERTICALPOINTS2D,
+                            // sgHORIZONTALPOINTS2D of IModelDoc2~SketchAddConstraints).
+                            double along = horizontal ? xMm : yMm;
+                            if (Math.Abs(along) < 1e-6)
+                            {
+                                int before = Relations(sketch);
+                                doc.ClearSelection2(true);
+                                bool again = p.Select4(false, null) && SelectOrigin(doc, originWay);
+                                if (again) doc.SketchAddConstraints(horizontal ? "sgVERTICALPOINTS2D" : "sgHORIZONTALPOINTS2D");
+                                int after = Relations(sketch);
+                                Console.WriteLine("    relation " + (horizontal ? "vertical" : "horizontal") + " with the origin instead: selected " +
+                                                  again + ", relations " + before + " -> " + after);
+                                if (after > before) relationsInstead++;
+                            }
                             continue;
                         }
                         born++;
@@ -166,8 +182,8 @@ namespace Checks.DrivenSketch
             watch.Stop();
             int status = -1;
             try { status = sketch.GetConstrainedStatus(); } catch { }
-            Console.WriteLine("dimensions born: " + born + " of " + (2 * points.Length) + ", origin not selected " + refusedOrigin +
-                              " times, " + watch.ElapsedMilliseconds + " ms; sketch status " + status +
+            Console.WriteLine("dimensions born: " + born + " of " + (2 * points.Length) + ", relations instead of a zero " + relationsInstead +
+                              ", origin not selected " + refusedOrigin + " times, " + watch.ElapsedMilliseconds + " ms; sketch status " + status +
                               " (swConstrainedStatus_e: 2 under, 3 fully, 4 over)");
 
             // Out of the sketch, select it, extrude.
@@ -257,6 +273,13 @@ namespace Checks.DrivenSketch
                 f = f.GetNextFeature() as IFeature;
             }
             return false;
+        }
+
+        /// <summary>All the relations of the sketch (swAll = 0), or -1.</summary>
+        private static int Relations(ISketch sketch)
+        {
+            try { return sketch.RelationManager.GetRelationsCount((int)swSketchRelationFilterType_e.swAll); }
+            catch { return -1; }
         }
 
         private static double Read(IDimension dim)

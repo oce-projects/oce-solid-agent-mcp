@@ -32,6 +32,51 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.140.0 — 26 October 2026 · library 0.162.0 · a profile driven by its vertices: «dimensions» of extrude_profile (brief R5; branch `night-2026-10-26-asm`)
+
+On 24/10/2026 every `extrude_profile` came back with `sketch_locked` true and
+twelve FIXED relations: the only dimension a variable could drive was the depth.
+The width of a rib, the position of a slot, the inside of a clamp could not be tied
+to a name.
+
+- **`extrude_profile` takes `dimensions`**: `fixed` (the default, unchanged: the
+  sketch locked where it is) or `driven`. Driven, every vertex gets a horizontal and
+  a vertical dimension from the origin, put while the sketch is still open (as
+  `cylindrical_cut` puts its own), and the sketch is not locked: its dimensions hold
+  it. A circle gets the two dimensions of its centre and the one of its size
+  (`diameter` or `radius`, whichever SOLIDWORKS made).
+- **`vertex_dimensions`** lists, for each vertex, `x` and `y`: the name of the
+  dimension for an equation (`D3@Sketch1`, ready for `link_dimension`), or `on_axis`
+  when the vertex sits on the axis and a relation keeps it there (a dimension of zero
+  has no side). A dimension is a distance: a vertex at x = -30 has a dimension of 30
+  and `x_side` `negative`; driving it keeps the vertex on its side.
+- **Every dimension is read back** against the coordinate it was asked for; one that
+  measures from another point (a sketch whose origin is not the origin of the
+  contours) is said under `x_problem` / `y_problem` instead of named, and
+  `warning_dimensions` counts what could not be dimensioned. `sketch_fully_defined`
+  is read on the sketch before it is closed.
+- Straight contours and circles only (a curve has no vertex to hold it), at most 100
+  vertices (provisional: the probe gives the time). Refused before anything is drawn,
+  with what to pass.
+- `swInputDimValOnCreate` is switched off around the dimensions and put back.
+
+**Not measured yet**, and written as such in the code: how the sketch origin is
+selected from outside the process (first the point of the sketch of the origin
+feature, then the sketch point at 0,0,0 by position) and whether the horizontal and
+vertical dimension calls give a sketch point against it. The probe
+`Checks\DrivenSketch` (0.139.0) measures both; the bench case
+`extrusions/a_profile_is_driven_by_its_vertices` (new) is the judge: an L with three
+vertices on the negative side and two on the Y axis, ten dimensions and two
+relations, three vertices moved by `set_dimension` against the volumes of the
+shoelace formula (15000, 15750, 16500, 18500 mm³, computed by script).
+
+**Tests.** `R5DrivenProfileContract`: the rule (fixed and driven taken, another word,
+a curve and one vertex too many refused naming «fixed»), the limit said in the
+catalogue equal to the one in the code, and the five places of the source (the
+dimensions before the sketch is closed, a driven sketch not locked, the value box
+switched off, the argument in the catalogue). Contract suite: 885 checks, 4 failed —
+the 4 of the bench, not run on this branch yet. **Not tried on SOLIDWORKS yet.**
+
 ## 0.139.0 — 26 October 2026 · library 0.161.0 · a plan that cites nothing of the part needs no reading (brief R18, first half; branch `night-2026-10-26-asm`)
 
 On 24/10/2026 a session called `document` and `inspect_part` 19 times for 16
