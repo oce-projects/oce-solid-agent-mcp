@@ -1203,6 +1203,28 @@ namespace Oce.Solid.Agent.Core
                         "READ-ONLY — «" + location + "». Clear the read-only flag, or check it out " +
                         "if it is in a PDM.");
 
+                // A FILE THAT ANOTHER OPEN DOCUMENT HOLDS (26/10/2026 night, t10
+                // and t11 run twice): the second run saved a new part onto the
+                // file the first run had left open, and SOLIDWORKS answered only
+                // swGenericSaveError. Looked at after the refusal, so it never
+                // stops a save that would go through.
+                string holder = null;
+                if (!SameFile(its, location))
+                {
+                    try
+                    {
+                        var open = _sw.GetOpenDocumentByName(location) as IModelDoc2;
+                        if (open != null) holder = open.GetTitle();
+                    }
+                    catch { }
+                }
+                if (holder != null)
+                    return Failed(
+                        "The document was not saved: **another open document holds that file** — «" + holder +
+                        "» is «" + location + "», and SOLIDWORKS does not write a document onto it (code " +
+                        errors + SaveErrorNames(errors) + "). Close it first («document» «close» with that " +
+                        "«path») and save again, or give me another «path».");
+
                 // L13-7: the codes by their enum names (ErrorCodeDecoder).
                 // ITS OWN FILE REFUSED WITH THE GENERIC CODE: the two causes
                 // measured on 26/10/2026, and the road that worked. A document

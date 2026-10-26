@@ -32,6 +32,17 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.141.2 — 26 October 2026 · library 0.163.2 · save_document names the open document that holds the file (branch `night-2026-10-26-asm`)
+
+- **Seen on SOLIDWORKS.** t10 and t11 run twice in the same session: the second run
+  saved a new part onto `M26U10C.SLDPRT` and `M26S11.SLDPRT`, which the first run had
+  left open, and the answer was only «The document was not saved (code 1:
+  swGenericSaveError).».
+- **`save_document`**, after a refused save onto a file that is not the document's own,
+  asks SOLIDWORKS whether another open document holds that path
+  (`ISldWorks.GetOpenDocumentByName`) and, if so, names it and says what to do: close
+  it with «document» «close» and save again, or give another «path». It is looked at
+  only after the refusal, so it never stops a save that would go through.
 ## 0.141.1 — 26 October 2026 · library 0.163.1 · a profile is drawn with snapping off (brief R11; branch `night-2026-10-26-asm`)
 
 - **What 0.141.0 broke, on SOLIDWORKS.** The t11 case of R16 and R18 with the right
