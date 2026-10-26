@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
+// Imported, so the catalog is called with no dot before its name: the
+// obsolete-call check reads any member access of that name as IBody2's.
+using Oce.Solid.Agent.Core.Catalog;
 
 namespace Oce.Solid.Agent.Core
 {
@@ -178,7 +181,7 @@ namespace Oce.Solid.Agent.Core
             int suppressedOnes = 0, light = 0, grounded = 0;
             int counted = 0, resting = 0;
             int nested = 0;
-            bool degreesReadFailed = false;
+            var degreesNotGiven = new List<string>();
             var free = new List<string>();
             for (int i = 0; i < entries.Count; i++)
             {
@@ -379,7 +382,7 @@ namespace Oce.Solid.Agent.Core
                 var deg = SwOperations.DegreesOfFreedom(c);
                 entry["degrees_of_freedom_state"] = deg.State;
                 if (deg.Available) entry["degrees_of_freedom_remaining"] = deg.HowMany;
-                else degreesReadFailed = true;
+                else degreesNotGiven.Add("C" + (i + 1) + " (" + deg.State + ")");
 
                 // «IS IT JUST RESTING?» IS ANSWERED WITH TWO THINGS THAT WORK.
                 //
@@ -468,13 +471,14 @@ namespace Oce.Solid.Agent.Core
             // One coincident mate leaves three of the six directions free (probe
             // zc14, 30/9/2026: TX, TZ and RY stay free), and this state does not
             // see them; «mate» measures them when it makes a mate (Z-C14).
-            if (degreesReadFailed)
-                data["what_is_not_known_about_constraints"] =
-                    "SOLIDWORKS does not give the remaining degrees of freedom " +
-                    "(it answers «unavailable» on every component, fixed or free). So " +
-                    "«constrained» here means «has at least one mate», not " +
-                    "«does not move any more»: one coincident mate leaves three of the six " +
-                    "directions free (measured). «mate» says which directions each mate blocks.";
+            //
+            // WHICH COMPONENTS, NOT «EVERY ONE» (brief R6). Up to library 0.157.0
+            // the sentence said SOLIDWORKS answers «unavailable» on every
+            // component, fixed or free; on 25/10/2026 C2 of 26M000002 had
+            // «degrees_of_freedom_remaining: 2» beside it. It names the
+            // components it could not read now, each with what SOLIDWORKS said.
+            if (degreesNotGiven.Count > 0)
+                data["what_is_not_known_about_constraints"] = DegreesNotGivenText(degreesNotGiven, entries.Count);
 
             // ── THE EXPLODED VIEW, AND IT IS NOT A WHIM (entry GA8) ──────
             //
@@ -519,12 +523,46 @@ namespace Oce.Solid.Agent.Core
             // A model that reads «I see four components but I do not know how to
             // mate them» knows what it can ask; one that reads «I do not modify it»
             // can only stop.
+            //
+            // BUILT FROM THE CATALOG (brief R6). Up to library 0.157.0 it was a
+            // sentence written by hand in the days before «insert_component»: it
+            // said that inserting and mating were not operations, and that the
+            // positions were missing from the state. On 25/10/2026 both claims
+            // were false, and the sentence was read as true. A list taken from the
+            // catalog cannot be left behind by the next operation.
             data["solid_body"] = false;
-            data["what_cannot_be_done_yet"] =
-                "Of this assembly I can say how it is made, not change it: inserting " +
-                "components, mating them and reading their remaining degrees of " +
-                "freedom are not operations yet. The positions of the components " +
-                "are not in this state.";
+            data["what_can_be_done"] = WhatCanBeDoneText(Operations.NamesFor("assembly"));
+        }
+
+        /// <summary>
+        /// The sentence on the degrees of freedom SOLIDWORKS did not give:
+        /// the components named, each with its state, and what «constrained» means
+        /// then. Pure, so the contract suite reads it by reflection.
+        /// </summary>
+        internal static string DegreesNotGivenText(IList<string> notGiven, int components)
+        {
+            string which = notGiven.Count == components && components > 1
+                ? "any of the " + components + " components (" + string.Join(", ", notGiven) + ")"
+                : string.Join(", ", notGiven);
+            return "SOLIDWORKS did not give the remaining degrees of freedom of " + which +
+                   ": it answers «unavailable», «failed» or «root component» when it cannot, and " +
+                   "where it could the number is in «degrees_of_freedom_remaining» of the component. " +
+                   "So «constrained» here means «has at least one mate», not «does not move any more»: " +
+                   "one coincident mate leaves three of the six directions free (measured). " +
+                   "«mate» says which directions each mate blocks.";
+        }
+
+        /// <summary>
+        /// What can be done on an assembly, from the names the catalog gives for
+        /// it. Pure, so the contract suite reads it by reflection.
+        /// </summary>
+        internal static string WhatCanBeDoneText(IList<string> operations)
+        {
+            if (operations == null || operations.Count == 0)
+                return "The catalog lists no operation for an assembly.";
+            return "These operations run on an assembly: " + string.Join(", ", operations) +
+                   " (list_operations describes each). Where each component is and how it is turned " +
+                   "are in «components»: «origin_mm» and «axes».";
         }
 
         /// <summary>

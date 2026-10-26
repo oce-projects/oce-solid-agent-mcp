@@ -79,17 +79,107 @@ namespace Oce.Solid.Agent.Bridge
             // The state is not needed: whoever had to look at it — the identity
             // check of the document — is the executor, on the real
             // document and not on a photograph.
+            StopHeartbeat();
             if (_next >= _steps.Count) return Task.FromResult(NextStep.Fine());
             var thisOne = _steps[_next++];
-            _wire.Step(_startedAt + _next,
-                        "running step " + _next + " of " + _steps.Count +
-                        ": " + thisOne.Operation);
+            var line = "running step " + _next + " of " + _steps.Count + ": " + thisOne.Operation;
+            _wire.Step(_startedAt + _next, line);
+            StartHeartbeat(_startedAt + _next, line);
             return Task.FromResult(NextStep.This(thisOne));
+        }
+
+        // ── THE HEARTBEAT OF A LONG STEP (brief R13) ─────────────────────
+        //
+        // One notification per step said «running step 3 of 6» and then
+        // nothing until the step was over: on 24/10/2026 a step of 1,069 s sent
+        // nothing for eighteen minutes, and from outside «working» and «stuck»
+        // looked the same. Every BeatEvery while the step runs a notification
+        // says how long it has been on it and the last line the executor wrote
+        // (what it is doing). Its progress grows inside the step
+        // (k + n/(n+1): k.5, k.67, k.75 ...) and never reaches k + 1, so the next
+        // step is still a step forward.
+        //
+        // It is stopped before the next step, at the outcome, and by the session
+        // when the executor returns or throws (StopHeartbeat): a beat that went
+        // out after the answer is the defect R13 found in the dry run, where the
+        // client no longer knew the token. The beat holds the lock while it
+        // sends, so once StopHeartbeat returns nothing more goes out, and a
+        // callback of an old timer finds another generation and sends nothing.
+        internal static readonly System.TimeSpan BeatEvery = System.TimeSpan.FromSeconds(10);
+        private readonly object _beatKey = new object();
+        private System.Threading.Timer _beat;
+        private int _generation;
+        private int _beats;
+        private double _beatStep;
+        private string _beatLine;
+        private System.DateTime _beatStart;
+
+        /// <summary>
+        /// The last line the executor wrote, set by the session through the log
+        /// callback: it is what the heartbeat says the step is doing.
+        /// </summary>
+        internal string LastLine;
+
+        private void StartHeartbeat(double step, string line)
+        {
+            if (!_wire.On) return;
+            lock (_beatKey)
+            {
+                _generation++;
+                _beats = 0;
+                _beatStep = step;
+                _beatLine = line;
+                _beatStart = System.DateTime.Now;
+                int generation = _generation;
+                _beat = new System.Threading.Timer(_ => Beat(generation), null, BeatEvery, BeatEvery);
+            }
+        }
+
+        /// <summary>
+        /// One beat of the step of that generation; nothing when the heartbeat
+        /// was stopped or another step began. Internal so the contract suite
+        /// drives it without waiting ten seconds.
+        /// </summary>
+        internal void Beat(int generation)
+        {
+            lock (_beatKey)
+            {
+                if (_beat == null || generation != _generation) return;
+                _beats++;
+                int seconds = (int)(System.DateTime.Now - _beatStart).TotalSeconds;
+                var doing = LastLine;
+                if (!string.IsNullOrWhiteSpace(doing))
+                {
+                    doing = doing.Trim();
+                    if (doing.Length > 100) doing = doing.Substring(0, 100) + "...";
+                }
+                _wire.Step(_beatStep + _beats / (_beats + 1.0),
+                           _beatLine + ", still running after " + seconds + "s" +
+                           (string.IsNullOrWhiteSpace(doing) ? "" : " (last: " + doing + ")"));
+            }
+        }
+
+        /// <summary>The generation of the step now running, for the contract suite.</summary>
+        internal int Generation { get { lock (_beatKey) return _generation; } }
+
+        /// <summary>
+        /// Stops the heartbeat and waits for a beat that is being sent. The
+        /// session calls it when the executor returns or throws, before the answer.
+        /// </summary>
+        internal void StopHeartbeat()
+        {
+            lock (_beatKey)
+            {
+                if (_beat != null) _beat.Dispose();
+                _beat = null;
+                _generation++;
+            }
         }
 
         public Task OutcomeAsync(
             int order, bool succeeded, Dictionary<string, object> measurements, string error)
         {
+            StopHeartbeat();
             object numbers = null;
             if (measurements != null) measurements.TryGetValue("measurements", out numbers);
 

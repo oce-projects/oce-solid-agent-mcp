@@ -1082,7 +1082,9 @@ namespace Oce.Solid.Agent.Bridge
             var executor = new PlanExecutor(
                 _sw as ISldWorks,
                 source,
-                line => Mcp.Protocol.Note("  " + line),
+                // The last line is also what the heartbeat of a long step says
+                // the step is doing (brief R13).
+                line => { source.LastLine = line; Mcp.Protocol.Note("  " + line); },
                 f => System.Threading.Tasks.Task.FromResult(f()))
             {
                 // The name that the user reads in the «Undo» menu of SOLIDWORKS.
@@ -1151,6 +1153,12 @@ namespace Oce.Solid.Agent.Bridge
             {
                 error = NameTheTrueCause(ex.Message, source.Outcomes);
                 return source.Outcomes;
+            }
+            finally
+            {
+                // No beat after the answer (brief R13): the executor may have
+                // returned or thrown in the middle of a step.
+                source.StopHeartbeat();
             }
         }
 

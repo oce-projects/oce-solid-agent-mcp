@@ -43,6 +43,7 @@ namespace Oce.Solid.Agent.ContractTests
             TheWire();
             TheTimeAlongside();
             ThePlanInMemory();
+            TheHeartbeat();
             TheUndoSaysNo();
             OnTheRealBridge();
         }
@@ -393,6 +394,85 @@ namespace Oce.Solid.Agent.ContractTests
             Check("once the steps are over it sends nothing more",
                   seen[3] == 6,
                   "the fourth call is «end», and it does not invent a seventh step");
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  4b. THE HEARTBEAT OF A LONG STEP (brief R13), driven by hand
+        // ─────────────────────────────────────────────────────────────────
+
+        private static void TheHeartbeat()
+        {
+            const string label = "a long step beats: progress grows inside the step and stays under the next one, says the time and the last line, and stops at once";
+            var typ = Progress();
+            if (typ == null) return;
+            var wireT = typ.GetNestedType("Wire", BindingFlags.Public | BindingFlags.NonPublic);
+            var planeT = Load.Class(typ.Assembly, "PlanInMemory");
+            if (planeT == null || wireT == null) { Check(label, false, "PlanInMemory or Wire is missing"); return; }
+            var beat = planeT.GetMethod("Beat", Everywhere);
+            var stop = planeT.GetMethod("StopHeartbeat", Everywhere);
+            var generation = planeT.GetProperty("Generation", Everywhere);
+            var lastLine = planeT.GetField("LastLine", Everywhere);
+            var timer = planeT.GetField("_beat", Everywhere);
+            if (beat == null || stop == null || generation == null || lastLine == null || timer == null)
+            { Check(label, false, "Beat, StopHeartbeat, Generation, LastLine or _beat is missing (0.133.0 or older)"); return; }
+
+            var constructor = planeT.GetConstructors(Everywhere).FirstOrDefault(c => c.GetParameters().Length == 2);
+            var stepT = constructor.GetParameters()[0].ParameterType.GetGenericArguments().FirstOrDefault();
+            Func<object, object> plan = w =>
+            {
+                var steps = (System.Collections.IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(stepT));
+                for (int i = 1; i <= 2; i++)
+                {
+                    var pd = Activator.CreateInstance(stepT);
+                    Put(stepT, pd, "Order", i);
+                    Put(stepT, pd, "Operation", "op" + i);
+                    steps.Add(pd);
+                }
+                return constructor.Invoke(new[] { steps, w });
+            };
+            var next = planeT.GetMethod("NextAsync", Everywhere);
+            Func<object, double> last = w => Convert.ToDouble(wireT.GetProperty("Last", Everywhere).GetValue(w));
+            Func<object, int> sent = w => Convert.ToInt32(wireT.GetProperty("Sent", Everywhere).GetValue(w));
+
+            var wrong = new List<string>();
+            var wire = Activator.CreateInstance(wireT, new object[] { "h" });
+            wireT.GetProperty("Total", Everywhere).SetValue(wire, 2.0);
+            var p = plan(wire);
+            try
+            {
+                next.Invoke(p, new object[] { null });
+                if (timer.GetValue(p) == null) wrong.Add("no timer while step 1 runs");
+                int g = (int)generation.GetValue(p);
+                lastLine.SetValue(p, "[agent] created feature Boss-Extrude1");
+                var seen = new List<double>();
+                for (int i = 0; i < 3; i++) { beat.Invoke(p, new object[] { g }); seen.Add(last(wire)); }
+                if (!(Math.Abs(seen[0] - 1.5) < 1e-9 && seen[1] > seen[0] && seen[2] > seen[1] && seen[2] < 2))
+                    wrong.Add("progress inside the step: " + string.Join(", ", seen));
+                var message = Convert.ToString(wireT.GetProperty("LastMessage", Everywhere).GetValue(wire));
+                if (!message.Contains("running step 1 of 2: op1, still running after") || !message.Contains("(last: [agent] created feature Boss-Extrude1)"))
+                    wrong.Add("message: " + message);
+                int before = sent(wire);
+                stop.Invoke(p, null);
+                beat.Invoke(p, new object[] { g });
+                if (sent(wire) != before) wrong.Add("a beat went out after StopHeartbeat");
+                if (timer.GetValue(p) != null) wrong.Add("the timer is still there after StopHeartbeat");
+                next.Invoke(p, new object[] { null });
+                if (last(wire) != 2) wrong.Add("the next step is not a step forward after the beats: " + last(wire));
+                beat.Invoke(p, new object[] { g });
+                if (last(wire) != 2) wrong.Add("a callback of the old step beat on the new one");
+                next.Invoke(p, new object[] { null });
+                if (timer.GetValue(p) != null) wrong.Add("the timer is still there at the end of the plan");
+            }
+            finally { stop.Invoke(p, null); }
+
+            // Without a token nobody listens: no timer at all.
+            var silent = Activator.CreateInstance(wireT, new object[] { null });
+            var q = plan(silent);
+            next.Invoke(q, new object[] { null });
+            if (timer.GetValue(q) != null) wrong.Add("a timer without a progress token");
+            stop.Invoke(q, null);
+
+            Check(label, wrong.Count == 0, wrong.Count == 0 ? "1.5, 1.67, 1.75, then 2; nothing after the stop or from the old step; no timer without a token" : string.Join("; ", wrong));
         }
 
         // ─────────────────────────────────────────────────────────────────

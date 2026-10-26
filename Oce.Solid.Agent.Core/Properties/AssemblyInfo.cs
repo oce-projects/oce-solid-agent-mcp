@@ -555,8 +555,11 @@ using System.Runtime.InteropServices;
 //          arguments: the measurements it must come out with. One that does not
 //          hold, or that the step does not measure, makes the step fail
 //          (StepExpectations, PlanStep.Expect).
-[assembly: AssemblyVersion("0.157.0.0")]
-[assembly: AssemblyFileVersion("0.157.0.0")]
+// 0.158.0: brief R6 (26/10/2026). The assembly state builds «what_can_be_done»
+//          from the catalog (Operations.NamesFor) and names the components whose
+//          degrees of freedom SOLIDWORKS did not give, instead of «every one».
+[assembly: AssemblyVersion("0.158.0.0")]
+[assembly: AssemblyFileVersion("0.158.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -571,4 +574,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.157.0")]
+[assembly: AssemblyInformationalVersion("0.158.0")]

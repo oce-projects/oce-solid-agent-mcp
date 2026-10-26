@@ -172,14 +172,18 @@ namespace Oce.Solid.Agent.Mcp
                     : message + " \u2014 " + howMuch;
             }
 
+            /// <summary>The message of the last notification sent, for the contract suite.</summary>
+            public string LastMessage { get; private set; }
+
             public void Step(double done, string message)
             {
                 if (_token == null) return;
                 if (done <= _last) { Discarded++; return; }
                 _last = done;
                 Sent++;
+                LastMessage = WithElapsed(message);
                 Protocol.NotifyOnChannel(
-                    Notify(_token, done, Total, WithElapsed(message)));
+                    Notify(_token, done, Total, LastMessage));
             }
         }
     }

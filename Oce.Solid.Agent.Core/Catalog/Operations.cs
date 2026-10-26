@@ -90,6 +90,27 @@ namespace Oce.Solid.Agent.Core.Catalog
                     "dimensions and tolerances put on the PART (DimXpert), not on a drawing"),
             };
 
+        /// <summary>
+        /// The names of the tested operations that run on a document of this kind
+        /// («part», «assembly», «drawing»), in the order of the catalog: those
+        /// that declare it (alone or with another, «part/assembly») and those that
+        /// run on any document. The assembly state builds its sentence on what can be
+        /// done from here (brief R6), so it cannot be left behind by the next
+        /// operation.
+        /// </summary>
+        public static List<string> NamesFor(string document)
+        {
+            var names = new List<string>();
+            foreach (OperationSpec op in All)
+            {
+                if (!op.Tested || string.IsNullOrEmpty(op.RequestedDocument)) continue;
+                if (op.RequestedDocument == "any") { names.Add(op.Name); continue; }
+                foreach (var kind in op.RequestedDocument.Split('/'))
+                    if (kind == document) { names.Add(op.Name); break; }
+            }
+            return names;
+        }
+
         public static readonly List<OperationSpec> All =
             new List<OperationSpec>
             {

@@ -32,6 +32,51 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.135.0 — 26 October 2026 · library 0.158.0 · the assembly state says what is true, and a long step beats (briefs R6, R13; branch `night-2026-10-26-asm`)
+
+**The assembly state (R6).** On 25/10 the state of 26M000002 said that inserting
+and mating components were not operations yet and that the positions of the
+components were not in the state — both false since «insert_component», «mate»
+and «origin_mm» — and that SOLIDWORKS answers «unavailable» on every component,
+while C2 had `degrees_of_freedom_remaining: 2` beside it.
+
+- `what_cannot_be_done_yet` is gone. **`what_can_be_done`** lists the operations
+  that run on an assembly, **taken from the catalog** (`Operations.NamesFor
+  ("assembly")`: the 9 of the assemblies, the 6 for a part or an assembly, the 3
+  for any document), and says where each component is and how it is turned
+  («origin_mm», «axes»). The next operation cannot leave it behind.
+- `what_is_not_known_about_constraints` **names the components** whose degrees
+  of freedom SOLIDWORKS did not give, each with its state («C1 (root
+  component)»), and says «any of the N components» only when none was read.
+  What «constrained» means, and that one coincident mate leaves three of the six
+  directions free, is unchanged (the bench reads those words).
+
+**A long step beats (R13).** One notification per step said «running step 3 of
+6» and then nothing until the step was over: on 24/10 a step of 1,069 s was
+silent for eighteen minutes. Now, while a step runs, **every 10 s** a
+notification says how long it has been on it and the last line the executor
+wrote: «running step 3 of 6: apply_material, still running after 40s (last:
+…)». Its `progress` grows inside the step (k.5, k.67, k.75 …) and never
+reaches the next step, as the specification demands. It is sent only when the
+client asked for progress (a `progressToken`), and **stopped before the answer**:
+at the next step, at the outcome, and by the session when the executor returns
+or throws — a beat after the answer is the defect R13 found in the dry run. The
+beat holds a lock while it sends, so nothing goes out once the stop returns.
+`Protocol.Send` now writes under a lock too: the beat comes from a timer thread
+while the executor writes from its own, and two messages at once would make a
+line that is not JSON.
+
+**Tests.** `R6AssemblyStateTextContract`: the old sentences are absent from
+`AssemblyState.cs` and the new one is built from the catalog; `NamesFor
+("assembly")` gives the 18 names the exported catalog says, and `NamesFor
+("part")` holds `extrude_profile` and not `mate`; 5 sentences of the two
+builders. `ProgressTests.TheHeartbeat` drives the beat by hand: 1.5, 1.67, 1.75,
+then 2 for the next step; nothing after the stop or from the timer of an old
+step; no timer without a token; the message carries the time and the last
+line. Contract suite: 871 checks, 4 failed — the 4 of the bench, which has not
+run on this branch yet. **The timer itself (10 s) is not driven by the suite,
+and none of this is tried on SOLIDWORKS yet.**
+
 ## 0.134.0 — 26 October 2026 · library 0.157.0 · what a step must measure, written in the plan (brief R16; branch `night-2026-10-26-asm`)
 
 On 24-25/10 every check of a plan was made by hand afterwards: the window of
