@@ -1,0 +1,62 @@
+{
+  "name": "a_face_is_named_by_a_point",
+  "family": "assemblies",
+  "why": "BRIEF R12 (25/10/2026). A mate took its faces by direction only, and among the faces that look the same way the largest: on 26P000007 «up» took the bottom of the channel (598.7 mm2) instead of the face to mate (396.9 mm2), and a curved face could never be named, so concentric and tangent were refused. A face can now be named by a point of the assembly, {\"point_mm\": [x, y, z]}, planar or curved. Geometry: C1 is a cylinder Ø20 x 30, its box centred on the origin, so its axis is the y axis, its side passes through [10, 0, 0] and its top is at y 15. C2 is a cylinder Ø10 x 20 inserted with its box centre at [40, 20, 0]: its axis is at x 40, its side passes through [45, 20, 0], its bottom is at y 10.",
+  "defect_caught": "A point carried into the part with the transform the wrong way round (it finds no face, or another one); a curved face that is still refused; a point on no face taken as the nearest one; concentric between two faces by direction that is not refused before touching anything.",
+  "assembly": {
+    "components": [
+      { "name": "shaft",
+        "steps": [
+          { "operation": "extrude_circle",
+            "arguments": { "plane": "top", "diameter_mm": 20, "height_mm": 30 } }
+        ] },
+      { "name": "pin",
+        "position_mm": [40, 20, 0],
+        "steps": [
+          { "operation": "extrude_circle",
+            "arguments": { "plane": "top", "diameter_mm": 10, "height_mm": 20 } }
+        ] }
+    ]
+  },
+  "steps": [
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": { "point_mm": [10, 0, 0] },
+        "component_b": "C2", "face_b": { "point_mm": [45, 20, 0] },
+        "variant": "concentric"
+      },
+      "expect": [
+        { "what": "measurements.kind", "equal_to": "concentric", "why": "concentric is possible again with a curved face named by a point" },
+        { "what": "measurements.placement_after[1].origin_mm", "equal_to": [0, 10, 0], "tolerance": 0.01,
+          "tolerance_why": "the pin's axis on the shaft's: x 40 to 0, y and z as they were" },
+        { "what": "state.mates_total", "equal_to": 1 } ] },
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "down",
+        "variant": "concentric"
+      },
+      "must_fail": {
+        "message_includes": ["wants at least one curved face", "point_mm"],
+        "twin": "a_face_is_named_by_a_point" } },
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": { "point_mm": [30, 0, 0] },
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincident"
+      },
+      "must_fail": {
+        "message_includes": ["no face of the component passes through"],
+        "twin": "a_face_is_named_by_a_point" } },
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": { "point_mm": [0, 15, 0] },
+        "component_b": "C2", "face_b": { "point_mm": [0, 10, 0] },
+        "variant": "coincident", "alignment": "opposite"
+      },
+      "expect": [
+        { "what": "measurements.placement_after[1].origin_mm", "equal_to": [0, 15, 0], "tolerance": 0.01,
+          "tolerance_why": "the pin's bottom on the shaft's top, y 15" },
+        { "what": "state.mates_total", "equal_to": 2 } ] }
+  ]
+}

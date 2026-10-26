@@ -546,8 +546,13 @@ using System.Runtime.InteropServices;
 //          four letters counts only as a whole word (PLA was matching
 //          «Plastiche»). extrude_profile tells the model axes of the sketch
 //          («sketch_axes») and accepts a part that has bodies already.
-[assembly: AssemblyVersion("0.155.0.0")]
-[assembly: AssemblyFileVersion("0.155.0.0")]
+// 0.156.0: briefs R12 and R21 (26/10/2026). place_component sets where a component
+//          goes and how it is turned (Transform2, read back after a rebuild; the
+//          mates win and the step is refused). The state lists «axes» for each
+//          component. mate takes «distance_side» (Flip of AddMate5), measures the
+//          side on the two faces and answers «placement_after».
+[assembly: AssemblyVersion("0.156.0.0")]
+[assembly: AssemblyFileVersion("0.156.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -562,4 +567,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.155.0")]
+[assembly: AssemblyInformationalVersion("0.156.0")]

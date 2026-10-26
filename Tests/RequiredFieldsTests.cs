@@ -98,6 +98,7 @@ namespace Oce.Solid.Agent.ContractTests
                 { "fix_component.grounded", "fixing and freeing are two opposite things: there is no desk direction" },
                 { "suppress_mate.mate", "which mate is wrong is known by whoever assembles: turning off a random one frees a part without saying which" },
                 { "delete_mate.mate", "idem, and a deletion cannot be walked back" },
+                { "place_component.component", "which part goes where is the assembler's decision: moving a random one rearranges the assembly without saying so" },
                 { "global_variable.name", "the name is the very thing that is created: without it there is no variable" },
                 { "link_dimension.dimension", "which dimension to link is known by the designer: linking a random one changes a part without saying so" },
                 { "link_dimension.expression", "what to link it to is the question itself: there is no desk expression" },

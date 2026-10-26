@@ -32,6 +32,50 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.133.0 — 26 October 2026 · library 0.156.0 · placing and turning components, the side of a distance mate, a face named by a point (briefs R12, R21; branch `night-2026-10-26-asm`)
+
+The assembly of 25/10 could not be put together: «insert_component» places the
+centre of the box with no rotation, nothing moved or turned a component
+afterwards, a mate took its faces by direction only (the largest one that looks
+that way), and a distance mate put the upper half underneath with no way to ask
+for the other side. 102 operations (101 before).
+
+**`place_component` (new).** Sets where the origin of a component goes
+(`origin_mm`, the same field the state answers) and how it is turned
+(`rotation`: one turn `{axis, angle_deg}` or a list, about the axes of the
+assembly, from the part's own axes). It writes `IComponent2.Transform2` with the
+layout the direction test of Z-C14 already measured (rotation by rows, row i =
+axis i of the component; translation in [9..11]), rebuilds and reads it back. A
+component its mates hold comes back elsewhere: the step is refused, the component
+set back, and the answer says how far the mates took it. A fixed component is
+refused with the road (`fix_component`), and so is one inside a sub-assembly.
+
+**`insert_component`** takes `origin_mm` and `rotation` too (refused together
+with `x_mm`/`y_mm`/`z_mm`, which place the box centre); the placement is applied
+after the insertion and read back, or the component is taken out again. Its
+answer and the state list `axes` for each component (`+X -Y -Z` when every axis
+lies on an axis of the assembly, three unit vectors otherwise).
+
+**`mate`.**
+- `distance_side`: `along_normal_a` (the default, what SOLIDWORKS does with
+  `Flip` false) or `against_normal_a` (`Flip` true). The side is MEASURED after
+  the mate, on the two faces (signed distance of face B from face A along the
+  normal of face A, both turned into the assembly): a mate on the other side is
+  taken out and refused. The answer gives `face_b_along_normal_a_mm`.
+- `placement_after`: `origin_mm` and `axes` of both components, also in the
+  verdict.
+- A face can be named by a point, `{"point_mm": [x, y, z]}` in mm of the
+  assembly: the face of the component within 0.05 mm of it, flat or curved. A
+  point no face reaches, or one on an edge, is refused with the distance read.
+  So concentric and tangent are back when at least one face is named by a point.
+
+**Tests.** The pure rules (turns, axes in words, signed gap, a point carried into
+the part and back) are checked without CAD in the Z-C14 group. Two bench cases:
+`a_part_is_turned_over_and_placed`, `a_face_is_named_by_a_point`. Refusals that
+say what to do: 251 of 970.
+
+---
+
 ## 0.132.0 — 26 October 2026 · library 0.155.0 · the brief of 25 October (branch `night-2026-10-26`)
 
 On 24 and 25 October a client drew a part and an assembly through the bridge for

@@ -277,7 +277,7 @@ namespace Oce.Solid.Agent.Core
             "circular_pattern", "fill_pattern", "set_property",
             "linear_pattern", "revolve", "save_document",
             "draft", "rib", "chamfer_edges", "suppress_instance", "suppress_feature",
-            "replace_component", "fix_component", "mirror_component", "suppress_mate", "delete_mate",
+            "replace_component", "fix_component", "mirror_component", "suppress_mate", "delete_mate", "place_component",
             "center_marks", "drawing_dimension", "note", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
             "surface_finish", "datum", "geometric_tolerance",
             "section_view", "detail_view",
@@ -323,7 +323,7 @@ namespace Oce.Solid.Agent.Core
                 "surface_finish", "datum", "geometric_tolerance", "section_view",
                 "detail_view", "new_sheet", "activate_sheet", "drawing_cut_list",
                 "title_block", "export_pdf", "save_document", "structural_member",
-                "rectangular_frame", "cut_list", "rib", "suppress_mate", "delete_mate",
+                "rectangular_frame", "cut_list", "rib", "suppress_mate", "delete_mate", "place_component",
             };
 
         /// <summary>True when the operation looks at the reading of the document.</summary>
@@ -481,6 +481,10 @@ namespace Oce.Solid.Agent.Core
                         return SuppressMate(model, arguments);
                     case "delete_mate":
                         return DeleteMate(model, arguments);
+                    // Where a component goes and how it is turned (brief R12).
+                    // PlacementOperations.cs.
+                    case "place_component":
+                        return PlaceComponent(model, arguments);
                     // The right bracket and the left one (entry GA11). MirrorComponentOperations.cs.
                     case "mirror_component":
                         return MirrorComponent(model, arguments, docState);

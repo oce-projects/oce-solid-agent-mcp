@@ -295,6 +295,17 @@ namespace Oce.Solid.Agent.Core
                 var location = ComponentPositionMm(c);
                 if (location != null) entry["origin_mm"] = location;
 
+                // ── HOW IT IS TURNED (brief R12) ────────────────────────
+                // The other half of the placement: without it a component
+                // turned over reads like one that is not, and «place_component»
+                // could not be checked from the state. Same transform as
+                // origin_mm; rows = the component's axes in the assembly, the
+                // layout the direction test of Z-C14 measured
+                // (SwOperations.AxesValue: «+X -Y -Z» when every axis lies on an
+                // axis of the assembly).
+                var axes = ComponentAxesValue(c);
+                if (axes != null) entry["axes"] = axes;
+
                 // The mates: for now the COUNT. The format of what
                 // `GetMates()` returns is `Object` and must be established before
                 // reading inside it (entry GA4); the number instead is counted
@@ -542,6 +553,18 @@ namespace Oce.Solid.Agent.Core
                     Math.Round(Units.Mm(d[10]), 3),
                     Math.Round(Units.Mm(d[11]), 3),
                 };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The axes of the component in the assembly (SwOperations.AxesValue), from GetTotalTransform(false) as origin_mm; null when unreadable.</summary>
+        private static object ComponentAxesValue(IComponent2 c)
+        {
+            try
+            {
+                var t = c.GetTotalTransform(false) as IMathTransform;
+                var d = t == null ? null : t.ArrayData as double[];
+                return d == null || d.Length < 12 ? null : SwOperations.AxesValue(d);
             }
             catch { return null; }
         }

@@ -278,9 +278,13 @@ namespace Oce.Solid.Agent.ContractTests
         /// and delete_mate (brief R22) say in each refusal what to send or read
         /// again: 240 of 952. **241: +1.** save_document, refused on its own file,
         /// names the two causes measured that night and says to save under a new
-        /// name: 241 of 952.
+        /// name: 241 of 952. **249: +8.** place_component and the side of a distance
+        /// mate (briefs R12, R21) say what to send instead: 249 of 964. **250: +1.**
+        /// A face named by a point (R12) that is neither a direction nor a point says
+        /// both forms. **251: +1.** insert_component with «origin_mm» and the box
+        /// centre together says to send one of the two.
         /// </summary>
-        private const int Floor = 241;
+        private const int Floor = 251;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -294,8 +298,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 241;   // 26/10/2026, briefs R10 and R22, and save_document: 241 of 952 (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 952;
+        private const int ShareFloorWithRemedy = 251;   // 26/10/2026, briefs R10, R12, R21, R22, and save_document: 251 of 970 (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 970;
 
         /// <summary>
         /// The openings with which this code says no.

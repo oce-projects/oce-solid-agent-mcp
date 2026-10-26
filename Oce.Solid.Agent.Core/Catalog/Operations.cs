@@ -4569,7 +4569,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "assembly. If no flat face looks that way I say so instead of taking one at "
                         + "random; if the placement of the component cannot be read, I refuse without touching anything.\n\nAmong "
                         + "several faces that look the same way I take THE "
-                        + "LARGEST: on a cover or a plate that is the one you want.\n\nWHAT "
+                        + "LARGEST: on a cover or a plate that is the one you want.\n\nWHEN THE LARGEST "
+                        + "IS NOT THE ONE, OR THE FACE IS CURVED, name it by a point on it: {\"point_mm\": [x, y, z]} "
+                        + "in mm of the assembly (the state gives «origin_mm» and «axes» of each component, so a point "
+                        + "of the part file can be carried into the assembly). I take the face of that component "
+                        + "within 0.05 mm of the point; a point no face reaches, or one on an edge between two "
+                        + "faces, is refused with the distance read.\n\nWHAT "
                         + "THE MATE BLOCKS IS MEASURED (Z-C14). SOLIDWORKS gives no "
                         + "remaining degrees of freedom from here, so before the mate and after it each "
                         + "non-fixed component of the pair is moved 5 mm along X, Y and Z and turned 5 degrees "
@@ -4595,7 +4600,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the usual pair of a fixed and a free component, 52 when both move. On a large assembly this takes a while.\n\nI "
                         + "do not rely on the answer of the call: I count the mates of the two components "
                         + "before and after, and if they did not increase I tell you instead "
-                        + "of declaring it done.\n\nIf one of the two faces cannot be selected, the "
+                        + "of declaring it done.\n\nWHERE THE COMPONENTS ENDED UP is in the answer: "
+                        + "«placement_after» gives «origin_mm» and «axes» of both, read after the mate, and the "
+                        + "verdict says them. A distance mate also gives «face_b_along_normal_a_mm», the signed "
+                        + "distance of face B from face A along the normal of face A, measured on the faces: choose "
+                        + "the side with «distance_side».\n\nIf one of the two faces cannot be selected, the "
                         + "step is refused and AddMate5 is not called.",
                     Precondition = "an open assembly with at least two components",
                     Schema = O(
@@ -4606,26 +4615,33 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "the identifier of the first component, from "
                                     + "«inspect_part»: «C1», «C2», ..."),
                             "face_a", O(
-                                "type", "string",
-                                "description", "which of its faces, by direction: up, down, "
-                                    + "right, left, front, back. Directions of the assembly: on a turned "
-                                    + "component, the face that looks that way after the rotation."),
+                                "description", "which of its faces: by direction, one of up, down, "
+                                    + "right, left, front, back (directions of the assembly: on a turned "
+                                    + "component, the face that looks that way after the rotation), or by a point "
+                                    + "on it, {\"point_mm\": [x, y, z]} in mm of the assembly, for any face, flat or "
+                                    + "curved."),
                             "component_b", O(
                                 "type", "string",
                                 "description", "the identifier of the second component."),
                             "face_b", O(
-                                "type", "string",
-                                "description", "which of its faces, by direction."),
+                                "description", "which of its faces: a direction or {\"point_mm\": [x, y, z]}, as «face_a»."),
                             "variant", O(
                                 "type", "string",
-                                "description", "coincident (default), parallel, perpendicular "
-                                    + "or distance. "
-                                    + "I refuse concentric and tangent: they want a curved face, and here faces are chosen by direction, "
-                                    + "which holds only for flat ones."),
+                                "description", "coincident (default), parallel, perpendicular, distance, "
+                                    + "concentric or tangent. Concentric and tangent want a curved face, so at least "
+                                    + "one of the two faces must be named by a point: between two faces named by "
+                                    + "direction (always flat) I refuse them."),
                             "distance_mm", O(
                                 "type", "number",
                                 "description", "only for «distance»: how far apart they are. "
                                     + "Without it I refuse -- there is no reasonable default value."),
+                            "distance_side", O(
+                                "type", "string",
+                                "enum", A("along_normal_a", "against_normal_a"),
+                                "description", "only for «distance»: on which side of face A face B ends. "
+                                    + "along_normal_a (the default) is the side face A looks at: «down» of C1 at 11.7 mm "
+                                    + "puts C2 11.7 mm BELOW C1. against_normal_a is the other side. The side is "
+                                    + "measured after the mate and a mate on the wrong side is taken out."),
                             "alignment", O(
                                 "type", "string",
                                 "description", "«aligned» (the default) or «opposite»; any other value I refuse. "
@@ -4787,6 +4803,49 @@ namespace Oce.Solid.Agent.Core.Catalog
                 },
                 new OperationSpec
                 {
+                    Name = "place_component",
+                    Family = "assemblies",
+                    RequestedDocument = "assembly",
+                    Tested = true,
+                    Example = "{\"component\":\"C2\",\"origin_mm\":[0,11.7,0],\"rotation\":{\"axis\":\"x\",\"angle_deg\":180}}",   // from `a_part_is_turned_over_and_placed`
+                    Summary = "Puts a component where you say and turns it as you say, and reads the placement back.",
+                    Description =
+                        "Sets the placement of one component of the open assembly: «origin_mm» is where its "
+                        + "origin goes, in mm of the assembly (the same field the state answers for each "
+                        + "component), and «rotation» turns its axes: one turn {axis, angle_deg} or a list of "
+                        + "them, applied in order, about the axes X, Y, Z of the ASSEMBLY, starting from the "
+                        + "part's own axes (so the same request gives the same placement wherever the "
+                        + "component was). Right-hand rule: 90 degrees about z takes x to y. What you do not "
+                        + "send stays as it is.\n\nIT IS READ BACK after a rebuild: the answer gives "
+                        + "«origin_mm» and «axes» as read («+X -Y -Z» means the component's x points to +X of "
+                        + "the assembly, its y to -Y, its z to -Z; three unit vectors when an axis is not on an "
+                        + "axis of the assembly), «moved_mm» and «turned_deg» from where it was. The state "
+                        + "lists «axes» for every component too.\n\nMATES WIN: a component its mates hold is "
+                        + "moved back by the rebuild. Then I refuse, set it back where it was, and say how far "
+                        + "the mates took it: place it before mating, or suppress the mate first."
+                        + "\n\nI REFUSE IF the component is fixed (free it with «fix_component» first), if it "
+                        + "is inside a sub-assembly (its placement would move the whole sub-assembly), if you "
+                        + "send neither «origin_mm» nor «rotation», or if one of them is not in the form above.",
+                    Precondition = "an open assembly with a component that is not fixed",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "component", O(
+                                "type", "string",
+                                "description", "the identifier of the component, from the state: «C1», «C2», ..."),
+                            "origin_mm", O(
+                                "type", "array",
+                                "items", O("type", "number"),
+                                "description", "[x, y, z] in mm of the assembly: where the origin of the component "
+                                    + "goes. Without it the origin stays where it is."),
+                            "rotation", O(
+                                "description", "{\"axis\": \"x\" | \"y\" | \"z\", \"angle_deg\": number}, or a list of "
+                                    + "them applied in order, about the axes of the assembly, starting from the part's "
+                                    + "own axes. Without it the component keeps its orientation.")),
+                        "required", A("component")),
+                },
+                new OperationSpec
+                {
                     Name = "replace_component",
                     Family = "assemblies",
                     RequestedDocument = "assembly",
@@ -4933,7 +4992,18 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "name (the part in angle brackets included). A name the file does "
                                     + "not have is refused before inserting; the component comes in with "
                                     + "it, read back, or is taken out again. Empty: the file's last saved "
-                                    + "configuration.")),
+                                    + "configuration."),
+                            "origin_mm", O(
+                                "type", "array",
+                                "items", O("type", "number"),
+                                "description", "[x, y, z] in mm of the assembly: where the part's ORIGIN goes, "
+                                    + "instead of x_mm, y_mm, z_mm (sending both is refused). Applied after the "
+                                    + "insertion and read back, as «place_component» does."),
+                            "rotation", O(
+                                "description", "{\"axis\": \"x\" | \"y\" | \"z\", \"angle_deg\": number}, or a list of "
+                                    + "them in order, about the axes of the assembly: how the part comes in turned. "
+                                    + "Read back with the origin; a placement that does not come back as asked takes "
+                                    + "the component out again.")),
                         "required", A("path")),
                 },
                 new OperationSpec

@@ -83,6 +83,30 @@ namespace Oce.Solid.Agent.Core
                     WhatIsOpen());
 
             double x = Num(a, "x_mm", 0), y = Num(a, "y_mm", 0), z = Num(a, "z_mm", 0);
+
+            // ── WHERE ITS ORIGIN GOES AND HOW IT IS TURNED (brief R12) ──────
+            //
+            // x_mm, y_mm, z_mm place the centre of the BOX (measured 17/9/2026,
+            // below), with no rotation. «origin_mm» and «rotation» place the
+            // component as «place_component» does (PlacementOperations.cs): read
+            // here, refused before anything is inserted, applied after the
+            // insertion and read back.
+            double[] originMm = null;
+            if (a.ContainsKey("origin_mm"))
+            {
+                originMm = Triplet(a, "origin_mm");
+                if (originMm == null)
+                    return Failed("«origin_mm» wants three numbers, [x, y, z] in mm of the assembly: where the origin of " +
+                                   "the part goes. Send it again in that form; nothing was inserted.");
+                if (a.ContainsKey("x_mm") || a.ContainsKey("y_mm") || a.ContainsKey("z_mm"))
+                    return Failed("Send either «origin_mm» (where the part's origin goes) or «x_mm», «y_mm», «z_mm» " +
+                                   "(where the centre of its box goes), not both: they are two different points. " +
+                                   "Nothing was inserted.");
+            }
+            string rotationProblem;
+            var rotations = Rotations(a, out rotationProblem);
+            if (rotationProblem != null) return Failed(rotationProblem.Replace("I touched nothing.", "Nothing was inserted."));
+
             string configuration = Str(a, "configuration", "");
             bool configurationAsked = !string.IsNullOrWhiteSpace(configuration);
 
@@ -190,6 +214,31 @@ namespace Oce.Solid.Agent.Core
                     ". It is not the component you asked for." +
                     TakeOutInsertedComponent(model, assemblyDoc, real, before));
 
+            // THE PLACEMENT ASKED, applied and read back (brief R12). A placement
+            // that does not come back as asked is not the component asked for: it
+            // is taken out again.
+            bool placed = originMm != null || rotations != null;
+            if (placed)
+            {
+                IMathUtility math = null;
+                try { math = _sw.GetMathUtility() as IMathUtility; } catch { }
+                var start = ReadTransform(real);
+                var asked = math == null ? null : PlacedTransform(start, originMm, rotations);
+                bool set = asked != null && SetTransform(assemblyDoc, itemName, math, asked) && RebuildForTest(model);
+                var now = ReadTransform(ComponentByName(assemblyDoc, itemName));
+                double offMm = DistanceMm(asked, now), offDeg = AngleBetweenDeg(asked, now);
+                if (!set || double.IsNaN(offMm) || double.IsNaN(offDeg) || offMm > PlacedWithinMm || offDeg > PlacedWithinDeg)
+                    return Failed(
+                        "I inserted «" + Path.GetFileName(filePath) + "» but could not place it as asked (" +
+                        (!set ? "the placement could not be set, or the assembly did not rebuild" :
+                                "it came back " + (double.IsNaN(offMm) ? "unreadable" :
+                                offMm.ToString("0.###", CultureInfo.InvariantCulture) + " mm and " +
+                                offDeg.ToString("0.###", CultureInfo.InvariantCulture) + " degrees away")) +
+                        "). Try again without «origin_mm» and «rotation», then «place_component»." +
+                        TakeOutInsertedComponent(model, assemblyDoc, ComponentByName(assemblyDoc, itemName) ?? real, before));
+                real = ComponentByName(assemblyDoc, itemName) ?? real;
+            }
+
             var measurements = new Dictionary<string, object>
             {
                 ["components_before"] = before,
@@ -245,6 +294,8 @@ namespace Oce.Solid.Agent.Core
             // seeing only one.
             var origin = ComponentOriginMm(real);
             if (origin != null) measurements["origin_mm"] = origin;
+            var placement = ReadTransform(real);
+            if (placement != null) measurements["axes"] = AxesValue(placement);
 
             // THE VERDICT IS A SENTENCE, NOT A NUMBER, and travels with the measurements.
             //
@@ -254,8 +305,11 @@ namespace Oce.Solid.Agent.Core
             // the same choice as `check_body_geometry`, which next to
             // `printable` writes `verdict`.
             string verdictValue =
-                "Inserted «" + (itemName ?? Path.GetFileName(filePath)) + "» at " +
-                AssemblyMm(x) + ", " + AssemblyMm(y) + ", " + AssemblyMm(z) + " mm. " +
+                "Inserted «" + (itemName ?? Path.GetFileName(filePath)) + "» " +
+                (placed
+                    ? "with its origin at " + MmText(OriginMm(placement)) + " and axes " + AxesText(placement) +
+                      ", read back. "
+                    : "at " + AssemblyMm(x) + ", " + AssemblyMm(y) + ", " + AssemblyMm(z) + " mm. ") +
                 (grounded
                     ? "It is FIXED: it does not move because it is nailed down, not because it " +
                       "is mated. They are two different things."

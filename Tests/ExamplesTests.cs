@@ -55,9 +55,10 @@ namespace Oce.Solid.Agent.ContractTests
         /// `fill_pattern`, `gusset`) are born without one: their green cases
         /// name the faces with the bench selectors.
         /// **32** (26/10/2026, brief R22): `suppress_mate` and `delete_mate`
-        /// (`a_wrong_mate_is_taken_out`).
+        /// (`a_wrong_mate_is_taken_out`). **33** (same night, brief R12):
+        /// `place_component` (`a_part_is_turned_over_and_placed`).
         /// </summary>
-        private const int Floor = 32;
+        private const int Floor = 33;
 
         /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };
