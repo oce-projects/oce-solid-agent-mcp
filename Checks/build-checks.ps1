@@ -122,7 +122,10 @@ $tools = @(
     @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false },
     # Dimensions from the sketch origin to every vertex of a profile (brief R5): how
     # the origin is selected, what the two dimension calls give, what a driven value does.
-    @{ name = 'DrivenSketch'; sw = $true; lib = $false }
+    @{ name = 'DrivenSketch'; sw = $true; lib = $false },
+    # Does the lock of the sketch split the undo entry of a plan (brief R11, H1)? And
+    # can the FIXED relations go in while the sketch is still open?
+    @{ name = 'UndoSplit'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

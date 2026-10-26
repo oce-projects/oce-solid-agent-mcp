@@ -122,6 +122,7 @@
     <Compile Include="R17EdgesFilterContract.cs" />
     <Compile Include="R18DocumentWithoutReadingContract.cs" />
     <Compile Include="R5DrivenProfileContract.cs" />
+    <Compile Include="R14ParallelCallsContract.cs" />
     <Compile Include="Zc2114UndoHonestyContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <Compile Include="CaseKeysTests.cs" />

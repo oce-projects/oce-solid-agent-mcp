@@ -32,6 +32,27 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.140.1 — 26 October 2026 · library 0.162.0 · ten calls at once, and the probe of the split undo (briefs R14 and R11; branch `night-2026-10-26-asm`)
+
+- **R14, ten calls at once.** On 25/10/2026 six `api_search` sent together got one
+  «Connection closed», and the same call alone answered. `R14ParallelCallsContract`
+  writes ten `tools/call` on the stdin of the bridge without waiting (six
+  `api_search`, two `list_operations`, two `describe_operation`) and wants ten
+  answers, one per id, every line on stdout whole JSON, and the bridge alive after.
+  Green on this branch. The bridge is started with `OCE_NO_ATTACH=1`: the check must
+  not touch a SOLIDWORKS session that is open. The crash of 25/10 itself (an
+  SEHException in `ApiCatalog.Search`, the executable started from a network drive)
+  is not reproduced by it.
+- **R11, a probe: `Checks\UndoSplit`, not run yet.** On 25/10/2026 one undo of a plan
+  of 11 steps took away seven features of eight. The probe makes the same two
+  extrusions inside one undo recording three ways — no lock, the lock of the library
+  (editing the sketch again after the extrusion), the FIXED relations added while
+  the sketch is still open with the typed array — and presses ONE undo after each: it
+  says whether the lock splits the entry (hypothesis H1) and whether the lock can move
+  into the open sketch. Each way works on a new part closed without saving.
+
+Contract suite: 886 checks, 4 failed — the 4 of the bench, not run on this branch yet.
+
 ## 0.140.0 — 26 October 2026 · library 0.162.0 · a profile driven by its vertices: «dimensions» of extrude_profile (brief R5; branch `night-2026-10-26-asm`)
 
 On 24/10/2026 every `extrude_profile` came back with `sketch_locked` true and
