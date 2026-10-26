@@ -649,6 +649,67 @@ namespace Oce.Solid.Agent.Tools
                         },
                         new[] { "name" }),
                     readOnlyMode: true, destructive: false, idempotent: true),
+
+                // AN STL FILE, MEASURED OR CUT (brief R15). On 24-25/10/2026
+                // every number taken from the customer's STL files came from
+                // three Python programs written for the occasion.
+                Tool(
+                    "mesh",
+                    "Reads an STL file (binary or ASCII) and MEASURES it or CUTS it. Never touches " +
+                    "SOLIDWORKS; works with it closed.\n\n" +
+                    "«measure»: bounding box, size, area, whether the mesh is closed (every edge " +
+                    "shared by two triangles) and, only when it is, the volume; with «axis» and " +
+                    "«levels», the area of N sections evenly spaced along the axis.\n\n" +
+                    "«section»: the plane square to «axis» at «at_mm» cuts the mesh into closed " +
+                    "contours, simplified by «simplify_mm», sorted by area, each with its depth " +
+                    "(outer edge, void, island). «profiles» are ready for «extrude_profile»: «plane» " +
+                    "and «contours» in the sketch coordinates of that plane (front: x = X, y = Y; " +
+                    "right: x = -Z, y = Y; top: x = X, y = -Z, as measured), outer edge first. " +
+                    "«extrude_profile» draws on the plane through the origin, not at «at_mm».\n\n" +
+                    "An STL has no units: its numbers are taken as mm, times «scale».",
+                    Object(
+                        new Dictionary<string, object>
+                        {
+                            ["path"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["description"] = "the full path of the .stl file",
+                            },
+                            ["action"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new object[] { "measure", "section" },
+                                ["description"] = "«measure» (default) or «section»",
+                            },
+                            ["axis"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new object[] { "x", "y", "z" },
+                                ["description"] = "the axis the section plane is square to (section, and levels of measure)",
+                            },
+                            ["at_mm"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "number",
+                                ["description"] = "where along «axis» to cut, in mm (section)",
+                            },
+                            ["simplify_mm"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "number",
+                                ["description"] = "how far a vertex left out may be from the contour kept, default 0.05 mm (section)",
+                            },
+                            ["levels"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "how many sections «measure» gives along «axis», 1 to 50",
+                            },
+                            ["scale"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "number",
+                                ["description"] = "mm per unit of the file, default 1 (25.4 for inches, 1000 for metres)",
+                            },
+                        },
+                        new[] { "path" }),
+                    readOnlyMode: true, destructive: false, idempotent: true),
             };
         }
 
@@ -722,6 +783,146 @@ namespace Oce.Solid.Agent.Tools
             return ApiAnswerContent(
                 () => Oce.Solid.Agent.Core.Api.ApiCatalog.Signature(name, ApiKnowledgeJson.Value),
                 "api_signature");
+        }
+
+        /// <summary>The most vertices a «mesh» section answers: more is refused with a bigger «simplify_mm».</summary>
+        internal const int MeshMostPoints = 3000;
+
+        /// <summary>
+        /// The «mesh» tool (brief R15): an STL file measured, or cut into contours
+        /// for «extrude_profile». It never touches SOLIDWORKS. See <see
+        /// cref="Oce.Solid.Agent.Core.StlMesh"/>.
+        /// </summary>
+        private Dictionary<string, object> MeshTool(Dictionary<string, object> arguments)
+        {
+            var path = TextOf(arguments, "path");
+            var action = TextOf(arguments, "action") ?? "measure";
+            if (action != "measure" && action != "section")
+                return Protocol.Content("«action» is «measure» or «section», not «" + action + "».", true);
+            double scale = 1;
+            var scaleText = TextOf(arguments, "scale");
+            if (scaleText != null && !double.TryParse(scaleText, NumberStyles.Float, CultureInfo.InvariantCulture, out scale))
+                return Protocol.Content("«scale» must be a number (25.4 for a file in inches, 1000 for metres).", true);
+            var axisText = (TextOf(arguments, "axis") ?? "").ToLowerInvariant();
+            int axis = axisText == "x" ? 0 : axisText == "y" ? 1 : axisText == "z" ? 2 : -1;
+            if (axisText.Length > 0 && axis < 0)
+                return Protocol.Content("«axis» is «x», «y» or «z», not «" + axisText + "».", true);
+
+            string problem;
+            var mesh = Oce.Solid.Agent.Core.StlMesh.Load(path, scale, out problem);
+            if (mesh == null) return Protocol.Content(problem, true);
+            var measured = mesh.Measure();
+            var min = (double[])measured["bounding_box_min_mm"];
+            var max = (double[])measured["bounding_box_max_mm"];
+
+            if (action == "measure")
+            {
+                var answer = new Dictionary<string, object> { ["path"] = path, ["scale"] = scale };
+                foreach (string key in measured.Keys) answer[key] = measured[key];
+                int levels = 0;
+                var levelsText = TextOf(arguments, "levels");
+                if (levelsText != null && (!int.TryParse(levelsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out levels) || levels < 1 || levels > 50))
+                    return Protocol.Content("«levels» is a whole number from 1 to 50: how many sections, evenly spaced along «axis».", true);
+                if (levels > 0)
+                {
+                    if (axis < 0) return Protocol.Content("«levels» needs «axis» («x», «y» or «z»): the sections are square to it.", true);
+                    var rows = new List<object>();
+                    double from = min[axis], span = max[axis] - min[axis];
+                    for (int i = 0; i < levels; i++)
+                    {
+                        double at = from + span * (i + 0.5) / levels;
+                        var cut = mesh.Section(axis, at, 0);
+                        rows.Add(new Dictionary<string, object>
+                        {
+                            ["at_mm"] = Math.Round(at, 3),
+                            ["area_mm2"] = Math.Round(Oce.Solid.Agent.Core.StlMesh.SectionArea(cut), 3),
+                            ["contours"] = cut.Loops.Count,
+                            ["open_chains"] = cut.OpenChains,
+                        });
+                    }
+                    answer["sections"] = rows;
+                    answer["sections_axis"] = axisText;
+                }
+                answer["units"] = "The numbers of the file are taken as mm, times «scale».";
+                return Protocol.ContentWithData(Protocol.InJson(answer), answer);
+            }
+
+            if (axis < 0) return Protocol.Content("A section needs «axis» («x», «y» or «z») and «at_mm»: the plane is square to the axis at that coordinate.", true);
+            double atMm;
+            var atText = TextOf(arguments, "at_mm");
+            if (atText == null || !double.TryParse(atText, NumberStyles.Float, CultureInfo.InvariantCulture, out atMm))
+                return Protocol.Content("«at_mm» is missing: give the coordinate along «" + axisText + "» where to cut, between " +
+                                        min[axis].ToString(CultureInfo.InvariantCulture) + " and " + max[axis].ToString(CultureInfo.InvariantCulture) + " for this file.", true);
+            double simplify = 0.05;
+            var simplifyText = TextOf(arguments, "simplify_mm");
+            if (simplifyText != null && (!double.TryParse(simplifyText, NumberStyles.Float, CultureInfo.InvariantCulture, out simplify) || simplify < 0))
+                return Protocol.Content("«simplify_mm» is a number of zero or more: how far a vertex left out may be from the contour kept.", true);
+
+            var section = mesh.Section(axis, atMm, simplify);
+            var plane = Oce.Solid.Agent.Core.StlMesh.PlaneFor(axis);
+            var result = new Dictionary<string, object>
+            {
+                ["path"] = path,
+                ["axis"] = axisText,
+                ["at_mm"] = atMm,
+                ["plane"] = plane,
+                ["mesh_from_mm"] = min[axis],
+                ["mesh_to_mm"] = max[axis],
+                ["closed_mesh"] = measured["closed"],
+                ["simplify_mm"] = simplify,
+                ["open_chains"] = section.OpenChains,
+            };
+            if (section.Loops.Count == 0)
+            {
+                result["contours_found"] = 0;
+                result["verdict"] = atMm < min[axis] || atMm > max[axis]
+                    ? "The plane at " + axisText + " = " + atMm.ToString(CultureInfo.InvariantCulture) + " does not cut the mesh: it spans " +
+                      min[axis].ToString(CultureInfo.InvariantCulture) + " to " + max[axis].ToString(CultureInfo.InvariantCulture) + " along " + axisText + "."
+                    : "No closed contour at " + axisText + " = " + atMm.ToString(CultureInfo.InvariantCulture) +
+                      (section.OpenChains > 0 ? ": " + section.OpenChains + " chains did not close (the mesh has a hole there)." :
+                       ": a plane exactly on a face of the mesh may not cut it; move it inside by a hair.");
+                return Protocol.ContentWithData(Protocol.InJson(result), result);
+            }
+            int pointsAfter = 0;
+            foreach (var loop in section.Loops) pointsAfter += loop.Points.Count;
+            if (pointsAfter > MeshMostPoints)
+                return Protocol.Content("The section has " + pointsAfter + " vertices after simplifying by " +
+                                        simplify.ToString(CultureInfo.InvariantCulture) + " mm, and I answer at most " + MeshMostPoints +
+                                        ": pass a larger «simplify_mm» (0.1 or 0.2 keeps a printed part within its tolerance).", true);
+            var loops = new List<object>();
+            foreach (var loop in section.Loops)
+                loops.Add(new Dictionary<string, object>
+                {
+                    ["depth"] = loop.Depth,
+                    ["kind"] = loop.Depth % 2 == 0 ? "outer edge" : "void",
+                    ["area_mm2"] = Math.Round(Math.Abs(loop.SignedArea), 3),
+                    ["perimeter_mm"] = Math.Round(loop.Perimeter, 3),
+                    ["points"] = loop.Points.Count,
+                });
+            var profiles = new List<object>();
+            foreach (var group in Oce.Solid.Agent.Core.StlMesh.Profiles(section))
+            {
+                var contours = new List<object>();
+                double area = 0;
+                foreach (var loop in group)
+                {
+                    var points = new List<object>();
+                    foreach (var p in loop.Points) points.Add(Oce.Solid.Agent.Core.StlMesh.Round(p, 3));
+                    contours.Add(points);
+                    area += loop == group[0] ? Math.Abs(loop.SignedArea) : -Math.Abs(loop.SignedArea);
+                }
+                profiles.Add(new Dictionary<string, object> { ["plane"] = plane, ["contours"] = contours, ["area_mm2"] = Math.Round(area, 3) });
+            }
+            result["contours_found"] = section.Loops.Count;
+            result["points_before"] = section.PointsBefore;
+            result["points_after"] = pointsAfter;
+            result["section_area_mm2"] = Math.Round(Oce.Solid.Agent.Core.StlMesh.SectionArea(section), 3);
+            result["loops"] = loops;
+            result["profiles"] = profiles;
+            result["note"] = "Each profile is the «plane» and «contours» of one «extrude_profile» (the outer edge first, then its voids), " +
+                             "in the sketch coordinates of that plane, rounded to 0.001 mm. «extrude_profile» draws on the plane through " +
+                             "the origin: this section is at " + axisText + " = " + atMm.ToString(CultureInfo.InvariantCulture) + ".";
+            return Protocol.ContentWithData(Protocol.InJson(result), result);
         }
 
         /// <summary>
@@ -844,6 +1045,7 @@ namespace Oce.Solid.Agent.Tools
                 case "document": return Document(arguments);
                 case "api_search": return ApiSearch(arguments);
                 case "api_signature": return ApiSignature(arguments);
+                case "mesh": return MeshTool(arguments);
                 default:
                     // AND BEFORE ANSWERING, WE WRITE (entry Z-G7): this
                     // is the point that knew and kept quiet.
@@ -4289,7 +4491,7 @@ namespace Oce.Solid.Agent.Tools
         {
             "inspect_part", "list_operations", "describe_operation",
             "build", "measure", "undo", "document",
-            "api_search", "api_signature",
+            "api_search", "api_signature", "mesh",
         };
 
         private static string HumanTitle(string itemName)
@@ -4305,6 +4507,7 @@ namespace Oce.Solid.Agent.Tools
                 case "document": return "Open, create or pick the document";
                 case "api_search": return "Search the SOLIDWORKS API";
                 case "api_signature": return "Signature and knowledge of an API member";
+                case "mesh": return "Measure or cut an STL file";
                 default: return itemName;
             }
         }

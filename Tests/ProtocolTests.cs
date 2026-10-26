@@ -147,8 +147,9 @@ namespace Oce.Solid.Agent.ContractTests
                 // the only place that notices.
                 // NINE SINCE 0.112.0: api_search and api_signature (entry
                 // U1.1). Changed on purpose, like the seventh.
-                Check("tools/list gives exactly nine tools",
-                      tools != null && tools.Length == 9,
+                // TEN SINCE 0.137.0: mesh (brief R15), on purpose too.
+                Check("tools/list gives exactly ten tools",
+                      tools != null && tools.Length == 10,
                       tools == null ? "(nothing)" : tools.Length + " tools: " +
                           string.Join(", ", tools.Select(s => Convert.ToString(Inside(s, "name")))));
 

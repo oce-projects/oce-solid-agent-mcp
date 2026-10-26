@@ -10,6 +10,7 @@
 # same untyped places, as before the window: no call was added and none moved (same-il explains every IL difference by the map).
 # The window renames and does not rewrite code, so the receivers are not retyped here: the counts are the ones the rename produces,
 # exact like the others.
+# Raised for brief R15 (26/10/2026): Oce.Solid.Agent.Core/StlMesh.cs|Add 4. Every call is List<T>.Add on a list of the mesh itself (a field, an out variable, a typed local); the scanner reads a declared type only without angle brackets, so a List<T> receiver stays undecided however it is typed.
 Bench/ClientPort.cs|Close	2
 Bench/ClientPort.cs|Delete	2
 Bench/ClientPort.cs|GetType	1
@@ -164,6 +165,7 @@ Oce.Solid.Agent.Core/SolidWorksMaterials.cs|Add	1
 Oce.Solid.Agent.Core/SolidWorksMaterials.cs|Name	8
 Oce.Solid.Agent.Core/SolidWorksMaterials.cs|Select	2
 Oce.Solid.Agent.Core/SolidWorksMaterials.cs|Text	1
+Oce.Solid.Agent.Core/StlMesh.cs|Add	4
 Oce.Solid.Agent.Core/SwOperations.cs|Add	7
 Oce.Solid.Agent.Core/SwOperations.cs|AddRelation	1
 Oce.Solid.Agent.Core/SwOperations.cs|Entity	3

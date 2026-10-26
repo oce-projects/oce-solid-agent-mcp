@@ -8,8 +8,8 @@ namespace Oce.Solid.Agent.ContractTests
 {
     /// <summary>
     /// WHERE A PROPERTY GOES, SAID (brief R8). On 25/10/2026 «set_property» wrote
-    /// the drawing number on the document and answered that from the
-    /// configuration «Default&lt;A macchina&gt;» it was NOT visible: two drawers,
+    /// the drawing number on the document and answered that from the active
+    /// configuration of the company template it was NOT visible: two drawers,
     /// and only one step to fill one. «scope» names the drawer («file»,
     /// «configuration», «both»), and a name close to an argument («value» for
     /// «value_text») is said in the refusal instead of being taken: one name per

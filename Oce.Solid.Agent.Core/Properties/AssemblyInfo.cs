@@ -560,8 +560,10 @@ using System.Runtime.InteropServices;
 //          degrees of freedom SOLIDWORKS did not give, instead of «every one».
 // 0.159.0: brief R8 (26/10/2026). set_property takes «scope»: file,
 //          configuration (named or active) or both, each drawer read back.
-[assembly: AssemblyVersion("0.159.0.0")]
-[assembly: AssemblyFileVersion("0.159.0.0")]
+// 0.160.0: brief R15 (26/10/2026). StlMesh reads an STL file, measures it and
+//          cuts it into contours in the sketch coordinates of extrude_profile.
+[assembly: AssemblyVersion("0.160.0.0")]
+[assembly: AssemblyFileVersion("0.160.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -576,4 +578,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.159.0")]
+[assembly: AssemblyInformationalVersion("0.160.0")]

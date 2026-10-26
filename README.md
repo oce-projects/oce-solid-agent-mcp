@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.136.0-blue)
-![Library version](https://img.shields.io/badge/library-0.159.0-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.137.0-blue)
+![Library version](https://img.shields.io/badge/library-0.160.0-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -160,6 +160,7 @@ and `measure`, and are discovered on demand.
 | `document` | creates an empty part or assembly, opens a file from disk, lists the open documents, brings one to the front, closes one — and **refuses to close** a document with unsaved changes. It always says whether a file is open **read-only** |
 | `api_search` | searches the whole SOLIDWORKS API by a piece of a name and answers with the **real signatures** read from the interop on this machine, with SOLIDWORKS software closed. Read only |
 | `api_signature` | the card of one API member: every overload, the `out` parameters, the numbered family, and what the project's own measurements (`Tools/api_knowledge.json`) say about it. Read only |
+| `mesh` | reads an STL file (binary or ASCII): `measure` gives the bounding box, the area, whether it is closed and then the volume; `section` cuts it square to an axis into closed contours ready for `extrude_profile`. Never touches SOLIDWORKS. Read only |
 
 Why some of this is built the way it is:
 
@@ -384,7 +385,7 @@ the CI would believe it.
 
 ## Languages of SOLIDWORKS software
 
-**The project is in English**: the nine tools and their sub-actions, the 102
+**The project is in English**: the ten tools and their sub-actions, the 102
 operations and their families, every argument and the value of every argument whose
 schema lists one, the selectors (`@face(normal=front)`), the fields of every answer,
 the keys of `Tools/catalog.json`, the MCP resources (`catalog://operations`,

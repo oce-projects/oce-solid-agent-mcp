@@ -32,6 +32,55 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.137.0 — 26 October 2026 · library 0.160.0 · `mesh`: an STL file measured and cut into contours (brief R15; branch `night-2026-10-26-asm`)
+
+On 24-25/10 the parts of 26M000002 were drawn from the customer's STL files, and
+every number taken from them came from three Python programs written for the
+occasion. **A tenth tool, `mesh`**, reads an STL file (binary or ASCII) and never
+touches SOLIDWORKS:
+
+- **`measure`**: bounding box, size, area, triangles and vertices, whether the mesh
+  is **closed** (every edge shared by exactly two triangles) and, only then, the
+  **volume** (signed tetrahedra; an open mesh gets `null` and the count of its
+  open edges, not a number with no meaning). With `axis` and `levels` (1 to 50),
+  the area of N sections evenly spaced along the axis.
+- **`section`**: the plane square to `axis` at `at_mm` cuts the mesh into closed
+  contours, simplified by `simplify_mm` (Douglas-Peucker, default 0.05 mm), sorted
+  by area, each with its depth (outer edge, void, island) and orientation (outer
+  counter-clockwise, voids clockwise). **`profiles` are ready for
+  `extrude_profile`**: `plane` and `contours`, outer edge first, in the sketch
+  coordinates of that plane as R7 measured them (front x = X, y = Y; right
+  x = −Z, y = Y; top x = X, y = −Z). More than 3,000 vertices is refused with a
+  larger `simplify_mm` to pass.
+- An STL has no units: its numbers are taken as mm, times `scale` (25.4 for
+  inches). A binary file is told by its size (84 + 50 × the count it declares),
+  so one whose header begins with «solid» is still read as binary.
+
+**Measured on the files of 24/10** (through the bridge, `OCE_NO_ATTACH=1`):
+`9mmAmmoBox_100ct_V3.stl`, 35,176 triangles, closed, 113.751 × 113.750 × 34.627 mm,
+**68,905.399 mm³** in 1,117 ms with five sections; at z = 10 one outer edge
+(12,014.136 mm²) and 100 voids of 102.515 mm², section 1,762.597 mm², 1,517
+vertices simplified to 646, one profile, in 1,030 ms. The lid: 11,956 triangles,
+**23,728.340 mm³**, at z = 2 23 contours in 9 profiles (islands inside voids).
+An independent script (`struct` on the same bytes) gives the same two volumes to
+the thousandth.
+
+The rules are in `Oce.Solid.Agent.Core/StlMesh.cs`, pure (no interop type).
+`tools/list` gives ten tools now; the README lists `mesh`.
+
+**Tests.** `R15MeshContract`: a box 10 × 20 × 30 (6,000 mm³, 2,200 mm², closed,
+outward), a square tube 20/10 × 30 (9,000 mm³), a 64-sided cylinder (the polygon
+area × 20), a box without one triangle (3 open edges, no volume); sections of the
+box on front, right and top inside the measured axes, exactly at its top, outside
+it; the tube as an outer edge and its void in one profile (300 mm²); the cylinder
+from 128 crossings to fewer than 64 vertices at 0.5 mm; the same box as binary,
+as binary with a «solid» header, as ASCII and in inches; junk refused; and the
+tool through the real bridge on a file written by the test. Contract suite: 877
+checks, 4 failed — the 4 of the bench, which has not run on this branch yet. The
+frozen undecided calls get `StlMesh.cs|Add 4`: List<T>.Add on the mesh's own
+lists, which the scanner cannot type (it reads a declared type only without
+angle brackets).
+
 ## 0.136.0 — 26 October 2026 · library 0.159.0 · where a property goes, said; the near name of an unknown argument (brief R8; branch `night-2026-10-26-asm`)
 
 On 25/10 «set_property» wrote the drawing number on the document and answered

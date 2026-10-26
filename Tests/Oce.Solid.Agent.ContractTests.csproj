@@ -118,6 +118,7 @@
     <Compile Include="R16StepExpectationsContract.cs" />
     <Compile Include="R6AssemblyStateTextContract.cs" />
     <Compile Include="R8PropertyScopeContract.cs" />
+    <Compile Include="R15MeshContract.cs" />
     <Compile Include="Zc2114UndoHonestyContract.cs" />
     <Compile Include="LanguageGateTests.cs" />
     <Compile Include="CaseKeysTests.cs" />
