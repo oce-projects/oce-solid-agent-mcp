@@ -32,6 +32,25 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.146.1 — 27 October 2026 · library 0.168.1 · N2 measured: the reading without edges never happened (branch `night-2026-10-26-asm`)
+
+- **Measured on SOLIDWORKS (scenario t17, 27/10/2026 07:03-07:06)**: six blind
+  cuts on one face, then an undo, six more, a missed «expect», an undo, with the
+  shared bridge 0.145.0 and with 0.146.0, twice each, alternated. Same times
+  (six cuts 9834 / 10011 ms on 0.145.0, 9804 / 10541 ms on 0.146.0), and
+  `state.edges` read 8 times per plan in both (2164.8 ms against 2143.1 ms).
+- **The cause**: the bridge attaches `_signatures` to every step, the
+  signatures of everything the last reading listed, edges included, so that a
+  uid the step cites can be found again. `MentionsEdges` looked into it and found
+  an «E» identifier in every step. It no longer looks into `_signatures`: an
+  edge the step cites is in its own arguments.
+- **Contract**: one more row of `MentionsEdges` (a face with the signatures the
+  bridge attaches: no mention), the row that would have caught it.
+- **Seen in the same measure**: `expect_verdict` in the answer («held:
+  removed_mm3 3.14 (expected 3.1416 ±0.01)», N8 works); the gear of 17 teeth
+  (scenario t16) still takes 15.3 s in `spur_gear` on library 0.168.0, so reading
+  the sketch points once (0.167.1) was not where its time goes.
+
 ## 0.146.0 — 27 October 2026 · library 0.168.0 · the report of session 8cd843 on the reassembly of 26M000002 (branch `night-2026-10-26-asm`)
 
 The session that wrote the brief of 25/10 reassembled its assembly on copies with

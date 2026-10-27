@@ -160,6 +160,14 @@ namespace Oce.Solid.Agent.Core
         /// or text that contains «edge» (any case), or that is an edge identifier
         /// («E» and digits), anywhere in the arguments, nested objects and lists
         /// included. Pure, so that a contract calls it by reflection.
+        ///
+        /// «_signatures» IS NOT LOOKED INTO: the bridge attaches to every step
+        /// the signatures of everything the last reading listed, edges
+        /// included, so that a uid the step cites can be found again. Read as
+        /// a mention, it made every step look like one that names an edge, and
+        /// the first measure of 0.146.0 (scenario t17) read the edges eight
+        /// times per plan as before. An edge the step cites is in its own
+        /// arguments, and that is seen.
         /// </summary>
         public static bool MentionsEdges(object value)
         {
@@ -170,8 +178,9 @@ namespace Oce.Solid.Agent.Core
             if (map != null)
             {
                 foreach (object key in map.Keys)
-                    if (EdgeWord(Convert.ToString(key, System.Globalization.CultureInfo.InvariantCulture)) ||
-                        MentionsEdges(map[key]))
+                    if (!string.Equals(key as string, "_signatures", StringComparison.Ordinal) &&
+                        (EdgeWord(Convert.ToString(key, System.Globalization.CultureInfo.InvariantCulture)) ||
+                         MentionsEdges(map[key])))
                         return true;
                 return false;
             }

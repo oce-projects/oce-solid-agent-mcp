@@ -82,6 +82,10 @@ namespace Oce.Solid.Agent.ContractTests
                         Tuple.Create("a nested signature keyed by an edge", (object)D("signatures", D("E3", D("length_mm", 10.0))), true),
                         Tuple.Create("a word that only starts with E", (object)D("plane", "Elevation"), false),
                         Tuple.Create("nothing", (object)null, false),
+                        // The bridge attaches the signatures of everything read,
+                        // edges included: not a mention (first measure of 0.146.0).
+                        Tuple.Create("a face, with the signatures the bridge attaches",
+                                     (object)D("face_uid", "F1", "_signatures", D("F1", D("area_mm2", 6000.0), "E3", D("length_mm", 10.0))), false),
                     };
                     foreach (var row in rows)
                     {
@@ -99,7 +103,7 @@ namespace Oce.Solid.Agent.ContractTests
                     wrong.Add("a missed «expect» does not keep the numbers of the step");
                 if (!source.Contains("DocumentState.ReadWithoutEdges(model, null)") || !source.Contains("MentionsEdges(planStep.Arguments)"))
                     wrong.Add("the reading before a step does not choose by MentionsEdges");
-                Check(label, wrong.Count == 0, wrong.Count == 0 ? "Held, 7 rows of MentionsEdges, the executor uses both" : string.Join("; ", wrong));
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? "Held, 8 rows of MentionsEdges, the executor uses both" : string.Join("; ", wrong));
             }
             catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
