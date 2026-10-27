@@ -3641,6 +3641,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "(suppressed_components). The two settings echoed in the answer (touching "
                         + "faces, and interferences inside multibody parts) are the values SOLIDWORKS "
                         + "reads back; if one reads back different from the request, the check is refused."
+                        + "\n\nWHICH PAIR AND WHERE. Each item of «interferences» names its components "
+                        + "(«components») and its box in the space of the assembly («box_from_mm», «box_to_mm»). "
+                        + "With «touching_counts», faces that touch come as CONTACTS: «contact» true, volume 0, "
+                        + "counted in «how_many» and in «contacts», never in «volume_total_mm3» nor in the alarm."
                         + "\n\n"
                         + "It changes nothing: "
                         + "it can also be asked for through «measure».",

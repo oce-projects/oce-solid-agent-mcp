@@ -100,6 +100,7 @@ namespace Oce.Solid.Agent.ContractTests
             MirrorRemoval(sw);
             AutomaticCutListRefusal(sw);
             InterferenceVerdict(sw);
+            ContactsAndPairs(sw);
             InterferenceSettings(sw);
             ComponentsLookedAt(sw);
             Balloons(sw);
@@ -537,6 +538,59 @@ namespace Oce.Solid.Agent.ContractTests
                       unknown);
             }
             catch (Exception ex) { Check("N38: InterferenceVerdict can be called", false, ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        // ── report 8cd843 N14 and N15: contacts apart, the pair and the box ──
+        private static void ContactsAndPairs(Type sw)
+        {
+            try
+            {
+                var pairs = new List<string> { "26P000007-1 and 26P000008-1" };
+                var alone = (string)Call(sw, "ContactSentence", 1, pairs, true);
+                var after = (string)Call(sw, "ContactSentence", 1, pairs, false);
+                Check("N15: faces that touch alone are no alarm, and say which pair",
+                      !alone.Contains("WARNING") && alone.Contains("1 CONTACT") &&
+                      alone.Contains("26P000007-1 and 26P000008-1") && alone.Contains("touching_counts"),
+                      alone);
+                Check("N15: next to interferences with a volume they are counted apart, not in the volume",
+                      after.StartsWith("Besides these, 1 CONTACT", StringComparison.Ordinal) && after.Contains("not in the volume"),
+                      after);
+            }
+            catch (Exception ex) { Check("N15: ContactSentence can be called", false, ex.GetType().Name + ": " + ex.Message); }
+
+            string source;
+            try { source = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "InterferenceOperations.cs")).Replace("\r\n", "\n"); }
+            catch (Exception ex) { Check("N15: InterferenceOperations.cs can be read", false, ex.Message); return; }
+            var problems = ContactSourceProblems(source);
+            Check("N14/N15: a sheet body is a contact before any volume is read, and each interference names its pair and box",
+                  problems.Count == 0, problems.Count == 0 ? "swSheetBody before GetMassProperties; Components; GetBodyBox" : string.Join(" | ", problems));
+            var changed = new[]
+            {
+                Tuple.Create("the sheet read as a volume (N15)", "if (type == (int)swBodyType_e.swSheetBody) { contact = true; return true; }", ""),
+                Tuple.Create("no pair per interference (N14)", "entry[\"components\"] = pair.ToArray();", "entry[\"pair\"] = null;"),
+                Tuple.Create("no box per interference (N14)", "entry[\"box_from_mm\"] =", "entry[\"from\"] ="),
+            };
+            var notRed = changed.Where(c => !source.Contains(c.Item2) || ContactSourceProblems(source.Replace(c.Item2, c.Item3)).Count == 0)
+                                .Select(c => c.Item1).ToList();
+            Check("N14/N15: the check turns red on each changed copy", notRed.Count == 0,
+                  notRed.Count == 0 ? changed.Length + " changes, each one red" : "NOT red: " + string.Join(", ", notRed));
+        }
+
+        /// <summary>What is wrong with the reading of one interference; empty when nothing.</summary>
+        internal static List<string> ContactSourceProblems(string source)
+        {
+            var problems = new List<string>();
+            int sheet = source.IndexOf("if (type == (int)swBodyType_e.swSheetBody) { contact = true; return true; }", StringComparison.Ordinal);
+            int mass = source.IndexOf("body.GetMassProperties(1000.0)", StringComparison.Ordinal);
+            if (sheet < 0 || mass < 0 || sheet > mass)
+                problems.Add("a sheet body (faces that touch) is not taken as a contact before its volume is read (report 8cd843 N15)");
+            if (source.IndexOf("entry[\"components\"] = pair.ToArray();", StringComparison.Ordinal) < 0 ||
+                source.IndexOf("interference.Components as object[]", StringComparison.Ordinal) < 0)
+                problems.Add("an interference does not name its own components (report 8cd843 N14)");
+            if (source.IndexOf("entry[\"box_from_mm\"] =", StringComparison.Ordinal) < 0 ||
+                source.IndexOf("body.GetBodyBox()", StringComparison.Ordinal) < 0)
+                problems.Add("an interference does not say where it is (report 8cd843 N14)");
+            return problems;
         }
 
         /// <summary>

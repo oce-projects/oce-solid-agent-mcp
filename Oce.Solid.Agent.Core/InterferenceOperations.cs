@@ -105,6 +105,11 @@ namespace Oce.Solid.Agent.Core
             // their volume; null when the flag of one of them could not be read.
             int? possibleCount = 0;
             double possibleVolume = 0;
+            // N15: the faces that touch, counted apart (a sheet body, no volume),
+            // and the pairs of components of each kind (N14).
+            int contacts = 0;
+            var contactPairs = new List<string>();
+            var involvedInVolume = new List<string>();
             // N18: the three settings as SOLIDWORKS reads them back.
             bool? coincidenceRead = null, multibodyRead = null, ignoredShownRead = null;
 
@@ -169,26 +174,48 @@ namespace Oce.Solid.Agent.Core
                         interferencesRead++;
 
                         double volume;
-                        bool read = InterferenceVolumeMm3(interference, out volume);
-                        if (!read) readVolumes = false; else totalVolume += volume;
+                        bool contact;
+                        double[] boxMm;
+                        bool read = ReadInterferenceBody(interference, out volume, out contact, out boxMm);
+                        if (!read) readVolumes = false;
+                        else if (contact) contacts++;
+                        else totalVolume += volume;
+                        var pair = ComponentsOf(interference);
 
                         bool? maybe = null;
                         try { maybe = interference.IsPossibleInterference; } catch { }
                         // N38: counted apart, not rounded up to a certain one.
                         // IInterference~IsPossibleInterference.html: «True if
-                        // this is a possible interference, false if not».
-                        if (maybe == null) possibleCount = null;
-                        else if (maybe == true)
+                        // this is a possible interference, false if not». A
+                        // contact is not in the count of the verdict (N15), so
+                        // not among its possible ones either.
+                        if (!contact)
                         {
-                            if (possibleCount.HasValue) possibleCount++;
-                            if (read) possibleVolume += volume;
+                            if (maybe == null) possibleCount = null;
+                            else if (maybe == true)
+                            {
+                                if (possibleCount.HasValue) possibleCount++;
+                                if (read) possibleVolume += volume;
+                            }
+                            foreach (var name in pair)
+                                if (!involvedInVolume.Contains(name)) involvedInVolume.Add(name);
                         }
+                        else if (pair.Count > 0) contactPairs.Add(string.Join(" and ", pair));
 
                         var entry = new Dictionary<string, object>
                         {
                             ["n"] = i + 1,
                             ["volume_mm3"] = read ? (object)Math.Round(volume, 3) : null,
                         };
+                        if (contact) entry["contact"] = true;
+                        // WHICH PAIR AND WHERE (report 8cd843 N14): four equal
+                        // volumes said nothing of which clip in which half.
+                        if (pair.Count > 0) entry["components"] = pair.ToArray();
+                        if (boxMm != null)
+                        {
+                            entry["box_from_mm"] = new object[] { boxMm[0], boxMm[1], boxMm[2] };
+                            entry["box_to_mm"] = new object[] { boxMm[3], boxMm[4], boxMm[5] };
+                        }
                         // «Possible» means that SOLIDWORKS is not sure:
                         // it is reported as it is instead of rounding it to a yes.
                         if (maybe == true) entry["only_possible"] = true;
@@ -249,10 +276,13 @@ namespace Oce.Solid.Agent.Core
             // N38: certain and possible apart, only when every counted
             // interference was read and each said which it is.
             int? possible = interferencesRead == howMany ? possibleCount : null;
+            // N15: the interferences with a volume are the count without the
+            // contacts, when the whole list was read.
+            int withVolume = listProblem == null ? howMany - contacts : howMany;
             object certainOut = null, possibleOut = null;
             if (possible is int possibleKnown)
             {
-                certainOut = howMany - possibleKnown;
+                certainOut = withVolume - possibleKnown;
                 possibleOut = possibleKnown;
             }
 
@@ -271,6 +301,8 @@ namespace Oce.Solid.Agent.Core
                 ["touching_counts"] = coincidenceRead,
                 ["inside_parts"] = multibodyRead,
             };
+            // N15: how many of the counted ones are faces that touch, when asked.
+            if (touchCount || contacts > 0) measurements["contacts"] = contacts;
             if (suppressedComponents > 0)
                 measurements["suppressed_note"] =
                     suppressedComponents + (suppressedComponents == 1 ? " component is" : " components are") +
@@ -321,10 +353,42 @@ namespace Oce.Solid.Agent.Core
                 return SucceededWithoutCreating(measurements);
             }
 
+            // ONLY FACES THAT TOUCH (N15): no alarm of «one part inside the
+            // other», they are what «touching_counts» asked to see.
+            if (withVolume == 0 && contacts > 0)
+            {
+                measurements["verdict"] = ContactSentence(contacts, contactPairs, true);
+                _log("[agent] " + measurements["verdict"]);
+                return SucceededWithoutCreating(measurements);
+            }
+
             measurements["verdict"] = InterferenceVerdict(
-                howMany, possible, readVolumes, totalVolume, possibleVolume, involved);
+                withVolume, possible, readVolumes, totalVolume, possibleVolume,
+                involvedInVolume.Count > 0 ? involvedInVolume : involved) +
+                (contacts > 0 ? " " + ContactSentence(contacts, contactPairs, false) : "");
             _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// THE FACES THAT TOUCH, in words (report 8cd843 N15, 27/10/2026). With
+        /// «touching_counts» SOLIDWORKS lists them among the interferences, as a
+        /// sheet body with no volume. `alone`: they are all there is, and the
+        /// sentence is the verdict; otherwise it follows the verdict of the
+        /// interferences with a volume. `pairs` holds «A and B» per contact. No
+        /// interop type in the signature: Oce.Solid.Agent.ContractTests calls it
+        /// by reflection.
+        /// </summary>
+        internal static string ContactSentence(int contacts, List<string> pairs, bool alone)
+        {
+            string between = pairs != null && pairs.Count > 0 ? " between: " + string.Join("; ", pairs) : "";
+            string what = contacts + (contacts == 1 ? " CONTACT" : " CONTACTS") +
+                          " (faces that touch exactly, with no volume)" + between;
+            return alone
+                ? "No part goes into another: SOLIDWORKS found " + what + ". You asked to count them " +
+                  "(«touching_counts»): a lid resting on a base is fine, a shaft in a hole of the same diameter does " +
+                  "not go in. Each one is in «interferences» with «contact» true, its pair and its box."
+                : "Besides these, " + what + ": they are counted in «how_many», and not in the volume.";
         }
 
         /// <summary>
@@ -463,17 +527,51 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// The volume of the interpenetration, in mm3. `false` when it could not be
-        /// read — which is **not** zero: zero would mean «they just touch
-        /// and nothing more», and it would be an answer, not a gap.
+        /// The body of one interference: its volume in mm3, whether it is a
+        /// CONTACT, and its box in mm. `false` when the volume could not be read
+        /// — which is **not** zero: zero would mean «they just touch and
+        /// nothing more», and it would be an answer, not a gap.
+        ///
+        /// A CONTACT IS A SHEET (report 8cd843 N15, 27/10/2026, measured with a
+        /// read-only probe of the interference manager on a copy of the clip
+        /// assembly). With
+        /// «touching_counts» the faces that touch came as a body of type 1
+        /// (IBody2.GetType, swBodyType_e.swSheetBody) with one face, and
+        /// IInterference.Volume read 0; GetMassProperties on that sheet answered
+        /// 3.68475e-4 at index 3, and up to library 0.169.0 the answer said
+        /// 368475 mm3, «one part inside the other». On the four solid ones
+        /// IInterference.Volume and GetMassProperties index 3 agreed to the last
+        /// digit. A body that is neither solid nor sheet is a volume not read.
+        ///
+        /// WHERE (N14): IBody2.GetBodyBox, xmin, ymin, zmin, xmax, ymax, zmax in
+        /// metres, in the space of the assembly (measured: the clip at x = +40 mm
+        /// gave x from 35.35 to 44.65).
         /// </summary>
-        private static bool InterferenceVolumeMm3(IInterference interference, out double mm3)
+        private static bool ReadInterferenceBody(IInterference interference, out double mm3, out bool contact,
+                                                 out double[] boxMm)
         {
             mm3 = 0;
+            contact = false;
+            boxMm = null;
             try
             {
                 var body = interference.GetInterferenceBody() as IBody2;
                 if (body == null) return false;
+                try
+                {
+                    var box = body.GetBodyBox() as double[];
+                    if (box != null && box.Length >= 6)
+                    {
+                        var mm = new double[6];
+                        for (int k = 0; k < 6; k++) mm[k] = Math.Round(box[k] * 1000.0, 3);
+                        boxMm = mm;
+                    }
+                }
+                catch { }
+                int type;
+                try { type = body.GetType(); } catch { return false; }
+                if (type == (int)swBodyType_e.swSheetBody) { contact = true; return true; }
+                if (type != (int)swBodyType_e.swSolidBody) return false;
                 var mp = body.GetMassProperties(1000.0) as double[];
                 if (mp == null || mp.Length < 4) return false;
                 // `GetMassProperties` gives the volume in cubic metres at position 3.
@@ -481,6 +579,31 @@ namespace Oce.Solid.Agent.Core
                 return true;
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// The components of one interference (IInterference~Components.html:
+        /// «Array of the components that interfere with each other»), by
+        /// Name2; empty when they cannot be read (report 8cd843 N14).
+        /// </summary>
+        private static List<string> ComponentsOf(IInterference interference)
+        {
+            var names = new List<string>();
+            try
+            {
+                var items = interference.Components as object[];
+                if (items == null) return names;
+                foreach (var o in items)
+                {
+                    var c = o as IComponent2;
+                    if (c == null) continue;
+                    string n = null;
+                    try { n = c.Name2; } catch { }
+                    if (!string.IsNullOrWhiteSpace(n) && !names.Contains(n)) names.Add(n);
+                }
+            }
+            catch { }
+            return names;
         }
     }
 }

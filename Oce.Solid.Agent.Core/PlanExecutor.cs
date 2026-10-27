@@ -340,8 +340,8 @@ namespace Oce.Solid.Agent.Core
                 if (!string.Equals(here, expectedPath, StringComparison.OrdinalIgnoreCase))
                 {
                     result.Error =
-                        "The plan was for «" + expectedPath + "», but «" +
-                        here + "» is in front. I touched nothing.";
+                        "The plan was for «" + ReadableIdentity(expectedPath) + "», but «" +
+                        ReadableIdentity(here) + "» is in front. I touched nothing.";
                     result.StoppedBeforeWriting = true;
                     return result;
                 }
@@ -495,12 +495,13 @@ namespace Oce.Solid.Agent.Core
                                 Succeeded = false,
                                 Error =
                                     "The active document changed while I was running: " +
-                                    "the plan was for «" + expectedPath + "», " +
-                                    "now «" + Identity(model) + "» is " +
+                                    "the plan was for «" + ReadableIdentity(expectedPath) + "», " +
+                                    "now «" + ReadableIdentity(Identity(model)) + "» is " +
                                     "in front. " + (result.ExecutedSteps == 0
                                         ? "I touched nothing."
                                         : "I did not run this step; the " + result.ExecutedSteps +
-                                          " step(s) before it are done and stay on «" + expectedPath + "»."),
+                                          " step(s) before it are done and stay on «" +
+                                          ReadableIdentity(expectedPath) + "»."),
                             };
                         }
 
@@ -830,6 +831,18 @@ namespace Oce.Solid.Agent.Core
                 if (pa != IntPtr.Zero) Marshal.Release(pa);
                 if (pb != IntPtr.Zero) Marshal.Release(pb);
             }
+        }
+
+        /// <summary>
+        /// The identity as a person reads it (report 8cd843 N13, 27/10/2026):
+        /// «title:» marks a document never saved for the comparisons above, and
+        /// it reached the error of a stopped plan as «title:Parte354».
+        /// </summary>
+        internal static string ReadableIdentity(string identity)
+        {
+            return identity != null && identity.StartsWith("title:", StringComparison.Ordinal)
+                ? identity.Substring("title:".Length)
+                : identity;
         }
 
         private static string Identity(IModelDoc2 model)

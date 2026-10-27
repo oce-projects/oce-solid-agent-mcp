@@ -533,9 +533,10 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("a closing not noted", "FinishUndoRecording(undoRecordedOn));\n                    if (planDocumentReopened)",
                        "FinishUndoRecording(undoRecordedOn));\n                    FinishUndoRecording(undoRecordedOn);\n                    if (planDocumentReopened)"),
                 Change("N12: «I touched nothing» after steps that ran", "in front. \" + (result.ExecutedSteps == 0", "in front. \" + (true"),
+                Change("N13: the identity key in the message", "\"the plan was for «\" + ReadableIdentity(expectedPath)", "\"the plan was for «\" + expectedPath"),
             });
             Check("the executor check turns red on each changed copy", finishRed.Count == 0,
-                  finishRed.Count == 0 ? "4 changes, each one red" : string.Join(" | ", finishRed));
+                  finishRed.Count == 0 ? "5 changes, each one red" : string.Join(" | ", finishRed));
 
             var sess = SessionProblems(session);
             Check("the session hands the checked identity to the executor, says when it threw and when another bridge held the turn",
@@ -684,6 +685,10 @@ namespace Oce.Solid.Agent.ContractTests
             int guard = changed < 0 ? -1 : code.IndexOf("result.ExecutedSteps == 0", changed, StringComparison.Ordinal);
             if (changed < 0 || guard < 0 || guard - changed > 600)
                 problems.Add("the stop for a window that changed says «I touched nothing» after steps that ran (report 8cd843 N12)");
+            // Report 8cd843 N13: «title:Parte354» in that message, the key of the comparisons.
+            int readable = changed < 0 ? -1 : code.IndexOf("ReadableIdentity(expectedPath)", changed, StringComparison.Ordinal);
+            if (changed < 0 || readable < 0 || readable - changed > 300)
+                problems.Add("the stop for a window that changed prints the identity key («title:...»), not the name (report 8cd843 N13)");
             return problems;
         }
 

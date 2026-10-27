@@ -32,6 +32,34 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.148.0 — 27 October 2026 · library 0.170.0 · fourth round of session 8cd843: N13, N14, N15 (branch `night-2026-10-26-asm`)
+
+- **Fourth round on SOLIDWORKS (session 8cd843, bridge 0.147.0, 20 calls, the
+  whole assembly mounted on copies and saved)**: held N7 (the family
+  `documents`), N11 (`undo_possible` false and `note_undo`, then the undo
+  refuses) and N12 (`steps_done` 2 of 6, `note_stopped`, then activate and undo
+  2603.7 to 2610 mm³).
+- **N15 (P1)**: with `touching_counts` a fifth interference read 368475 mm³ on
+  parts of a few thousand. Measured with a probe on a copy of the assembly: the
+  faces that touch come as a SHEET body (`IBody2.GetType` 1, one face, box
+  175 × 0 × 3.825 mm) with `IInterference.Volume` 0, and `GetMassProperties` on
+  a sheet answered 3.68475e-4 at index 3. A sheet is now a CONTACT: `contact`
+  true, volume 0, counted in `how_many` and in a new `contacts`, never in
+  `volume_total_mm3` nor in the alarm; the verdict says them apart («No part
+  goes into another» when they are all there is). On the four solid ones
+  `IInterference.Volume` and `GetMassProperties` index 3 agreed to the last
+  digit.
+- **N14**: four equal interferences of 3.691 mm³ did not say which clip touched
+  which half. Each item of `interferences` now names its `components`
+  (`IInterference.Components`) and its box in the space of the assembly
+  (`box_from_mm`, `box_to_mm`, from `IBody2.GetBodyBox`).
+- **N13**: the error of a stopped plan wrote «title:Parte354», the key the
+  executor compares by. Its messages now print the name (`ReadableIdentity`).
+- **Checks**: `Zc2189WeldAssemblyContract` (the contact sentence by reflection,
+  the source order sheet before volume, pair and box, with changed copies that
+  turn red); the bench case `touching_is_not_interpenetrating` expects
+  `contacts` 1 and `volume_total_mm3` 0.
+
 ## 0.147.0 — 27 October 2026 · library 0.169.0 · third round of session 8cd843: N7, N11, N12 (branch `night-2026-10-26-asm`)
 
 - **Third round on SOLIDWORKS (session 8cd843, bridge 0.146.3, 29 calls)**:
