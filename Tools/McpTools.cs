@@ -3452,7 +3452,8 @@ namespace Oce.Solid.Agent.Tools
                 memoryBefore != null, memoryBefore != null && memoryBefore.CoveredBecause != null,
                 planRun != null, planRun != null && planRun.StoppedBeforeWriting, executorThrew,
                 turnRefusedOnMemoryDocument, planRun?.UndoEntryOnPlanDocument, sameDocument,
-                !checkIfRepeated, ReadableName(planIdentity), out memoryReason);
+                !checkIfRepeated, EquationsChanged(snapshotBefore, snapshotAfter), ReadableName(planIdentity),
+                out memoryReason);
 
             switch (memoryAction)
             {
@@ -3606,6 +3607,15 @@ namespace Oce.Solid.Agent.Tools
             /// <summary>Both lists were read, so the assembly can be compared.</summary>
             public bool AssemblyRead { get { return ComponentsRead && MatesRead; } }
 
+            /// <summary>
+            /// The equations of the document as the state lists them («equations»,
+            /// and «equations_total» when they are more), one text; empty when it has
+            /// none. SOLIDWORKS records no equation in an undo entry
+            /// (Checks\UndoGaps, 27/10/2026), so a plan that changes them is one an
+            /// undo cannot withdraw, and the snapshot must see it.
+            /// </summary>
+            public string Equations = "";
+
             public static PartSnapshot Of(Dictionary<string, object> docState)
             {
                 if (docState == null) return null;
@@ -3618,10 +3628,26 @@ namespace Oce.Solid.Agent.Tools
                     Count = HowManyFeatures(docState),
                     Names = FeatureNamesInOrder(docState),
                     Unlisted = unlisted,
+                    Equations = EquationsText(docState),
                 };
                 string kind = Convert.ToString(docState.TryGetValue("kind", out var k) ? k : null) ?? "";
                 if (kind == "assembly") ReadAssembly(docState, snapshot);
                 return snapshot;
+            }
+
+            /// <summary>The equations of a reading as one text (see <see cref="Equations"/>).</summary>
+            private static string EquationsText(Dictionary<string, object> docState)
+            {
+                if (!docState.TryGetValue("equations", out var raw) || !(raw is System.Collections.IEnumerable listed) || raw is string)
+                    return "";
+                var texts = new List<string>();
+                foreach (var v in listed)
+                {
+                    var entry = v as Dictionary<string, object>;
+                    texts.Add(entry == null ? Convert.ToString(v, CultureInfo.InvariantCulture) ?? "" : FieldText(entry, "equation"));
+                }
+                int total = WholeNumber(docState, "equations_total");
+                return string.Join(" | ", texts) + (total > texts.Count ? " (" + total + " in all)" : "");
             }
 
             /// <summary>
@@ -3822,6 +3848,9 @@ namespace Oce.Solid.Agent.Tools
         ///  2. the executor threw (review F9): what it wrote and recorded is
         ///     not known, drop;
         ///  3. the plan's document could not be read after it: drop;
+        ///  3b. the plan changed the equations of its document: drop, SOLIDWORKS
+        ///     records no equation in an undo entry (Checks\UndoGaps), so one undo
+        ///     would take away what came before them and leave them;
         ///  4. the plan built (volume or feature count changed; on an assembly a
         ///     component or a mate, brief R23): new, unless its own undo entry
         ///     closed empty (answer false): then drop, an undo would not withdraw
@@ -3847,7 +3876,7 @@ namespace Oce.Solid.Agent.Tools
             bool hasMemory, bool alreadyCovered,
             bool executorReached, bool stoppedBeforeWriting, bool executorThrew,
             bool turnRefusedOnMemoryDocument, bool? undoEntryOnPlanDocument, bool sameDocument,
-            bool measure, string planDocumentName, out string reason)
+            bool measure, bool equationsChanged, string planDocumentName, out string reason)
         {
             reason = null;
             string what = measure ? "The last «measure»" : "The last «build»";
@@ -3871,6 +3900,22 @@ namespace Oce.Solid.Agent.Tools
             {
                 reason = what + " ran, and then I could not read" + on + " again: what is on top of its undo stack " +
                          "is not known.";
+                return MemoryDrop;
+            }
+            // EQUATIONS ARE IN NO UNDO ENTRY (scenario t14 and Checks\UndoGaps,
+            // 27/10/2026): «parameters» wrote two variables, FinishRecordingUndoObject
+            // answered false, and the undo pressed after it took away the
+            // extrusion of the plan BEFORE it while the equations stayed. On the
+            // probe the same with EditRebuild3, ForceRebuild3 or no rebuild. A plan
+            // that changed them cannot be withdrawn by undo, whatever else it did.
+            if (equationsChanged && !measure)
+            {
+                reason = what + " changed the equations of" + on + " (global variables or dimension links), and " +
+                         "SOLIDWORKS records no equation in an undo entry (measured): one undo would leave them and take " +
+                         "away what came before them. To put a variable back, send «parameters» with the value it had " +
+                         "(the answer of the plan gives it in «equation_before»); a variable or a link the plan created " +
+                         "stays, and no operation removes an equation yet: the person at the SOLIDWORKS screen can delete " +
+                         "it (Tools > Equations).";
                 return MemoryDrop;
             }
             // A PLAN THAT BUILT WHILE ITS UNDO ENTRY CLOSED EMPTY (scenario t13,
@@ -4466,6 +4511,13 @@ namespace Oce.Solid.Agent.Tools
             return SnapshotDiffers(PartSnapshot.Of(before), PartSnapshot.Of(after));
         }
 
+        /// <summary>The equations differ between two snapshots that were both read.</summary>
+        private static bool EquationsChanged(PartSnapshot before, PartSnapshot after)
+        {
+            return before != null && after != null &&
+                   !string.Equals(before.Equations ?? "", after.Equations ?? "", StringComparison.Ordinal);
+        }
+
         /// <summary><see cref="WhatDiffers"/> on two snapshots.</summary>
         private static List<string> SnapshotDiffers(PartSnapshot before, PartSnapshot after)
         {
@@ -4498,6 +4550,9 @@ namespace Oce.Solid.Agent.Tools
             if (come.Count > 0) differences.Add("features that were not there: «" + string.Join("», «", come) + "»");
             if (gone.Count == 0 && come.Count == 0 && !namesBefore.SequenceEqual(namesAfter))
                 differences.Add("the order of the features changed");
+            if (EquationsChanged(before, after))
+                differences.Add("the equations changed: «" + (before.Equations.Length > 0 ? before.Equations : "none") +
+                                "» before, «" + (after.Equations.Length > 0 ? after.Equations : "none") + "» now");
             if (before.Assembly || after.Assembly)
                 differences.AddRange(AssemblyDiffers(before, after, true));
             return differences;

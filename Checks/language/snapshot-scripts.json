@@ -93,6 +93,7 @@
   { "script": "Checks/DrivenSketch/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/UndoSplit/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/AssemblyUndo/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
+  { "script": "Checks/UndoGaps/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/SolidWorksLanguage/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/SketchOnSheet/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },
   { "script": "Checks/FollowTheEdge/", "skip": "a SOLIDWORKS probe: it attaches to SOLIDWORKS" },

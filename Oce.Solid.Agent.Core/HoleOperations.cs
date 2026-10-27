@@ -139,7 +139,9 @@ namespace Oce.Solid.Agent.Core
             if (size.Length == 0)
                 return Failed("The size of the hole is missing (for example «M8»).");
 
-            bool throughAll = Bool(a, "through_all", true);
+            // A depth given without «through_all» is a blind hole (scenario t15,
+            // see SwOperations.ThroughAllAsked).
+            bool throughAll = ThroughAllAsked(a);
             double depth = Num(a, "depth_mm", 0);
             if (!throughAll && depth <= 0)
                 return Failed(

@@ -128,7 +128,11 @@ $tools = @(
     @{ name = 'UndoSplit'; sw = $true; lib = $false },
     # What does one undo take away in an assembly (brief R23): insert, insert, mate,
     # inside the recording of the bridge and without it.
-    @{ name = 'AssemblyUndo'; sw = $true; lib = $false }
+    @{ name = 'AssemblyUndo'; sw = $true; lib = $false },
+    # Two plans whose undo entry closed empty (scenarios t9b and t14): equations
+    # written by IEquationMgr, and a component moved by Transform2, by
+    # SetTransformAndSolve2 or by IDragOperator.
+    @{ name = 'UndoGaps'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

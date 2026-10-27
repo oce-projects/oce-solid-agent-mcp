@@ -594,8 +594,13 @@ using System.Runtime.InteropServices;
 //          (EquationOperations.Parameters). An empty assembly reads empty
 //          (GetComponentCount when GetComponents answers null). Revolve draws
 //          with the R11 recipe and locks the open sketch; LockSketch is gone.
-[assembly: AssemblyVersion("0.165.0.0")]
-[assembly: AssemblyFileVersion("0.165.0.0")]
+// 0.166.0: brief §5.2, «extrude_regions» extrudes several regions of one plane
+//          to their heights in one step and names the depth dimension of each.
+// 0.167.0: place_component moves the component with IDragOperator: setting
+//          Transform2 left the undo entry of the plan empty (Checks\UndoGaps).
+//          parameters answers equation_before for a variable it rewrote.
+[assembly: AssemblyVersion("0.167.0.0")]
+[assembly: AssemblyFileVersion("0.167.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -610,4 +615,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.165.0")]
+[assembly: AssemblyInformationalVersion("0.167.0")]

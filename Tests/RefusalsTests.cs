@@ -292,8 +292,10 @@ namespace Oce.Solid.Agent.ContractTests
         /// **265 (27/10/2026): +6.** `parameters` (brief §5.1) says, in each
         /// refusal, that it touched nothing and what to send instead, and revolve
         /// (brief R11) refuses a vertex that snapping drew elsewhere: 265 of 996.
+        /// **266 (same day): +1.** extrude_regions (brief §5.2) says which regions
+        /// are in the part when one fails after them, and to undo the step: 266 of 997.
         /// </summary>
-        private const int Floor = 265;
+        private const int Floor = 266;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -307,8 +309,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 265;   // 27/10/2026, parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 996;
+        private const int ShareFloorWithRemedy = 266;   // 27/10/2026, extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 997;
 
         /// <summary>
         /// The openings with which this code says no.

@@ -606,7 +606,7 @@ there but is not in the list is not read, and one in the list that is not there
 is a bench error.
 
 ```
-cases/features/ 37   the shell, and which side it removes from;
+cases/features/ 38   the shell, and which side it removes from;
                        the symmetric plate that grows on both sides
                        with edit_extrusion (revision of 27/9, Z-C20);
                        the dimension that pushes the slot out of the material,
@@ -637,7 +637,8 @@ cases/features/ 37   the shell, and which side it removes from;
                        close for it, and the counterbore past the edge, both
                        refused with their twins (Z-C21.10, N50); the state
                        counts selected edges and faces of fillets and
-                       chamfers (Z-C21, C7-2, N14)
+                       chamfers (Z-C21, C7-2, N14); a depth given alone makes
+                       the hole blind, and «through_all» beside it still wins (t15)
 cases/pairs/       8   the refusals with their twin
 cases/slot/       18   every face, not just one; the dimensioned sketch that is
                        corrected with set_dimension, and the straight and oblique anchor
@@ -798,7 +799,7 @@ cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        counts the gussets and the end caps, not only the bars,
                        and the gusset at the END of a bar is found like the one
                        at its start (D9 defects 1 and 2)
-cases/extrusions/  11   the tube has the hole; the extruded slot is as long as
+cases/extrusions/  12   the tube has the hole; the extruded slot is as long as
                        the bounding box, ends included, and is a polygon; the
                        17-tooth wheel can be made, the 16 one refuses; the fin
                        grows from the face outwards (entry Z-C6); the round and
@@ -807,7 +808,10 @@ cases/extrusions/  11   the tube has the hole; the extruded slot is as long as
                        refused, never the front plane (Z-C21.10, N33); the
                        sketch of the L locked for real (Z-C21, M5); the L
                        driven by its vertices, a vertex moved by its dimension
-                       and the one on the negative side kept there (brief R5)
+                       and the one on the negative side kept there (brief R5);
+                       three heights of one plane in one step, the second moved
+                       by the name of its dimension, a height of zero refused
+                       with nothing drawn (brief §5.2)
 cases/sheet_metal/     13   the L unfolds as long as the hand calculation; dated
                        the other way round, the points become the outer faces; the
                        flat pattern without a file refused; the stretch shorter

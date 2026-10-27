@@ -62,6 +62,7 @@ namespace Oce.Solid.Agent.ContractTests
                 // ── THEY ARE ASKED FOR: they are the work, not a side matter ──
                 { "extrude_profile.contours", "it is the shape: without it there is nothing to extrude" },
                 { "revolve.contours", "idem" },
+                { "extrude_regions.regions", "the regions and their heights are the shape: without them there is nothing to extrude" },
                 { "extrude_on_face.contours", "idem" },
                 { "revolve.axis", "what it revolves around: a default would choose the part" },
                 { "extrude_section.variant", "which section: IPE and square tube are not alike" },

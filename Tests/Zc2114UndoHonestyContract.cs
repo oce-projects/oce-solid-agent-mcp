@@ -244,7 +244,7 @@ namespace Oce.Solid.Agent.ContractTests
             public bool Built, Visible, Readable = true, HasMemory = true, Covered;
             public bool Reached = true, Stopped, Threw, TurnRefused;
             public bool? Undo;
-            public bool Same = true, Measure;
+            public bool Same = true, Measure, Equations;
             public string Expected;
             public bool ReasonExpected;
             public string ReasonMustSay;
@@ -263,6 +263,13 @@ namespace Oce.Solid.Agent.ContractTests
                 new Situation { Label = "a document not read after the plan", Readable = false, Undo = true, Expected = "drop",
                                 ReasonExpected = true },
                 new Situation { Label = "a plan that built", Built = true, Visible = true, Undo = true, Expected = "new" },
+                new Situation { Label = "a plan that changed the equations (t14, UndoGaps)", Visible = true, Undo = false,
+                                Equations = true, Expected = "drop", ReasonExpected = true, ReasonMustSay = "no equation in an undo entry" },
+                new Situation { Label = "a plan that built and changed the equations", Built = true, Visible = true, Undo = true,
+                                Equations = true, Expected = "drop", ReasonExpected = true, ReasonMustSay = "equation_before" },
+                new Situation { Label = "no memory, a plan that changed the equations", HasMemory = false, Visible = true,
+                                Undo = false, Equations = true, Expected = "drop", ReasonExpected = true,
+                                ReasonMustSay = "parameters" },
                 new Situation { Label = "a plan that built while its own entry closed empty (t13)", Built = true, Visible = true,
                                 Undo = false, Expected = "drop", ReasonExpected = true, ReasonMustSay = "closed with nothing" },
                 new Situation { Label = "no memory, a plan that built while its own entry closed empty", HasMemory = false,
@@ -294,12 +301,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var args = new object[]
                 {
                     s.Built, s.Visible, s.Readable, s.HasMemory, s.Covered, s.Reached, s.Stopped, s.Threw,
-                    s.TurnRefused, s.Undo, s.Same, s.Measure, "Part1", null,
+                    s.TurnRefused, s.Undo, s.Same, s.Measure, s.Equations, "Part1", null,
                 };
                 string action;
                 try { action = (string)memory.Invoke(null, args); }
                 catch (Exception ex) { wrong.Add(s.Label + ": threw " + (ex.InnerException ?? ex).Message); continue; }
-                var reason = (string)args[13];
+                var reason = (string)args[14];
                 if (action != s.Expected) { wrong.Add(s.Label + ": " + action + ", expected " + s.Expected); continue; }
                 if (s.ReasonExpected && string.IsNullOrEmpty(reason)) wrong.Add(s.Label + ": no reason");
                 if (!s.ReasonExpected && reason != null) wrong.Add(s.Label + ": a reason where none belongs");
@@ -334,8 +341,15 @@ namespace Oce.Solid.Agent.ContractTests
             var order = diff(reading(1000.0, ab), reading(1000.0, ba));
             if (order.Count == 0 || order.TrueForAll(s => s.IndexOf("order", StringComparison.Ordinal) < 0)) missing.Add("a reorder is not seen as one");
             if (diff(reading(1000.0, ab), reading(1000.0, renamed)).Count == 0) missing.Add("a rename is not seen");
-            Check("WhatDiffers sees volume, count, names and order, and an unreadable volume as a difference",
-                  missing.Count == 0, missing.Count == 0 ? "6 pairs of readings" : string.Join(" | ", missing));
+            var withEquation = reading(1000.0, ab);
+            withEquation["equations"] = new object[] { new Dictionary<string, object> { ["equation"] = "\"wall\" = 12mm" } };
+            var equationChanged = reading(1000.0, ab);
+            equationChanged["equations"] = new object[] { new Dictionary<string, object> { ["equation"] = "\"wall\" = 15mm" } };
+            if (diff(reading(1000.0, ab), withEquation).Count == 0) missing.Add("an equation added is not seen");
+            if (diff(withEquation, equationChanged).Count == 0) missing.Add("an equation rewritten is not seen");
+            if (diff(withEquation, withEquation).Count != 0) missing.Add("the same equations differ");
+            Check("WhatDiffers sees volume, count, names, order and equations, and an unreadable volume as a difference",
+                  missing.Count == 0, missing.Count == 0 ? "9 pairs of readings" : string.Join(" | ", missing));
         }
 
         private static void Answers(MethodInfo answer)

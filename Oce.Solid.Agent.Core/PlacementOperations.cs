@@ -27,8 +27,17 @@ namespace Oce.Solid.Agent.Core
     /// a turn Q of the assembly makes each row r into Q r. The same reading
     /// gives ComponentAxes and InAssemblySpace (M1, N26).
     ///
-    /// IT IS READ BACK: Transform2 set, a rebuild (RebuildForTest, which keeps
-    /// the undo of the plan, brief R23), Transform2 read again.
+    /// IT IS READ BACK: the component dragged there, a rebuild (RebuildForTest,
+    /// which keeps the undo of the plan, brief R23), Transform2 read again.
+    ///
+    /// DRAGGED, NOT SET (scenario t9b and Checks\UndoGaps, 27/10/2026): setting
+    /// Transform2, or SetTransformAndSolve2, inside the recording of the plan
+    /// made FinishRecordingUndoObject answer false, and the undo pressed after it
+    /// took away the component inserted before. IDragOperator with an absolute
+    /// transform and TransformType 2 (General) answered true, moved and turned
+    /// the component, and one undo put it back where it was, axes included.
+    /// IComponent2~SetTransformAndSolve2.html, Remarks, names the drag operator
+    /// as the efficient way to move a component.
     /// IComponent2~Transform2.html, Remarks: a placement that breaks the mates is
     /// taken, and the rebuild «moves your components to the closest valid
     /// location». So a component that its mates hold comes back somewhere else:
@@ -98,9 +107,11 @@ namespace Oce.Solid.Agent.Core
                                "again; I touched nothing.");
 
             var asked = PlacedTransform(before, originMm, rotations);
-            if (asked == null || !SetTransform(assemblyDoc, name, math, asked))
-                return Failed("SOLIDWORKS did not take the new placement of " + uid + " (Transform2 could not be set). " +
-                               "Read the state again and try again; I touched nothing.");
+            string dragProblem = null;
+            if (asked == null || !DragTo(assemblyDoc, ComponentByName(assemblyDoc, name), math, asked, out dragProblem))
+                return Failed("SOLIDWORKS did not take the new placement of " + uid + " (" +
+                               (dragProblem ?? "the placement asked is not a readable transform") + "). Read the state again and try again." +
+                               SetBackSentence(model, assemblyDoc, name, math, before));
             bool rebuilt = RebuildForTest(model);
             var after = ReadTransform(ComponentByName(assemblyDoc, name));
             double offMm = DistanceMm(asked, after), offDeg = AngleBetweenDeg(asked, after);
@@ -133,6 +144,43 @@ namespace Oce.Solid.Agent.Core
                 uid + " placed: origin " + MmText(OriginMm(after)) + ", axes " + AxesText(after) +
                 ", read back after the rebuild.";
             return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// The component dragged to <paramref name="asked"/> (Transform2 numbers),
+        /// with the drag operator of the assembly: absolute transform, General
+        /// (translation and rotation), the one component. False with the step that
+        /// did not answer true.
+        /// </summary>
+        private static bool DragTo(IAssemblyDoc assemblyDoc, IComponent2 component, IMathUtility math, double[] asked,
+                                   out string problem)
+        {
+            problem = null;
+            try
+            {
+                var target = math.CreateTransform(asked) as MathTransform;
+                var drag = assemblyDoc.GetDragOperator() as IDragOperator;
+                if (component == null || target == null || drag == null)
+                {
+                    problem = component == null ? "the component cannot be found again" :
+                              target == null ? "the transform could not be built" : "the assembly gave no drag operator";
+                    return false;
+                }
+                drag.UseAbsoluteTransform = true;
+                drag.TransformType = 2;
+                if (!drag.AddComponent(component, false)) { problem = "the drag operator did not take the component"; return false; }
+                if (!drag.BeginDrag()) { problem = "the drag did not begin"; return false; }
+                bool dragged = drag.Drag(target);
+                bool ended = drag.EndDrag();
+                if (!dragged) problem = "the drag did not answer true";
+                else if (!ended) problem = "the drag did not end";
+                return dragged && ended;
+            }
+            catch (Exception ex)
+            {
+                problem = "the drag threw: " + ex.Message;
+                return false;
+            }
         }
 
         /// <summary>The component set back to where it was, rebuilt and read again: the sentence that says how it went.</summary>

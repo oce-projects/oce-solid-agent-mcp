@@ -58,9 +58,10 @@ namespace Oce.Solid.Agent.ContractTests
         /// (`a_wrong_mate_is_taken_out`). **33** (same night, brief R12):
         /// `place_component` (`a_part_is_turned_over_and_placed`).
         /// **34** (27/10/2026, brief §5.1): `parameters`
-        /// (`variables_and_links_in_one_step`).
+        /// (`variables_and_links_in_one_step`). **35** (same day, brief §5.2):
+        /// `extrude_regions` (`three_heights_in_one_step`).
         /// </summary>
-        private const int Floor = 34;
+        private const int Floor = 35;
 
         /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };

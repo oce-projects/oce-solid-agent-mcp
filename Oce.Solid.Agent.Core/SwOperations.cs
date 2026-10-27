@@ -266,7 +266,7 @@ namespace Oce.Solid.Agent.Core
             "plane_three_points", "weldment_profiles", "sketch_picture", "file_dependencies",
             "minimum_distance", "delete_feature",
             "export_iges", "export_pdf", "export_step", "export_stl",
-            "extrude_circle", "extrude_profile", "extrude_rectangle",
+            "extrude_circle", "extrude_profile", "extrude_regions", "extrude_rectangle",
             "extrude_section", "spur_gear",
             "extrude_on_face", "gusset", "cosmetic_thread",
             "hole_wizard", "shell", "insert_component",
@@ -315,7 +315,7 @@ namespace Oce.Solid.Agent.Core
             new HashSet<string>(StringComparer.Ordinal)
             {
                 "extrude_rectangle", "extrude_circle", "extrude_section", "spur_gear",
-                "extrude_profile", "apply_material", "dimension_tolerance", "create_plane",
+                "extrude_profile", "extrude_regions", "apply_material", "dimension_tolerance", "create_plane",
                 "base_flange", "flat_pattern_dxf", "mirror", "revolve", "create_drawing",
                 "set_sheet", "standard_views", "model_view", "model_dimensions",
                 "center_marks", "drawing_dimension", "note", "hole_table",
@@ -406,6 +406,9 @@ namespace Oce.Solid.Agent.Core
                     // first change.
                     case "extrude_profile":
                         return ExtrudeProfile(model, arguments);
+                    // Several regions of one plane at their heights, one step
+                    // (brief §5.2): the same executor, once per region.
+                    case "extrude_regions": return ExtrudeRegions(model, arguments);
                     case "cylindrical_cut": return CylindricalCut(model, arguments, docState);
                     // The hole made the way a hole is made: guided creation,
                     // ISO standard, thread, counterbore, countersink. It lives in
@@ -1286,6 +1289,207 @@ namespace Oce.Solid.Agent.Core
             // body, and whoever thought they were making a hole must be able to read it.
             if (noteContours != null) measurements["note_contours"] = noteContours;
             return Succeeded(feature, measurements, References.PlaneNormal(plane));
+        }
+
+        /// <summary>
+        /// SEVERAL HEIGHTS ON ONE PLANE, IN ONE STEP (brief §5.2). On 24/10/2026
+        /// each half of a channel took six `extrude_profile`, one per height, and
+        /// every step paid its own reading, confirmation and rebuild (brief R2).
+        /// Here the plane and a list of regions, each with its contours and its
+        /// height: every region is checked before the first is drawn
+        /// (<see cref="Regions"/>), then each one is drawn by the executor of
+        /// `extrude_profile`, one sketch and one extrusion, merged with the
+        /// bodies it touches. The answer names, for each region, the feature and
+        /// the dimension of its height, read from the feature, ready for
+        /// `link_dimension` or `parameters`.
+        ///
+        /// A region that fails after others were drawn stops the step and says
+        /// which ones are in the part: the undo entry of the plan holds them
+        /// all, so one undo withdraws the whole step.
+        /// </summary>
+        private Outcome ExtrudeRegions(IModelDoc2 model, Dictionary<string, object> a)
+        {
+            var regions = Regions(a, out string reason);
+            if (regions == null) return Failed(reason);
+            string plane = Str(a, "plane", "front");
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+
+            var done = new List<Dictionary<string, object>>();
+            var names = new List<string>();
+            Outcome last = null;
+            for (int i = 0; i < regions.Count; i++)
+            {
+                var arguments = new Dictionary<string, object>
+                {
+                    ["plane"] = plane,
+                    ["contours"] = regions[i].Contours,
+                    ["thickness_mm"] = regions[i].HeightMm,
+                };
+                Outcome outcome = ExtrudeProfile(model, arguments);
+                if (outcome == null || !outcome.Succeeded)
+                    return Failed("Region " + (i + 1).ToString(inv) + " of " + regions.Count.ToString(inv) + ": " +
+                                  (outcome == null ? "it gave no outcome." : outcome.Error) +
+                                  (names.Count > 0
+                                      ? " The region(s) before it are in the part (" + string.Join(", ", names) +
+                                        "): undo the step and they go with it, then send the regions again."
+                                      : ""));
+
+                string depthProblem;
+                string depth = DepthDimension(outcome.Feature, regions[i].HeightMm, out depthProblem);
+                var entry = new Dictionary<string, object>
+                {
+                    ["region"] = i + 1,
+                    ["feature"] = outcome.CreatedFeature,
+                    ["height_mm"] = regions[i].HeightMm,
+                    ["depth_dimension"] = depth,
+                };
+                if (depth == null) entry["depth_dimension_note"] = depthProblem;
+                Dictionary<string, object> itsMeasurements = outcome.Measurements;
+                if (itsMeasurements != null)
+                {
+                    foreach (string key in new[] { "segments", "sketch_locked", "sketch_lock_note", "note_contours" })
+                    {
+                        object value;
+                        if (itsMeasurements.TryGetValue(key, out value)) entry[key] = value;
+                    }
+                }
+                done.Add(entry);
+                names.Add(outcome.CreatedFeature);
+                last = outcome;
+            }
+
+            var measurements = new Dictionary<string, object>
+            {
+                ["regions"] = done,
+            };
+            object axes;
+            if (last.Measurements != null && last.Measurements.TryGetValue("sketch_axes", out axes))
+                measurements["sketch_axes"] = axes;
+            return Succeeded(last.Feature, measurements, References.PlaneNormal(plane));
+        }
+
+        /// <summary>One region of `extrude_regions`: its contours as they came, and its height.</summary>
+        internal sealed class Region
+        {
+            public object Contours;
+            public double HeightMm;
+        }
+
+        /// <summary>
+        /// The regions of `extrude_regions`, every one checked before anything is
+        /// drawn: a list, each item an object with «contours» that the reader of
+        /// `extrude_profile` accepts and a «height_mm» above zero. Null with the
+        /// reason otherwise. Static and without SOLIDWORKS, so that a contract can
+        /// call it.
+        /// </summary>
+        internal static List<Region> Regions(Dictionary<string, object> a, out string reason)
+        {
+            reason = null;
+            const string nothing = " I drew nothing: every region is checked before the first is drawn.";
+            object raw;
+            if (a == null || !a.TryGetValue("regions", out raw) || raw == null)
+            {
+                reason = "«regions» did not arrive: send a list of regions, each {\"contours\": [...], \"height_mm\": 10}." + nothing;
+                return null;
+            }
+            var list = raw as System.Collections.IEnumerable;
+            if (list == null || raw is string || raw is Dictionary<string, object>)
+            {
+                reason = "«regions» is not a list: write it as [{\"contours\": [...], \"height_mm\": 10}, ...]." + nothing;
+                return null;
+            }
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var regions = new List<Region>();
+            int n = 0;
+            foreach (var item in list)
+            {
+                n++;
+                string which = "Region " + n.ToString(inv);
+                var entry = item as Dictionary<string, object>;
+                if (entry == null)
+                {
+                    reason = which + " is not an object: write it as {\"contours\": [...], \"height_mm\": 10}." + nothing;
+                    return null;
+                }
+                object h;
+                double height = double.NaN;
+                if (entry.TryGetValue("height_mm", out h) && h != null && !(h is string) && !(h is bool))
+                {
+                    try { height = Convert.ToDouble(h, inv); } catch { }
+                }
+                if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0)
+                {
+                    reason = which + ": «height_mm» must be a number of millimetres above zero, and I received «" +
+                             (h == null ? "nothing" : Convert.ToString(h, inv)) + "». Give each region its height." + nothing;
+                    return null;
+                }
+                string why, note;
+                if (Contours(entry, out why, out note) == null)
+                {
+                    reason = which + ": " + why + " Write its «contours» as for extrude_profile." + nothing;
+                    return null;
+                }
+                regions.Add(new Region { Contours = entry["contours"], HeightMm = height });
+            }
+            if (regions.Count == 0)
+            {
+                reason = "«regions» is empty: give at least one region, with its «contours» and «height_mm»." + nothing;
+                return null;
+            }
+            return regions;
+        }
+
+        /// <summary>
+        /// The name of the depth of an extrusion, read from the feature and not
+        /// written by hand (brief §5.2): the dimension of the feature whose value
+        /// is the height asked, named as the driven vertices name theirs, the
+        /// first two parts of IDimension.FullName («D1@Boss-Extrude2»). Null with
+        /// the reason when no dimension of the feature reads that height.
+        /// </summary>
+        private static string DepthDimension(IFeature feature, double heightMm, out string problem)
+        {
+            problem = null;
+            if (feature == null)
+            {
+                problem = "the extrusion gave no feature to read";
+                return null;
+            }
+            try
+            {
+                int seen = 0;
+                object display = feature.GetFirstDisplayDimension();
+                while (display != null)
+                {
+                    IDimension dimension = null;
+                    try { dimension = (display as IDisplayDimension)?.GetDimension2(0); } catch { }
+                    if (dimension != null)
+                    {
+                        seen++;
+                        double readMm = ApiHelpers.ReadDimensionInConfiguration(dimension, "") * 1000.0;
+                        if (!double.IsNaN(readMm) && Math.Abs(readMm - heightMm) <= 1e-3)
+                        {
+                            string complete = "";
+                            try { complete = dimension.FullName ?? ""; } catch { }
+                            var parts = complete.Split('@');
+                            if (parts.Length >= 2) return parts[0] + "@" + parts[1];
+                            problem = "the name of the dimension cannot be read («" + complete + "»)";
+                            return null;
+                        }
+                    }
+                    object next = null;
+                    try { next = feature.GetNextDisplayDimension(display); } catch { }
+                    display = next;
+                }
+                problem = seen.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                          " dimension(s) on the feature, and none reads " +
+                          heightMm.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + " mm";
+                return null;
+            }
+            catch (Exception ex)
+            {
+                problem = "the reading threw: " + ex.Message;
+                return null;
+            }
         }
 
         /// <summary>
@@ -2825,6 +3029,21 @@ namespace Oce.Solid.Agent.Core
                 : null;
         }
 
+        /// <summary>
+        /// THROUGH, UNLESS A DEPTH WAS GIVEN (scenario t15, 27/10/2026): a
+        /// `cylindrical_cut` sent with «depth_mm» 5 and no «through_all» drilled
+        /// through the 20 mm block (1570.8 mm3 = π·5²·20), because «through_all»
+        /// defaulted to true and the depth was dropped without a word. A depth
+        /// given is now a blind cut; «through_all» true written beside it still
+        /// wins, as the catalog says («depth_mm» only if not through), and the
+        /// pair case `limit_pocket_that_covers_everything` sends both on purpose.
+        /// Used by the hole and the slot, whose default is through.
+        /// </summary>
+        private static bool ThroughAllAsked(Dictionary<string, object> a)
+        {
+            return Bool(a, "through_all", !HasReference(a, "depth_mm"));
+        }
+
         private Outcome CylindricalCut(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             string uidFace = Str(a, "face_uid", "");
@@ -2835,7 +3054,7 @@ namespace Oce.Solid.Agent.Core
             if (axes == null) return Failed(error);
 
             double diameter = Num(a, "diameter_mm");
-            bool throughAll = Bool(a, "through_all", true);
+            bool throughAll = ThroughAllAsked(a);
             double depth = Num(a, "depth_mm", 0);
             double x, y;
             if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);
@@ -3349,7 +3568,7 @@ namespace Oce.Solid.Agent.Core
             double length = Num(a, "length_mm");
             double width = Num(a, "width_mm");
             double angle = Num(a, "angle_deg", 0);
-            bool throughAll = Bool(a, "through_all", true);
+            bool throughAll = ThroughAllAsked(a);
             double depth = Num(a, "depth_mm", 0);
             double x, y;
             if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);

@@ -540,13 +540,19 @@ namespace Oce.Solid.Agent.Core
                         return Failed("I wrote «" + w.Left + "» = " + w.AskedMm.ToString("0.###", Inv) + " mm and reading it " +
                                        "back it is " + readMm.ToString("0.###", Inv) + " mm: it is not the variable you wanted." +
                                        IsBackAsItWas(model, photo, PutBackAll(model, em, written), "the equations as they were"));
-                    variableRows.Add(new Dictionary<string, object>
+                    var variableRow = new Dictionary<string, object>
                     {
                         ["name"] = w.Left,
                         ["equation"] = equation,
                         ["value_mm"] = double.IsNaN(readMm) ? null : (object)Math.Round(readMm, 6),
                         ["is_new"] = w.Old == null,
-                    });
+                    };
+                    // WHAT IT WAS, for whoever must put it back: SOLIDWORKS records
+                    // no equation in an undo entry (Checks\UndoGaps, 27/10/2026),
+                    // so «undo» does not withdraw this step and «parameters» with the
+                    // old value is the way back.
+                    if (w.Old != null) variableRow["equation_before"] = w.Old;
+                    variableRows.Add(variableRow);
                     continue;
                 }
                 IDimension dimension = w.Dimension;

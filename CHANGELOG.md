@@ -32,6 +32,83 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.145.0 — 27 October 2026 · library 0.167.0 · undo after «parameters» and «place_component» (scenarios t9b, t14; probe `Checks\UndoGaps`; branch `night-2026-10-26-asm`)
+
+- **Seen on SOLIDWORKS (t14, t9b, 27/10/2026).** After `parameters` (two
+  variables) the plan answered `"undo_entry_recorded": false`, and `undo`
+  withdrew the extrusion of the plan BEFORE it (96000 -> 0 mm3) while the
+  equations stayed, and answered that «the plan was withdrawn whole». After
+  `place_component` the plan answered false too, and `undo` refused.
+- **Measured (`Checks\UndoGaps`, new probe, two runs on 27/10/2026).**
+  - Equations written by `IEquationMgr.Add3` and `EvaluateAll` inside the
+    recording: `FinishRecordingUndoObject` false with `EditRebuild3`,
+    `ForceRebuild3(false)` or no rebuild; one undo took away the feature before
+    them (features 19 -> 18) and the two equations stayed.
+  - A component moved by setting `IComponent2.Transform2`, or by
+    `SetTransformAndSolve2`: false, and one undo took away the component inserted
+    before it.
+  - The same move by `IDragOperator` (absolute transform, `AddComponent`,
+    `BeginDrag`, `Drag`, `EndDrag`): true, and one undo put the component back
+    (x 200 -> 90 mm); with `TransformType` 2 and a turn of 180 degrees about X as
+    well: true, and the undo put back the place and the axes.
+- **`place_component` drags the component** (`DragTo`) instead of setting
+  `Transform2`. The direction test of `mate` still sets `Transform2` and puts it
+  back: the mate itself is recorded, and its undo held on t9b.
+- **The memory of `undo` sees the equations.** The snapshot carries the equations
+  of the document; `WhatDiffers` names a change of them; `MemoryAfterPlan` has a
+  rule 3b: a plan that changed the equations is not remembered, whatever else it
+  did, and the reason says that SOLIDWORKS records no equation in an undo entry and
+  that a variable goes back with `parameters` and the value it had.
+  `parameters` answers `equation_before` for a variable it rewrote.
+- **R10 measured, nothing to fix (t13).** `cylindrical_cut` and `rectangular_cut`
+  keep `AddToDB` true, and one undo withdrew a block with two holes (116732.7 -> 0
+  mm3) and a block with two pockets (114000 -> 0 mm3); two revolves (81681.4 -> 0
+  mm3) with the recipe of 0.143.0.
+- **A depth given alone makes the cut blind (scenario t15).** A `cylindrical_cut`
+  with `depth_mm` 5 and no `through_all` drilled through the 20 mm block (1570.8
+  mm3 removed): `through_all` defaulted to true and the depth was dropped without a
+  word. `cylindrical_cut`, `slot` and `hole_wizard` now default `through_all` to
+  false when `depth_mm` is given (`SwOperations.ThroughAllAsked`); `through_all`
+  true written beside a depth still wins, as the catalog said and as the pair case
+  `limit_pocket_that_covers_everything` sends. The catalog says it. Bench case
+  `a_depth_alone_makes_the_hole_blind` (features: 38). Not yet run on the bench.
+- **Identifiers of an older reading (brief R18, second half), measured (t15).**
+  Block 100 x 60 x 20, read once: F1 the top face (6000 mm2, y = 20), F2 the
+  bottom one, of the same area. A blind hole on F1, then a second plan citing F1 of
+  that same reading: after the first hole the top face is the smaller (5921.46
+  mm2), so by position F1 would be the bottom face; the second hole went into the
+  top face all the same (both bottoms at y = 15 mm, 120000 -> 119607.3 -> 119214.6
+  mm3). With the answer «summary» the signatures of the last reading stay, and the
+  face is found again by its persistent reference. No change to the code.
+- **Contracts.** Zc2114: three situations of the memory with equations, and
+  `WhatDiffers` sees an equation added and one rewritten (9 pairs).
+- **The reason of the equations** says that a variable or a link the plan
+  created stays, since no operation removes an equation yet.
+
+## 0.144.0 — 27 October 2026 · library 0.166.0 · «extrude_regions»: several heights of one plane in one step (brief §5.2; branch `night-2026-10-26-asm`)
+
+- **Seen on 24/10/2026.** Each half of a channel took six `extrude_profile`, one
+  per height, and every step paid its own reading, confirmation and rebuild
+  (brief R2).
+- **`extrude_regions`, new operation.** It takes `plane` and `regions`, each
+  region with its `contours` (the form of `extrude_profile`) and its `height_mm`.
+  Every region is checked before the first is drawn (`SwOperations.Regions`,
+  static, without SOLIDWORKS); then each one is drawn by the executor of
+  `extrude_profile`, one sketch and one extrusion, merged with the bodies it
+  touches. The answer lists, for each region, the feature, the height and
+  `depth_dimension`, the name of the dimension of its height read from the
+  feature (the dimension whose value is the height asked, named as the driven
+  vertices name theirs), ready for `link_dimension` or `parameters`. A region that
+  fails after others were drawn stops the step and names the ones in the part.
+- **Bench case `three_heights_in_one_step`.** Two plates side by side at 10 and
+  20 mm and a square at 30 mm on the first: 68000 mm3, one body; the second
+  height moved to 25 mm by the name the answer gave: 78000 mm3; a height of zero
+  refused with nothing drawn. Not yet run on the bench.
+- **Checks.** Examples 35 (floor 34); refusals with a way forward 266 of 997
+  (the failure of a region after others names them and says to undo the step);
+  the written decision for the required field `extrude_regions.regions`; README
+  104 operations; the bench README counts 12 extrusion cases.
+
 ## 0.143.0 — 27 October 2026 · library 0.165.0 · «parameters» in one step, an empty assembly reads empty, revolve keeps its undo (briefs §5.1, R11, R23; branch `night-2026-10-26-asm`)
 
 - **`parameters`, new operation (brief §5.1).** On 24/10/2026 a part took five

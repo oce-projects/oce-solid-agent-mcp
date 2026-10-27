@@ -247,6 +247,64 @@ namespace Oce.Solid.Agent.Core.Catalog
                 },
                 new OperationSpec
                 {
+                    Name = "extrude_regions",
+                    Family = "extrusions",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Example = "{\"plane\":\"top\",\"regions\":[{\"contours\":[[[0,0],[50,0],[50,40],[0,40]]],\"height_mm\":10},{\"contours\":[[[50,0],[100,0],[100,40],[50,40]]],\"height_mm\":20},{\"contours\":[[[20,10],[40,10],[40,30],[20,30]]],\"height_mm\":30}]}",   // from `three_heights_in_one_step`
+                    Summary =
+                        "Several regions of one plane extruded to different heights in one step: a height map.",
+                    Description =
+                        "Extrudes SEVERAL REGIONS of one plane, each to its own height, in one step: a stepped "
+                        + "plate, the floor of a channel at three depths, a height map. It does what several "
+                        + "«extrude_profile» on the same plane would do, with one reading and one confirmation "
+                        + "for all of them.\n\nEach region has its «contours» (the same form as «extrude_profile»: "
+                        + "the first is the outer edge, the ones after it are voids inside it) and its "
+                        + "«height_mm». Every region is checked before the first is drawn; then each one becomes "
+                        + "a sketch and an extrusion, merged with the bodies it touches. Regions that overlap "
+                        + "merge: the volume counts the overlap once, at the greater height."
+                        + "\n\nThe answer lists, for each region, the feature, the height and «depth_dimension»: the "
+                        + "name of the dimension of its height, read from the feature (for example "
+                        + "«D1@Boss-Extrude2», in the language of the installation), ready for «link_dimension» or "
+                        + "«parameters». If a region fails after others were drawn, the step stops and says which "
+                        + "ones are in the part: one «undo» withdraws the whole step.",
+                    Precondition = "an open part (empty, or with bodies to add to)",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "plane", O(
+                                "type", "string",
+                                "enum", A(
+                                    "front",
+                                    "top",
+                                    "right"),
+                                "description", "construction plane of every region: front, top or right; "
+                                    + "«sketch_axes» in the answer names the model axis each contour axis runs "
+                                    + "along and the direction of the extrusion."),
+                            "regions", O(
+                                "type", "array",
+                                "description", "the regions, in the order they are drawn. Each one: «contours» as in "
+                                    + "«extrude_profile» (polylines of [x_mm, y_mm] or circles), and «height_mm», "
+                                    + "how far that region is extruded.",
+                                "items", O(
+                                    "type", "object",
+                                    "properties", O(
+                                        "contours", O(
+                                            "type", "array",
+                                            "description", "the first contour is the outer edge, the following ones the "
+                                                + "voids inside it: a polyline (list of [x_mm, y_mm], the last vertex joins "
+                                                + "the first by itself) or a circle ({\"circle\": [x, y], \"diameter_mm\": d})"),
+                                        "height_mm", O(
+                                            "type", "number",
+                                            "description", "how far this region is extruded, in mm, above zero")),
+                                    "required", A(
+                                        "contours",
+                                        "height_mm")))),
+                        "required", A(
+                            "regions")),
+                },
+                new OperationSpec
+                {
                     Name = "extrude_rectangle",
                     Family = "extrusions",
                     Example = "{\"plane\":\"front\",\"length_mm\":200,\"width_mm\":120,\"thickness_mm\":20,\"centered\":true}",   // from `blind_slot`
@@ -614,10 +672,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "«slot_relations»."),
                             "through_all", O(
                                 "type", "boolean",
-                                "description", "default: yes"),
+                                "description", "default: yes, unless «depth_mm» is given: then the cut stops at that depth"),
                             "depth_mm", O(
                                 "type", "number",
-                                "description", "only if not through")),
+                                "description", "the depth of a blind cut, in mm; given alone it makes the cut blind, and with «through_all» true it is not used")),
                         "required", A(
                             "x_mm",
                             "y_mm",
@@ -822,10 +880,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                         "y_mm"))),
                             "through_all", O(
                                 "type", "boolean",
-                                "description", "default: yes"),
+                                "description", "default: yes, unless «depth_mm» is given: then the cut stops at that depth"),
                             "depth_mm", O(
                                 "type", "number",
-                                "description", "required if not through")),
+                                "description", "the depth of a blind hole, in mm; given alone it makes the hole blind, and with «through_all» true it is not used")),
                         "required", A(
                             "size",
                             "positions")),
@@ -1881,10 +1939,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "number"),
                             "through_all", O(
                                 "type", "boolean",
-                                "description", "default: yes"),
+                                "description", "default: yes, unless «depth_mm» is given: then the cut stops at that depth"),
                             "depth_mm", O(
                                 "type", "number",
-                                "description", "only if not through")),
+                                "description", "the depth of a blind cut, in mm; given alone it makes the cut blind, and with «through_all» true it is not used")),
                         "required", A(
                             "x_mm",
                             "y_mm",
