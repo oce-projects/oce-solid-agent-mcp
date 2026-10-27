@@ -274,7 +274,8 @@ namespace Oce.Solid.Agent.Core
                 }
                 if (s.InModel != null && already.Contains(s.InModel))
                 {
-                    elsewhere.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 2).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                    // Three decimals, as «dimensions_mm» writes it (report 8cd843 N38).
+                    elsewhere.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " mm: the same extent is already dimensioned in another view)");
                     continue;
                 }

@@ -219,6 +219,43 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// The refusal of a view of an assembly whose overall sizes are all dimensioned
+        /// in other views already (report 8cd843 N38, round 10). It stays a refusal, as
+        /// on a view of a part (the case «the_second_sheet_does_not_repeat_the_dimensions»):
+        /// zero dimensions are not a «done» answer. It said «No dimension was created»,
+        /// as if something had gone wrong, and the refusal lost what the measures say:
+        /// the components measured and the ones the view does not show. Pure, so the
+        /// contract suite reads it.
+        /// </summary>
+        internal static string NothingNewOnTheView(string viewName, IList<string> elsewhere,
+                                                   IEnumerable<string> measured, IList<string> notInView)
+        {
+            return "I touched nothing: in the view «" + viewName + "» of the assembly there is nothing left to dimension " +
+                   "that is not already dimensioned: " + string.Join("; ", elsewhere) + ". Each element is dimensioned " +
+                   "once only in the whole drawing (UNI ISO 129-1): the drawing already carries these sizes, so leave " +
+                   "this step out of the plan." + ComponentsSaid(measured, notInView);
+        }
+
+        /// <summary>
+        /// The components a refusal of a view of an assembly must still name (report
+        /// 8cd843 N38): the ones «components» asked and the view shows, and the ones
+        /// of the assembly it does not show. Empty when «components» was left out.
+        /// </summary>
+        internal static string ComponentsSaid(IEnumerable<string> measured, IList<string> notInView)
+        {
+            string said = "";
+            if (measured != null)
+            {
+                var names = new List<string>(measured);
+                names.Sort(StringComparer.Ordinal);
+                said += " Measured on " + QuotedNames(names) + ", the components asked that this view shows.";
+            }
+            if (notInView != null && notInView.Count > 0)
+                said += " Not in this view: " + QuotedNames(notInView) + ".";
+            return said;
+        }
+
+        /// <summary>
         /// The names of every component of the assembly a view shows, nested ones as
         /// SOLIDWORKS writes them in Name2; null when the view does not show an
         /// assembly or its components cannot be read.
@@ -462,7 +499,9 @@ namespace Oce.Solid.Agent.Core
                     string key = OverallKey(axis, expectedMm);
                     if (alreadyOverall.Contains(key))
                     {
-                        elsewhere.Add(word + " " + expectedMm.ToString("0.##", Ci) + " mm along " + "XYZ"[axis] +
+                        // Three decimals, as «dimensions_mm» writes it: «16.26» stood beside
+                        // 16.258 for the same size (report 8cd843 N38).
+                        elsewhere.Add(word + " " + expectedMm.ToString("0.###", Ci) + " mm along " + "XYZ"[axis] +
                                       " (already dimensioned in another view of this assembly)");
                         continue;
                     }
@@ -569,12 +608,14 @@ namespace Oce.Solid.Agent.Core
                     "I put the dimensions in the view «" + viewName + "», but then I cannot count them again: I cannot " +
                     "tell you how many were created. Look at the drawing, and read it with «inspect_part» before going on.");
             int put = after - before;
+            if (put <= 0 && failed.Count == 0 && elsewhere.Count > 0)
+                return Failed(NothingNewOnTheView(viewName, elsewhere, only, notInView));
             if (put <= 0)
                 return Failed(
                     "No dimension was created on the view «" + viewName + "» of the assembly (" + components.Count +
                     " components, " + all.Count + " edges measured): " +
                     string.Join("; ", failed.Concat(elsewhere)) + ". Read the edges with «inspect_part» and «view_edges», " +
-                    "and name the ones to dimension with «edges».");
+                    "and name the ones to dimension with «edges»." + ComponentsSaid(only, notInView));
 
             var texts = DimensionTexts(drawing);
             var overlapping = TextsThatOverlap(drawing, view, texts);

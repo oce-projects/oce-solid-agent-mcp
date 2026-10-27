@@ -2311,10 +2311,11 @@ namespace Oce.Solid.Agent.Tools
 
         /// <summary>
         /// How many measures of the outcomes are warnings (a key that starts with
-        /// «warning», holding a value). Counted after the compaction: they are the
-        /// ones the reader sees.
+        /// «warning», holding a warning: see SaysAWarning). Counted after the
+        /// compaction: they are the ones the reader sees. Pure, so the contract
+        /// suite reads it.
         /// </summary>
-        private static int WarningsInOutcomes(List<object> outcomes)
+        internal static int WarningsInOutcomes(List<object> outcomes)
         {
             int warnings = 0;
             foreach (var o in outcomes)
@@ -2324,9 +2325,25 @@ namespace Oce.Solid.Agent.Tools
                 var measurements = outcome != null && outcome.TryGetValue("measurements", out m) ? m as Dictionary<string, object> : null;
                 if (measurements == null) continue;
                 foreach (string key in measurements.Keys)
-                    if (measurements[key] != null && key.StartsWith("warning", StringComparison.OrdinalIgnoreCase)) warnings++;
+                    if (key.StartsWith("warning", StringComparison.OrdinalIgnoreCase) && SaysAWarning(measurements[key])) warnings++;
             }
             return warnings;
+        }
+
+        /// <summary>
+        /// Whether the value of a «warning…» key is a warning: a text, or a list with
+        /// something in it. «warnings» 0 of save_document (how many bits of the
+        /// Warnings mask of the save are set) is a number, and it was counted: the
+        /// note said «the 1 warning(s) of the measures stay» over measures with no
+        /// warning (report 8cd843 N37, round 10). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool SaysAWarning(object value)
+        {
+            string text = value as string;
+            if (text != null) return !string.IsNullOrWhiteSpace(text);
+            if (value is IEnumerable<object>)
+                foreach (object item in (IEnumerable<object>)value) return true;
+            return false;
         }
 
         /// <summary>

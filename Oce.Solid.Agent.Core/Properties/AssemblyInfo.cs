@@ -639,8 +639,12 @@ using System.Runtime.InteropServices;
 //          refused (N33); the plan and the bench run one after-step, which does
 //          not rebuild a drawing with nothing unsaved and reads the save flag
 //          after a save (N34); every dimension says what the sheet prints (N35).
-[assembly: AssemblyVersion("0.174.0.0")]
-[assembly: AssemblyFileVersion("0.174.0.0")]
+// 0.174.1: round 10 of report 8cd843 (N38): a view of an assembly whose overall
+//          sizes are all dimensioned elsewhere is refused as on a view of a part,
+//          naming the components measured and the ones the view does not show;
+//          «already dimensioned» lengths with three decimals, as dimensions_mm.
+[assembly: AssemblyVersion("0.174.1.0")]
+[assembly: AssemblyFileVersion("0.174.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -655,4 +659,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.0")]
+[assembly: AssemblyInformationalVersion("0.174.1")]

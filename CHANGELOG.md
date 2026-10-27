@@ -32,6 +32,54 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.1 — 27 October 2026 · library 0.174.1 · tenth round of session 8cd843: N37 and N38 (branch `night-2026-10-26-asm`)
+
+- **Tenth round on SOLIDWORKS (session 8cd843, bridge 0.152.0, 20 calls)**: N33,
+  N34 and N35 held, N36 in part. N33: a name the assembly does not have refused
+  in 30 ms (round 9: 6965 ms) with the 8 names; V2 with the list of V1 measured,
+  `components_not_in_view` «26P000007-1». N34: after a plan that saved and
+  exported the drawing, `document list` false, a second save rebuilt nothing
+  (0.7 ms), and `document close` closed the drawing. N35: «193,7», «17», «16,3»
+  printed and found in the PDF. Real work on copies, in the test position chosen
+  by the owner: the assembly mated (free only the two Solid couplers that decision 6
+  leaves out), 6 interferences for 19.033 mm³ as in round 9, and the drawing made
+  from the start (overall 193.7 × 17 × 16.258, a table of 7 rows matching the
+  assembly, 7 balloons, the general note read back the same, the PDF), closed by
+  the bridge with the assembly and its parts. Two new defects.
+- **N37 (P3)**: the note of the compact answer counted `warnings` 0 of
+  `save_document` (how many bits of the Warnings mask of the save are set) as a
+  warning: «the 1 warning(s) of the measures stay» over measures with none, «3»
+  where there were 2. Now a `warning…` key counts only when it holds a text or a
+  list with something in it (`SaysAWarning`).
+- **N38 (P3)**: a view of an assembly whose overall sizes were all dimensioned in
+  other views answered «No dimension was created», as if something had gone
+  wrong, lost the components measured and the ones the view hides, and wrote
+  «16.26» beside 16.258. It stays a refusal, as on a view of a part (the catalog
+  says it, and the case `the_second_sheet_does_not_repeat_the_dimensions` proves
+  it): zero dimensions are not an answer of «done». Now the refusal says that
+  nothing is left to dimension that is not already dimensioned (UNI ISO 129-1),
+  to leave the step out of the plan, the components measured and the ones not
+  in the view; the other refusals of a view of an assembly name the components
+  too; and an «already dimensioned» length has three decimals, as
+  `dimensions_mm`, on a view of an assembly and of a part.
+- Contract Zc2193 (pure rules and wiring, every changed copy red). Contract suite:
+  935 checks, 2 failed, both because the last bench run is partial; language gate
+  held.
+- Bench, the 17 cases that call `drawing_dimension`: 240 tests, 0 failed,
+  expectations 208 of 208, twins 6 of 6 (report `20261027_1617`). The first run
+  stopped at a call that did not come back (`drawing_dimension` on the side view
+  of `chamfered_shaft_does_not_dimension_the_legs`, idle SOLIDWORKS, no window
+  open), 5 h 48 min into the same SOLIDWORKS session; after a restart of
+  SOLIDWORKS the same cases ran green. A long session as the cause is not
+  tested, a hypothesis. A partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t32 on two copies of the drawing of round 10, bridge
+  0.152.0 against 0.152.1: on V3 «No dimension was created … 16.26» became «I
+  touched nothing: … nothing left to dimension that is not already dimensioned:
+  overall length 16.258 mm …», with the remedy, the 5 components measured and
+  «Not in this view: «26P000009-2»»; a plan of `export_pdf` and `save_document`
+  said «The 1 warning(s) of the measures stay» over `warnings` 0 alone, and now
+  says no warning.
+
 ## 0.152.0 — 27 October 2026 · library 0.174.0 · ninth round of session 8cd843: N33 to N36 (branch `night-2026-10-26-asm`)
 
 - **Ninth round on SOLIDWORKS (session 8cd843, bridge 0.151.0, 53 calls)**: N29 to
