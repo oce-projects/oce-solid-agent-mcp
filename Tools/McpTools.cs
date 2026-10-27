@@ -4110,8 +4110,10 @@ namespace Oce.Solid.Agent.Tools
             if (memory == null)
                 return Protocol.Content(
                     "I have no plan to withdraw: «undo» reverses the last " +
-                    "«build» of this conversation, and here I have not yet " +
-                    "run any that built something.\n\n" +
+                    "«build» of this conversation, and " +
+                    (_noMemoryBecause != null
+                        ? "I keep no memory of the last one, for the reason below.\n\n"
+                        : "here I have not yet run any that built something.\n\n") +
                     "I do not press undo blindly: I would remove something I did not " +
                     "do myself, and I could not even say what." +
                     (_noMemoryBecause != null ? "\n\n" + _noMemoryBecause : "") +

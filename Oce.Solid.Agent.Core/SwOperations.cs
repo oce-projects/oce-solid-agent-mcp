@@ -1813,11 +1813,25 @@ namespace Oce.Solid.Agent.Core
         /// the open sketch holds, within a ten-thousandth of a mm; empty when
         /// every one is there, null when the points cannot be read. Circles and
         /// splines are not checked: their points are not vertices.
+        ///
+        /// THE POINTS ARE READ ONCE (27/10/2026): every vertex was compared with
+        /// every point by reading ISketchPoint.X and .Y again, two calls out of
+        /// process per comparison. A wheel of 17 teeth has 136 vertices of lines
+        /// and some 170 points: tens of thousands of COM calls. On the first
+        /// full bench after brief R11 the wheel stopped the run at 94 s, and
+        /// alone it took 19.8 s (scenario t16); how much of that was this loop
+        /// was not measured.
         /// </summary>
         private static List<double[]> VerticesNotDrawn(ISketch sketch, List<Contour> contours)
         {
             object[] points = sketch == null ? null : sketch.GetSketchPoints2() as object[];
             if (points == null) return null;
+            var drawn = new List<double[]>(points.Length);
+            foreach (var raw in points)
+            {
+                var p = raw as ISketchPoint;
+                if (p != null) drawn.Add(new[] { p.X * 1000.0, p.Y * 1000.0 });
+            }
             var notDrawn = new List<double[]>();
             foreach (Contour contour in contours)
             {
@@ -1826,7 +1840,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     if (stroke.Spline) continue;
                     foreach (double[] vertex in stroke.Points)
-                        if (SketchPointAt(points, vertex) == null) notDrawn.Add(vertex);
+                        if (!DrawnAt(drawn, vertex)) notDrawn.Add(vertex);
                 }
             }
             return notDrawn;
@@ -1865,6 +1879,14 @@ namespace Oce.Solid.Agent.Core
                 return false;
             }
             return true;
+        }
+
+        /// <summary>A point read from the sketch (mm, x and y) at a vertex (mm), within a ten-thousandth of a mm.</summary>
+        private static bool DrawnAt(List<double[]> drawn, double[] vertexMm)
+        {
+            foreach (double[] d in drawn)
+                if (Math.Abs(d[0] - vertexMm[0]) < 1e-4 && Math.Abs(d[1] - vertexMm[1]) < 1e-4) return true;
+            return false;
         }
 
         /// <summary>The point of the sketch at a vertex (mm), within a ten-thousandth of a mm, or null.</summary>

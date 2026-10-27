@@ -1,11 +1,11 @@
 {
   "name": "a_face_is_named_by_a_point",
   "family": "assemblies",
-  "why": "BRIEF R12 (25/10/2026). A mate took its faces by direction only, and among the faces that look the same way the largest: on 26P000007 «up» took the bottom of the channel (598.7 mm2) instead of the face to mate (396.9 mm2), and a curved face could never be named, so concentric and tangent were refused. A face can now be named by a point of the assembly, {\"point_mm\": [x, y, z]}, planar or curved. Geometry: C1 is a cylinder Ø20 x 30, its box centred on the origin, so its axis is the y axis, its side passes through [10, 0, 0] and its top is at y 15. C2 is a cylinder Ø10 x 20 inserted with its box centre at [40, 20, 0]: its axis is at x 40, its side passes through [45, 20, 0], its bottom is at y 10.",
+  "why": "BRIEF R12 (25/10/2026). A mate took its faces by direction only, and among the faces that look the same way the largest: on 26P000007 «up» took the bottom of the channel (598.7 mm2) instead of the face to mate (396.9 mm2), and a curved face could never be named, so concentric and tangent were refused. A face can now be named by a point of the assembly, {\"point_mm\": [x, y, z]}, planar or curved. Geometry: C1 is a cylinder Ø20 x 30, its box centred on the origin, so its axis is the y axis, its side passes through [10, 0, 0] and its top is at y 15. C2 is a cylinder Ø10 x 20 inserted with its box centre at [40, 20, 0]: its axis is at x 40, its side passes through [45, 20, 0], its bottom is at y 10. The components are numbered by NAME, not by the order they are inserted in (first run, 27/10/2026: with «shaft» and «pin» C1 was the pin, and [10, 0, 0] fell 26.926 mm from it): the shaft is called «axle» so that it is C1.",
   "defect_caught": "A point carried into the part with the transform the wrong way round (it finds no face, or another one); a curved face that is still refused; a point on no face taken as the nearest one; concentric between two faces by direction that is not refused before touching anything.",
   "assembly": {
     "components": [
-      { "name": "shaft",
+      { "name": "axle",
         "steps": [
           { "operation": "extrude_circle",
             "arguments": { "plane": "top", "diameter_mm": 20, "height_mm": 30 } }

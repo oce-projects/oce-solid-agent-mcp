@@ -32,6 +32,42 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.145.1 — 27 October 2026 · library 0.167.1 · what the first full bench after the brief found (branch `night-2026-10-26-asm`)
+
+- **The first full bench since 9/10/2026** (commit bdc70c6, library 0.167.0,
+  13827 s, SOLIDWORKS restarted before it): 1881 checks passed, 2 red, and the run
+  stopped as INVALID at `the_seventeen_tooth_gear_can_be_made`: «spur_gear» had
+  not answered after 94 s (threshold 90). Alone on the same SOLIDWORKS, right
+  after, the same wheel took 19.8 s, was right (8808.6 mm3, 170 segments) and one
+  undo withdrew it: the stop came from a SOLIDWORKS session that had made 340 parts
+  in four hours, not from the bridge.
+- **Red 1, a check older than brief R18.** `document: after a document change
+  «build» insists on looking first` sent an extrusion right after `document`
+  «create» and asked the refusal «not looked at any part yet». Since 0.139.0 a plan
+  that cites no identifier runs without a reading, so the extrusion ran. The check
+  now sends a plan that cites «F1» and asks the refusal that names it and
+  «inspect_part», with the part still empty.
+- **Red 2, a case that numbered the components by insertion.**
+  `a_face_is_named_by_a_point` called them «shaft» and «pin» and expected C1 to be
+  the shaft; the state numbers components by NAME, so C1 was the pin and [10, 0, 0]
+  fell 26.926 mm from it (its origin at [40, 10, 0]: radially 30 - 5 = 25, and 10
+  below its bottom). The shaft is called «axle» now.
+- **The opening of the refusal of `undo`** said «here I have not yet run any that
+  built something» also when the last plan had built and the memory was dropped
+  with a reason (t14: the equations); it now says that no memory of the last plan
+  is kept, for the reason that follows.
+- **The consumed string of the document check is bound again**
+  (`Checks/language/consumed-strings.json`, `bench-client-not-looked-yet`): it
+  pointed at the old literal of `Bench/ClientPort.cs` and the contracts said so; it
+  now points at «inspect_part» on line 261, produced by `Tools/McpTools.cs`. 39
+  entries, 0 broken.
+- **Library 0.167.1: the points of a sketch are read once.** `VerticesNotDrawn`
+  compared every vertex of a profile with every point of the sketch by reading
+  `ISketchPoint.X` and `.Y` again each time: two calls out of process per
+  comparison, tens of thousands for a wheel of 17 teeth. It now reads the points
+  into a list once and compares numbers. Whether this was the slowness of
+  «spur_gear» was NOT measured: it is the next measure on SOLIDWORKS (scenario t16).
+
 ## 0.145.0 — 27 October 2026 · library 0.167.0 · undo after «parameters» and «place_component» (scenarios t9b, t14; probe `Checks\UndoGaps`; branch `night-2026-10-26-asm`)
 
 - **Seen on SOLIDWORKS (t14, t9b, 27/10/2026).** After `parameters` (two

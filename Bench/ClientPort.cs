@@ -245,16 +245,21 @@ namespace Oce.Solid.Agent.Bench
                   active != null && TestVolume(active) < 0.001,
                   active == null ? "(nothing in front)" : TestVolume(active).ToString("0.###") + " mm3");
 
-            // ── RED BY CONSTRUCTION: build right after, without looking ─
+            // ── RED BY CONSTRUCTION: an identifier right after, without looking ─
             //
-            // The document in front has changed by the bridge's own hand. What
-            // had been looked at no longer holds, and «build» must say so instead
-            // of writing into a part that the model has never seen.
+            // The document in front has changed by the bridge's own hand. The
+            // identifiers are born from «inspect_part» and none was read on this
+            // part, so a plan that cites one must be refused before it writes.
+            // Since brief R18 (bridge 0.139.0) a plan that cites NO identifier
+            // runs without a reading: the extrusion this check sent until
+            // 27/10/2026 now runs, as it should, and the check asked the old
+            // refusal (first full bench after R18).
             var immediately = ResponseText(Mcp.Ask(p, 8, Call(8, "build",
-                "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
-                "{\"length_mm\":10,\"width_mm\":10,\"thickness_mm\":10}}]}")));
-            Check("document: after a document change «build» insists on looking first",
-                  immediately.IndexOf("not looked at any part yet", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                "{\"steps\":[{\"operation\":\"cylindrical_cut\",\"arguments\":" +
+                "{\"face_uid\":\"F1\",\"x_mm\":0,\"y_mm\":0,\"diameter_mm\":5}}]}")));
+            Check("document: after a document change a plan that cites an identifier is refused until a reading",
+                  immediately.IndexOf("inspect_part", StringComparison.Ordinal) >= 0 &&
+                  immediately.IndexOf("F1", StringComparison.Ordinal) >= 0 &&
                   (active == null || TestVolume(active) < 0.001),
                   Short(immediately));
 

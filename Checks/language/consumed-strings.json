@@ -431,9 +431,9 @@
       "what": "after a change of document the bridge refuses to draw until the part is inspected",
       "consumer": {
         "file": "Bench/ClientPort.cs",
-        "sha1": "bd347a2ea3ac",
+        "sha1": "44f859f32135",
         "kind": "literal",
-        "line_hint": 256
+        "line_hint": 261
       },
       "producers": [
         "Tools/McpTools.cs"

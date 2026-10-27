@@ -599,8 +599,10 @@ using System.Runtime.InteropServices;
 // 0.167.0: place_component moves the component with IDragOperator: setting
 //          Transform2 left the undo entry of the plan empty (Checks\UndoGaps).
 //          parameters answers equation_before for a variable it rewrote.
-[assembly: AssemblyVersion("0.167.0.0")]
-[assembly: AssemblyFileVersion("0.167.0.0")]
+// 0.167.1: VerticesNotDrawn reads the points of the sketch once instead of
+//          two COM calls per vertex and per point.
+[assembly: AssemblyVersion("0.167.1.0")]
+[assembly: AssemblyFileVersion("0.167.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -615,4 +617,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.167.0")]
+[assembly: AssemblyInformationalVersion("0.167.1")]
