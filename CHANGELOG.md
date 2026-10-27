@@ -32,6 +32,16 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.145.2 — 27 October 2026 · library 0.167.1 · the number of operations in the refusal of an unknown tool (branch `night-2026-10-26-asm`)
+
+- **The refusal of a tool that does not exist said «The sixty drawing
+  OPERATIONS are not tools»** with 104 operations in the catalog. Seen while
+  driving the bridge from a script (a call with a wrong tool name, 27/10/2026).
+  The number now comes from the catalog (`Catalog.HowMany`), and is left out when
+  the catalog did not load.
+- **Contract check** (`Tests/ProtocolTests.cs`): the refusal names the number of
+  operations that the «total» of `list_operations` gives.
+
 ## 0.145.1 — 27 October 2026 · library 0.167.1 · what the first full bench after the brief found (branch `night-2026-10-26-asm`)
 
 - **The first full bench since 9/10/2026** (commit bdc70c6, library 0.167.0,

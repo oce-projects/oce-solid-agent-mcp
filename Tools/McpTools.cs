@@ -1141,10 +1141,16 @@ namespace Oce.Solid.Agent.Tools
                     // are seven: they fit in one line, and cost less than one more
                     // run. It is the same rule as the refusals of the
                     // operations — the criterion, not the verdict.
+                    //
+                    // THE NUMBER OF OPERATIONS COMES FROM THE CATALOG (27/10/2026):
+                    // this sentence said «sixty» with 104 operations in the
+                    // catalog, seen by a client that asked a wrong name. A number
+                    // written in a message ages like the one in the README.
                     return Protocol.Content(
                         "I do not know the tool «" + itemName + "». The tools are " +
                         "these: " + string.Join(", ", ToolNames) + ". " +
-                        "The sixty drawing OPERATIONS are not tools: " +
+                        "The " + (_catalog.LoadingError == null ? _catalog.HowMany + " " : "") +
+                        "drawing OPERATIONS are not tools: " +
                         "they are asked of «build» (or of «measure», if they only read " +
                         "and change nothing) and are listed with «list_operations».", true);
             }
