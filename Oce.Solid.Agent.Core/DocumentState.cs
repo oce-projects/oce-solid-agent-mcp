@@ -730,6 +730,24 @@ namespace Oce.Solid.Agent.Core
             if (docType == (int)swDocumentTypes_e.swDocASSEMBLY)
             {
                 DescribeAssembly(model as IAssemblyDoc, data);
+                // THE PROPERTIES OF THE ASSEMBLY TOO (report 8cd843 N28, round 7):
+                // the state of an assembly had no «property», and the title
+                // block of its drawing reads them ($PRPSHEET takes them from the
+                // model of the view): 20 of 26 fields were empty, and nothing said
+                // what the assembly holds. The same two drawers as a part's, and
+                // «property» always, even empty: on an assembly the empty list is
+                // the answer to «why is the title block empty».
+                data["property"] = ReadProperty(model, "");
+                try
+                {
+                    object assemblyConfiguration;
+                    if (data.TryGetValue("configuration", out assemblyConfiguration))
+                    {
+                        var config = ReadProperty(model, Convert.ToString(assemblyConfiguration) ?? "");
+                        if (config.Count > 0) data["configuration_properties"] = config;
+                    }
+                }
+                catch { }
                 docState.Data = data;
                 return docState;
             }

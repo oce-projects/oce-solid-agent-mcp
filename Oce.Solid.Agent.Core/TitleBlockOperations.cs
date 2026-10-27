@@ -58,6 +58,30 @@ namespace Oce.Solid.Agent.Core
         private static readonly Regex Connection =
             new Regex("\\$PRP(SHEET)?:\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
 
+        /// <summary>
+        /// Does the note show only the fixed text written around its links (report
+        /// 8cd843 N25)? The text the note asks for, with every link taken out,
+        /// leaves its fixed pieces (« » and «Kg» of `$PRPSHEET:"Peso"
+        /// $PRPSHEET:"MASSA"Kg`); each piece is taken out of what the note shows,
+        /// once, and if nothing but blanks is left no link brought a value. An
+        /// empty show counts as only fixed text too. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static bool ShowsOnlyFixedText(string asks, string show)
+        {
+            if (string.IsNullOrWhiteSpace(show)) return true;
+            if (string.IsNullOrEmpty(asks)) return false;
+            string rest = show;
+            foreach (var piece in Connection.Replace(asks, "\u0001").Split('\u0001'))
+            {
+                var fixedText = piece.Trim();
+                if (fixedText.Length == 0) continue;
+                int at = rest.IndexOf(fixedText, StringComparison.Ordinal);
+                if (at >= 0) rest = rest.Remove(at, fixedText.Length);
+            }
+            return rest.Trim().Length == 0;
+        }
+
         private Outcome TitleBlock(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
@@ -102,7 +126,12 @@ namespace Oce.Solid.Agent.Core
                 // A LINKED FIELD THAT SHOWS NOTHING IS THE DEFECT.
                 // It is not «empty on purpose»: it is a link that did not
                 // find its property.
-                bool showNothing = string.IsNullOrWhiteSpace(show);
+                //
+                // AND THE FIXED TEXT AROUND THE LINKS IS NOT A VALUE (report 8cd843
+                // N25, round 7): `$PRPSHEET:"Peso" $PRPSHEET:"MASSA"Kg` showed « Kg»,
+                // and «Peso» and «MASSA» were counted as shown with both empty.
+                bool onlyFixed = names.Count > 0 && ShowsOnlyFixedText(asks, show);
+                bool showNothing = string.IsNullOrWhiteSpace(show) || onlyFixed;
                 if (names.Count > 0 && showNothing)
                     foreach (var x in names)
                         if (!empty.Contains(x, StringComparer.Ordinal)) empty.Add(x);
@@ -125,6 +154,7 @@ namespace Oce.Solid.Agent.Core
                     ["shows"] = show ?? "",
                 };
                 if (names.Count > 0) entry["property"] = names.ToArray();
+                if (onlyFixed && !string.IsNullOrWhiteSpace(show)) entry["only_fixed_text"] = true;
                 fields.Add(entry);
             }
 

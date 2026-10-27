@@ -32,6 +32,102 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.150.1 — 27 October 2026 · library 0.172.1 · what the replay of the round 7 fixes found (branch `night-2026-10-26-asm`)
+
+- **The replay**: the 16 calls of round 7 that showed N23 to N28, run on SOLIDWORKS
+  twice on fresh copies, with the shared bridge 0.149.0 and with 0.150.0
+  (scenarios t26o and t26n). Before and after: N23 two chamfer dimensions of 0.4
+  and -0.4 mm, then the overall size 175 x 31.55 mm (the same as `GetBox` of the
+  eight components in the probe: 87.5 x 15.775 mm of sheet at 1:2); N24 undo with
+  no reason and `delete_annotation` unknown, then the reason with its remedy and a
+  dimension (2 -> 1) and a note (75 -> 74) taken away; N25 the « Kg» field marked
+  `only_fixed_text`; N26 the part still not marked modified after `set_property`,
+  then `unsaved_changes_after_write` false, marked, and `document list` saying
+  unsaved; N28 no `property`, then `property` (empty) on the assembly.
+- **N27 sat in the wrong place.** In report 8cd843 (call 009) `create_drawing`
+  answered a default name and it was `standard_views` that renamed the drawing
+  after the assembly, taking the title of the saved drawing already open; the
+  replay gave a default name to `create_drawing` alone too. A warning in
+  `create_drawing` only never fires on the case it was written for. Now
+  `TellTitle` writes `document_title` and `warning_same_title` in `create_drawing`
+  and in the three operations that put a model view on the sheet:
+  `standard_views`, `model_view`, `flat_pattern_view`.
+- **A note asked on the sheet went into a view.** After `drawing_dimension` the view
+  it dimensioned stayed active, and `note` at 20, 250 mm landed inside it: notes of
+  the views 7 -> 8, of the sheet 67 -> 67, and the answer and the log said «on the
+  sheet». The new case `note_after_a_dimension_stays_on_the_sheet` was run first
+  on 0.150.0 and was red (`notes_views_after 1 (expected 0)`). Now `note` calls
+  `IDrawingDoc.EditSheet` before `InsertNote` (the guide, Remarks: «Subsequently
+  created geometry resides on this drawing sheet.»), says `attached_to` (sheet,
+  view or both, read from the two counters), and `warning_in_view` with the name,
+  the counts and `delete_annotation` when it is not the sheet.
+- **Checks**: contract Zc2190 gets the pure rules `NoteAttachedTo` and
+  `NoteInViewWarning`, six more lines of wiring, `TellTitle` counted in 2 places
+  of `DrawingOperations.cs`, and `EditSheet` before `InsertNote`, each with its
+  changed copy that must turn red. Bench README: drawing cases 45 -> 46.
+
+## 0.150.0 — 27 October 2026 · library 0.172.0 · seventh round of session 8cd843: N23 to N28 (branch `night-2026-10-26-asm`)
+
+- **Seventh round on SOLIDWORKS (session 8cd843, bridge 0.149.0, 36 calls)**: a
+  drawing of the assembly on a copy. Six new defects: one P1, two P2, three P3.
+  The empty «Descrizione» column of the bill of materials is not one of them: the
+  property to read is «Denominazione», and the template is changed by its owner.
+- **N23 (P1)**: `drawing_dimension {view: V1, count: 3}` on the front view of the
+  assembly placed 1.725, 15.23° and 159.25° and called them placed. Cause,
+  measured with a read-only probe on a copy of the drawing: on a view of an
+  ASSEMBLY `GetVisibleEntities2` hands over the edges of the components, and
+  `GetCurveParams3` gives their ends in the coordinates of the PART. Projected
+  with the view transform alone, every edge of a component placed away from the
+  origin lands elsewhere on the sheet (26P000010-1, moved by [-60, 0, 50]: box
+  60.25..68.75 mm, raw projection 90.25..98.75 mm). Composed with
+  `IComponent2.Transform2` first, the extent of each of the 8 components equals
+  its `GetBox`. Fixed in the three projections that read edges of a view
+  (`ReadEdge`, `CircleOnSheet`, the segments of the text overlap) through
+  `ToSheetOf`. A view of an assembly now takes its own path
+  (`DimensionAssemblyView`): the overall size along the axes of the sheet,
+  between the outermost straight edges, checked against what the view shows
+  (`OverallEdgesProblem`), not repeated between views (`OverallKey`), and the
+  value read back compared with the expected one; or the edges named by their
+  index. The new argument `overall` (`both`, `horizontal`, `vertical`, `none`)
+  says which. A chamfer dimension read back with an angle outside (0°, 90°) or a
+  leg of zero or less is taken away and listed in `failed`
+  (`ChamferValuesProblem`), and so is any dimension read back at zero or less.
+  `inspect_part` takes `view_edges` (`{view, component, limit}`): the edges of a
+  drawing view with their kind, length, component and position on the sheet, so
+  a plan can name them.
+- **The same cause elsewhere**: `center_marks` judged and placed the holes of an
+  assembly view with `ModelToViewTransform` alone, and the datums, surface
+  finishes and tolerance frames picked the side of the view among edges
+  projected the same way. Both now go through `ToSheetOf`. The hole table and
+  the flat pattern view read `ModelToViewTransform` alone too, but they refuse a
+  view that does not show a part, so an assembly never reaches them.
+- **N24 (P2)**: `undo` after a dimension on the drawing answered that no plan
+  had built anything and proposed `delete_feature`, which does not take a
+  dimension away. After a plan that worked on a drawing, the undo now says why
+  it keeps no plan (`DrawingPlanMemoryReason`: SOLIDWORKS records no undo entry
+  for it) and proposes the new operation `delete_annotation` (family drawing):
+  it takes away one dimension by its name (`RD1@Drawing View1@...`, or what
+  comes before an «@») or one note by its name or exact text, on the current
+  sheet, and says «removed» only when nothing answers to the name any more.
+  `note` now gives the `name` of the note it placed. 105 operations.
+- **N25 (P3)**: the title block counted as shown the weight field, two sheet
+  property links followed by «Kg», showing « Kg». A field that shows only
+  the fixed text around its links (`ShowsOnlyFixedText`) is counted as empty and
+  marked `only_fixed_text`.
+- **N26 (P3)**: after `set_property` the document kept `unsaved_changes` false.
+  The flag is read after the write; when SOLIDWORKS did not raise it, the bridge
+  calls `SetSaveFlag` and reads it again (`unsaved_changes_after_write`,
+  `unsaved_changes`, `warning_unsaved`).
+- **N27 (P3)**: `create_drawing` made a drawing with the title of one already
+  open, without a word. It now answers `document_title` and, when another open
+  document has it, `warning_same_title` with the remedy (`save_document` in the
+  same plan).
+- **N28 (P3)**: `inspect_part` of an assembly gave no `property` key. It now
+  always does (empty when the assembly has none), with
+  `configuration_properties` when there are some.
+- Contract `Zc2190DrawingRound7Contract`: the pure rules above by reflection,
+  and the wiring on the sources, each line first turned red on a changed copy.
+
 ## 0.149.0 — 27 October 2026 · library 0.171.0 · sixth round of session 8cd843: N17 to N22 (branch `night-2026-10-26-asm`)
 
 - **Sixth round on SOLIDWORKS (session 8cd843, bridge 0.148.1, 25 calls)**: held

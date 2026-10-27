@@ -176,10 +176,17 @@ namespace Oce.Solid.Agent.Core
                     if (c == null || cp == null) continue;
                     var tess = c.GetTessPts(1e-4, 1e-3, cp.StartPoint, cp.EndPoint) as double[];
                     if (tess == null || tess.Length < 6) continue;
+                    // THE COMPONENT'S PLACEMENT FIRST on a view of an assembly (report
+                    // 8cd843 N23, see ToSheetOf): without it the lines of every clip
+                    // were looked for on the same 8 mm of the sheet.
+                    IComponent2 component;
+                    MathTransform placement;
+                    var toSheet = ToSheetOf(o, tr, out component, out placement);
+                    if (toSheet == null) continue;
                     double[] prec = null;
                     for (int i = 0; i + 2 < tess.Length; i += 3)
                     {
-                        var q = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { tess[i], tess[i + 1], tess[i + 2] })).MultiplyTransform(tr)).ArrayData as double[];
+                        var q = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { tess[i], tess[i + 1], tess[i + 2] })).MultiplyTransform(toSheet)).ArrayData as double[];
                         if (q == null) continue;
                         if (prec != null) outside.Add(new[] { prec[0], prec[1], q[0], q[1] });
                         prec = q;

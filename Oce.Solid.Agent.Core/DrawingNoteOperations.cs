@@ -113,6 +113,17 @@ namespace Oce.Solid.Agent.Core
                     "I cannot count the notes of the drawing before starting: without that number " +
                     "I could not tell you whether the note was created. I touched nothing.");
 
+            // ── ON THE SHEET, NOT IN THE VIEW THE PLAN BEFORE LEFT ACTIVE ──
+            //
+            // `InsertNote` writes into the ACTIVE view when there is one. After
+            // «drawing_dimension» the view it dimensioned stays active, and in the
+            // replay of round 7 (27/10/2026, t26n) the note asked at 20, 250 mm went
+            // inside it: notes of the views 7 -> 8, of the sheet 67 -> 67. The case
+            // note_after_a_dimension_stays_on_the_sheet saw it red on bridge 0.150.0.
+            // The guide, IDrawingDoc.EditSheet, Remarks: «Subsequently created
+            // geometry resides on this drawing sheet.»
+            try { drawing.EditSheet(); } catch { }
+
             object born = null;
             try
             {
@@ -168,9 +179,18 @@ namespace Oce.Solid.Agent.Core
             try { if (note != null) reread = note.GetText(); } catch { }
 
             double[] whereMm = WhereItEnded(note);
+            // ITS NAME, so that «delete_annotation» can take it away (report
+            // 8cd843 N24): until bridge 0.149.0 nothing gave it.
+            string noteName = null;
+            try { if (note != null) noteName = note.GetName(); } catch { }
+            // WHERE IT WENT, read from the two counters: until 0.150.0 the answer and
+            // the log said «on the sheet» whatever had happened.
+            string attachedTo = NoteAttachedTo(sheetBefore, sheetAfter, viewsBefore, viewsAfter);
 
             var outside = new Dictionary<string, object>
             {
+                ["name"] = noteName,
+                ["attached_to"] = attachedTo,
                 ["sheet"] = sheetName,
                 ["sheet_mm"] = new object[] { wideMm, topMm },
                 // TWO COUNTS, NEVER ADDED INTO ONE: see the docstring.
@@ -196,9 +216,36 @@ namespace Oce.Solid.Agent.Core
                     "not look at whether it overlaps the drawing or the title block.",
             };
 
-            _log("[agent] note on the sheet «" + sheetName + "»: " +
-                 (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
+            if (attachedTo != "sheet")
+                outside["warning_in_view"] = NoteInViewWarning(noteName, sheetBefore, sheetAfter, viewsBefore, viewsAfter);
+
+            _log("[agent] note " + (attachedTo == "sheet" ? "on the sheet «" + sheetName + "»" : "inside a view of «" + sheetName + "»") +
+                 ": " + (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
             return WithoutFeature(outside);
+        }
+
+        /// <summary>
+        /// Where a new note went, from the counts of the sheet and of the views before
+        /// and after: «sheet» when only the sheet went up, «view» when only the views
+        /// did, «both» otherwise. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NoteAttachedTo(int sheetBefore, int sheetAfter, int viewsBefore, int viewsAfter)
+        {
+            bool onSheet = sheetAfter > sheetBefore, inView = viewsAfter > viewsBefore;
+            if (onSheet && !inView) return "sheet";
+            if (inView && !onSheet) return "view";
+            return "both";
+        }
+
+        /// <summary>
+        /// What a note that did not land on the sheet must say. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static string NoteInViewWarning(string name, int sheetBefore, int sheetAfter, int viewsBefore, int viewsAfter)
+        {
+            return "The note «" + (name ?? "?") + "» went inside a view, not on the sheet (notes of the sheet " + sheetBefore +
+                   " -> " + sheetAfter + ", of the views " + viewsBefore + " -> " + viewsAfter + "): it moves with that view " +
+                   "and goes away with it. Take it away with «delete_annotation» and its name, and ask for it again.";
         }
 
         /// <summary>

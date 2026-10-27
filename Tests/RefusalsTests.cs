@@ -294,8 +294,12 @@ namespace Oce.Solid.Agent.ContractTests
         /// (brief R11) refuses a vertex that snapping drew elsewhere: 265 of 996.
         /// **266 (same day): +1.** extrude_regions (brief §5.2) says which regions
         /// are in the part when one fails after them, and to undo the step: 266 of 997.
+        /// **278 (same day, round 7 of report 8cd843): +12.** delete_annotation
+        /// (N24) says in each refusal that it touched nothing and what to write
+        /// instead; the dimensions of an assembly view (N23) say which edges and
+        /// what to ask for: 278 of 1009.
         /// </summary>
-        private const int Floor = 266;
+        private const int Floor = 278;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -309,8 +313,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 266;   // 27/10/2026, extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 997;
+        private const int ShareFloorWithRemedy = 278;   // 27/10/2026, round 7 of report 8cd843 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1009;
 
         /// <summary>
         /// The openings with which this code says no.

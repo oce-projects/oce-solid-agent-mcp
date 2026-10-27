@@ -485,11 +485,13 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("the memory decided by hand", "= MemoryAfterPlan(", "= MemoryAfterPlanByHand("),
                 Change("the window of a refused plan taken for its document", " && !planRun.StoppedBeforeWriting;", ";"),
                 Change("an assembly never counted as built (R23)", "AssemblyBuilt(snapshotBefore, snapshotAfter)", "false"),
-                Change("N11: the refusal of undo said only by the undo", "if (memoryAction == MemoryDrop && somethingToWithdraw)", "if (false)"),
+                Change("N11: the refusal of undo said only by the undo", "if (memoryAction == MemoryDrop && (somethingToWithdraw || drawingReason))", "if (false)"),
                 Change("N12: a stopped plan silent about what stays", "result[\"note_stopped\"] =", "result[\"note_quiet\"] ="),
+                Change("N24: a plan on a drawing gives the undo no reason", "memoryReason = onDrawing;", "memoryReason = null;"),
+                Change("N24: the drawing remedy never chosen", "_noMemoryOnDrawing = onDrawing != null && memoryReason == onDrawing;", "_noMemoryOnDrawing = false;"),
             });
             Check("the after-plan check turns red on each changed copy", afterPlanRed.Count == 0,
-                  afterPlanRed.Count == 0 ? "17 changes, each one red" : string.Join(" | ", afterPlanRed));
+                  afterPlanRed.Count == 0 ? "19 changes, each one red" : string.Join(" | ", afterPlanRed));
 
             var front = PlanFrontProblems(tools);
             Check("before a plan: no part looked at is refused before the reading (N17), an exchange the assembly cannot have is refused before any step (N18)",
@@ -532,9 +534,11 @@ namespace Oce.Solid.Agent.ContractTests
                        "if (before.Assembly && !(back.AssemblyRead && before.AssemblyRead))", "if (false)"),
                 Change("a refused plan said withdrawn whole (report 8cd843 N10)",
                        "outside[\"note\"] = memory.Refused", "outside[\"note\"] = false"),
+                Change("delete_feature offered after a plan on a drawing (report 8cd843 N24)",
+                       "(_noMemoryOnDrawing && _noMemoryBecause != null ? DrawingNoMemoryRemedy : NoMemoryRemedy)", "NoMemoryRemedy"),
             });
             Check("the `undo` check turns red on each changed copy", undoRed.Count == 0,
-                  undoRed.Count == 0 ? "10 changes, each one red" : string.Join(" | ", undoRed));
+                  undoRed.Count == 0 ? "11 changes, each one red" : string.Join(" | ", undoRed));
 
             var finish = ExecutorProblems(executor);
             Check("the executor hands on what FinishRecordingUndoObject answered for the plan's document",
@@ -638,9 +642,17 @@ namespace Oce.Solid.Agent.ContractTests
             // Report 8cd843 N11 and N12 (27/10/2026): «undo_entry_recorded» true
             // and then an undo that refused; a stop that said «I touched nothing»
             // after two cuts.
-            if (plan.IndexOf("if (memoryAction == MemoryDrop && somethingToWithdraw)", StringComparison.Ordinal) < 0 ||
+            if (plan.IndexOf("if (memoryAction == MemoryDrop && (somethingToWithdraw || drawingReason))", StringComparison.Ordinal) < 0 ||
                 plan.IndexOf("result[\"note_undo\"] =", StringComparison.Ordinal) < 0)
                 problems.Add("a plan that «undo» will refuse does not say so in its own answer (report 8cd843 N11)");
+            // Report 8cd843 N24 (round 7): three dimensions on a drawing, then «undo»
+            // said «I have not yet run any that built something».
+            int drawingReason = plan.IndexOf("DrawingPlanMemoryReason(", StringComparison.Ordinal);
+            int drawingDrop = plan.IndexOf("memoryReason = onDrawing;", StringComparison.Ordinal);
+            int drawingSwitch = plan.IndexOf("switch (memoryAction)", StringComparison.Ordinal);
+            if (drawingReason < 0 || drawingDrop < drawingReason || drawingSwitch < drawingDrop ||
+                plan.IndexOf("_noMemoryOnDrawing = onDrawing != null && memoryReason == onDrawing;", StringComparison.Ordinal) < 0)
+                problems.Add("a plan on a drawing leaves the undo without its reason, or the reason is set after the memory is decided (report 8cd843 N24)");
             if (plan.IndexOf("planRun.ExecutedSteps > 0", StringComparison.Ordinal) < 0 ||
                 plan.IndexOf("result[\"note_stopped\"] =", StringComparison.Ordinal) < 0)
                 problems.Add("a plan stopped halfway does not say which steps stay (report 8cd843 N12)");
@@ -663,6 +675,8 @@ namespace Oce.Solid.Agent.ContractTests
 
             if (undo.IndexOf("? _session.IsInFront(memory.DocumentRef)", StringComparison.Ordinal) < 0)
                 problems.Add("the document is not compared by its reference (F11)");
+            if (undo.IndexOf("(_noMemoryOnDrawing && _noMemoryBecause != null ? DrawingNoMemoryRemedy : NoMemoryRemedy)", StringComparison.Ordinal) < 0)
+                problems.Add("after a plan on a drawing the undo offers delete_feature, which does not take away a dimension (report 8cd843 N24)");
 
             int changedSince = undo.IndexOf("var changedSince = SnapshotDiffers(after, now);", StringComparison.Ordinal);
             int changedRefusal = undo.IndexOf("return RefusalChangedSinceThePlan(", StringComparison.Ordinal);

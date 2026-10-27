@@ -249,6 +249,33 @@ namespace Oce.Solid.Agent.Tools
                                     },
                                 },
                             },
+                            ["view_edges"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "object",
+                                ["description"] =
+                                    "ON A DRAWING: the edges of one view, with the numbers «edges» of drawing_dimension " +
+                                    "takes — what each is (line, circle, curve), its mm in the model, how it sits on the " +
+                                    "sheet, its component on an assembly — and the extent of the view.",
+                                ["properties"] = new Dictionary<string, object>
+                                {
+                                    ["view"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "the view: V1, V2... as the state of the drawing writes it, or its name. Empty = the first.",
+                                    },
+                                    ["component"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "only the edges of one component of an assembly (26P000011-1).",
+                                    },
+                                    ["limit"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "integer",
+                                        ["description"] = "how many edges to list at most, from 1 to " +
+                                            Oce.Solid.Agent.Core.SwOperations.MaxViewEdges + ". Default " + ViewEdgesDefaultLimit + ".",
+                                    },
+                                },
+                            },
                             ["views"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
@@ -1290,6 +1317,15 @@ namespace Oce.Solid.Agent.Tools
                 edgesWanted = Oce.Solid.Agent.Core.EdgeFilter.Parse(edgesRaw, out edgesProblem);
                 if (edgesWanted == null) return Protocol.Content(edgesProblem, true);
             }
+            // THE EDGES OF A DRAWING VIEW (report 8cd843 N23), read before touching the document too.
+            var viewEdgesRaw = Take(arguments, "view_edges");
+            string viewEdgesView = null, viewEdgesComponent = null;
+            int viewEdgesLimit = ViewEdgesDefaultLimit;
+            if (viewEdgesRaw != null)
+            {
+                string viewEdgesProblem = ViewEdgesRequest(viewEdgesRaw, out viewEdgesView, out viewEdgesComponent, out viewEdgesLimit);
+                if (viewEdgesProblem != null) return Protocol.Content(viewEdgesProblem, true);
+            }
             var previousSeen = _seen;
             var previousLight = _signatureSeen;
             var previousSignatures = _seenSignatures;
@@ -1372,6 +1408,17 @@ namespace Oce.Solid.Agent.Tools
                     if (!_seenSignatures.ContainsKey(keptUid)) _seenSignatures[keptUid] = previousSignatures[keptUid];
             }
             RemoveAnchors(docState);
+
+            // THE EDGES OF A DRAWING VIEW (report 8cd843 N23, round 7): added
+            // after the identity and the signatures were taken, so that a plan
+            // compares the same reading with or without them.
+            if (viewEdgesRaw != null)
+            {
+                string viewEdgesError;
+                var listing = _session.ViewEdges(viewEdgesView, viewEdgesComponent, viewEdgesLimit, out viewEdgesError);
+                if (listing == null) return Protocol.Content(viewEdgesError, true);
+                docState["view_edges"] = listing;
+            }
 
             var requestedItems = RequestedViews(arguments);
             var section = Take(arguments, "section") as Dictionary<string, object>;
@@ -1532,6 +1579,56 @@ namespace Oce.Solid.Agent.Tools
             text.Append(Protocol.InJson(docState));
 
             return Protocol.ContentWithImages(text.ToString(), images);
+        }
+
+        /// <summary>How many edges of a drawing view «view_edges» lists when «limit» is not given.</summary>
+        internal const int ViewEdgesDefaultLimit = 200;
+
+        /// <summary>
+        /// What «view_edges» asks for (report 8cd843 N23): the view alone
+        /// («V1»), or {view, component, limit}. Null when it can be taken,
+        /// otherwise the reason. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string ViewEdgesRequest(object raw, out string view, out string component, out int limit)
+        {
+            view = null;
+            component = null;
+            limit = ViewEdgesDefaultLimit;
+            var word = raw as string;
+            if (word != null)
+            {
+                view = word.Trim().Length == 0 ? null : word.Trim();
+                return null;
+            }
+            var map = raw as IDictionary<string, object>;
+            if (map == null)
+                return "«view_edges» is written as the view alone («V1») or as an object with some of: view, component, limit.";
+            foreach (var key in map.Keys)
+                if (key != "view" && key != "component" && key != "limit")
+                    return "«view_edges» has no «" + key + "». It takes: view, component, limit.";
+            object v;
+            if (map.TryGetValue("view", out v) && v != null)
+            {
+                if (!(v is string)) return "«view_edges.view» is written as the identifier of the view (V1) or its name.";
+                view = ((string)v).Trim().Length == 0 ? null : ((string)v).Trim();
+            }
+            if (map.TryGetValue("component", out v) && v != null)
+            {
+                if (!(v is string) || ((string)v).Trim().Length == 0)
+                    return "«view_edges.component» is written as the name of a component as the list gives it (26P000011-1).";
+                component = ((string)v).Trim();
+            }
+            if (map.TryGetValue("limit", out v) && v != null)
+            {
+                double d;
+                if (v is bool || v is string || !(v is IConvertible))
+                    return "«view_edges.limit» is written as a whole number from 1 to " + Oce.Solid.Agent.Core.SwOperations.MaxViewEdges + ".";
+                d = Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture);
+                if (d < 1 || d > Oce.Solid.Agent.Core.SwOperations.MaxViewEdges || Math.Abs(d - Math.Round(d)) > 1e-9)
+                    return "«view_edges.limit» is written as a whole number from 1 to " + Oce.Solid.Agent.Core.SwOperations.MaxViewEdges + ".";
+                limit = (int)Math.Round(d);
+            }
+            return null;
         }
 
         /// <summary>
@@ -3518,6 +3615,28 @@ namespace Oce.Solid.Agent.Tools
                 !checkIfRepeated, EquationsChanged(snapshotBefore, snapshotAfter), ReadableName(planIdentity),
                 out memoryReason);
 
+            // A PLAN ON A DRAWING (report 8cd843 N24, round 7). Volume, features and
+            // components do not exist on a drawing, and its plans record no undo
+            // entry («undo_entry_recorded» false): «hasBuilt» stayed false after
+            // three dimensions, the memory was kept as it was (none), and the undo
+            // that followed said «I have not yet run any that built something» —
+            // after four plans that had built — and offered delete_feature, which
+            // does not take away a dimension. Now such a plan leaves no memory and
+            // its reason, and the undo offers the remedy of a drawing.
+            string onDrawing = checkIfRepeated
+                ? DrawingPlanMemoryReason(
+                      Convert.ToString(planStateAfter != null && planStateAfter.ContainsKey("kind") ? planStateAfter["kind"] : null,
+                                       System.Globalization.CultureInfo.InvariantCulture),
+                      SucceededOperations(outcomes), ReadableName(planIdentity))
+                : null;
+            if (onDrawing != null && memoryBefore == null && memoryAction == MemoryKeep && !hasBuilt)
+            {
+                memoryAction = MemoryDrop;
+                memoryReason = onDrawing;
+            }
+            if (memoryAction == MemoryNew) _noMemoryOnDrawing = false;
+            else if (memoryAction == MemoryDrop) _noMemoryOnDrawing = onDrawing != null && memoryReason == onDrawing;
+
             switch (memoryAction)
             {
                 case MemoryNew:
@@ -3565,7 +3684,8 @@ namespace Oce.Solid.Agent.Tools
             // «parameters» answered «undo_entry_recorded» true, and the undo
             // after it refused, rightly, for the equations.
             bool somethingToWithdraw = checkIfRepeated && (hasBuilt || visibleChange);
-            if (memoryAction == MemoryDrop && somethingToWithdraw)
+            bool drawingReason = onDrawing != null && memoryReason == onDrawing;
+            if (memoryAction == MemoryDrop && (somethingToWithdraw || drawingReason))
             {
                 result["undo_possible"] = false;
                 result["note_undo"] =
@@ -3573,7 +3693,7 @@ namespace Oce.Solid.Agent.Tools
                     (planRun != null && planRun.UndoEntryOnPlanDocument == true
                         ? ", although SOLIDWORKS recorded its undo entry («undo_entry_recorded» true)"
                         : "") +
-                    ". " + memoryReason;
+                    ". " + memoryReason + (drawingReason ? " " + DrawingNoMemoryRemedy : "");
             }
 
             // A PLAN STOPPED HALFWAY SAYS WHAT STAYS (report 8cd843 N12): the
@@ -3968,6 +4088,51 @@ namespace Oce.Solid.Agent.Tools
         /// </summary>
         private string _noMemoryBecause;
 
+        /// <summary>
+        /// True when <see cref="_noMemoryBecause"/> is the reason of a plan on a
+        /// drawing (report 8cd843 N24): the undo then offers
+        /// <see cref="DrawingNoMemoryRemedy"/> instead of delete_feature.
+        /// </summary>
+        private bool _noMemoryOnDrawing;
+
+        /// <summary>
+        /// Why a plan on a drawing leaves no plan to withdraw, or null when it is
+        /// not one (report 8cd843 N24): the document the plan ended on is a
+        /// drawing and at least one step succeeded. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static string DrawingPlanMemoryReason(string kind, IList<string> succeeded, string name)
+        {
+            if (!string.Equals(kind, "drawing", StringComparison.Ordinal) || succeeded == null || succeeded.Count == 0)
+                return null;
+            return "The last «build» worked on the drawing «" + (name ?? "") + "» (" +
+                   string.Join(", ", succeeded.Distinct(StringComparer.Ordinal)) + "). On a drawing I keep no plan to " +
+                   "withdraw: SOLIDWORKS records no undo entry for it that I can take back (its answer said " +
+                   "«undo_entry_recorded» false), and what I compare before pressing undo (the volume, the features, the " +
+                   "components) is not on a drawing.";
+        }
+
+        /// <summary>The operations of the steps that succeeded, in order.</summary>
+        private static List<string> SucceededOperations(IEnumerable<object> outcomes)
+        {
+            var names = new List<string>();
+            foreach (var o in outcomes ?? new object[0])
+            {
+                var step = o as IDictionary<string, object>;
+                object ok, op;
+                if (step == null || !step.TryGetValue("succeeded", out ok) || !(ok is bool) || !(bool)ok) continue;
+                if (step.TryGetValue("operation", out op) && op != null)
+                    names.Add(Convert.ToString(op, System.Globalization.CultureInfo.InvariantCulture));
+            }
+            return names;
+        }
+
+        /// <summary>What to do when the undo has nothing to withdraw after a plan on a drawing (report 8cd843 N24).</summary>
+        internal const string DrawingNoMemoryRemedy =
+            "To take away a dimension or a note, send a plan with «delete_annotation» and its name as the plan that " +
+            "placed it gave it (a dimension: «RD1@Drawing View1@...»; a note: its «name»); the person at the SOLIDWORKS " +
+            "screen can also select it and delete it by hand.";
+
         /// <summary>The four answers of <see cref="MemoryAfterPlan"/>.</summary>
         internal const string MemoryNew = "new", MemoryKeep = "keep", MemoryCover = "cover", MemoryDrop = "drop";
 
@@ -4258,7 +4423,7 @@ namespace Oce.Solid.Agent.Tools
                     "I do not press undo blindly: I would remove something I did not " +
                     "do myself, and I could not even say what." +
                     (_noMemoryBecause != null ? "\n\n" + _noMemoryBecause : "") +
-                    "\n\n" + NoMemoryRemedy, true);
+                    "\n\n" + (_noMemoryOnDrawing && _noMemoryBecause != null ? DrawingNoMemoryRemedy : NoMemoryRemedy), true);
 
             // ── SOMETHING IS KNOWN TO BE ON TOP: REFUSE BEFORE PRESSING ──
             // (Z-C21.14). No reading, no press: the memory says the remembered

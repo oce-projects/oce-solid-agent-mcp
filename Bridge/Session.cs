@@ -687,6 +687,32 @@ namespace Oce.Solid.Agent.Bridge
         }
 
         /// <summary>
+        /// The edges of one view of the drawing in front (report 8cd843 N23,
+        /// round 7), for «inspect_part» with «view_edges»: see
+        /// <see cref="Oce.Solid.Agent.Core.SwOperations.ViewEdgeList"/>. Reads
+        /// only. Null with the reason.
+        /// </summary>
+        public Dictionary<string, object> ViewEdges(string view, string component, int limit, out string error)
+        {
+            error = null;
+            var model = ActiveDocument() as IModelDoc2;
+            if (model == null)
+            {
+                error = "There is no open document in SolidWorks.";
+                return null;
+            }
+            try
+            {
+                return Oce.Solid.Agent.Core.SwOperations.ViewEdgeList(model, _sw as ISldWorks, view, component, limit, out error);
+            }
+            catch (Exception ex)
+            {
+                error = "I cannot read the edges of the view: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
         /// THE STATE OF A GIVEN DOCUMENT, not of the window in front (Z-C21.14).
         ///
         /// After a plan the document in front may be another one: a

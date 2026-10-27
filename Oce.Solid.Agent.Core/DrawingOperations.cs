@@ -71,6 +71,68 @@ namespace Oce.Solid.Agent.Core
         /// the agent worked on a single document and the state took it
         /// for granted.
         /// </summary>
+        /// <summary>
+        /// The path (or, without one, the title) of another open document with
+        /// the same title as <paramref name="document"/>, or null. Counted, not
+        /// compared by object: a title that appears twice among the open
+        /// documents is the case, whichever of the two the walk meets first.
+        /// </summary>
+        private string OtherDocumentWithTitle(IModelDoc2 document, string title)
+        {
+            if (string.IsNullOrEmpty(title)) return null;
+            int same = 0;
+            string other = null;
+            try
+            {
+                var d = _sw.GetFirstDocument() as IModelDoc2;
+                for (int guard = 0; d != null && guard < 200; guard++)
+                {
+                    string t = "", p = "";
+                    try { t = d.GetTitle() ?? ""; } catch { }
+                    if (string.Equals(t, title, StringComparison.Ordinal))
+                    {
+                        same++;
+                        try { p = d.GetPathName() ?? ""; } catch { }
+                        if (!ReferenceEquals(d, document) && (other == null || p.Length > 0)) other = p.Length > 0 ? p : t;
+                    }
+                    d = d.GetNext() as IModelDoc2;
+                }
+            }
+            catch { return null; }
+            return same >= 2 ? other ?? title : null;
+        }
+
+        /// <summary>
+        /// What a drawing with the title of another open document must be told
+        /// (report 8cd843 N27). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string SameTitleWarning(string title, string other)
+        {
+            return "The new drawing is called «" + title + "», like «" + other + "» already open: two windows with one " +
+                   "title, and «document activate» cannot bring the new one in front until it has a name of its own. " +
+                   "Save it in this plan with «save_document» and a path, before another window comes in front.";
+        }
+
+        /// <summary>
+        /// Writes the title of the drawing into <paramref name="measurements"/>, and the
+        /// warning of N27 when another open document has it too. Called by
+        /// «create_drawing» AND by every operation that puts a model view on the sheet:
+        /// a drawing without a file takes the name of the first model that lands on it.
+        /// In report 8cd843 N27 (call 009) «create_drawing» gave a default name and it
+        /// was «standard_views» that renamed the drawing after the assembly, the title
+        /// of the saved drawing already open; the replay t26n of 27/10/2026 gave a
+        /// default name to «create_drawing» alone. A warning only in «create_drawing»
+        /// never fires on the case it was written for.
+        /// </summary>
+        private void TellTitle(IModelDoc2 drawing, Dictionary<string, object> measurements)
+        {
+            string title = "";
+            try { title = drawing.GetTitle() ?? ""; } catch { }
+            measurements["document_title"] = title;
+            string twin = OtherDocumentWithTitle(drawing, title);
+            if (twin != null) measurements["warning_same_title"] = SameTitleWarning(title, twin);
+        }
+
         private Outcome CreateDrawing(IModelDoc2 model, Dictionary<string, object> a)
         {
             if (model == null)
@@ -146,6 +208,14 @@ namespace Oce.Solid.Agent.Core
                 ["sheets"] = NumberOrNull(CountSheets(drawing)),
                 ["documents_open"] = OpenDocuments().Count,
             };
+
+            // TWO WINDOWS, ONE TITLE (report 8cd843 N27, round 7): a second drawing
+            // of a copy of the clip assembly, not saved, had the title of the saved
+            // drawing of that copy, already open, and «document activate» refused
+            // it, rightly: by title it cannot tell the two apart. The refusal came
+            // three steps later; the drawing is told here, and again by the first
+            // model view, which renames it (see TellTitle).
+            TellTitle(drawing, measurements);
             _log("[agent] drawing created from " + template);
             var outcome = WithoutFeature(measurements);
             // FROM HERE ON WE WORK ON THE DRAWING, and it is stated.
@@ -457,6 +527,8 @@ namespace Oce.Solid.Agent.Core
                               : "Turn on " + option + " and make the views again.")
                         : "Check " + option + ", which could not be read, and make the views again.");
             }
+            // The first model view renames a drawing without a file (N27).
+            TellTitle(model, measurements);
             return WithoutFeature(measurements);
         }
 
@@ -584,6 +656,8 @@ namespace Oce.Solid.Agent.Core
                 ["scale"] = scale > 0 ? (object)Math.Round(scale, 4) : null,
                 ["views_after"] = after,
             };
+            // The first model view renames a drawing without a file (N27).
+            TellTitle(model, measurements);
             return WithoutFeature(measurements);
         }
 

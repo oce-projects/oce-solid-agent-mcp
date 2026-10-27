@@ -190,6 +190,14 @@ namespace Oce.Solid.Agent.Core
                 if (s != null) all.Add(s);
             }
 
+            // A VIEW OF AN ASSEMBLY HAS ITS OWN ROUTE (report 8cd843 N23, round 7):
+            // the overall size and the edges named, not the holes, chamfers and
+            // first «count» edges of one component. See DrawingAssemblyDimensions.cs.
+            if (ViewOfAnAssembly(view, all, circles))
+                return DimensionAssemblyView(model, drawing, view, viewName, edges, all, circles,
+                                             requestedList.Count > 0 ? chosen : null, a, contour,
+                                             dimensionOffset, planStep, scale, mu, tr);
+
             // THE DIMENSIONS THE DRAWING ALREADY HAS, IN ALL THE VIEWS (entry GT11). «Each
             // element of the object must be dimensioned no more than once»
             // holds for the DRAWING, not for the view: on 25/9/2026 the drawing of the
@@ -395,6 +403,19 @@ namespace Oce.Solid.Agent.Core
                         }
 
                         var described = DescribeDimension(nature, s.Index);
+                        // A LENGTH OF ZERO OR LESS MEASURES NOTHING (report 8cd843 N23):
+                        // it is taken away and said, not handed over as «succeeded».
+                        object readBack;
+                        if (nature != null && described.TryGetValue("mm", out readBack) && readBack is double &&
+                            (double)readBack <= 0)
+                        {
+                            bool gone = RemoveNewAnnotation(model, nature.GetAnnotation() as IAnnotation,
+                                                            () => CountDimensions(drawing), dimensionsBefore);
+                            failed.Add(s.Index + " (the dimension read " + ((double)readBack).ToString("0.###", Ci) +
+                                       " mm, and a length of zero or less measures nothing" +
+                                       (gone ? ": I took it away)" : ": I could not take it away, remove it with «delete_annotation»)"));
+                            continue;
+                        }
                         described["orientation"] = s.Facing;
                         described["position_mm"] = WhereItEnded(nature);
                         born.Add(described);
@@ -638,6 +659,10 @@ namespace Oce.Solid.Agent.Core
             public string ChamferFeature;
             /// <summary>The entity as the view exposes it, to select it.</summary>
             public object Entity;
+            /// <summary>The component it belongs to on a view of an assembly (Name2), null on a part.</summary>
+            public string Component;
+            /// <summary>A straight edge; false for an arc or another curve, whose ends give only the chord.</summary>
+            public bool Straight;
         }
 
         /// <summary>
@@ -693,8 +718,20 @@ namespace Oce.Solid.Agent.Core
                 // The horizontal ones were saved because the plate was centred in
                 // X. `MultiplyTransform` does the calculation the way SOLIDWORKS does it, and the
                 // point comes out already in sheet coordinates.
-                double[] fromV = OnSheet(da, mu, tr), aV = OnSheet(a, mu, tr);
+                //
+                // AND ON AN ASSEMBLY THE COMPONENT'S PLACEMENT GOES FIRST (report
+                // 8cd843 N23): see ToSheetOf. The ends in the model are kept in
+                // the ASSEMBLY's coordinates, so that two clips at the same part
+                // coordinates are two places, not one.
+                IComponent2 component;
+                MathTransform placement;
+                var toSheet = ToSheetOf(entity, tr, out component, out placement);
+                if (toSheet == null) return null;
+                double[] fromV = OnSheet(da, mu, toSheet), aV = OnSheet(a, mu, toSheet);
                 if (fromV == null || aV == null) return null;
+                da = InAssembly(da, mu, placement);
+                a = InAssembly(a, mu, placement);
+                if (da == null || a == null) return null;
                 double dx = aV[0] - fromV[0], dy = aV[1] - fromV[1];
                 double len = Math.Sqrt(dx * dx + dy * dy);
                 if (len < 1e-9) return null;
@@ -731,6 +768,8 @@ namespace Oce.Solid.Agent.Core
                 s.InModel = KeyInModel(da, a);
                 s.ChamferFeature = TouchesAChamfer(edge);
                 s.Entity = entity;
+                try { s.Component = component?.Name2; } catch { }
+                try { s.Straight = (edge.GetCurve() as ICurve)?.IsLine() == true; } catch { }
                 return s;
             }
             catch { return null; }
@@ -748,6 +787,7 @@ namespace Oce.Solid.Agent.Core
             public double DepthMm = double.NaN;
             public double[] ModelCenter;  // metres, in the model
             public double[] ModelAxis;    // unit vector, in the model
+            public string Component;      // on a view of an assembly (Name2), null on a part
         }
 
         private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
@@ -767,8 +807,20 @@ namespace Oce.Solid.Agent.Core
                     Math.Abs(da[0] - a[0]) + Math.Abs(da[1] - a[1]) + Math.Abs(da[2] - a[2]) > 1e-8) return null;
                 var cp = curva.CircleParams as double[];
                 if (cp == null || cp.Length < 7) return null;
+                // THE COMPONENT'S PLACEMENT FIRST on an assembly (report 8cd843 N23,
+                // see ToSheetOf); centre and axis in the model are kept in the
+                // assembly's coordinates.
+                IComponent2 component;
+                MathTransform placement;
+                tr = ToSheetOf(e, tr, out component, out placement);
+                if (tr == null) return null;
                 var center = OnSheet(new[] { cp[0], cp[1], cp[2] }, mu, tr);
                 if (center == null) return null;
+                var modelCenter = InAssembly(new[] { cp[0], cp[1], cp[2] }, mu, placement);
+                var modelAxis = new[] { cp[3], cp[4], cp[5] };
+                if (placement != null)
+                    modelAxis = ((IMathVector)((IMathVector)mu.CreateVector(modelAxis)).MultiplyTransform(placement)).ArrayData as double[];
+                if (modelCenter == null || modelAxis == null || modelAxis.Length < 3) return null;
                 // WHICH CIRCLE IT IS (26/9/2026, a turned bushing): the Ø30 outline
                 // of a round part took the callout «Ø30 ↧30» as if it were a
                 // hole, and the two circles of the bushing seen edge-on ended up among
@@ -789,7 +841,8 @@ namespace Oce.Solid.Agent.Core
                 // position dimensions. A boss has a diameter dimension.
                 else typ = IsAVisibleHole(e, curva, mu, tr) && !IsTheFootOfAStud(e) ? "hole" : "outline";
                 var c = new Circle { Index = index, Edge = e, SheetCenter = center, DiameterMm = Math.Round(cp[6] * 2000.0, 3), Type = typ,
-                                      ModelCenter = new[] { cp[0], cp[1], cp[2] }, ModelAxis = new[] { cp[3], cp[4], cp[5] } };
+                                      ModelCenter = modelCenter, ModelAxis = new[] { modelAxis[0], modelAxis[1], modelAxis[2] } };
+                try { c.Component = component?.Name2; } catch { }
                 if (typ == "hole")
                 {
                     double prof;
@@ -1670,6 +1723,25 @@ namespace Oce.Solid.Agent.Core
                 object side = null;
                 if (angle.HasValue && width.HasValue)
                     side = Math.Round(width.Value * Math.Cos(angle.Value) * 1000.0, 3);
+                // A CHAMFER DIMENSION THAT DOES NOT MEASURE A CHAMFER IS TAKEN AWAY
+                // (report 8cd843 N23, round 7): on a view of an assembly, before the
+                // component's placement was applied, two chamfer dimensions read
+                // 15.23° and 159.25°, leg 0.4 and -0.4 mm, and the step said
+                // «succeeded». A chamfer's angle lies between 0 and 90 and its leg
+                // is above zero: outside that it rests on an edge that is not its
+                // leg, and a wrong dimension is worse than a missing one.
+                string absurd = ChamferValuesProblem(
+                    angle.HasValue ? angle.GetValueOrDefault() * 180.0 / Math.PI : (double?)null, side as double?);
+                if (absurd != null && dimension != null)
+                {
+                    bool gone = RemoveNewAnnotation(model, dimension.GetAnnotation() as IAnnotation,
+                                                    () => CountDimensions(drawing), dimensionsBefore);
+                    RecordFailure(failed, "chamfer «" + s.ChamferFeature + "» (" + absurd +
+                                  (gone ? ": I took it away)" : ": I could not take it away, remove «" +
+                                          Convert.ToString(described.ContainsKey("name") ? described["name"] : null) +
+                                          "» with «delete_annotation»)"));
+                    continue;
+                }
                 described["mm"] = side;
                 var line = new Dictionary<string, object>
                 {
@@ -1685,6 +1757,105 @@ namespace Oce.Solid.Agent.Core
                     "back: its values were not read back, check it on the sheet)");
                 already.Add(key);
             }
+        }
+
+        /// <summary>
+        /// What makes the two values read back from a chamfer dimension
+        /// impossible, or null (report 8cd843 N23): an angle outside (0°, 90°)
+        /// or a leg of zero or less. Unknown values (null) are not judged here:
+        /// a dimension born without its object has its own line. Pure, so the
+        /// contract suite reads it by reflection.
+        /// </summary>
+        internal static string ChamferValuesProblem(double? angleDeg, double? legMm)
+        {
+            double angle = angleDeg.GetValueOrDefault(), leg = legMm.GetValueOrDefault();
+            if (angleDeg.HasValue && (angle <= 0 || angle >= 90))
+                return "the chamfer dimension came out with an angle of " + angle.ToString("0.##", Ci) +
+                       "°, and the angle of a chamfer lies between 0 and 90: it rests on an edge that is not the leg of the chamfer";
+            if (legMm.HasValue && leg <= 0)
+                return "the chamfer dimension came out with a leg of " + leg.ToString("0.###", Ci) +
+                       " mm, and a leg of zero or less measures nothing";
+            return null;
+        }
+
+        /// <summary>
+        /// THE COMPONENT FIRST, THEN THE VIEW (report 8cd843 N23, round 7).
+        ///
+        /// On a view of an ASSEMBLY the edges `GetVisibleEntities2` hands over
+        /// are the edges of its components, and `GetCurveParams3` gives their
+        /// ends in the coordinates of the PART, not of the assembly. Measured on
+        /// 27/10/2026 on a copy of the
+        /// clip assembly (8 components, 178 edges, scale 1:2) by a probe that
+        /// reads the edges of a view the way this file does: with
+        /// `ModelToViewTransform` alone the edges of every clip landed on the
+        /// same 8 mm of the sheet (x 90..98), while the `GetBox` of each
+        /// component brought onto the sheet sat elsewhere (60..68, 80..88,
+        /// 100..108, 120..128); with `IComponent2.Transform2` first, the edges of
+        /// all eight components fell exactly inside their own boxes. Without it a
+        /// chamfer of one clip took its leg from another clip at the same part
+        /// coordinates, and the chamfer dimensions read 15.23° and 159.25°, leg
+        /// -0.4 mm, «succeeded».
+        ///
+        /// No component (a view of a part): the view's transform, as before.
+        /// A component whose placement cannot be composed: null, and the edge is
+        /// not measured — a projection without the placement is the defect itself.
+        /// </summary>
+        private static MathTransform ToSheetOf(object entity, MathTransform view, out IComponent2 component,
+                                               out MathTransform placement)
+        {
+            component = null;
+            placement = null;
+            if (view == null) return null;
+            try { component = (entity as IEntity)?.GetComponent() as IComponent2; }
+            catch { component = null; }
+            if (component == null) return view;
+            try
+            {
+                placement = component.Transform2 as MathTransform;
+                return placement == null ? null : placement.Multiply(view) as MathTransform;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// A point of a component's part in the assembly's coordinates (metres);
+        /// the point itself when there is no placement (a part), null when the
+        /// multiplication fails.
+        /// </summary>
+        private static double[] InAssembly(double[] p, IMathUtility mu, MathTransform placement)
+        {
+            if (placement == null || p == null) return p;
+            var q = OnSheet(p, mu, placement);   // the same multiplication: a point through a transform
+            return q != null && q.Length >= 3 ? new[] { q[0], q[1], q[2] } : null;
+        }
+
+        /// <summary>
+        /// Which axis of the model (0 X, 1 Y, 2 Z) runs along the sheet's
+        /// horizontal and which along its vertical in this view, or -1 when none
+        /// does (an isometric view, a view turned by an angle): {horizontal,
+        /// vertical}. The unit vectors of the model through the view's transform,
+        /// normalised because the transform carries the view's scale.
+        /// </summary>
+        private static int[] SheetAxes(IMathUtility mu, MathTransform tr)
+        {
+            var axes = new[] { -1, -1 };
+            if (mu == null || tr == null) return axes;
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    var unit = new double[3];
+                    unit[i] = 1;
+                    var v = ((IMathVector)((IMathVector)mu.CreateVector(unit)).MultiplyTransform(tr)).ArrayData as double[];
+                    if (v == null || v.Length < 3) continue;
+                    double l = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+                    if (l < 1e-12) continue;
+                    if (Math.Abs(v[0]) / l > 0.999) axes[0] = i;
+                    else if (Math.Abs(v[1]) / l > 0.999) axes[1] = i;
+                }
+                catch { }
+            }
+            return axes;
         }
 
         /// <summary>A model point on the sheet (metres), or null.</summary>
@@ -1808,6 +1979,16 @@ namespace Oce.Solid.Agent.Core
                                                     System.Collections.IList failed, string failure)
         {
             born.Add(row);
+            failed.Add(failure);
+        }
+
+        /// <summary>
+        /// One line of «edges_not_dimensioned» written from a helper that gets the
+        /// list as a parameter: IList for the same reason as
+        /// <see cref="RecordBornWithoutObject"/>.
+        /// </summary>
+        private static void RecordFailure(System.Collections.IList failed, string failure)
+        {
             failed.Add(failure);
         }
 

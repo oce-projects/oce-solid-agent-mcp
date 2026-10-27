@@ -1,0 +1,53 @@
+{
+  "name": "note_after_a_dimension_stays_on_the_sheet",
+  "family": "drawing",
+  "why": "FOUND IN THE REPLAY OF ROUND 7 (27/10/2026, bridge 0.150.0, misure t26n). After «drawing_dimension» the view it dimensioned stayed active, and the next «note», asked at 20, 250 mm of the sheet, went INSIDE that view: notes of the views 7 -> 8, notes of the sheet 67 -> 67. note_ends_up_on_the_sheet does not see it, because there the note comes before any dimension.",
+
+  "defect_caught": "A note that lands in the view the plan before left active. It moves together with that view and goes away with it, and the answer still said «note on the sheet». The case puts the note right after the dimensions and asks that the views stay at zero notes, and that the answer says where the note went.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the plate of drawing_dimensions_itself: its front view gives two dimensions, 120 and 10" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\note_after_a_dimension_stays_on_the_sheet.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the path of the part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the bench follows the new document (entry GT0)" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\note_after_a_dimension_stays_on_the_sheet.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "three views that could take the note: without them, zero notes in the views would be true for lack of views" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "edges": [0, 1, 2, 3] },
+      "expect": [
+        { "what": "measurements.dimensions_placed", "equal_to": 2,
+          "why": "THE CONDITION OF THE DEFECT: dimensioning a view leaves it active, and it is the active view that took the note in the replay" } ] },
+
+    { "operation": "note",
+      "arguments": { "text": "BREAK ALL SHARP EDGES", "x_mm": 20, "y_mm": 250 },
+      "expect": [
+        { "what": "measurements.notes_placed", "equal_to": 1,
+          "why": "how many were born, counted before and after" },
+        { "what": "measurements.notes_views_after", "equal_to": 0,
+          "why": "THE MEASURE OF THE THING: the note is not in any view. In the replay this counter went up by one and the sheet one did not move" },
+        { "what": "measurements.attached_to", "equal_to": "sheet",
+          "why": "the answer says where the note went, read from the two counters, not «on the sheet» written whatever happened" },
+        { "what": "measurements.text_reread", "includes": ["SHARP"],
+          "why": "the text read back from SOLIDWORKS, not the one sent" } ] }
+  ]
+}

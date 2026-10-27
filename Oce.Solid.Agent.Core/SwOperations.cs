@@ -278,7 +278,7 @@ namespace Oce.Solid.Agent.Core
             "linear_pattern", "revolve", "save_document",
             "draft", "rib", "chamfer_edges", "suppress_instance", "suppress_feature",
             "replace_component", "fix_component", "mirror_component", "suppress_mate", "delete_mate", "place_component",
-            "center_marks", "drawing_dimension", "note", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
+            "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
             "surface_finish", "datum", "geometric_tolerance",
             "section_view", "detail_view",
             "new_sheet", "activate_sheet", "drawing_cut_list",
@@ -318,7 +318,7 @@ namespace Oce.Solid.Agent.Core
                 "extrude_profile", "extrude_regions", "apply_material", "dimension_tolerance", "create_plane",
                 "base_flange", "flat_pattern_dxf", "mirror", "revolve", "create_drawing",
                 "set_sheet", "standard_views", "model_view", "model_dimensions",
-                "center_marks", "drawing_dimension", "note", "hole_table",
+                "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table",
                 "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
                 "surface_finish", "datum", "geometric_tolerance", "section_view",
                 "detail_view", "new_sheet", "activate_sheet", "drawing_cut_list",
@@ -546,6 +546,9 @@ namespace Oce.Solid.Agent.Core
                     // `DrawingNoteOperations.cs`, where it also says why
                     // counting it in the wrong place would have closed four entries.
                     case "note": return DrawingNote(model, arguments);
+                    // Takes away a dimension or a note by its name (report 8cd843
+                    // N24): see `DrawingDeleteAnnotation.cs`.
+                    case "delete_annotation": return DeleteAnnotation(model, arguments);
                     case "hole_table": return HoleTable(model, arguments);
                     case "flat_pattern_view": return FlatPatternView(model, arguments);
                     case "drawing_weld_symbol": return DrawingWeldSymbol(model, arguments);

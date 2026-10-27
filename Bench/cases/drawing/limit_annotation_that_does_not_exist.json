@@ -1,0 +1,49 @@
+{
+  "name": "limit_annotation_that_does_not_exist",
+  "family": "drawing",
+  "why": "THE TWIN OF `annotation_is_taken_away` (entry F5): a refusal is never alone. Asked to take away a dimension that is not on the sheet, «delete_annotation» must refuse and touch nothing, not take away another one.",
+
+  "_what_changes_compared_to_the_twin": "One argument: `name`. The twin asks for RD1, which the step before placed; this one asks for RD999, which is not there. Same part, same drawing, same two dimensions.",
+
+  "defect_caught": "An operation that, asked for a name nobody answers to, takes away the nearest one, or the selected one, and answers «done». The refusal must name what was asked and say where the names come from, because that is what is needed to ask for the right one.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the same part as the twin" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_annotation_that_does_not_exist.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the path of the part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the bench follows the new document (entry GT0)" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_annotation_that_does_not_exist.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the same views as the twin" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "edges": [0, 1, 2, 3] },
+      "expect": [
+        { "what": "measurements.dimensions_placed", "equal_to": 2,
+          "why": "dimensions are on the sheet: the refusal below is about the name, not an empty sheet" } ] },
+
+    { "operation": "delete_annotation",
+      "arguments": { "name": "RD999" },
+      "must_fail": {
+        "message_includes": ["«RD999»", "No dimension or note of the sheet", "I touched nothing"],
+        "twin": "annotation_is_taken_away" } }
+  ]
+}

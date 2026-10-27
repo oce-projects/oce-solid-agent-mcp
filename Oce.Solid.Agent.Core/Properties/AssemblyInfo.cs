@@ -621,8 +621,16 @@ using System.Runtime.InteropServices;
 //          the solid count (N19), the empty columns of a bill of materials
 //          (N20), cells without FONT codes (N21), the note of a false
 //          SetSheets (N22).
-[assembly: AssemblyVersion("0.171.0.0")]
-[assembly: AssemblyFileVersion("0.171.0.0")]
+// 0.172.0: views of an assembly dimensioned in assembly coordinates, with
+//          the overall size and the edge list (report 8cd843 N23),
+//          delete_annotation (N24), fixed text of a title block (N25),
+//          unsaved after set_property (N26), twin titles (N27), property of
+//          an assembly (N28).
+// 0.172.1: the twin title told by the views that rename a drawing (N27 was
+//          only in create_drawing), and a note made on the sheet even when a
+//          view was left active (found in the replay of round 7).
+[assembly: AssemblyVersion("0.172.1.0")]
+[assembly: AssemblyFileVersion("0.172.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -637,4 +645,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.171.0")]
+[assembly: AssemblyInformationalVersion("0.172.1")]

@@ -3023,6 +3023,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "another view and is not reported as not reached; one born between two "
                         + "silhouette edges without a face cannot be matched to a cylinder, so no further "
                         + "pair is tried, and its line in edges_not_dimensioned says so."
+                        + "\n\nA VIEW OF AN ASSEMBLY has its own route. Its edges are the edges of the components, "
+                        + "each brought onto the sheet with its component's placement. Without «edges» I put the "
+                        + "OVERALL length and height («overall»): between the two outermost straight edges across "
+                        + "each direction, only when nothing the view shows sticks out beyond them, only on a front, "
+                        + "top or side view, and with the value read back equal to their distance on the sheet "
+                        + "divided by the scale (otherwise I take the dimension away and say why). An overall already "
+                        + "dimensioned in another view of the same assembly is not repeated. With «edges» I dimension "
+                        + "those. No hole callouts, chamfer dimensions or diameters on an assembly: they go on the "
+                        + "drawing of each part. «count» is not used there. To choose the edges, read them with "
+                        + "«inspect_part» and «view_edges»."
+                        + "\n\nA DIMENSION THAT MEASURES NOTHING IS TAKEN AWAY: a length of zero or less, or a chamfer "
+                        + "dimension with an angle outside 0..90 degrees, is removed and listed in "
+                        + "edges_not_dimensioned with what it read."
                         + "\n\nI REFUSE IF THE EDGE ASKED FOR DOES NOT EXIST in the view, and I tell you how many it "
                         + "shows. An index that is not there is the easiest mistake to make when "
                         + "dimensioning blind. And I refuse a view where nothing is left to dimension "
@@ -3044,7 +3057,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "count", O(
                                 "type", "integer",
                                 "description", "how many dimensions to put when you do not say which "
-                                    + "edges. Default 4."),
+                                    + "edges. Default 4. Not used on a view of an assembly."),
+                            "overall", O(
+                                "type", "string",
+                                "enum", A("both", "horizontal", "vertical", "none"),
+                                "description", "ON A VIEW OF AN ASSEMBLY: the overall size, «both» (length and "
+                                    + "height), «horizontal», «vertical» or «none». Default «both» without «edges», "
+                                    + "«none» with «edges»."),
                             "offset_mm", O(
                                 "type", "number",
                                 "description", "how far below the extent of the view to put the first "
@@ -3397,6 +3416,45 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "height from the bottom edge of the sheet, "
                                     + "in millimetres. Default 20 mm below the top edge.")),
                         "required", A("text")),
+                },
+                new OperationSpec
+                {
+                    Name = "delete_annotation",
+                    Family = "drawing",
+                    Example = "{\"name\":\"RD1\"}",   // from `annotation_is_taken_away`
+                    RequestedDocument = "drawing",
+                    // Report 8cd843 N24 (27/10/2026): three dimensions put on a drawing
+                    // could not be taken away — «undo» withdraws no plan on a drawing,
+                    // and delete_feature does not touch an annotation.
+                    Tested = true,
+                    Summary =
+                        "Takes away a dimension or a note of the drawing, by its name or by the text of the note.",
+                    Description =
+                        "Takes away ONE dimension or ONE note from the current sheet of the drawing.\n\n"
+                        + "WHY IT EXISTS: «undo» does not withdraw a plan on a drawing (SOLIDWORKS records no undo "
+                        + "entry for it that I can take back), and «delete_feature» does not touch an annotation. "
+                        + "This is the way to take away a dimension that is wrong or one too many.\n\n"
+                        + "BY NAME: the name «drawing_dimension» gives in «dimensions[].name» (for example "
+                        + "«RD1@Drawing View1@Part.Drawing»; «RD1» alone is enough when only one dimension is called so), "
+                        + "or the «name» «note» gives. BY TEXT: the exact text of a note.\n\n"
+                        + "If nothing answers, or more than one annotation answers, I refuse and touch nothing, and I "
+                        + "list the ones that answer. Only the CURRENT sheet: for another one, activate it first with "
+                        + "«activate_sheet».\n\n"
+                        + "I SAY «removed» ONLY WHEN IT IS GONE: after the deletion the sheet is walked again and "
+                        + "nothing may answer to the name or the text any more; the count before and after is in the "
+                        + "answer.",
+                    Precondition = "an open drawing with the annotation on its current sheet",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "name", O(
+                                "type", "string",
+                                "description", "the name of the dimension or of the note, as the plan that placed it "
+                                    + "gave it. Write this or «text»."),
+                            "text", O(
+                                "type", "string",
+                                "description", "the exact text of a note. Write this or «name».")),
+                        "required", A()),
                 },
                 new OperationSpec
                 {

@@ -115,6 +115,8 @@
     <Compile Include="TitleBlockOperations.cs" />
     <Compile Include="CenterMarkOperations.cs" />
     <Compile Include="DrawingDimensionOperations.cs" />
+    <Compile Include="DrawingAssemblyDimensions.cs" />
+    <Compile Include="DrawingDeleteAnnotation.cs" />
     <Compile Include="HoleTableOperations.cs" />
     <Compile Include="DrawingFlatPatternOperations.cs" />
     <Compile Include="DrawingWeldOperations.cs" />

@@ -256,6 +256,7 @@ namespace Oce.Solid.Agent.Core
                 measurements["resolved_value"] = resolved;
 
             measurements["scope"] = scope;
+            MarkUnsavedAfterProperty(model, measurements);
             _log("[agent] property «" + itemName + "» = «" + read + "» on " +
                  (onConfiguration ? configuration : "document"));
             return SucceededWithoutCreating(measurements);
@@ -312,7 +313,7 @@ namespace Oce.Solid.Agent.Core
                 readBack[i] = read;
             }
             _log("[agent] property «" + itemName + "» = «" + readBack[1] + "» on the document and on " + configuration);
-            return SucceededWithoutCreating(new Dictionary<string, object>
+            var both = new Dictionary<string, object>
             {
                 ["property"] = itemName,
                 ["value_text"] = readBack[1],
@@ -323,7 +324,39 @@ namespace Oce.Solid.Agent.Core
                 ["two_lists"] =
                     "The properties of the document and those of a configuration are two separate lists. " +
                     "I wrote it in both and read it back from both: a later change to one does not reach the other.",
-            });
+            };
+            MarkUnsavedAfterProperty(model, both);
+            return SucceededWithoutCreating(both);
+        }
+
+        /// <summary>
+        /// THE DOCUMENT MUST ASK TO BE SAVED after a property is written (report
+        /// 8cd843 N26, round 7): `set_property` of «Description» on a copy of a
+        /// clip succeeded, and right after it «document list» said
+        /// «unsaved_changes» false for that part: closed without saving, the
+        /// property would go and no window would ask. GetSaveFlag is read; when
+        /// it is false the document is marked with SetSaveFlag (it only sets the
+        /// flag, IModelDoc2~SetSaveFlag) and the flag is read again: the answer
+        /// says what was read, and the warning says to save.
+        /// </summary>
+        private static void MarkUnsavedAfterProperty(IModelDoc2 model, Dictionary<string, object> measurements)
+        {
+            bool? flag = null;
+            try { flag = model.GetSaveFlag(); } catch { }
+            measurements["unsaved_changes_after_write"] = flag;
+            if (flag != false) return;
+            bool? marked = null;
+            try { model.SetSaveFlag(); marked = model.GetSaveFlag(); } catch { }
+            string title = "";
+            try { title = model.GetTitle() ?? ""; } catch { }
+            measurements["unsaved_changes"] = marked;
+            measurements["warning_unsaved"] = marked == true
+                ? "SOLIDWORKS had not marked «" + title + "» as modified after the property was written (GetSaveFlag " +
+                  "false): I marked it, so closing it without saving now asks. The property is on the open document, " +
+                  "not yet on the file: save it with «save_document»."
+                : "SOLIDWORKS does not mark «" + title + "» as modified after the property was written (GetSaveFlag " +
+                  "false), and marking it did not hold: closing it without saving loses the property and no window " +
+                  "asks. Save it with «save_document».";
         }
 
         private Outcome CreateConfiguration(
