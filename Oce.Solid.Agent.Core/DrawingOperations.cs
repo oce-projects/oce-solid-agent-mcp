@@ -1109,6 +1109,12 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
+            // The save flag before the export (report 8cd843 N44, round 12): on a copy
+            // of the drawing of two sheets it was false before export_pdf and true
+            // after, and «document close» then refused the drawing (t35s, 27/10/2026).
+            bool unsavedBeforePdf = true;
+            try { unsavedBeforePdf = model.GetSaveFlag(); } catch { }
+
             int errors = 0, warnings = 0;
             bool ok;
             try
@@ -1146,6 +1152,13 @@ namespace Oce.Solid.Agent.Core
             // false next to a right PDF, with nothing to read). Under 100
             // characters, so the summary keeps it.
             if (!everySheetAsked) measurements["set_sheets_note"] = SetSheetsFalseNote(pages, sheets);
+            bool unsavedAfterPdf = false;
+            try { unsavedAfterPdf = model.GetSaveFlag(); } catch { }
+            if (MarkedUnsavedByThePdf(unsavedBeforePdf, unsavedAfterPdf))
+            {
+                measurements["marked_unsaved"] = true;
+                measurements["warning_marked_unsaved"] = PdfMarkedUnsavedWarning(sheets);
+            }
             string pdfWarningAdvice = SaveWarningsAdvice(warnings);
             if (pdfWarningAdvice != null) measurements["save_warnings_note"] = pdfWarningAdvice;
 
@@ -1205,6 +1218,28 @@ namespace Oce.Solid.Agent.Core
             }
             _log("[agent] PDF: " + sheets + " sheets, " + pages + " pages, " + location);
             return WithoutFeature(measurements);
+        }
+
+        /// <summary>
+        /// Whether the export raised the save flag of a drawing that had none (N44).
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool MarkedUnsavedByThePdf(bool unsavedBefore, bool unsavedAfter)
+        {
+            return !unsavedBefore && unsavedAfter;
+        }
+
+        /// <summary>
+        /// What export_pdf says when SOLIDWORKS marked the drawing as changed while
+        /// writing the PDF (N44), as interference_check says it (N16). Pure, so the
+        /// contract suite reads it.
+        /// </summary>
+        internal static string PdfMarkedUnsavedWarning(int sheets)
+        {
+            return "SOLIDWORKS marked the drawing as changed while it wrote the PDF of its " + sheets +
+                   (sheets == 1 ? " sheet" : " sheets") + " (measured: saved before, «to be saved» after): nothing in it " +
+                   "changed, and «document» «close» refuses it as unsaved. Put «save_document» after «export_pdf» in " +
+                   "the plan, or let the person close it.";
         }
 
         // ─────────────────────────────────────────────────────────────────

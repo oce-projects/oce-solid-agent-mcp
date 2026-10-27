@@ -139,6 +139,11 @@ namespace Oce.Solid.Agent.Core
                                     entry["projection_angle"] = p[4] != 0 ? "first" : "third";
                             }
                         }
+                        else
+                            // SAID, NOT LEFT BLANK (report 8cd843 round 12, observation 3):
+                            // a sheet of two with only its name read as a sheet with no
+                            // views; the views below are those of the active sheet.
+                            entry["not_read"] = NotActiveSheetNote(names[i]);
                         sheets.Add(entry);
                     }
                 }
@@ -586,6 +591,17 @@ namespace Oce.Solid.Agent.Core
                 return (p != null && p.Length >= 7) ? p : null;
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// What a sheet that is not active says instead of its views and its paper
+        /// (round 12 of 8cd843, observation 3). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NotActiveSheetNote(string sheetName)
+        {
+            return "Not read: only the active sheet is read, because changing sheet to read it would change the " +
+                   "drawing. «views» and «views_total» are those of the active sheet; «activate_sheet» with «" +
+                   (sheetName ?? "") + "», then «inspect_part», to read this one.";
         }
 
         /// <summary>«1:2» instead of «0.5»: it is how it is written on a drawing.</summary>

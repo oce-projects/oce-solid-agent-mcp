@@ -2772,7 +2772,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "must be there (the drawing number, the part name) and I tell "
                         + "you which are there («found») and which are not "
                         + "(«not_found»). The text in the PDF is written as glyph indices, "
-                        + "and a search in the bytes does not find it: here it is decoded.",
+                        + "and a search in the bytes does not find it: here it is decoded."
+                        + "\n\nWhen writing the PDF marks a saved drawing as changed (measured on a "
+                        + "drawing of two sheets), the answer says «marked_unsaved» true: put "
+                        + "«save_document» after «export_pdf», or «document close» refuses the drawing.",
                     Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",
@@ -3597,6 +3600,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "and no error would say so. The view I read is the one the call "
                         + "returned (view_read_from); when the detail is not born, the "
                         + "circle I drew is removed.\n\n"
+                        + "THE DETAIL GOES WHERE NOTHING ELSE IS: beside the view when that place "
+                        + "touches nothing, otherwise in the first free place of the sheet, outside "
+                        + "the other views, the tables, the notes and the title block («placed» says "
+                        + "where). With no free place I refuse, and remove the view and the circle.\n\n"
                         + "THE LETTER IS ONE PER DRAWING: if «label» already belongs "
                         + "to a section or to another detail I refuse and tell you the "
                         + "ones used. The real letter I read back to you («label_reread»).\n\n"
@@ -3665,7 +3672,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "and mixing them up means writing on the wrong document.\n\nIf "
                         + "the title block has no linked note I tell you, instead of "
                         + "letting you fill in properties that would not appear: that "
-                        + "text is drawn inside the sheet format, not fed.",
+                        + "text is drawn inside the sheet format, not fed."
+                        + "\n\nOnly the notes of the sheet FORMAT are the title block: a note put on "
+                        + "the sheet, as a general note, is left out and counted "
+                        + "(«notes_on_the_sheet_left_out»).",
                     Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",

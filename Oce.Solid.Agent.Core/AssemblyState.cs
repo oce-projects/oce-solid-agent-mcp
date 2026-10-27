@@ -573,9 +573,12 @@ namespace Oce.Solid.Agent.Core
                    ": it answers «unavailable», «failed» or «root component» when it cannot, and " +
                    "where it could the number is in «degrees_of_freedom_remaining» of the component. " +
                    // Report 8cd843 N39, round 11: the same assembly gave no number on opening
-                   // and numbers after a plan; and a suppressed mate is not followed.
-                   "On an assembly just opened it may give no number until a plan has run on it (measured: 8 " +
-                   "of 8 «unavailable» on opening, 5 of 8 with a number after the first plan), and the number " +
+                   // and numbers after a plan; and a suppressed mate is not followed. Round
+                   // 12, observation 1: not after any plan: still 8 of 8 after
+                   // interference_check, 5 of 8 after suppress_mate.
+                   "On an assembly just opened it may give no number until a plan has changed a mate (measured: 8 " +
+                   "of 8 «unavailable» on opening and after «interference_check», 5 of 8 with a number after " +
+                   "«suppress_mate»), and the number " +
                    "of a component with a suppressed mate is left out («degrees_of_freedom_note»). " +
                    "So «constrained» here means «has at least one mate», not «does not move any more»: " +
                    "one coincident mate leaves three of the six directions free (measured). " +

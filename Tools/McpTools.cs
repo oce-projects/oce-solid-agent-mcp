@@ -3860,9 +3860,11 @@ namespace Oce.Solid.Agent.Tools
         /// </summary>
         private static string NotLookedAtYet(Dictionary<string, object> front)
         {
-            return "I have not looked at any part yet, so I do not know which " +
+            // «any document», not «any part» (report 8cd843 round 12, observation 2):
+            // it came after the assembly looked at was closed, with a drawing in front.
+            return "I have not looked at any document yet, or the one I looked at was closed, so I do not know which " +
                    "document you want me to draw on: in front now is «" +
-                   ReadableName(front) + "». Call «inspect_part» first — " +
+                   ReadableName(front) + "». Call «inspect_part» first (or name it in «document») — " +
                    "it is needed anyway, because the face identifiers " +
                    "are born there.";
         }

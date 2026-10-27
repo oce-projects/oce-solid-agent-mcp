@@ -115,7 +115,12 @@ namespace Oce.Solid.Agent.Core
             bool rebuilt = RebuildForTest(model);
             var after = ReadTransform(ComponentByName(assemblyDoc, name));
             double offMm = DistanceMm(asked, after), offDeg = AngleBetweenDeg(asked, after);
-            int mates = MatesOf(ComponentByName(assemblyDoc, name));
+            // The mates that HOLD it, as in the state (N46, round 12 of 8cd843):
+            // GetMates lists the suppressed ones too, and «mates» 3 beside the
+            // state's 2 with one suppressed was two answers for one component.
+            var placedNow = ComponentByName(assemblyDoc, name);
+            int matesOff = SuppressedMatesOf(placedNow);
+            int mates = ActiveMates(MatesOf(placedNow), matesOff);
 
             if (!rebuilt || double.IsNaN(offMm) || double.IsNaN(offDeg) || offMm > PlacedWithinMm || offDeg > PlacedWithinDeg)
             {
@@ -140,6 +145,7 @@ namespace Oce.Solid.Agent.Core
                 ["turned_deg"] = Math.Round(AngleBetweenDeg(before, after), 3),
             };
             if (mates >= 0) measurements["mates"] = mates;
+            if (matesOff >= 0) measurements["mates_suppressed"] = matesOff;
             measurements["verdict"] =
                 uid + " placed: origin " + MmText(OriginMm(after)) + ", axes " + AxesText(after) +
                 ", read back after the rebuild.";

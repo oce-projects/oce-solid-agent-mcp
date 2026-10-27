@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -320,6 +321,27 @@ namespace Oce.Solid.Agent.Core
                     SheetLineRemovedOrNot(circleRemoved, "circle"));
             }
 
+            // ── THE DETAIL IN A FREE PLACE (report 8cd843 N43, round 12) ──────
+            //
+            // CreateDetailViewAt4 puts it where it is told, and it was told the same
+            // place for every detail of a view: two details of V1 came out with the
+            // same centre, and a detail of V2 on the section A-A, with no operation
+            // that moves a view. Now, as the flat pattern view: if the place beside
+            // the view touches another view, a table, a note or the title block, the
+            // detail goes to the first free place (SheetPlacementOperations); with
+            // no free place it is refused and removed, with its circle.
+            string placedWhere, placeProblem;
+            if (!DetailInAFreePlace(drawing, detailView, out placedWhere, out placeProblem))
+            {
+                bool viewIsNew = !viewNames.Contains(detailName);
+                bool viewRemoved = viewIsNew && RemoveNewView(model, detailName);
+                bool circleRemoved = removeCircle(circle);
+                return Failed(placeProblem + " " +
+                    (viewRemoved ? "I removed the view «" + detailName + "»"
+                                 : "I could not remove the view «" + detailName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
+                    SheetLineRemovedOrNot(circleRemoved, "circle"));
+            }
+
             string readLetter = ViewLetter(detailView);
             var outside = new Dictionary<string, object>
             {
@@ -345,14 +367,16 @@ namespace Oce.Solid.Agent.Core
                 // Where the circle was drawn (N41): the view activated, or the sheet
                 // when the view could not be activated.
                 ["circle_drawn_in"] = inView ? "the sketch of the view" : "the sketch of the sheet",
+                // Where the detail went (N43): beside the view, or the first free place.
+                ["placed"] = placedWhere,
                 ["what_it_does_not_check"] =
                     "IF THAT IS THE DETAIL THAT WAS NEEDED. I can tell you that the circle " +
                     "became a detail and that it is inside the view, not that inside it there " +
                     "is the groove you wanted to show: a circle moved by ten millimeters " +
                     "enlarges a piece of smooth surface, and it is just as valid.\nI do not " +
                     "look at " +
-                    "whether the chosen scale makes the detail readable, nor whether the detail " +
-                    "overlaps the other views or the title block. And I do not decide whether " +
+                    "whether the chosen scale makes the detail readable (I do look that it " +
+                    "touches no other view, table, note or the title block). And I do not decide whether " +
                     "a detail is needed: that depends on how small the thing to be dimensioned " +
                     "is.",
             };
@@ -361,6 +385,106 @@ namespace Oce.Solid.Agent.Core
                  "»: circles " + circlesBefore + " -> " + circlesAfter +
                  ", views " + viewsBefore + " -> " + viewsAfter);
             return WithoutFeature(outside);
+        }
+
+        /// <summary>
+        /// The detail where nothing else is (N43): kept where it was born when that
+        /// place touches nothing, otherwise moved to the first free place of the sheet
+        /// (FreePlace) and judged again where it landed, as the flat pattern view.
+        /// False with the reason. A detail view is not aligned to its parent, so
+        /// Position moves it on both axes (a free view moved (20, 10) mm, L14-1).
+        /// </summary>
+        private static bool DetailInAFreePlace(IDrawingDoc drawing, IView view, out string location, out string reason)
+        {
+            location = null; reason = null;
+            double[] o = ViewWithItsNotes(view), p = null, outline = null;
+            try { p = view.Position as double[]; outline = view.GetOutline() as double[]; } catch { }
+            if (o == null || p == null || p.Length < 2 || outline == null || outline.Length < 4)
+            {
+                reason = "The detail view was born but I cannot read where it is on the sheet, so I cannot tell " +
+                         "whether it falls on another view.";
+                return false;
+            }
+            var sheet = ReadSheet(drawing, view);
+            string touches = sheet.Touches(o[0], o[1], o[2], o[3]);
+            if (touches == null)
+            {
+                location = "beside the view, where it was born";
+                return true;
+            }
+            double w = o[2] - o[0], h = o[3] - o[1];
+            var down = FreePlace(sheet, w, h, out location);
+            if (down == null)
+            {
+                reason = string.Format(CultureInfo.InvariantCulture,
+                    "The detail view with its label ({0:0} x {1:0} mm on the sheet) {2}, and on the sheet there is no free " +
+                    "place for it outside the other views, the tables, the notes and the title block: use a bigger sheet " +
+                    "(«set_sheet»), a smaller «radius_mm» or «scale», or make room first.",
+                    w * 1000, h * 1000, touches);
+                return false;
+            }
+            try { view.Position = new[] { p[0] + down[0] - o[0], p[1] + down[1] - o[1] }; } catch { }
+            // THE LABEL GOES WITH THE OUTLINE: a probe on a copy (27/10/2026) moved a
+            // detail by (-150, -150) mm; right after Position the outline had moved and
+            // the extent of the label still said the old place, and after a redraw it
+            // had moved by the same (-150, -150), to 0.1 mm. So the place where the
+            // detail landed is the rectangle read before, moved as far as the outline
+            // moved (read again now, it is up to date at once, L14-1): read back, the
+            // label was judged where it was before the move, and after a redraw (an
+            // obsolete call) 0.1 mm of rounding put a detail at the frame out of it.
+            double[] moved = null;
+            try { moved = view.GetOutline() as double[]; } catch { }
+            var o2 = LandedWithTheOutline(o, outline, moved);
+            string still = o2 == null ? "cannot be read back" : sheet.Touches(o2[0], o2[1], o2[2], o2[3]);
+            if (still != null)
+            {
+                reason = "I moved the detail view " + location + " but it " + still + ".";
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// The rectangle of a view with its notes after a move: <paramref name="before"/>
+        /// moved as far as the outline moved from <paramref name="outlineBefore"/> to
+        /// <paramref name="outlineAfter"/> (N43). Null when an outline is missing. Pure,
+        /// so the contract suite reads it.
+        /// </summary>
+        internal static double[] LandedWithTheOutline(double[] before, double[] outlineBefore, double[] outlineAfter)
+        {
+            if (before == null || before.Length < 4 || outlineBefore == null || outlineBefore.Length < 4 ||
+                outlineAfter == null || outlineAfter.Length < 4)
+                return null;
+            double dx = outlineAfter[0] - outlineBefore[0], dy = outlineAfter[1] - outlineBefore[1];
+            return new[] { before[0] + dx, before[1] + dy, before[2] + dx, before[3] + dy };
+        }
+
+        /// <summary>
+        /// The rectangle a view takes on the sheet with its notes (x0, y0, x1, y1 in
+        /// metres), null when the outline cannot be read. The label of a detail is a
+        /// note of the view, under GetOutline: a probe on a copy of the drawing of
+        /// round 12 (27/10/2026) read the outline of detail B at 209.6..249.5 mm in y
+        /// and its label at 191..207.2 mm. Left out, a detail moved to the bottom left
+        /// had its label below the frame of the sheet (seen on the PDF).
+        /// </summary>
+        private static double[] ViewWithItsNotes(IView view)
+        {
+            double[] o = null;
+            try { o = view.GetOutline() as double[]; } catch { }
+            if (o == null || o.Length < 4) return null;
+            double x0 = o[0], y0 = o[1], x1 = o[2], y1 = o[3];
+            try
+            {
+                for (var note = view.GetFirstNote() as INote; note != null; note = note.GetNext() as INote)
+                {
+                    var e = note.GetExtent() as double[];
+                    if (e == null || e.Length < 6) continue;
+                    x0 = Math.Min(x0, Math.Min(e[0], e[3])); y0 = Math.Min(y0, Math.Min(e[1], e[4]));
+                    x1 = Math.Max(x1, Math.Max(e[0], e[3])); y1 = Math.Max(y1, Math.Max(e[1], e[4]));
+                }
+            }
+            catch { }
+            return new[] { x0, y0, x1, y1 };
         }
 
         /// <summary>How many segments the sketch of a view holds, -1 when it cannot be read (N41).</summary>

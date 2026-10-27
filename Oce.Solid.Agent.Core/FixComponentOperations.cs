@@ -76,7 +76,10 @@ namespace Oce.Solid.Agent.Core
             if (after != want)
                 return Failed("I asked to " + (want ? "fix" : "free") + " «" + NameOf(c) + "», and " +
                                "reading it back it is still " + (after ? "fixed" : "free") + ". Nothing happened.");
-            int acc = MatesOf(c);
+            // The mates that hold it, without the suppressed ones (N46): a
+            // component held only by suppressed mates is laid down too.
+            int off = SuppressedMatesOf(c);
+            int acc = ActiveMates(MatesOf(c), off);
             var measurements = new Dictionary<string, object>
             {
                 ["component"] = uid,
@@ -84,6 +87,7 @@ namespace Oce.Solid.Agent.Core
                 ["grounded_before"] = before,
                 ["grounded_after"] = after,
                 ["mates"] = acc >= 0 ? (object)acc : null,
+                ["mates_suppressed"] = off >= 0 ? (object)off : null,
                 ["verdict"] = "«" + NameOf(c) + "» is now " + (after ? "FIXED: it does not move any more, whatever mates it has." :
                     "FREE: only its mates hold it" + (acc == 0 ? " — and it has none: it is laid down, it moves." : ".")),
             };

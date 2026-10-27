@@ -95,7 +95,7 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { return Failed("I cannot read the sheet: " + ex.Message); }
             if (sheet == null) return Failed("The drawing has no active sheet.");
 
-            var note = TitleBlockNotes(drawing, sheet, out string fromWhere);
+            var note = TitleBlockNotes(drawing, sheet, out string fromWhere, out int notesOnTheSheet);
             if (note.Count == 0)
                 return Failed(
                     "I cannot find any note in the title block of this sheet" +
@@ -164,6 +164,8 @@ namespace Oce.Solid.Agent.Core
                 ["sheet_format"] = TestText(() => sheet.GetSheetFormatName()),
                 ["notes_in_title_block"] = note.Count,
                 ["notes_linked"] = connected,
+                // The notes put on the sheet, left out of the title block (N45).
+                ["notes_on_the_sheet_left_out"] = notesOnTheSheet,
                 ["searched_in"] = fromWhere,
                 ["fields"] = fields.ToArray(),
             };
@@ -290,9 +292,10 @@ namespace Oce.Solid.Agent.Core
         /// «view», the one that carries the format.
         /// </summary>
         private static List<INote> TitleBlockNotes(
-            IDrawingDoc drawing, ISheet sheet, out string fromWhere)
+            IDrawingDoc drawing, ISheet sheet, out string fromWhere, out int onTheSheet)
         {
             fromWhere = null;
+            onTheSheet = 0;
             var outside = new List<INote>();
 
             try
@@ -330,7 +333,20 @@ namespace Oce.Solid.Agent.Core
                         try
                         {
                             var note = ann.GetSpecificAnnotation() as INote;
-                            if (note != null) outside.Add(note);
+                            // ONLY THE NOTES OF THE FORMAT (report 8cd843 N45, round 12):
+                            // the annotations of the sheet hold the notes put on the sheet
+                            // too, and the general note of the drawing was read as the first
+                            // field of the title block (67 -> 68). IAnnotation.OwnerType
+                            // (IAnnotation~OwnerType.html: «drawing view, drawing sheet,
+                            // drawing template») tells them apart; probe on a copy of the
+                            // drawing of the report (27/10/2026): the general note 1
+                            // (swAnnotationOwner_DrawingSheet), the 67 fields 2
+                            // (swAnnotationOwner_DrawingTemplate). A note whose owner
+                            // cannot be read is kept, as before.
+                            int owner = -1;
+                            try { owner = ann.OwnerType; } catch { }
+                            if (note != null && owner == (int)swAnnotationOwner_e.swAnnotationOwner_DrawingSheet) onTheSheet++;
+                            else if (note != null) outside.Add(note);
                         }
                         catch { }
                         ann = ann.GetNext3() as IAnnotation;

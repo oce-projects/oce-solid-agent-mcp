@@ -105,7 +105,13 @@ namespace Oce.Solid.Agent.Core
                         var r = TableBoundingBox(t, excludedTable);
                         if (r != null) f.BoundingBoxes.Add(r);
                     }
-                    var note = v.GetFirstNote() as INote;
+                    // THE NOTES OF THE VIEW BEING MOVED ARE NOT IN ITS WAY (report 8cd843
+                    // N43, round 12): the label of a detail view is a note of that view,
+                    // 2.4 mm under its outline (a probe on a copy, 27/10/2026), closer than
+                    // the clearance, so the view touched its own label wherever it was.
+                    string viewName = null;
+                    try { viewName = v.GetName2(); } catch { }
+                    var note = excludedName != null && viewName == excludedName ? null : v.GetFirstNote() as INote;
                     while (note != null)
                     {
                         try

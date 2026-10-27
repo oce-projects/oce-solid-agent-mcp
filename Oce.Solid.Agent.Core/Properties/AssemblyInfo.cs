@@ -649,8 +649,14 @@ using System.Runtime.InteropServices;
 //          of the view, so a view of an assembly gets its detail (N41); section
 //          and detail count the views of the model only (N42); the phases of
 //          drawing_dimension are timed.
-[assembly: AssemblyVersion("0.174.2.0")]
-[assembly: AssemblyFileVersion("0.174.2.0")]
+// 0.174.3: round 12 of report 8cd843: a detail goes to a free place of the
+//          sheet, not on top of other views (N43); export_pdf says when it
+//          marks a saved drawing as changed (N44); title_block leaves the notes
+//          of the sheet out of the title block (N45); place_component and
+//          fix_component count the mates that hold (N46); a sheet that is not
+//          active says it was not read.
+[assembly: AssemblyVersion("0.174.3.0")]
+[assembly: AssemblyFileVersion("0.174.3.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -665,4 +671,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.2")]
+[assembly: AssemblyInformationalVersion("0.174.3")]

@@ -32,6 +32,83 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.3 — 27 October 2026 · library 0.174.3 · twelfth round of session 8cd843: N43 to N46 (branch `night-2026-10-26-asm`)
+
+- **Twelfth round on SOLIDWORKS (session 8cd843, bridge 0.152.2, 47 calls)**: N39,
+  N40, N41 and N42 held. With M15 suppressed, C8 read `mates` 2, `mates_suppressed`
+  1 and the note, `place_component` moved it 6.5 mm, and with M15 back it went back
+  by itself; a section and a refused detail in one plan stopped with notes that
+  agree, and the undo refused with the reason; three details out of three on views
+  of an assembly, the circle in the sketch of the view; views counted 4 to 5 to 8,
+  as `inspect_part`. Real work on copies: the assembly checked (15 active mates, 0
+  degrees of freedom left on the mated components, only the two parts that decision
+  6 leaves out are loose, 6 interferences of 19.033 mm³), a drawing of two sheets
+  with a section, three details, the table, the balloons, a general note and the
+  PDF of 2 pages with the 9 texts found. The time of `drawing_dimension` goes to the
+  edges on the sheet (10.2 to 10.7 s a view, 95.5 % of the refusal of V3). Four
+  new defects.
+- **N43 (P2)**: `detail_view` put every detail of a view at the same place, beside
+  it: two details of V1 had the same centre, the detail of V2 the centre of the
+  section A-A, and no operation moves a view. Now the detail stays beside the view
+  only when that place touches nothing; otherwise it goes to the first free place of
+  the sheet, outside the other views, the tables, the notes and the title block, as
+  the flat pattern view and the tables do (`placed` says where), and it is judged
+  again where it landed. With no free place it is refused and removed with its
+  circle. The place counts the label too: it is a note of the detail view, under
+  its outline (a probe on a copy read the outline of detail B at 209.6 to 249.5 mm
+  and its label at 191 to 207.2 mm), and the first try, looked at on the PDF, put a
+  detail at the bottom left with its label below the frame. For the same reason
+  the free place no longer counts the notes of the view being moved as obstacles.
+  Where the detail landed is its rectangle with the label moved as far as the
+  outline moved: right after `Position` the extent of the label still said the old
+  place, and after a redraw it had moved by the same (-150, -150) mm as the outline,
+  to 0.1 mm (probe on a copy). Read back, the label was judged where it had been
+  (second try refused); read after a redraw, an obsolete call, 0.1 mm of rounding put
+  a detail placed at the frame out of it (third try refused).
+- **N44 (P2)**: the report blamed `title_block` for a drawing left «to be saved».
+  Measured on a copy of the drawing (scenario t35s, the flag read after every step):
+  `title_block` left it saved twice; `export_pdf` of the two sheets turned it from
+  saved to «to be saved». The plan of the report ended with `save_document` and then
+  `export_pdf`. Now `export_pdf` reads the save flag before and after the PDF and,
+  when the PDF marked a saved drawing, says so (`marked_unsaved`, with the remedy:
+  `save_document` after `export_pdf`), as `interference_check` does (N16).
+- **N45 (P3)**: `title_block` read the general note put on the sheet as the first
+  field of the title block (67 then 68). The annotations of the sheet hold both.
+  `IAnnotation.OwnerType` tells them apart (IAnnotation~OwnerType.html); a probe on a
+  copy of the drawing (outside the repository) read the general note 1
+  (drawing sheet) and the 67 fields 2 (drawing template), and the save flag stayed
+  false through the reading. Now only the notes of the format are the title block,
+  and `notes_on_the_sheet_left_out` counts the others; a note whose owner cannot be
+  read is kept, as before. The note counts of `note` stay as they are: they check
+  that the note was born (one more), not what the title block holds.
+- **N46 (P3)**: `place_component` said `mates` 3 for a component with one of its 3
+  mates suppressed, beside the 2 of the state. Now it says the mates that hold and
+  `mates_suppressed`, as the state; `fix_component` too.
+- Observations of the report: the sentence on the degrees of freedom of an assembly
+  just opened said «after the first plan», and after `interference_check` it was
+  still 8 of 8 «unavailable»: it now says «until a plan has changed a mate»; the
+  refusal before a document was looked at said «any part» with a drawing in front:
+  it now says «any document», that the one looked at may have been closed, and that
+  it can be named in `document` (the refusal itself is decision N17); a sheet that
+  is not active says `not_read`, instead of reading as a sheet with no views (the
+  decision not to change sheet to read stays).
+- Catalog: `detail_view`, `export_pdf` and `title_block` say the new behaviour.
+- Contract Zc2195 (pure rules and wiring, every changed copy red); the floor of the
+  refusals that say what to do goes to 281 of 1012 (the detail with no free place).
+- Contracts: 944 checks, 2 failed (the bench run is partial, Z-C6). Language gate
+  held. Bench, the 10 cases of the operations changed (`detail_view`,
+  `title_block`, `export_pdf`, `place_component`, `fix_component`, drawings of two
+  sheets): 168 tests, 0 failed, expectations 130 of 130 (report
+  `20261027_1931`). A partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t36 on copies of the drawing and the assembly of round
+  12, bridge 0.152.2 against 0.152.3: `title_block` 68 notes with the general note
+  first, now 67 and `notes_on_the_sheet_left_out` 1; `export_pdf` after a save left
+  the drawing «to be saved» in both, and now says `marked_unsaved`; the second
+  sheet says `not_read`; `place_component` with M15 suppressed `mates` 3, now 2 and
+  `mates_suppressed` 1; two new details went on the side view and on the section,
+  as B, C and D, and now to the bottom left and to a free place at 77/144 mm, the
+  labels inside the frame, looked at on the PDF made a picture.
+
 ## 0.152.2 — 27 October 2026 · library 0.174.2 · eleventh round of session 8cd843: N39 to N42 (branch `night-2026-10-26-asm`)
 
 - **Eleventh round on SOLIDWORKS (session 8cd843, bridge 0.152.1, 52 calls)**: N37
