@@ -44,9 +44,12 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The current sheet with what occupies it: the title block and the views,
-        /// except `excluded` (the view that is about to be moved).
+        /// except `excluded` (the view that is about to be moved) and the views named in
+        /// `alsoExcluded`, with their notes (move_view, report 8cd843 N54: the views that
+        /// moved together with the one asked are not in its way).
         /// </summary>
-        private static FreeSheet ReadSheet(IDrawingDoc drawing, IView excluded, string excludedTable = null)
+        private static FreeSheet ReadSheet(IDrawingDoc drawing, IView excluded, string excludedTable = null,
+                                           ICollection<string> alsoExcluded = null)
         {
             var f = new FreeSheet();
             ISheet sheet = null;
@@ -82,7 +85,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     string n = null;
                     try { n = v.GetName2(); } catch { }
-                    if (excludedName == null || n != excludedName)
+                    if ((excludedName == null || n != excludedName) && (alsoExcluded == null || n == null || !alsoExcluded.Contains(n)))
                     {
                         var o = v.GetOutline() as double[];
                         if (o != null && o.Length >= 4) f.BoundingBoxes.Add(new[] { o[0], o[1], o[2], o[3] });
@@ -111,7 +114,9 @@ namespace Oce.Solid.Agent.Core
                     // the clearance, so the view touched its own label wherever it was.
                     string viewName = null;
                     try { viewName = v.GetName2(); } catch { }
-                    var note = excludedName != null && viewName == excludedName ? null : v.GetFirstNote() as INote;
+                    var note = (excludedName != null && viewName == excludedName) ||
+                               (alsoExcluded != null && viewName != null && alsoExcluded.Contains(viewName))
+                        ? null : v.GetFirstNote() as INote;
                     while (note != null)
                     {
                         try

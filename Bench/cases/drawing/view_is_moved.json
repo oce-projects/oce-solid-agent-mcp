@@ -1,0 +1,51 @@
+{
+  "name": "view_is_moved",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N54 (round 14, 27/10/2026). The bridge could put views on a sheet and not move one: the section born on the side view could not be moved off it, and a drawing with two views one on the other could only be made again from the start.",
+
+  "_what_solidworks_does": "Measured on a copy of the drawing of round 14: IView.Position moved the front view by the shift asked, and the views aligned to it (top, side, section) went with it; an aligned view moves only along the line that joins it to its parent. So the move is read back from the outline, and the views that went along are counted.",
+
+  "defect_caught": "A move said done because Position was written, with the view somewhere else, or the views that move with it left out of the answer. Here the front view is moved 10 mm to the right: it must have moved by 10 and 0 mm, and its two projected views with it.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "the plate of the drawing cases" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\view_is_moved.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the active document is the drawing" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\view_is_moved.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the front view and the two projected from it" } ] },
+
+    { "operation": "move_view",
+      "arguments": { "view": "V1", "dx_mm": 10, "dy_mm": 0 },
+      "expect": [
+        { "what": "measurements.moved_mm[0]", "equal_to": 10, "tolerance": 0.05,
+          "tolerance_why": "read back from the outline, which SOLIDWORKS keeps to the micrometre",
+          "why": "the shift asked, read back from the view, not the number written into Position" },
+        { "what": "measurements.moved_mm[1]", "equal_to": 0, "tolerance": 0.05,
+          "tolerance_why": "the same reading",
+          "why": "no move asked upward, none made" },
+        { "what": "measurements.how_many_moved_with_it", "equal_to": 2,
+          "why": "the top and the side view are aligned to the front view and go with it (IView~Position.html, measured)" },
+        { "what": "measurements.alignment", "includes": ["views aligned to it"],
+          "why": "the front view is aligned to nothing and has views aligned to it (swViewAlignedChildren)" } ] }
+  ]
+}

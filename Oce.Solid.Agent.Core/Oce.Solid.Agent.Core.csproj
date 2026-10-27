@@ -117,6 +117,8 @@
     <Compile Include="DrawingDimensionOperations.cs" />
     <Compile Include="DrawingAssemblyDimensions.cs" />
     <Compile Include="DrawingDeleteAnnotation.cs" />
+    <Compile Include="DrawingViewOperations.cs" />
+    <Compile Include="BalloonSpreadOperations.cs" />
     <Compile Include="HoleTableOperations.cs" />
     <Compile Include="DrawingFlatPatternOperations.cs" />
     <Compile Include="DrawingWeldOperations.cs" />

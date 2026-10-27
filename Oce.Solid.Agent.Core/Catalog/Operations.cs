@@ -3268,7 +3268,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "THE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and "
                         + "the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer "
                         + "hold: I read the table again after the balloons and give you «bom_rows_after», the rows as "
-                        + "the table prints them now, and «bom_renumbered».\n\nI REFUSE IF there is no BOM on the drawing yet "
+                        + "the table prints them now, and «bom_renumbered».\n\n"
+                        + "ARROWS THAT END IN THE SAME PLACE ARE MOVED: when the arrow of a balloon ends within 5 mm "
+                        + "of another arrow (measured: three arrows in the mouth of one part, 0.7 to 2.3 mm apart), "
+                        + "I put a new balloon with the same number on the point of a visible line of its own part "
+                        + "farthest from the other arrows, where the old balloon was, and take the old one away only "
+                        + "then. «arrows_moved» lists each move; «arrows_note» names the ones I could not separate.\n\n"
+                        + "I REFUSE IF there is no BOM on the drawing yet "
                         + "(ballooning carries its item number: put it first with «drawing_bom») or "
                         + "if there is no assembly behind the view."
                         + "\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 "
@@ -3479,6 +3485,69 @@ namespace Oce.Solid.Agent.Core.Catalog
                 },
                 new OperationSpec
                 {
+                    Name = "move_view",
+                    Family = "drawing",
+                    Example = "{\"view\":\"V1\",\"dx_mm\":10,\"dy_mm\":0}",   // from `view_is_moved`
+                    RequestedDocument = "drawing",
+                    // Report 8cd843 N54 (27/10/2026): no operation moved a view; the section
+                    // born on the side view (N53) could not be moved off it.
+                    Tested = true,
+                    Summary =
+                        "Moves a view of the drawing, by a shift or to a place, and reads back where it went.",
+                    Description =
+                        "Moves ONE view of the current sheet: by «dx_mm» and «dy_mm», or with its centre to «x_mm» "
+                        + "and «y_mm», in millimetres of sheet from its bottom-left corner. The centre is the middle "
+                        + "of the view as the sheet shows it (for a detail, «position_mm» of «inspect_part» is "
+                        + "somewhere else: use «centre_on_the_sheet_mm»).\n\n"
+                        + "ALIGNED VIEWS: a view aligned to its parent (a projected view, a section) moves only along "
+                        + "the line that joins them, and the views aligned to the one you move go with it "
+                        + "(measured: the front view took the top view, the side view and the section with it). "
+                        + "I read the move back from the view: if SOLIDWORKS did only part of it, I put the view back "
+                        + "and refuse, naming the parent view to move instead. «views_moved_with_it» lists the ones "
+                        + "that went along.\n\n"
+                        + "I REFUSE IF THE VIEW, OR ONE THAT MOVED WITH IT, LANDS ON another view, a table, a note "
+                        + "or the title block, or leaves the frame: then I put it back where it was.",
+                    Precondition = "an open drawing with the view on its current sheet",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "view", O("type", "string", "description", "the view, by name or V1, V2 ... as the state of the drawing lists them."),
+                            "dx_mm", O("type", "number", "description", "how far to move it, positive to the right, in sheet millimetres."),
+                            "dy_mm", O("type", "number", "description", "how far to move it, positive upward, in sheet millimetres."),
+                            "x_mm", O("type", "number", "description", "where its centre goes, from the left edge of the sheet. Instead of dx_mm and dy_mm."),
+                            "y_mm", O("type", "number", "description", "where its centre goes, from the bottom edge of the sheet. Instead of dx_mm and dy_mm.")),
+                        "required", A("view")),
+                },
+                new OperationSpec
+                {
+                    Name = "delete_view",
+                    Family = "drawing",
+                    Example = "{\"view\":\"V2\"}",   // from `view_is_deleted`
+                    RequestedDocument = "drawing",
+                    // Report 8cd843 N54 (27/10/2026): a detail of trial stayed on the drawing,
+                    // and the only way to a clean drawing was to make it again.
+                    Tested = true,
+                    Summary =
+                        "Takes away a view of the drawing, and reads back which views went.",
+                    Description =
+                        "Takes away ONE view of the current sheet, with what is in it: its dimensions, notes and "
+                        + "balloons. A bill of materials stays: it is on the sheet, not in the view (measured).\n\n"
+                        + "SECTIONS AND DETAILS MADE FROM IT GO WITH IT (measured: taking away the front view took "
+                        + "its section and its two details). So I refuse a view that has them, and name them, unless "
+                        + "«with_derived» is true. Views projected from it stay where they are, without a parent "
+                        + "(«without_parent_now»). A detail taken away takes its circle off the view it enlarged.\n\n"
+                        + "«removed» lists the views that are gone, read again from the sheet after the deletion; a "
+                        + "«warning» says if SOLIDWORKS took more, or fewer, than expected.",
+                    Precondition = "an open drawing with the view on its current sheet",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "view", O("type", "string", "description", "the view, by name or V1, V2 ... as the state of the drawing lists them."),
+                            "with_derived", O("type", "boolean", "description", "true: take away also the sections and details made from it. Default false (refused if there are).")),
+                        "required", A("view")),
+                },
+                new OperationSpec
+                {
                     Name = "section_view",
                     // Z-C13 (26/9/2026): a letter already used by a section or a
                     // detail is refused; the effective letter is read back.
@@ -3514,7 +3583,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "in the sketch of the view itself, converted to its coordinates "
                         + "(«cut_line_in_the_view_sketch_mm»): on the sketch of the sheet it went "
                         + "to another view (measured). A view that cannot be activated, or that "
-                        + "is turned, I refuse.\n\n"
+                        + "is turned, I refuse. The line is drawn with no snapping, and read back: "
+                        + "a line that SOLIDWORKS moved onto the geometry around it is refused "
+                        + "and removed.\n\n"
+                        + "THE SECTION GOES WHERE NOTHING ELSE IS: beside the view when that place, "
+                        + "with its label, touches no other view, table, note or the title block; "
+                        + "otherwise I slide it along the line that aligns it to its view (it cannot "
+                        + "leave that line) to the nearest free place («placed» says which). With no "
+                        + "free place on that line I refuse and remove it: make room with «move_view» "
+                        + "or «delete_view».\n\n"
                         + "I TELL YOU IF IT WAS BORN by counting the views "
                         + "before and after, not because the API answered with an object: "
                         + "it can answer without having done anything. The view I then read (hatch, letter) is the "
@@ -3603,7 +3680,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the circle in the sketch of the view itself, converted to its coordinates "
                         + "(«circle_in_the_view_sketch_mm»): with the sheet coordinates the details "
                         + "came out empty (measured). A view that cannot be activated, or that is "
-                        + "turned, I refuse.\n\n"
+                        + "turned, I refuse. The circle is drawn with no snapping and read back: "
+                        + "a circle that SOLIDWORKS moved onto an edge or onto the radius of "
+                        + "another circle (measured: 1.1 mm off, and a radius of 3 mm become 5.1) "
+                        + "is refused and removed.\n\n"
                         + "I REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle "
                         + "outside enlarges empty space, and the enlarged empty space is "
                         + "still a view that looks good.\n\n"
@@ -3957,7 +4037,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or "
                         + "«none») and save_warnings_note when the model needed a rebuild, had "
                         + "rebuild errors, or had views needing an update. A failed save gives the "
-                        + "error and warning names next to the raw codes.",
+                        + "error and warning names next to the raw codes."
+                        + "\n\nA «path» where ANOTHER file already exists replaces it, and the answer says so: "
+                        + "«replaced_another_file» (always there, false when nothing was replaced) and "
+                        + "«replaced_file» with its size and date. With «overwrite»: false I refuse instead "
+                        + "and save nothing.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
@@ -3965,7 +4049,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "path", O(
                                 "type", "string",
                                 "description", "where to save. If you do not say, it is saved where it already was; a "
-                                    + "never-saved document without a path is an error.")),
+                                    + "never-saved document without a path is an error."),
+                            "overwrite", O(
+                                "type", "boolean",
+                                "description", "false: refuse when «path» names another file that already exists. "
+                                    + "Default true (it is replaced, and the answer says so).")),
                         "required", A()),
                 },
                 new OperationSpec

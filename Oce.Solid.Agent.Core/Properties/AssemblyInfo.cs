@@ -662,8 +662,15 @@ using System.Runtime.InteropServices;
 //          one (N49); the balloons say the bill of materials they renumbered
 //          (N50); after a section the sheet is in edit again (N51); a detail
 //          view is settled to its true outline before it is placed.
-[assembly: AssemblyVersion("0.174.4.0")]
-[assembly: AssemblyFileVersion("0.174.4.0")]
+// 0.174.5: round 14 of report 8cd843: the circle of a detail and the cutting
+//          line of a section are drawn with no snapping and read back (N52);
+//          a section slides along its line to a free place (N53);
+//          move_view and delete_view (N54); save_document says the file it
+//          replaced, and refuses with «overwrite» false (N55); balloons whose
+//          arrows end within 5 mm of another are put again on a visible line
+//          of their own part (N56); inspect_part gives the outline of a view.
+[assembly: AssemblyVersion("0.174.5.0")]
+[assembly: AssemblyFileVersion("0.174.5.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -678,4 +685,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.4")]
+[assembly: AssemblyInformationalVersion("0.174.5")]

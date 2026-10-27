@@ -280,7 +280,7 @@ namespace Oce.Solid.Agent.Core
             "replace_component", "fix_component", "mirror_component", "suppress_mate", "delete_mate", "place_component",
             "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
             "surface_finish", "datum", "geometric_tolerance",
-            "section_view", "detail_view",
+            "section_view", "detail_view", "move_view", "delete_view",
             "new_sheet", "activate_sheet", "drawing_cut_list",
             "interference_check", "title_block",
             "circular_sweep",
@@ -321,7 +321,7 @@ namespace Oce.Solid.Agent.Core
                 "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table",
                 "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
                 "surface_finish", "datum", "geometric_tolerance", "section_view",
-                "detail_view", "new_sheet", "activate_sheet", "drawing_cut_list",
+                "detail_view", "move_view", "delete_view", "new_sheet", "activate_sheet", "drawing_cut_list",
                 "title_block", "export_pdf", "save_document", "structural_member",
                 "rectangular_frame", "cut_list", "rib", "suppress_mate", "delete_mate", "place_component",
             };
@@ -559,6 +559,10 @@ namespace Oce.Solid.Agent.Core
                     case "geometric_tolerance": return GeometricTolerance(model, arguments);
                     case "section_view": return SectionView(model, arguments);
                     case "detail_view": return DetailView(model, arguments);
+                    // Moves or takes away a view (report 8cd843 N54): see
+                    // `DrawingViewOperations.cs`.
+                    case "move_view": return MoveView(model, arguments);
+                    case "delete_view": return DeleteView(model, arguments);
                     // The sheets, in SheetOperations.cs. `export_pdf` already counts
                     // the pages of the PDF, and that count was always 1
                     // because there was no way to make a second sheet.

@@ -1,0 +1,44 @@
+{
+  "name": "limit_move_view_off_its_line",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N54 (round 14, 27/10/2026). A projected view is aligned to its parent and SOLIDWORKS moves it only along the line that joins them: asked (+20, +20) mm, the top view of round 14 moved (0, +20). Said done, the view would be where nobody asked.",
+
+  "_what_changes_compared_to_the_twin": "The view: the same move of 10 mm to the right is asked of V2, the top view, projected from the front view and aligned to it vertically (in round 14 the top view moved only up and down). A move to the right is off its line.",
+
+  "defect_caught": "That the move is not read back, or that a partial move is kept. The message must say how far it moved against what was asked, name the alignment, and say the view was put back.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "same part as the twin up to the step that changes" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_move_view_off_its_line.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the part must be on disk before the view names it" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the refusal must be the one on the alignment, not the one on «it is not a drawing»" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_move_view_off_its_line.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "V2 is projected from V1, so it is aligned to it" } ] },
+
+    { "operation": "move_view",
+      "arguments": { "view": "V2", "dx_mm": 10, "dy_mm": 0 },
+      "must_fail": {
+        "message_includes": ["instead of the", "aligned to", "I put it back where it was"],
+        "twin": "view_is_moved"
+      } }
+  ]
+}

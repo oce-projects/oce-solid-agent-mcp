@@ -1,0 +1,39 @@
+{
+  "name": "save_says_what_it_replaced",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N55 (round 14, 27/10/2026). save_document with a «path» wrote over a file that existed (363440 bytes, written minutes before) and answered only the new size. There it was wanted; on a real file the work before is lost with no word.",
+
+  "_how_the_existing_file_is_made_sure": "The bench folder keeps the files of the run before, so the second save may or may not find one. The third does for certain: it goes back onto the file of the first save, which is no longer the document's own after the second.",
+
+  "defect_caught": "A save onto another existing file that does not say so: «replaced_another_file» must be true, with the size of what was there.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 60, "width_mm": 40,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 24000,
+          "why": "any part: the case is about the file" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\save_says_what_it_replaced_a.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the first file, the one the third save goes back onto" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\save_says_what_it_replaced_b.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "now the document's own file is the second one" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\save_says_what_it_replaced_a.sldprt" },
+      "expect": [
+        { "what": "measurements.replaced_another_file", "equal_to": true,
+          "why": "the first file is there and is not the document's own: the answer must say it was replaced" },
+        { "what": "measurements.replaced_note", "includes": ["already existed", "overwrite"],
+          "why": "and how to be refused instead" } ] }
+  ]
+}

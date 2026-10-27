@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
@@ -1275,6 +1276,29 @@ namespace Oce.Solid.Agent.Core
                 location = its;
             }
 
+            // ANOTHER FILE ALREADY THERE (report 8cd843 N55, round 14): a save onto an existing
+            // file that is not this document's own replaced it, and the answer said only the
+            // bytes. Now it says what it replaced; with «overwrite» false it refuses instead.
+            // Not a refusal by default: the bench writes in a folder that keeps the files of
+            // the run before, and so does whoever saves the same copy twice.
+            long replacedBytes = -1;
+            DateTime replacedWritten = DateTime.MinValue;
+            if (!SameFile(its, location))
+            {
+                try
+                {
+                    if (File.Exists(location))
+                    {
+                        var old = new FileInfo(location);
+                        replacedBytes = old.Length;
+                        replacedWritten = old.LastWriteTime;
+                    }
+                }
+                catch { }
+            }
+            string kept = ReplaceRefused(location, replacedBytes, replacedWritten, Bool(a, "overwrite", true));
+            if (kept != null) return Failed(kept);
+
             try
             {
                 ok = model.Extension.SaveAs(
@@ -1369,7 +1393,32 @@ namespace Oce.Solid.Agent.Core
             };
             string saveWarningAdvice = SaveWarningsAdvice(warnings);
             if (saveWarningAdvice != null) measurements["save_warnings_note"] = saveWarningAdvice;
+            // What was there before (N55), always: false is the answer to «did I lose a file».
+            measurements["replaced_another_file"] = replacedBytes >= 0;
+            if (replacedBytes >= 0)
+            {
+                measurements["replaced_file"] = new Dictionary<string, object>
+                {
+                    ["byte"] = replacedBytes,
+                    ["written"] = replacedWritten.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                };
+                measurements["replaced_note"] = "«" + location + "» already existed and was not this document's file: it was " +
+                    "replaced. Pass «overwrite»: false to be refused instead.";
+            }
             return WithoutFeature(measurements);
+        }
+
+        /// <summary>
+        /// The refusal of a save onto another existing file when «overwrite» is false (report 8cd843
+        /// N55), null when the save may go on: no file there (<paramref name="bytes"/> below zero) or
+        /// overwriting allowed. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string ReplaceRefused(string location, long bytes, DateTime written, bool overwrite)
+        {
+            if (bytes < 0 || overwrite) return null;
+            return "«" + location + "» already exists (" + bytes + " bytes, written " +
+                   written.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + ") and is not this document's file, " +
+                   "and «overwrite» is false: I saved nothing. Give another «path», or «overwrite»: true to replace it.";
         }
 
         // ─────────────────────────────────────────────────────────────────

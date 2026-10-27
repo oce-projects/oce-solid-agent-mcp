@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -223,9 +224,15 @@ namespace Oce.Solid.Agent.Core
             int segmentsBefore = ViewSketchSegmentCount(target);
             Func<ISketchSegment, bool> removeLine = s => RemoveViewSketchSegment(model, target, s, segmentsBefore);
             ISketchSegment line = null;
+            // WITH NO INFERENCE, as the circle of the detail (report 8cd843 N52, round 14:
+            // the circles snapped onto an edge 1.1 mm away; see DetailView): a line whose
+            // end snaps onto a vertex cuts somewhere else.
+            bool addBefore = false;
             try
             {
                 model.ClearSelection2(true);
+                addBefore = model.SketchManager.AddToDB;
+                model.SketchManager.AddToDB = true;
                 line = model.SketchManager.CreateLine(from[0], from[1], 0.0, to[0], to[1], 0.0) as ISketchSegment;
             }
             catch (Exception ex)
@@ -233,12 +240,21 @@ namespace Oce.Solid.Agent.Core
                 try { drawing.EditSheet(); } catch { }
                 return Failed("I could not draw the cutting line: " + ex.Message);
             }
+            finally { try { model.SketchManager.AddToDB = addBefore; } catch { } }
             if (line == null) { try { drawing.EditSheet(); } catch { } }
             if (line == null)
                 return Failed(
                     "«CreateLine» produced no segment on the sheet, and without the line " +
                     "there is nothing to select: «CreateSectionViewAt5» does not take " +
                     "the cut as a signature, it takes it from the selection.");
+            // The line read back (N52).
+            string lineMoved = LandedElsewhere("cutting line", new[] { from[0], from[1], to[0], to[1] }, LineInSketch(line), 1e-6);
+            if (lineMoved != null)
+            {
+                string lineGone = SheetLineRemovedOrNot(removeLine(line), "cutting line");
+                try { drawing.EditSheet(); } catch { }
+                return Failed(lineMoved + lineGone);
+            }
 
             // THE SKETCH IS CLOSED FIRST. See the docstring: with an open sketch
             // the APIs that create views behave differently.
@@ -408,6 +424,27 @@ namespace Oce.Solid.Agent.Core
                     Math.Round((facing == "vertical" ? x1 : y1) * 1000, 2) + " mm of sheet. " +
                     "Move the cut with «offset_mm».");
 
+            // ── THE SECTION IN A FREE PLACE (report 8cd843 N53, round 14) ──────
+            //
+            // CreateSectionViewAt5 puts it beside the view, where the side view of a
+            // standard layout already is: A-A was born half on V3, in both drawings of
+            // round 14. As the details (N43), with one difference measured on a copy
+            // (27/10/2026): a section is aligned to its view, and Position moves it only
+            // along that line (asked (0, +30) mm it stayed, (+30, 0) mm it went), and it
+            // is already built at birth (three round trips of 1 mm left its outline as it
+            // was). So it slides along its line to the nearest free place.
+            string sectionWhere, sectionPlaceProblem;
+            if (!SectionInAFreePlace(drawing, sectionView, facing, out sectionWhere, out sectionPlaceProblem))
+            {
+                bool viewIsNew = !viewNames.Contains(sectionName);
+                bool viewRemoved = viewIsNew && RemoveNewView(model, sectionName);
+                bool lineRemoved = removeLine(line);
+                return Failed(sectionPlaceProblem + " " +
+                    (viewRemoved ? "I removed the view «" + sectionName + "»"
+                                 : "I could not remove the view «" + sectionName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
+                    SheetLineRemovedOrNot(lineRemoved, "cutting line"));
+            }
+
             // THE ACTUAL LETTER, read back from the view (Z-C13).
             string readLetter = ViewLetter(sectionView);
             var outside = new Dictionary<string, object>
@@ -445,15 +482,17 @@ namespace Oce.Solid.Agent.Core
                     Math.Round(to[0] * 1000, 2), Math.Round(to[1] * 1000, 2),
                 },
                 ["depth_mm"] = Math.Round(depthM * 1000, 2),
+                // Where the section went (N53): beside the view or slid along its line.
+                ["placed"] = sectionWhere,
                 ["what_it_does_not_check"] =
                     "IF THAT IS THE SECTION THAT WAS NEEDED. I can tell you that the cut " +
                     "met material of the view asked (the hatching is there, and the section " +
                     "was made from that view), not that it passes through the " +
                     "cavity you wanted to show: a section cut ten millimeters further on is " +
                     "just as valid and does not show the hole. Choose «offset_mm» by " +
-                    "looking at the part, not at random.\nI do not look at " +
-                    "whether the section view overlaps the others or the title block, nor " +
-                    "whether the scale of the sheet makes it go out of the format. I do " +
+                    "looking at the part, not at random.\nThe section view is put where it " +
+                    "touches no other view, table, note or the title block, sliding along the " +
+                    "line that aligns it to its view (it cannot leave that line); I do " +
                     "not look at the arrows and the label on the starting view: SOLIDWORKS " +
                     "puts them, I do not read them again. And I do not decide whether " +
                     "a section is needed: that depends on what the part has inside.",
@@ -462,6 +501,82 @@ namespace Oce.Solid.Agent.Core
             _log("[agent] section «" + sectionName + "» from «" + targetName + "»: " +
                  hatching + " hatches, views " + viewsBefore + " -> " + viewsAfter);
             return WithoutFeature(outside);
+        }
+
+        /// <summary>
+        /// The section where nothing else is (report 8cd843 N53, round 14): kept where it was
+        /// born when that place, with its label, touches nothing; otherwise slid along the line
+        /// that aligns it to its view (horizontally for a vertical cut, vertically for a
+        /// horizontal one: measured, Position does not move it off that line) to the nearest
+        /// free place, then judged again where it landed. False with the reason.
+        /// </summary>
+        private static bool SectionInAFreePlace(IDrawingDoc drawing, IView view, string facing, out string location, out string reason)
+        {
+            location = null; reason = null;
+            double[] o = ViewWithItsNotes(view), p = null, outline = null;
+            try { p = view.Position as double[]; outline = view.GetOutline() as double[]; } catch { }
+            if (o == null || p == null || p.Length < 2 || outline == null || outline.Length < 4)
+            {
+                reason = "The section view was born but I cannot read where it is on the sheet, so I cannot tell " +
+                         "whether it falls on another view.";
+                return false;
+            }
+            var sheet = ReadSheet(drawing, view);
+            string touches = sheet.Touches(o[0], o[1], o[2], o[3]);
+            if (touches == null)
+            {
+                location = "beside the view, where it was born";
+                return true;
+            }
+            bool horizontal = facing == "vertical";
+            var shift = NearestFreeAlong(o, horizontal, sheet.BoundingBoxes, sheet.Width, sheet.Height);
+            if (shift == null)
+            {
+                reason = string.Format(CultureInfo.InvariantCulture,
+                    "The section view with its label ({0:0} x {1:0} mm on the sheet) {2}, and along the line that aligns it " +
+                    "to its view ({3}) there is no free place outside the other views, the tables, the notes and the title " +
+                    "block. Make room first («move_view» or «delete_view»), or use a bigger sheet («set_sheet»).",
+                    (o[2] - o[0]) * 1000, (o[3] - o[1]) * 1000, touches, horizontal ? "a horizontal line" : "a vertical line");
+                return false;
+            }
+            try { view.Position = new[] { p[0] + shift[0], p[1] + shift[1] }; } catch { }
+            double[] moved = null;
+            try { moved = view.GetOutline() as double[]; } catch { }
+            var o2 = LandedWithTheOutline(o, outline, moved);
+            string still = o2 == null ? "cannot be read back" : sheet.Touches(o2[0], o2[1], o2[2], o2[3]);
+            if (still != null)
+            {
+                reason = "I slid the section view by " + (shift[0] + shift[1] >= 0 ? "+" : "") +
+                         ((horizontal ? shift[0] : shift[1]) * 1000).ToString("0.#", CultureInfo.InvariantCulture) +
+                         " mm along its line but it " + still + " (with its label before " + MmRect(o) + ", after " + MmRect(o2) +
+                         "; outline before " + MmRect(outline) + ", after " + MmRect(moved) + ").";
+                return false;
+            }
+            location = string.Format(CultureInfo.InvariantCulture, "slid {0:+0.#;-0.#} mm {1} along the line of its view, where nothing else is",
+                                     (horizontal ? shift[0] : shift[1]) * 1000, horizontal ? "horizontally" : "vertically");
+            return true;
+        }
+
+        /// <summary>
+        /// The nearest shift of a rectangle (x0, y0, x1, y1 in metres) along one axis that leaves it
+        /// inside the frame and clear of every obstacle by the clearance of FreeSheet (N53): 1 mm
+        /// steps, the positive side first at equal distance. {dx, dy}, the other one zero; null
+        /// when no shift within the sheet is free. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static double[] NearestFreeAlong(double[] rect, bool horizontal, List<double[]> obstacles, double width, double height)
+        {
+            if (rect == null || rect.Length < 4) return null;
+            var f = new FreeSheet { Width = width, Height = height };
+            if (obstacles != null) f.BoundingBoxes.AddRange(obstacles);
+            double span = horizontal ? width : height;
+            for (int k = 1; k * 0.001 <= span; k++)
+                foreach (int sign in new[] { 1, -1 })
+                {
+                    double d = sign * k * 0.001, dx = horizontal ? d : 0, dy = horizontal ? 0 : d;
+                    if (f.Touches(rect[0] + dx, rect[1] + dy, rect[2] + dx, rect[3] + dy) == null)
+                        return new[] { dx, dy };
+                }
+            return null;
         }
 
         /// <summary>The end of a refusal that removed the segment it drew, or tried to.</summary>

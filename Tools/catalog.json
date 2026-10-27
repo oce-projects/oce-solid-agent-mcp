@@ -2667,7 +2667,7 @@
    "name": "balloons",
    "family": "drawing",
    "summary": "Ballooning: the balloons with the BOM item numbers on the components of a view, counted.",
-   "details": "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item number (AutoBalloon5). It counts them on the view before and after, and tells you the numbers written. Then it compares the items of the BOM with the balloons of the WHOLE drawing and tells you which items are left without one (that component is not seen in this view: balloon another view). If every item already has its balloon elsewhere, it adds none and answers «nothing to add in this view».\n\nTHE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer hold: I read the table again after the balloons and give you «bom_rows_after», the rows as the table prints them now, and «bom_renumbered».\n\nI REFUSE IF there is no BOM on the drawing yet (ballooning carries its item number: put it first with «drawing_bom») or if there is no assembly behind the view.\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 runs. balloons_returned is the number of notes AutoBalloon5 returned (null when it returned no array), and balloons_count_note appears when it disagrees with the count in the view.",
+   "details": "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item number (AutoBalloon5). It counts them on the view before and after, and tells you the numbers written. Then it compares the items of the BOM with the balloons of the WHOLE drawing and tells you which items are left without one (that component is not seen in this view: balloon another view). If every item already has its balloon elsewhere, it adds none and answers «nothing to add in this view».\n\nTHE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer hold: I read the table again after the balloons and give you «bom_rows_after», the rows as the table prints them now, and «bom_renumbered».\n\nARROWS THAT END IN THE SAME PLACE ARE MOVED: when the arrow of a balloon ends within 5 mm of another arrow (measured: three arrows in the mouth of one part, 0.7 to 2.3 mm apart), I put a new balloon with the same number on the point of a visible line of its own part farthest from the other arrows, where the old balloon was, and take the old one away only then. «arrows_moved» lists each move; «arrows_note» names the ones I could not separate.\n\nI REFUSE IF there is no BOM on the drawing yet (ballooning carries its item number: put it first with «drawing_bom») or if there is no assembly behind the view.\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 runs. balloons_returned is the number of notes AutoBalloon5 returned (null when it returned no array), and balloons_count_note appears when it disagrees with the count in the view.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2889,10 +2889,72 @@
    "example": "{\"name\":\"RD1\"}"
   },
   {
+   "name": "move_view",
+   "family": "drawing",
+   "summary": "Moves a view of the drawing, by a shift or to a place, and reads back where it went.",
+   "details": "Moves ONE view of the current sheet: by «dx_mm» and «dy_mm», or with its centre to «x_mm» and «y_mm», in millimetres of sheet from its bottom-left corner. The centre is the middle of the view as the sheet shows it (for a detail, «position_mm» of «inspect_part» is somewhere else: use «centre_on_the_sheet_mm»).\n\nALIGNED VIEWS: a view aligned to its parent (a projected view, a section) moves only along the line that joins them, and the views aligned to the one you move go with it (measured: the front view took the top view, the side view and the section with it). I read the move back from the view: if SOLIDWORKS did only part of it, I put the view back and refuse, naming the parent view to move instead. «views_moved_with_it» lists the ones that went along.\n\nI REFUSE IF THE VIEW, OR ONE THAT MOVED WITH IT, LANDS ON another view, a table, a note or the title block, or leaves the frame: then I put it back where it was.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "view": {
+      "type": "string",
+      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them."
+     },
+     "dx_mm": {
+      "type": "number",
+      "description": "how far to move it, positive to the right, in sheet millimetres."
+     },
+     "dy_mm": {
+      "type": "number",
+      "description": "how far to move it, positive upward, in sheet millimetres."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "where its centre goes, from the left edge of the sheet. Instead of dx_mm and dy_mm."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "where its centre goes, from the bottom edge of the sheet. Instead of dx_mm and dy_mm."
+     }
+    },
+    "required": [
+     "view"
+    ]
+   },
+   "precondition": "an open drawing with the view on its current sheet",
+   "document": "drawing",
+   "example": "{\"view\":\"V1\",\"dx_mm\":10,\"dy_mm\":0}"
+  },
+  {
+   "name": "delete_view",
+   "family": "drawing",
+   "summary": "Takes away a view of the drawing, and reads back which views went.",
+   "details": "Takes away ONE view of the current sheet, with what is in it: its dimensions, notes and balloons. A bill of materials stays: it is on the sheet, not in the view (measured).\n\nSECTIONS AND DETAILS MADE FROM IT GO WITH IT (measured: taking away the front view took its section and its two details). So I refuse a view that has them, and name them, unless «with_derived» is true. Views projected from it stay where they are, without a parent («without_parent_now»). A detail taken away takes its circle off the view it enlarged.\n\n«removed» lists the views that are gone, read again from the sheet after the deletion; a «warning» says if SOLIDWORKS took more, or fewer, than expected.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "view": {
+      "type": "string",
+      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them."
+     },
+     "with_derived": {
+      "type": "boolean",
+      "description": "true: take away also the sections and details made from it. Default false (refused if there are)."
+     }
+    },
+    "required": [
+     "view"
+    ]
+   },
+   "precondition": "an open drawing with the view on its current sheet",
+   "document": "drawing",
+   "example": "{\"view\":\"V2\"}"
+  },
+  {
    "name": "section_view",
    "family": "drawing",
    "summary": "Creates a section view on a drawing, and checks that the cut met material.",
-   "details": "Cuts a view of the drawing and puts the section beside it. It is the first thing that is missing for a real shop drawing: a part with an internal cavity, without a section, cannot be read — the hidden lines say there is a void, not what shape it has.\n\nI DRAW THE CUTTING LINE MYSELF, from side to side of the view: a line that only grazes it gives an empty section without saying anything. By default I cut in the middle; with «offset_mm» you move the cut, in **sheet** millimetres — not of the model, because on the sheet the view is scaled. I draw the line in the sketch of the view itself, converted to its coordinates («cut_line_in_the_view_sketch_mm»): on the sketch of the sheet it went to another view (measured). A view that cannot be activated, or that is turned, I refuse.\n\nI TELL YOU IF IT WAS BORN by counting the views before and after, not because the API answered with an object: it can answer without having done anything. The view I then read (hatch, letter) is the one the call returned; the last view of the sheet only when it returned none, and view_read_from says which. When the section is not born, or the cutting line cannot be selected, the line I drew is removed, said removed only after the sketch of the view is counted again. After the section I go back to the sheet, so that a note in the same plan goes on the sheet.\n\nI REFUSE IF THE SECTION COMES FROM ANOTHER VIEW: I read back the view it was made from («base_view») and it must be the one asked.\n\nI REFUSE IF THERE IS NO HATCHING. A section without hatching is a cutting line that fell outside the material: on the sheet there remains a view that looks good and shows nothing, and no error would say so. I prefer to fail and tell you where I cut.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to another section or to a detail I refuse and tell you the ones used — two «A-A» look like the same cut. The letter the view really has I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the section that was needed. I can tell you that the cut met material, not that it passes through the cavity you wanted to show.",
+   "details": "Cuts a view of the drawing and puts the section beside it. It is the first thing that is missing for a real shop drawing: a part with an internal cavity, without a section, cannot be read — the hidden lines say there is a void, not what shape it has.\n\nI DRAW THE CUTTING LINE MYSELF, from side to side of the view: a line that only grazes it gives an empty section without saying anything. By default I cut in the middle; with «offset_mm» you move the cut, in **sheet** millimetres — not of the model, because on the sheet the view is scaled. I draw the line in the sketch of the view itself, converted to its coordinates («cut_line_in_the_view_sketch_mm»): on the sketch of the sheet it went to another view (measured). A view that cannot be activated, or that is turned, I refuse. The line is drawn with no snapping, and read back: a line that SOLIDWORKS moved onto the geometry around it is refused and removed.\n\nTHE SECTION GOES WHERE NOTHING ELSE IS: beside the view when that place, with its label, touches no other view, table, note or the title block; otherwise I slide it along the line that aligns it to its view (it cannot leave that line) to the nearest free place («placed» says which). With no free place on that line I refuse and remove it: make room with «move_view» or «delete_view».\n\nI TELL YOU IF IT WAS BORN by counting the views before and after, not because the API answered with an object: it can answer without having done anything. The view I then read (hatch, letter) is the one the call returned; the last view of the sheet only when it returned none, and view_read_from says which. When the section is not born, or the cutting line cannot be selected, the line I drew is removed, said removed only after the sketch of the view is counted again. After the section I go back to the sheet, so that a note in the same plan goes on the sheet.\n\nI REFUSE IF THE SECTION COMES FROM ANOTHER VIEW: I read back the view it was made from («base_view») and it must be the one asked.\n\nI REFUSE IF THERE IS NO HATCHING. A section without hatching is a cutting line that fell outside the material: on the sheet there remains a view that looks good and shows nothing, and no error would say so. I prefer to fail and tell you where I cut.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to another section or to a detail I refuse and tell you the ones used — two «A-A» look like the same cut. The letter the view really has I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the section that was needed. I can tell you that the cut met material, not that it passes through the cavity you wanted to show.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2931,7 +2993,7 @@
    "name": "detail_view",
    "family": "drawing",
    "summary": "Creates an enlarged detail view on a drawing, and checks that the circle became a detail.",
-   "details": "Enlarges a piece of a view. It is the other half of what a shop drawing lacks: the section shows what is inside, the detail shows what is too small to read at the scale of the drawing — a groove, a chamfer, a fillet with its dimension.\n\nI DRAW THE CIRCLE MYSELF, inside the view. By default at the centre with a radius of a quarter of the shorter side; with «x_mm» and «y_mm» you move it and with «radius_mm» you change it, in **sheet** millimetres — not of the model, because on the sheet the view is scaled. I draw the circle in the sketch of the view itself, converted to its coordinates («circle_in_the_view_sketch_mm»): with the sheet coordinates the details came out empty (measured). A view that cannot be activated, or that is turned, I refuse.\n\nI REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle outside enlarges empty space, and the enlarged empty space is still a view that looks good.\n\nAND I TELL YOU IF THE CIRCLE BECAME A DETAIL, counting the detail circles on the source view before and after. If it does not go up I refuse, and remove both the new view and the circle, each said removed only after a reread: left there, they would be a hand-drawn circle next to a view tied to nothing, and no error would say so. The view I read is the one the call returned (view_read_from); when the detail is not born, the circle I drew is removed.\n\nAND I TELL YOU IF THE DETAIL SHOWS THE VIEW ASKED: it must be made from that view («base_view») and show at least one edge («visible_edges»). A detail with no edge enlarges empty space: I refuse and remove it with its circle.\n\nTHE DETAIL GOES WHERE NOTHING ELSE IS: beside the view when that place touches nothing, otherwise in the first free place of the sheet, outside the other views, the tables, the notes and the title block («placed» says where). With no free place I refuse, and remove the view and the circle.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to a section or to another detail I refuse and tell you the ones used. The real letter I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the detail that was needed: a circle moved by ten millimetres enlarges another edge, and is just as valid.",
+   "details": "Enlarges a piece of a view. It is the other half of what a shop drawing lacks: the section shows what is inside, the detail shows what is too small to read at the scale of the drawing — a groove, a chamfer, a fillet with its dimension.\n\nI DRAW THE CIRCLE MYSELF, inside the view. By default at the centre with a radius of a quarter of the shorter side; with «x_mm» and «y_mm» you move it and with «radius_mm» you change it, in **sheet** millimetres — not of the model, because on the sheet the view is scaled. I draw the circle in the sketch of the view itself, converted to its coordinates («circle_in_the_view_sketch_mm»): with the sheet coordinates the details came out empty (measured). A view that cannot be activated, or that is turned, I refuse. The circle is drawn with no snapping and read back: a circle that SOLIDWORKS moved onto an edge or onto the radius of another circle (measured: 1.1 mm off, and a radius of 3 mm become 5.1) is refused and removed.\n\nI REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle outside enlarges empty space, and the enlarged empty space is still a view that looks good.\n\nAND I TELL YOU IF THE CIRCLE BECAME A DETAIL, counting the detail circles on the source view before and after. If it does not go up I refuse, and remove both the new view and the circle, each said removed only after a reread: left there, they would be a hand-drawn circle next to a view tied to nothing, and no error would say so. The view I read is the one the call returned (view_read_from); when the detail is not born, the circle I drew is removed.\n\nAND I TELL YOU IF THE DETAIL SHOWS THE VIEW ASKED: it must be made from that view («base_view») and show at least one edge («visible_edges»). A detail with no edge enlarges empty space: I refuse and remove it with its circle.\n\nTHE DETAIL GOES WHERE NOTHING ELSE IS: beside the view when that place touches nothing, otherwise in the first free place of the sheet, outside the other views, the tables, the notes and the title block («placed» says where). With no free place I refuse, and remove the view and the circle.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to a section or to another detail I refuse and tell you the ones used. The real letter I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the detail that was needed: a circle moved by ten millimetres enlarges another edge, and is just as valid.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3101,13 +3163,17 @@
    "name": "save_document",
    "family": "documents",
    "summary": "Saves the open document.",
-   "details": "Saves the active document to disk — part, assembly or drawing.\n\nIt also serves as the FIRST STEP of a drawing: a view attaches to the path of the part, so a part never saved cannot be put on a drawing.\n\nThe file written is read back: path and size are in the measurements.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the model needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.",
+   "details": "Saves the active document to disk — part, assembly or drawing.\n\nIt also serves as the FIRST STEP of a drawing: a view attaches to the path of the part, so a part never saved cannot be put on a drawing.\n\nThe file written is read back: path and size are in the measurements.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the model needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.\n\nA «path» where ANOTHER file already exists replaces it, and the answer says so: «replaced_another_file» (always there, false when nothing was replaced) and «replaced_file» with its size and date. With «overwrite»: false I refuse instead and save nothing.",
    "schema": {
     "type": "object",
     "properties": {
      "path": {
       "type": "string",
       "description": "where to save. If you do not say, it is saved where it already was; a never-saved document without a path is an error."
+     },
+     "overwrite": {
+      "type": "boolean",
+      "description": "false: refuse when «path» names another file that already exists. Default true (it is replaced, and the answer says so)."
      }
     },
     "required": []

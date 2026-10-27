@@ -112,6 +112,7 @@
     <Compile Include="Zc2194AssemblyRound11Contract.cs" />
     <Compile Include="Zc2195DrawingRound12Contract.cs" />
     <Compile Include="Zc2196DrawingRound13Contract.cs" />
+    <Compile Include="Zc2197DrawingRound14Contract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />
     <Compile Include="Zc215IdentityContract.cs" />
     <Compile Include="SolidWorksNamesContract.cs" />

@@ -194,7 +194,7 @@ namespace Oce.Solid.Agent.ContractTests
         private const string WithLabelAfter = "var o2 = LandedWithTheOutline(o, outline, moved);";
         private const string RedrawFirst = "try { moved = view.GetOutline() as double[]; } catch { }";
         private const string LabelReadBack = "var o2 = ViewWithItsNotes(view);";
-        private const string OwnNotesSkipped = "var note = excludedName != null && viewName == excludedName ? null : v.GetFirstNote() as INote;";
+        private const string OwnNotesSkipped = "var note = (excludedName != null && viewName == excludedName) ||";
 
         private static readonly string[][] Files =
         {

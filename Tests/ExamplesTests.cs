@@ -61,9 +61,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// (`variables_and_links_in_one_step`). **35** (same day, brief §5.2):
         /// `extrude_regions` (`three_heights_in_one_step`). **36** (same day,
         /// round 7 of report 8cd843, N24): `delete_annotation`
-        /// (`annotation_is_taken_away`).
+        /// (`annotation_is_taken_away`). **38** (same day, round 14 of report
+        /// 8cd843, N54): `move_view` (`view_is_moved`) and `delete_view`
+        /// (`view_is_deleted`).
         /// </summary>
-        private const int Floor = 36;
+        private const int Floor = 38;
 
         /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };

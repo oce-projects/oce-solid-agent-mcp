@@ -1,0 +1,45 @@
+{
+  "name": "view_is_deleted",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N54 (round 14, 27/10/2026). A detail of trial accepted on a real drawing stayed there: delete_feature rightly refused a view name, and nothing else took a view away. The only way to a clean drawing was to make it again from the start.",
+
+  "defect_caught": "A view said taken away because DeleteSelection2 answered true, with the view still on the sheet; or a count that does not go down by one. Here the top view, which has nothing made from it, goes: three views before, two after, one name in «removed».",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "the plate of the drawing cases" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\view_is_deleted.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the active document is the drawing" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\view_is_deleted.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "three views, one of which goes" } ] },
+
+    { "operation": "delete_view",
+      "arguments": { "view": "V2" },
+      "expect": [
+        { "what": "measurements.views_before", "equal_to": 3,
+          "why": "the three model views, without the sheet" },
+        { "what": "measurements.views_after", "equal_to": 2,
+          "why": "read again from the sheet after the deletion: one fewer" },
+        { "what": "measurements.how_many_removed", "equal_to": 1,
+          "why": "the top view has no section or detail made from it, so it goes alone" } ] }
+  ]
+}

@@ -818,6 +818,15 @@ namespace Oce.Solid.Agent.Core
                 ["components_visible"] = NumberOrNull(visible),
                 ["numbers"] = BalloonNumbers(view).ToArray(),
             };
+            // THE ARROWS THAT END IN THE SAME PLACE (report 8cd843 N56): see SpreadCrowdedBalloons.
+            if (after > before)
+            {
+                string spreadNote;
+                var moves = SpreadCrowdedBalloons(model, view, out spreadNote);
+                measurements["arrows_moved"] = moves.Cast<object>().ToArray();
+                if (spreadNote != null) measurements["arrows_note"] = spreadNote;
+                measurements["numbers"] = BalloonNumbers(view).ToArray();
+            }
             // THE BILL OF MATERIALS AFTER THE BALLOONS (N50): renumbered or not, and its
             // rows as they are now, the ones the print shows.
             var rowsAfter = BomRowsOfDrawing(drawing);

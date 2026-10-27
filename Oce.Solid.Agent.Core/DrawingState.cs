@@ -268,6 +268,20 @@ namespace Oce.Solid.Agent.Core
 
                         var pos = ViewPosition(v);
                         if (pos != null) entry["position_mm"] = pos;
+                        // WHERE THE VIEW IS SEEN (report 8cd843 round 14, observation 2): the Position
+                        // of a detail is the centre of the whole model at the detail's scale, not of
+                        // what it shows (detail B: Position 201, 127 mm; on the PDF x 321..395 mm,
+                        // its outline 307.7..408 mm). The outline is the rectangle on the sheet.
+                        try
+                        {
+                            var o = v.GetOutline() as double[];
+                            if (o != null && o.Length >= 4)
+                            {
+                                entry["outline_mm"] = new object[] { Math.Round(o[0] * 1000, 1), Math.Round(o[1] * 1000, 1), Math.Round(o[2] * 1000, 1), Math.Round(o[3] * 1000, 1) };
+                                entry["centre_on_the_sheet_mm"] = new object[] { Math.Round((o[0] + o[2]) / 2 * 1000, 1), Math.Round((o[1] + o[3]) / 2 * 1000, 1) };
+                            }
+                        }
+                        catch { }
 
                         try
                         {

@@ -11,6 +11,7 @@
 # The window renames and does not rewrite code, so the receivers are not retyped here: the counts are the ones the rename produces,
 # exact like the others.
 # Raised for brief R15 (26/10/2026): Oce.Solid.Agent.Core/StlMesh.cs|Add 4. Every call is List<T>.Add on a list of the mesh itself (a field, an out variable, a typed local); the scanner reads a declared type only without angle brackets, so a List<T> receiver stays undecided however it is typed.
+# Raised for round 14 of report 8cd843 (27/10/2026): Oce.Solid.Agent.Core/BalloonSpreadOperations.cs|Value 1 and Oce.Solid.Agent.Core/DrawingViewOperations.cs|Add 1, |Value 1. Each is a KeyValuePair<string, ...>.Value of a typed foreach or List<string>.Add on a typed local; the scanner reads a declared type only without angle brackets, as for R15.
 Bench/ClientPort.cs|Close	2
 Bench/ClientPort.cs|Delete	2
 Bench/ClientPort.cs|GetType	1
@@ -69,6 +70,7 @@ Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs|Add	1
 Oce.Solid.Agent.Core/AssemblyMeasureOperations.cs|Value	1
 Oce.Solid.Agent.Core/AssemblyState.cs|MaterialPropertyValues	1
 Oce.Solid.Agent.Core/AssemblyState.cs|Value	1
+Oce.Solid.Agent.Core/BalloonSpreadOperations.cs|Value	1
 Oce.Solid.Agent.Core/BodyOperations.cs|Entity	1
 Oce.Solid.Agent.Core/BodyOperations.cs|Type	1
 Oce.Solid.Agent.Core/BodyOperations.cs|Value	6
@@ -115,6 +117,8 @@ Oce.Solid.Agent.Core/DrawingRoundOperations.cs|Select2	4
 Oce.Solid.Agent.Core/DrawingRoundOperations.cs|Value	2
 Oce.Solid.Agent.Core/DrawingState.cs|Add	1
 Oce.Solid.Agent.Core/DrawingState.cs|Value	2
+Oce.Solid.Agent.Core/DrawingViewOperations.cs|Add	1
+Oce.Solid.Agent.Core/DrawingViewOperations.cs|Value	1
 Oce.Solid.Agent.Core/EditExtrusionOperations.cs|Value	2
 Oce.Solid.Agent.Core/ErrorCodeDecoder.cs|Name	2
 Oce.Solid.Agent.Core/ExportOperations.cs|Delete	2

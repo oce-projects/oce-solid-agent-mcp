@@ -728,7 +728,7 @@ cases/assemblies/     26   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      50   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      56   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);
@@ -792,7 +792,12 @@ cases/drawing/      50   the first case that gets to the DRAWING (entry GT0);
                        of the view, not the active one (Z-C21.4, L16-2, L16-3);
                        the indented BOM follows the tree (Z-C21.11, M23); four
                        standard views found by what they show, and named as
-                       the table of the SOLIDWORKS names names them (0.153.0)
+                       the table of the SOLIDWORKS names names them (0.153.0);
+                       a view moved along its line and read back from its
+                       outline, and moved off its line, refused; a view deleted,
+                       and one that has a section, refused unless asked
+                       (report 8cd843 N54); the save says the file it replaced,
+                       and with «overwrite» false it refuses (N55)
 cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        two different places; the trim really shortens the bar,
                        and refuses between bars that do not meet; the bead

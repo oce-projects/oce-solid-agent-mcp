@@ -139,8 +139,8 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 var wrong = new List<string>();
-                var other = (string)Call(sw, "NotTheViewAsked", "section", "Vista del disegno1", "Vista del disegno2", -1);
-                if (other == null || !other.Contains("made from the view «Vista del disegno2», not from «Vista del disegno1»"))
+                var other = (string)Call(sw, "NotTheViewAsked", "section", "Drawing View1", "Drawing View2", -1);
+                if (other == null || !other.Contains("made from the view «Drawing View2», not from «Drawing View1»"))
                     wrong.Add("the section of the view below: " + (other ?? "null"));
                 var empty = (string)Call(sw, "NotTheViewAsked", "detail", "V2", "V2", 0);
                 if (empty == null || !empty.Contains("visible edges 0")) wrong.Add("the empty detail: " + (empty ?? "null"));

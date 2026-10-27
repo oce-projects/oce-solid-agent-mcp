@@ -199,9 +199,21 @@ namespace Oce.Solid.Agent.Core
             int segmentsBefore = ViewSketchSegmentCount(target);
             Func<ISketchSegment, bool> removeCircle = c => RemoveViewSketchSegment(model, target, c, segmentsBefore);
             ISketchSegment circle = null;
+            // WITH NO INFERENCE (report 8cd843 N52, round 14): the circles of round 14 sat
+            // 1.1 mm lower than asked on the view above. Measured on the PDF of that drawing
+            // (its lines fitted with circles by a script outside the repository): the centres of B and C on the line of the part at
+            // y 228.39 mm, asked at 229.49; on a copy a second circle asked with radius
+            // 3 mm came out 5.117 mm, the radius of the first. SOLIDWORKS snapped the
+            // centre onto an edge and the radius onto the other circle; with
+            // SketchManager.AddToDB on, the same two circles landed within 0.02 mm of the
+            // place asked, radii 5.000 and 3.000. On only around the creation, as the
+            // anchors do (AnchorOperations, rule 1).
+            bool addBefore = false;
             try
             {
                 model.ClearSelection2(true);
+                addBefore = model.SketchManager.AddToDB;
+                model.SketchManager.AddToDB = true;
                 circle = model.SketchManager.CreateCircleByRadius(centre[0], centre[1], 0.0, radius / xform[2])
                           as ISketchSegment;
             }
@@ -210,6 +222,7 @@ namespace Oce.Solid.Agent.Core
                 try { drawing.EditSheet(); } catch { }
                 return Failed("I could not draw the circle of the detail: " + ex.Message);
             }
+            finally { try { model.SketchManager.AddToDB = addBefore; } catch { } }
             if (circle == null) { try { drawing.EditSheet(); } catch { } }
             if (circle == null)
                 return Failed(
@@ -217,6 +230,18 @@ namespace Oce.Solid.Agent.Core
                     "the circle there is nothing to select: «CreateDetailViewAt4» " +
                     "does not take the area as a signature, it takes it from the " +
                     "selection.");
+
+            // THE CIRCLE READ BACK (N52): a snapped circle is a valid circle in the wrong
+            // place, and the detail made from it enlarges the wrong lines.
+            double[] circleRead = CircleInSketch(circle);
+            string circleMoved = LandedElsewhere("circle of the detail",
+                new[] { centre[0], centre[1], radius / xform[2] }, circleRead, 1e-6);
+            if (circleMoved != null)
+            {
+                string circleGone = SheetLineRemovedOrNot(removeCircle(circle), "circle");
+                try { drawing.EditSheet(); } catch { }
+                return Failed(circleMoved + circleGone);
+            }
 
             // The sketch is closed first, as for the section.
             try { model.SketchManager.InsertSketch(true); } catch { }
@@ -632,6 +657,68 @@ namespace Oce.Solid.Agent.Core
         {
             if (xform == null || xform.Length < 3 || !(xform[2] > 0)) return null;
             return new[] { (x - xform[0]) / xform[2], (y - xform[1]) / xform[2] };
+        }
+
+        /// <summary>
+        /// A circle of a sketch as {centre x, centre y, radius} in the coordinates of its sketch
+        /// (metres), read back from ISketchArc; null when it cannot be read (N52).
+        /// </summary>
+        private static double[] CircleInSketch(ISketchSegment circle)
+        {
+            try
+            {
+                // GetCenterPoint2 gives an ISketchPoint, not an array: read as double[] it was
+                // always null, and the reading back never refused (measured on the probe of
+                // round 14: as ISketchPoint it read the snapped circle 2.175 mm lower).
+                var arc = circle as ISketchArc;
+                var c = arc?.GetCenterPoint2() as ISketchPoint;
+                if (c == null) return null;
+                return new[] { c.X, c.Y, arc.GetRadius() };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// A line of a sketch as {start x, start y, end x, end y} in the coordinates of its sketch
+        /// (metres), from ISketchLine; null when it cannot be read (N52).
+        /// </summary>
+        private static double[] LineInSketch(ISketchSegment line)
+        {
+            try
+            {
+                var l = line as ISketchLine;
+                var a = l?.GetStartPoint2() as ISketchPoint;
+                var b = l?.GetEndPoint2() as ISketchPoint;
+                if (a == null || b == null) return null;
+                return new[] { a.X, a.Y, b.X, b.Y };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Why a sketch entity drawn for a detail or a section is not where it was asked (report
+        /// 8cd843 N52, round 14), null when every number read back is within
+        /// <paramref name="tolerance"/> metres of the one asked. Both arrays hold the same
+        /// numbers in the same order (centre and radius of a circle, or the two ends of a line),
+        /// in the coordinates of the view sketch. A reading that is missing is no refusal: the
+        /// entity was drawn and its numbers are not known, not known to be wrong. Pure, so the
+        /// contract suite reads it.
+        /// </summary>
+        internal static string LandedElsewhere(string what, double[] asked, double[] read, double tolerance)
+        {
+            if (asked == null || read == null || read.Length < asked.Length) return null;
+            double worst = 0;
+            for (int i = 0; i < asked.Length; i++) worst = Math.Max(worst, Math.Abs(asked[i] - read[i]));
+            if (worst <= tolerance) return null;
+            var a = new List<string>(); var r = new List<string>();
+            for (int i = 0; i < asked.Length; i++)
+            {
+                a.Add((asked[i] * 1000).ToString("0.###", CultureInfo.InvariantCulture));
+                r.Add((read[i] * 1000).ToString("0.###", CultureInfo.InvariantCulture));
+            }
+            return "The " + what + " did not stay where I drew it: asked [" + string.Join(", ", a) + "] mm, read back [" +
+                   string.Join(", ", r) + "] mm in the sketch of the view. SOLIDWORKS moved it onto the geometry " +
+                   "around it, and a detail or a section made from it shows other lines than the ones asked.";
         }
 
         /// <summary>

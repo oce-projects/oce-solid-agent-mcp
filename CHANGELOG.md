@@ -32,6 +32,79 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.5 — 27 October 2026 · library 0.174.5 · fourteenth round of session 8cd843: N52 to N56 (branch `night-2026-10-26-asm`)
+
+- **Fourteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.4)**: N47 to N51
+  held. The details are full, the section has its hatching and its letter, the
+  numbers of the balloons follow the table. A new drawing of two sheets from the
+  start, a detail on empty space (refused, as it must) and the assembly checked.
+  Five new defects, and two observations.
+- **N52 (P3)**: the circle of a detail landed 1.09 mm lower than asked on the front
+  view of the report, and not on the view below. The report supposed the origin of
+  the view sketch was wrong. A probe on a copy of the drawing measured it otherwise:
+  `GetXform`, `ModelToViewTransform` and the `ModelToSketchTransform` of the view
+  sketch agree, the circle reads back at (0, 0) in the sketch, and the PDF (circles
+  fitted to the segments SOLIDWORKS draws) put it at (94.479, 228.386) mm with
+  radius 5.117 mm, asked (94.5, 229.49) mm with radius 5 mm. The sketch had snapped
+  it onto the geometry of the view around it. The same circle drawn with
+  `SketchManager.AddToDB` on landed at (94.480, 229.472) mm with radius 5.000 mm.
+  Now `detail_view` draws its circle and `section_view` its cutting line with
+  `AddToDB` on (put back as it was after), read them back from the sketch, and
+  refuse and take them away if they moved by more than 0.001 mm
+  (`LandedElsewhere`): the message says asked and read, in millimetres of the view
+  sketch. The reading was seen to work before it was trusted: the centre of a circle
+  is the `ISketchPoint` of `ISketchArc.GetCenterPoint2` (read as an array it is
+  always null, and the check would never refuse). Read that way, the probe gave the
+  snapped circle at (0, -2.175) mm with radius 10.234 mm in the sketch, that is
+  (94.5, 228.402) mm and 5.117 mm on the sheet, as the PDF; with `AddToDB` on,
+  exactly the numbers asked.
+- **N53 (P2)**: the section was born on top of the side view (outlines 214.997 to
+  256.701 mm and 220.648 to 262.352 mm in x on the same band in y). The probe read
+  that a section is aligned to its view (`GetAlignment` 2): a move across its line
+  does nothing (asked +30 mm in y, moved 0 mm), a move along it is exact (asked
+  +30 mm and −150 mm in x, moved +30 mm and −150 mm), and the outline does not
+  change after birth (three round trips, the same to 0.001 mm). Now `section_view`
+  slides the section along its line to the nearest place where it overlaps no view,
+  table, note or title block, inside the frame (`SectionInAFreePlace`,
+  `NearestFreeAlong`), says the place in `placed`, and is refused and taken away
+  when there is none.
+- **N54 (P3)**: there was no operation to move or take away a view. Two new
+  operations, so the catalog has 107. `move_view` moves a view by `dx_mm`/`dy_mm`
+  or to `x_mm`/`y_mm`, reads the move back from the outline, and puts back and
+  refuses a move done only in part (an aligned view moves only along its line); it
+  checks that each view moved (the ones aligned to it move with it) does not fall on
+  anything. `delete_view` takes a view away and reads the views back. Measured on the
+  probe: deleting a view takes its sections and its details with it, leaves its
+  projected views without a parent, and a detail takes its circle off the parent
+  view; so a view with sections or details is refused unless `with_derived` is true,
+  and a view that disappears without being asked is said in the answer.
+- **N55 (P3)**: `save_document` with `path` replaced another existing file without
+  saying it. Now the answer says `replaced_another_file`, the bytes and the date of
+  the file replaced; `overwrite` false refuses, and nothing is saved.
+- **N56 (P2)**: three balloons of the report ended within 0.725 mm and 1.549 mm of
+  each other, on the mouth of a coupler where three parts meet. A probe read the
+  arrow tip as the last point of the leader, in sheet coordinates.
+  `SetLeaderAttachmentPointAtIndex` read back the new point but the PDF still drew
+  the old one, so the arrow is not moved: the balloon is put again. `balloons` now
+  finds the balloons whose arrow ends within 5 mm of another arrow
+  (`CrowdedIndices`), takes the visible lines of the view, decides which part owns
+  each piece by its geometry (the visible edges of the part, tessellated and carried
+  onto the sheet by the transform of the component and of the view), picks the point
+  of the part farthest from the other arrows, inserts a new balloon on the edge there
+  without changing item numbers, checks its number, takes the old one away and puts
+  the new one where the old one stood. On the copy: the three tips went to 28.092 mm,
+  8.93 mm and 8.883 mm from the nearest arrow, the numbers did not change, and the
+  PDF made a picture shows each arrow on its own part. The answer says
+  `arrows_moved` and the numbers read again; finding the owners took 7.26 s for three
+  parts.
+- **Observation 2**: the `position_mm` of a detail is not where the detail is seen
+  (150 mm away on the report). `inspect_part` with the drawing now gives each view
+  `outline_mm` and `centre_on_the_sheet_mm`, read from its outline.
+- `ReadSheet` can leave out a list of views (the ones moved together). Catalog of
+  `section_view`, `detail_view`, `balloons`, `save_document`, `move_view`,
+  `delete_view`; six bench cases (`view_is_moved`, `view_is_deleted`,
+  `save_says_what_it_replaced` and their refused twins); contract Zc2197.
+
 ## 0.152.4 — 27 October 2026 · library 0.174.4 · thirteenth round of session 8cd843: N47 to N51 (branch `night-2026-10-26-asm`)
 
 - **Thirteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.3)**: N44, N45 and
