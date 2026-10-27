@@ -20,8 +20,7 @@
         { "what": "measurements.how_to_use_it", "includes": ["LITERALLY", "raises no error"],
           "why": "the warning travels with the answer, not only in the catalogue: whoever reads this answer may never have read the description of the operation" } ] },
     { "operation": "structural_member",
-      "arguments": { "plane": "top",
-                     "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "segments": [ { "start": [0, 0, 0], "end": [600, 0, 0] } ] },
       "expect": [

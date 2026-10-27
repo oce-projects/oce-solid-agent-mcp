@@ -32,6 +32,45 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.151.1 — 27 October 2026 · library 0.173.0 (unchanged) · a dead argument taken out of 21 bench steps (branch `night-2026-10-26-asm`)
+
+- **What was wrong.** 21 steps of 11 bench cases sent «plane» to
+  `structural_member` together with «segments». The schema of
+  `structural_member` (`Tools/catalog.json`, built from `Catalog/Operations.cs`)
+  declares `configuration`, `corner_treatment`, `gap_mm`, `profile_path`,
+  `rotation_deg` and `segments`, and no «plane».
+- **Read from the code, not assumed.** In `WeldmentOperations.cs` «plane» is read
+  in two places only, the frame with centre distances and the frame with overall
+  dimensions, and both run only when `RequestedFrame` returns a frame. It returns
+  one only for a nested «frame» or for «length_mm» together with «width_mm» (the
+  form of `rectangular_frame`); the dispatcher in `SwOperations.cs` sends
+  `structural_member` and `rectangular_frame` to the same executor, and nothing
+  else on that path reads «plane». A script read the 11 files before the change:
+  21 steps with «plane», all 21 with «segments» and none with «frame»,
+  «length_mm» or «width_mm». There the argument was read by nobody.
+- **Why it is worth taking out.** Since 0.151.0 a real `build` from the bridge
+  refuses an argument its operation does not declare (`UnknownArgumentsOfStep`).
+  The bench calls the library and does not go through that check, so these steps
+  stayed green; but a case is also an example of how a step is written, and the
+  same step sent through the bridge is refused.
+- **The change.** The pair `"plane": "top",` taken out of the 21 steps, nothing
+  else: no operation, no file of the library, no expectation. The steps are in
+  `drawing/weld_symbol_on_the_joint` (2), `frames/profiles_are_read_first` (1),
+  and in `weldments/`: `cap_closes_the_pipe` (1),
+  `cut_list_counts_the_gussets_and_the_caps` (2), `cut_shortens_the_bar` (3),
+  `cut_without_gap_does_not_inherit` (3), `gusset_polygon_is_not_degenerate` (2),
+  `gusset_sits_in_the_corner` (2), `the_end_cap_skips_a_drilled_wall` (1),
+  `the_trim_refuses_an_unknown_end_condition` (2),
+  `weld_bead_goes_between_touching_faces` (2). Checked by script after the
+  change: every file is valid JSON with CRLF line ends, as before, and no
+  `structural_member` step of the 11 carries «plane».
+- **Checks.** Contract suite: 925 checks, 4 red, all four about the freshness of
+  the last bench run (partial, older than the last commit and than the cases
+  changed here, so not every operation has a green case in it); only a full run
+  closes them. Bench, the 11 cases alone (`-Case`, `-SkipCompilation`): 140 tests,
+  0 failed, expectations 100 of 100, 2011 s (report `20261027_1340`). A partial
+  run: the full one is still owed before a push.
+
 ## 0.151.0 — 27 October 2026 · library 0.173.0 · eighth round of session 8cd843: N29 to N32 (branch `night-2026-10-26-asm`)
 
 - **Eighth round on SOLIDWORKS (session 8cd843, bridge 0.150.1, 30 calls)**: N23 to
