@@ -24,7 +24,8 @@ namespace Oce.Solid.Agent.ContractTests
     /// gone or where the old line is back.
     ///
     /// On library 0.172.1 every check is red: the methods and the lines are
-    /// missing.
+    /// missing. Round 9 (library 0.174.0) moved the check of «components» onto
+    /// the assembly (N33): the rule and the line of the overall size follow it.
     /// </summary>
     internal static class Zc2191DrawingRound8Contract
     {
@@ -103,7 +104,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var wrong = new List<string>();
                 Func<string, string, bool> same = (a, r) => (bool)Call(sw, "SameNoteText", a, r);
-                if (!same("NOTE GENERALI\n1) MATERIALE", "NOTE GENERALI\r\n1) MATERIALE")) wrong.Add("«\\n» against «\\r\\n» called different");
+                if (!same("GENERAL NOTES\n1) MATERIAL", "GENERAL NOTES\r\n1) MATERIAL")) wrong.Add("«\\n» against «\\r\\n» called different");
                 if (!same("A\nB", "A\rB")) wrong.Add("«\\n» against «\\r» called different");
                 if (!same(" A ", "A")) wrong.Add("the outer blanks counted");
                 if (same("A\nB", "A B")) wrong.Add("a line end against a blank called the same");
@@ -140,7 +141,9 @@ namespace Oce.Solid.Agent.ContractTests
 
         private static void OverallComponentsRule(Type sw)
         {
-            const string label = "N30: «components» read as a list or one name of the view, and refused when empty, not text, or not shown, with the names the view shows";
+            // Since round 9 (N33) the names are checked on the components of the
+            // ASSEMBLY, not on the ones the view shows: Zc2192 holds the view half.
+            const string label = "N30/N33: «components» read as a list or one name of the assembly, and refused when empty, not text, or not in the assembly, with the names the assembly has";
             try
             {
                 var wrong = new List<string>();
@@ -164,7 +167,7 @@ namespace Oce.Solid.Agent.ContractTests
                     Tuple.Create((object)new object[] { 5 }, "list of component names"),
                     Tuple.Create((object)new object[] { " " }, "empty name"),
                     Tuple.Create((object)new Dictionary<string, object> { { "a", 1 } }, "list of component names"),
-                    Tuple.Create((object)new object[] { "26P000099-1" }, "«26P000010-1»"),
+                    Tuple.Create((object)new object[] { "26P000099-1" }, "the assembly has no «26P000099-1». Its components are «26P000007-1», «26P000008-1», «26P000010-1»."),
                 };
                 foreach (var b in bad)
                 {
@@ -241,7 +244,7 @@ namespace Oce.Solid.Agent.ContractTests
         // THE WIRING, ON THE SOURCES
         // =================================================================
 
-        private const string OnlyRead = "HashSet<string> only = OverallComponents(";
+        private const string OnlyRead = "HashSet<string> only = OverallComponentsInView(asked, components, out notInView, out componentsProblem);";
         private const string OnlyEdges = "if (only != null && (s.Component == null || !only.Contains(s.Component))) continue;";
         private const string OnlyCircles = "if (only != null && (c.Component == null || !only.Contains(c.Component))) continue;";
         private const string LooseLine = "string loose = FreeComponentOf(end.Entity, topLevel);";

@@ -163,6 +163,7 @@ namespace Oce.Solid.Agent.Core
                 var described = DescribeDimension(q, f.Item2.Index);
                 described["orientation"] = "round length";
                 described["position_mm"] = WhereItEnded(q);
+                described["text_shown"] = TextShown(q);
                 if (q != null)
                 {
                     born.Add(described);
@@ -227,6 +228,7 @@ namespace Oce.Solid.Agent.Core
                 var described = DescribeDimension(q, -1);
                 described["orientation"] = "round diameter";
                 described["position_mm"] = WhereItEnded(q);
+                described["text_shown"] = TextShown(q);
                 if (q != null)
                 {
                     born.Add(described);
@@ -306,6 +308,7 @@ namespace Oce.Solid.Agent.Core
                 var described = DescribeDimension(q, -1);
                 described["orientation"] = "diameter of the round part (silhouette edges with no face, recognized by the value)";
                 described["position_mm"] = WhereItEnded(q);
+                described["text_shown"] = TextShown(q);
                 born.Add(described);
                 outcome.Diameters.Add(Math.Round(its.DiameterMm, 3));
                 already.Add("hole|" + Math.Round(its.DiameterMm, 2).ToString("0.00", Ci));

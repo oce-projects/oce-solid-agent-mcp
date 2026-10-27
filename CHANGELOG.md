@@ -32,6 +32,63 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.0 — 27 October 2026 · library 0.174.0 · ninth round of session 8cd843: N33 to N36 (branch `night-2026-10-26-asm`)
+
+- **Ninth round on SOLIDWORKS (session 8cd843, bridge 0.151.0, 53 calls)**: N29 to
+  N32 all held. Real work on a copy of the clip assembly: the two Split couplers
+  mated 6/6 in a test position chosen by the owner (not the final one), 6
+  interferences (the 4 clamps and the wanted press fit of the lower coupler), and
+  the workshop drawing measured on the channel, the clamps and the couplers with no
+  warning of loose components. Four new defects.
+- **N33 (P2)**: `components` refused a component of the assembly because one view
+  did not show it (one half of the channel lies under the other in the top view),
+  and only after reading the edges of the view, 7 to 10 s. Now the names are
+  checked on the components of the assembly before the view is read; a name of
+  the assembly that this view does not show goes in `components_not_in_view` and
+  the overall size is measured on the others; the step is refused only when the
+  view shows none of them. A refusal lists the names of the assembly, up to 20.
+- **N34 (P2)**: the drawing saved by `save_document` read «unsaved» right after,
+  and `document close` refused to close it. Cause measured with a probe on two
+  copies: on a drawing EditRebuild3 raises the save flag every time, with no view
+  out of date, and the plan rebuilt after every step, the save included. Now the
+  plan and the bench run one after-step, `SwOperations.AfterStep`: a drawing with
+  nothing unsaved is not rebuilt (`RebuildsAfterStep`), and after a save the flag
+  is read once the rebuild is over (`unsaved_changes`, and
+  `warning_unsaved_after_save` if it stays raised). Found on the way: the bench
+  did not run the plan executor and rebuilt on its own, so it could not see the
+  defect; now it calls the same method, and on an assembly it rebuilds the way
+  the plan does (`Extension.Rebuild`, before `EditRebuild3`). The case
+  `saved_drawing_stays_saved` was red first, without the rule: 26 tests, 1
+  failed, step 5 (the drawing saved) `unsaved_changes` True where False was
+  expected; the part saved at step 2 read False (report `20261027_1355`).
+- **N35 (P3)**: `drawing_dimension` answered 16.258 where the sheet printed
+  «16,3». Now every dimension carries `text_shown`, the numbers its texts print
+  (the reading `export_pdf` already made to look for them in the PDF), and the
+  answer `dimensions_shown` beside `dimensions_mm`.
+- **N36 (P3)**: «none is a warning» read as no warning beside two warnings in the
+  measures. Now the note of the compact answer counts the warnings the measures
+  keep: «none of them is a warning; the 2 warning(s) of the measures stay, above».
+- Contract Zc2192 (pure rules and wiring, every changed copy red); Zc2191 follows
+  the check of `components` onto the assembly. Found on the way: two Italian
+  strings in the test data of Zc2191 since 0.151.0 (the heading of a general note,
+  reported by the session of 0.151.1), now English; the floor of the refusals that say what
+  to do goes to 280 of 1011 (the early refusal of N33 says it). Contract suite:
+  931 checks, 2 failed, both because the last bench run is partial (not every
+  operation has a green case in it); language gate held.
+- Bench, the families assemblies, drawing, dimensions and export (the after-step
+  runs after every step; a part is rebuilt as before): 966 tests, 0 failed,
+  expectations 846 of 846, twins 50 of 50, 82 min (report `20261027_1526`). A
+  partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t31 on two fresh copies of the drawing of the report,
+  bridge 0.151.0 against 0.152.0: a name the assembly does not have refused in
+  7 ms instead of 8338 ms, with the names of the assembly; `text_shown` «32,3»
+  beside 32.25 mm; the note «the 2 warning(s) of the measures stay, above»; after
+  the save `unsaved_changes` false, `document list` false, and `document close`
+  closed the drawing (0.151.0: true, and the close refused). With the component
+  that V2 hides, the step was no longer refused for it, but because both overall
+  sizes were already dimensioned in another view of that drawing: the measure on
+  the components V2 shows is not yet seen on SOLIDWORKS.
+
 ## 0.151.1 — 27 October 2026 · library 0.173.0 (unchanged) · a dead argument taken out of 21 bench steps (branch `night-2026-10-26-asm`)
 
 - **What was wrong.** 21 steps of 11 bench cases sent «plane» to

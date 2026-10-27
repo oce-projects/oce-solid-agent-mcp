@@ -1812,6 +1812,56 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// WHAT THE PLAN DOES AFTER EVERY STEP THAT SUCCEEDED, in one place so that the
+        /// bench runs the same code as the plan executor (report 8cd843 N34, round 9):
+        /// the rebuild, and after «save_document» the save flag, read once that rebuild
+        /// is over. The drawing saved by the plan read «unsaved» right after, and
+        /// «document close» refused to close it.
+        /// </summary>
+        public static void AfterStep(IModelDoc2 model, string operation, Dictionary<string, object> measurements)
+        {
+            if (model == null) return;
+            bool unsavedBefore = true;
+            try { unsavedBefore = model.GetSaveFlag(); } catch { }
+            if (RebuildsAfterStep(model.GetType(), unsavedBefore)) { try { RebuildKeepingUndo(model); } catch { } }
+            if (measurements == null || !string.Equals(operation, "save_document", StringComparison.Ordinal)) return;
+            bool unsaved;
+            try { unsaved = model.GetSaveFlag(); } catch { return; }
+            measurements["unsaved_changes"] = unsaved;
+            if (unsaved) measurements["warning_unsaved_after_save"] = UnsavedAfterSaveWarning(Title(model));
+        }
+
+        /// <summary>
+        /// Whether the plan rebuilds a document after a step (report 8cd843 N34). Not a
+        /// drawing with no unsaved change: on a drawing EditRebuild3 raises the save
+        /// flag every time, with no view out of date and the update stamp still
+        /// (a probe on two copies of the drawing of the report, 27/10/2026), so the
+        /// rebuild after «save_document» left the drawing «to be saved». A drawing
+        /// with nothing changed has nothing a rebuild could show. Parts and
+        /// assemblies are rebuilt as before. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool RebuildsAfterStep(int documentType, bool unsavedChanges)
+        {
+            return documentType != (int)swDocumentTypes_e.swDocDRAWING || unsavedChanges;
+        }
+
+        /// <summary>
+        /// What a save must say when SOLIDWORKS marks the document as changed again
+        /// at once (report 8cd843 N34). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string UnsavedAfterSaveWarning(string title)
+        {
+            return "The file is written, but SOLIDWORKS marks «" + (title ?? "") + "» as changed again right after: " +
+                   "«document close» will refuse to close it. What is on disk is what this step saved; to close it " +
+                   "without asking, close it by hand without saving.";
+        }
+
+        private static string Title(IModelDoc2 model)
+        {
+            try { return model.GetTitle(); } catch { return null; }
+        }
+
+        /// <summary>
         /// Brief R11: the vertices of the straight strokes (mm) that no point of
         /// the open sketch holds, within a ten-thousandth of a mm; empty when
         /// every one is there, null when the points cannot be read. Circles and

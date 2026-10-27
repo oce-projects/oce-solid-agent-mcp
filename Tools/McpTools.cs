@@ -2309,6 +2309,49 @@ namespace Oce.Solid.Agent.Tools
             return leftOut;
         }
 
+        /// <summary>
+        /// How many measures of the outcomes are warnings (a key that starts with
+        /// «warning», holding a value). Counted after the compaction: they are the
+        /// ones the reader sees.
+        /// </summary>
+        private static int WarningsInOutcomes(List<object> outcomes)
+        {
+            int warnings = 0;
+            foreach (var o in outcomes)
+            {
+                var outcome = o as Dictionary<string, object>;
+                object m;
+                var measurements = outcome != null && outcome.TryGetValue("measurements", out m) ? m as Dictionary<string, object> : null;
+                if (measurements == null) continue;
+                foreach (string key in measurements.Keys)
+                    if (measurements[key] != null && key.StartsWith("warning", StringComparison.OrdinalIgnoreCase)) warnings++;
+            }
+            return warnings;
+        }
+
+        /// <summary>
+        /// The line that says what the compact answer left out, or null when nothing
+        /// was. «None is a warning» alone read as «no warning» next to two warnings
+        /// in the measures (report 8cd843 N36, round 9): the warnings the measures
+        /// keep are counted and pointed at. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NoteOutcomes(int explanationsLeftOut, int echoesLeftOut, int warningsKept)
+        {
+            if (explanationsLeftOut <= 0 && echoesLeftOut <= 0) return null;
+            string kept = warningsKept > 0
+                ? "; the " + warningsKept + " warning(s) of the measures stay, above"
+                : "";
+            return (explanationsLeftOut > 0
+                       ? explanationsLeftOut + " explanation(s) of successful steps left out (none of them is a warning" +
+                         kept + "). "
+                       : (warningsKept > 0 ? "The " + warningsKept + " warning(s) of the measures stay, above. " : "")) +
+                   (echoesLeftOut > 0
+                       ? echoesLeftOut + " measure(s) left out because they came back equal to the argument " +
+                         "of the same name you sent. "
+                       : "") +
+                   "Send «response»: «full» to have them, and the times of each step.";
+        }
+
         /// <summary>Two scalar values that say the same: numbers within 1e-9, texts equal ignoring case and outer blanks.</summary>
         private static bool SameValue(object one, object other)
         {
@@ -3493,16 +3536,8 @@ namespace Oce.Solid.Agent.Tools
                 result["state_summary"] = summary;
             }
             if (planTiming != null) result["timing_ms"] = planTiming;
-            if (explanationsLeftOut > 0 || echoesLeftOut > 0)
-                result["note_outcomes"] =
-                    (explanationsLeftOut > 0
-                        ? explanationsLeftOut + " explanation(s) of successful steps left out (none is a warning). "
-                        : "") +
-                    (echoesLeftOut > 0
-                        ? echoesLeftOut + " measure(s) left out because they came back equal to the argument " +
-                          "of the same name you sent. "
-                        : "") +
-                    "Send «response»: «full» to have them, and the times of each step.";
+            var outcomesNote = NoteOutcomes(explanationsLeftOut, echoesLeftOut, WarningsInOutcomes(outcomes));
+            if (outcomesNote != null) result["note_outcomes"] = outcomesNote;
 
             // WHICH DOCUMENT IS IN FRONT, when it is not the plan's (Z-C21.14),
             // and whether the next plan may work on it (review F5).

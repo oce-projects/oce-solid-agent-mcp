@@ -634,8 +634,13 @@ using System.Runtime.InteropServices;
 //          «components» to leave them out (N30), «count» on an assembly under a
 //          warning key (N31), the note counts of delete_annotation apart (N32),
 //          and a note of several lines found by its text.
-[assembly: AssemblyVersion("0.173.0.0")]
-[assembly: AssemblyFileVersion("0.173.0.0")]
+// 0.174.0: round 9 of report 8cd843: «components» checked on the assembly
+//          before the view is read, and a component the view hides said, not
+//          refused (N33); the plan and the bench run one after-step, which does
+//          not rebuild a drawing with nothing unsaved and reads the save flag
+//          after a save (N34); every dimension says what the sheet prints (N35).
+[assembly: AssemblyVersion("0.174.0.0")]
+[assembly: AssemblyFileVersion("0.174.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -650,4 +655,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.173.0")]
+[assembly: AssemblyInformationalVersion("0.174.0")]

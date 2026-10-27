@@ -2610,8 +2610,21 @@ namespace Oce.Solid.Agent.Bench
             }
             catch { }
 
-            try { doc.EditRebuild3(); } catch { }
-            return _tOutcome.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
+            // THE SAME AFTER-STEP AS THE PLAN (report 8cd843 N34, round 9): the bench
+            // rebuilt on its own with EditRebuild3, so it could not see what the plan
+            // executor does after a step. A library older than SwOperations.AfterStep
+            // does not have it, and then the bench rebuilds as before.
+            var measured = _tOutcome.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
+            var afterStep = _tOperations.GetMethod("AfterStep", BindingFlags.Public | BindingFlags.Static);
+            if (afterStep != null)
+            {
+                try { afterStep.Invoke(null, new object[] { doc, operation, measured }); } catch { }
+            }
+            else
+            {
+                try { doc.EditRebuild3(); } catch { }
+            }
+            return measured;
         }
 
         private static object ReadObjectState(IModelDoc2 doc)

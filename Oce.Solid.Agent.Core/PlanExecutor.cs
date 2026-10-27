@@ -555,10 +555,12 @@ namespace Oce.Solid.Agent.Core
                             // seen at once and not at the end, when it is no
                             // longer known which step caused it. On an assembly
                             // EditRebuild3 empties the undo (brief R23): see
-                            // SwOperations.RebuildKeepingUndo.
+                            // SwOperations.RebuildKeepingUndo. After a save, what the save
+                            // leaves is read once the rebuild is over (report 8cd843 N34):
+                            // SwOperations.AfterStep, the same call the bench makes.
                             PhaseClock.Time("plan.rebuild", () =>
                             {
-                                try { SwOperations.RebuildKeepingUndo(model); } catch { }
+                                try { SwOperations.AfterStep(model, planStep.Operation, e.Measurements); } catch { }
                             });
 
                             // IF THE STEP DECLARED THAT IT CHANGED

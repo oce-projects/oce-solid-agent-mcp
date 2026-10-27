@@ -728,7 +728,7 @@ cases/assemblies/     26   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      48   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      49   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);
@@ -749,6 +749,8 @@ cases/drawing/      48   the first case that gets to the DRAWING (entry GT0);
                        a note of two lines reads back the same, line ends aside
                        (report 8cd843 N29); a note taken away by its text, counted
                        on the sheet and in the views apart (N32);
+                       a drawing saved by the plan is not «to be saved» again,
+                       and neither is its part (N34);
                        the note outside the sheet (the twin of the refusal);
                        the section cuts the part, and has the HATCHING (entry GT4);
                        the cut outside the view (the twin of the refusal);

@@ -3073,8 +3073,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "items", O("type", "string"),
                                 "description", "ON A VIEW OF AN ASSEMBLY: the names of the components the overall size "
                                     + "is measured on («26P000007-1», as «inspect_part» and «view_edges» give them); "
-                                    + "the others are left out of it. Empty = every component the view shows. A name "
-                                    + "the view does not show is refused, and the names it shows are listed."),
+                                    + "the others are left out of it. Left out = every component the view shows. A name "
+                                    + "the assembly does not have is refused before the view is read, with the names it "
+                                    + "has; a component of the assembly this view does not show (behind another) is said "
+                                    + "in «components_not_in_view», and the step is refused only when the view shows "
+                                    + "none of them."),
                             "offset_mm", O(
                                 "type", "number",
                                 "description", "how far below the extent of the view to put the first "

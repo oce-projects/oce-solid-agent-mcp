@@ -115,10 +115,14 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// The components «components» asks the overall size to be measured on, or
         /// null for all of them; <paramref name="problem"/> says why it is refused (not
-        /// a list of names, an empty name, a name <paramref name="inView"/> does not
-        /// hold). Pure, so the contract suite reads it.
+        /// a list of names, an empty name, a name the assembly does not have). Checked
+        /// on the ASSEMBLY, before the view is read (report 8cd843 N33, round 9): a
+        /// name the view does not show was refused, after 7 to 10 s of reading edges,
+        /// even when it was in the assembly behind another component.
+        /// <paramref name="inAssembly"/> null (the components cannot be read) checks
+        /// the shape only. Pure, so the contract suite reads it.
         /// </summary>
-        internal static HashSet<string> OverallComponents(object raw, ICollection<string> inView, out string problem)
+        internal static HashSet<string> OverallComponents(object raw, ICollection<string> inAssembly, out string problem)
         {
             problem = null;
             if (raw == null) return null;
@@ -153,16 +157,50 @@ namespace Oce.Solid.Agent.Core
                 problem = "«components» is empty: leave it out to measure every component, or list the ones to measure.";
                 return null;
             }
-            var shown = inView ?? new List<string>();
-            var unknown = set.Where(n => !shown.Contains(n)).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            if (inAssembly == null) return set;
+            var unknown = set.Where(n => !inAssembly.Contains(n)).OrderBy(n => n, StringComparer.Ordinal).ToList();
             if (unknown.Count > 0)
             {
-                var sorted = new List<string>(shown);
+                var sorted = new List<string>(inAssembly);
                 sorted.Sort(StringComparer.Ordinal);
-                problem = "the view does not show " + QuotedNames(unknown) + ". It shows " + QuotedNames(sorted) + ".";
+                problem = "the assembly has no " + QuotedNames(unknown) + ". Its components are " +
+                          QuotedNamesUpTo(sorted, 20) + ".";
                 return null;
             }
             return set;
+        }
+
+        /// <summary>
+        /// Of the components asked, the ones this view shows (report 8cd843 N33): a
+        /// component of the assembly hidden behind another in this view does not
+        /// change its overall size, and it goes in <paramref name="notInView"/>
+        /// instead of refusing the step. Refused only when the view shows none of
+        /// them. Null asked, null back: every component. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static HashSet<string> OverallComponentsInView(HashSet<string> asked, ICollection<string> inView,
+                                                                out List<string> notInView, out string problem)
+        {
+            problem = null;
+            var hidden = new List<string>();
+            notInView = hidden;
+            if (asked == null) return null;
+            var shown = inView ?? new List<string>();
+            var kept = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string n in asked)
+            {
+                if (shown.Contains(n)) kept.Add(n);
+                else hidden.Add(n);
+            }
+            hidden.Sort(StringComparer.Ordinal);
+            if (kept.Count == 0)
+            {
+                var sorted = new List<string>(shown);
+                sorted.Sort(StringComparer.Ordinal);
+                problem = "this view shows none of " + QuotedNames(hidden) + ": it shows " + QuotedNames(sorted) + ".";
+                return null;
+            }
+            return kept;
         }
 
         /// <summary>The names between «», separated by commas, in the order given.</summary>
@@ -171,6 +209,37 @@ namespace Oce.Solid.Agent.Core
             var quoted = new List<string>();
             foreach (string n in names) quoted.Add("«" + n + "»");
             return string.Join(", ", quoted);
+        }
+
+        /// <summary>The first <paramref name="most"/> names between «», and how many more there are.</summary>
+        private static string QuotedNamesUpTo(List<string> names, int most)
+        {
+            if (names.Count <= most) return QuotedNames(names);
+            return QuotedNames(names.GetRange(0, most)) + " and " + (names.Count - most) + " more";
+        }
+
+        /// <summary>
+        /// The names of every component of the assembly a view shows, nested ones as
+        /// SOLIDWORKS writes them in Name2; null when the view does not show an
+        /// assembly or its components cannot be read.
+        /// </summary>
+        private static HashSet<string> AssemblyComponentNames(IView view)
+        {
+            try
+            {
+                var assembly = view.ReferencedDocument as IAssemblyDoc;
+                var raw = assembly == null ? null : assembly.GetComponents(false) as object[];
+                if (raw == null) return null;
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (object o in raw)
+                {
+                    string n = null;
+                    try { n = (o as IComponent2)?.Name2; } catch { }
+                    if (!string.IsNullOrEmpty(n)) names.Add(n);
+                }
+                return names;
+            }
+            catch { return null; }
         }
 
         /// <summary>
@@ -221,7 +290,8 @@ namespace Oce.Solid.Agent.Core
         private Outcome DimensionAssemblyView(
             IModelDoc2 model, IDrawingDoc drawing, IView view, string viewName, object[] edges,
             List<ProjectedEdge> all, List<Circle> circles, List<int> named, Dictionary<string, object> a,
-            double[] contour, double dimensionOffset, double planStep, double scale, IMathUtility mu, MathTransform tr)
+            double[] contour, double dimensionOffset, double planStep, double scale, IMathUtility mu, MathTransform tr,
+            HashSet<string> asked)
         {
             string modeProblem;
             string mode = OverallMode(a.ContainsKey("overall") ? a["overall"] : null, named != null, out modeProblem);
@@ -240,10 +310,12 @@ namespace Oce.Solid.Agent.Core
 
             // THE COMPONENTS THE OVERALL SIZE IS MEASURED ON (report 8cd843 N30): on
             // the clip assembly the height came from couplers with no mate, resting
-            // where they were inserted. Null = all of them.
+            // where they were inserted. Null = all of them. The names were checked on
+            // the assembly before the view was read (N33): here only the ones this
+            // view shows stay, and the others are said, not refused.
             string componentsProblem;
-            HashSet<string> only = OverallComponents(a.ContainsKey("components") ? a["components"] : null, components,
-                                                     out componentsProblem);
+            List<string> notInView;
+            HashSet<string> only = OverallComponentsInView(asked, components, out notInView, out componentsProblem);
             if (componentsProblem != null)
                 return Failed("I touched nothing: " + componentsProblem + " Write the names as «inspect_part» and «view_edges» " +
                               "give them, or leave «components» out to measure every component the view shows.");
@@ -334,6 +406,7 @@ namespace Oce.Solid.Agent.Core
                     described["orientation"] = s.Facing;
                     described["component"] = s.Component;
                     described["position_mm"] = WhereItEnded(d);
+                    described["text_shown"] = TextShown(d);
                     if (d != null) born.Add(described);
                     else RecordBornWithoutObject(born, described, failed,
                         i + " (the dimension was born but SOLIDWORKS did not hand it back: its value was not read back, check it on the sheet)");
@@ -457,6 +530,7 @@ namespace Oce.Solid.Agent.Core
                     described["expected_mm"] = Math.Round(expectedMm, 3);
                     described["placed_with"] = route;
                     described["position_mm"] = WhereItEnded(d);
+                    described["text_shown"] = TextShown(d);
                     // AN OVERALL THAT ENDS ON A LOOSE COMPONENT (N30) measures where
                     // it rests, not where it is mounted: it is named, and the
                     // dimension stays, because the person may want exactly that.
@@ -523,6 +597,8 @@ namespace Oce.Solid.Agent.Core
                 ["dimensions_placed"] = put,
                 ["dimensions"] = born.ToArray(),
                 ["dimensions_mm"] = MillimetersInARow(born),
+                // What the sheet prints, beside what the model holds (report 8cd843 N35).
+                ["dimensions_shown"] = TextsShownInARow(born),
                 ["edges_not_dimensioned"] = failed.ToArray(),
                 ["already_dimensioned_elsewhere"] = elsewhere.ToArray(),
                 ["already_dimensioned_read_from"] =
@@ -542,6 +618,8 @@ namespace Oce.Solid.Agent.Core
                     "dimensioned on a view that shows it (the top or the side view).",
             };
             if (only != null) measurements["components_measured"] = only.OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            // Asked, in the assembly, not in this view (N33): left out of the overall size.
+            if (notInView.Count > 0) measurements["components_not_in_view"] = notInView.ToArray();
             if (freeWarnings.Count > 0) measurements["warning_free_components"] = string.Join(" ", freeWarnings);
             // A WARNING, NOT AN EXPLANATION (report 8cd843 N31): until 0.150.1 the key
             // was «count_ignored», and the compact answer leaves out a long text whose

@@ -301,8 +301,12 @@ namespace Oce.Solid.Agent.ContractTests
         /// **279 (same day, round 8 of report 8cd843): +1.** «components» (N30)
         /// names the components the view shows and says to write them as
         /// view_edges gives them, or to leave the argument out: 279 of 1010.
+        /// **280 (same day, round 9 of report 8cd843): +1.** «components» is now
+        /// checked on the assembly before the view is read (N33), and that early
+        /// refusal says to write the names as inspect_part and view_edges give
+        /// them, or to leave the argument out: 280 of 1011.
         /// </summary>
-        private const int Floor = 279;
+        private const int Floor = 280;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -316,8 +320,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 279;   // 27/10/2026, round 8 of report 8cd843 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 1010;
+        private const int ShareFloorWithRemedy = 280;   // 27/10/2026, round 9 of report 8cd843 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1011;
 
         /// <summary>
         /// The openings with which this code says no.

@@ -26,6 +26,53 @@ namespace Oce.Solid.Agent.Core
         private static readonly Regex NumberInText = new Regex(@"\d+(?:[.,]\d+)?", RegexOptions.Compiled);
 
         /// <summary>
+        /// The numbers a dimension prints, as its texts give them («16,3» where the
+        /// model holds 16.258), in order and joined by a blank; null when the texts
+        /// hold no number (report 8cd843 N35, round 9). The same reading as
+        /// <see cref="DimensionNumbers"/>, which looks for them in the PDF. Pure,
+        /// so the contract suite reads it.
+        /// </summary>
+        internal static string TextShownOf(IList<string> texts)
+        {
+            if (texts == null) return null;
+            var numbers = new List<string>();
+            foreach (string text in texts)
+                foreach (Match m in NumberInText.Matches(text ?? ""))
+                    numbers.Add(m.Value);
+            return numbers.Count == 0 ? null : string.Join(" ", numbers);
+        }
+
+        /// <summary>
+        /// What the sheet prints for a dimension just made (report 8cd843 N35): the
+        /// answer gave 16.258 and the sheet printed «16,3». Null when its display
+        /// data cannot be read: then nothing is said, not a guess.
+        /// </summary>
+        private static string TextShown(IDisplayDimension d)
+        {
+            try
+            {
+                var data = d == null ? null : d.GetDisplayData() as IDisplayData;
+                int n = data == null ? 0 : data.GetTextCount();
+                var texts = new List<string>();
+                for (int i = 0; i < n; i++) texts.Add(data.GetTextAtIndex(i));
+                return TextShownOf(texts);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The <c>text_shown</c> of each dimension, in a row as <c>dimensions_mm</c>.</summary>
+        private static object[] TextsShownInARow(List<Dictionary<string, object>> dimensions)
+        {
+            var row = new List<object>();
+            foreach (var q in dimensions)
+            {
+                object v;
+                row.Add(q.TryGetValue("text_shown", out v) ? v : null);
+            }
+            return row.ToArray();
+        }
+
+        /// <summary>
         /// The numbers printed by the dimensions of the drawing, by value -> how many times.
         /// `withoutText`: the dimensions whose text cannot be read — NOT checked,
         /// and it is stated (a check that skips silently looks like a check passed).

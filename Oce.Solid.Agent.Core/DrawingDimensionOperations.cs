@@ -90,6 +90,19 @@ namespace Oce.Solid.Agent.Core
             string viewName = "";
             try { viewName = view.GetName2() ?? ""; } catch { }
 
+            // THE NAMES OF «components» ARE CHECKED ON THE ASSEMBLY, BEFORE THE VIEW IS
+            // READ (report 8cd843 N33, round 9): a name the assembly does not have was
+            // refused only after the edges of the view, 7 to 10 s later.
+            HashSet<string> componentsAsked = null;
+            if (a.ContainsKey("components"))
+            {
+                string componentsProblem;
+                componentsAsked = OverallComponents(a["components"], AssemblyComponentNames(view), out componentsProblem);
+                if (componentsProblem != null)
+                    return Failed("I touched nothing: " + componentsProblem + " Write the names as «inspect_part» and " +
+                                  "«view_edges» give them, or leave «components» out to measure every component the view shows.");
+            }
+
             // ── THE EDGES THE VIEW SHOWS ────────────────────────────────
             object[] edges = null;
             try
@@ -196,7 +209,7 @@ namespace Oce.Solid.Agent.Core
             if (ViewOfAnAssembly(view, all, circles))
                 return DimensionAssemblyView(model, drawing, view, viewName, edges, all, circles,
                                              requestedList.Count > 0 ? chosen : null, a, contour,
-                                             dimensionOffset, planStep, scale, mu, tr);
+                                             dimensionOffset, planStep, scale, mu, tr, componentsAsked);
 
             // THE DIMENSIONS THE DRAWING ALREADY HAS, IN ALL THE VIEWS (entry GT11). «Each
             // element of the object must be dimensioned no more than once»
@@ -418,6 +431,7 @@ namespace Oce.Solid.Agent.Core
                         }
                         described["orientation"] = s.Facing;
                         described["position_mm"] = WhereItEnded(nature);
+                        described["text_shown"] = TextShown(nature);
                         born.Add(described);
                     }
                     catch (Exception ex)
@@ -514,6 +528,8 @@ namespace Oce.Solid.Agent.Core
                 // *An expectation that depends on an undeclared order measures the
                 // order, not the thing.*
                 ["dimensions_mm"] = MillimetersInARow(born),
+                // What the sheet prints, beside what the model holds (report 8cd843 N35).
+                ["dimensions_shown"] = TextsShownInARow(born),
                 ["edges_not_dimensioned"] = failed.ToArray(),
 
                 // ── HOLES, CHAMFERS, AND WHAT WAS ALREADY DIMENSIONED (entry GT11) ──
@@ -1249,6 +1265,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 described["orientation"] = "outer diameter";
                 described["position_mm"] = WhereItEnded(q);
+                described["text_shown"] = TextShown(q);
                 if (q != null) born.Add(described);
                 else RecordBornWithoutObject(born, described, failed,
                     "external diameter Ø" + dm + " (the dimension was born but SOLIDWORKS did not hand it back: " +
@@ -1431,6 +1448,7 @@ namespace Oce.Solid.Agent.Core
                 var described = DescribeDimension(callout, head.Index);
                 described["orientation"] = viaHow;
                 described["position_mm"] = WhereItEnded(callout);
+                described["text_shown"] = TextShown(callout);
                 if (callout != null) born.Add(described);
                 else RecordBornWithoutObject(born, described, failed,
                     "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the " + (fellBack ? "diameter dimension" : "hole callout") +
@@ -1619,6 +1637,7 @@ namespace Oce.Solid.Agent.Core
             var described = DescribeDimension(dimension, hole.Index);
             described["orientation"] = horizontal ? "horizontal position of the hole" : "vertical position of the hole";
             described["position_mm"] = WhereItEnded(dimension);
+            described["text_shown"] = TextShown(dimension);
             object mm;
             if (described.TryGetValue("mm", out mm) && mm != null &&
                 Math.Abs(Convert.ToDouble(mm, Ci) - expectedMm) > 0.05)
@@ -1698,6 +1717,7 @@ namespace Oce.Solid.Agent.Core
                 var described = DescribeDimension(dimension, s.Index);
                 described["orientation"] = "chamfer dimension";
                 described["position_mm"] = WhereItEnded(dimension);
+                described["text_shown"] = TextShown(dimension);
 
                 // THE CHAMFER DIMENSION IS MADE OF TWO DIMENSIONS, and the first one is
                 // THE ANGLE. Measured on 25/9/2026: GetDimension2(0) = 0.785 rad
