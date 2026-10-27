@@ -83,6 +83,11 @@ namespace Oce.Solid.Agent.Core
             bool touchCount = Bool(a, "touching_counts", false);
             bool insideTheParts = Bool(a, "inside_parts", false);
 
+            // THE SAVE FLAG, before and after (finding N16, 27/10/2026): read
+            // to tell whether closing the detection marked the assembly changed.
+            bool? saveFlagBefore = null;
+            try { saveFlagBefore = model.GetSaveFlag(); } catch { }
+
             IInterferenceDetectionMgr handler;
             try { handler = assemblyDoc.InterferenceDetectionManager as IInterferenceDetectionMgr; }
             catch (Exception ex)
@@ -255,6 +260,18 @@ namespace Oce.Solid.Agent.Core
                 try { handler.Done(); } catch { }
             }
 
+            // DONE MARKS THE ASSEMBLY CHANGED (finding N16, 27/10/2026, measured
+            // with a read-only probe on a copy of the clip assembly saved just
+            // before: GetSaveFlag false after the three settings, the count, the
+            // list and the bodies, true right after Done). Done is still called
+            // (IInterferenceDetectionMgr~Done.html: «Stops the interference
+            // detection»), and no call clears the flag (IModelDoc2.SetSaveFlag
+            // only sets it): the answer says it, instead of «touches nothing»
+            // next to an assembly that asks to be saved.
+            bool? saveFlagAfter = null;
+            try { saveFlagAfter = model.GetSaveFlag(); } catch { }
+            bool markedUnsaved = saveFlagBefore == false && saveFlagAfter == true;
+
             // N18: the components the check looks at are the ones that are not
             // suppressed. Until library 0.144.0 the count of components looked
             // at took every component, suppressed ones included. GetSuppression2
@@ -303,6 +320,15 @@ namespace Oce.Solid.Agent.Core
             };
             // N15: how many of the counted ones are faces that touch, when asked.
             if (touchCount || contacts > 0) measurements["contacts"] = contacts;
+            if (markedUnsaved)
+            {
+                measurements["marked_unsaved"] = true;
+                measurements["warning_marked_unsaved"] =
+                    "SOLIDWORKS marked the assembly as changed when its interference detection closed " +
+                    "(IInterferenceDetectionMgr.Done, measured): nothing in it changed, and it now asks to be saved. " +
+                    "«document» «close» refuses it as unsaved: save it with «save_document», or let the person " +
+                    "close it.";
+            }
             if (suppressedComponents > 0)
                 measurements["suppressed_note"] =
                     suppressedComponents + (suppressedComponents == 1 ? " component is" : " components are") +

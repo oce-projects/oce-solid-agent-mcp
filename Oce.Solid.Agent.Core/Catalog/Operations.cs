@@ -3609,7 +3609,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Tested = true,
                     Summary =
                         "Says whether the components of the assembly interpenetrate, and by how "
-                        + "much volume. Touches nothing.",
+                        + "much volume. Changes nothing in the assembly (SOLIDWORKS may mark it unsaved).",
                     Description =
                         "Looks for the INTERFERENCES between the components of the open "
                         + "assembly: the places where two parts occupy the same space.\n\n"
@@ -3645,8 +3645,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "(«components») and its box in the space of the assembly («box_from_mm», «box_to_mm»). "
                         + "With «touching_counts», faces that touch come as CONTACTS: «contact» true, volume 0, "
                         + "counted in «how_many» and in «contacts», never in «volume_total_mm3» nor in the alarm."
+                        + "\n\nSAVED BEFORE, UNSAVED AFTER. SOLIDWORKS marks the assembly as changed when its "
+                        + "interference detection closes: when that happens the answer says «marked_unsaved» true "
+                        + "with a warning, and the assembly asks to be saved although nothing in it changed."
                         + "\n\n"
-                        + "It changes nothing: "
+                        + "It changes nothing in the assembly: "
                         + "it can also be asked for through «measure».",
                     Precondition = "an open assembly with at least two components",
                     Schema = O(

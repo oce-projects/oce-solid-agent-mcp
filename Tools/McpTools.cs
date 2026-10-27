@@ -486,7 +486,10 @@ namespace Oce.Solid.Agent.Tools
                     "of the «checks» family — the ones that only read.\n\n" +
                     "If you only need to know how the part is made, use this one: " +
                     "your client knows it changes nothing and does not ask " +
-                    "you for confirmation.\n\n" +
+                    "you for confirmation. One exception in the flags, not in the " +
+                    "geometry: «interference_check» can leave a saved assembly marked " +
+                    "unsaved (SOLIDWORKS does it when its detection closes), and its " +
+                    "answer then says «marked_unsaved».\n\n" +
                     "An operation that touches the part is REFUSED here, and " +
                     "the answer says which tool does it. The plan does not " +
                     "start: it does not measure half the part and then stop.",

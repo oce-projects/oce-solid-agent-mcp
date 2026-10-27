@@ -32,6 +32,27 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.148.1 — 27 October 2026 · library 0.170.1 · fifth round of session 8cd843, N16 (branch `night-2026-10-26-asm`)
+
+- **Fifth round on SOLIDWORKS (session 8cd843, bridge 0.148.0, 9 calls)**: held
+  N13 («Parte356» without «title:»), N14 (pairs and boxes) and N15 (`contacts`
+  1, total 14.763 mm³ with and without `touching_counts`); no new defect. From
+  the boxes the session measured the squeeze of the clips on the channel: 0.05 mm
+  per side, the same as its own script.
+- **N16**: the session saw the saved copy of the assembly marked unsaved after a
+  scenario of this side. Isolated on SOLIDWORKS, on copies saved just before:
+  `activate`, `inspect_part` and `measure` of `mass_properties` leave the save
+  flag false; `measure` of `interference_check` sets it. A read-only probe of the
+  interference manager read `GetSaveFlag` after every phase: false after the
+  three settings, the count, the list and the bodies, true right after
+  `IInterferenceDetectionMgr.Done`. Done is still called (it stops the
+  detection) and no call clears the flag, so the answer now says it:
+  `marked_unsaved` true and `warning_marked_unsaved`, when the flag went from
+  false to true across the check. The descriptions of `interference_check` and
+  of the tool `measure` say it too.
+- **Check** (`Zc2189WeldAssemblyContract`): the save flag read before and after
+  Done, and the mark said, with a changed copy that turns red.
+
 ## 0.148.0 — 27 October 2026 · library 0.170.0 · fourth round of session 8cd843: N13, N14, N15 (branch `night-2026-10-26-asm`)
 
 - **Fourth round on SOLIDWORKS (session 8cd843, bridge 0.147.0, 20 calls, the

@@ -562,13 +562,14 @@ namespace Oce.Solid.Agent.ContractTests
             try { source = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "InterferenceOperations.cs")).Replace("\r\n", "\n"); }
             catch (Exception ex) { Check("N15: InterferenceOperations.cs can be read", false, ex.Message); return; }
             var problems = ContactSourceProblems(source);
-            Check("N14/N15: a sheet body is a contact before any volume is read, and each interference names its pair and box",
-                  problems.Count == 0, problems.Count == 0 ? "swSheetBody before GetMassProperties; Components; GetBodyBox" : string.Join(" | ", problems));
+            Check("N14/N15/N16: a sheet body is a contact before any volume is read, each interference names its pair and box, the unsaved mark of Done is said",
+                  problems.Count == 0, problems.Count == 0 ? "swSheetBody before GetMassProperties; Components; GetBodyBox; GetSaveFlag around Done" : string.Join(" | ", problems));
             var changed = new[]
             {
                 Tuple.Create("the sheet read as a volume (N15)", "if (type == (int)swBodyType_e.swSheetBody) { contact = true; return true; }", ""),
                 Tuple.Create("no pair per interference (N14)", "entry[\"components\"] = pair.ToArray();", "entry[\"pair\"] = null;"),
                 Tuple.Create("no box per interference (N14)", "entry[\"box_from_mm\"] =", "entry[\"from\"] ="),
+                Tuple.Create("the unsaved mark not said (N16)", "measurements[\"marked_unsaved\"] = true;", "measurements[\"quiet\"] = true;"),
             };
             var notRed = changed.Where(c => !source.Contains(c.Item2) || ContactSourceProblems(source.Replace(c.Item2, c.Item3)).Count == 0)
                                 .Select(c => c.Item1).ToList();
@@ -590,6 +591,13 @@ namespace Oce.Solid.Agent.ContractTests
             if (source.IndexOf("entry[\"box_from_mm\"] =", StringComparison.Ordinal) < 0 ||
                 source.IndexOf("body.GetBodyBox()", StringComparison.Ordinal) < 0)
                 problems.Add("an interference does not say where it is (report 8cd843 N14)");
+            // N16: Done marks a saved assembly changed; the answer must say it.
+            int flagBefore = source.IndexOf("saveFlagBefore = model.GetSaveFlag();", StringComparison.Ordinal);
+            int done = source.IndexOf("try { handler.Done(); } catch { }", StringComparison.Ordinal);
+            int flagAfter = source.IndexOf("saveFlagAfter = model.GetSaveFlag();", StringComparison.Ordinal);
+            if (flagBefore < 0 || done < flagBefore || flagAfter < done ||
+                source.IndexOf("measurements[\"marked_unsaved\"] = true;", StringComparison.Ordinal) < 0)
+                problems.Add("the save flag is not read around Done, or a check that marked the assembly unsaved does not say it (N16)");
             return problems;
         }
 
