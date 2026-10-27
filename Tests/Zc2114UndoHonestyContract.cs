@@ -491,6 +491,22 @@ namespace Oce.Solid.Agent.ContractTests
             Check("the after-plan check turns red on each changed copy", afterPlanRed.Count == 0,
                   afterPlanRed.Count == 0 ? "17 changes, each one red" : string.Join(" | ", afterPlanRed));
 
+            var front = PlanFrontProblems(tools);
+            Check("before a plan: no part looked at is refused before the reading (N17), an exchange the assembly cannot have is refused before any step (N18)",
+                  front.Count == 0,
+                  front.Count == 0
+                      ? "NotLookedAtYet(frontNow) before StateWithoutAnchor; AssemblyExchangeRefusal in the pre-check of the steps, " +
+                        "only while the plan is still on the assembly"
+                      : string.Join(" | ", front));
+            var frontRed = SeenRed("before a plan", tools, PlanFrontProblems, new[]
+            {
+                Change("N17: the early refusal taken out", "return Protocol.Content(NotLookedAtYet(frontNow), true);", "frontNow = null;"),
+                Change("N18: the exchange refusal not asked in the pre-check", "SwOperations.AssemblyExchangeRefusal(", "SwOperations.AssemblyExchangeIgnored("),
+                Change("N18: a drawing ahead not noted", "if (itemName == \"create_drawing\") anotherDocumentAhead = true;", ""),
+            });
+            Check("the before-a-plan check turns red on each changed copy", frontRed.Count == 0,
+                  frontRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", frontRed));
+
             var undo = UndoProblems(tools);
             Check("`undo` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
                   undo.Count == 0,
@@ -551,6 +567,32 @@ namespace Oce.Solid.Agent.ContractTests
             });
             Check("the session check turns red on each changed copy", sessRed.Count == 0,
                   sessRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", sessRed));
+        }
+
+        /// <summary>
+        /// Report 8cd843, round 6, in the plan tool; empty when nothing is wrong.
+        /// N17: a plan sent before any «inspect_part» is refused before the long
+        /// reading of the document, not after it. N18: an IGES of an assembly, or
+        /// a STEP with reopen_and_compare, is refused before the steps run, not
+        /// after the steps before it changed the assembly.
+        /// </summary>
+        internal static List<string> PlanFrontProblems(string source)
+        {
+            var problems = new List<string>();
+            var code = CodeOnly(source);
+            string plan = MemberBody(code, "private Dictionary<string, object> RunPlan(");
+            if (plan == null) { problems.Add("the body of the plan is not in the source"); return problems; }
+            int early = plan.IndexOf("if (_seen == null && string.IsNullOrWhiteSpace(Text(arguments, \"document\")))", StringComparison.Ordinal);
+            int earlyRefusal = early < 0 ? -1 : plan.IndexOf("return Protocol.Content(NotLookedAtYet(frontNow), true);", early, StringComparison.Ordinal);
+            int reading = plan.IndexOf("var before = _session.StateWithoutAnchor(", StringComparison.Ordinal);
+            if (earlyRefusal < 0 || reading < 0 || earlyRefusal > reading)
+                problems.Add("a plan with no part looked at is refused only after the reading of the document (report 8cd843 N17)");
+            int guard = plan.IndexOf("if (startKind == \"assembly\" && !anotherDocumentAhead)", StringComparison.Ordinal);
+            int exchange = guard < 0 ? -1 : plan.IndexOf("SwOperations.AssemblyExchangeRefusal(", guard, StringComparison.Ordinal);
+            int drawing = plan.IndexOf("if (itemName == \"create_drawing\") anotherDocumentAhead = true;", StringComparison.Ordinal);
+            if (exchange < 0 || drawing < 0 || drawing < exchange)
+                problems.Add("an IGES or a reopened STEP of an assembly is refused only after the steps before it ran (report 8cd843 N18)");
+            return problems;
         }
 
         /// <summary>What is wrong with the reading after a plan; empty when nothing.</summary>

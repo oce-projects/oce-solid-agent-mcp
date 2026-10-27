@@ -191,6 +191,14 @@ namespace Oce.Solid.Agent.Core
             }
             measurements["match"] = true;
 
+            // ── A COLUMN EMPTY ON EVERY ROW IS SAID (report 8cd843 N20) ─────
+            //
+            // 27/10/2026: the description column read "" on 7 rows of 7 and nothing in the
+            // answer said it; the table was delivered with a blank column. The
+            // count matching says nothing of what the cells hold.
+            string emptyColumns = EmptyColumnsWarning(headers, readLines);
+            if (emptyColumns != null) measurements["warning_empty_columns"] = emptyColumns;
+
             // ── THE PLACE ───────────────────────────────────────────────────
             double w = 0, h = 0;
             try
@@ -216,6 +224,34 @@ namespace Oce.Solid.Agent.Core
             measurements["table_location"] = location;
             measurements["inside_sheet"] = true;
             return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// The columns of a table that are empty on every row, in one sentence,
+        /// or null (report 8cd843 N20). `rows` holds one string[] per row, as
+        /// the bill of materials reads them. No interop type:
+        /// Oce.Solid.Agent.ContractTests calls it by reflection.
+        /// </summary>
+        internal static string EmptyColumnsWarning(List<string> headers, List<object> rows)
+        {
+            if (headers == null || rows == null || rows.Count == 0) return null;
+            var empty = new List<string>();
+            for (int c = 0; c < headers.Count; c++)
+            {
+                bool allEmpty = true;
+                foreach (var o in rows)
+                {
+                    var row = o as string[];
+                    if (row != null && c < row.Length && !string.IsNullOrWhiteSpace(row[c])) { allEmpty = false; break; }
+                }
+                string name = headers[c] == null ? "" : headers[c].Trim();
+                if (allEmpty) empty.Add(name.Length > 0 ? "«" + name + "»" : "column " + (c + 1));
+            }
+            if (empty.Count == 0) return null;
+            return (empty.Count == 1 ? "The column " + empty[0] + " is" : "The columns " + string.Join(", ", empty) + " are") +
+                   " empty on all " + rows.Count + " rows: the property " + (empty.Count == 1 ? "it reads" : "they read") +
+                   " is missing or empty in every part. Fill it in the parts, or use a table template that reads the " +
+                   "property they have.";
         }
 
         /// <summary>

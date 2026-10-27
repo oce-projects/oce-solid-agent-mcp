@@ -317,8 +317,37 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string Cell(ITableAnnotation t, int line, int column)
         {
-            try { return t.Text[line, column] ?? ""; }
+            try { return WithoutFormatCodes(t.Text[line, column] ?? ""); }
             catch { return ""; }
+        }
+
+        /// <summary>
+        /// A cell without the FONT codes of SOLIDWORKS notes (report 8cd843 N21,
+        /// 27/10/2026): the headers of a bill of materials came from
+        /// ITableAnnotation.Text with «&lt;FONT size=3.5&gt;» before the name of
+        /// the column. Only «&lt;FONT ...&gt;»
+        /// and «&lt;/FONT&gt;» are taken out, the one kind measured; any other text
+        /// stays as it is. No interop type: Oce.Solid.Agent.ContractTests calls
+        /// it by reflection.
+        /// </summary>
+        internal static string WithoutFormatCodes(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            string s = text;
+            int from = 0;
+            while (from < s.Length)
+            {
+                int at = s.IndexOf("<FONT", from, StringComparison.OrdinalIgnoreCase);
+                if (at < 0) break;
+                int next = at + 5;
+                int end = s.IndexOf('>', at);
+                if (end < 0) break;
+                if (next < s.Length && (s[next] == ' ' || s[next] == '>')) s = s.Remove(at, end - at + 1);
+                else from = next;
+            }
+            int close;
+            while ((close = s.IndexOf("</FONT>", StringComparison.OrdinalIgnoreCase)) >= 0) s = s.Remove(close, 7);
+            return s;
         }
 
         /// <summary>

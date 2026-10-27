@@ -1068,6 +1068,10 @@ namespace Oce.Solid.Agent.Core
                 // L13-7: the Warnings of the save, decoded, also on a success.
                 ["save_warnings"] = SaveWarningsForAnswer(warnings),
             };
+            // WHAT A FALSE MEANS, in the answer (report 8cd843 N22, 27/10/2026:
+            // false next to a right PDF, with nothing to read). Under 100
+            // characters, so the summary keeps it.
+            if (!everySheetAsked) measurements["set_sheets_note"] = SetSheetsFalseNote(pages, sheets);
             string pdfWarningAdvice = SaveWarningsAdvice(warnings);
             if (pdfWarningAdvice != null) measurements["save_warnings_note"] = pdfWarningAdvice;
 
@@ -1848,6 +1852,18 @@ namespace Oce.Solid.Agent.Core
         /// not be taken is a refusal, not a pass: the file stays where it was
         /// written, and the message says so.
         /// </summary>
+        /// <summary>
+        /// The note next to «set_sheets_answer» false (report 8cd843 N22): the
+        /// answer of SetSheets has been false on complete PDFs, the page count
+        /// is the check. Under 100 characters, so CompactOutcomes keeps it. No
+        /// interop type: Oce.Solid.Agent.ContractTests calls it by reflection.
+        /// </summary>
+        internal static string SetSheetsFalseNote(int pages, int sheets)
+        {
+            return "false is seen on complete PDFs too; the check is the page count: " +
+                   (pages > 0 ? pages.ToString() : "?") + " of " + sheets;
+        }
+
         internal static string PdfPageCountRefusal(int pages, int sheets, string path)
         {
             if (pages < 0)

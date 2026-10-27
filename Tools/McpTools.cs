@@ -2673,6 +2673,18 @@ namespace Oce.Solid.Agent.Tools
             if (!_session.Attached)
                 return Protocol.Content("The bridge is not attached to SolidWorks.", true);
 
+            // NOT LOOKED AT AND NOT NAMED: refused BEFORE reading the document
+            // (report 8cd843 N17, 27/10/2026). The refusal needs only the name
+            // of the window in front, and the whole reading of an assembly of 8
+            // components took 10.7 s to arrive at it. With no document open the
+            // reading below says so, as before.
+            if (_seen == null && string.IsNullOrWhiteSpace(Text(arguments, "document")))
+            {
+                var frontNow = _session.Identity(_session.ActiveDocument());
+                if (frontNow != null)
+                    return Protocol.Content(NotLookedAtYet(frontNow), true);
+            }
+
             // WITHOUT ANCHOR: this reading serves to know on WHICH document one is
             // working, how much volume there was and how many features were already in
             // error. No signatures are built from it (those are made on «after»,
@@ -2724,12 +2736,7 @@ namespace Oce.Solid.Agent.Tools
             if (!namedIt)
             {
                 if (_seen == null)
-                    return Protocol.Content(
-                        "I have not looked at any part yet, so I do not know which " +
-                        "document you want me to draw on: in front now is «" +
-                        ReadableName(now) + "». Call «inspect_part» first — " +
-                        "it is needed anyway, because the face identifiers " +
-                        "are born there.", true);
+                    return Protocol.Content(NotLookedAtYet(now), true);
 
                 if (!Bridge.Session.SameDocument(_seen, now))
                     return Protocol.Content(
@@ -2901,6 +2908,10 @@ namespace Oce.Solid.Agent.Tools
             // and the specification demands that `progress` grow.
             _wire.Total = steps.Length * 2;
 
+            // N18: the kind of the document the plan starts on.
+            string startKind = Convert.ToString(before.TryGetValue("kind", out var kindAtStart) ? kindAtStart : null) ?? "";
+            bool anotherDocumentAhead = false;
+
             foreach (var p in steps)
             {
                 var planStep = p as Dictionary<string, object>;
@@ -3009,6 +3020,31 @@ namespace Oce.Solid.Agent.Tools
                     everythingFine = false;
                     break;
                 }
+
+                // WHAT AN ASSEMBLY REFUSES, BEFORE THE FIRST STEP (report 8cd843
+                // N18, 27/10/2026): [save_document, export_step with
+                // reopen_and_compare] saved the copy, and only then step 2 was
+                // refused. The kind is the one of the document the plan starts
+                // on, so it holds until a step that brings another document
+                // (create_drawing).
+                if (startKind == "assembly" && !anotherDocumentAhead)
+                {
+                    object reopen;
+                    var crookedKind = Oce.Solid.Agent.Core.SwOperations.AssemblyExchangeRefusal(
+                        itemName, itsItems.TryGetValue("reopen_and_compare", out reopen) && reopen is bool r && r);
+                    if (crookedKind != null)
+                    {
+                        outcomes.Add(new Dictionary<string, object>
+                        {
+                            ["operation"] = itemName,
+                            ["succeeded"] = false,
+                            ["error"] = "Step " + order + ": " + crookedKind + NothingTouched,
+                        });
+                        everythingFine = false;
+                        break;
+                    }
+                }
+                if (itemName == "create_drawing") anotherDocumentAhead = true;
 
                 // THE MATERIAL IS FOUND BEFORE THE FIRST STEP, not at its own
                 // (brief R4): see MaterialProblem.
@@ -3587,6 +3623,19 @@ namespace Oce.Solid.Agent.Tools
             // refusal.
             return Protocol.ContentWithData(
                 Protocol.InJson(result), result, !everythingFine);
+        }
+
+        /// <summary>
+        /// The refusal of a plan when no document was looked at yet, with the
+        /// name of the one in front (report 8cd843 N17: said before the reading).
+        /// </summary>
+        private static string NotLookedAtYet(Dictionary<string, object> front)
+        {
+            return "I have not looked at any part yet, so I do not know which " +
+                   "document you want me to draw on: in front now is «" +
+                   ReadableName(front) + "». Call «inspect_part» first — " +
+                   "it is needed anyway, because the face identifiers " +
+                   "are born there.";
         }
 
         // ─────────────────────────────────────────────────────────────────

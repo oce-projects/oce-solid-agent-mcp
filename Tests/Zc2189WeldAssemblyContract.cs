@@ -101,6 +101,7 @@ namespace Oce.Solid.Agent.ContractTests
             AutomaticCutListRefusal(sw);
             InterferenceVerdict(sw);
             ContactsAndPairs(sw);
+            ExchangeAndTables(sw);
             InterferenceSettings(sw);
             ComponentsLookedAt(sw);
             Balloons(sw);
@@ -575,6 +576,147 @@ namespace Oce.Solid.Agent.ContractTests
                                 .Select(c => c.Item1).ToList();
             Check("N14/N15: the check turns red on each changed copy", notRed.Count == 0,
                   notRed.Count == 0 ? changed.Length + " changes, each one red" : "NOT red: " + string.Join(", ", notRed));
+        }
+
+        // ── report 8cd843 round 6: N18 to N22 ───────────────────────────────
+        private static void ExchangeAndTables(Type sw)
+        {
+            try
+            {
+                var iges = (string)Call(sw, "AssemblyExchangeRefusal", "export_iges", false);
+                var reopened = (string)Call(sw, "AssemblyExchangeRefusal", "export_step", true);
+                var step = (string)Call(sw, "AssemblyExchangeRefusal", "export_step", false);
+                var other = (string)Call(sw, "AssemblyExchangeRefusal", "export_stl", true);
+                Check("N18: one text for the IGES and the reopened STEP of an assembly, for the pre-check and the operation",
+                      iges != null && iges.Contains("IGES of an assembly") && reopened != null && reopened.Contains("reopen_and_compare") &&
+                      step == null && other == null,
+                      (iges ?? "null") + " | " + (reopened ?? "null") + " | " + (step ?? "null") + " | " + (other ?? "null"));
+            }
+            catch (Exception ex) { Check("N18: AssemblyExchangeRefusal can be called", false, ex.GetType().Name + ": " + ex.Message); }
+
+            try
+            {
+                var headers = new List<string> { "ITEM NO.", "PART NUMBER", "DESCRIPTION", "QTY." };
+                var rows = new List<object>
+                {
+                    new[] { "1", "26P000007", "", "2" },
+                    new[] { "2", "26P000008", " ", "1" },
+                };
+                var oneEmpty = (string)Call(sw, "EmptyColumnsWarning", headers, rows);
+                rows.Add(new[] { "3", "26P000009", "Clip", "4" });
+                var filled = (string)Call(sw, "EmptyColumnsWarning", headers, rows);
+                var noRows = (string)Call(sw, "EmptyColumnsWarning", headers, new List<object>());
+                Check("N20: a column empty on every row is said, with its name and the rows",
+                      oneEmpty != null && oneEmpty.Contains("«DESCRIPTION»") && oneEmpty.Contains("all 2 rows") &&
+                      !oneEmpty.Contains("PART NUMBER"),
+                      oneEmpty ?? "null");
+                Check("N20: a column with one cell filled, or a table with no rows, is no warning",
+                      filled == null && noRows == null, (filled ?? "null") + " | " + (noRows ?? "null"));
+            }
+            catch (Exception ex) { Check("N20: EmptyColumnsWarning can be called", false, ex.GetType().Name + ": " + ex.Message); }
+
+            try
+            {
+                var font = (string)Call(sw, "WithoutFormatCodes", "<FONT size=3.5>PART NUMBER");
+                var closed = (string)Call(sw, "WithoutFormatCodes", "<font size=3.5 style=B>QTY.</FONT>");
+                var two = (string)Call(sw, "WithoutFormatCodes", "<FONT size=2>A<FONT size=3>B");
+                var plain = (string)Call(sw, "WithoutFormatCodes", "M8 <FONTANA> 2 > 1");
+                var empty = (string)Call(sw, "WithoutFormatCodes", (object)null);
+                Check("N21: the FONT codes of a note are taken out of a cell",
+                      font == "PART NUMBER" && closed == "QTY." && two == "AB",
+                      font + " | " + closed + " | " + two);
+                Check("N21: any other text, and an empty cell, stay as they are",
+                      plain == "M8 <FONTANA> 2 > 1" && empty == "", plain + " | «" + empty + "»");
+            }
+            catch (Exception ex) { Check("N21: WithoutFormatCodes can be called", false, ex.GetType().Name + ": " + ex.Message); }
+
+            try
+            {
+                var note = (string)Call(sw, "SetSheetsFalseNote", 3, 3);
+                var unread = (string)Call(sw, "SetSheetsFalseNote", -1, 2);
+                Check("N22: a false of SetSheets is explained next to it, under 100 characters so the summary keeps it",
+                      note != null && note.Contains("page count") && note.EndsWith("3 of 3", StringComparison.Ordinal) &&
+                      note.Length <= 100 && unread != null && unread.EndsWith("? of 2", StringComparison.Ordinal) && unread.Length <= 100,
+                      (note ?? "null") + " (" + (note == null ? 0 : note.Length) + ") | " + (unread ?? "null"));
+            }
+            catch (Exception ex) { Check("N22: SetSheetsFalseNote can be called", false, ex.GetType().Name + ": " + ex.Message); }
+
+            string export, drawing, bom, igesText, reopenText;
+            try
+            {
+                export = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "ExportOperations.cs")).Replace("\r\n", "\n");
+                drawing = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "DrawingOperations.cs")).Replace("\r\n", "\n");
+                bom = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "BomOperations.cs")).Replace("\r\n", "\n");
+                igesText = (string)Call(sw, "AssemblyExchangeRefusal", "export_iges", false);
+                reopenText = (string)Call(sw, "AssemblyExchangeRefusal", "export_step", true);
+            }
+            catch (Exception ex) { Check("N18-N22: the sources and the shared refusal can be read", false, ex.GetType().Name + ": " + ex.Message); return; }
+            var sources = new Dictionary<string, string> { { "export", export }, { "drawing", drawing }, { "bom", bom } };
+            var problems = ExchangeAndTablesProblems(sources, igesText, reopenText);
+            Check("N18/N19/N20/N22: the refusals of the pre-check are the ones of the operation, the basis of the solid count, the empty columns and the false of SetSheets are said",
+                  problems.Count == 0, problems.Count == 0 ? "AssemblyExchangeRefusal equal to the two Failed of ExportExchange; solids_expected_basis; EmptyColumnsWarning; SetSheetsFalseNote" : string.Join(" | ", problems));
+            var changed = new[]
+            {
+                Tuple.Create("export", "the IGES refusal of the operation parted from the pre-check (N18)",
+                             "\"I do not write the IGES of an assembly: I cannot verify", "\"I do not write IGES of an assembly: I cannot verify"),
+                Tuple.Create("export", "the reopen refusal of the operation parted from the pre-check (N18)",
+                             "of the solids in the file against those of the parts: remove it and ask me again.\");",
+                             "of the solids in the file against those of the parts: remove it.\");"),
+                Tuple.Create("export", "the basis of the count not said (N19)", "measurements[\"solids_expected_basis\"] =", "measurements[\"basis\"] ="),
+                Tuple.Create("bom", "the empty columns not said (N20)", "measurements[\"warning_empty_columns\"] = emptyColumns;", ""),
+                Tuple.Create("drawing", "the false not explained (N22)", "measurements[\"set_sheets_note\"] = SetSheetsFalseNote(pages, sheets);", ""),
+            };
+            var notRed = changed.Where(c =>
+            {
+                if (!sources[c.Item1].Contains(c.Item3)) return true;
+                var copy = new Dictionary<string, string>(sources);
+                copy[c.Item1] = copy[c.Item1].Replace(c.Item3, c.Item4);
+                return ExchangeAndTablesProblems(copy, igesText, reopenText).Count == 0;
+            }).Select(c => c.Item2).ToList();
+            Check("N18-N22: the check turns red on each changed copy", notRed.Count == 0,
+                  notRed.Count == 0 ? changed.Length + " changes, each one red" : "NOT red: " + string.Join(", ", notRed));
+        }
+
+        /// <summary>
+        /// The text of the Failed statement that holds a literal starting with
+        /// `start`, its literals joined; null when no Failed holds it.
+        /// </summary>
+        internal static string FailedTextWith(string source, string start)
+        {
+            string needle = "\"" + start;
+            for (int at = source.IndexOf(needle, StringComparison.Ordinal); at >= 0;
+                 at = source.IndexOf(needle, at + 1, StringComparison.Ordinal))
+            {
+                int open = source.LastIndexOf("Failed(", at, StringComparison.Ordinal);
+                int close = source.IndexOf(");", at, StringComparison.Ordinal);
+                if (open < 0 || close < 0) continue;
+                string statement = source.Substring(open, close - open);
+                const string literal = @"""((?:[^""\\]|\\.)*)""";
+                // A «;» outside the literals: the text is not inside that Failed.
+                if (Regex.Replace(statement, literal, "").IndexOf(';') >= 0) continue;
+                return string.Concat(Regex.Matches(statement, literal).Cast<Match>().Select(m => m.Groups[1].Value));
+            }
+            return null;
+        }
+
+        /// <summary>What is missing of the round 6 fixes in the operations; empty when nothing.</summary>
+        internal static List<string> ExchangeAndTablesProblems(Dictionary<string, string> sources, string igesText, string reopenText)
+        {
+            var problems = new List<string>();
+            // N18: the pre-check of the plan and the operation give the same refusal.
+            string igesInOperation = FailedTextWith(sources["export"], "I do not write ");
+            string reopenInOperation = FailedTextWith(sources["export"], "On an assembly I do not do ");
+            if (igesText == null || igesInOperation != igesText)
+                problems.Add("the IGES refusal of ExportExchange is not the one the plan pre-check gives (report 8cd843 N18)");
+            if (reopenText == null || reopenInOperation != reopenText)
+                problems.Add("the reopen_and_compare refusal of ExportExchange is not the one the plan pre-check gives (report 8cd843 N18)");
+            if (sources["export"].IndexOf("measurements[\"solids_expected_basis\"] =", StringComparison.Ordinal) < 0)
+                problems.Add("the STEP of an assembly does not say what the expected solid count counts (report 8cd843 N19)");
+            if (sources["bom"].IndexOf("measurements[\"warning_empty_columns\"] = emptyColumns;", StringComparison.Ordinal) < 0)
+                problems.Add("a bill of materials with a column empty on every row does not say it (report 8cd843 N20)");
+            if (sources["drawing"].IndexOf("measurements[\"set_sheets_note\"] = SetSheetsFalseNote(pages, sheets);", StringComparison.Ordinal) < 0)
+                problems.Add("a false of SetSheets is not explained in the answer (report 8cd843 N22)");
+            return problems;
         }
 
         /// <summary>What is wrong with the reading of one interference; empty when nothing.</summary>

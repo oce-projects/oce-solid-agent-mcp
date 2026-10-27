@@ -32,6 +32,45 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.149.0 — 27 October 2026 · library 0.171.0 · sixth round of session 8cd843: N17 to N22 (branch `night-2026-10-26-asm`)
+
+- **Sixth round on SOLIDWORKS (session 8cd843, bridge 0.148.1, 25 calls)**: held
+  N16 (`marked_unsaved` on the first check of a saved copy, nothing on the
+  second). Real work on copies: STEP of the assembly, a drawing with three views,
+  an isometric view, the bill of materials, balloons, the saved drawing and its
+  PDF, 7 steps in one plan. Six new defects, all P2.
+- **N17**: a plan sent before any `inspect_part` was refused after 10.9 s, because
+  the bridge first read the whole assembly in front (`session.state_read` 10728
+  ms). The refusal now comes before the reading, when the plan names no
+  document; the text is the same (`NotLookedAtYet`).
+- **N18**: `export_step` with `reopen_and_compare` on an assembly was refused only
+  when its step came, after `save_document` in the step before it had run. The
+  pre-check of the plan now gives the refusal of the operation before any step
+  (`SwOperations.AssemblyExchangeRefusal`, also for the IGES of an assembly),
+  while the plan is still on the assembly it started on (a `create_drawing`
+  before the step moves it elsewhere, and the check is left to the operation).
+  `ExportExchange` keeps the two texts in its own `Failed`: moved into the
+  helper, the count of refusals with a way forward stopped reading them (264
+  of 995 against the floor of 266 of 997), so the two copies stay and a check
+  turns red if they part.
+- **N19**: the STEP of an assembly answered `solids_expected` 7 next to 8
+  components, and nothing said why. The count is right (one part placed twice is
+  written once); `solids_expected_basis` now says what it counts.
+- **N20**: the bill of materials came with the column «Descrizione» empty on all
+  7 rows and nothing said it. `warning_empty_columns` names the columns empty on
+  every row (`EmptyColumnsWarning`).
+- **N21**: the headers of the bill of materials read «<FONT size=3.5>Num. parte».
+  The FONT codes of a note are taken out of every cell read from a table
+  (`WithoutFormatCodes`, shared by the bill of materials and the cut list);
+  nothing else is touched.
+- **N22**: `export_pdf` answered `set_sheets_answer` false next to a right PDF. A
+  false now comes with `set_sheets_note` (under 100 characters, so the summary
+  keeps it): false is seen on complete PDFs too, the check is the page count.
+- **Checks**: `Zc2114UndoHonestyContract` (N17 and N18 in the plan tool, 3 changed
+  copies), `Zc2189WeldAssemblyContract` (N18 to N22 by reflection, the two
+  copies of the N18 refusals compared, and on the sources with 5 changed
+  copies), each turning red.
+
 ## 0.148.1 — 27 October 2026 · library 0.170.1 · fifth round of session 8cd843, N16 (branch `night-2026-10-26-asm`)
 
 - **Fifth round on SOLIDWORKS (session 8cd843, bridge 0.148.0, 9 calls)**: held

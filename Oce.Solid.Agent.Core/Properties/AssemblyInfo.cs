@@ -617,8 +617,12 @@ using System.Runtime.InteropServices;
 //          the executor prints a document never saved by its name (N13).
 // 0.170.1: interference_check says when Done marked a saved assembly
 //          unsaved (N16, measured).
-[assembly: AssemblyVersion("0.170.1.0")]
-[assembly: AssemblyFileVersion("0.170.1.0")]
+// 0.171.0: the shared refusal of an assembly exchange (N18), the basis of
+//          the solid count (N19), the empty columns of a bill of materials
+//          (N20), cells without FONT codes (N21), the note of a false
+//          SetSheets (N22).
+[assembly: AssemblyVersion("0.171.0.0")]
+[assembly: AssemblyFileVersion("0.171.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -633,4 +637,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.170.1")]
+[assembly: AssemblyInformationalVersion("0.171.0")]
