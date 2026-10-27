@@ -226,11 +226,15 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 bool returned = Regex.IsMatch(section, @"IView sectionView = \w+ as IView;");
                 bool used = section.Contains("sectionView.GetFaceHatchCount(") && section.Contains("(sectionView)");
-                int cleanups = Count(section, "RemoveSheetSketchSegment(");
+                // Since library 0.174.4 (report 8cd843 N48) the line is drawn in the
+                // sketch of the view, and every refusal removes it from there through
+                // «removeLine» (select, no view born, wrong base view).
+                int cleanups = Count(section, "removeLine(line)");
+                bool viewRoad = section.Contains("RemoveViewSketchSegment(model, target, s, segmentsBefore)");
                 Check("M41: the section is the returned view, and the cutting line of a refusal is removed",
-                      returned && used && cleanups >= 3,
-                      "returned view " + returned + ", read from it " + used + ", RemoveSheetSketchSegment " + cleanups +
-                      " (definition and two calls expected)");
+                      returned && used && cleanups >= 3 && viewRoad,
+                      "returned view " + returned + ", read from it " + used + ", line removals " + cleanups +
+                      " (three expected), from the sketch of the view " + viewRoad);
             }
 
             string detail = Read(dir, "DrawingDetailOperations.cs");
@@ -239,16 +243,16 @@ namespace Oce.Solid.Agent.ContractTests
                 bool returned = Regex.IsMatch(detail, @"IView detailView = \w+ as IView;");
                 bool used = detail.Contains("detailView.GetName2(") && detail.Contains("(detailView)");
                 // Since library 0.174.2 (report 8cd843 N41) the circle is drawn in the
-                // sketch of the view, and removed from the sketch it is in: every
-                // refusal goes through «removeCircle», which takes the right road.
+                // sketch of the view, and since 0.174.4 (N47) only there: every refusal
+                // goes through «removeCircle», which removes it from that sketch.
                 int cleanups = Count(detail, "removeCircle(circle)");
-                bool bothRoads = detail.Contains("RemoveViewSketchSegment(model, target, c, segmentsBefore)") &&
-                                 detail.Contains("RemoveSheetSketchSegment(model, drawing, c, segmentsBefore)");
+                bool viewRoad = detail.Contains("RemoveViewSketchSegment(model, target, c, segmentsBefore)") &&
+                                !detail.Contains("RemoveSheetSketchSegment(");
                 bool viewRemoved = detail.Contains("RemoveNewView(");
                 Check("M41: the detail is the returned view, and the circle (and unlinked view) of a refusal are removed",
-                      returned && used && cleanups >= 3 && bothRoads && viewRemoved,
+                      returned && used && cleanups >= 3 && viewRoad && viewRemoved,
                       "returned view " + returned + ", read from it " + used + ", circle removals " + cleanups +
-                      " (from the sketch of the view or of the sheet: " + bothRoads + "), view removal " + viewRemoved);
+                      " (from the sketch of the view only: " + viewRoad + "), view removal " + viewRemoved);
             }
 
             // M41, the other edge of the fallback: with no view returned, the

@@ -3264,7 +3264,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "numbers written. Then it compares the items of the BOM with the balloons of the WHOLE "
                         + "drawing and tells you which items are left without one (that component is not seen in "
                         + "this view: balloon another view). If every item already has its balloon elsewhere, "
-                        + "it adds none and answers «nothing to add in this view».\n\nI REFUSE IF there is no BOM on the drawing yet "
+                        + "it adds none and answers «nothing to add in this view».\n\n"
+                        + "THE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and "
+                        + "the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer "
+                        + "hold: I read the table again after the balloons and give you «bom_rows_after», the rows as "
+                        + "the table prints them now, and «bom_renumbered».\n\nI REFUSE IF there is no BOM on the drawing yet "
                         + "(ballooning carries its item number: put it first with «drawing_bom») or "
                         + "if there is no assembly behind the view."
                         + "\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 "
@@ -3506,15 +3510,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "view: a line that only grazes it gives an empty section "
                         + "without saying anything. By default I cut in the middle; with «offset_mm» "
                         + "you move the cut, in **sheet** millimetres — not of "
-                        + "the model, because on the sheet the view is scaled.\n\n"
+                        + "the model, because on the sheet the view is scaled. I draw the line "
+                        + "in the sketch of the view itself, converted to its coordinates "
+                        + "(«cut_line_in_the_view_sketch_mm»): on the sketch of the sheet it went "
+                        + "to another view (measured). A view that cannot be activated, or that "
+                        + "is turned, I refuse.\n\n"
                         + "I TELL YOU IF IT WAS BORN by counting the views "
                         + "before and after, not because the API answered with an object: "
                         + "it can answer without having done anything. The view I then read (hatch, letter) is the "
                         + "one the call returned; the last view of the sheet only when it "
                         + "returned none, and view_read_from says which. When the section "
                         + "is not born, or the cutting line cannot be selected, the line I "
-                        + "drew is removed from the sheet, said removed only after the "
-                        + "sheet sketch is counted again.\n\n"
+                        + "drew is removed, said removed only after the sketch of the view "
+                        + "is counted again. After the section I go back to the sheet, so that "
+                        + "a note in the same plan goes on the sheet.\n\n"
+                        + "I REFUSE IF THE SECTION COMES FROM ANOTHER VIEW: I read back the view "
+                        + "it was made from («base_view») and it must be the one asked.\n\n"
                         + "I REFUSE IF THERE IS NO HATCHING. A "
                         + "section without hatching is a cutting line that fell "
                         + "outside the material: on the sheet there remains a view that "
@@ -3561,7 +3572,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 {
                     Name = "detail_view",
                     Family = "drawing",
-                    Example = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}",   // from `detail_enlarges`
+                    Example = "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8,\"x_mm\":55}",   // from `detail_enlarges`
                     RequestedDocument = "drawing",
                     // ── PROVEN, AND ON WHAT ────────────────────────────
                     //
@@ -3588,7 +3599,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "I DRAW THE CIRCLE MYSELF, inside the view. By default at the centre with a radius of a "
                         + "quarter of the shorter side; with «x_mm» and «y_mm» you move it "
                         + "and with «radius_mm» you change it, in **sheet** millimetres "
-                        + "— not of the model, because on the sheet the view is scaled.\n\n"
+                        + "— not of the model, because on the sheet the view is scaled. I draw "
+                        + "the circle in the sketch of the view itself, converted to its coordinates "
+                        + "(«circle_in_the_view_sketch_mm»): with the sheet coordinates the details "
+                        + "came out empty (measured). A view that cannot be activated, or that is "
+                        + "turned, I refuse.\n\n"
                         + "I REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle "
                         + "outside enlarges empty space, and the enlarged empty space is "
                         + "still a view that looks good.\n\n"
@@ -3600,6 +3615,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "and no error would say so. The view I read is the one the call "
                         + "returned (view_read_from); when the detail is not born, the "
                         + "circle I drew is removed.\n\n"
+                        + "AND I TELL YOU IF THE DETAIL SHOWS THE VIEW ASKED: it must be made from "
+                        + "that view («base_view») and show at least one edge («visible_edges»). "
+                        + "A detail with no edge enlarges empty space: I refuse and remove it with "
+                        + "its circle.\n\n"
                         + "THE DETAIL GOES WHERE NOTHING ELSE IS: beside the view when that place "
                         + "touches nothing, otherwise in the first free place of the sheet, outside "
                         + "the other views, the tables, the notes and the title block («placed» says "
@@ -3609,7 +3628,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "ones used. The real letter I read back to you («label_reread»).\n\n"
                         + "WHAT I CANNOT KNOW is whether that is the detail "
                         + "that was needed: a circle moved by ten millimetres enlarges "
-                        + "a piece of smooth plane, and is just as valid.",
+                        + "another edge, and is just as valid.",
                     Precondition = "an open drawing with at least one model view",
                     Schema = O(
                         "type", "object",
@@ -3861,7 +3880,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "it back from the new sheet after creating it: passing it is "
                         + "not having it. If it does not match I stop.\n\n"
                         + "Size and scale too, if you do not say, are those of the current sheet: two sheets at different "
-                        + "scales can be wanted, but not through distraction.\n\nThe name, if "
+                        + "scales can be wanted, but not through distraction.\n\n"
+                        + "THE FORMAT (frame and title block) IS THAT OF THE CURRENT SHEET, and I read it back "
+                        + "from the new sheet («format»): a sheet with no frame and no title block goes to the "
+                        + "workshop with no code, scale or sheet number. If you give «paper_size» the new sheet "
+                        + "has no format, because the format of the current sheet is drawn for its own size. If "
+                        + "the format file of the current sheet cannot be found I refuse before creating "
+                        + "anything.\n\nThe name, if "
                         + "you do not say, is the next free one in the series SOLIDWORKS started "
                         + "(«Sheet2», «Sheet3»... with the word of the installation). A name already used I refuse: two sheets with the "
                         + "same name and you no longer know which one you are looking at.",
@@ -3874,7 +3899,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "what to call it. Empty = the next free name in the series of the sheets («Sheet2»...)."),
                             "paper_size", O(
                                 "type", "string",
-                                "description", "A0, A1, A2, A3, A4, A4V. Empty = the one of the current sheet."),
+                                "description", "A0, A1, A2, A3, A4, A4V. Empty = the one of the current sheet, with its format. Given = a sheet with no format."),
                             "scale_numerator", O(
                                 "type", "number",
                                 "description", "the first number of the scale. Empty = the one of the current sheet."),

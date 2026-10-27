@@ -41,6 +41,11 @@ namespace Oce.Solid.Agent.Core
     /// 3. **The sketch of the sheet is not `GetTemplateSketch()`** — that one is the
     ///    title block. «Template» there means *format*. The line ends up in the
     ///    sketch of the first «view», which IS the sheet.
+    /// 4. **But the sheet sketch is the wrong place** (report 8cd843 N48, round 13):
+    ///    on a sheet with two views a line drawn there across the view above gave a
+    ///    section of the view below. Since library 0.174.4 the view is activated and
+    ///    the line drawn in its own sketch, whose origin is the centre of the view
+    ///    and whose unit is the model (SheetToViewSketch, measured).
     ///
     /// ── THE HATCHING IS THE CHECK THAT COUNTS ───────────────────────────
     ///
@@ -187,23 +192,48 @@ namespace Oce.Solid.Agent.Core
                 x2 = xMax + wide * 0.1; y2 = y;
             }
 
-            // ── THE LINE, ON THE SKETCH OF THE SHEET ────────────────────
-            try { drawing.EditSheet(); } catch { }
+            // ── THE LINE, ON THE SKETCH OF THE VIEW ─────────────────────
+            //
+            // Not on the sketch of the sheet (report 8cd843 N48, round 13): there the
+            // line of A-A, wanted across the view above, was given to the view below,
+            // and the section came out of that view, at its left end (measured on a
+            // copy: base «the view below», 1 face hatch, so «the hatching is there»
+            // held for the wrong view). Now as the circle of the detail: the view is
+            // activated and the line drawn in the coordinates of its sketch
+            // (SheetToViewSketch); measured, the same line gave a section of the view
+            // above with 2 face hatches. «cut_line_mm» stays in sheet millimetres.
+            double[] xform = null;
+            try { xform = target.GetXform() as double[]; } catch { }
+            double angle = 0;
+            try { angle = target.Angle; } catch { }
+            bool inView = false;
+            try { inView = drawing.ActivateView(targetName); } catch { }
+            string noSketch = ViewSketchProblem(inView, xform, angle, targetName, "cutting line");
+            if (noSketch != null)
+            {
+                try { drawing.EditSheet(); } catch { }
+                return Failed(noSketch);
+            }
+            var from = SheetToViewSketch(xform, x1, y1);
+            var to = SheetToViewSketch(xform, x2, y2);
 
-            // The segments of the sheet sketch before the line, so that a line
+            // The segments of the sketch of the view before the line, so that a line
             // left behind by a refusal can be removed and the removal checked
             // (Z-C21.8, finding M41).
-            int segmentsBefore = SheetSketchSegmentCount(drawing);
+            int segmentsBefore = ViewSketchSegmentCount(target);
+            Func<ISketchSegment, bool> removeLine = s => RemoveViewSketchSegment(model, target, s, segmentsBefore);
             ISketchSegment line = null;
             try
             {
                 model.ClearSelection2(true);
-                line = model.SketchManager.CreateLine(x1, y1, 0.0, x2, y2, 0.0) as ISketchSegment;
+                line = model.SketchManager.CreateLine(from[0], from[1], 0.0, to[0], to[1], 0.0) as ISketchSegment;
             }
             catch (Exception ex)
             {
+                try { drawing.EditSheet(); } catch { }
                 return Failed("I could not draw the cutting line: " + ex.Message);
             }
+            if (line == null) { try { drawing.EditSheet(); } catch { } }
             if (line == null)
                 return Failed(
                     "«CreateLine» produced no segment on the sheet, and without the line " +
@@ -223,13 +253,16 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex) { selectError = ex.Message; }
             if (!taken)
+            {
+                string lineGone = SheetLineRemovedOrNot(removeLine(line), "cutting line");
+                try { drawing.EditSheet(); } catch { }
                 return Failed(
                     (selectError != null
                         ? "I could not select the cutting line (" + selectError + ")"
                         : "The cutting line is there but does not let itself be selected") +
                     ", and CreateSectionViewAt5 takes the cut from the selection: without it, it would do " +
-                    "something other than what you asked" +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, line, segmentsBefore), "cutting line"));
+                    "something other than what you asked" + lineGone);
+            }
 
             // ── THE SECTION, ALONGSIDE ──────────────────────────────────
             double xSection, ySection;
@@ -252,6 +285,9 @@ namespace Oce.Solid.Agent.Core
                     xSection, ySection, 0.0, label, 0, null, depthM);
             }
             catch (Exception ex) { exploded = ex.Message; }
+            // Back to the sheet (report 8cd843 N51, round 13): a note given in the same
+            // plan after the section went into the view activated for the line.
+            try { drawing.EditSheet(); } catch { }
 
             // ── THE CROSS-CHECK: HOW MANY VIEWS THERE ARE NOW ───────────
             int viewsAfter = 0, walkedAfter = 0;
@@ -276,7 +312,7 @@ namespace Oce.Solid.Agent.Core
                     (exploded != null ? "failed: " + exploded
                                      : born == null ? "returned no object"
                                                     : "returned an object") +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, line, segmentsBefore), "cutting line"));
+                    SheetLineRemovedOrNot(removeLine(line), "cutting line"));
 
             // THE SECTION IS THE VIEW CreateSectionViewAt5 RETURNS (Z-C21.8, finding
             // M41). CreateSectionViewAt5.html, Return Value: «Section view». Until
@@ -330,6 +366,25 @@ namespace Oce.Solid.Agent.Core
             int solids = -1;
             try { int q; sectionView.GetSolidHatchCount(out q); solids = q; } catch { }
 
+            // ── THE SECTION OF THE VIEW ASKED (N48) ──────────────────────
+            //
+            // The hatching alone was not the proof: in round 13 A-A had its hatch from
+            // the view below. The section must come from the view asked (GetBaseView,
+            // measured: the view below with the line on the sheet sketch, the view asked
+            // with the line in its own sketch).
+            string sectionBase = BaseViewName(sectionView);
+            string notAsked = NotTheViewAsked("section", targetName, sectionBase, -1);
+            if (notAsked != null)
+            {
+                bool viewIsNew = !viewNames.Contains(sectionName);
+                bool viewRemoved = viewIsNew && RemoveNewView(model, sectionName);
+                bool lineRemoved = removeLine(line);
+                return Failed(notAsked + " " +
+                    (viewRemoved ? "I removed the view «" + sectionName + "»"
+                                 : "I could not remove the view «" + sectionName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
+                    SheetLineRemovedOrNot(lineRemoved, "cutting line"));
+            }
+
             // ── THE HATCHING, AND HERE IT FAILS ─────────────────────────
             //
             // See the docstring. A section view without hatching is a
@@ -381,10 +436,19 @@ namespace Oce.Solid.Agent.Core
                 // so that nobody tries the already measured route again.
                 ["hatches"] = hatching,
                 ["hatches_solids"] = solids,
+                // What the section was made from (N48), and where the line went in the
+                // sketch of that view (its own coordinates, see SheetToViewSketch).
+                ["base_view"] = sectionBase ?? "not readable",
+                ["cut_line_in_the_view_sketch_mm"] = new object[]
+                {
+                    Math.Round(from[0] * 1000, 2), Math.Round(from[1] * 1000, 2),
+                    Math.Round(to[0] * 1000, 2), Math.Round(to[1] * 1000, 2),
+                },
                 ["depth_mm"] = Math.Round(depthM * 1000, 2),
                 ["what_it_does_not_check"] =
                     "IF THAT IS THE SECTION THAT WAS NEEDED. I can tell you that the cut " +
-                    "met material (the hatching is there), not that it passes through the " +
+                    "met material of the view asked (the hatching is there, and the section " +
+                    "was made from that view), not that it passes through the " +
                     "cavity you wanted to show: a section cut ten millimeters further on is " +
                     "just as valid and does not show the hole. Choose «offset_mm» by " +
                     "looking at the part, not at random.\nI do not look at " +
@@ -398,51 +462,6 @@ namespace Oce.Solid.Agent.Core
             _log("[agent] section «" + sectionName + "» from «" + targetName + "»: " +
                  hatching + " hatches, views " + viewsBefore + " -> " + viewsAfter);
             return WithoutFeature(outside);
-        }
-
-        /// <summary>
-        /// How many segments the sketch of the sheet has (the first «view» of
-        /// the drawing IS the sheet, see the header), or -1 when it cannot be
-        /// read. The cutting line of section_view and the circle of
-        /// detail_view are drawn there.
-        /// </summary>
-        private static int SheetSketchSegmentCount(IDrawingDoc drawing)
-        {
-            try
-            {
-                var sketch = (drawing.GetFirstView() as IView)?.GetSketch() as ISketch;
-                if (sketch == null) return -1;
-                var segments = sketch.GetSketchSegments() as object[];
-                return segments == null ? 0 : segments.Length;   // ZERO-E-ZERO: null is a sheet sketch with no segment
-            }
-            catch { return -1; }
-        }
-
-        /// <summary>
-        /// Removes a segment this operation drew on the sheet sketch and then did
-        /// not use (Z-C21.8, finding M41: the cutting line or the detail circle
-        /// was left on the sheet by every refusal after it was drawn). True only
-        /// when the sheet sketch, counted again, is back to
-        /// <paramref name="segmentsBefore"/>; DeleteSelection2 and not
-        /// EditDelete, which can open a confirmation window.
-        /// </summary>
-        private static bool RemoveSheetSketchSegment(IModelDoc2 model, IDrawingDoc drawing, ISketchSegment segment, int segmentsBefore)
-        {
-            if (segment == null || segmentsBefore < 0) return false;
-            // Already gone (taken along by a view removed first): the count says so.
-            if (SheetSketchSegmentCount(drawing) == segmentsBefore) return true;
-            bool deleted = false;
-            try
-            {
-                model.ClearSelection2(true);
-                if (segment.Select4(false, null))
-                    deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
-                model.ClearSelection2(true);
-            }
-            catch { }
-            if (!deleted) return false;
-            int now = SheetSketchSegmentCount(drawing);
-            return now >= 0 && now == segmentsBefore;
         }
 
         /// <summary>The end of a refusal that removed the segment it drew, or tried to.</summary>

@@ -35,7 +35,8 @@
           "why": "without a model view there is nothing to detail" } ] },
 
     { "operation": "detail_view",
-      "arguments": { "label": "B", "scale": 2, "radius_mm": 8 },
+      "arguments": { "label": "B", "scale": 2, "radius_mm": 8, "x_mm": 55 },
+      "_why_x_mm_55": "At the centre of the front view (120 x 20 mm at scale 1) a circle of radius 8 mm stays inside the face and the detail shows no edge: measured on 27/10/2026 (report 8cd843 N47, scenario t40), 0 visible edges at the centre, 1 with x_mm 55, where the circle takes the right end of the plate. Since library 0.174.4 an empty detail is refused (limit_detail_on_empty_space), so this case encloses an edge.",
       "expect": [
         { "what": "measurements.circles_before", "equal_to": 0,
           "why": "the starting view had none: it is the term of comparison, and without it «there is one now» would not say that it was born now" },
@@ -54,6 +55,9 @@
           "why": "one more: the check that the API did not just answer an object" },
 
         { "what": "measurements.what_it_does_not_check", "includes": ["detail that was needed"],
-          "why": "the blindness that counts: a circle moved by ten millimetres enlarges a piece of smooth plane, and it is just as valid" } ] }
+          "why": "the blindness that counts: a circle moved by ten millimetres enlarges another edge, and it is just as valid" },
+
+        { "what": "measurements.visible_edges", "equal_to": 1,
+          "why": "the right end of the plate, and nothing else: the circle landed where it was asked (report 8cd843 N47: with sheet coordinates in the sketch of the view the details were empty)" } ] }
   ]
 }

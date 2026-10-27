@@ -161,8 +161,11 @@ namespace Oce.Solid.Agent.ContractTests
         private const string MemoryRule = "((memoryBefore == null && memoryAction == MemoryKeep) || memoryAction == MemoryNew))";
         private const string OldMemoryRule = "if (onDrawing != null && memoryBefore == null && memoryAction == MemoryKeep && !hasBuilt)";
         private const string Activate = "try { inView = drawing.ActivateView(targetName); } catch { }";
-        private const string CircleDrawn = "circle = model.SketchManager.CreateCircleByRadius(cx, cy, 0.0, radius)";
-        private const string BackToSheet = "if (inView) { try { drawing.EditSheet(); } catch { } }";
+        // Since library 0.174.4 (N47) the circle is drawn in the coordinates of the
+        // sketch of the view, and the view is always left for the sheet: Zc2196 reads
+        // where.
+        private const string CircleDrawn = "circle = model.SketchManager.CreateCircleByRadius(centre[0], centre[1], 0.0, radius / xform[2])";
+        private const string BackToSheet = "try { drawing.EditSheet(); } catch { }";
         private const string ModelViewsOnly = "if (w.Type != (int)swDrawingViewTypes_e.swDrawingSheet) viewsAfter++;";
         private const string OldViewsCount = "while (w != null && viewsAfter < 200)";
         private const string OtherSheet = "or another sheet of the drawing («activate_sheet», then this step again)";

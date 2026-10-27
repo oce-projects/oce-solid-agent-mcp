@@ -99,16 +99,41 @@ namespace Oce.Solid.Agent.Core
                 ? SheetFormat(current, property)
                 : SheetFormatCode(formatName);
 
+            // ── THE FORMAT, FROM THE CURRENT SHEET (report 8cd843 N49, round 13) ──
+            //
+            // Until library 0.174.3 the new sheet had no format: swDwgTemplateNone, so no
+            // frame and no title block (the second page of the PDF of round 13). Now, as
+            // the projection angle, the format of the current sheet is passed on.
+            // IDrawingDoc~NewSheet4.html: TemplateName is the «Name of custom template
+            // with full directory path; valid only if TemplateIn is set to
+            // swDwgTemplates_e.swDwgTemplateCustom», and PaperSize is «valid only if
+            // TemplateIn is swDwgTemplates_e.swDwgTemplateNone». ISheet~GetTemplateName.html:
+            // «If the sheet does not use a template ... this method returns "*.drt"».
+            // Measured on a copy of the drawing of round 13 (27/10/2026): the first sheet
+            // read its .slddrt (template-in 12), the second, made by the bridge, read ""
+            // (template-in 13, none); NewSheet4 with swDwgTemplateCustom and the first
+            // sheet's .slddrt gave a sheet that read the same .slddrt, with the 67 fields
+            // of the title block among its notes. A «paper_size» asked keeps the sheet
+            // without a format: the format of the current sheet is drawn for its own size.
+            string currentTemplate = null;
+            try { currentTemplate = current.GetTemplateName(); } catch { }
+            string format = string.IsNullOrWhiteSpace(formatName) ? SheetFormatFile(currentTemplate) : null;
+            if (format != null && !System.IO.File.Exists(format))
+                return Failed(
+                    "The current sheet uses the format «" + format + "», and I cannot find that file: the new sheet would " +
+                    "have no frame and no title block. Make the file reachable and ask again, or give «paper_size» " +
+                    "to create a sheet with no format on purpose. No sheet was created.");
+
             bool response;
             try
             {
                 response = drawing.NewSheet4(
                     itemName,
                     sheetFormat,
-                    (int)swDwgTemplates_e.swDwgTemplateNone,
+                    format != null ? (int)swDwgTemplates_e.swDwgTemplateCustom : (int)swDwgTemplates_e.swDwgTemplateNone,
                     scaleNum, scaleDen,
                     firstAngle,               // ← PASSED ON AGAIN, not decided here
-                    "",                        // TemplateName: none
+                    format ?? "",              // TemplateName: the format of the current sheet, or none
                     0, 0,                      // Width/Height: count only with the «custom» format
                     "",                        // PropertyViewName
                     0, 0, 0, 0, 0, 0);         // zones: not used
@@ -139,6 +164,16 @@ namespace Oce.Solid.Agent.Core
                     "projection angles in the same drawing are a reversed part that gives " +
                     "no error: I do not say it is done.");
 
+            // AND THE FORMAT OF THE NEW SHEET IS RE-READ FROM THE NEW SHEET (N49).
+            string formatAfter = null;
+            try { formatAfter = newItem == null ? null : SheetFormatFile(newItem.GetTemplateName()); } catch { }
+            string formatWrong = NewSheetFormatProblem(format, formatAfter);
+            if (formatWrong != null)
+                return Failed(
+                    "The sheet «" + itemName + "» was created, but " + formatWrong + ": a sheet with no frame and no " +
+                    "title block goes to the workshop with no code, scale or sheet number. Remove it — " +
+                    Sentences.HowToWithdrawIt + " — or put the format on it by hand.");
+
             var scaleAfter = newItem == null ? null : ReadScale(newItem);
             var sheetMeasurements = newItem == null ? null : SheetMeasurements(newItem);
 
@@ -156,6 +191,13 @@ namespace Oce.Solid.Agent.Core
                     ? scaleAfter[0] + ":" + scaleAfter[1] : null,
                 ["width_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[0], 1) : null,
                 ["height_mm"] = sheetMeasurements != null ? (object)Math.Round(sheetMeasurements[1], 1) : null,
+                // The format (frame and title block), read from the new sheet (N49).
+                ["format"] = formatAfter ?? "none",
+                ["format_source"] = format != null
+                    ? "read from the new sheet, after copying it from the current sheet"
+                    : !string.IsNullOrWhiteSpace(formatName)
+                        ? "none: «paper_size» was given, and the format of the current sheet is drawn for its own size"
+                        : "none, as the current sheet",
             };
 
             if (!firstAngleAfter)
@@ -244,6 +286,35 @@ namespace Oce.Solid.Agent.Core
         {
             if (sheet == null) return null;
             try { return sheet.GetName(); } catch { return null; }
+        }
+
+        /// <summary>
+        /// The format file (.slddrt) a sheet uses, from ISheet.GetTemplateName, or null
+        /// when it uses none (N49): ISheet~GetTemplateName.html says «"*.drt"» for a sheet
+        /// with no template, and a sheet made with swDwgTemplateNone read "" (measured).
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string SheetFormatFile(string templateName)
+        {
+            if (string.IsNullOrWhiteSpace(templateName)) return null;
+            string t = templateName.Trim();
+            if (t == "*.drt" || !t.EndsWith(".slddrt", StringComparison.OrdinalIgnoreCase)) return null;
+            return t;
+        }
+
+        /// <summary>
+        /// What is wrong with the format the new sheet read back (N49), null when it is the
+        /// one asked: <paramref name="asked"/> is the format passed (null = none asked),
+        /// <paramref name="read"/> the one read from the new sheet. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static string NewSheetFormatProblem(string asked, string read)
+        {
+            if (asked == null) return null;
+            if (read == null) return "it has no format, while I passed «" + asked + "», the format of the current sheet";
+            if (!string.Equals(asked, read, StringComparison.OrdinalIgnoreCase))
+                return "its format reads «" + read + "», while I passed «" + asked + "», the format of the current sheet";
+            return null;
         }
 
         /// <summary>

@@ -753,6 +753,9 @@ namespace Oce.Solid.Agent.Core
             }
 
             int before = ViewBalloons(view);
+            // The rows of the bill of materials before the balloons (N50): AutoBalloon5
+            // renumbers them, and the answer says so with the rows as they are after.
+            var rowsBefore = BomRowsOfDrawing(drawing);
             object born = null;
             try
             {
@@ -782,6 +785,18 @@ namespace Oce.Solid.Agent.Core
                 opt.Style = (int)swBalloonStyle_e.swBS_Circular;
                 opt.Size = (int)swBalloonFit_e.swBF_2Chars;
                 opt.UpperTextContent = (int)swBalloonTextContent_e.swBalloonTextItemNumber;
+                // THE BALLOONS NUMBER THE ITEMS IN THE ORDER THEY GO AROUND THE VIEW, AND
+                // THAT RENUMBERS THE BILL OF MATERIALS (report 8cd843 N50, round 13): the
+                // printed table was not the «rows_read» of «drawing_bom». Measured on a copy
+                // of the drawing of round 13 (27/10/2026): ItemOrder comes as 4,
+                // swBalloonItemNumbers_OrderSequentially (IAutoBalloonOptions~ItemOrder.html:
+                // «Item ordering as defined in swBalloonItemNumbersOrder_e»); the table read
+                // 26P000007 to 26P000013 as items 1 to 7 before the balloons and 26P000010,
+                // 11, 9, 8, 7, 13, 12 after, the order printed in round 13; with
+                // swBalloonItemNumbers_DoNotChangeItemNumbers it kept 7 to 13. The order is
+                // now set, not left to the default, and kept as every drawing had it (which
+                // order a drawing wants is not decided here); the answer gives the rows again.
+                opt.ItemOrder = (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_OrderSequentially;
                 born = drawing.AutoBalloon5(opt);
             }
             catch (Exception ex) { model.ClearSelection2(true); return Failed("The balloons were not created: " + ex.Message); }
@@ -803,6 +818,20 @@ namespace Oce.Solid.Agent.Core
                 ["components_visible"] = NumberOrNull(visible),
                 ["numbers"] = BalloonNumbers(view).ToArray(),
             };
+            // THE BILL OF MATERIALS AFTER THE BALLOONS (N50): renumbered or not, and its
+            // rows as they are now, the ones the print shows.
+            var rowsAfter = BomRowsOfDrawing(drawing);
+            if (rowsAfter != null)
+            {
+                bool renumbered = rowsBefore != null && !SameRows(rowsBefore, rowsAfter);
+                measurements["bom_renumbered"] = renumbered;
+                measurements["bom_rows_after"] = rowsAfter.Cast<object>().ToArray();
+                if (renumbered)
+                    measurements["bom_note"] =
+                        "The balloons numbered the items in the order they go around the view, and that renumbered the " +
+                        "bill of materials: the «rows_read» of «drawing_bom» no longer hold. Use «bom_rows_after», the " +
+                        "rows as the table prints them now.";
+            }
             string countNote = BalloonCountNote(returnedNotes, before, after);
             if (countNote != null) measurements["balloons_count_note"] = countNote;
             if (before < 0 || after < 0)
@@ -860,6 +889,47 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
             return ballooned;
+        }
+
+        /// <summary>
+        /// The rows of the first bill of materials of the drawing, every cell, as
+        /// «drawing_bom» reads them in «rows_read»; null when there is none or it cannot
+        /// be read (N50).
+        /// </summary>
+        private static List<string[]> BomRowsOfDrawing(IDrawingDoc drawing)
+        {
+            try
+            {
+                for (var v = drawing.GetFirstView() as IView; v != null; v = v.GetNextView() as IView)
+                    foreach (var o in (v.GetTableAnnotations() as object[]) ?? new object[0])
+                    {
+                        if (!(o is IBomTableAnnotation)) continue;
+                        var t = o as ITableAnnotation;
+                        var rows = new List<string[]>();
+                        for (int r = 1; r < t.RowCount; r++)
+                        {
+                            var cells = new string[t.ColumnCount];
+                            for (int c = 0; c < cells.Length; c++) cells[c] = Cell(t, r, c);
+                            rows.Add(cells);
+                        }
+                        return rows;
+                    }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>Whether two readings of a table hold the same rows in the same order (N50). Pure, so the contract suite reads it.</summary>
+        internal static bool SameRows(List<string[]> a, List<string[]> b)
+        {
+            if (a == null || b == null || a.Count != b.Count) return false;
+            for (int r = 0; r < a.Count; r++)
+            {
+                if (a[r] == null || b[r] == null || a[r].Length != b[r].Length) return false;
+                for (int c = 0; c < a[r].Length; c++)
+                    if (!string.Equals(a[r][c], b[r][c], StringComparison.Ordinal)) return false;
+            }
+            return true;
         }
 
         /// <summary>The item numbers of the first bill of materials of the drawing; null if they cannot be read.</summary>

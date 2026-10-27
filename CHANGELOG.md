@@ -32,6 +32,92 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.4 — 27 October 2026 · library 0.174.4 · thirteenth round of session 8cd843: N47 to N51 (branch `night-2026-10-26-asm`)
+
+- **Thirteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.3)**: N44, N45 and
+  N46 held, N43 held for the positions (three details with three different centres,
+  their labels inside the frame). Real work on copies: the assembly checked and a
+  new drawing of two sheets from the start. Looked at as a picture, the PDF said
+  more than its texts: five new defects.
+- **N47 (P1)**: the three details were empty in the PDF. The circle went in the
+  sketch of the view since 0.174.2 (N41), but with sheet coordinates, while that
+  sketch has its origin at the centre of the view and measures the model. A probe on
+  a copy of the drawing of the report read `IView.GetXform` of the view below as
+  [94.5 mm, 110.69 mm, 0.5]: the circle wanted on the sheet at (134.5, 110.69) mm,
+  radius 10 mm, drawn at the sheet coordinates gave a detail with 0 visible edges;
+  drawn at (80, 0) mm, radius 20 mm, one with 11. Now `detail_view` converts the
+  centre and the radius, (sheet - centre) / scale (`SheetToViewSketch`), and says
+  them in `circle_in_the_view_sketch_mm`. A view that cannot be activated is refused
+  (no more the sheet sketch, which hands the circle to another view), and so is a
+  turned view (only views at 0 degrees were measured). One more detail circle on the
+  view was not a proof: the detail must be made from the view asked (`base_view`,
+  read with `GetBaseView`) and show at least one edge (`visible_edges`), otherwise
+  it is refused and removed with its circle. The first bench run caught the bench
+  case itself: `detail_enlarges` asked for a detail at the centre of the front view
+  of a plate (120 x 20 mm at scale 1), where a circle of radius 8 mm stays inside
+  the face; measured (scenario t40), 0 visible edges there, 1 with `x_mm` 55 at the
+  right end of the plate, 2 at a corner of the top view, and the PDF made a picture
+  shows the edges in the two details. The case now passes `x_mm` 55 and expects 1
+  visible edge (its twin `limit_detail_outside_the_view` too, still one argument
+  apart), and the new limit case `limit_detail_on_empty_space` keeps the centre and
+  expects the refusal.
+- **N48 (P1)**: the cutting line of A-A, wanted across the view above, was at the
+  left end of the view below, and «the hatching is there» held for that view. The
+  line was drawn on the sheet sketch, which gave it to the other view (measured on a
+  copy: base the view below, 1 face hatch). Now `section_view` activates the view
+  and draws the line in its sketch, converted as the circle (measured: base the view
+  asked, 2 face hatches), with `cut_line_in_the_view_sketch_mm`; `cut_line_mm` stays
+  in sheet millimetres. A section made from another view is refused (`base_view`),
+  and the line of every refusal is removed from the sketch of the view.
+- **N49 (P2)**: `new_sheet` made a sheet with no format, so no frame and no title
+  block (swDwgTemplateNone). Now the format file of the current sheet
+  (`ISheet.GetTemplateName`) is passed with swDwgTemplateCustom, and read back from
+  the new sheet (`format`); a format that did not come is refused, a format file
+  that cannot be found is refused before anything is created, and a `paper_size`
+  given keeps the sheet without a format (the format is drawn for its own size).
+  Measured on a copy: the second sheet of round 13 read "" (none), the new sheet
+  read the .slddrt of the first, with the 67 fields of the title block.
+- **N50 (P2)**: the printed bill of materials was not `rows_read`. Measured on a
+  copy: the table read the same right after it was born, after a rebuild, after a
+  save and a reopening; it was `AutoBalloon5` that renumbered it, with `ItemOrder`
+  coming as 4 (order sequentially): 26P000007 to 26P000013 as items 1 to 7 before
+  the balloons, 26P000010, 11, 9, 8, 7, 13, 12 after, the order printed in round 13;
+  with «do not change item numbers» the table kept its order. The order is now set
+  explicitly and kept as every drawing had it (which order a drawing wants is not
+  decided here), and `balloons` reads the table again: `bom_renumbered`,
+  `bom_rows_after` and a note that the `rows_read` of `drawing_bom` no longer hold.
+- **N51 (P3)**: a note in the same plan after `section_view` went into the section
+  view; the view activated for the line stayed active. Now the sheet is in edit
+  again right after the section is created.
+- **Observation**: «in the first free place (147/144 mm)» now says that the numbers
+  are the bottom-left corner in millimetres of sheet.
+- **A detail view just born is not yet the view** (found by scenario t39, the
+  drawing of round 13 made again with this version): detail B, now full of
+  geometry, was sent «above the title block» and refused there, «falls on the title
+  block». The refusal now carries the rectangles asked, before and after, and they
+  said it: the outline read 56.1 x 31.2 mm at birth and 100.3 x 50.5 mm after the
+  move. A probe on a copy read the same 56.1 x 31.2 mm at birth, after Position set
+  to its own value and after a move of 1 mm, and 100.3 x 50.5 mm after the move back
+  (on a second run already after the move of 1 mm), the size the PDF shows with the
+  end part of the assembly whole in it; Position then read 78.4 mm away from the
+  value read at birth, and on the first run the view had jumped by as much;
+  EditRebuild3 and ForceRebuild3 changed nothing after. Now `detail_view` settles the
+  view right after it is born (`SettleDetailView`: a move of 1 mm and back, until a
+  round trip leaves its outline where and as big as it was, within 0.1 mm, at most
+  three times) and only then judges and moves it. Scenario t39 again: B «above the
+  title block», C «bottom left», D beside its view, all inside the frame with their
+  labels, nothing on top of anything (the PDF made a picture), the 8 texts found.
+- **SOLIDWORKS fell twice on `create_drawing`** during this work (the first bench run
+  and a scenario), with the same stack in the journal both times: the window of the
+  new drawing being painted, `moSketchBitmap_c::getProfileFeature` and
+  `uoBillboardi_c::make`, after 23 and 15 new drawings in the session. The operation
+  did not change; the cause is not tested (a hypothesis: the picture of the format
+  painted on a new drawing). SOLIDWORKS was restarted and the step done again.
+- `RemoveSheetSketchSegment` and `SheetSketchSegmentCount` are gone: nothing draws on
+  the sheet sketch any more. Catalog of `detail_view`, `section_view`, `new_sheet`,
+  `balloons`; contracts Zc2189 (M41) and Zc2194 (N41) follow the new road; contract
+  Zc2196.
+
 ## 0.152.3 — 27 October 2026 · library 0.174.3 · twelfth round of session 8cd843: N43 to N46 (branch `night-2026-10-26-asm`)
 
 - **Twelfth round on SOLIDWORKS (session 8cd843, bridge 0.152.2, 47 calls)**: N39,

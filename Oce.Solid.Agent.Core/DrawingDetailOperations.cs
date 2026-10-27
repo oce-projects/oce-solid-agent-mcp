@@ -171,33 +171,46 @@ namespace Oce.Solid.Agent.Core
             // view, the one below, both at the centre and 40 mm to the right; with
             // IDrawingDoc.ActivateView first, the same circle went in the sketch of the
             // first view, whose detail circles went 0 -> 1, and the detail had it as
-            // its base. The sheet sketch stays the road only when the view cannot be
-            // activated.
+            // its base.
+            //
+            // AND IN THE COORDINATES OF THAT SKETCH (report 8cd843 N47, round 13): the
+            // details of round 13 were empty. The sketch of a view does not measure the
+            // sheet: its origin is the centre of the view and its unit is the model, so a
+            // circle given with sheet coordinates landed far from the place asked (see
+            // SheetToViewSketch, measured). And no more the sheet sketch when the view
+            // cannot be activated: it hands the circle to another view (N41, measured).
+            double[] xform = null;
+            try { xform = target.GetXform() as double[]; } catch { }
+            double angle = 0;
+            try { angle = target.Angle; } catch { }
             bool inView = false;
             try { inView = drawing.ActivateView(targetName); } catch { }
-            if (!inView) { try { drawing.EditSheet(); } catch { } }
+            string noSketch = ViewSketchProblem(inView, xform, angle, targetName, "circle of the detail");
+            if (noSketch != null)
+            {
+                try { drawing.EditSheet(); } catch { }
+                return Failed(noSketch);
+            }
+            var centre = SheetToViewSketch(xform, cx, cy);
 
             // As for the section: the sketch counted before the circle, so that a
             // circle left behind by a refusal can be removed and the removal
-            // checked (Z-C21.8, finding M41); the sketch of the view when the circle
-            // goes there.
-            int segmentsBefore = inView ? ViewSketchSegmentCount(target) : SheetSketchSegmentCount(drawing);
-            Func<ISketchSegment, bool> removeCircle = c => inView
-                ? RemoveViewSketchSegment(model, target, c, segmentsBefore)
-                : RemoveSheetSketchSegment(model, drawing, c, segmentsBefore);
+            // checked (Z-C21.8, finding M41).
+            int segmentsBefore = ViewSketchSegmentCount(target);
+            Func<ISketchSegment, bool> removeCircle = c => RemoveViewSketchSegment(model, target, c, segmentsBefore);
             ISketchSegment circle = null;
             try
             {
                 model.ClearSelection2(true);
-                circle = model.SketchManager.CreateCircleByRadius(cx, cy, 0.0, radius)
+                circle = model.SketchManager.CreateCircleByRadius(centre[0], centre[1], 0.0, radius / xform[2])
                           as ISketchSegment;
             }
             catch (Exception ex)
             {
-                if (inView) { try { drawing.EditSheet(); } catch { } }
+                try { drawing.EditSheet(); } catch { }
                 return Failed("I could not draw the circle of the detail: " + ex.Message);
             }
-            if (circle == null && inView) { try { drawing.EditSheet(); } catch { } }
+            if (circle == null) { try { drawing.EditSheet(); } catch { } }
             if (circle == null)
                 return Failed(
                     "«CreateCircleByRadius» produced no circle on the sheet, and without " +
@@ -219,7 +232,7 @@ namespace Oce.Solid.Agent.Core
             if (!taken)
             {
                 string circleGone = SheetLineRemovedOrNot(removeCircle(circle), "circle");
-                if (inView) { try { drawing.EditSheet(); } catch { } }
+                try { drawing.EditSheet(); } catch { }
                 return Failed(
                     (selectError != null
                         ? "I could not select the detail circle (" + selectError + ")"
@@ -245,7 +258,7 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { exploded = ex.Message; }
             // Back to the sheet: a step after this one (a note) must not land in
             // the view activated for the circle (N41).
-            if (inView) { try { drawing.EditSheet(); } catch { } }
+            try { drawing.EditSheet(); } catch { }
 
             int viewsAfter = 0, walkedAfter = 0;
             IView last = null;
@@ -304,7 +317,7 @@ namespace Oce.Solid.Agent.Core
                 // 0.144.0 this refusal described the loose circle and the unlinked
                 // view, and left both. The view goes first, then the circle; each
                 // is said removed only after its reread (RemoveNewView reads the
-                // views again, RemoveSheetSketchSegment counts the sheet sketch).
+                // views again, RemoveViewSketchSegment counts the sketch of the view).
                 // ONLY A VIEW THAT WAS NOT THERE BEFORE IS DELETED: with no view
                 // returned, the name comes from the last view of the chain, and a
                 // name read before the call is a view of the user.
@@ -318,6 +331,27 @@ namespace Oce.Solid.Agent.Core
                      : !viewIsNew ? "The view I read, «" + detailName + "», was on the sheet before this step, so I " +
                                     "did not delete it: find the new view and remove it — " + Sentences.HowToWithdrawIt
                      : "I could not remove the view «" + detailName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
+                    SheetLineRemovedOrNot(circleRemoved, "circle"));
+            }
+
+            // ── THE PROOF THAT THE DETAIL SHOWS THE VIEW ASKED (N47) ─────────
+            //
+            // One more circle on the view was not enough: in round 13 the circle was
+            // counted on the view and the detail was empty. The detail must come from
+            // the view asked (GetBaseView) and show at least one edge
+            // (GetVisibleEntities2): measured, 0 edges for the circle at sheet
+            // coordinates, 11 at the coordinates of the view.
+            string detailBase = BaseViewName(detailView);
+            int detailEdges = VisibleEdgeCount(detailView);
+            string notAsked = NotTheViewAsked("detail", targetName, detailBase, detailEdges);
+            if (notAsked != null)
+            {
+                bool viewIsNew = !viewNames.Contains(detailName);
+                bool viewRemoved = viewIsNew && RemoveNewView(model, detailName);
+                bool circleRemoved = removeCircle(circle);
+                return Failed(notAsked + " " +
+                    (viewRemoved ? "I removed the view «" + detailName + "»"
+                                 : "I could not remove the view «" + detailName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
                     SheetLineRemovedOrNot(circleRemoved, "circle"));
             }
 
@@ -364,16 +398,25 @@ namespace Oce.Solid.Agent.Core
                 },
                 ["circles_before"] = circlesBefore,
                 ["circles_after"] = circlesAfter,
-                // Where the circle was drawn (N41): the view activated, or the sheet
-                // when the view could not be activated.
-                ["circle_drawn_in"] = inView ? "the sketch of the view" : "the sketch of the sheet",
+                // Where the circle was drawn (N41, N47): always the sketch of the view
+                // now, at the centre and radius below, in its own coordinates.
+                ["circle_drawn_in"] = "the sketch of the view",
+                ["circle_in_the_view_sketch_mm"] = new object[]
+                {
+                    Math.Round(centre[0] * 1000, 2), Math.Round(centre[1] * 1000, 2),
+                    Math.Round(radius / xform[2] * 1000, 2),
+                },
+                // What the detail was made from and what it shows (N47).
+                ["base_view"] = detailBase ?? "not readable",
+                ["visible_edges"] = detailEdges,
                 // Where the detail went (N43): beside the view, or the first free place.
                 ["placed"] = placedWhere,
                 ["what_it_does_not_check"] =
                     "IF THAT IS THE DETAIL THAT WAS NEEDED. I can tell you that the circle " +
                     "became a detail and that it is inside the view, not that inside it there " +
                     "is the groove you wanted to show: a circle moved by ten millimeters " +
-                    "enlarges a piece of smooth surface, and it is just as valid.\nI do not " +
+                    "enlarges another edge, and it is just as valid (one with no edge at all " +
+                    "I refuse).\nI do not " +
                     "look at " +
                     "whether the chosen scale makes the detail readable (I do look that it " +
                     "touches no other view, table, note or the title block). And I do not decide whether " +
@@ -397,6 +440,14 @@ namespace Oce.Solid.Agent.Core
         private static bool DetailInAFreePlace(IDrawingDoc drawing, IView view, out string location, out string reason)
         {
             location = null; reason = null;
+            // THE VIEW JUST BORN IS NOT YET THE VIEW (scenario t39): see SettleDetailView.
+            string readings;
+            if (!SettleDetailView(view, out readings))
+            {
+                reason = "The detail view was born, but its outline keeps changing when it is moved (read " + readings +
+                         "), so I cannot tell where it is on the sheet. Try again with a smaller «radius_mm».";
+                return false;
+            }
             double[] o = ViewWithItsNotes(view), p = null, outline = null;
             try { p = view.Position as double[]; outline = view.GetOutline() as double[]; } catch { }
             if (o == null || p == null || p.Length < 2 || outline == null || outline.Length < 4)
@@ -438,10 +489,88 @@ namespace Oce.Solid.Agent.Core
             string still = o2 == null ? "cannot be read back" : sheet.Touches(o2[0], o2[1], o2[2], o2[3]);
             if (still != null)
             {
-                reason = "I moved the detail view " + location + " but it " + still + ".";
+                // The rectangles say by how much (scenario t39 on 27/10/2026: «falls on the
+                // title block» with nothing that said where the detail was asked and landed).
+                reason = "I moved the detail view " + location + " but it " + still + " (asked: " + MmRect(down[0], down[1], down[0] + w, down[1] + h) +
+                         "; with its label before the move " + MmRect(o) + ", after " + MmRect(o2) +
+                         "; outline before " + MmRect(outline) + ", after " + MmRect(moved) + ").";
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Brings a detail view just born to its true outline (scenario t39, 27/10/2026): right
+        /// after CreateDetailViewAt4 its outline and its Position are those of a view not yet
+        /// built. A probe on a copy of the drawing (outside the repository) read detail B at
+        /// 56.1 x 31.2 mm at birth, the same after Position set to its own value and after a move
+        /// of 1 mm, and 100.3 x 50.5 mm after the move back (on a second run already after the
+        /// move of 1 mm): the size the PDF shows, the end part of the assembly whole in it.
+        /// Position then read 78.4 mm away from the one read at birth, and on the first run the
+        /// view had jumped by as much; EditRebuild3 and ForceRebuild3 changed nothing after. Judged
+        /// at birth, detail B was sent «above the title block» with its small outline and landed
+        /// on it. So the view is moved by 1 mm and back until a whole round trip leaves its outline
+        /// where and as big as it was (within 0.1 mm), at most three times; false when it never
+        /// settles, with the outlines read.
+        /// </summary>
+        private static bool SettleDetailView(IView view, out string readings)
+        {
+            var seen = new List<string>();
+            double[] before = OutlineOf(view);
+            seen.Add(MmRect(before));
+            for (int round = 0; round < 3 && before != null; round++)
+            {
+                double[] p = null;
+                try { p = view.Position as double[]; } catch { }
+                if (p == null || p.Length < 2) break;
+                try
+                {
+                    view.Position = new[] { p[0] + 0.001, p[1] };
+                    view.Position = new[] { p[0], p[1] };
+                }
+                catch { }
+                var after = OutlineOf(view);
+                seen.Add(MmRect(after));
+                if (SameRectangle(before, after, 0.0001))
+                {
+                    readings = string.Join(" -> ", seen);
+                    return true;
+                }
+                before = after;
+            }
+            readings = string.Join(" -> ", seen);
+            return false;
+        }
+
+        /// <summary>The outline of a view (x0, y0, x1, y1 in metres), null when it cannot be read.</summary>
+        private static double[] OutlineOf(IView view)
+        {
+            try
+            {
+                var o = view.GetOutline() as double[];
+                return o != null && o.Length >= 4 ? o : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Whether two rectangles are the same within <paramref name="tolerance"/> metres on
+        /// every side (SettleDetailView). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool SameRectangle(double[] a, double[] b, double tolerance)
+        {
+            if (a == null || b == null || a.Length < 4 || b.Length < 4) return false;
+            for (int i = 0; i < 4; i++)
+                if (Math.Abs(a[i] - b[i]) > tolerance) return false;
+            return true;
+        }
+
+        /// <summary>A rectangle of the sheet (x0, y0, x1, y1 in metres) in millimetres, for a refusal.</summary>
+        private static string MmRect(params double[] r)
+        {
+            if (r == null || r.Length < 4) return "not read";
+            return string.Format(CultureInfo.InvariantCulture, "x {0:0.#}..{1:0.#} mm, y {2:0.#}..{3:0.#} mm",
+                                 r[0] * 1000, r[2] * 1000, r[1] * 1000, r[3] * 1000);
         }
 
         /// <summary>
@@ -487,6 +616,89 @@ namespace Oce.Solid.Agent.Core
             return new[] { x0, y0, x1, y1 };
         }
 
+        /// <summary>
+        /// A point of the sheet in the coordinates of the sketch of a view (report 8cd843
+        /// N47 and N48, round 13): (sheet - centre) / scale, with the centre and the scale
+        /// read from IView.GetXform. Measured on copies of the drawing of the report
+        /// (27/10/2026, a probe outside the repository): GetXform of the view below read
+        /// [94.5 mm, 110.69 mm, 0.5]; the circle wanted on the sheet at (134.5, 110.69) mm,
+        /// radius 10 mm, drawn at (80, 0) mm radius 20 mm in the activated view, gave a
+        /// detail with 11 visible edges, and drawn at the sheet coordinates a detail with 0
+        /// (the empty details of N47). The cutting line of the view above, drawn the same
+        /// way, gave a section of that view with 2 face hatches. Null when the transform is
+        /// missing or its scale is not positive. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static double[] SheetToViewSketch(double[] xform, double x, double y)
+        {
+            if (xform == null || xform.Length < 3 || !(xform[2] > 0)) return null;
+            return new[] { (x - xform[0]) / xform[2], (y - xform[1]) / xform[2] };
+        }
+
+        /// <summary>
+        /// Why a circle or a cutting line cannot go in the sketch of a view (N47, N48),
+        /// null when it can: the view did not activate (the sheet sketch hands the segment
+        /// to another view, measured), its transform cannot be read, or it is rotated
+        /// (SheetToViewSketch does not turn: only views at angle 0 were measured). Pure,
+        /// so the contract suite reads it.
+        /// </summary>
+        internal static string ViewSketchProblem(bool activated, double[] xform, double angle, string viewName, string what)
+        {
+            if (!activated)
+                return "I could not activate the view «" + viewName + "» to draw the " + what + " in its sketch, and the " +
+                       "sketch of the sheet hands it to another view (measured: a cutting line drawn there gave a section " +
+                       "of the view below). Try again after «inspect_part» on the drawing, or use another view.";
+            if (SheetToViewSketch(xform, 0, 0) == null)
+                return "I cannot read where the view «" + viewName + "» is on the sheet and at what scale (IView.GetXform), " +
+                       "so I cannot draw the " + what + " where you asked. Try again after «inspect_part» on the drawing.";
+            if (Math.Abs(angle) > 1e-6)
+                return string.Format(CultureInfo.InvariantCulture,
+                    "The view «{0}» is turned by {1:0.##} degrees, and I bring the sheet into its sketch without turning " +
+                    "(only views at 0 degrees were measured): the {2} would land elsewhere. Use a view that is not turned.",
+                    viewName, angle * 180.0 / Math.PI, what);
+            return null;
+        }
+
+        /// <summary>The name of the view a section or a detail was made from (IView.GetBaseView), null when it cannot be read.</summary>
+        private static string BaseViewName(IView view)
+        {
+            try
+            {
+                var b = view == null ? null : view.GetBaseView() as IView;
+                return b == null ? null : b.GetName2();
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The visible edges of a view (GetVisibleEntities2), -1 when they cannot be read (N47).</summary>
+        private static int VisibleEdgeCount(IView view)
+        {
+            try
+            {
+                var e = view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+                return e == null ? 0 : e.Length;   // ZERO-E-ZERO: null is a view with no visible edge
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// Why a new detail or section is not the one asked (N47, N48), null when it is:
+        /// made from another view (read back with GetBaseView), or with no visible edge
+        /// (0). A base that cannot be read (null) and edges that cannot be read (-1, or not
+        /// counted) are no refusal: the answer reports them. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static string NotTheViewAsked(string kind, string asked, string baseRead, int visibleEdges)
+        {
+            if (baseRead != null && !string.Equals(baseRead, asked, StringComparison.OrdinalIgnoreCase))
+                return "The " + kind + " was made from the view «" + baseRead + "», not from «" + asked + "», which " +
+                       "I asked for: it would show the wrong part of the drawing. Try again, and if it happens again " +
+                       "use «inspect_part» on the drawing to see which views overlap «" + asked + "».";
+            if (visibleEdges == 0)
+                return "The " + kind + " shows no edge (visible edges 0): it enlarges empty space of the view «" + asked +
+                       "». Use «x_mm», «y_mm» and «radius_mm» on the part of the view you want to enlarge.";
+            return null;
+        }
+
         /// <summary>How many segments the sketch of a view holds, -1 when it cannot be read (N41).</summary>
         private static int ViewSketchSegmentCount(IView view)
         {
@@ -501,9 +713,12 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Removes the circle a refused detail drew in the sketch of the view, as
-        /// RemoveSheetSketchSegment does on the sheet: true only when that sketch,
-        /// counted again, is back to <paramref name="segmentsBefore"/> (N41).
+        /// Removes the circle of a refused detail, or the cutting line of a refused
+        /// section, from the sketch of the view it was drawn in (Z-C21.8, finding M41;
+        /// N41, N48): true only when that sketch, counted again, is back to
+        /// <paramref name="segmentsBefore"/>; DeleteSelection2 and not EditDelete,
+        /// which can open a confirmation window. Until library 0.174.4 the section
+        /// drew on the sheet sketch and had its own sister for it.
         /// </summary>
         private static bool RemoveViewSketchSegment(IModelDoc2 model, IView view, ISketchSegment segment, int segmentsBefore)
         {

@@ -655,8 +655,15 @@ using System.Runtime.InteropServices;
 //          of the sheet out of the title block (N45); place_component and
 //          fix_component count the mates that hold (N46); a sheet that is not
 //          active says it was not read.
-[assembly: AssemblyVersion("0.174.3.0")]
-[assembly: AssemblyFileVersion("0.174.3.0")]
+// 0.174.4: round 13 of report 8cd843: the circle of a detail and the cutting
+//          line of a section go in the sketch of the view in its own
+//          coordinates, and a detail with no edge or a section of another view
+//          is refused (N47, N48); a new sheet takes the format of the current
+//          one (N49); the balloons say the bill of materials they renumbered
+//          (N50); after a section the sheet is in edit again (N51); a detail
+//          view is settled to its true outline before it is placed.
+[assembly: AssemblyVersion("0.174.4.0")]
+[assembly: AssemblyFileVersion("0.174.4.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -671,4 +678,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.3")]
+[assembly: AssemblyInformationalVersion("0.174.4")]

@@ -193,12 +193,25 @@ namespace Oce.Solid.Agent.Core
                 for (double x = f.Width - c - w; x >= c - 1e-9; x -= 0.01)
                     if (f.Touches(x, y, x + w, y + h) == null)
                     {
-                        location = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                                             "in the first free place ({0:0}/{1:0} mm)", x * 1000, y * 1000);
+                        // What the two numbers are (report 8cd843, round 13, observation: «I
+                        // do not know what 147 and 144 are»): the bottom-left corner, which a
+                        // reader compared with a centre.
+                        location = FirstFreePlaceText(x, y);
                         return new[] { x, y };
                     }
             location = null;
             return null;
+        }
+
+        /// <summary>
+        /// Where a rectangle went when no named place was free, saying what the numbers
+        /// are: its bottom-left corner in millimetres of sheet (round 13 of 8cd843). Pure,
+        /// so the contract suite reads it.
+        /// </summary>
+        internal static string FirstFreePlaceText(double x, double y)
+        {
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "in the first free place, bottom-left corner at x {0:0} mm, y {1:0} mm of the sheet", x * 1000, y * 1000);
         }
     }
 }
