@@ -1037,6 +1037,46 @@ namespace Oce.Solid.Agent.Core.Catalog
                 },
                 new OperationSpec
                 {
+                    Name = "parameters",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Example = "{\"variables\":{\"wall\":12,\"double_wall\":\"2 * \\\"wall\\\"\"}}",   // from `variables_and_links_in_one_step`
+                    Summary = "Global variables and dimension links together, in one step: one evaluation, one rebuild.",
+                    Description =
+                        "Writes several global variables and several dimension links in one step: what "
+                        + "«global_variable» and «link_dimension» do one at a time, with one evaluation and "
+                        + "one rebuild for all of them. The variables are written first, so a link can use a "
+                        + "variable of the same step.\n\nEverything is checked before anything is written "
+                        + "(the names of the variables, the dimensions that must exist); after the rebuild "
+                        + "every value is read back: a variable given in mm must read the same, a linked "
+                        + "dimension must equal its equation. I give you each variable, each link with the "
+                        + "value before and after, and the volume before and after.\n\nI REFUSE IF a name is "
+                        + "not made of letters, digits and «_», if a dimension is not there (I tell you which "
+                        + "ones there are) or if SOLIDWORKS does not accept an equation (a reserved name, a "
+                        + "variable that does not exist). If one value does not read back, or the part breaks, "
+                        + "I put EVERY equation of the step back as it was and tell you whether the part is "
+                        + "back.",
+                    Precondition = "an open part (with the dimensions that «links» names)",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "variables", O(
+                                "type", "object",
+                                "description", "name: value. A number is a length in millimetres («wall»: 12); a "
+                                    + "text is a SOLIDWORKS expression with the names between double quotes "
+                                    + "(«double»: «2 * \"wall\" + 1mm»). Names: letters, digits and «_», starting "
+                                    + "with a letter."),
+                            "links", O(
+                                "type", "object",
+                                "description", "dimension: expression. The name of the dimension copied from the "
+                                    + "document state («D1@Boss-Extrude1», in the language of the installation); "
+                                    + "the expression with the names between double quotes («\"wall\"», "
+                                    + "«2 * \"wall\" + 1mm»).")),
+                        "required", A()),
+                },
+                new OperationSpec
+                {
                     Name = "set_dimension",
                     Family = "features",
                     RequestedDocument = "part",

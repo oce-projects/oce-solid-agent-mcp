@@ -149,10 +149,24 @@ namespace Oce.Solid.Agent.Core
             // all the same, separately, because it is the other real question.
             object[] all = null;
             try { all = assemblyDoc.GetComponents(false) as object[]; } catch { }
+            // ZERO-E-ZERO (scenario t9b, 27/10/2026): GetComponents answers null
+            // on an assembly with NO component, as GetMates does with no mate
+            // (measured for insert_component on 6/10/2026, Checks\D9Defects, see
+            // AssemblyOperations: GetComponentCount answered 0 there). Up to
+            // library 0.164.0 an empty assembly read «did not answer», and the
+            // undo that had just emptied it said it could not read it. The count
+            // tells the two apart: zero is an empty list, anything else is a
+            // reading that failed.
             if (all == null)
             {
-                data["note"] = "the assembly did not answer the list of components";
-                return;
+                int count = -1;
+                try { count = assemblyDoc.GetComponentCount(false); } catch { }
+                if (count != 0)
+                {
+                    data["note"] = "the assembly did not answer the list of components";
+                    return;
+                }
+                all = new object[0];
             }
 
             // The top-level names serve twice: the count, and «top_level» on
@@ -162,6 +176,7 @@ namespace Oce.Solid.Agent.Core
             {
                 var first = assemblyDoc.GetComponents(true) as object[];
                 if (first != null) data["components_top_level"] = first.Length;
+                else if (all.Length == 0) data["components_top_level"] = 0;
                 topLevelNames = TopLevelNames(first);
             }
             catch { }

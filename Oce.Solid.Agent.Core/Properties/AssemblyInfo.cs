@@ -590,8 +590,12 @@ using System.Runtime.InteropServices;
 //          false and no undo took anything away (probe Checks\AssemblyUndo).
 //          Brief R5: a driven profile says in «warning_dimensions» how many
 //          coordinates sit on an axis (held by a relation, not drivable).
-[assembly: AssemblyVersion("0.164.0.0")]
-[assembly: AssemblyFileVersion("0.164.0.0")]
+// 0.165.0: brief §5.1, «parameters» writes variables and links in one step
+//          (EquationOperations.Parameters). An empty assembly reads empty
+//          (GetComponentCount when GetComponents answers null). Revolve draws
+//          with the R11 recipe and locks the open sketch; LockSketch is gone.
+[assembly: AssemblyVersion("0.165.0.0")]
+[assembly: AssemblyFileVersion("0.165.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -606,4 +610,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.164.0")]
+[assembly: AssemblyInformationalVersion("0.165.0")]

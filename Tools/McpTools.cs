@@ -2257,7 +2257,33 @@ namespace Oce.Solid.Agent.Tools
                     : "-";
             };
             return theField("volume_mm3") + "|" + theField("bodies") + "|" +
-                   theField("how_many_features") + "|" + theField("document_title");
+                   theField("how_many_features") + "|" + theField("document_title") +
+                   AssemblyFingerprint(docState);
+        }
+
+        /// <summary>
+        /// THE RESENT-PLAN GUARD WAS BLIND ON AN ASSEMBLY (scenario t9b,
+        /// 27/10/2026): volume, bodies and features read the same on every
+        /// assembly, so a plan inserted, withdrawn with «undo» and sent again was
+        /// refused as «already run, and the document is still exactly as I left
+        /// it». On an assembly the summary also carries its components (name,
+        /// file, state, fixed, origin, axes) and mates (name, kind, suppressed,
+        /// what they hold), as the undo snapshot reads them. Empty on a part.
+        /// </summary>
+        private static string AssemblyFingerprint(Dictionary<string, object> docState)
+        {
+            PartSnapshot s = PartSnapshot.Of(docState);
+            if (s == null || !s.Assembly) return "";
+            var words = new List<string>();
+            words.Add(s.ComponentsRead ? "components " + s.ComponentTotal : "components unread");
+            if (s.ComponentsRead)
+                foreach (ComponentLook c in s.Components)
+                    words.Add(c.Name + "/" + c.Path + "/" + c.State + "/" + c.Grounded + "/" +
+                              (c.Origin == null ? "?" : NumbersText(c.Origin)) + "/" + (c.AxesText ?? "?"));
+            words.Add(s.MatesRead ? "mates " + s.MateTotal : "mates unread");
+            if (s.MatesRead)
+                foreach (MateLook m in s.Mates) words.Add(m.Name + ": " + m.Look);
+            return "|" + string.Join("|", words);
         }
 
         private Dictionary<string, object> Measure(Dictionary<string, object> arguments)
@@ -3797,7 +3823,9 @@ namespace Oce.Solid.Agent.Tools
         ///     not known, drop;
         ///  3. the plan's document could not be read after it: drop;
         ///  4. the plan built (volume or feature count changed; on an assembly a
-        ///     component or a mate, brief R23): new;
+        ///     component or a mate, brief R23): new, unless its own undo entry
+        ///     closed empty (answer false): then drop, an undo would not withdraw
+        ///     it (scenario t13);
         ///  5. a plan whose own undo entry closed with something in it
         ///     (FinishRecordingUndoObject answered true: a reorder, a rename, a
         ///     property): new, it is the last plan and its entry is on top
@@ -3843,6 +3871,19 @@ namespace Oce.Solid.Agent.Tools
             {
                 reason = what + " ran, and then I could not read" + on + " again: what is on top of its undo stack " +
                          "is not known.";
+                return MemoryDrop;
+            }
+            // A PLAN THAT BUILT WHILE ITS UNDO ENTRY CLOSED EMPTY (scenario t13,
+            // 27/10/2026: two revolves, FinishRecordingUndoObject false, and the
+            // undo pressed took nothing away and blamed «something done after
+            // the plan»). What it built is not in its entry, so one undo does not
+            // withdraw it and could take away something older: no memory, and the
+            // reason says what to do.
+            if (built && !measure && undoEntryOnPlanDocument == false)
+            {
+                reason = what + " built on" + on + ", but SOLIDWORKS answered that its undo entry closed with nothing " +
+                         "in it (FinishRecordingUndoObject false): one undo would not withdraw it, and could take away " +
+                         "something older.";
                 return MemoryDrop;
             }
             if (built) return MemoryNew;

@@ -165,9 +165,9 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("TextOperations.cs", "names that are not read from the tree",
                        "sketchNamesBefore = FeatureNamesNow(",
                        "sketchNamesBefore = new HashSet<string>("),
-                Change("SwOperations.cs", "the sketch to lock found with no names",
-                       "sketchNamesBefore, out noteBlock",
-                       "null, out noteBlock"),
+                // «the sketch to lock found with no names» is gone with LockSketch
+                // (27/10/2026): revolve, its last caller, now locks the sketch while
+                // it is still open (LockOpenSketch), which looks nothing up.
                 Change("PathOperations.cs", "the second loft sketch with the names taken before the first",
                        "beforeSecondSketch, \"ProfileFeature\"",
                        "beforeFirstSketch, \"ProfileFeature\""),

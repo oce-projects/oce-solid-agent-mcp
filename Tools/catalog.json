@@ -884,6 +884,29 @@
    "example": null
   },
   {
+   "name": "parameters",
+   "family": "features",
+   "summary": "Global variables and dimension links together, in one step: one evaluation, one rebuild.",
+   "details": "Writes several global variables and several dimension links in one step: what «global_variable» and «link_dimension» do one at a time, with one evaluation and one rebuild for all of them. The variables are written first, so a link can use a variable of the same step.\n\nEverything is checked before anything is written (the names of the variables, the dimensions that must exist); after the rebuild every value is read back: a variable given in mm must read the same, a linked dimension must equal its equation. I give you each variable, each link with the value before and after, and the volume before and after.\n\nI REFUSE IF a name is not made of letters, digits and «_», if a dimension is not there (I tell you which ones there are) or if SOLIDWORKS does not accept an equation (a reserved name, a variable that does not exist). If one value does not read back, or the part breaks, I put EVERY equation of the step back as it was and tell you whether the part is back.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "variables": {
+      "type": "object",
+      "description": "name: value. A number is a length in millimetres («wall»: 12); a text is a SOLIDWORKS expression with the names between double quotes («double»: «2 * \"wall\" + 1mm»). Names: letters, digits and «_», starting with a letter."
+     },
+     "links": {
+      "type": "object",
+      "description": "dimension: expression. The name of the dimension copied from the document state («D1@Boss-Extrude1», in the language of the installation); the expression with the names between double quotes («\"wall\"», «2 * \"wall\" + 1mm»)."
+     }
+    },
+    "required": []
+   },
+   "precondition": "an open part (with the dimensions that «links» names)",
+   "document": "part",
+   "example": "{\"variables\":{\"wall\":12,\"double_wall\":\"2 * \\\"wall\\\"\"}}"
+  },
+  {
    "name": "set_dimension",
    "family": "features",
    "summary": "Changes a dimension of a feature that already exists, without redoing anything.",

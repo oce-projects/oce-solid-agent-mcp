@@ -32,6 +32,50 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.143.0 — 27 October 2026 · library 0.165.0 · «parameters» in one step, an empty assembly reads empty, revolve keeps its undo (briefs §5.1, R11, R23; branch `night-2026-10-26-asm`)
+
+- **`parameters`, new operation (brief §5.1).** On 24/10/2026 a part took five
+  `global_variable` and six `link_dimension`, eleven steps, each with its own
+  evaluation and rebuild. `parameters` takes `variables` (name: mm or an
+  expression) and `links` (dimension: expression) and writes them in one step:
+  every name, value and dimension is checked before anything is written; the
+  variables are written first, so that a link can use a variable of the same step;
+  one `EvaluateAll` and one rebuild; every value is read back. If a value does not
+  read back as asked, every equation written is put back as it was and the refusal
+  says so. Bench case `variables_and_links_in_one_step` (96000 -> 115200 -> 144000
+  mm3, and a refusal that touches nothing). Not yet run on the bench.
+- **An empty assembly read «did not answer» (scenario t9b, 27/10/2026).**
+  `GetComponents(false)` answers null on an assembly with no component; the state
+  of the assembly wrote «the assembly did not answer the list of components», and
+  the undo that had just emptied the assembly said it could not read it.
+  `AssemblyState` now asks `GetComponentCount(false)` when the list is null: 0 is
+  an empty list (`components_top_level` 0), anything else is still a reading that
+  failed.
+- **The resent-plan guard was blind on an assembly (scenario t9b).** Its summary
+  held volume, bodies, features and title, which read the same on every assembly:
+  a plan inserted, withdrawn with `undo` and sent again was refused as «already
+  run». On an assembly the summary now carries the components and mates as the undo
+  snapshot reads them.
+- **`revolve` closed an empty undo entry (scenario t13, 27/10/2026).** Two
+  revolves answered `"undo_entry_recorded": false` and the undo pressed after them
+  took nothing away. `revolve` now draws its profile with the recipe of
+  `extrude_profile` (brief R11): no `AddToDB`, automatic relations and inference off
+  while drawing and put back after, `ISketch.MergePoints`, a vertex drawn elsewhere
+  refused (`VerticesNotDrawn`), and the sketch locked while it is still open
+  (`LockOpenSketch`). `LockSketch`, whose last caller was `revolve`, is gone. Not
+  yet measured on SOLIDWORKS with the new code.
+- **A plan that built while its undo entry closed empty is not remembered.** The
+  memory of `undo` (rule 4) remembered a plan as soon as it built; when its own
+  entry closed empty (`FinishRecordingUndoObject` false) one undo does not withdraw
+  it and could take away something older. Now: no memory, and the reason says why.
+- **Bench.** `Expectations.Resolve` resolves keys that start with «@» or carry
+  «{», so that `links` can name a dimension with a bench selector.
+- **Checks.** Refusals with a way forward 265 of 996 (floor and share raised from
+  259 of 978); examples 34 (floor 33); README 103 operations; the frozen undecided
+  call `SwOperations.cs|AddRelation` is gone with `LockSketch`; the mutation «the
+  sketch to lock found with no names» is gone with it; `Checks/AssemblyUndo/` is in
+  the snapshot register of the language gate.
+
 ## 0.142.0 — 27 October 2026 · library 0.164.0 · undo withdraws a plan on an assembly (brief R23; branch `night-2026-10-26-asm`)
 
 - **Seen on SOLIDWORKS (t9, 26/10/2026).** On an assembly every plan answered

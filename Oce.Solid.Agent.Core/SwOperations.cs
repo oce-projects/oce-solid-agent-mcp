@@ -271,7 +271,7 @@ namespace Oce.Solid.Agent.Core
             "extrude_on_face", "gusset", "cosmetic_thread",
             "hole_wizard", "shell", "insert_component",
             "set_sheet", "engrave_text", "body_bounding_box", "structural_member",
-            "measure_between", "set_dimension", "global_variable", "link_dimension", "reorder_feature", "edit_extrusion", "dimension_tolerance", "mass_properties",
+            "measure_between", "set_dimension", "global_variable", "link_dimension", "parameters", "reorder_feature", "edit_extrusion", "dimension_tolerance", "mass_properties",
             "loft_two_circles",
             "model_dimensions", "fillet_edges", "variable_fillet", "fillet_face",
             "circular_pattern", "fill_pattern", "set_property",
@@ -422,6 +422,8 @@ namespace Oce.Solid.Agent.Core
                     // a number instead of repeating it. EquationOperations.cs.
                     case "global_variable": return GlobalVariable(model, arguments, docState);
                     case "link_dimension": return LinkDimension(model, arguments, docState);
+                    // Variables and links in one step (brief §5.1). EquationOperations.cs.
+                    case "parameters": return Parameters(model, arguments, docState);
                     // Reordering the tree (entry Z-F3). ReorderOperations.cs.
                     case "reorder_feature": return ReorderFeature(model, arguments, docState);
                     // Changing an extrusion or a cut already made (entry Z-F4).
@@ -1869,133 +1871,6 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             return created as ISketchSegment;
-        }
-
-        /// <summary>
-        /// LOCKS THE SKETCH WHERE IT IS.
-        ///
-        /// A generated sketch without relations stays UNDER-DEFINED: a careless
-        /// drag moves a vertex and the part changes without anyone knowing. The
-        /// customer noticed it looking at the sketch of the first gear.
-        ///
-        /// A FIXED relation (swConstraintType_FIXED = 17), NOT FullyDefineSketch:
-        /// that one does not measure, it adds relations and MOVES the geometry to
-        /// satisfy them (two nearly parallel sides become parallel, and the sketch
-        /// turns fully defined and a few tenths away from the confirmed one).
-        ///
-        /// THE SKETCH MUST BE OPEN AND THE ARRAY TYPED (finding M5,
-        /// probe_fixed_relation of 28/9/2026: an L profile of six lines extruded
-        /// 10 mm, 11000 mm3, the sketch found by JustCreatedSketch after the
-        /// extrusion):
-        ///   * sketch closed, object[] (this method up to library 0.141.0):
-        ///     AddRelation returns null, 0 FIXED relations before and after the
-        ///     rebuild, and the sketch was declared locked all the same;
-        ///   * EditSketch, object[]: RPC_E_SERVERFAULT, 0 relations;
-        ///   * EditSketch, SketchSegment[] (DispatchWrapper[] the same): an
-        ///     ISketchRelation back, 6 FIXED relations read back after
-        ///     InsertSketch(true) and EditRebuild3, status 2 (under constrained)
-        ///     -> 3 (fully constrained), volume 11000 -> 11000, no sketch left
-        ///     active.
-        /// ISketchRelationManager~AddRelation.html (Remarks): "A sketch must be
-        /// active for this method to have any effect." IModelDoc2~EditSketch.html:
-        /// "If the selection is a feature, its underlying sketch is placed in edit
-        /// mode." SketchSegment[] and not object[] is the rule of the structural
-        /// member group too (WeldmentOperations.cs, measured 9/9/2026).
-        ///
-        /// THE ANSWER IS WHAT IS READ BACK, not what the call returned: the FIXED
-        /// relations are counted before the call and again after leaving the
-        /// sketch and rebuilding, on the sketch taken again from its feature. The
-        /// sketch is locked only when every segment got its relation;
-        /// <paramref name="fixedRelations"/> is the count that was added.
-        ///
-        /// A failure does not fail the operation: the part is right all the same,
-        /// it is only editable by mistake. It goes in the result (the note says
-        /// why) and the plan goes on.
-        ///
-        /// WHICH SKETCH (scheme S7, Z-C21.5): the one ProfileFeature born since
-        /// <paramref name="namesBeforeSketch"/>, the names the caller took before
-        /// opening the sketch, found again in the tree after the feature as the
-        /// probe found it. A sketch used by a feature stays in the top-level
-        /// walk of IFirstFeature (measured 14/9/2026, see WithoutSketch), and
-        /// the feature itself is no ProfileFeature, so it is still the one born.
-        /// Until library 0.146.0 it was the last sketch of the tree.
-        /// </summary>
-        private bool LockSketch(IModelDoc2 model, HashSet<string> namesBeforeSketch, out string note, out int fixedRelations)
-        {
-            note = null;
-            fixedRelations = 0;
-            int sketchesBorn;
-            IFeature sketchFeature = JustCreatedSketch(model, namesBeforeSketch, out sketchesBorn);
-            var sketch = sketchFeature?.GetSpecificFeature2() as ISketch;
-            if (sketch == null)
-            {
-                note = sketchesBorn > 1
-                    ? sketchesBorn + " sketches born since the sketch was opened: which one to lock is not known"
-                    : "sketch not found after the feature";
-                return false;
-            }
-            int before = FixedRelationCount(sketch);
-            if (before < 0) { note = "the relations of the sketch cannot be read"; return false; }
-
-            int segmentCount = 0;
-            bool inEdit = false;
-            try
-            {
-                model.ClearSelection2(true);
-                if (!sketchFeature.Select2(false, 0)) note = "the sketch could not be selected";
-                else
-                {
-                    model.EditSketch();
-                    inEdit = true;
-                    if (model.SketchManager.ActiveSketch == null) note = "EditSketch did not open the sketch";
-                    else
-                    {
-                        // Taken again from the feature once in edit mode, as the probe did.
-                        sketch = sketchFeature.GetSpecificFeature2() as ISketch;
-                        var segments = sketch?.GetSketchSegments() as object[];
-                        if (segments == null || segments.Length == 0) note = "the sketch has no segments";
-                        else
-                        {
-                            segmentCount = segments.Length;
-                            var typedSegments = new SketchSegment[segments.Length];
-                            for (int i = 0; i < segments.Length; i++) typedSegments[i] = (SketchSegment)segments[i];
-                            var relations = sketch.RelationManager;
-                            if (relations == null) note = "the sketch has no relation manager";
-                            else relations.AddRelation(typedSegments, (int)swConstraintType_e.swConstraintType_FIXED);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                note = "AddRelation FIXED failed: " + ex.Message;
-            }
-            finally
-            {
-                // Leave the sketch only if one is open: InsertSketch(true) with
-                // no active sketch and a feature selected would OPEN one.
-                bool stillOpen = false;
-                try { stillOpen = model.SketchManager.ActiveSketch != null; } catch { }
-                if (stillOpen) { try { model.SketchManager.InsertSketch(true); } catch { } }
-                if (inEdit || stillOpen) { try { model.EditRebuild3(); } catch { } }
-                try { model.ClearSelection2(true); } catch { }
-            }
-
-            int after = FixedRelationCount(sketchFeature.GetSpecificFeature2() as ISketch);
-            if (after < 0)
-            {
-                note = (note == null ? "" : note + "; ") + "the relations cannot be read back after the rebuild";
-                return false;
-            }
-            fixedRelations = after - before;
-            if (note != null) return false;
-            if (segmentCount == 0 || fixedRelations < segmentCount)
-            {
-                note = fixedRelations + " FIXED relation(s) read back after the rebuild for " + segmentCount +
-                       " segment(s): the sketch is not locked";
-                return false;
-            }
-            return true;
         }
 
         /// <summary>
@@ -5736,24 +5611,39 @@ namespace Oce.Solid.Agent.Core
 
             double angle = Num(a, "angle_deg", 360);
             string plane = Str(a, "plane", "front");
-            // Before the sketch: it is selected, and locked after the
-            // revolve, as the one sketch born since (scheme S7).
+            // Before the sketch: it is selected after drawing as the one sketch
+            // born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(model);
             if (!SelectPlane(model, plane))
                 return Failed($"I did not find the plane «{plane}» in the tree.");
 
+            // THE WAY OF extrude_profile SINCE BRIEF R11 (scenario t13, 27/10/2026:
+            // two revolves in one plan answered «undo_entry_recorded» false and an
+            // undo took nothing away). Up to library 0.164.0 this drew with AddToDB
+            // on, whose entities cannot always be undone (ISketchManager~AddToDB.html),
+            // and locked the sketch AFTER the revolve with EditSketch and a rebuild,
+            // which Checks\UndoSplit measured to close the plan's undo entry empty.
+            // Now: no AddToDB, automatic relations and snapping off while drawing,
+            // the ends joined with MergePoints, every vertex read back, and the
+            // FIXED relations put in while the sketch is still open.
             var sketches = model.SketchManager;
-            bool addToDbBefore = false, displayBefore = false;
-            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
+            int automaticRelations = (int)swUserPreferenceToggle_e.swSketchAutomaticRelations;
+            int inference = (int)swUserPreferenceToggle_e.swSketchInference;
+            bool automaticBefore = true, inferenceBefore = true;
+            try { automaticBefore = _sw.GetUserPreferenceToggle(automaticRelations); } catch { }
+            try { inferenceBefore = _sw.GetUserPreferenceToggle(inference); } catch { }
 
             int segments = 0;
             bool createdAxis = false;
             try
             {
                 sketches.InsertSketch(true);
-                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, false); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, false); } catch { }
 
                 foreach (var contour in contours) segments += DrawContour(sketches, contour);
+                var drawnSketch = sketches.ActiveSketch as ISketch;
+                if (drawnSketch != null) drawnSketch.MergePoints(1e-7);
 
                 var axisSegment = sketches.CreateCenterLine(
                     Units.M(axisPoints[0][0]), Units.M(axisPoints[0][1]), 0,
@@ -5767,12 +5657,32 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, automaticBefore); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, inferenceBefore); } catch { }
             }
-            sketches.InsertSketch(false);
 
             if (!createdAxis)
+            {
+                try { sketches.InsertSketch(false); } catch { }
                 return Failed("I could not draw the axis of revolution." + WithoutSketch(model));
+            }
+            // EVERY VERTEX IS READ BACK, as in extrude_profile: a vertex drawn
+            // wrong gives no error, it gives another shape.
+            var notDrawn = VerticesNotDrawn(sketches.ActiveSketch as ISketch, contours);
+            if (notDrawn != null && notDrawn.Count > 0)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed(notDrawn.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                              " vertex(es) of the profile are not where they were asked, the first at (" +
+                              notDrawn[0][0].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                              notDrawn[0][1].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              ") mm: it was drawn on a point nearby. The sketch is in the part and the revolve " +
+                              "was not made: undo the step, move that vertex away from the points near it and try again.");
+            }
+            string noteBlock;
+            int fixedRelations;
+            bool locked = LockOpenSketch(sketches.ActiveSketch as ISketch, out noteBlock, out fixedRelations);
+            sketches.InsertSketch(false);
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
                 return Failed(selError + WithoutSketch(model));
 
@@ -5820,9 +5730,6 @@ namespace Oce.Solid.Agent.Core
                     "different from the one I showed you: withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
-            string noteBlock;
-            int fixedRelations;
-            bool locked = LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
             var revolveMeasures = new Dictionary<string, object>
             {
                 ["sketch_locked"] = locked,

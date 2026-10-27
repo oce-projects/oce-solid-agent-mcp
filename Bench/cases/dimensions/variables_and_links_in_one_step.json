@@ -1,0 +1,35 @@
+{
+  "name": "variables_and_links_in_one_step",
+  "family": "dimensions",
+  "why": "BRIEF §5.1 (25/10/2026). On 24/10/2026 a part took five «global_variable» and six «link_dimension», eleven steps, each with its own evaluation and rebuild. «parameters» writes variables and links in one step: everything checked before anything is written, written in one go (the variables first, so that a link can use a variable of the same step), evaluated and rebuilt once, every value read back. The plate of «wall_has_a_name», driven the same way: 96000 -> 115200 -> 144000 mm3.",
+  "defect_caught": "A link written before the variable it uses (SOLIDWORKS refuses it); a variable or a link that does not read back as asked; a refusal that leaves half of the equations written.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 96000 } ] },
+    { "operation": "parameters",
+      "arguments": {
+        "variables": { "wall": 12, "double_wall": "2 * \"wall\"" },
+        "links": { "@dimension(feature={SW:feature.boss_extrude}1,name=D1)": "\"wall\"" } },
+      "expect": [
+        { "what": "measurements.equations_written", "equal_to": 3, "why": "two variables and one link" },
+        { "what": "measurements.variables[0].value_mm", "equal_to": 12, "why": "re-read from the equation" },
+        { "what": "measurements.variables[1].value_mm", "equal_to": 24, "why": "an expression on a variable of the same step" },
+        { "what": "measurements.links[0].value_before_mm", "equal_to": 10 },
+        { "what": "measurements.links[0].value_after_mm", "equal_to": 12, "why": "the dimension re-read is worth as much as the equation" },
+        { "what": "volume_mm3", "equal_to": 115200, "why": "120 x 80 x 12" } ] },
+    { "operation": "parameters",
+      "arguments": { "variables": { "wall": 15 } },
+      "expect": [
+        { "what": "measurements.variables[0].is_new", "equal_to": false, "why": "the same variable, rewritten" },
+        { "what": "volume_mm3", "equal_to": 144000, "why": "120 x 80 x 15: the linked thickness follows the variable" } ] },
+    { "operation": "parameters",
+      "arguments": {
+        "variables": { "wall": 12, "double_wall": "2 * \"wall\"" },
+        "links": { "D99@Nothing": "\"wall\"" } },
+      "must_fail": {
+        "message_includes": ["I cannot find the dimension", "I touched nothing"],
+        "twin": "variables_and_links_in_one_step" } }
+  ]
+}

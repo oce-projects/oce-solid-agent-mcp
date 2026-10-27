@@ -365,6 +365,260 @@ namespace Oce.Solid.Agent.Core
             return SucceededWithoutCreating(measurements);
         }
 
+        /// <summary>One equation that «parameters» writes: a variable or a link.</summary>
+        private sealed class EquationWrite
+        {
+            /// <summary>The name on the left, without quotes: «wall», «D1@Boss-Extrude1».</summary>
+            public string Left;
+            /// <summary>The right-hand side as written: «12mm», «2 * "wall"».</summary>
+            public string Right;
+            /// <summary>The value asked in mm, for a variable given as a number; NaN otherwise.</summary>
+            public double AskedMm = double.NaN;
+            /// <summary>A link (a dimension on the left), not a variable.</summary>
+            public bool IsLink;
+            /// <summary>The name the caller used for the dimension of a link.</summary>
+            public string Asked;
+            public IDimension Dimension;
+            public double SystemBefore = double.NaN;
+            public bool Angular;
+            /// <summary>The equation that was there before, or null: put back on a failure.</summary>
+            public string Old;
+        }
+
+        /// <summary>
+        /// BRIEF R2 AND §5.1: VARIABLES AND LINKS IN ONE STEP. On 24/10/2026 a part
+        /// took five «global_variable» and six «link_dimension», eleven steps, each
+        /// with its own reading, evaluation and rebuild. Here every equation is
+        /// checked before anything is written (names, dimensions that exist),
+        /// written in one go (variables first, so that the links can use them),
+        /// evaluated and rebuilt once, and then every value is read back: a
+        /// variable given as a number must read the same in mm, a linked dimension
+        /// must equal its equation. Anything that does not hold, or a part that
+        /// breaks, puts EVERY equation back as it was (the old text, or none and
+        /// the old value of the dimension), in the reverse order, and says whether
+        /// the part is back. The guards are those of the two single operations.
+        /// </summary>
+        private Outcome Parameters(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
+        {
+            if (!(model is IPartDoc))
+                return Failed("I put variables and links on a part (parts dimension them). Open the part for me.");
+            object rawVariables = a != null && a.TryGetValue("variables", out var rv) ? rv : null;
+            object rawLinks = a != null && a.TryGetValue("links", out var rl) ? rl : null;
+            if ((rawVariables != null && !(rawVariables is Dictionary<string, object>)) ||
+                (rawLinks != null && !(rawLinks is Dictionary<string, object>)))
+                return Failed("«variables» and «links» are objects: «variables» {name: value in mm, or an expression}, " +
+                               "«links» {dimension: expression}. For example {\"variables\": {\"wall\": 3}, " +
+                               "\"links\": {\"D1@Boss-Extrude1\": \"\\\"wall\\\"\"}}.");
+            var variables = rawVariables as Dictionary<string, object> ?? new Dictionary<string, object>();
+            var links = rawLinks as Dictionary<string, object> ?? new Dictionary<string, object>();
+            if (variables.Count == 0 && links.Count == 0)
+                return Failed("Tell me «variables» (name: value in mm, or an expression) or «links» (dimension: " +
+                               "expression), at least one of the two, with at least one entry.");
+
+            // ── EVERYTHING IS CHECKED BEFORE ANYTHING IS WRITTEN ──
+            var writes = new List<EquationWrite>();
+            foreach (string itemName in variables.Keys)
+            {
+                string name = (itemName ?? "").Trim();
+                if (!GoodVariableName(name))
+                    return Failed("A variable is named with letters, digits and «_», starting with a letter (for " +
+                                   "example «wall», «clearance»), not «" + name + "». I touched nothing.");
+                object value = variables[itemName];
+                var write = new EquationWrite { Left = name };
+                if (value is string text)
+                {
+                    if (string.IsNullOrWhiteSpace(text))
+                        return Failed("The variable «" + name + "» has an empty expression. Give a number in mm or an " +
+                                       "expression such as «2 * \"wall\" + 1mm». I touched nothing.");
+                    write.Right = text.Trim();
+                }
+                else
+                {
+                    double mm;
+                    try { mm = Convert.ToDouble(value, Inv); }
+                    catch
+                    {
+                        return Failed("The variable «" + name + "» is neither a number in mm nor an expression. " +
+                                       "I touched nothing.");
+                    }
+                    if (double.IsNaN(mm) || double.IsInfinity(mm))
+                        return Failed("The variable «" + name + "» is not a finite number. I touched nothing.");
+                    write.AskedMm = mm;
+                    write.Right = mm.ToString("0.######", Inv) + "mm";
+                }
+                writes.Add(write);
+            }
+            foreach (string dimensionName in links.Keys)
+            {
+                string asked = (dimensionName ?? "").Trim();
+                string expression = (Convert.ToString(links[dimensionName], Inv) ?? "").Trim();
+                if (expression.Length == 0)
+                    return Failed("The link of «" + asked + "» has no expression: what drives it, for example " +
+                                   "«\"wall\"» or «2 * \"wall\"». I touched nothing.");
+                string location;
+                IDimension dimension = FindDimension(model, asked, out location);
+                if (dimension == null)
+                    return Failed("I cannot find the dimension «" + asked + "» in this document." +
+                                   (location == null ? "" : " There are: " + location + ".") + " I touched nothing.");
+                string complete = "";
+                try { complete = dimension.FullName ?? ""; } catch { }
+                var parts = complete.Split('@');
+                if (parts.Length < 2)
+                    return Failed("I cannot read the full name of the dimension «" + asked + "» («" + complete + "»): " +
+                                   "without it I would not know how to write the equation. I touched nothing.");
+                int dimensionType = -1;
+                try { dimensionType = dimension.GetType(); } catch { }
+                writes.Add(new EquationWrite
+                {
+                    Left = parts[0] + "@" + parts[1],
+                    Right = expression,
+                    IsLink = true,
+                    Asked = asked,
+                    Dimension = dimension,
+                    SystemBefore = ApiHelpers.ReadDimension(dimension),
+                    Angular = dimensionType == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular,
+                });
+            }
+
+            var em = model.GetEquationMgr() as IEquationMgr;
+            if (em == null) return Failed("I cannot read the equations of this part (GetEquationMgr does not answer).");
+            var photo = SnapshotPart(model);
+            if (photo.Bodies < 0)
+                return Failed("I cannot count the bodies of the part before writing the equations: without that, I " +
+                               "could not tell you whether they break it. I touched nothing.");
+            double? volumeBefore = photo.Volume;
+            bool anyNew = false;
+            foreach (EquationWrite w in writes)
+            {
+                int existing = EquationOf(em, w.Left);
+                if (existing >= 0) { try { w.Old = em.get_Equation(existing); } catch { } }
+                else anyNew = true;
+            }
+            bool broughtBack = false;
+            if (anyNew)
+            {
+                string notInFront = EquationDocumentInFront(model, out broughtBack);
+                if (notInFront != null) return Failed(notInFront);
+            }
+
+            // ── WRITTEN IN ONE GO, EVALUATED AND REBUILT ONCE ──
+            var written = new List<EquationWrite>();
+            foreach (EquationWrite w in writes)
+            {
+                if (WriteEquation(em, w.Left, w.Right) < 0)
+                    return Failed("SOLIDWORKS does not accept «\"" + w.Left + "\" = " + w.Right + "». " +
+                                   (w.IsLink
+                                       ? "Check that the variables between quotes exist (they can be in «variables» of this step)."
+                                       : "If the name is already taken — " + ReservedNames() + " — choose another one; if it " +
+                                         "is an expression, check that the names between quotes exist.") +
+                                   IsBackAsItWas(model, photo, PutBackAll(model, em, written), "the equations as they were"));
+                written.Add(w);
+            }
+            try { em.EvaluateAll(); } catch { }
+            bool rebuilt = false;
+            try { rebuilt = model.ForceRebuild3(false); } catch { }
+            string windowNote = anyNew ? RepairIfAnotherCameToFront(model, em) ?? BroughtBackNote(broughtBack) : null;
+
+            // ── EVERY VALUE READ BACK ──
+            double factor = MmPerDocumentUnit(model);
+            var variableRows = new List<object>();
+            var linkRows = new List<object>();
+            foreach (EquationWrite w in writes)
+            {
+                int i = EquationOf(em, w.Left);
+                double read = double.NaN;
+                try { if (i >= 0) read = em.get_Value(i); } catch { }
+                string equation = null;
+                try { if (i >= 0) equation = em.get_Equation(i); } catch { }
+                if (i < 0 || double.IsNaN(read))
+                    return Failed("«" + w.Left + "» cannot be read back after writing it: I do not know what value it has." +
+                                   IsBackAsItWas(model, photo, PutBackAll(model, em, written), "the equations as they were"));
+                if (!w.IsLink)
+                {
+                    double readMm = double.IsNaN(factor) ? double.NaN : read * factor;
+                    if (!double.IsNaN(w.AskedMm) && !double.IsNaN(readMm) && Math.Abs(readMm - w.AskedMm) > 1e-6)
+                        return Failed("I wrote «" + w.Left + "» = " + w.AskedMm.ToString("0.###", Inv) + " mm and reading it " +
+                                       "back it is " + readMm.ToString("0.###", Inv) + " mm: it is not the variable you wanted." +
+                                       IsBackAsItWas(model, photo, PutBackAll(model, em, written), "the equations as they were"));
+                    variableRows.Add(new Dictionary<string, object>
+                    {
+                        ["name"] = w.Left,
+                        ["equation"] = equation,
+                        ["value_mm"] = double.IsNaN(readMm) ? null : (object)Math.Round(readMm, 6),
+                        ["is_new"] = w.Old == null,
+                    });
+                    continue;
+                }
+                IDimension dimension = w.Dimension;
+                double afterDoc = double.NaN;
+                try { afterDoc = ((double[])dimension.GetValue3((int)swInConfigurationOpts_e.swThisConfiguration, null))[0]; } catch { }
+                if (double.IsNaN(afterDoc) || Math.Abs(afterDoc - read) > 0.001)
+                    return Failed("I linked «" + w.Left + "» to «" + w.Right + "», but the dimension says " +
+                                   (double.IsNaN(afterDoc) ? "?" : afterDoc.ToString("0.###", Inv)) + " and the equation " +
+                                   read.ToString("0.###", Inv) + " (in the units of the document): the link did not take." +
+                                   IsBackAsItWas(model, photo, PutBackAll(model, em, written), "the equations as they were"));
+                double afterSystem = ApiHelpers.ReadDimension(dimension);
+                var row = new Dictionary<string, object>
+                {
+                    ["dimension"] = w.Left,
+                    ["equation"] = equation,
+                };
+                if (w.Angular)
+                {
+                    row["value_before_deg"] = Math.Round(w.SystemBefore * 180.0 / Math.PI, 4);
+                    row["value_after_deg"] = Math.Round(afterSystem * 180.0 / Math.PI, 4);
+                }
+                else
+                {
+                    row["value_before_mm"] = Math.Round(Units.Mm(w.SystemBefore), 4);
+                    row["value_after_mm"] = Math.Round(Units.Mm(afterSystem), 4);
+                }
+                if (w.Old != null) row["link_replaced"] = w.Old;
+                linkRows.Add(row);
+            }
+            string broken = WhatBroke(model, photo, rebuilt, true);
+            if (broken != null)
+                return Failed("With these equations " + broken + "." +
+                               IsBackAsItWas(model, photo, PutBackAll(model, em, written), "the equations as they were") +
+                               " If you really want those values, first fix the feature that does not fit, then change them.");
+            double? volumeAfter = VolumeMm3(model);
+            var measurements = new Dictionary<string, object>
+            {
+                ["variables"] = variableRows.ToArray(),
+                ["links"] = linkRows.ToArray(),
+                ["equations_written"] = writes.Count,
+                ["volume_before_mm3"] = NumberOrNull(volumeBefore, 2),
+                ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
+                ["units"] = "millimeters for lengths, degrees for angles (read back in the units of the document and brought to mm)",
+            };
+            if (double.IsNaN(factor))
+                measurements["warning"] = "I do not know what units the document is in: the variables given as numbers " +
+                                          "were not compared with the values asked.";
+            if (windowNote != null) measurements["warning_window"] = windowNote;
+            return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// Puts back every equation «parameters» wrote, the last first: the old
+        /// text, or none and, for a link, the value the dimension had. True only if
+        /// each one reads back as it was.
+        /// </summary>
+        private static bool PutBackAll(IModelDoc2 model, IEquationMgr em, List<EquationWrite> written)
+        {
+            bool all = true;
+            for (int k = written.Count - 1; k >= 0; k--)
+            {
+                EquationWrite w = written[k];
+                IDimension dimension = w.Dimension;
+                double before = w.SystemBefore;
+                Action after = w.IsLink && w.Old == null && dimension != null
+                    ? new Action(() => dimension.SetSystemValue3(before, 2, null))
+                    : null;
+                if (!PutBackEquation(model, em, w.Left, w.Old, after)) all = false;
+            }
+            return all;
+        }
+
         /// <summary>
         /// Puts the equations back as they were: the old one rewritten, or the new one removed
         /// (with «after», to put back the value of an unlinked dimension); then recalculates

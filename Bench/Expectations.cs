@@ -689,7 +689,18 @@ namespace Oce.Solid.Agent.Bench
             if (map != null)
             {
                 var outside = new Dictionary<string, object>();
-                foreach (var v in map) outside[v.Key] = Resolve(v.Value, docState);
+                // A KEY CAN BE A SELECTOR TOO (brief §5.1, 27/10/2026): the
+                // «links» of «parameters» are {dimension: expression}, and the
+                // name of a dimension depends on the language of the
+                // installation. Only a key that is a selector or carries a
+                // placeholder is resolved; the others stay as written.
+                foreach (var v in map)
+                {
+                    string key = v.Key;
+                    if (key != null && (key.StartsWith("@", StringComparison.Ordinal) || key.Contains("{")))
+                        key = Resolve(key, docState) as string ?? key;
+                    outside[key] = Resolve(v.Value, docState);
+                }
                 return outside;
             }
             var itemList = raw as System.Collections.IList;

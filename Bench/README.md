@@ -820,7 +820,7 @@ cases/sheet_metal/     13   the L unfolds as long as the hand calculation; dated
                        unchanged) and the 180 bend refused (entry GP18); the
                        axis and the planes of a sheet are the ones the calls
                        made, not the flat pattern (Z-C21.5, S7)
-cases/dimensions/        7   the variable that does not override the chamfer, refused and
+cases/dimensions/        8   the variable that does not override the chamfer, refused and
                        put back as it was (Z-C20); the plate dimensions itself
                        with DimXpert, with the right
                        values; with two references it refuses (entry Z-H3); the
@@ -831,7 +831,9 @@ cases/dimensions/        7   the variable that does not override the chamfer, re
                        which follow the change (Z-F1); every part dimension
                        reader (set_dimension, dimension_tolerance, link_dimension)
                        with the fourth configuration active, the before and
-                       after of S1 in parts (Z-C21.13)
+                       after of S1 in parts (Z-C21.13); two variables and a
+                       link in one step, and a link to a missing dimension
+                       refused with nothing written (brief §5.1)
 cases/regression/ 19   a dimension upstream changes: who holds and who detaches (--regression)
 cases/reanchor/    3   the edge named with the uid read BEFORE two holes is
                        found again by signature (same length, same point) and the
