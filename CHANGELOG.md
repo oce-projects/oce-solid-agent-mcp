@@ -32,6 +32,32 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.146.2 — 27 October 2026 · library 0.168.2 · N2 measured, N3 reproduced and corrected (branch `night-2026-10-26-asm`)
+
+- **N2 measured on SOLIDWORKS (scenario t17, 0.146.1 against 0.145.0, two runs
+  each)**: the readings before the steps of a plan of six blind cuts went from
+  2794.3 / 2782.0 ms to 1209.4 / 1204.4 ms (mean -56.7 %), the whole plan from
+  9834 / 10011 ms to 8333 / 7835 ms (mean -18.5 %). A missed «expect» now keeps
+  the numbers of the step (`measurements` with `removed_mm3` 3.14 next to
+  «expected 99»).
+- **N3 reproduced**: scenario t18b replays the calls of session 8cd843 (insertions,
+  mates, undo, suppression, deletion, then the plan of six distance mates) and gave
+  the same verdicts: on the fourth mate «after the move RZ and the rebuild it
+  neither came back nor stayed where it was moved (0.218 degrees of 5)», on the
+  fifth «RX ... 0.219 degrees», mate verdict «unknown» on both.
+- **The cause**: the test judged a turn by the whole angle between the two
+  rotations. A distance mate between two «up» faces puts the normal of the face
+  back, and whatever turn is left is about that normal, a free direction (RY):
+  0.218 degrees is θ²/2 of 5 degrees (0.08727² / 2 = 0.003808 rad). The rule now
+  judges a turn by the turn about its own axis (`MateOperations.TurnAboutAxisDeg`:
+  the rotation vector of Q = R'^T R, its component on the axis), as it judges a
+  translation by the displacement along its own axis.
+- **Contract** (`Zc14MateDirectionsContract`): a row «N3: RZ put back, turned
+  0.218 degrees about Y» that must read blocked; the source check asks for
+  TurnAboutAxisDeg and refuses AngleBetweenDeg in MovementOf, with a changed copy
+  that puts the whole angle back. The rows of the probe (S3 slides, RY that stays
+  turned, RZ half way) read as before.
+
 ## 0.146.1 — 27 October 2026 · library 0.168.1 · N2 measured: the reading without edges never happened (branch `night-2026-10-26-asm`)
 
 - **Measured on SOLIDWORKS (scenario t17, 27/10/2026 07:03-07:06)**: six blind

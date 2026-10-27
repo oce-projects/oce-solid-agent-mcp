@@ -1031,23 +1031,58 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// How far a component went in ONE direction between two transforms:
-        /// for 0..2 the displacement ALONG that axis, in mm; for 3..5 the angle
-        /// between the two rotation parts, in degrees. NaN when either is
-        /// unreadable. Along the axis only: a slide along another, free,
-        /// direction says nothing about the one tested (probe, S3).
+        /// for 0..2 the displacement ALONG that axis, in mm; for 3..5 the turn
+        /// ABOUT that axis, in degrees. NaN when either is unreadable. Along
+        /// and about the axis only: a slide along another, free, direction says
+        /// nothing about the one tested (probe, S3), and neither does a turn
+        /// about another, free, axis (report 8cd843 N3, see TurnAboutAxisDeg).
         /// </summary>
         internal static double MovementOf(double[] from, double[] to, int direction)
         {
             if (!ReadableTransform(from) || !ReadableTransform(to) || direction < 0 || direction >= DirectionNames.Length)
                 return double.NaN;
             if (direction < 3) return Math.Abs(to[9 + direction] - from[9 + direction]) * 1000.0;
-            return AngleBetweenDeg(from, to);
+            return TurnAboutAxisDeg(from, to, direction - 3);
+        }
+
+        /// <summary>
+        /// THE TURN ABOUT ONE AXIS OF THE ASSEMBLY between two transforms, in
+        /// degrees (report 8cd843 N3, 27/10/2026). The relative turn is
+        /// Q = R'^T R (R' = R Q^T, see MovedForTest); its rotation vector, angle
+        /// times axis, is read from the skew part of Q, and the component on the
+        /// axis 0, 1 or 2 is returned. Measured on SOLIDWORKS: a distance mate
+        /// between the «up» faces of two components put the normal back after
+        /// the test turned the clip 5 degrees about Z, and left it 0.218 degrees
+        /// away -- θ²/2 of 5 degrees, a turn about the normal of the face, which
+        /// is the free direction RY. The whole angle (AngleBetweenDeg) read RZ
+        /// «neither back nor where it was moved», the mate verdict «unknown»
+        /// (scenario t18b, the calls of the session that found it). NaN when
+        /// either transform is unreadable.
+        /// </summary>
+        internal static double TurnAboutAxisDeg(double[] from, double[] to, int axis)
+        {
+            if (!ReadableTransform(from) || !ReadableTransform(to) || axis < 0 || axis > 2) return double.NaN;
+            var q = new double[3, 3];
+            for (int a = 0; a < 3; a++)
+                for (int b = 0; b < 3; b++)
+                {
+                    double v = 0;
+                    for (int i = 0; i < 3; i++) v += to[i * 3 + a] * from[i * 3 + b];
+                    q[a, b] = v;
+                }
+            double trace = q[0, 0] + q[1, 1] + q[2, 2];
+            double angle = Math.Acos(Math.Max(-1.0, Math.Min(1.0, (trace - 1.0) / 2.0)));
+            double sine = Math.Sin(angle);
+            double factor = sine < 1e-9 ? 0.5 : angle / (2.0 * sine);
+            double skew = axis == 0 ? q[2, 1] - q[1, 2] : axis == 1 ? q[0, 2] - q[2, 0] : q[1, 0] - q[0, 1];
+            return Math.Abs(skew * factor) * 180.0 / Math.PI;
         }
 
         /// <summary>
         /// THE RULE OF THE PROBE: after the move and the rebuild, a translation
         /// is BLOCKED when it is back within 0.01 mm along its axis, a rotation
-        /// when the rotation is back within 0.01 degree; otherwise it is free.
+        /// when the turn about its axis is back within 0.01 degree (report
+        /// 8cd843 N3: not the whole turn); otherwise it is free.
         /// Null when a transform is unreadable, never «free» or «blocked».
         /// </summary>
         internal static bool? DirectionBlocked(double[] start, double[] afterRebuild, int direction)

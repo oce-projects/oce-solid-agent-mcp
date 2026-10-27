@@ -608,8 +608,10 @@ using System.Runtime.InteropServices;
 //          numbers of the step.
 // 0.168.1: MentionsEdges does not look into «_signatures», which carries the
 //          signatures of everything read (measured: scenario t17).
-[assembly: AssemblyVersion("0.168.1.0")]
-[assembly: AssemblyFileVersion("0.168.1.0")]
+// 0.168.2: the test of the directions judges a turn by the turn about its own
+//          axis (TurnAboutAxisDeg), not the whole angle (report 8cd843 N3).
+[assembly: AssemblyVersion("0.168.2.0")]
+[assembly: AssemblyFileVersion("0.168.2.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -624,4 +626,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.168.1")]
+[assembly: AssemblyInformationalVersion("0.168.2")]

@@ -152,6 +152,9 @@ namespace Oce.Solid.Agent.ContractTests
                 Tuple.Create("RY stays turned 5 degrees", Transform(TurnedAbout(1, 5), 100, 10, 100), 4, false),
                 Tuple.Create("RZ half way back (2.5 degrees)", Transform(TurnedAbout(2, 2.5), 100, 10, 100), 5, false),
                 Tuple.Create("RX back within 0.009 degree", Transform(TurnedAbout(0, 0.009), 100, 10, 100), 3, true),
+                // Report 8cd843 N3 (27/10/2026, scenario t18b): the normal put back,
+                // 0.218 degrees left about Y, the normal of the face, a free direction.
+                Tuple.Create("N3: RZ put back, turned 0.218 degrees about Y", Transform(TurnedAbout(1, 0.218), 100, 10, 100), 5, true),
             };
         }
 
@@ -263,12 +266,14 @@ namespace Oce.Solid.Agent.ContractTests
             Checked(sources, "moved direction only",
                 "the rule judges only the moved direction: the displacement along the axis, the angle of the turn, 0.01 mm and 0.01 degree",
                 RuleProblems,
-                "MovementOf: |to[9 + direction] - from[9 + direction]| * 1000 for a translation, AngleBetweenDeg for a turn, no " +
-                "DistanceMm; DirectionBlocked on MovementOf with BackWithinMm and BackWithinDeg; 5 mm, 5 degrees, 0.01, 0.01",
+                "MovementOf: |to[9 + direction] - from[9 + direction]| * 1000 for a translation, TurnAboutAxisDeg for a turn (report " +
+                "8cd843 N3), no DistanceMm, no AngleBetweenDeg; DirectionBlocked on MovementOf with BackWithinMm and BackWithinDeg; " +
+                "5 mm, 5 degrees, 0.01, 0.01",
                 Change(Mates, "the whole displacement for a translation",
                        "if (direction < 3) return Math.Abs(to[9 + direction] - from[9 + direction]) * 1000.0;",
                        "if (direction < 3) return DistanceMm(from, to);"),
-                Change(Mates, "the whole transform for a turn", "return AngleBetweenDeg(from, to);", "return AngleBetweenDeg(from, to) + DistanceMm(from, to);"),
+                Change(Mates, "the whole transform for a turn", "return TurnAboutAxisDeg(from, to, direction - 3);", "return TurnAboutAxisDeg(from, to, direction - 3) + DistanceMm(from, to);"),
+                Change(Mates, "the whole turn for a turn (report 8cd843 N3)", "return TurnAboutAxisDeg(from, to, direction - 3);", "return AngleBetweenDeg(from, to);"),
                 Change(Mates, "a looser threshold", "BackWithinMm = 0.01", "BackWithinMm = 0.5"),
                 Change(Mates, "a smaller move", "TestMoveMm = 5.0", "TestMoveMm = 0.5"));
 
@@ -431,8 +436,10 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 if (!Regex.IsMatch(movement, @"if\s*\(\s*direction\s*<\s*3\s*\)\s*return\s+Math\.Abs\(\s*to\[\s*9\s*\+\s*direction\s*\]\s*-\s*from\[\s*9\s*\+\s*direction\s*\]\s*\)\s*\*\s*1000(\.0)?\s*;"))
                     problems.Add("a translation is not judged by the displacement along its own axis");
-                if (!Regex.IsMatch(movement, @"return\s+AngleBetweenDeg\(\s*from\s*,\s*to\s*\)\s*;"))
-                    problems.Add("a turn is not judged by the angle between the rotation parts alone");
+                if (!Regex.IsMatch(movement, @"return\s+TurnAboutAxisDeg\(\s*from\s*,\s*to\s*,\s*direction\s*-\s*3\s*\)\s*;"))
+                    problems.Add("a turn is not judged by the turn about its own axis (TurnAboutAxisDeg)");
+                if (movement.Contains("AngleBetweenDeg("))
+                    problems.Add(MovementMember + " judges a turn by the whole angle, a drift about a free axis included (report 8cd843 N3)");
                 if (movement.Contains("DistanceMm(")) problems.Add(MovementMember + " uses the whole displacement");
             }
             var rule = MemberBody(code, RuleMember);
