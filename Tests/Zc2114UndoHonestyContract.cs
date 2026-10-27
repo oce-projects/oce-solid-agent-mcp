@@ -512,9 +512,11 @@ namespace Oce.Solid.Agent.ContractTests
                        "if (after.Assembly && !(now.AssemblyRead && after.AssemblyRead))", "if (false)"),
                 Change("an assembly judged without its lists after the press (R23)",
                        "if (before.Assembly && !(back.AssemblyRead && before.AssemblyRead))", "if (false)"),
+                Change("a refused plan said withdrawn whole (report 8cd843 N10)",
+                       "outside[\"note\"] = memory.Refused", "outside[\"note\"] = false"),
             });
             Check("the `undo` check turns red on each changed copy", undoRed.Count == 0,
-                  undoRed.Count == 0 ? "9 changes, each one red" : string.Join(" | ", undoRed));
+                  undoRed.Count == 0 ? "10 changes, each one red" : string.Join(" | ", undoRed));
 
             var finish = ExecutorProblems(executor);
             Check("the executor hands on what FinishRecordingUndoObject answered for the plan's document",
@@ -643,6 +645,12 @@ namespace Oce.Solid.Agent.ContractTests
             if (undo.IndexOf("= AnswerAfterWrongPress(", StringComparison.Ordinal) < 0 ||
                 undo.IndexOf("= answerText,", StringComparison.Ordinal) < 0)
                 problems.Add("the answer after a wrong press does not come from AnswerAfterWrongPress");
+            // Report 8cd843 N10 (27/10/2026): the undo of a refused plan said
+            // «withdrawn whole ... went back» next to «took away only its undo entry».
+            int note = undo.IndexOf("outside[\"note\"] = memory.Refused", StringComparison.Ordinal);
+            int whole = undo.IndexOf("The plan was withdrawn whole", StringComparison.Ordinal);
+            if (note < 0 || whole < note)
+                problems.Add("the note of a successful undo does not depend on whether the plan was refused (report 8cd843 N10)");
             return problems;
         }
 

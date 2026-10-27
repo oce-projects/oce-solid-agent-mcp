@@ -5,7 +5,7 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.146.2-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.146.3-blue)
 ![Library version](https://img.shields.io/badge/library-0.168.2-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)

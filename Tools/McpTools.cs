@@ -4432,10 +4432,16 @@ namespace Oce.Solid.Agent.Tools
                 outside["features_after"] = back.Count;
             }
             outside["checked_by_reading"] = checkedByReading;
-            outside["note"] =
-                "The plan was withdrawn whole and the " + documentWord + " went " +
-                "back to how it was. The identifiers in «state_after» are " +
-                "the valid ones now: the earlier ones are no longer valid.";
+            // A REFUSED PLAN changed nothing, so nothing «went back» (report
+            // 8cd843 N10: «withdrawn whole» next to «took away only its undo
+            // entry», in the same answer).
+            outside["note"] = memory.Refused
+                ? "The plan was refused and had changed nothing: this undo took away its undo entry, and the " +
+                  documentWord + " is as it was before that plan. The identifiers in «state_after» are the " +
+                  "valid ones now: the earlier ones are no longer valid."
+                : "The plan was withdrawn whole and the " + documentWord + " went " +
+                  "back to how it was. The identifiers in «state_after» are " +
+                  "the valid ones now: the earlier ones are no longer valid.";
             outside["state_after"] = stateAfter;
             if (memory.Refused)
                 outside["note_refused_plan"] =

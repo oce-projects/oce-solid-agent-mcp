@@ -32,6 +32,26 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.146.3 — 27 October 2026 · library 0.168.2 · second round of session 8cd843, N10 corrected (branch `night-2026-10-26-asm`)
+
+- **Second round on SOLIDWORKS (session 8cd843, bridge 0.146.2, 24 calls, the
+  assembly mounted again on copies)**: held N1 (`confirmation` on delete_mate and
+  on delete_feature), N2 (the readings before the steps of six blind cuts
+  1716.7 ms against 5633 ms of the first round, the plan 7954 ms against
+  13216 ms), N3 (the plan of six distance mates: TY, RX, RZ blocked on the
+  fourth component, every mate «removes»), N5, N6, N8 (`expect_verdict` when
+  held, `measurements` when missed), N9 (three progress notes per assembly undo)
+  and R1 (a window brought in front during six cuts: `reactivations` with
+  `brought_back` true, six cuts of six). Not tried: N4, N7,
+  `on_window_change=stop`.
+- **N10**: the undo of a refused plan answered `note` «The plan was withdrawn
+  whole and the assembly went back to how it was» next to `note_refused_plan`
+  «this undo took away only its undo entry», and nothing had changed (mates 9 and
+  9). The note now depends on whether the plan was refused: «The plan was refused
+  and had changed nothing: this undo took away its undo entry».
+- **Contract** (`Zc2114UndoHonestyContract`): the note of a successful undo must
+  depend on `memory.Refused`, with a changed copy that drops the condition.
+
 ## 0.146.2 — 27 October 2026 · library 0.168.2 · N2 measured, N3 reproduced and corrected (branch `night-2026-10-26-asm`)
 
 - **N2 measured on SOLIDWORKS (scenario t17, 0.146.1 against 0.145.0, two runs
