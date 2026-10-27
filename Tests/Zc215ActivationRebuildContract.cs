@@ -171,19 +171,25 @@ namespace Oce.Solid.Agent.ContractTests
             bool testsTheBit = Regex.IsMatch(body, @"NeedsRebuildAfterActivation\s*\(\s*activationErrors\s*\)");
             Check("BringToFront tests NeedsRebuildAfterActivation(activationErrors)", testsTheBit);
 
-            bool callsRebuild = Regex.IsMatch(body, @"doc\.EditRebuild3\s*\(\s*\)");
-            Check("BringToFront calls doc.EditRebuild3() (not a different document reference)", callsRebuild);
+            // Since brief R23 the rebuild is SwOperations.RebuildKeepingUndo(doc):
+            // IModelDocExtension.Rebuild on an assembly, where EditRebuild3
+            // emptied the undo (probe Checks\AssemblyUndo), EditRebuild3 otherwise.
+            // Comments are taken out first: a comment that names the call is not
+            // the call.
+            body = Regex.Replace(body, @"//[^\n]*", "");
+            bool callsRebuild = Regex.IsMatch(body, @"RebuildKeepingUndo\s*\(\s*doc\s*\)");
+            Check("BringToFront calls RebuildKeepingUndo(doc) (not a different document reference)", callsRebuild);
 
             // THE CALL IS GUARDED BY THE TEST, not unconditional: an
-            // unconditional EditRebuild3 on every activation would rebuild a
+            // unconditional rebuild on every activation would rebuild a
             // document nobody asked to touch, on every call that brings a
             // document to the front (OpenDocument, ActivateDocument).
             var guarded = Regex.Match(body,
-                @"if\s*\(\s*needsRebuild\s*\)\s*\{[^}]*EditRebuild3", RegexOptions.Singleline);
+                @"if\s*\(\s*needsRebuild\s*\)\s*\{[^}]*RebuildKeepingUndo\s*\(\s*doc\s*\)", RegexOptions.Singleline);
             var bitRead = Regex.Match(body,
                 @"(?:bool\s+needsRebuild\s*=\s*NeedsRebuildAfterActivation\s*\(\s*activationErrors\s*\)\s*;)",
                 RegexOptions.Singleline);
-            Check("the EditRebuild3 call sits behind the bit test, not unconditionally",
+            Check("the rebuild call sits behind the bit test, not unconditionally",
                   bitRead.Success && guarded.Success,
                   bitRead.Success ? "" : "no local named needsRebuild computed from the bit test right after activation");
 

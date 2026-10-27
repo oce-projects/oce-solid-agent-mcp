@@ -3403,12 +3403,15 @@ namespace Oce.Solid.Agent.Tools
             // A volume that was not read does not count as «changed» (entry
             // Z-C8): here we err on the side of NOT remembering, for the reason
             // written above — one undo too many erases a person's
-            // work.
+            // work. On an assembly volume and features read 0 on both sides
+            // (brief R23): there it built when a component or a mate was seen
+            // to change, never when one could not be read.
             bool hasBuilt =
                 planStateAfter != null &&
                 (featAfter != featBefore ||
                  (volBefore.HasValue && volAfter.HasValue &&
-                  Math.Abs(volAfter.Value - volBefore.Value) > VolumeDeviationMm3));
+                  Math.Abs(volAfter.Value - volBefore.Value) > VolumeDeviationMm3) ||
+                 AssemblyBuilt(snapshotBefore, snapshotAfter));
             bool visibleChange = SnapshotDiffers(snapshotBefore, snapshotAfter).Count > 0;
 
             var memoryBefore = _lastPlan;
@@ -3535,6 +3538,16 @@ namespace Oce.Solid.Agent.Tools
         /// features beyond the list, the listed features as «name#id» in tree
         /// order, and how many features are beyond the list (review F16: those
         /// are compared only by count).
+        ///
+        /// ON AN ASSEMBLY (brief R23) the volume and the features say nothing:
+        /// the state writes neither, so both read 0 before and after every plan
+        /// (ZERO-E-ZERO, <see cref="NumberOf"/>), and up to bridge 0.141.2 an
+        /// undo there would have pressed without seeing a component moved by
+        /// hand after the plan. So an assembly is compared by what its plans
+        /// change: the components (which ones, their file, configuration,
+        /// state, fixed, visible, transparent, where the origin is and how they
+        /// are turned) and the mates (which ones, their kind, suppressed or not,
+        /// the components they hold), as the state lists them.
         /// </summary>
         private sealed class PartSnapshot
         {
@@ -3543,20 +3556,215 @@ namespace Oce.Solid.Agent.Tools
             public List<string> Names;
             public int Unlisted;
 
+            /// <summary>The reading is of an assembly (`kind` «assembly»).</summary>
+            public bool Assembly;
+
+            /// <summary>The state listed the components (`components`).</summary>
+            public bool ComponentsRead;
+
+            /// <summary>The state listed the mates (`mates_list`, `mates_total`).</summary>
+            public bool MatesRead;
+
+            /// <summary>Every component of the assembly, listed or not (`how_many_components`).</summary>
+            public int ComponentTotal;
+
+            /// <summary>Every mate of the assembly, listed or not (`mates_total`).</summary>
+            public int MateTotal;
+
+            /// <summary>The listed components, in the order of the state (by name).</summary>
+            public List<ComponentLook> Components;
+
+            /// <summary>The listed mates, in tree order.</summary>
+            public List<MateLook> Mates;
+
+            /// <summary>Both lists were read, so the assembly can be compared.</summary>
+            public bool AssemblyRead { get { return ComponentsRead && MatesRead; } }
+
             public static PartSnapshot Of(Dictionary<string, object> docState)
             {
                 if (docState == null) return null;
                 int unlisted = 0;
                 if (docState.TryGetValue("feature_not_listed", out var u) && u != null)
                     try { unlisted = Convert.ToInt32(u, CultureInfo.InvariantCulture); } catch { }
-                return new PartSnapshot
+                var snapshot = new PartSnapshot
                 {
                     Volume = NumberOf(docState, "volume_mm3"),
                     Count = HowManyFeatures(docState),
                     Names = FeatureNamesInOrder(docState),
                     Unlisted = unlisted,
                 };
+                string kind = Convert.ToString(docState.TryGetValue("kind", out var k) ? k : null) ?? "";
+                if (kind == "assembly") ReadAssembly(docState, snapshot);
+                return snapshot;
             }
+
+            /// <summary>
+            /// The assembly half of a snapshot, from the fields AssemblyState
+            /// writes. A mate names its components by uid («C2»), positional and
+            /// renumbered when a component comes or goes: here they become the
+            /// component names of the same reading, so that a component inserted
+            /// before them does not read as a changed mate.
+            /// </summary>
+            private static void ReadAssembly(Dictionary<string, object> docState, PartSnapshot s)
+            {
+                s.Assembly = true;
+                s.Unlisted = WholeNumber(docState, "components_not_listed") + WholeNumber(docState, "mates_not_listed");
+                var components = new List<ComponentLook>();
+                var mateLooks = new List<MateLook>();
+                s.Components = components;
+                s.Mates = mateLooks;
+                var nameOfUid = new Dictionary<string, string>(StringComparer.Ordinal);
+
+                if (docState.TryGetValue("components", out var cs) && cs is System.Collections.IEnumerable listed &&
+                    !(cs is string) && docState.ContainsKey("how_many_components"))
+                {
+                    s.ComponentsRead = true;
+                    s.ComponentTotal = WholeNumber(docState, "how_many_components");
+                    foreach (var v in listed)
+                    {
+                        var entry = v as Dictionary<string, object>;
+                        if (entry == null) continue;
+                        ComponentLook look = ComponentLook.Of(entry);
+                        components.Add(look);
+                        string uid = FieldText(entry, "uid");
+                        if (uid.Length > 0) nameOfUid[uid] = look.Name;
+                    }
+                }
+
+                if (docState.TryGetValue("mates_list", out var ms) && ms is System.Collections.IEnumerable mates &&
+                    !(ms is string) && docState.ContainsKey("mates_total"))
+                {
+                    s.MatesRead = true;
+                    s.MateTotal = WholeNumber(docState, "mates_total");
+                    foreach (var v in mates)
+                    {
+                        var entry = v as Dictionary<string, object>;
+                        if (entry == null) continue;
+                        var held = new List<string>();
+                        if (entry.TryGetValue("components", out var h) && h is System.Collections.IEnumerable items && !(h is string))
+                            foreach (var c in items)
+                            {
+                                string uid = Convert.ToString(c, CultureInfo.InvariantCulture) ?? "";
+                                held.Add(nameOfUid.TryGetValue(uid, out var name) ? name : uid);
+                            }
+                        object off = entry.TryGetValue("suppressed", out var o) ? o : null;
+                        string state = off is bool b ? (b ? "suppressed" : "active") : "suppressed or not unknown";
+                        mateLooks.Add(new MateLook
+                        {
+                            Name = FieldText(entry, "name"),
+                            Look = (FieldText(entry, "kind").Length > 0 ? FieldText(entry, "kind") : "kind unknown") + ", " +
+                                   state + ", holds «" + string.Join("», «", held) + "»",
+                        });
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// One component as an assembly snapshot compares it (brief R23). The
+        /// origin and the axes are null when the state could not read them, and
+        /// an unreadable place counts as a difference (Z-C8); the other fields
+        /// are compared as written, a missing one equal to a missing one.
+        /// </summary>
+        private sealed class ComponentLook
+        {
+            public string Name, Path, Configuration, State, Grounded, Visible, Transparent;
+            public double[] Origin;
+            public double[] Axes;
+            public string AxesText;
+
+            public static ComponentLook Of(Dictionary<string, object> entry)
+            {
+                var look = new ComponentLook
+                {
+                    Name = FieldText(entry, "name"),
+                    Path = FieldText(entry, "path"),
+                    Configuration = FieldText(entry, "configuration"),
+                    State = FieldText(entry, "state"),
+                    Grounded = FieldText(entry, "grounded"),
+                    Visible = FieldText(entry, "visible"),
+                    Transparent = FieldText(entry, "transparent"),
+                    Origin = Numbers(entry.TryGetValue("origin_mm", out var o) ? o : null, 3),
+                };
+                // «axes» is «+X -Y -Z» when every axis lies on an axis of the
+                // assembly, otherwise three rows of three (SwOperations.AxesValue).
+                object axes = entry.TryGetValue("axes", out var a) ? a : null;
+                if (axes is string words)
+                {
+                    look.AxesText = words;
+                    look.Axes = AlignedAxesNumbers(words);
+                }
+                else if (axes is System.Collections.IEnumerable rows)
+                {
+                    var all = new List<double>();
+                    foreach (var row in rows)
+                    {
+                        var three = Numbers(row, 3);
+                        if (three == null) { all = null; break; }
+                        all.AddRange(three);
+                    }
+                    if (all != null && all.Count == 9)
+                    {
+                        look.Axes = all.ToArray();
+                        look.AxesText = NumbersText(look.Axes);
+                    }
+                }
+                return look;
+            }
+
+            /// <summary>«+X -Y -Z» as the nine numbers of the three rows; null if it is not that form.</summary>
+            private static double[] AlignedAxesNumbers(string words)
+            {
+                var parts = words.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 3) return null;
+                var all = new double[9];
+                for (int i = 0; i < 3; i++)
+                {
+                    string p = parts[i];
+                    if (p.Length != 2 || (p[0] != '+' && p[0] != '-')) return null;
+                    int axis = "XYZ".IndexOf(p[1]);
+                    if (axis < 0) return null;
+                    all[i * 3 + axis] = p[0] == '+' ? 1.0 : -1.0;
+                }
+                return all;
+            }
+        }
+
+        /// <summary>
+        /// One mate as an assembly snapshot compares it (brief R23): its name,
+        /// and its kind, whether it is suppressed and the components it holds
+        /// (by name) in words.
+        /// </summary>
+        private sealed class MateLook
+        {
+            public string Name, Look;
+        }
+
+        /// <summary>A field of an entry as text, empty when it is missing or null.</summary>
+        private static string FieldText(Dictionary<string, object> entry, string key)
+        {
+            if (entry == null || !entry.TryGetValue(key, out var v) || v == null) return "";
+            return Convert.ToString(v, CultureInfo.InvariantCulture) ?? "";
+        }
+
+        /// <summary>A whole number of the state, 0 when it is missing or unreadable.</summary>
+        private static int WholeNumber(Dictionary<string, object> docState, string key)
+        {
+            if (docState == null || !docState.TryGetValue(key, out var v) || v == null) return 0;
+            try { return Convert.ToInt32(v, CultureInfo.InvariantCulture); } catch { return 0; }
+        }
+
+        /// <summary>A list of exactly <paramref name="count"/> numbers; null otherwise.</summary>
+        private static double[] Numbers(object value, int count)
+        {
+            if (value == null || value is string || !(value is System.Collections.IEnumerable items)) return null;
+            var all = new List<double>();
+            foreach (var x in items)
+            {
+                if (x == null) return null;
+                try { all.Add(Convert.ToDouble(x, CultureInfo.InvariantCulture)); } catch { return null; }
+            }
+            return all.Count == count ? all.ToArray() : null;
         }
 
         private LastPlan _lastPlan;
@@ -3588,7 +3796,8 @@ namespace Oce.Solid.Agent.Tools
         ///  2. the executor threw (review F9): what it wrote and recorded is
         ///     not known, drop;
         ///  3. the plan's document could not be read after it: drop;
-        ///  4. the plan built (volume or feature count changed): new;
+        ///  4. the plan built (volume or feature count changed; on an assembly a
+        ///     component or a mate, brief R23): new;
         ///  5. a plan whose own undo entry closed with something in it
         ///     (FinishRecordingUndoObject answered true: a reorder, a rename, a
         ///     property): new, it is the last plan and its entry is on top
@@ -3670,7 +3879,8 @@ namespace Oce.Solid.Agent.Tools
         private static string UnknownTop(string what, string on, bool? undoEntry)
         {
             return undoEntry == false
-                ? what + " changed something I can see on" + on + " (the feature names or their order) while " +
+                ? what + " changed something I can see on" + on + " (the feature names or their order, or on an " +
+                  "assembly its components or mates) while " +
                   "SOLIDWORKS answered that its undo entry closed with nothing in it: I cannot tell what is on top " +
                   "of the undo stack."
                 : what + " ran on" + on + ", and I do not know whether it left an undo entry on top of its undo stack.";
@@ -3775,6 +3985,14 @@ namespace Oce.Solid.Agent.Tools
         /// pressing. What changes none of these (a property, a configuration)
         /// still goes unseen.
         ///
+        /// On an assembly (brief R23) the volume and the features are 0 on
+        /// both sides, so the same three moments (before pressing, after
+        /// pressing, after a redo) compare the components and the mates
+        /// instead (<see cref="AssemblyDiffers"/>): a component moved, turned,
+        /// added, taken away, fixed or suppressed by hand after the plan, or a
+        /// mate changed, is seen before pressing; and without the two lists it
+        /// stops, as it does without a volume.
+        ///
         /// ── A WRONG PRESS CANNOT BE TAKEN BACK (Z-C21.14) ─────────────────
         ///
         /// Up to bridge 0.124.1 this summary said that the way out was to try,
@@ -3851,6 +4069,17 @@ namespace Oce.Solid.Agent.Tools
                     "blindly could undo the work of whoever is in front of the screen: " +
                     "if you still want to go back, do it by hand.", true);
 
+            // ON AN ASSEMBLY THE VOLUME IS 0 ON BOTH SIDES (brief R23): what tells
+            // whether someone moved a component after the plan are the lists of
+            // components and mates, and without them we stop the same way.
+            if (after.Assembly && !(now.AssemblyRead && after.AssemblyRead))
+                return Protocol.Content(
+                    "I am stopping: I cannot read the components and the mates of the assembly" +
+                    (!after.AssemblyRead ? " as my plan left it" : " now") + ", and without them I cannot " +
+                    "tell you whether someone else moved, added or took away something after the plan. A step back " +
+                    "blindly could undo the work of whoever is in front of the screen: " +
+                    "if you still want to go back, do it by hand.", true);
+
             if (Math.Abs(now.Volume.Value - after.Volume.Value) > VolumeDeviationMm3 ||
                 now.Count != after.Count)
                 return Protocol.Content(
@@ -3900,6 +4129,20 @@ namespace Oce.Solid.Agent.Tools
                     "I cannot tell you whether it came back as it was. I did nothing else. Look at the " +
                     "part before going on.", true);
             }
+            // THE SAME ON AN ASSEMBLY (brief R23): without the lists of components
+            // and mates «it did not come back» cannot be told, and a redo would
+            // be blind.
+            if (before.Assembly && !(back.AssemblyRead && before.AssemblyRead))
+            {
+                _lastPlan = null;
+                _noMemoryBecause =
+                    "The last «undo» pressed undo and then could not read the components and the mates of the " +
+                    "assembly: what is on top of the undo stack now is not known.";
+                return Protocol.Content(
+                    "I pressed undo, but then I cannot read the components and the mates of the assembly: " +
+                    "I cannot tell you whether it came back as it was. I did nothing else. Look at the " +
+                    "assembly before going on.", true);
+            }
             // BACK AS IT WAS BEFORE THE PLAN: volume, count, names and order
             // (review F1), not only the two numbers.
             var notAsBeforeThePlan = SnapshotDiffers(before, back);
@@ -3932,13 +4175,19 @@ namespace Oce.Solid.Agent.Tools
                     readAgain = _session.State(out _);
                 }
                 var stillDifferent = readAgain == null
-                    ? new List<string> { "the part could not be read again" }
+                    ? new List<string> { "the " + (before.Assembly ? "assembly" : "part") + " could not be read again" }
                     : WhatDiffers(stateBefore, readAgain);
 
                 bool restored;
-                var answerText = AnswerAfterWrongPress(
-                    before.Volume.Value, before.Count, back.Volume.Value, back.Count, notAsBeforeThePlan,
-                    takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
+                string answerText;
+                if (before.Assembly)
+                    answerText = AnswerAfterWrongPressOnAssembly(
+                        before.ComponentTotal, before.MateTotal, back.ComponentTotal, back.MateTotal, notAsBeforeThePlan,
+                        takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
+                else
+                    answerText = AnswerAfterWrongPress(
+                        before.Volume.Value, before.Count, back.Volume.Value, back.Count, notAsBeforeThePlan,
+                        takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
 
                 // THE MEMORY: restored, the foreign action is on top again and
                 // KNOWN to be (covered by an action that was not recorded: the
@@ -4012,30 +4261,45 @@ namespace Oce.Solid.Agent.Tools
             // reading: «withdrawn» is then what SOLIDWORKS did with the entry
             // on top, and the answer says it was not checked (Z-C21.14).
             bool checkedByReading = SnapshotDiffers(before, after).Count > 0;
+            string documentWord = before.Assembly ? "assembly" : "part";
             var outside = new Dictionary<string, object>
             {
                 ["undone"] = true,
                 ["document"] = ReadableName(identityNow),
-                ["volume_before_mm3"] = Math.Round(now.Volume.Value, 2),
-                ["volume_after_mm3"] = Math.Round(back.Volume.Value, 2),
-                ["features_before"] = now.Count,
-                ["features_after"] = back.Count,
-                ["checked_by_reading"] = checkedByReading,
-                ["note"] =
-                    "The plan was withdrawn whole and the part went " +
-                    "back to how it was. The identifiers in «state_after» are " +
-                    "the valid ones now: the earlier ones are no longer valid.",
-                ["state_after"] = stateAfter,
             };
+            // On an assembly the volume and the features are 0 on both sides
+            // (brief R23): the counts that say something are its own.
+            if (before.Assembly)
+            {
+                outside["components_before"] = now.ComponentTotal;
+                outside["components_after"] = back.ComponentTotal;
+                outside["mates_before"] = now.MateTotal;
+                outside["mates_after"] = back.MateTotal;
+            }
+            else
+            {
+                outside["volume_before_mm3"] = Math.Round(now.Volume.Value, 2);
+                outside["volume_after_mm3"] = Math.Round(back.Volume.Value, 2);
+                outside["features_before"] = now.Count;
+                outside["features_after"] = back.Count;
+            }
+            outside["checked_by_reading"] = checkedByReading;
+            outside["note"] =
+                "The plan was withdrawn whole and the " + documentWord + " went " +
+                "back to how it was. The identifiers in «state_after» are " +
+                "the valid ones now: the earlier ones are no longer valid.";
+            outside["state_after"] = stateAfter;
             if (!checkedByReading)
                 outside["note_checked"] =
-                    "This plan changed nothing I compare (volume, feature count, feature names and order), so reading " +
-                    "the part cannot show that it is gone: SOLIDWORKS took away the entry on top, and the last entry I " +
-                    "know of on this document was this plan's (its «undo_entry_recorded» was true, and nothing I " +
-                    "compare changed since).";
+                    "This plan changed nothing I compare (" +
+                    (before.Assembly ? AssemblyScope(false) : "volume, feature count, feature names and order") +
+                    "), so reading the " + documentWord + " cannot show that it is gone: SOLIDWORKS took away the entry " +
+                    "on top, and the last entry I know of on this document was this plan's (its «undo_entry_recorded» " +
+                    "was true, and nothing I compare changed since).";
             else if (namesPartial)
-                outside["note_checked"] =
-                    "The part reads as before the plan by volume and feature count, and by " + NamesScope(true) + ".";
+                outside["note_checked"] = before.Assembly
+                    ? "The assembly reads as before the plan by " + AssemblyScope(true) + "."
+                    : "The part reads as before the plan by volume and feature count, and by " + NamesScope(true) + ".";
             return Protocol.Content(Protocol.InJson(outside));
         }
 
@@ -4099,7 +4363,9 @@ namespace Oce.Solid.Agent.Tools
                 ["refused_before_pressing"] = true,
                 ["document"] = ReadableName(memory.Document),
                 ["what_changed_since_the_plan"] = changed,
-                ["reason"] = RefusalChangedSinceThePlanText(changed, namesPartial),
+                ["reason"] = memory.After != null && memory.After.Assembly
+                    ? RefusalChangedSinceThePlanOnAssemblyText(changed, namesPartial)
+                    : RefusalChangedSinceThePlanText(changed, namesPartial),
             };
             return Protocol.ContentWithData(Protocol.InJson(outside), outside, true);
         }
@@ -4107,14 +4373,40 @@ namespace Oce.Solid.Agent.Tools
         /// <summary>The text of <see cref="RefusalChangedSinceThePlan"/>, pure.</summary>
         internal static string RefusalChangedSinceThePlanText(List<string> changed, bool namesPartial)
         {
-            return "I am not pressing undo, and nothing was touched. After my plan the part changed, and I did not " +
-                   "change it: " + string.Join("; ", changed ?? new List<string>()) + "." +
-                   (namesPartial ? " (I compared " + NamesScope(true) + ".)" : "") +
+            return ChangedSinceThePlanText("part", changed, namesPartial ? NamesScope(true) : null);
+        }
+
+        /// <summary>
+        /// <see cref="RefusalChangedSinceThePlanText"/> on an assembly (brief
+        /// R23): a component moved, turned, added or taken away, or a mate
+        /// changed, since the plan. Pure.
+        /// </summary>
+        internal static string RefusalChangedSinceThePlanOnAssemblyText(List<string> changed, bool listedOnly)
+        {
+            return ChangedSinceThePlanText("assembly", changed, listedOnly ? AssemblyScope(true) : null);
+        }
+
+        private static string ChangedSinceThePlanText(string documentWord, List<string> changed, string partialScope)
+        {
+            return "I am not pressing undo, and nothing was touched. After my plan the " + documentWord +
+                   " changed, and I did not change it: " + string.Join("; ", changed ?? new List<string>()) + "." +
+                   (partialScope != null ? " (I compared " + partialScope + ".)" : "") +
                    " One step back now would not withdraw my plan: it would take away the last thing done, which is " +
                    "someone else's (another session, another bridge process or the person at the screen), and " +
                    "SOLIDWORKS cannot redo an undo entry recorded through the API (measured on 1/10/2026).\n\n" +
-                   WithdrawInsteadRemedy;
+                   (documentWord == "assembly" ? WithdrawInsteadOnAssemblyRemedy : WithdrawInsteadRemedy);
         }
+
+        /// <summary>
+        /// <see cref="WithdrawInsteadRemedy"/> on an assembly (brief R23): the
+        /// catalog has no operation that takes a component away, so what a plan
+        /// inserted goes only by hand; mates and places do have one.
+        /// </summary>
+        internal const string WithdrawInsteadOnAssemblyRemedy =
+            "If the plan must go: take its mates away with a new plan («delete_mate» or «suppress_mate», by the names " +
+            "«inspect_part» gives in «mates_list») and put a component back with «place_component»; a component the plan " +
+            "inserted cannot be taken away by a plan, so ask the person at the SOLIDWORKS screen, who can see what each " +
+            "step removes, to undo by hand (Edit > Undo) or delete it.";
 
         /// <summary>
         /// WHAT IS VISIBLY DIFFERENT between two readings of the same part
@@ -4165,7 +4457,163 @@ namespace Oce.Solid.Agent.Tools
             if (come.Count > 0) differences.Add("features that were not there: «" + string.Join("», «", come) + "»");
             if (gone.Count == 0 && come.Count == 0 && !namesBefore.SequenceEqual(namesAfter))
                 differences.Add("the order of the features changed");
+            if (before.Assembly || after.Assembly)
+                differences.AddRange(AssemblyDiffers(before, after, true));
             return differences;
+        }
+
+        /// <summary>
+        /// How far an origin may move, in mm, and still be the same place
+        /// (brief R23): half a step above the rounding of the state, which writes
+        /// `origin_mm` to three decimals, so that a last digit rounded the other
+        /// way does not read as a move and a move of two thousandths does.
+        /// </summary>
+        private const double OriginDeviationMm = 0.0015;
+
+        /// <summary>
+        /// How far a direction cosine of the axes may change and still be the
+        /// same turn (brief R23): half a step above the rounding of the state
+        /// (four decimals, SwOperations.AxesValue).
+        /// </summary>
+        private const double AxesDeviation = 0.00015;
+
+        /// <summary>
+        /// WHAT IS DIFFERENT between two readings of the same assembly (brief
+        /// R23): components and mates that came or went, a total that changed,
+        /// and for each component in both readings its file, configuration,
+        /// state, fixed, visible, transparent, origin and axes; for each mate in
+        /// both its kind, whether it is suppressed and what it holds. With
+        /// <paramref name="unreadableCounts"/> a list or a place that could not
+        /// be read is a difference, because sameness cannot be seen (Z-C8);
+        /// without it only what was seen to change is given, the way
+        /// `hasBuilt` wants it (a volume not read does not count as changed).
+        /// </summary>
+        private static List<string> AssemblyDiffers(PartSnapshot before, PartSnapshot after, bool unreadableCounts)
+        {
+            var differences = new List<string>();
+            if (before == null || after == null) return differences;
+            if (before.Assembly != after.Assembly)
+            {
+                if (unreadableCounts) differences.Add("one reading is of an assembly and the other is not");
+                return differences;
+            }
+
+            if (!before.ComponentsRead || !after.ComponentsRead)
+            {
+                if (unreadableCounts)
+                    differences.Add("the components cannot be read" + (!before.ComponentsRead ? " before" : "") +
+                                    (!after.ComponentsRead ? " after" : ""));
+            }
+            else
+            {
+                if (before.ComponentTotal != after.ComponentTotal)
+                    differences.Add("components " + before.ComponentTotal + " before, " + after.ComponentTotal + " now");
+                var namesBefore = new List<string>();
+                foreach (ComponentLook c in before.Components) namesBefore.Add(c.Name);
+                var namesAfter = new List<string>();
+                foreach (ComponentLook c in after.Components) namesAfter.Add(c.Name);
+                var gone = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+                var come = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+                if (gone.Count > 0) differences.Add("components no longer there: «" + string.Join("», «", gone) + "»");
+                if (come.Count > 0) differences.Add("components that were not there: «" + string.Join("», «", come) + "»");
+                foreach (ComponentLook was in before.Components)
+                {
+                    ComponentLook now = null;
+                    foreach (ComponentLook c in after.Components)
+                        if (c.Name == was.Name) { now = c; break; }
+                    if (now == null) continue;
+                    string who = "«" + was.Name + "» ";
+                    foreach (var line in new[]
+                             {
+                                 Changed(who + "file", was.Path, now.Path),
+                                 Changed(who + "configuration", was.Configuration, now.Configuration),
+                                 Changed(who + "state", was.State, now.State),
+                                 Changed(who + "fixed", was.Grounded, now.Grounded),
+                                 Changed(who + "visible", was.Visible, now.Visible),
+                                 Changed(who + "transparent", was.Transparent, now.Transparent),
+                             })
+                        if (line != null) differences.Add(line);
+                    if (was.Origin == null || now.Origin == null)
+                    {
+                        if (unreadableCounts)
+                            differences.Add(who + "origin cannot be read" + (was.Origin == null ? " before" : "") +
+                                            (now.Origin == null ? " after" : ""));
+                    }
+                    else if (!Near(was.Origin, now.Origin, OriginDeviationMm))
+                        differences.Add(who + "moved: origin " + NumbersText(was.Origin) + " mm before, " +
+                                        NumbersText(now.Origin) + " mm now");
+                    if (was.Axes == null || now.Axes == null)
+                    {
+                        if (unreadableCounts)
+                            differences.Add(who + "axes cannot be read" + (was.Axes == null ? " before" : "") +
+                                            (now.Axes == null ? " after" : ""));
+                    }
+                    else if (!Near(was.Axes, now.Axes, AxesDeviation))
+                        differences.Add(who + "turned: axes " + was.AxesText + " before, " + now.AxesText + " now");
+                }
+            }
+
+            if (!before.MatesRead || !after.MatesRead)
+            {
+                if (unreadableCounts)
+                    differences.Add("the mates cannot be read" + (!before.MatesRead ? " before" : "") +
+                                    (!after.MatesRead ? " after" : ""));
+            }
+            else
+            {
+                if (before.MateTotal != after.MateTotal)
+                    differences.Add("mates " + before.MateTotal + " before, " + after.MateTotal + " now");
+                var namesBefore = new List<string>();
+                foreach (MateLook m in before.Mates) namesBefore.Add(m.Name);
+                var namesAfter = new List<string>();
+                foreach (MateLook m in after.Mates) namesAfter.Add(m.Name);
+                var gone = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+                var come = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+                if (gone.Count > 0) differences.Add("mates no longer there: «" + string.Join("», «", gone) + "»");
+                if (come.Count > 0) differences.Add("mates that were not there: «" + string.Join("», «", come) + "»");
+                foreach (MateLook was in before.Mates)
+                    foreach (MateLook now in after.Mates)
+                        if (now.Name == was.Name)
+                        {
+                            if (was.Look != now.Look)
+                                differences.Add("mate «" + was.Name + "»: " + was.Look + " before, " + now.Look + " now");
+                            break;
+                        }
+            }
+            return differences;
+        }
+
+        /// <summary>
+        /// The plan changed the assembly (brief R23): seen to change, not merely
+        /// unreadable, the same rule as the volume in `hasBuilt` (Z-C8).
+        /// </summary>
+        private static bool AssemblyBuilt(PartSnapshot before, PartSnapshot after)
+        {
+            return before != null && after != null && before.Assembly && after.Assembly &&
+                   AssemblyDiffers(before, after, false).Count > 0;
+        }
+
+        /// <summary>Numbers as «[0, 15, 0]», in the form of the answers.</summary>
+        private static string NumbersText(double[] numbers)
+        {
+            var words = new List<string>();
+            foreach (double n in numbers) words.Add(Number(n));
+            return "[" + string.Join(", ", words) + "]";
+        }
+
+        /// <summary>The line of a field that changed, null when it did not.</summary>
+        private static string Changed(string what, string was, string now)
+        {
+            if ((was ?? "") == (now ?? "")) return null;
+            return what + ": «" + (was ?? "") + "» before, «" + (now ?? "") + "» now";
+        }
+
+        private static bool Near(double[] a, double[] b, double tolerance)
+        {
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (Math.Abs(a[i] - b[i]) > tolerance) return false;
+            return true;
         }
 
         /// <summary>
@@ -4185,6 +4633,21 @@ namespace Oce.Solid.Agent.Tools
                 ? "the names and order of the last " + Oce.Solid.Agent.Core.DocumentState.MaxFeature +
                   " features, the ones the state lists (the older ones only by count)"
                 : "the feature names and order";
+        }
+
+        /// <summary>
+        /// What an assembly snapshot covers, for the answers (brief R23): the
+        /// state lists a bounded number of components and mates, and beyond
+        /// the list they are compared only by count.
+        /// </summary>
+        internal static string AssemblyScope(bool partial)
+        {
+            const string what = "the components (which ones, their file, configuration, state, fixed, visible, " +
+                                "transparent, origin and axes) and the mates (which ones, their kind, suppressed or not, " +
+                                "what they hold)";
+            return partial
+                ? what + " the state lists (the ones beyond the list only by count)"
+                : what;
         }
 
         /// <summary>
@@ -4217,40 +4680,72 @@ namespace Oce.Solid.Agent.Tools
             List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
             List<string> stillDifferent, bool namesPartial, out bool restored)
         {
+            return WrongPressText(
+                "part",
+                "the volume should be " + Number(expectedVolume) + " mm³ and the features " + expectedFeatures +
+                "; they are " + Number(volumeNow) + " mm³ and " + featuresNow,
+                "neither the volume, nor the feature count, nor " + NamesScope(namesPartial),
+                "volume, feature count and " + NamesScope(namesPartial),
+                notAsBeforeThePlan, takenAway, redoTried, redoError, stillDifferent, out restored);
+        }
+
+        /// <summary>
+        /// <see cref="AnswerAfterWrongPress"/> on an assembly (brief R23): the
+        /// counts are of components and mates, and what was compared is
+        /// <see cref="AssemblyScope"/>. Pure, so that a contract can call it.
+        /// </summary>
+        internal static string AnswerAfterWrongPressOnAssembly(
+            int expectedComponents, int expectedMates, int componentsNow, int matesNow,
+            List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
+            List<string> stillDifferent, bool listedOnly, out bool restored)
+        {
+            return WrongPressText(
+                "assembly",
+                "the components should be " + expectedComponents + " and the mates " + expectedMates +
+                "; they are " + componentsNow + " and " + matesNow,
+                "none of " + AssemblyScope(listedOnly),
+                AssemblyScope(listedOnly),
+                notAsBeforeThePlan, takenAway, redoTried, redoError, stillDifferent, out restored);
+        }
+
+        /// <summary>The text of both answers after a wrong press, for a part or an assembly.</summary>
+        private static string WrongPressText(
+            string documentWord, string counts, string changedNeither, string compared,
+            List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
+            List<string> stillDifferent, out bool restored)
+        {
             notAsBeforeThePlan = notAsBeforeThePlan ?? new List<string>();
             takenAway = takenAway ?? new List<string>();
-            stillDifferent = stillDifferent ?? new List<string> { "the part could not be read again" };
+            stillDifferent = stillDifferent ?? new List<string> { "the " + documentWord + " could not be read again" };
             restored = redoTried && redoError == null && takenAway.Count > 0 && stillDifferent.Count == 0;
-            string scope = NamesScope(namesPartial);
+            string the = "the " + documentWord;
 
             string head =
-                "I pressed undo and the part did not go back to how it was before the plan (the volume should be " +
-                Number(expectedVolume) + " mm³ and the features " + expectedFeatures + "; they are " +
-                Number(volumeNow) + " mm³ and " + featuresNow +
+                "I pressed undo and " + the + " did not go back to how it was before the plan (" + counts +
                 (notAsBeforeThePlan.Count > 0 ? "; " + string.Join("; ", notAsBeforeThePlan) : "") +
                 "). So the entry on top of the undo stack was not my plan but something done after it that changed " +
-                "neither the volume, nor the feature count, nor " + scope + ", which I could not see before pressing.";
+                changedNeither + ", which I could not see before pressing.";
 
             if (!redoTried && takenAway.Count > 0)
                 return head + " It took away: " + string.Join("; ", takenAway) + ". I did not press redo, " +
-                       "so it is NOT back. Look at the part in SOLIDWORKS before going on.";
+                       "so it is NOT back. Look at " + the + " in SOLIDWORKS before going on.";
             if (!redoTried)
-                return head + " Reading the part again, the undo changed nothing I can see (volume, feature " +
-                       "count and " + scope + " are as before pressing), so I did not press redo: I could not check " +
-                       "what it would bring back. Look at the part in SOLIDWORKS before going on; Edit > Redo puts " +
+                return head + " Reading " + the + " again, the undo changed nothing I can see (" + compared +
+                       " are as before pressing), so I did not press redo: I could not check " +
+                       "what it would bring back. Look at " + the + " in SOLIDWORKS before going on; Edit > Redo puts " +
                        "back only an action that was not recorded through the API.";
 
             if (restored)
                 return head + " It took away: " + string.Join("; ", takenAway) + ". I pressed redo and read " +
-                       "the part again: volume, feature count and " + scope + " are as before pressing, so it came " +
+                       the + " again: " + compared + " are as before pressing, so it came " +
                        "back (only an action not recorded through the API can come back this way). The plan is " +
                        "still there.";
 
             return head + " It took away: " + string.Join("; ", takenAway) + ". I pressed redo" +
                    (redoError != null ? " and SOLIDWORKS refused: " + redoError : "") +
-                   ", and the part is NOT as it was before pressing: " + string.Join("; ", stillDifferent) +
+                   ", and " + the + " is NOT as it was before pressing: " + string.Join("; ", stillDifferent) +
                    ". SOLIDWORKS cannot redo an undo entry recorded through the API (measured on " +
-                   "1/10/2026), so what the undo took away is lost. Look at the part in SOLIDWORKS before " +
+                   "1/10/2026), so what the undo took away is lost. Look at " + the + " in SOLIDWORKS before " +
                    "going on, and make it again with «build» if you need it.";
         }
 

@@ -1367,6 +1367,7 @@ namespace Oce.Solid.Agent.Core
             note = null;
             notDriven = 0;
             fullyDefined = null;
+            int onAxis = 0;
             var entries = new List<Dictionary<string, object>>();
             var points = sketch == null ? null : sketch.GetSketchPoints2() as object[];
             if (points == null)
@@ -1424,9 +1425,20 @@ namespace Oce.Solid.Agent.Core
                             continue;
                         }
                         entry[axis] = name;
+                        if (name == "on_axis") onAxis++;
                         if ((horizontal ? v[0] : v[1]) < -VertexOnAxisMm) entry[axis + "_side"] = "negative";
                     }
                 }
+                // A COORDINATE ON AN AXIS CANNOT BE DRIVEN (brief R5, probe
+                // Checks\DrivenSketch, 26/10/2026): SOLIDWORKS gives it no
+                // dimension from the origin, so a relation holds it there, and a
+                // variable has nothing to move. It is said, not left to be found
+                // when a link_dimension has no name to take.
+                if (onAxis > 0)
+                    note = (note != null ? note + "; " : "") + onAxis +
+                           " coordinate(s) of the vertices sit on an axis of the sketch («on_axis»): a relation holds " +
+                           "each there, not a dimension, so no variable can move it off the axis; to drive one, draw " +
+                           "that vertex off the axis";
                 foreach (var contour in contours)
                 {
                     if (!contour.Circle) continue;
@@ -1565,6 +1577,29 @@ namespace Oce.Solid.Agent.Core
                 return manager == null ? -1 : manager.GetRelationsCount((int)swSketchRelationFilterType_e.swAll);
             }
             catch { return -1; }
+        }
+
+        /// <summary>
+        /// THE REBUILD THAT KEEPS THE UNDO OF AN ASSEMBLY (brief R23). On t9
+        /// (26/10/2026) every plan on an assembly answered false to
+        /// FinishRecordingUndoObject, and «undo» could not withdraw it.
+        /// Checks\AssemblyUndo measured why the same night: insert, insert and a
+        /// coincident mate inside one recording, each followed by a rebuild.
+        /// With EditRebuild3, ForceRebuild3(false) or ForceRebuild3(true) the
+        /// recording answered false and no undo took anything away, not even
+        /// the native ones; with IModelDocExtension.Rebuild (swRebuildAll,
+        /// swUpdateMates or swUpdateDirtyOnly) or no rebuild at all it answered
+        /// true and one undo emptied the assembly. The mate moved the component
+        /// in every way. On a part or a drawing it is EditRebuild3, as before:
+        /// on a part the undo of a plan held (t10, 26/10/2026); on a drawing it
+        /// was not measured.
+        /// </summary>
+        public static bool RebuildKeepingUndo(IModelDoc2 model)
+        {
+            if (model == null) return false;
+            if (model.GetType() == (int)swDocumentTypes_e.swDocASSEMBLY)
+                return model.Extension.Rebuild((int)swRebuildOptions_e.swRebuildAll);
+            return model.EditRebuild3();
         }
 
         /// <summary>

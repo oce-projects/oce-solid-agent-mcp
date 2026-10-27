@@ -125,7 +125,10 @@ $tools = @(
     @{ name = 'DrivenSketch'; sw = $true; lib = $false },
     # Does the lock of the sketch split the undo entry of a plan (brief R11, H1)? And
     # can the FIXED relations go in while the sketch is still open?
-    @{ name = 'UndoSplit'; sw = $true; lib = $false }
+    @{ name = 'UndoSplit'; sw = $true; lib = $false },
+    # What does one undo take away in an assembly (brief R23): insert, insert, mate,
+    # inside the recording of the bridge and without it.
+    @{ name = 'AssemblyUndo'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

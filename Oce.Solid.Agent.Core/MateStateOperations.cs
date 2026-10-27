@@ -73,7 +73,7 @@ namespace Oce.Solid.Agent.Core
             if (!done)
                 return Failed("SOLIDWORKS did not " + (reactivate ? "reactivate" : "suppress") + " «" + name +
                                "», and did not say why. Read the assembly again with «inspect_part» and try again.");
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
 
             // READ BACK: SetSuppression2 answering true is not a mate turned off.
             bool now = was;
@@ -140,7 +140,7 @@ namespace Oce.Solid.Agent.Core
                                ". Read the assembly again with «inspect_part» and try again.");
             }
             try { model.ClearSelection2(true); } catch { }
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
 
             // READ BACK: the name is gone and there is one mate fewer.
             string ignored;

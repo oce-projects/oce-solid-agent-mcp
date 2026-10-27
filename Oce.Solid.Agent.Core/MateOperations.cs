@@ -273,7 +273,7 @@ namespace Oce.Solid.Agent.Core
                     typeName + "»" +
                     (align == 0 ? " aligned" : " opposite") + ".");
 
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
 
             // ── AND IT IS COUNTED AFTER ─────────────────────────────────
             //
@@ -546,8 +546,9 @@ namespace Oce.Solid.Agent.Core
         /// For each of the six moves (5 mm along X, Y, Z of the assembly, the
         /// translation part [9..11] of ArrayData; 5 degrees about X, Y, Z
         /// through the component's origin): IComponent2.Transform2 is set to the
-        /// moved transform built with IMathUtility.CreateTransform, EditRebuild3,
-        /// Transform2 read again. IComponent2~Transform2.html, Remarks: «This
+        /// moved transform built with IMathUtility.CreateTransform, a rebuild
+        /// (<see cref="RebuildForTest"/>: EditRebuild3 in the probe,
+        /// IModelDocExtension.Rebuild since brief R23), Transform2 read again. IComponent2~Transform2.html, Remarks: «This
         /// property lets you violate existing mate relationships. If you place a
         /// component at an invalid location based on the mate definitions, then
         /// IModelDoc2::Rebuild recalculates existing mate relationships and moves
@@ -575,8 +576,8 @@ namespace Oce.Solid.Agent.Core
         ///
         /// NEVER A GUESS: a transform that cannot be set or read, a set that did
         /// not move the component by the step asked, a rebuild that answers false
-        /// (EditRebuild3 «only works in-context of the active document»,
-        /// IModelDoc2~EditRebuild3.html, Remarks), a move that after the rebuild
+        /// (EditRebuild3, the probe's, «only works in-context of the active
+        /// document», IModelDoc2~EditRebuild3.html, Remarks), a move that after the rebuild
         /// is neither back nor where it was moved (the probe's «ELSEWHERE») or an
         /// orientation that does not come back makes the reading ReadingUnknown,
         /// with the reason. A fixed
@@ -649,7 +650,7 @@ namespace Oce.Solid.Agent.Core
                 { why = "setting Transform2 did not move it by the step asked (" + d + ")"; break; }
                 reading.Rebuilds++;
                 if (!RebuildForTest(model))
-                { why = "EditRebuild3 did not answer true after the move " + d + RebuildFalseHint; break; }
+                { why = "The rebuild did not answer true after the move " + d + RebuildFalseHint; break; }
                 var afterRebuild = ReadTransform(ComponentByName(assemblyDoc, name));
                 bool? isBlocked = DirectionBlocked(reference, afterRebuild, k);
                 if (isBlocked == null)
@@ -678,7 +679,7 @@ namespace Oce.Solid.Agent.Core
                 { why = "Transform2 could not be set to put it back after the move " + d; break; }
                 reading.Rebuilds++;
                 if (!RebuildForTest(model))
-                { why = "EditRebuild3 did not answer true after putting it back from " + d + RebuildFalseHint; break; }
+                { why = "The rebuild did not answer true after putting it back from " + d + RebuildFalseHint; break; }
                 var back = ReadTransform(ComponentByName(assemblyDoc, name));
                 double turned = AngleBetweenDeg(back, reference);
                 if (double.IsNaN(turned))
@@ -854,7 +855,9 @@ namespace Oce.Solid.Agent.Core
             " (a feature or mate in error makes every rebuild answer false)";
 
         /// <summary>
-        /// EditRebuild3, whose answer counts: a rebuild that did not happen would
+        /// The rebuild (RebuildKeepingUndo since brief R23: on an assembly
+        /// IModelDocExtension.Rebuild, because EditRebuild3 emptied the undo of
+        /// the plan), whose answer counts: a rebuild that did not happen would
         /// read every direction free. The price is known: a document with a
         /// feature in error answers false on every rebuild (DocumentByPath,
         /// RebuildIfActivationAsked), so on such an assembly the test reads
@@ -862,7 +865,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static bool RebuildForTest(IModelDoc2 model)
         {
-            try { return model.EditRebuild3(); }
+            try { return RebuildKeepingUndo(model); }
             catch { return false; }
         }
 
@@ -981,7 +984,7 @@ namespace Oce.Solid.Agent.Core
                     if (feature.Select2(false, 0))
                         deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                     model.ClearSelection2(true);
-                    model.EditRebuild3();
+                    RebuildKeepingUndo(model);
                 }
                 catch { }
             }

@@ -32,6 +32,64 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.142.0 — 27 October 2026 · library 0.164.0 · undo withdraws a plan on an assembly (brief R23; branch `night-2026-10-26-asm`)
+
+- **Seen on SOLIDWORKS (t9, 26/10/2026).** On an assembly every plan answered
+  `"undo_entry_recorded": false`, and `undo` answered that it had no plan to
+  withdraw. Two causes, both measured.
+- **The rebuild emptied the undo.** `Checks\AssemblyUndo` (new probe) inserts two
+  components and makes a coincident mate inside one recording, a rebuild after each
+  step, then presses undo; on SOLIDWORKS, 26/10/2026:
+  - `EditRebuild3`, `ForceRebuild3(false)` or `ForceRebuild3(true)`:
+    `FinishRecordingUndoObject` answered false and two undos took nothing away, not
+    even the native entries;
+  - `IModelDocExtension.Rebuild` (`swRebuildAll`, `swUpdateMates`,
+    `swUpdateDirtyOnly`) or no rebuild: it answered true and one undo emptied the
+    assembly;
+  - in every way the mate moved the component (B from x = 90 to x = −20 mm).
+
+  `SwOperations.RebuildKeepingUndo` rebuilds an assembly with
+  `IModelDocExtension.Rebuild(swRebuildAll)` and a part or a drawing with
+  `EditRebuild3` as before. The plan executor and the assembly operations
+  (insert, mate, mate state, mirror, fix, replace) go through it, and so do the
+  direction test of `mate`, the read-back of `place_component`, the rebuild after
+  an activation that asks for one (`DocumentByPath.RebuildIfActivationAsked`, which
+  the plan executor uses when it brings the plan's document back to the front) and
+  the same rebuild of `document` «activate». `RebuildKeepingUndo` is public, so
+  that the bridge can call it.
+- **The memory of `undo` was blind on an assembly.** The state of an assembly
+  writes neither a volume nor features, so both read 0 before and after every plan
+  (ZERO-E-ZERO): a plan was never «built», and with the first cause fixed `undo`
+  would have pressed without seeing a component moved by hand after the plan. The
+  snapshot of `undo` now reads, on an assembly, the components (which ones, file,
+  configuration, state, fixed, visible, transparent, origin within 0.0015 mm, axes
+  within 0.00015) and the mates (which ones, kind, suppressed, the components they
+  hold, by name, so that renumbered uids do not read as a change). It is used in
+  the three places that compare: whether the plan built, whether the assembly
+  changed since the plan (refusal before pressing), and whether the press brought
+  it back as before the plan (and what a press took away). Without the two lists
+  `undo` stops, as it does without a volume, and never redoes blindly.
+- **The answers on an assembly** speak of components and mates
+  (`AnswerAfterWrongPressOnAssembly`, `RefusalChangedSinceThePlanOnAssemblyText`),
+  and the remedy names `delete_mate`, `suppress_mate` and `place_component`: no
+  operation of the catalog takes a component away, so a component a plan inserted
+  goes only by hand. A successful undo answers `components_before/after` and
+  `mates_before/after` instead of the volume.
+- **Contract `Zc2114UndoHonestyContract`:** 13 pairs of assembly readings
+  (moved, turned, added with uids renumbered, taken away, mate added or suppressed,
+  an unreadable origin or list), the answers and the refusal on an assembly, and
+  the two guards of `undo` and the check of `hasBuilt` seen red on changed copies.
+- **Brief R5, the rest.** `extrude_profile` with `dimensions` «driven» gives a vertex
+  on an axis of the sketch no dimension (SOLIDWORKS makes none from the origin: a
+  relation holds it, probe `Checks\DrivenSketch`), so that coordinate cannot be driven.
+  `vertex_dimensions` said «on_axis»; now `warning_dimensions` also says how many
+  coordinates sit on an axis, that no variable can move them off it, and to draw the
+  vertex off the axis to drive it. The description of the operation says the same.
+- **Not measured yet:** the undo of an assembly plan through the bridge (scenario
+  t9b); a component whose origin the state cannot read makes `undo` refuse on
+  that assembly (a refusal, the lesser error); the rebuild of a drawing stays
+  `EditRebuild3`, and the undo of a plan on a drawing was never measured.
+
 ## 0.141.2 — 26 October 2026 · library 0.163.2 · save_document names the open document that holds the file (branch `night-2026-10-26-asm`)
 
 - **Seen on SOLIDWORKS.** t10 and t11 run twice in the same session: the second run

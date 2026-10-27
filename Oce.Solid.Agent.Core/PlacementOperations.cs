@@ -27,7 +27,8 @@ namespace Oce.Solid.Agent.Core
     /// a turn Q of the assembly makes each row r into Q r. The same reading
     /// gives ComponentAxes and InAssemblySpace (M1, N26).
     ///
-    /// IT IS READ BACK: Transform2 set, EditRebuild3, Transform2 read again.
+    /// IT IS READ BACK: Transform2 set, a rebuild (RebuildForTest, which keeps
+    /// the undo of the plan, brief R23), Transform2 read again.
     /// IComponent2~Transform2.html, Remarks: a placement that breaks the mates is
     /// taken, and the rebuild «moves your components to the closest valid
     /// location». So a component that its mates hold comes back somewhere else:

@@ -70,7 +70,7 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { try { model.ClearSelection2(true); } catch { } return Failed("I did not manage: " + ex.Message); }
             try { model.ClearSelection2(true); } catch { }
             if (!taken) return Failed("«" + NameOf(c) + "» cannot be selected: I did not touch it.");
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
             // IT IS READ BACK: FixComponent and UnfixComponent answer nothing.
             bool after = IsFixed(c);
             if (after != want)

@@ -216,7 +216,7 @@ namespace Oce.Solid.Agent.Core
             }
             finally { try { model.ClearSelection2(true); } catch { } }
 
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
 
             // ── AND IT IS COUNTED AFTER ─────────────────────────────────
             object[] rawAfter = null;

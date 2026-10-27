@@ -490,10 +490,12 @@ namespace Oce.Solid.Agent.Core
 
                             // A rebuild after every step: that way an error is
                             // seen at once and not at the end, when it is no
-                            // longer known which step caused it.
+                            // longer known which step caused it. On an assembly
+                            // EditRebuild3 empties the undo (brief R23): see
+                            // SwOperations.RebuildKeepingUndo.
                             PhaseClock.Time("plan.rebuild", () =>
                             {
-                                try { model.EditRebuild3(); } catch { }
+                                try { SwOperations.RebuildKeepingUndo(model); } catch { }
                             });
 
                             // IF THE STEP DECLARED THAT IT CHANGED

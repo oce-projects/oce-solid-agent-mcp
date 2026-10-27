@@ -583,8 +583,15 @@ using System.Runtime.InteropServices;
 //          of a star of 20 went onto points nearby (probe Checks\UndoSplit star).
 // 0.163.2: save_document names the open document that holds the file it was
 //          asked to write onto (GetOpenDocumentByName, after the refusal only).
-[assembly: AssemblyVersion("0.163.2.0")]
-[assembly: AssemblyFileVersion("0.163.2.0")]
+// 0.164.0: brief R23, the undo of a plan on an assembly holds again: the plan
+//          executor and the assembly operations rebuild an assembly with
+//          IModelDocExtension.Rebuild (SwOperations.RebuildKeepingUndo), because
+//          EditRebuild3 and ForceRebuild3 made FinishRecordingUndoObject answer
+//          false and no undo took anything away (probe Checks\AssemblyUndo).
+//          Brief R5: a driven profile says in «warning_dimensions» how many
+//          coordinates sit on an axis (held by a relation, not drivable).
+[assembly: AssemblyVersion("0.164.0.0")]
+[assembly: AssemblyFileVersion("0.164.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -599,4 +606,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.163.2")]
+[assembly: AssemblyInformationalVersion("0.164.0")]

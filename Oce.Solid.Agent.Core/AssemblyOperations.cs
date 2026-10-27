@@ -177,7 +177,7 @@ namespace Oce.Solid.Agent.Core
             string itemName = null;
             try { itemName = born == null ? null : born.Name2; } catch { }
 
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
 
             // Re-reading: it is searched by name among the components that the assembly
             // declares NOW. If it is not found, the old handle is kept
@@ -648,7 +648,7 @@ namespace Oce.Solid.Agent.Core
                 if (SelectComponent(component))
                     deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 model.ClearSelection2(true);
-                model.EditRebuild3();
+                RebuildKeepingUndo(model);
             }
             catch { }
             int countNow = HowManyComponentsInAssembly(assemblyDoc);

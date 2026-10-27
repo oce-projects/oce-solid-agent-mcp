@@ -710,6 +710,12 @@ namespace Oce.Solid.Agent.Core
         /// model, false if not». A false answer is said, not turned into a refusal:
         /// a part with a feature in error answers false on every rebuild, and it
         /// was exported the same way before this change.
+        ///
+        /// The plan executor calls it too, when it brings the plan's document
+        /// back to the front (brief R1). On an assembly EditRebuild3 there would
+        /// empty the undo of the plan (brief R23, probe Checks\AssemblyUndo), so
+        /// the rebuild is <see cref="SwOperations.RebuildKeepingUndo"/>:
+        /// IModelDocExtension.Rebuild on an assembly, EditRebuild3 otherwise.
         /// </summary>
         public static string RebuildIfActivationAsked(IModelDoc2 doc, int activationErrors)
         {
@@ -718,13 +724,13 @@ namespace Oce.Solid.Agent.Core
             try { label = Label(PathOnDisk(doc), doc.GetTitle()); } catch (Exception) { }
             try
             {
-                bool rebuilt = doc.EditRebuild3();
-                return "ActivateDoc3 reported swDocNeedsRebuildWarning for «" + label + "»: rebuilt with EditRebuild3 " +
-                       "before the export (" + (rebuilt ? "it answered true" : "it answered false: some feature did not rebuild") + ")";
+                bool rebuilt = SwOperations.RebuildKeepingUndo(doc);
+                return "ActivateDoc3 reported swDocNeedsRebuildWarning for «" + label + "»: rebuilt " +
+                       "before going on (" + (rebuilt ? "it answered true" : "it answered false: some feature did not rebuild") + ")";
             }
             catch (Exception ex)
             {
-                return "ActivateDoc3 reported swDocNeedsRebuildWarning for «" + label + "», and EditRebuild3 threw (" +
+                return "ActivateDoc3 reported swDocNeedsRebuildWarning for «" + label + "», and the rebuild threw (" +
                        ex.Message + "): the export writes the model as it is";
             }
         }
