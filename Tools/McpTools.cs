@@ -3731,7 +3731,14 @@ namespace Oce.Solid.Agent.Tools
                                        System.Globalization.CultureInfo.InvariantCulture),
                       SucceededOperations(outcomes), ReadableName(planIdentity))
                 : null;
-            if (onDrawing != null && memoryBefore == null && memoryAction == MemoryKeep && !hasBuilt)
+            // NOT EVEN WHEN SOLIDWORKS KEPT AN ENTRY (report 8cd843 N40, round 11): a
+            // section view, then a detail view refused. The entry made the plan «new»,
+            // the comparison saw nothing (a drawing has none of it), and the answer
+            // said «refused and changed nothing I compare» beside «the 1 step(s)
+            // before it are done and stay»; the undo said «as it was», and the view
+            // stayed.
+            if (onDrawing != null && !hasBuilt &&
+                ((memoryBefore == null && memoryAction == MemoryKeep) || memoryAction == MemoryNew))
             {
                 memoryAction = MemoryDrop;
                 memoryReason = onDrawing;
@@ -4207,11 +4214,13 @@ namespace Oce.Solid.Agent.Tools
         {
             if (!string.Equals(kind, "drawing", StringComparison.Ordinal) || succeeded == null || succeeded.Count == 0)
                 return null;
+            // N40 (report 8cd843, round 11): a plan that put a section view and then
+            // stopped recorded an entry, and the undo pressed after it left the view.
             return "The last «build» worked on the drawing «" + (name ?? "") + "» (" +
                    string.Join(", ", succeeded.Distinct(StringComparer.Ordinal)) + "). On a drawing I keep no plan to " +
-                   "withdraw: SOLIDWORKS records no undo entry for it that I can take back (its answer said " +
-                   "«undo_entry_recorded» false), and what I compare before pressing undo (the volume, the features, the " +
-                   "components) is not on a drawing.";
+                   "withdraw: SOLIDWORKS records no undo entry for a dimension or a note («undo_entry_recorded» false), " +
+                   "the undo pressed after a section view left the view on the sheet (measured), and what I compare " +
+                   "before pressing undo (the volume, the features, the components) is not on a drawing.";
         }
 
         /// <summary>The operations of the steps that succeeded, in order.</summary>
@@ -4233,7 +4242,8 @@ namespace Oce.Solid.Agent.Tools
         internal const string DrawingNoMemoryRemedy =
             "To take away a dimension or a note, send a plan with «delete_annotation» and its name as the plan that " +
             "placed it gave it (a dimension: «RD1@Drawing View1@...»; a note: its «name»); the person at the SOLIDWORKS " +
-            "screen can also select it and delete it by hand.";
+            "screen can also select it and delete it by hand. A view (a section, a detail, a model view) has no " +
+            "operation that removes it yet: only the person at the screen can delete it.";
 
         /// <summary>The four answers of <see cref="MemoryAfterPlan"/>.</summary>
         internal const string MemoryNew = "new", MemoryKeep = "keep", MemoryCover = "cover", MemoryDrop = "drop";

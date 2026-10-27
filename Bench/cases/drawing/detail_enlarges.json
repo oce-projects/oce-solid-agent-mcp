@@ -47,10 +47,10 @@
         { "what": "measurements.is_detail", "equal_to": true,
           "why": "the type of the view born (swDrawingDetailView), not the fact that the count went up" },
 
-        { "what": "measurements.views_before", "equal_to": 4,
-          "why": "three model views plus the SHEET, which in the SOLIDWORKS list is the first «view»" },
+        { "what": "measurements.views_before", "equal_to": 3,
+          "why": "the three model views, without the SHEET that the SOLIDWORKS list gives as its first «view»: counted as «inspect_part» and «model_view» count them (report 8cd843 N42, round 11: 5 here and 4 there on the same drawing, until library 0.174.1)" },
 
-        { "what": "measurements.views_after", "equal_to": 5,
+        { "what": "measurements.views_after", "equal_to": 4,
           "why": "one more: the check that the API did not just answer an object" },
 
         { "what": "measurements.what_it_does_not_check", "includes": ["detail that was needed"],

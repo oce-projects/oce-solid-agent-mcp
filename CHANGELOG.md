@@ -32,6 +32,74 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.2 — 27 October 2026 · library 0.174.2 · eleventh round of session 8cd843: N39 to N42 (branch `night-2026-10-26-asm`)
+
+- **Eleventh round on SOLIDWORKS (session 8cd843, bridge 0.152.1, 52 calls)**: N37
+  and N38 held (the refusal of N38 kept: «the argument of the standard holds»;
+  its cost, 11 s of edges read to say «already dimensioned», is left to the owner).
+  Real work on copies: mate suppressed and the undo that put it back, read again;
+  STEP AP214 with 7 solids of 7; a drawing of two sheets with the overall sizes,
+  a section A-A, the table and 7 balloons on the second sheet, two properties of
+  the title block shown, the PDF of 2 pages with the 8 texts searched; closed by
+  the bridge. Four new defects.
+- **N39 (P1)**: with one of its mates suppressed, a coupler read «constrained», 0
+  degrees of freedom and «mates» 3, and `place_component` moved it 6.5 mm.
+  `GetMates` lists a suppressed mate with the others. Now `mates` in the state
+  counts the mates that hold the component and `mates_suppressed` the others
+  (`ActiveMates`), the kinds skip the suppressed ones, and a component held only
+  by suppressed mates is loose for the overall size of a drawing too. The number
+  SOLIDWORKS gives for a component with a suppressed mate is left out with the
+  reason (`degrees_of_freedom_note`): its reading does not follow the
+  suppression. The sentence on what is not known says that on an assembly just
+  opened SOLIDWORKS may give no number until a plan ran (8 of 8 «unavailable»,
+  then 5 of 8 with a number). Case `a_wrong_mate_is_taken_out` reads both counts.
+- **N40 (P2)**: a plan on a drawing that put a section and stopped at a refused
+  detail said «refused and changed nothing I compare» beside «the 1 step(s) before
+  it are done and stay», and the undo after it said «as it was» while the section
+  stayed. SOLIDWORKS had kept an undo entry, which made the plan one to withdraw;
+  on a drawing the comparison sees nothing. Now a plan that did a step on a
+  drawing leaves no memory whatever SOLIDWORKS recorded, and says so; the remedy
+  says that a view has no operation that removes it yet.
+- **N41 (P2)**: `detail_view` on a view of an assembly was refused three times out
+  of three. Cause measured with a probe on copies of the drawing: drawn on the
+  sketch of the sheet, the circle went to another view (the one below), so the
+  view asked kept 0 detail circles and the bridge removed the detail; drawn after
+  `ActivateView`, the circle went in the sketch of the view asked, and the detail
+  had it as its base, at the centre and 40 mm to the right. Now the circle is
+  drawn in the sketch of the view (the sheet only when the view cannot be
+  activated), removed from that sketch by a refusal, and the sheet is put back
+  in edit after the step (`circle_drawn_in`).
+- **N42 (P3)**: `section_view` and `detail_view` counted the sheet among the
+  views, 5 where `inspect_part` said 4. Now they count the views of the model, as
+  `inspect_part` and `model_view`; the cases `section_cuts_the_part` and
+  `detail_enlarges` go from 4 and 5 to 3 and 4. Not done: `hatches` 1 and
+  `hatches_solids` 0 on a cut through two bodies, not tested.
+- Also from the report: a bill of materials with no room says it can go on
+  another sheet (`activate_sheet`), and `drawing_dimension` times its phases
+  (visible edges, edges on the sheet, dimensions already there, texts) for the
+  log.
+- Contract Zc2194 (pure rules and wiring, every changed copy red); Zc2189 follows
+  the circle removed from the sketch it is in, Zc2192 the timed call.
+- Contracts: 939 checks, 2 failed (the bench run is partial, Z-C6). Language gate
+  held. Bench, the families `assemblies` and `drawing`: 731 tests passed, 0
+  failed (report `20261027_1815`), then a call that did not come back
+  (`drawing_dimension` on V2 of `turned_bushing_is_not_a_hole`, idle SOLIDWORKS,
+  the share answering, no window open), 2 h 19 min into the SOLIDWORKS session;
+  the same case was green at 16:17. The second time in `drawing_dimension`: the
+  cause is not tested, a hypothesis. After a restart of SOLIDWORKS the cases not
+  yet tried: 83 tests, 0 failed, expectations 59 of 59 (report
+  `20261027_1827`). A partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t34 on copies of the drawing of round 10 and of the
+  assembly of round 11, bridge 0.152.1 against 0.152.2: with M15 suppressed, C8
+  read «mates» 3 and now reads 2, `mates_suppressed` 1 and the note, then 3 and 0
+  after the mate is back; `detail_view` on V1 of the assembly (x 40 mm, radius 10
+  mm) was refused («the detail circles are still 0») and is now done, circle in
+  the sketch of the view, circles 0 to 1; `section_view` said views 5 to 6 and
+  now 4 to 5, as `inspect_part`. N40: in both versions the undo after a section
+  refuses with the reason; the branch of a drawing plan with an undo entry
+  recorded was not reached (the detail that recorded one is now done), so it is
+  held by the contract only.
+
 ## 0.152.1 — 27 October 2026 · library 0.174.1 · tenth round of session 8cd843: N37 and N38 (branch `night-2026-10-26-asm`)
 
 - **Tenth round on SOLIDWORKS (session 8cd843, bridge 0.152.0, 20 calls)**: N33,

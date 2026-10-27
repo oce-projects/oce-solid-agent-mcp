@@ -333,8 +333,13 @@ namespace Oce.Solid.Agent.Core
                 // array: the count goes through `SwOperations.MatesOf`,
                 // which separates «zero» from «I could not read» by looking at whether the
                 // component still answers to its own name.
-                int itsAcc = SwOperations.MatesOf(c);
+                // THE MATES THAT HOLD IT (report 8cd843 N39): GetMates lists the
+                // suppressed ones too, and «mates» 3 stood beside a component that
+                // moved. «mates» counts the active ones, «mates_suppressed» the others.
+                int itsOff = SwOperations.SuppressedMatesOf(c);
+                int itsAcc = SwOperations.ActiveMates(SwOperations.MatesOf(c), itsOff);
                 if (itsAcc >= 0) entry["mates"] = itsAcc;
+                if (itsOff >= 0) entry["mates_suppressed"] = itsOff;
 
                 // ── WHICH MATES (entry Z-D3) ────────────────────────────
                 // Measured on 27/9/2026 (`probe0089 zd345`): `GetMates` gives IMate2
@@ -396,7 +401,12 @@ namespace Oce.Solid.Agent.Core
                 // always, on every assembly.
                 var deg = SwOperations.DegreesOfFreedom(c);
                 entry["degrees_of_freedom_state"] = deg.State;
-                if (deg.Available) entry["degrees_of_freedom_remaining"] = deg.HowMany;
+                if (deg.Available && itsOff > 0)
+                {
+                    entry["degrees_of_freedom_note"] = SwOperations.DofWithSuppressedMateNote(deg.State, deg.HowMany, itsOff);
+                    degreesNotGiven.Add("C" + (i + 1) + " (a mate suppressed)");
+                }
+                else if (deg.Available) entry["degrees_of_freedom_remaining"] = deg.HowMany;
                 else degreesNotGiven.Add("C" + (i + 1) + " (" + deg.State + ")");
 
                 // «IS IT JUST RESTING?» IS ANSWERED WITH TWO THINGS THAT WORK.
@@ -562,6 +572,11 @@ namespace Oce.Solid.Agent.Core
             return "SOLIDWORKS did not give the remaining degrees of freedom of " + which +
                    ": it answers «unavailable», «failed» or «root component» when it cannot, and " +
                    "where it could the number is in «degrees_of_freedom_remaining» of the component. " +
+                   // Report 8cd843 N39, round 11: the same assembly gave no number on opening
+                   // and numbers after a plan; and a suppressed mate is not followed.
+                   "On an assembly just opened it may give no number until a plan has run on it (measured: 8 " +
+                   "of 8 «unavailable» on opening, 5 of 8 with a number after the first plan), and the number " +
+                   "of a component with a suppressed mate is left out («degrees_of_freedom_note»). " +
                    "So «constrained» here means «has at least one mate», not «does not move any more»: " +
                    "one coincident mate leaves three of the six directions free (measured). " +
                    "«mate» says which directions each mate blocks.";
@@ -795,6 +810,9 @@ namespace Oce.Solid.Agent.Core
                 var outside = new List<string>();
                 foreach (var o in rawItems)
                 {
+                    // The kinds of the mates that hold it, as «mates» counts them (N39).
+                    var feature = o as IFeature;
+                    if (feature != null && ApiHelpers.IsSuppressedHere(feature)) continue;
                     var m = o as IMate2;
                     if (m == null) { outside.Add("?"); continue; }
                     outside.Add(TypeName(m.Type));

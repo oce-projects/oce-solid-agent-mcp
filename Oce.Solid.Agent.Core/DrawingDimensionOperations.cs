@@ -104,11 +104,13 @@ namespace Oce.Solid.Agent.Core
             }
 
             // ── THE EDGES THE VIEW SHOWS ────────────────────────────────
+            // The phases of a slow step are timed (report 8cd843, round 11: 10 to 16 s
+            // of «plan.operation» with nothing inside it to say where they went).
             object[] edges = null;
             try
             {
-                edges = view.GetVisibleEntities2(
-                    null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[];
+                edges = PhaseClock.Time("drawing_dimension.visible_edges", () => view.GetVisibleEntities2(
+                    null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]);
             }
             catch (Exception ex)
             {
@@ -195,13 +197,17 @@ namespace Oce.Solid.Agent.Core
             var all = new List<ProjectedEdge>();
             var circles = new List<Circle>();
             int holesInTable = 0;   // ZERO-E-ZERO: no hole table in the view, until one looks
-            for (int i = 0; i < available; i++)
+            PhaseClock.Time("drawing_dimension.edges_on_the_sheet", () =>
             {
-                var c = CircleOnSheet(edges[i] as IEdge, i, mu, tr);
-                if (c != null) { circles.Add(c); continue; }
-                var s = ReadEdge(view, edges[i], i, mu, tr);
-                if (s != null) all.Add(s);
-            }
+                for (int i = 0; i < available; i++)
+                {
+                    var c = CircleOnSheet(edges[i] as IEdge, i, mu, tr);
+                    if (c != null) { circles.Add(c); continue; }
+                    var s = ReadEdge(view, edges[i], i, mu, tr);
+                    if (s != null) all.Add(s);
+                }
+                return available;
+            });
 
             // A VIEW OF AN ASSEMBLY HAS ITS OWN ROUTE (report 8cd843 N23, round 7):
             // the overall size and the edges named, not the holes, chamfers and

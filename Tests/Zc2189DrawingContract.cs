@@ -238,12 +238,17 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 bool returned = Regex.IsMatch(detail, @"IView detailView = \w+ as IView;");
                 bool used = detail.Contains("detailView.GetName2(") && detail.Contains("(detailView)");
-                int cleanups = Count(detail, "RemoveSheetSketchSegment(");
+                // Since library 0.174.2 (report 8cd843 N41) the circle is drawn in the
+                // sketch of the view, and removed from the sketch it is in: every
+                // refusal goes through «removeCircle», which takes the right road.
+                int cleanups = Count(detail, "removeCircle(circle)");
+                bool bothRoads = detail.Contains("RemoveViewSketchSegment(model, target, c, segmentsBefore)") &&
+                                 detail.Contains("RemoveSheetSketchSegment(model, drawing, c, segmentsBefore)");
                 bool viewRemoved = detail.Contains("RemoveNewView(");
                 Check("M41: the detail is the returned view, and the circle (and unlinked view) of a refusal are removed",
-                      returned && used && cleanups >= 3 && viewRemoved,
+                      returned && used && cleanups >= 3 && bothRoads && viewRemoved,
                       "returned view " + returned + ", read from it " + used + ", circle removals " + cleanups +
-                      ", view removal " + viewRemoved);
+                      " (from the sketch of the view or of the sheet: " + bothRoads + "), view removal " + viewRemoved);
             }
 
             // M41, the other edge of the fallback: with no view returned, the

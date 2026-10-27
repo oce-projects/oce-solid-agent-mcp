@@ -643,8 +643,14 @@ using System.Runtime.InteropServices;
 //          sizes are all dimensioned elsewhere is refused as on a view of a part,
 //          naming the components measured and the ones the view does not show;
 //          «already dimensioned» lengths with three decimals, as dimensions_mm.
-[assembly: AssemblyVersion("0.174.1.0")]
-[assembly: AssemblyFileVersion("0.174.1.0")]
+// 0.174.2: round 11 of report 8cd843: a suppressed mate does not count among
+//          the mates that hold a component, and its degrees of freedom are left
+//          out with the reason (N39); the circle of a detail goes in the sketch
+//          of the view, so a view of an assembly gets its detail (N41); section
+//          and detail count the views of the model only (N42); the phases of
+//          drawing_dimension are timed.
+[assembly: AssemblyVersion("0.174.2.0")]
+[assembly: AssemblyFileVersion("0.174.2.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -659,4 +665,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.1")]
+[assembly: AssemblyInformationalVersion("0.174.2")]

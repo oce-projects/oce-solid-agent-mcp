@@ -363,6 +363,64 @@ namespace Oce.Solid.Agent.Core
             return CountMates(component);
         }
 
+        /// <summary>
+        /// How many mates of a component are suppressed in the active
+        /// configuration, or -1 if they cannot be read (report 8cd843 N39, round
+        /// 11). GetMates lists a suppressed mate with the others: C8 of the clip
+        /// assembly kept «mates» 3 with its distance mate suppressed, and moved 6.5 mm.
+        /// A suppressed mate holds nothing. GetMates gives IMate2 objects that are
+        /// also IFeature (probe0089, 27/9/2026). MatesOf stays the count of every
+        /// mate, the one «mate» and «delete_mate» compare before and after.
+        /// </summary>
+        internal static int SuppressedMatesOf(IComponent2 component)
+        {
+            if (component == null) return -1;
+            try
+            {
+                var items = component.GetMates() as object[];
+                if (items == null) return 0;
+                int n = 0;
+                foreach (object o in items)
+                {
+                    var feature = o as IFeature;
+                    if (feature == null) return -1;
+                    if (ApiHelpers.IsSuppressedHere(feature)) n++;
+                }
+                return n;
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>The mates that hold a component now: all less the suppressed ones; -1 if either is unreadable.</summary>
+        internal static int ActiveMatesOf(IComponent2 component)
+        {
+            return ActiveMates(MatesOf(component), SuppressedMatesOf(component));
+        }
+
+        /// <summary>Pure, so the contract suite reads it.</summary>
+        internal static int ActiveMates(int all, int suppressed)
+        {
+            return all < 0 || suppressed < 0 ? -1 : Math.Max(0, all - suppressed);
+        }
+
+        /// <summary>
+        /// Why the remaining degrees of freedom SOLIDWORKS gave are left out of a
+        /// component with a suppressed mate (report 8cd843 N39, round 11): C8 of the
+        /// clip assembly read «constrained» with 0 remaining while one of its mates
+        /// was suppressed, and «place_component» moved it 6.5 mm. «0 remaining» is the
+        /// sentence that says «assembled»: a free component passed for a blocked one.
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string DofWithSuppressedMateNote(string state, int howMany, int suppressed)
+        {
+            return "SOLIDWORKS answered «" + state + "» with " + howMany + " free direction(s), and " +
+                   suppressed + (suppressed == 1 ? " mate of this component is" : " mates of this component are") +
+                   " suppressed: that reading does not follow a suppressed mate (on 27/10/2026 a component read " +
+                   "«constrained», 0, and moved 6.5 mm with one of its mates suppressed), so the number is left out. " +
+                   "«mate» measures the directions each mate blocks, and «place_component» refuses a placement " +
+                   "its mates undo.";
+        }
+
         internal static DegreesOfFreedomRead DegreesOfFreedom(IComponent2 component)
         {
             var outside = new DegreesOfFreedomRead { State = "not read", HowMany = -1 };

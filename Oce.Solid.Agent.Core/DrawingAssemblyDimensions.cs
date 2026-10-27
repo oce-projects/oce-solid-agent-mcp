@@ -295,7 +295,8 @@ namespace Oce.Solid.Agent.Core
             try { name = c.Name2; } catch { }
             if (name == null || topLevel == null || !topLevel.Contains(name)) return null;
             try { if (c.IsFixed()) return null; } catch { return null; }
-            return MatesOf(c) == 0 ? name : null;
+            // The mates that hold it, as the state counts them (report 8cd843 N39).
+            return ActiveMatesOf(c) == 0 ? name : null;
         }
 
         /// <summary>
@@ -374,7 +375,9 @@ namespace Oce.Solid.Agent.Core
             var born = new List<Dictionary<string, object>>();
             var overallRead = new Dictionary<string, object>();
             var freeWarnings = new List<string>();
-            var alreadyOverall = new HashSet<string>(OverallKeysAlready(drawing, view, mu), StringComparer.Ordinal);
+            var alreadyOverall = new HashSet<string>(
+                PhaseClock.Time("drawing_dimension.dimensions_already", () => OverallKeysAlready(drawing, view, mu)),
+                StringComparer.Ordinal);
 
             bool askedForTheValue = true, off = false;
             try
@@ -617,8 +620,8 @@ namespace Oce.Solid.Agent.Core
                     string.Join("; ", failed.Concat(elsewhere)) + ". Read the edges with «inspect_part» and «view_edges», " +
                     "and name the ones to dimension with «edges»." + ComponentsSaid(only, notInView));
 
-            var texts = DimensionTexts(drawing);
-            var overlapping = TextsThatOverlap(drawing, view, texts);
+            var texts = PhaseClock.Time("drawing_dimension.texts", () => DimensionTexts(drawing));
+            var overlapping = PhaseClock.Time("drawing_dimension.texts", () => TextsThatOverlap(drawing, view, texts));
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = viewName,

@@ -36,7 +36,12 @@
       "expect": [
         { "what": "measurements.suppressed", "equal_to": true, "why": "read back with IsSuppressed2, not taken from SetSuppression2" },
         { "what": "state.mates_suppressed", "equal_to": 1 },
-        { "what": "state.mates_list[0].suppressed", "equal_to": true } ] },
+        { "what": "state.mates_list[0].suppressed", "equal_to": true },
+        { "what": "state.components[1].mates", "equal_to": 0,
+          "why": "REPORT 8CD843 N39 (round 11): GetMates lists a suppressed mate with the others, and «mates» 3 stood beside a coupler that moved 6.5 mm. «mates» counts the mates that hold the component" },
+        { "what": "state.components[1].mates_suppressed", "equal_to": 1, "why": "the suppressed one is said apart, not lost" },
+        { "what": "state.components[1].resting", "equal_to": true,
+          "why": "not fixed and held by no mate: it rests there, as before the mate" } ] },
     { "operation": "suppress_mate",
       "arguments": { "mate": "M7" },
       "must_fail": {
@@ -46,7 +51,9 @@
       "arguments": { "mate": "M1", "reactivate": true },
       "expect": [
         { "what": "measurements.suppressed", "equal_to": false, "why": "the road back: the mate holds again" },
-        { "what": "state.mates_suppressed", "equal_to": 0 } ] },
+        { "what": "state.mates_suppressed", "equal_to": 0 },
+        { "what": "state.components[1].mates", "equal_to": 1, "why": "N39: the mate reactivated holds the component again" },
+        { "what": "state.components[1].mates_suppressed", "equal_to": 0 } ] },
     { "operation": "delete_mate",
       "arguments": { "mate": "M9" },
       "must_fail": {

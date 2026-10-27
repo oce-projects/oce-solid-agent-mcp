@@ -214,7 +214,9 @@ namespace Oce.Solid.Agent.ContractTests
         // =================================================================
 
         private const string EarlyCheck = "componentsAsked = OverallComponents(a[\"components\"], AssemblyComponentNames(view), out componentsProblem);";
-        private const string EdgesRead = "edges = view.GetVisibleEntities2(";
+        // The call itself: since library 0.174.2 it is wrapped in the timing of its
+        // phase (round 11), so the anchor is the call, not the assignment.
+        private const string EdgesRead = "view.GetVisibleEntities2(";
         private const string AskedPassed = "dimensionOffset, planStep, scale, mu, tr, componentsAsked);";
         private const string NotInViewKey = "measurements[\"components_not_in_view\"] = notInView.ToArray();";
         private const string OldLateCheck = "OverallComponents(a.ContainsKey(\"components\")";

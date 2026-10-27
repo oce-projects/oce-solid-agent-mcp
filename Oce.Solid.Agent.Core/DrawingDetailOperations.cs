@@ -70,15 +70,18 @@ namespace Oce.Solid.Agent.Core
             string requested = ViewRequestedByName(drawing, Str(a, "view", null));
             IView target = null;
             var viewNames = new List<string>();
-            int viewsBefore = 0;
+            // The views of the model only, as «inspect_part» and «model_view» count
+            // them (report 8cd843 N42): the sheet is not one.
+            int viewsBefore = 0, walked = 0;
             try
             {
                 var v = drawing.GetFirstView() as IView;
-                while (v != null && viewsBefore < 200)
+                while (v != null && walked < 200)
                 {
-                    viewsBefore++;
+                    walked++;
                     if (v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
                     {
+                        viewsBefore++;
                         string itemName = "";
                         try { itemName = v.GetName2() ?? ""; } catch { }
                         viewNames.Add(itemName);
@@ -158,13 +161,29 @@ namespace Oce.Solid.Agent.Core
             try { int howMany; circlesBefore = target.GetDetailCircleCount2(out howMany); }
             catch { }
 
-            // ── THE CIRCLE, ON THE SKETCH OF THE SHEET ──────────────────
-            try { drawing.EditSheet(); } catch { }
+            // ── THE CIRCLE, ON THE SKETCH OF THE VIEW ───────────────────
+            //
+            // Not on the sketch of the sheet (report 8cd843 N41, round 11): on a view of
+            // an assembly the detail was refused three times out of three. Probe
+            // on two copies of the drawing of the report (27/10/2026): a circle drawn
+            // inside the first view on the sheet sketch gave its detail to the second
+            // view, the one below, both at the centre and 40 mm to the right; with
+            // IDrawingDoc.ActivateView first, the same circle went in the sketch of the
+            // first view, whose detail circles went 0 -> 1, and the detail had it as
+            // its base. The sheet sketch stays the road only when the view cannot be
+            // activated.
+            bool inView = false;
+            try { inView = drawing.ActivateView(targetName); } catch { }
+            if (!inView) { try { drawing.EditSheet(); } catch { } }
 
-            // As for the section: the sheet sketch counted before the circle, so
-            // that a circle left behind by a refusal can be removed and the
-            // removal checked (Z-C21.8, finding M41).
-            int segmentsBefore = SheetSketchSegmentCount(drawing);
+            // As for the section: the sketch counted before the circle, so that a
+            // circle left behind by a refusal can be removed and the removal
+            // checked (Z-C21.8, finding M41); the sketch of the view when the circle
+            // goes there.
+            int segmentsBefore = inView ? ViewSketchSegmentCount(target) : SheetSketchSegmentCount(drawing);
+            Func<ISketchSegment, bool> removeCircle = c => inView
+                ? RemoveViewSketchSegment(model, target, c, segmentsBefore)
+                : RemoveSheetSketchSegment(model, drawing, c, segmentsBefore);
             ISketchSegment circle = null;
             try
             {
@@ -174,8 +193,10 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex)
             {
+                if (inView) { try { drawing.EditSheet(); } catch { } }
                 return Failed("I could not draw the circle of the detail: " + ex.Message);
             }
+            if (circle == null && inView) { try { drawing.EditSheet(); } catch { } }
             if (circle == null)
                 return Failed(
                     "«CreateCircleByRadius» produced no circle on the sheet, and without " +
@@ -195,13 +216,16 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex) { selectError = ex.Message; }
             if (!taken)
+            {
+                string circleGone = SheetLineRemovedOrNot(removeCircle(circle), "circle");
+                if (inView) { try { drawing.EditSheet(); } catch { } }
                 return Failed(
                     (selectError != null
                         ? "I could not select the detail circle (" + selectError + ")"
                         : "The detail circle is there but does not let itself be selected") +
                     ", and CreateDetailViewAt4 takes the zone from the selection: without it, it would do " +
-                    "something other than what you asked" +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore), "circle"));
+                    "something other than what you asked" + circleGone);
+            }
 
             // ── THE DETAIL, ALONGSIDE ───────────────────────────────────
             double xDetail = xMax + wide * 0.8;
@@ -218,15 +242,19 @@ namespace Oce.Solid.Agent.Core
                     false, false, false, 0);
             }
             catch (Exception ex) { exploded = ex.Message; }
+            // Back to the sheet: a step after this one (a note) must not land in
+            // the view activated for the circle (N41).
+            if (inView) { try { drawing.EditSheet(); } catch { } }
 
-            int viewsAfter = 0;
+            int viewsAfter = 0, walkedAfter = 0;
             IView last = null;
             try
             {
                 var w = drawing.GetFirstView() as IView;
-                while (w != null && viewsAfter < 200)
+                while (w != null && walkedAfter < 200)
                 {
-                    viewsAfter++;
+                    walkedAfter++;
+                    if (w.Type != (int)swDrawingViewTypes_e.swDrawingSheet) viewsAfter++;
                     last = w;
                     w = w.GetNextView() as IView;
                 }
@@ -240,7 +268,7 @@ namespace Oce.Solid.Agent.Core
                     (exploded != null ? "failed: " + exploded
                                      : born == null ? "returned no object"
                                                     : "returned an object") +
-                    SheetLineRemovedOrNot(RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore), "circle"));
+                    SheetLineRemovedOrNot(removeCircle(circle), "circle"));
 
             // THE DETAIL IS THE VIEW CreateDetailViewAt4 RETURNS (Z-C21.8, finding
             // M41), as for the section: the last view of the chain only when the
@@ -281,7 +309,7 @@ namespace Oce.Solid.Agent.Core
                 // name read before the call is a view of the user.
                 bool viewIsNew = !viewNames.Contains(detailName);
                 bool viewRemoved = viewIsNew && RemoveNewView(model, detailName);
-                bool circleRemoved = RemoveSheetSketchSegment(model, drawing, circle, segmentsBefore);
+                bool circleRemoved = removeCircle(circle);
                 return Failed(
                     "The view «" + detailName + "» was born, but on «" + targetName +
                     "» the detail circles are still " + circlesAfter + ": the circle did not become a detail. " +
@@ -314,6 +342,9 @@ namespace Oce.Solid.Agent.Core
                 },
                 ["circles_before"] = circlesBefore,
                 ["circles_after"] = circlesAfter,
+                // Where the circle was drawn (N41): the view activated, or the sheet
+                // when the view could not be activated.
+                ["circle_drawn_in"] = inView ? "the sketch of the view" : "the sketch of the sheet",
                 ["what_it_does_not_check"] =
                     "IF THAT IS THE DETAIL THAT WAS NEEDED. I can tell you that the circle " +
                     "became a detail and that it is inside the view, not that inside it there " +
@@ -330,6 +361,43 @@ namespace Oce.Solid.Agent.Core
                  "»: circles " + circlesBefore + " -> " + circlesAfter +
                  ", views " + viewsBefore + " -> " + viewsAfter);
             return WithoutFeature(outside);
+        }
+
+        /// <summary>How many segments the sketch of a view holds, -1 when it cannot be read (N41).</summary>
+        private static int ViewSketchSegmentCount(IView view)
+        {
+            try
+            {
+                var sketch = view == null ? null : view.GetSketch() as ISketch;
+                if (sketch == null) return -1;
+                var segments = sketch.GetSketchSegments() as object[];
+                return segments == null ? 0 : segments.Length;   // ZERO-E-ZERO: null is a sketch with no segment
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// Removes the circle a refused detail drew in the sketch of the view, as
+        /// RemoveSheetSketchSegment does on the sheet: true only when that sketch,
+        /// counted again, is back to <paramref name="segmentsBefore"/> (N41).
+        /// </summary>
+        private static bool RemoveViewSketchSegment(IModelDoc2 model, IView view, ISketchSegment segment, int segmentsBefore)
+        {
+            if (segment == null || segmentsBefore < 0) return false;
+            // Already gone (taken along by a view removed first): the count says so.
+            if (ViewSketchSegmentCount(view) == segmentsBefore) return true;
+            bool deleted = false;
+            try
+            {
+                model.ClearSelection2(true);
+                if (segment.Select4(false, null))
+                    deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
+                model.ClearSelection2(true);
+            }
+            catch { }
+            if (!deleted) return false;
+            int now = ViewSketchSegmentCount(view);
+            return now >= 0 && now == segmentsBefore;
         }
     }
 }

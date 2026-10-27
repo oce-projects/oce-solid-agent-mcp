@@ -217,7 +217,8 @@ namespace Oce.Solid.Agent.Core
                 bool removed = RemoveCutTable(model, table);
                 return Failed(string.Format(CultureInfo.InvariantCulture,
                     "On the sheet there is no free place for the bill of materials ({0:0} x {1:0} mm) outside the views and the title " +
-                    "block. Use a bigger sheet. {2}", w * 1000, h * 1000, removed ? "I removed it." : ""));
+                    "block. Use a bigger sheet, or another sheet of the drawing («activate_sheet», then this step again). {2}",
+                    w * 1000, h * 1000, removed ? "I removed it." : ""));
             }
             try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(down[0], down[1] + h, 0); } catch { }
             measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };

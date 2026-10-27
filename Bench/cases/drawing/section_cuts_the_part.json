@@ -52,10 +52,10 @@
         { "what": "measurements.is_section", "equal_to": true,
           "why": "the type of the view born, not the fact that the count went up: one more projection view would make the count go up all the same" },
 
-        { "what": "measurements.views_before", "equal_to": 4,
-          "why": "three model views plus the SHEET, which in the SOLIDWORKS list is the first «view». The number is here so that whoever reads the case does not have to discover it" },
+        { "what": "measurements.views_before", "equal_to": 3,
+          "why": "the three model views, without the SHEET that the SOLIDWORKS list gives as its first «view»: counted as «inspect_part» and «model_view» count them (report 8cd843 N42, round 11: 5 here and 4 there on the same drawing, until library 0.174.1)" },
 
-        { "what": "measurements.views_after", "equal_to": 5,
+        { "what": "measurements.views_after", "equal_to": 4,
           "why": "one more, and it is the true check: `CreateSectionViewAt5` can answer an object without having done anything" },
 
         { "what": "measurements.facing", "equal_to": "vertical",

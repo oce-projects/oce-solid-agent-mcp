@@ -85,15 +85,19 @@ namespace Oce.Solid.Agent.Core
             string requested = ViewRequestedByName(drawing, Str(a, "view", null));
             IView target = null;
             var viewNames = new List<string>();
-            int viewsBefore = 0;
+            // The views of the model only, as «inspect_part» and «model_view» count
+            // them: until library 0.174.1 the sheet was counted too, and the same
+            // drawing read 5 views here and 4 there (report 8cd843 N42).
+            int viewsBefore = 0, walked = 0;
             try
             {
                 var v = drawing.GetFirstView() as IView;
-                while (v != null && viewsBefore < 200)
+                while (v != null && walked < 200)
                 {
-                    viewsBefore++;
+                    walked++;
                     if (v.Type != (int)swDrawingViewTypes_e.swDrawingSheet)
                     {
+                        viewsBefore++;
                         string itemName = "";
                         try { itemName = v.GetName2() ?? ""; } catch { }
                         viewNames.Add(itemName);
@@ -250,14 +254,15 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { exploded = ex.Message; }
 
             // ── THE CROSS-CHECK: HOW MANY VIEWS THERE ARE NOW ───────────
-            int viewsAfter = 0;
+            int viewsAfter = 0, walkedAfter = 0;
             IView last = null;
             try
             {
                 var w = drawing.GetFirstView() as IView;
-                while (w != null && viewsAfter < 200)
+                while (w != null && walkedAfter < 200)
                 {
-                    viewsAfter++;
+                    walkedAfter++;
+                    if (w.Type != (int)swDrawingViewTypes_e.swDrawingSheet) viewsAfter++;
                     last = w;
                     w = w.GetNextView() as IView;
                 }
