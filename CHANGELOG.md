@@ -32,6 +32,64 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.151.0 — 27 October 2026 · library 0.173.0 · eighth round of session 8cd843: N29 to N32 (branch `night-2026-10-26-asm`)
+
+- **Eighth round on SOLIDWORKS (session 8cd843, bridge 0.150.1, 30 calls)**: N23 to
+  N28 all held, and the note after a dimension stays on the sheet. The workshop
+  drawing of a copy of the clip assembly was finished: bill of materials, 7
+  balloons, a general note, the overall length 175 and the clip section 15.6 x
+  12.8 named by edge after `view_edges`, all found in the PDF. Four new defects.
+- **N29 (P2)**: a note of four lines sent with «\n» came back with «\r\n»:
+  `text_matches` false, the step succeeded, and the compact answer said «none is
+  a warning» and left the text read back out. Now the comparison makes the line
+  ends one (`SameNoteText`), and a text that still differs is
+  `warning_text_differs` with both texts. The case
+  `note_on_two_lines_reads_back_the_same` was red on 0.150.1 first
+  (`text_matches False (expected True)`).
+- **N30 (P2)**: the overall height of the clip assembly (31.55 on the front view,
+  59.646 on the top view) ended on couplers with no mate, resting where they were
+  inserted, and the answer gave it as good. Now an overall dimension that ends on
+  a top-level component that is not fixed and has no mate (the rule of
+  `components_still_free`) carries `free_components`, and the answer
+  `warning_free_components` with the remedy; the new argument `components` limits
+  the overall size to the components listed (a name the view does not show is
+  refused with the names it shows).
+- **N31 (P3)**: `count` on a view of an assembly was set aside under
+  `count_ignored`, and the compact answer drops a long text whose key names no
+  warning: «count» 3 gave two dimensions in silence. Now `warning_count_not_used`.
+- **N32 (P3)**: `delete_annotation` added the notes of the sheet and of the views
+  (67 + 7 + 1 = 75), the sum `note` refuses. Now `notes_sheet_*` and
+  `notes_views_*` apart, `attached_to`, and `notes_down_by`. The case
+  `note_is_taken_away_by_its_text` was red on 0.150.1 first (the fields were
+  missing).
+- **Found while writing the replay of round 8**: `delete_annotation` looked for a
+  note by its exact text, so a note of several lines (read back with «\r\n»)
+  answered to nobody. Now the same comparison as `note`; the case
+  `note_on_two_lines_reads_back_the_same` takes it away by its text (removed,
+  `notes_down_by` 1).
+- **Found in the replay of round 8 (scenario t28, old bridge against new)**: an
+  argument the operation does not declare was refused only by the dry run; a real
+  `build` ran without it. `components` sent to 0.150.1, which did not know it, put
+  the overall height 31.55 on every component, the very thing it asked to avoid.
+  Now a real `build` refuses it too, before anything is asked or touched, with the
+  same lines as the dry run (`UnknownArgumentsOfStep`, near names included).
+  Measured before turning it on: 265 plan steps of session 8cd843 (args to args8),
+  none with an argument its schema does not declare; the bench calls the library,
+  not the bridge, and is not touched by it.
+- **Measured on SOLIDWORKS, scenario t28 on a copy of the clip drawing, bridge
+  0.150.1 then 0.151.0**: «count» 3 on V1 gave 175 and 31.55 both times, now with
+  `warning_free_components` naming 26P000010-1 and `warning_count_not_used` in the
+  compact answer; `components` of the four mounted parts gave the vertical 15.6
+  (15.598 from the probe's boxes), and an unknown name is refused with the eight
+  names the view shows; a note of two lines `text_matches` false then true, and
+  taken away by its text (refused before), the sheet 68 -> 67 and the views 7 -> 7.
+- **Checks**: contract Zc2191 (pure rules `SameNoteText`, `NoteTextWarning`,
+  `NotesDownBy`, `OverallComponents`, `OverallFreeWarning`, `CountNotUsedWarning`,
+  `UnknownArgumentsOfStep`; `Warns` of the compact answer keeps the three new keys
+  and drops the old one; 14 lines of wiring, 2 old lines kept out, the unknown
+  arguments refused before the confirmation, each with its changed copy). Refusal
+  floors 279 of 1010. Bench README: drawing cases 46 -> 48.
+
 ## 0.150.1 — 27 October 2026 · library 0.172.1 · what the replay of the round 7 fixes found (branch `night-2026-10-26-asm`)
 
 - **The replay**: the 16 calls of round 7 that showed N23 to N28, run on SOLIDWORKS

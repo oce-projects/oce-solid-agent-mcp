@@ -195,7 +195,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 var wrong = new List<string>();
                 Func<string, string, bool> only = (asks, show) => (bool)Call(sw, "ShowsOnlyFixedText", asks, show);
-                const string weight = "$PRPSHEET:\"Peso\" $PRPSHEET:\"MASSA\"Kg";
+                const string weight = "$PRPSHEET:\"Weight\" $PRPSHEET:\"Mass\"Kg";
                 if (!only(weight, " Kg")) wrong.Add("« Kg» counted as a value");
                 if (!only(weight, "Kg")) wrong.Add("«Kg» counted as a value");
                 if (!only(weight, "")) wrong.Add("an empty field counted as a value");
@@ -227,7 +227,8 @@ namespace Oce.Solid.Agent.ContractTests
             try
             {
                 var wrong = new List<string>();
-                Func<int, int, int, int, string> where = (sb, sa, vb, va) => (string)Call(sw, "NoteAttachedTo", sb, sa, vb, va);
+                Func<int, int, int, int, string> where = (sheetBefore, sheetAfter, viewsBefore, viewsAfter) =>
+                    (string)Call(sw, "NoteAttachedTo", sheetBefore, sheetAfter, viewsBefore, viewsAfter);
                 if (where(67, 68, 7, 7) != "sheet") wrong.Add("sheet 67 -> 68: " + where(67, 68, 7, 7));
                 if (where(67, 67, 7, 8) != "view") wrong.Add("views 7 -> 8 (the replay): " + where(67, 67, 7, 8));
                 if (where(0, 1, 0, 1) != "both") wrong.Add("both up: " + where(0, 1, 0, 1));

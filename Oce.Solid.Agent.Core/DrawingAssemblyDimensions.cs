@@ -112,6 +112,112 @@ namespace Oce.Solid.Agent.Core
             return null;
         }
 
+        /// <summary>
+        /// The components «components» asks the overall size to be measured on, or
+        /// null for all of them; <paramref name="problem"/> says why it is refused (not
+        /// a list of names, an empty name, a name <paramref name="inView"/> does not
+        /// hold). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static HashSet<string> OverallComponents(object raw, ICollection<string> inView, out string problem)
+        {
+            problem = null;
+            if (raw == null) return null;
+            var names = new List<string>();
+            if (raw is string) names.Add((string)raw);
+            else if (raw is System.Collections.IEnumerable && !(raw is System.Collections.IDictionary))
+            {
+                foreach (var o in (System.Collections.IEnumerable)raw)
+                {
+                    if (!(o is string))
+                    {
+                        problem = "«components» is a list of component names («26P000007-1»), not «" + Convert.ToString(o, Ci) + "».";
+                        return null;
+                    }
+                    names.Add((string)o);
+                }
+            }
+            else
+            {
+                problem = "«components» is a list of component names («26P000007-1»), as «inspect_part» and «view_edges» give them.";
+                return null;
+            }
+            var set = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var n in names)
+            {
+                var t = (n ?? "").Trim();
+                if (t.Length == 0) { problem = "«components» holds an empty name."; return null; }
+                set.Add(t);
+            }
+            if (set.Count == 0)
+            {
+                problem = "«components» is empty: leave it out to measure every component, or list the ones to measure.";
+                return null;
+            }
+            var shown = inView ?? new List<string>();
+            var unknown = set.Where(n => !shown.Contains(n)).OrderBy(n => n, StringComparer.Ordinal).ToList();
+            if (unknown.Count > 0)
+            {
+                var sorted = new List<string>(shown);
+                sorted.Sort(StringComparer.Ordinal);
+                problem = "the view does not show " + QuotedNames(unknown) + ". It shows " + QuotedNames(sorted) + ".";
+                return null;
+            }
+            return set;
+        }
+
+        /// <summary>The names between «», separated by commas, in the order given.</summary>
+        private static string QuotedNames(IEnumerable<string> names)
+        {
+            var quoted = new List<string>();
+            foreach (string n in names) quoted.Add("«" + n + "»");
+            return string.Join(", ", quoted);
+        }
+
+        /// <summary>
+        /// The name of the component an edge belongs to when that component is
+        /// loose: top-level, not fixed, zero mates — the rule of «components_still_free»
+        /// in the state of an assembly. Null for a part's edge, a fixed or mated
+        /// component, a nested one (it moves with its sub-assembly, L11-3), or when
+        /// the mates cannot be counted: a component is not called loose on a guess.
+        /// </summary>
+        private static string FreeComponentOf(object entity, HashSet<string> topLevel)
+        {
+            IComponent2 c = null;
+            try { c = (entity as IEntity)?.GetComponent() as IComponent2; } catch { }
+            if (c == null) return null;
+            string name = null;
+            try { name = c.Name2; } catch { }
+            if (name == null || topLevel == null || !topLevel.Contains(name)) return null;
+            try { if (c.IsFixed()) return null; } catch { return null; }
+            return MatesOf(c) == 0 ? name : null;
+        }
+
+        /// <summary>
+        /// What an overall dimension that ends on loose components must say. Pure,
+        /// so the contract suite reads it.
+        /// </summary>
+        internal static string OverallFreeWarning(string word, double mm, IList<string> free)
+        {
+            string who = QuotedNames(free);
+            return "The " + word + " " + mm.ToString("0.###", Ci) + " mm ends on " + who + ", which " +
+                   (free.Count == 1 ? "has" : "have") + " no mate and " + (free.Count == 1 ? "is" : "are") +
+                   " not fixed: it measures where " + (free.Count == 1 ? "it rests" : "they rest") + ", not where " +
+                   (free.Count == 1 ? "it is" : "they are") + " mounted. Mate " + (free.Count == 1 ? "it" : "them") +
+                   ", or leave " + (free.Count == 1 ? "it" : "them") + " out of the overall size with «components» " +
+                   "(the names of the components to measure), and take this dimension away with «delete_annotation».";
+        }
+
+        /// <summary>
+        /// What «count» on a view of an assembly must say (report 8cd843 N31). Pure,
+        /// so the contract suite reads it.
+        /// </summary>
+        internal static string CountNotUsedWarning(string mode)
+        {
+            return "«count» was not used: on a view of an assembly I put the overall size («overall» «" + mode + "») and " +
+                   "the edges named with «edges»; the first edges the view lists are details of one component. Name the " +
+                   "edges with «edges» (read them with «inspect_part» and «view_edges»).";
+        }
+
         private Outcome DimensionAssemblyView(
             IModelDoc2 model, IDrawingDoc drawing, IView view, string viewName, object[] edges,
             List<ProjectedEdge> all, List<Circle> circles, List<int> named, Dictionary<string, object> a,
@@ -132,6 +238,19 @@ namespace Oce.Solid.Agent.Core
             foreach (var s in all) if (s.Component != null) components.Add(s.Component);
             foreach (var c in circles) if (c.Component != null) components.Add(c.Component);
 
+            // THE COMPONENTS THE OVERALL SIZE IS MEASURED ON (report 8cd843 N30): on
+            // the clip assembly the height came from couplers with no mate, resting
+            // where they were inserted. Null = all of them.
+            string componentsProblem;
+            HashSet<string> only = OverallComponents(a.ContainsKey("components") ? a["components"] : null, components,
+                                                     out componentsProblem);
+            if (componentsProblem != null)
+                return Failed("I touched nothing: " + componentsProblem + " Write the names as «inspect_part» and «view_edges» " +
+                              "give them, or leave «components» out to measure every component the view shows.");
+            HashSet<string> topLevel = null;
+            try { topLevel = DocumentState.TopLevelNames((view.ReferencedDocument as IAssemblyDoc)?.GetComponents(true) as object[]); }
+            catch { }
+
             var axes = SheetAxes(mu, tr);
             double[] sheetSize = SheetDimensions(drawing);
 
@@ -145,6 +264,7 @@ namespace Oce.Solid.Agent.Core
             var elsewhere = new List<string>();
             var born = new List<Dictionary<string, object>>();
             var overallRead = new Dictionary<string, object>();
+            var freeWarnings = new List<string>();
             var alreadyOverall = new HashSet<string>(OverallKeysAlready(drawing, view, mu), StringComparer.Ordinal);
 
             bool askedForTheValue = true, off = false;
@@ -237,6 +357,7 @@ namespace Oce.Solid.Agent.Core
                     ProjectedEdge low = null, high = null;
                     foreach (var s in all)
                     {
+                        if (only != null && (s.Component == null || !only.Contains(s.Component))) continue;
                         lowAll = Math.Min(lowAll, Math.Min(s.FromSheet[k], s.ToSheet[k]));
                         highAll = Math.Max(highAll, Math.Max(s.FromSheet[k], s.ToSheet[k]));
                         if (!s.Straight || s.Facing != across) continue;
@@ -248,6 +369,7 @@ namespace Oce.Solid.Agent.Core
                         // A circle seen face-on reaches its centre ± radius on the sheet; one
                         // seen edge-on lies along edges that are already counted.
                         if (c.Type == "edge_on") continue;
+                        if (only != null && (c.Component == null || !only.Contains(c.Component))) continue;
                         double r = c.DiameterMm / 2000.0 * scale;
                         lowAll = Math.Min(lowAll, c.SheetCenter[k] - r);
                         highAll = Math.Max(highAll, c.SheetCenter[k] + r);
@@ -335,6 +457,20 @@ namespace Oce.Solid.Agent.Core
                     described["expected_mm"] = Math.Round(expectedMm, 3);
                     described["placed_with"] = route;
                     described["position_mm"] = WhereItEnded(d);
+                    // AN OVERALL THAT ENDS ON A LOOSE COMPONENT (N30) measures where
+                    // it rests, not where it is mounted: it is named, and the
+                    // dimension stays, because the person may want exactly that.
+                    var free = new List<string>();
+                    foreach (ProjectedEdge end in new[] { low, high })
+                    {
+                        string loose = FreeComponentOf(end.Entity, topLevel);
+                        if (loose != null && !free.Contains(loose)) free.Add(loose);
+                    }
+                    if (free.Count > 0)
+                    {
+                        described["free_components"] = free.ToArray();
+                        freeWarnings.Add(OverallFreeWarning(word, mm is double ? (double)mm : expectedMm, free));
+                    }
                     if (d != null)
                     {
                         born.Add(described);
@@ -405,10 +541,13 @@ namespace Oce.Solid.Agent.Core
                     "they are details of a part, and they go on the drawing of that part. The third overall size is " +
                     "dimensioned on a view that shows it (the top or the side view).",
             };
+            if (only != null) measurements["components_measured"] = only.OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            if (freeWarnings.Count > 0) measurements["warning_free_components"] = string.Join(" ", freeWarnings);
+            // A WARNING, NOT AN EXPLANATION (report 8cd843 N31): until 0.150.1 the key
+            // was «count_ignored», and the compact answer leaves out a long text whose
+            // key names no warning, so «count» 3 gave two dimensions in silence.
             if (named == null && a.ContainsKey("count"))
-                measurements["count_ignored"] =
-                    "«count» was not used: on a view of an assembly the first edges the view lists are details of one " +
-                    "component. Name the edges with «edges», or leave the overall dimensions.";
+                measurements["warning_count_not_used"] = CountNotUsedWarning(mode);
             _log("[agent] " + put + " dimensions on the assembly view «" + viewName + "»: " + ValuesInLine(born));
             return WithoutFeature(measurements);
         }

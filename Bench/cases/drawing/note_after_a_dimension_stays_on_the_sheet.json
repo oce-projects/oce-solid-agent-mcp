@@ -1,7 +1,7 @@
 {
   "name": "note_after_a_dimension_stays_on_the_sheet",
   "family": "drawing",
-  "why": "FOUND IN THE REPLAY OF ROUND 7 (27/10/2026, bridge 0.150.0, misure t26n). After «drawing_dimension» the view it dimensioned stayed active, and the next «note», asked at 20, 250 mm of the sheet, went INSIDE that view: notes of the views 7 -> 8, notes of the sheet 67 -> 67. note_ends_up_on_the_sheet does not see it, because there the note comes before any dimension.",
+  "why": "FOUND IN THE REPLAY OF ROUND 7 (27/10/2026, bridge 0.150.0, scenario t26n). After «drawing_dimension» the view it dimensioned stayed active, and the next «note», asked at 20, 250 mm of the sheet, went INSIDE that view: notes of the views 7 -> 8, notes of the sheet 67 -> 67. note_ends_up_on_the_sheet does not see it, because there the note comes before any dimension.",
 
   "defect_caught": "A note that lands in the view the plan before left active. It moves together with that view and goes away with it, and the answer still said «note on the sheet». The case puts the note right after the dimensions and asks that the views stay at zero notes, and that the answer says where the note went.",
 

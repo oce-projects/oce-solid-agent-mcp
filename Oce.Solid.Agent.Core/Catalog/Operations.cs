@@ -3031,8 +3031,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "divided by the scale (otherwise I take the dimension away and say why). An overall already "
                         + "dimensioned in another view of the same assembly is not repeated. With «edges» I dimension "
                         + "those. No hole callouts, chamfer dimensions or diameters on an assembly: they go on the "
-                        + "drawing of each part. «count» is not used there. To choose the edges, read them with "
-                        + "«inspect_part» and «view_edges»."
+                        + "drawing of each part. «count» is not used there, and the answer says so "
+                        + "(«warning_count_not_used»). To choose the edges, read them with "
+                        + "«inspect_part» and «view_edges». An overall that ends on a component with no mate and "
+                        + "not fixed is a size of where that component rests, not of where it is mounted: the "
+                        + "answer names it («warning_free_components»), and «components» limits the overall size "
+                        + "to the components you list."
                         + "\n\nA DIMENSION THAT MEASURES NOTHING IS TAKEN AWAY: a length of zero or less, or a chamfer "
                         + "dimension with an angle outside 0..90 degrees, is removed and listed in "
                         + "edges_not_dimensioned with what it read."
@@ -3064,6 +3068,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "ON A VIEW OF AN ASSEMBLY: the overall size, «both» (length and "
                                     + "height), «horizontal», «vertical» or «none». Default «both» without «edges», "
                                     + "«none» with «edges»."),
+                            "components", O(
+                                "type", "array",
+                                "items", O("type", "string"),
+                                "description", "ON A VIEW OF AN ASSEMBLY: the names of the components the overall size "
+                                    + "is measured on («26P000007-1», as «inspect_part» and «view_edges» give them); "
+                                    + "the others are left out of it. Empty = every component the view shows. A name "
+                                    + "the view does not show is refused, and the names it shows are listed."),
                             "offset_mm", O(
                                 "type", "number",
                                 "description", "how far below the extent of the view to put the first "

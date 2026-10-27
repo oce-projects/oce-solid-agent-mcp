@@ -2566,20 +2566,7 @@ namespace Oce.Solid.Agent.Tools
                     }
 
                 if (property != null)
-                    foreach (var theField in data.Keys)
-                    {
-                        if (property.ContainsKey(theField)) continue;
-                        // AN UNKNOWN ARGUMENT IS NOT A DETAIL: it is
-                        // ignored in silence, and the part comes out different from
-                        // how it was asked for, without any error. The near name is
-                        // said (brief R8: «value» for «value_text»), not taken: one
-                        // name per argument.
-                        var near = NearArguments(theField, property.Keys);
-                        trouble.Add(location + " («" + itemName + "»): «" + theField +
-                                 "» is not an argument of this operation, " +
-                                 "and would be IGNORED" +
-                                 (near.Count > 0 ? ". Did you mean «" + string.Join("», «", near) + "»?" : ""));
-                    }
+                    trouble.AddRange(UnknownArgumentsOfStep(location, itemName, data, property));
 
                 // The material, when SOLIDWORKS is there to say (brief R4).
                 var materialTrouble = MaterialProblemOf(itemName, data);
@@ -2689,6 +2676,58 @@ namespace Oce.Solid.Agent.Tools
         /// </summary>
         private static readonly string[] CannotBeUndone = { "delete_feature", "delete_mate" };
 
+        /// <summary>
+        /// The arguments of one step its operation does not declare, one line each,
+        /// with the near names. AN UNKNOWN ARGUMENT IS NOT A DETAIL: it is ignored in
+        /// silence, and the part comes out different from how it was asked for,
+        /// without any error. The near name is said (brief R8: «value» for
+        /// «value_text»), not taken: one name per argument. «_signatures» is the
+        /// bridge's own, added to the steps after this check.
+        /// </summary>
+        internal static List<string> UnknownArgumentsOfStep(string location, string itemName,
+                                                            Dictionary<string, object> data,
+                                                            Dictionary<string, object> property)
+        {
+            var lines = new List<string>();
+            if (data == null || property == null) return lines;
+            foreach (var theField in data.Keys)
+            {
+                if (property.ContainsKey(theField) || theField == "_signatures") continue;
+                var near = NearArguments(theField, property.Keys);
+                lines.Add(location + " («" + itemName + "»): «" + theField +
+                          "» is not an argument of this operation, " +
+                          "and would be IGNORED" +
+                          (near.Count > 0 ? ". Did you mean «" + string.Join("», «", near) + "»?" : ""));
+            }
+            return lines;
+        }
+
+        /// <summary>
+        /// The unknown arguments of a whole plan, for a real run. Until bridge
+        /// 0.150.1 only the dry run refused them (found in the replay of round 8,
+        /// 27/10/2026: «components» sent to 0.150.1, which did not know it, put the
+        /// overall height on every component, the very thing it asked to avoid).
+        /// Measured before turning it on: 265 plan steps of session 8cd843 (args to
+        /// args8), none with an argument its schema does not declare.
+        /// </summary>
+        private List<string> UnknownArgumentsOfPlan(object[] steps)
+        {
+            var lines = new List<string>();
+            for (int i = 0; i < steps.Length; i++)
+            {
+                var planStep = steps[i] as Dictionary<string, object>;
+                if (planStep == null) continue;
+                var itemName = Text(planStep, "operation");
+                if (string.IsNullOrWhiteSpace(itemName) || !_catalog.Knows(itemName)) continue;
+                var schema = _catalog.Schema(itemName);
+                if (schema == null) continue;
+                lines.AddRange(UnknownArgumentsOfStep("step " + (i + 1), itemName,
+                                                      Take(planStep, "arguments") as Dictionary<string, object>,
+                                                      Take(schema, "properties") as Dictionary<string, object>));
+            }
+            return lines;
+        }
+
         private Dictionary<string, object> RunPlan(
             Dictionary<string, object> arguments, bool checkIfRepeated)
         {
@@ -2697,6 +2736,17 @@ namespace Oce.Solid.Agent.Tools
                 return Protocol.Content(
                     "The plan is empty: «steps» must be a list of " +
                     "{operation, arguments}.", true);
+
+            // AN UNKNOWN ARGUMENT IS REFUSED BY A REAL RUN TOO, before anything is
+            // asked or touched: the same lines as the dry run.
+            var unknownArguments = UnknownArgumentsOfPlan(steps);
+            if (unknownArguments.Count > 0)
+            {
+                string said = string.Join("; ", unknownArguments);
+                return Protocol.Content(
+                    "Nothing was run: " + said + (said.EndsWith("?", StringComparison.Ordinal) ? " " : ". ") +
+                    "Correct the plan and send it again; «dry_run» checks a plan without touching the document.", true);
+            }
 
             // ── WE ASK BEFORE TOUCHING ANYTHING (entry W2.5) ──
             //

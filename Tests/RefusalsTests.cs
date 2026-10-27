@@ -298,8 +298,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// (N24) says in each refusal that it touched nothing and what to write
         /// instead; the dimensions of an assembly view (N23) say which edges and
         /// what to ask for: 278 of 1009.
+        /// **279 (same day, round 8 of report 8cd843): +1.** «components» (N30)
+        /// names the components the view shows and says to write them as
+        /// view_edges gives them, or to leave the argument out: 279 of 1010.
         /// </summary>
-        private const int Floor = 278;
+        private const int Floor = 279;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -313,8 +316,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 278;   // 27/10/2026, round 7 of report 8cd843 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 1009;
+        private const int ShareFloorWithRemedy = 279;   // 27/10/2026, round 8 of report 8cd843 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1010;
 
         /// <summary>
         /// The openings with which this code says no.

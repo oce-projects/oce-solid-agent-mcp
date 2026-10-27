@@ -204,8 +204,9 @@ namespace Oce.Solid.Agent.Core
                 // as a right note until somebody compares it.
                 ["text_requested"] = text,
                 ["text_reread"] = reread,
-                ["text_matches"] = reread != null &&
-                                     string.Equals(reread.Trim(), text.Trim(), StringComparison.Ordinal),
+                // THE LINE ENDS ARE NOT THE TEXT (report 8cd843 N29): SOLIDWORKS
+                // gives a note of several lines back with «\r\n» where «\n» was sent.
+                ["text_matches"] = SameNoteText(text, reread),
                 ["where_mm"] = whereMm,
                 ["position_set"] = moved,
                 ["what_it_does_not_check"] =
@@ -218,6 +219,11 @@ namespace Oce.Solid.Agent.Core
 
             if (attachedTo != "sheet")
                 outside["warning_in_view"] = NoteInViewWarning(noteName, sheetBefore, sheetAfter, viewsBefore, viewsAfter);
+            // A TEXT THAT DIFFERS IS A WARNING, with both texts in it (N29): until
+            // 0.150.1 «text_matches» false went out as an explanation, and the
+            // compact answer left the text read back out together with it.
+            string differs = NoteTextWarning(text, reread);
+            if (differs != null) outside["warning_text_differs"] = differs;
 
             _log("[agent] note " + (attachedTo == "sheet" ? "on the sheet «" + sheetName + "»" : "inside a view of «" + sheetName + "»") +
                  ": " + (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
@@ -235,6 +241,41 @@ namespace Oce.Solid.Agent.Core
             if (onSheet && !inView) return "sheet";
             if (inView && !onSheet) return "view";
             return "both";
+        }
+
+        /// <summary>
+        /// The text of a note with its line ends made one: «\r\n» and «\r» become
+        /// «\n», and the blanks around the whole text go. Pure.
+        /// </summary>
+        internal static string NoteTextForComparison(string text)
+        {
+            if (text == null) return null;
+            return text.Replace("\r\n", "\n").Replace("\r", "\n").Trim();
+        }
+
+        /// <summary>
+        /// Does the note read back say what was asked? The line ends do not count
+        /// (report 8cd843 N29: «\n» sent, «\r\n» read back); every other character
+        /// does. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool SameNoteText(string asked, string reread)
+        {
+            if (asked == null || reread == null) return false;
+            return string.Equals(NoteTextForComparison(asked), NoteTextForComparison(reread), StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The warning of a note whose text read back is not the one asked, with
+        /// both texts, or null when they match. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NoteTextWarning(string asked, string reread)
+        {
+            if (SameNoteText(asked, reread)) return null;
+            if (reread == null)
+                return "I could not read the text of the note back: I cannot say that it says «" + asked + "». Look at it on " +
+                       "the sheet, or read the drawing with «inspect_part».";
+            return "SOLIDWORKS reads the note back as «" + reread + "», not as the «" + asked + "» you sent (line ends left " +
+                   "aside). Take it away with «delete_annotation» and send the text again, or correct it on the sheet.";
         }
 
         /// <summary>

@@ -47,6 +47,9 @@ namespace Oce.Solid.Agent.Core
             public string Name;
             public string Text;
             public string View;
+            // The first «view» of a sheet is the sheet itself: a note found there
+            // is on the sheet, any other is inside a view.
+            public bool OnSheet;
             public IAnnotation Annotation;
         }
 
@@ -60,8 +63,10 @@ namespace Oce.Solid.Agent.Core
             var found = new List<AnnotationFound>();
             try
             {
-                for (var v = drawing.GetFirstView() as IView; v != null; v = v.GetNextView() as IView)
+                var sheetView = drawing.GetFirstView() as IView;
+                for (var v = sheetView; v != null; v = v.GetNextView() as IView)
                 {
+                    bool onSheet = ReferenceEquals(v, sheetView);
                     string viewName = "";
                     try { viewName = v.GetName2() ?? ""; } catch { }
                     if (name != null)
@@ -82,12 +87,13 @@ namespace Oce.Solid.Agent.Core
                         try { noteName = n.GetName(); } catch { }
                         try { noteText = n.GetText(); } catch { }
                         bool byName = name != null && string.Equals(noteName, name, StringComparison.Ordinal);
-                        bool byText = text != null && noteText != null &&
-                                      string.Equals(noteText.Trim(), text.Trim(), StringComparison.Ordinal);
+                        // The line ends left aside, as «note» compares them (N29): a note
+                        // of several lines sent with «\n» is read back with «\r\n».
+                        bool byText = text != null && SameNoteText(text, noteText);
                         if (byName || byText)
                             found.Add(new AnnotationFound
                             {
-                                Kind = "note", Name = noteName, Text = noteText, View = viewName,
+                                Kind = "note", Name = noteName, Text = noteText, View = viewName, OnSheet = onSheet,
                                 Annotation = n.GetAnnotation() as IAnnotation,
                             });
                     }
@@ -140,7 +146,12 @@ namespace Oce.Solid.Agent.Core
             AnnotationFound target = found[0];
             IAnnotation annotation = target.Annotation;
             bool isDimension = target.Kind == "dimension";
-            int before = isDimension ? CountDimensions(drawing) : NotesOfTheSheet(drawing);
+            // THE NOTES COUNTED AS «note» COUNTS THEM (report 8cd843 N32): the sheet
+            // and the views apart. Until 0.150.1 they were added (67 + 7 + 1 = 75),
+            // the sum «note» refuses because it makes an empty drawing look full.
+            int before = isDimension ? CountDimensions(drawing) : -1;
+            int sheetBefore = isDimension ? -1 : CountSheetNotes(drawing);
+            int viewsBefore = isDimension ? -1 : CountViewNotes(drawing);
             bool deleted = false;
             try
             {
@@ -158,7 +169,9 @@ namespace Oce.Solid.Agent.Core
                 try { model.ClearSelection2(true); } catch { }
             }
 
-            int after = isDimension ? CountDimensions(drawing) : NotesOfTheSheet(drawing);
+            int after = isDimension ? CountDimensions(drawing) : -1;
+            int sheetAfter = isDimension ? -1 : CountSheetNotes(drawing);
+            int viewsAfter = isDimension ? -1 : CountViewNotes(drawing);
             var still = FindAnnotations(drawing, name, text);
             bool gone = still != null && still.Count == 0;
             if (!gone)
@@ -175,26 +188,48 @@ namespace Oce.Solid.Agent.Core
                 ["view"] = target.View,
                 ["sheet"] = sheetName,
                 ["removed"] = true,
-                [isDimension ? "dimensions_before" : "notes_before"] = before < 0 ? null : (object)before,
-                [isDimension ? "dimensions_after" : "notes_after"] = after < 0 ? null : (object)after,
                 ["what_it_does_not_check"] =
                     "Whether the drawing still has the dimensions it needs: I take away the one you name, not the ones " +
                     "that should replace it.",
             };
+            if (isDimension)
+            {
+                measurements["dimensions_before"] = before < 0 ? null : (object)before;
+                measurements["dimensions_after"] = after < 0 ? null : (object)after;
+                if (before >= 0 && after >= 0 && after != before - 1)
+                    measurements["warning_count"] =
+                        "The annotation no longer answers, but the count went from " + before + " to " + after +
+                        " instead of down by one: look at the sheet.";
+            }
+            else
+            {
+                measurements["attached_to"] = target.OnSheet ? "sheet" : "view";
+                measurements["notes_sheet_before"] = sheetBefore < 0 ? null : (object)sheetBefore;
+                measurements["notes_sheet_after"] = sheetAfter < 0 ? null : (object)sheetAfter;
+                measurements["notes_views_before"] = viewsBefore < 0 ? null : (object)viewsBefore;
+                measurements["notes_views_after"] = viewsAfter < 0 ? null : (object)viewsAfter;
+                int? down = NotesDownBy(sheetBefore, sheetAfter, viewsBefore, viewsAfter);
+                measurements["notes_down_by"] = down;
+                if (down.HasValue && down.GetValueOrDefault() != 1)
+                    measurements["warning_count"] =
+                        "The note no longer answers, but the notes went from " + sheetBefore + " on the sheet and " +
+                        viewsBefore + " in the views to " + sheetAfter + " and " + viewsAfter +
+                        " instead of down by one: look at the sheet.";
+            }
             if (target.Text != null) measurements["text"] = target.Text;
-            if (before >= 0 && after >= 0 && after != before - 1)
-                measurements["warning_count"] =
-                    "The annotation no longer answers, but the count went from " + before + " to " + after +
-                    " instead of down by one: look at the sheet.";
             _log("[agent] " + target.Kind + " «" + (target.Name ?? target.Text) + "» taken away from the sheet «" + sheetName + "»");
             return WithoutFeature(measurements);
         }
 
-        /// <summary>The notes of the current sheet and of its views together, or -1.</summary>
-        private int NotesOfTheSheet(IDrawingDoc drawing)
+        /// <summary>
+        /// How many notes went, from the two counts before and after, or null when
+        /// one of them could not be read. The sheet and the views stay apart in the
+        /// answer; only this difference adds them. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static int? NotesDownBy(int sheetBefore, int sheetAfter, int viewsBefore, int viewsAfter)
         {
-            int onSheet = CountSheetNotes(drawing), inViews = CountViewNotes(drawing);
-            return onSheet < 0 || inViews < 0 ? -1 : onSheet + inViews;
+            if (sheetBefore < 0 || sheetAfter < 0 || viewsBefore < 0 || viewsAfter < 0) return null;
+            return (sheetBefore + viewsBefore) - (sheetAfter + viewsAfter);
         }
     }
 }
