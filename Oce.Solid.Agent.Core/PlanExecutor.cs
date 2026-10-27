@@ -154,6 +154,45 @@ namespace Oce.Solid.Agent.Core
             _onSwThread = onThreadSw;
         }
 
+        /// <summary>
+        /// WHETHER A STEP NAMES AN EDGE (report 8cd843 N2, 27/10/2026), so that
+        /// the reading made for it may leave the edges out. Conservative: any key
+        /// or text that contains «edge» (any case), or that is an edge identifier
+        /// («E» and digits), anywhere in the arguments, nested objects and lists
+        /// included. Pure, so that a contract calls it by reflection.
+        /// </summary>
+        public static bool MentionsEdges(object value)
+        {
+            if (value == null) return false;
+            var text = value as string;
+            if (text != null) return EdgeWord(text);
+            var map = value as System.Collections.IDictionary;
+            if (map != null)
+            {
+                foreach (object key in map.Keys)
+                    if (EdgeWord(Convert.ToString(key, System.Globalization.CultureInfo.InvariantCulture)) ||
+                        MentionsEdges(map[key]))
+                        return true;
+                return false;
+            }
+            var list = value as System.Collections.IEnumerable;
+            if (list != null)
+                foreach (object item in list)
+                    if (MentionsEdges(item)) return true;
+            return false;
+        }
+
+        private static bool EdgeWord(string word)
+        {
+            if (string.IsNullOrEmpty(word)) return false;
+            if (word.IndexOf("edge", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            var trimmed = word.Trim();
+            if (trimmed.Length < 2 || (trimmed[0] != 'E' && trimmed[0] != 'e')) return false;
+            for (int i = 1; i < trimmed.Length; i++)
+                if (!char.IsDigit(trimmed[i])) return false;
+            return true;
+        }
+
         public class Result
         {
             public bool Completed;
@@ -427,6 +466,7 @@ namespace Oce.Solid.Agent.Core
                         break;
                     }
 
+                    bool expectMissed = false;
                     var outcome = (SwOperations.Outcome)await _onSwThread(() =>
                     {
                         // ANOTHER WINDOW IN FRONT: brought back, when allowed (R1).
@@ -451,9 +491,16 @@ namespace Oce.Solid.Agent.Core
 
                         // THE STEP IS READ ONLY IF ITS OPERATION LOOKS AT THE
                         // READING (brief R2): forty operations never receive it.
-                        var reading = SwOperations.UsesState(planStep.Operation)
-                            ? PhaseClock.Time("plan.state_read_step", () => DocumentState.Read(model))
-                            : DocumentState.WithoutReading(model);
+                        // AND WITHOUT THE EDGES WHEN THE STEP NAMES NONE (report
+                        // 8cd843 N2, 27/10/2026): six cuts on a part of 43 edges
+                        // spent 5.6 s of 13.2 s in these readings, and the edges
+                        // were 563 ms of every one. They serve only to find an
+                        // edge the step names.
+                        var reading = !SwOperations.UsesState(planStep.Operation)
+                            ? DocumentState.WithoutReading(model)
+                            : MentionsEdges(planStep.Arguments)
+                                ? PhaseClock.Time("plan.state_read_step", () => DocumentState.Read(model))
+                                : PhaseClock.Time("plan.state_read_step", () => DocumentState.ReadWithoutEdges(model, null));
                         var operations = new SwOperations(_sw, _log) { MayBringDocumentBack = ReactivateWindow };
 
                         // Entry Z-C4: it announces what it is about to do. The
@@ -532,10 +579,19 @@ namespace Oce.Solid.Agent.Core
                             // what the step made stays, and «undo» withdraws the plan.
                             if (planStep.Expect != null)
                             {
-                                var misses = StepExpectations.Misses(
-                                    planStep.Expect, WithVolumeIfAsked(planStep.Expect, e.Measurements, expectedDocument));
+                                var measuredForExpect = WithVolumeIfAsked(planStep.Expect, e.Measurements, expectedDocument);
+                                var misses = StepExpectations.Misses(planStep.Expect, measuredForExpect);
+                                // A CHECK THAT HOLDS IS SAID TOO (report 8cd843 N8):
+                                // six expectations kept and the word «expect»
+                                // nowhere in the answer read as no check made.
+                                if (misses.Count == 0)
+                                {
+                                    if (e.Measurements == null) e.Measurements = new Dictionary<string, object>();
+                                    e.Measurements["expect_verdict"] = StepExpectations.Held(planStep.Expect, measuredForExpect);
+                                }
                                 if (misses.Count > 0)
                                 {
+                                    expectMissed = true;
                                     e.Succeeded = false;
                                     e.Error = "The step ran, but it did not measure what «expect» asked: " +
                                               string.Join("; ", misses) + ". The plan stops here, and what this " +
@@ -559,7 +615,14 @@ namespace Oce.Solid.Agent.Core
                                 ["measurements"] = outcome.Measurements,
                                 ["timing_ms"] = stepTiming,
                             }
-                            : new Dictionary<string, object> { ["timing_ms"] = stepTiming },
+                            : new Dictionary<string, object>
+                            {
+                                ["timing_ms"] = stepTiming,
+                                // The numbers of a step that ran and missed its
+                                // «expect» stay in the answer (report 8cd843, #36:
+                                // «measured true» in the text, measurements null).
+                                ["measurements"] = expectMissed ? outcome.Measurements : null,
+                            },
                         outcome.Error);
 
                     if (!outcome.Succeeded)

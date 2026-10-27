@@ -2610,6 +2610,12 @@ namespace Oce.Solid.Agent.Tools
             // but it cannot execute destructive operations: the gate is
             // before. Asking for confirmation there would be asking permission to
             // do something that will be refused anyway.
+            // THE OPERATIONS NOBODY WAS ASKED ABOUT (report 8cd843 N1, 27/10/2026):
+            // with a client that does not declare «elicitation» the plan runs, as
+            // before, and the answer now says so; the log line is written only
+            // when the plan really reaches SOLIDWORKS (N6: it was written before
+            // a plan then refused as a resend).
+            string notAsked = null;
             if (checkIfRepeated)
             {
                 var toConfirm = new List<string>();
@@ -2654,12 +2660,9 @@ namespace Oce.Solid.Agent.Tools
                     {
                         // THE FALLBACK IS DECLARED (entry W2.5). Going on
                         // in silence would be the way a defence
-                        // disappears without anyone noticing.
-                        Protocol.Note(
-                            "[bridge] " + string.Join(", ", toConfirm) +
-                            ": I could not ask the user for confirmation — " +
-                            "this client does not declare «elicitation». I am going " +
-                            "ahead as before.");
+                        // disappears without anyone noticing: in the log when
+                        // the plan runs, and in the answer (report 8cd843 N1).
+                        notAsked = string.Join(", ", toConfirm);
                     }
                 }
             }
@@ -2860,8 +2863,8 @@ namespace Oce.Solid.Agent.Tools
                 return Protocol.Content(
                     "I have already run this plan, and the document is still " +
                     "exactly as I left it. I will not redo it: «build» " +
-                    "is not repeatable — running it again does not put the part back as it was, " +
-                    "it would make a SECOND hole.\n\n" +
+                    "is not repeatable — running it again does not put the document back as it was, " +
+                    "it would do the same work a SECOND time (a second hole, a second mate).\n\n" +
                     "If the earlier answer never reached you, call " +
                     "«inspect_part»: the current state is the result of " +
                     "that plan.\n\n" +
@@ -3100,6 +3103,12 @@ namespace Oce.Solid.Agent.Tools
                 // said «stop» (brief R1).
                 _session.ReactivateWindowInPlans =
                     !string.Equals(Text(arguments, "on_window_change"), "stop", StringComparison.Ordinal);
+                if (notAsked != null)
+                    Protocol.Note(
+                        "[bridge] " + notAsked +
+                        ": I could not ask the user for confirmation — " +
+                        "this client does not declare «elicitation». I am going " +
+                        "ahead as before.");
                 var done = _session.ExecutePlan(toDo, out var runError, _wire,
                                                   IdentityForTheExecutor(now));
                 planRun = _session.LastPlanResult;
@@ -3327,6 +3336,15 @@ namespace Oce.Solid.Agent.Tools
             if (planRun != null)
                 result["undo_entry_recorded"] = planRun.UndoEntryOnPlanDocument;
 
+            // NOBODY WAS ASKED (report 8cd843 N1): said to the agent, who can
+            // still tell the person what went.
+            if (notAsked != null && planRun != null)
+                result["confirmation"] =
+                    "Nobody was asked to confirm " + notAsked + ": this client does not declare «elicitation» " +
+                    "(MCP), so I could not put the question to the person, and the plan ran as before. What it " +
+                    "deletes cannot be put back with any operation of the catalog: tell the person what this plan " +
+                    "deleted.";
+
             // The part had changed and the plan cited no identifier (brief R18).
             if (partChangedNote != null)
                 result["warning_part_changed"] = partChangedNote;
@@ -3464,6 +3482,11 @@ namespace Oce.Solid.Agent.Tools
             switch (memoryAction)
             {
                 case MemoryNew:
+                    // A REFUSED PLAN THAT LEFT ONLY AN ENTRY (report 8cd843 N5).
+                    bool refusedWithEntry = planRun != null && !string.IsNullOrEmpty(planRun.Error) &&
+                                            !hasBuilt && !visibleChange;
+                    var previous = refusedWithEntry && memoryBefore != null && sameDocument &&
+                                   memoryBefore.CoveredBecause == null ? memoryBefore : null;
                     _lastPlan = new LastPlan
                     {
                         // The plan document as it is called NOW (Z-C21.14): a
@@ -3472,8 +3495,17 @@ namespace Oce.Solid.Agent.Tools
                         DocumentRef = planDocumentHeld,
                         Before = snapshotBefore,
                         After = snapshotAfter,
+                        Refused = refusedWithEntry,
+                        Previous = previous,
                     };
                     _noMemoryBecause = null;
+                    if (refusedWithEntry)
+                        result["note_undo_entry"] =
+                            "This plan was refused and changed nothing I compare, but SOLIDWORKS kept its undo entry " +
+                            "on top of the undo stack: the next «undo» takes away that entry (nothing visible " +
+                            "changes)" + (previous != null
+                                ? ", and the one after it withdraws the plan before."
+                                : "; I remember no plan before it on this document.");
                     break;
                 case MemoryCover:
                     memoryBefore.CoveredBecause = memoryReason;
@@ -3547,6 +3579,19 @@ namespace Oce.Solid.Agent.Tools
 
             /// <summary>Z-C21.14, review F1: the plan's document after the plan.</summary>
             public PartSnapshot After;
+
+            /// <summary>
+            /// REPORT 8cd843 N5 (27/10/2026): this plan was refused, changed
+            /// nothing that is compared, and still closed an undo entry with
+            /// something in it (a place_component that moved the component and
+            /// set it back). Its entry is on top, so it is the memory; the
+            /// plan it covers is kept in <see cref="Previous"/>, and the undo
+            /// that takes the empty entry away gives that plan back.
+            /// </summary>
+            public bool Refused;
+
+            /// <summary>The memory before a refused plan (see <see cref="Refused"/>), or null.</summary>
+            public LastPlan Previous;
 
             /// <summary>
             /// Z-C21.14: why this plan is KNOWN not to be on top of the undo
@@ -4132,6 +4177,10 @@ namespace Oce.Solid.Agent.Tools
             if (memory.CoveredBecause != null)
                 return RefusalCovered(memory);
 
+            // PROGRESS, AS «build» GIVES IT (report 8cd843 N9): an undo of six
+            // cuts took 8.6 s with no notification at all.
+            _wire.Total = 3;
+            _wire.Step(1, "reading the document before the undo");
             var stateBefore = _session.StateWithoutAnchor(out var readError);
             if (stateBefore == null) return Protocol.Content(readError, true);
 
@@ -4195,10 +4244,12 @@ namespace Oce.Solid.Agent.Tools
                 return RefusalChangedSinceThePlan(memory, changedSince, NamesComparedOnlyInPart(after, now));
 
             // ── UNDO IS PRESSED ─────────────────────────────────────────────────
+            _wire.Step(2, "pressing undo");
             var undoError = _session.StepBack();
             if (undoError != null)
                 return Protocol.Content(undoError, true);
 
+            _wire.Step(3, "reading the document back");
             var stateAfter = _session.State(out var stateError);
             if (stateAfter == null)
                 return Protocol.Content(
@@ -4336,8 +4387,11 @@ namespace Oce.Solid.Agent.Tools
             // A second «undo» must not undo what was there BEFORE the
             // plan: this bridge did not do that, and the undo stack
             // cannot tell the difference.
-            _lastPlan = null;
-            _noMemoryBecause =
+            // EXCEPT AFTER A REFUSED PLAN (report 8cd843 N5): what was taken
+            // away was its empty entry, and the plan before it, which this
+            // bridge did make, is on top again.
+            _lastPlan = memory.Refused ? memory.Previous : null;
+            _noMemoryBecause = _lastPlan != null ? null :
                 "The last «undo» already withdrew the plan; one more step back would take away what " +
                 "was there before it, which this bridge did not make.";
 
@@ -4383,6 +4437,13 @@ namespace Oce.Solid.Agent.Tools
                 "back to how it was. The identifiers in «state_after» are " +
                 "the valid ones now: the earlier ones are no longer valid.";
             outside["state_after"] = stateAfter;
+            if (memory.Refused)
+                outside["note_refused_plan"] =
+                    "The plan I withdrew had been refused and had changed nothing I compare: this undo took away " +
+                    "only its undo entry. " + (memory.Previous != null
+                        ? "The plan before it is on top of the undo stack again, and I remember it: «undo» once " +
+                          "more withdraws it."
+                        : "I remember no plan before it on this document.");
             if (!checkedByReading)
                 outside["note_checked"] =
                     "This plan changed nothing I compare (" +

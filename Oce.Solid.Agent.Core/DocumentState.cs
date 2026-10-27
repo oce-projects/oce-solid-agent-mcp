@@ -654,8 +654,23 @@ namespace Oce.Solid.Agent.Core
             return ReadListing(model, sw, withAnchor, faces, edges);
         }
 
+        /// <summary>
+        /// Like <see cref="Read"/> without the edges (report 8cd843 N2,
+        /// 27/10/2026): for the reading the plan executor makes before a step
+        /// that names no edge. Every face is read as usual; no edge is listed
+        /// and no edge identifier can be found in it, so it is never the reading
+        /// of a step that names one (<see cref="PlanExecutor.MentionsEdges"/>).
+        /// A new name, as for the other readers: the bench calls this class by
+        /// reflection.
+        /// </summary>
+        public static DocumentState ReadWithoutEdges(IModelDoc2 model, ISldWorks sw)
+        {
+            return ReadListing(model, sw, false, null, null, false);
+        }
+
         private static DocumentState ReadListing(
-            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter, EdgeFilter edgeFilter)
+            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter, EdgeFilter edgeFilter,
+            bool withEdges = true)
         {
             var docState = new DocumentState();
             if (model == null) return docState;
@@ -1496,7 +1511,7 @@ namespace Oce.Solid.Agent.Core
                 }
 
                 lap.Next("faces");
-                var sortedItems = allEdges
+                var sortedItems = (withEdges ? allEdges : new List<Tuple<IEdge, int>>())
                     .OrderByDescending(t => LengthMm(t.Item1))
                     .ToList();
                 docState._rankedEdges = sortedItems;

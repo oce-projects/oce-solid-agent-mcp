@@ -48,6 +48,60 @@ namespace Oce.Solid.Agent.ContractTests
 
             Misses(rules);
             Forms(rules);
+            HeldAndEdges(rules);
+        }
+
+        /// <summary>
+        /// Report 8cd843 (27/10/2026): N8, a kept «expect» is said in the outcome
+        /// and a missed one keeps its numbers; N2, the reading before a step leaves
+        /// the edges out only when the step names none.
+        /// </summary>
+        private static void HeldAndEdges(Type rules)
+        {
+            const string label = "a kept «expect» is said (N8), and a step that names an edge is read with its edges (N2)";
+            try
+            {
+                var wrong = new List<string>();
+                var measured = D("removed_mm3", 35.996, "suppressed", true);
+                var held = Call(rules, "Held", D("removed_mm3", 36, "suppressed", true), measured) as string;
+                if (held == null || !held.StartsWith("held:") || !held.Contains("removed_mm3 35.996") ||
+                    !held.Contains("expected 36") || !held.Contains("suppressed"))
+                    wrong.Add("Held does not name what it checked: " + (held ?? "null"));
+                if (Call(rules, "Held", null, measured) != null) wrong.Add("Held without «expect» is not null");
+
+                var executor = rules.Assembly.GetType("Oce.Solid.Agent.Core.PlanExecutor", false);
+                if (executor == null) wrong.Add("PlanExecutor is not in the library");
+                else
+                {
+                    var rows = new[]
+                    {
+                        Tuple.Create("a face only", (object)D("face_uid", "F3", "x_mm", 1.0), false),
+                        Tuple.Create("an edge uid", (object)D("edge_uid", "E4"), true),
+                        Tuple.Create("an E number as a value", (object)D("uids", new object[] { "F1", "E12" }), true),
+                        Tuple.Create("a key with edge in it", (object)D("all_edges", true), true),
+                        Tuple.Create("a nested signature keyed by an edge", (object)D("signatures", D("E3", D("length_mm", 10.0))), true),
+                        Tuple.Create("a word that only starts with E", (object)D("plane", "Elevation"), false),
+                        Tuple.Create("nothing", (object)null, false),
+                    };
+                    foreach (var row in rows)
+                    {
+                        var m = executor.GetMethod("MentionsEdges", Any);
+                        if (m == null) { wrong.Add("MentionsEdges is not in this library"); break; }
+                        bool said = (bool)m.Invoke(null, new[] { row.Item2 });
+                        if (said != row.Item3) wrong.Add(row.Item1 + ": " + said + " instead of " + row.Item3);
+                    }
+                }
+
+                var source = File.ReadAllText(Path.Combine(Root(), "Oce.Solid.Agent.Core", "PlanExecutor.cs"));
+                if (!source.Contains("e.Measurements[\"expect_verdict\"] = StepExpectations.Held(planStep.Expect, measuredForExpect);"))
+                    wrong.Add("the executor does not write «expect_verdict»");
+                if (!source.Contains("[\"measurements\"] = expectMissed ? outcome.Measurements : null"))
+                    wrong.Add("a missed «expect» does not keep the numbers of the step");
+                if (!source.Contains("DocumentState.ReadWithoutEdges(model, null)") || !source.Contains("MentionsEdges(planStep.Arguments)"))
+                    wrong.Add("the reading before a step does not choose by MentionsEdges");
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? "Held, 7 rows of MentionsEdges, the executor uses both" : string.Join("; ", wrong));
+            }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static object Call(Type t, string method, params object[] args)

@@ -32,6 +32,74 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.146.0 — 27 October 2026 · library 0.168.0 · the report of session 8cd843 on the reassembly of 26M000002 (branch `night-2026-10-26-asm`)
+
+The session that wrote the brief of 25/10 reassembled its assembly on copies with
+bridge 0.145.0 (70 calls; the report is in the private notes of the project): R3, R4, R5,
+R8, R10/R11, R12/R21, R13, R15, R16, R17, R18, R19, R23, R24, §5.1, §5.2 and the
+blind cut verified; mate 30.3 s → 2.2 s, save 134 s → 2.4 s. What it found:
+
+- **N1 — `delete_mate` ran without a confirmation and the answer did not say so.**
+  With a client that does not declare «elicitation» the plan runs as before (W2.5);
+  the answer now carries `confirmation` («Nobody was asked to confirm delete_mate:
+  ... tell the person what this plan deleted»). The descriptions of `delete_mate`
+  and `delete_feature` say both cases.
+- **N2 — the reading before every step read the edges too.** Six cuts on a part of
+  43 edges: `plan.state_read_step` 5632.7 ms of 13215.5 ms, the edges about 563 ms
+  of every reading. A step that names no edge (`PlanExecutor.MentionsEdges`:
+  «edge» in any key or text, or an «E» identifier, anywhere in the arguments) is
+  now read with `DocumentState.ReadWithoutEdges`: the faces as before, no edge
+  listed. The time saved is NOT measured yet.
+- **N4 — the opening of the refusal of `undo` after `parameters`**: already
+  corrected in 0.145.1.
+- **N5 — a refused plan that left an undo entry became the memory and hid the plan
+  before it.** A `place_component` refused because the mates moved the component
+  (set back, nothing visible changed) closed its entry with something in it: the
+  next `undo` took away that empty entry, said «withdrawn», and the plan before
+  could no longer be withdrawn. The refused plan still becomes the memory (its
+  entry is on top), but it keeps the plan before it: the answer of the refused plan
+  says so in `note_undo_entry`, the `undo` that takes its entry away says so in
+  `note_refused_plan`, and a second `undo` withdraws the plan before, with all the
+  usual checks.
+- **N6 — the log said «going ahead» for a plan then refused as a resend**, and the
+  refusal of a resend spoke of «a SECOND hole» on a mate. The log line is written
+  right before the plan runs; the refusal says «the same work a SECOND time (a
+  second hole, a second mate)».
+- **N7 — `save_document` said «part or drawing»**: it saves assemblies too, and the
+  description now says why it sits among the drawing operations.
+- **N8 — a kept `expect` was invisible, and a missed one lost its numbers.** A step
+  whose expectations hold carries `expect_verdict` («held: removed_mm3 7.07
+  (expected 7.07 ±0.01)», `StepExpectations.Held`); a step that missed keeps its
+  `measurements` in the outcome (they were null next to «measured true»).
+- **N9 — `undo` sent no progress** (8.6 s in silence): three notifications now,
+  reading, pressing, reading back.
+- **Contract checks**: `R16StepExpectationsContract` (Held, seven rows of
+  MentionsEdges, the executor uses both), `ConfirmationTests` (the field, and the
+  log line after the refusal of a resend and before the plan runs).
+- **Not in this version: N3** (the test of the directions of a component read
+  «unknown» after a mate equal to one read blocked): it needs the assembly on
+  SOLIDWORKS to be reproduced.
+
+## 0.145.3 — 27 October 2026 · library 0.167.1 · the bench says whether a call that does not come back is slow or hung (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench of 27/10 stopped at 94 s on «spur_gear» after almost
+  four hours; alone, right after, the same call took 19.8 s. The run said which
+  call it was and nothing else: not whether SOLIDWORKS was still working on it,
+  not whether a window had opened, not how long the other calls had lasted.
+- **When the leash stops a run** (`Bench/Program.cs`, guardian), it now reads the
+  processor time of SLDWORKS twice five seconds apart (busy: the call is slow;
+  idle: it waits for a window, a lock, the network), says whether SOLIDWORKS
+  responds and lists its visible windows by class and title (a modal shows up
+  there), and writes the ten slowest calls of the run with the time of day.
+- **Every operation and every new part is timed**; a whole run writes the ten
+  slowest calls before the summary.
+- **`--leash-ms <n>`** (at least 1000) sets the leash of one run, to see the
+  guardian fire on the real bench with one small `--group`; the default stays
+  90 s. `Bench/README.md` no longer says that entry K18 is not done.
+- **Contract checks** (`Tests/LeashTests.cs`): the guardian reads the state of
+  SOLIDWORKS and the slowest calls, every operation and NewDocument are timed,
+  and `--leash-ms` exists.
+
 ## 0.145.2 — 27 October 2026 · library 0.167.1 · the number of operations in the refusal of an unknown tool (branch `night-2026-10-26-asm`)
 
 - **The refusal of a tool that does not exist said «The sixty drawing

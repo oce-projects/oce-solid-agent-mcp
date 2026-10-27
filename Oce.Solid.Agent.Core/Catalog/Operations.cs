@@ -1285,7 +1285,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "goes away with it, so nothing orphaned is left in the tree.\n\nIT "
                         + "CANNOT BE UNDONE with another operation: the only way back is the "
                         + "«undo» tool, and only if you have done nothing else "
-                        + "afterwards. If you only want to see the part without that feature, use "
+                        + "afterwards. The bridge asks the person for a confirmation first when the client can "
+                        + "ask (MCP «elicitation»); when it cannot, the plan runs and the answer says in "
+                        + "«confirmation» that nobody was asked. If you only want to see the part without that feature, use "
                         + "«suppress_feature», which can be turned back on.\n\nI REFUSE "
                         + "IF ANYTHING DEPENDS ON IT, and I tell you what. Deleting "
                         + "a feature that others depend on would make them all disappear, and "
@@ -3825,7 +3827,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Summary =
                         "Saves the open document.",
                     Description =
-                        "Saves the active document to disk — part or drawing.\n\nIt also "
+                        "Saves the active document to disk — part, assembly or drawing. It sits among the "
+                        + "drawing operations because a drawing needs it first, and it saves any document."
+                        + "\n\nIt also "
                         + "serves as the FIRST STEP of a drawing: a view attaches to the path "
                         + "of the part, so a part never saved cannot be put on a drawing."
                         + "\n\nThe file written is read back: path and size are in the "
@@ -4926,7 +4930,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Summary = "Deletes a mate of the assembly by its uid or name, and reads back that it is gone.",
                     Description =
                         "Deletes a mate. It cannot be undone with another operation, only with «undo»: the "
-                        + "bridge asks for a confirmation before running a plan that contains it. To turn a "
+                        + "bridge asks the person for a confirmation before running a plan that contains it, when "
+                        + "the client can ask (MCP «elicitation»); when it cannot, the plan runs and the answer says "
+                        + "in «confirmation» that nobody was asked. To turn a "
                         + "mate off and keep it, use «suppress_mate».\n\nTHE MATE IS NAMED from «mates_list» "
                         + "in the state of the assembly, by uid («M1») or by name, as in «suppress_mate». I "
                         + "read back that the name is gone and that there is one mate fewer."

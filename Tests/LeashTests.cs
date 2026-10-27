@@ -130,6 +130,18 @@ namespace Oce.Solid.Agent.ContractTests
                   p.Contains("System.Environment.Exit(5)"),
                   "not 1 and not 2: a hung run is not a run with red checks");
 
+            // SLOW OR HUNG (27/10/2026): the run of 27/10 stopped at 94 s on
+            // «spur_gear», and nothing said whether SOLIDWORKS was working.
+            Check("when it stops a run, the guardian says what SOLIDWORKS is doing and which calls were the slowest",
+                  p.Contains("var doing = WhatSolidWorksIsDoing();") &&
+                  p.Contains("var slowest = Slowest();") &&
+                  p.Contains("Lasted(operation, clock.ElapsedMilliseconds);") &&
+                  p.Contains("Lasted(\"NewDocument\", newClock.ElapsedMilliseconds);"),
+                  "processor of SLDWORKS over 5 s, its visible windows, the ten slowest calls");
+            Check("and there is a way to see it fire on the real bench",
+                  p.Contains("arguments.IndexOf(\"--leash-ms\")"),
+                  "--leash-ms 1500 with one small group stops at the first call over 1.5 s");
+
             TheLibraryUsesIt();
         }
 

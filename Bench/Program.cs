@@ -313,6 +313,26 @@ namespace Oce.Solid.Agent.Bench
             // the contract checks verify in the abstract.
             _pretendWithoutSolidWorks = arguments.Remove("--pretend-no-solidworks");
 
+            // `--leash-ms <n>`: the leash of THIS run, in milliseconds (at least
+            // 1000). The leash at 90 s fires after hours and cannot be provoked;
+            // with `--leash-ms 1500 --group <a small one>` the first call that
+            // lasts more than a second and a half stops the run, and the report
+            // of the guardian (what SOLIDWORKS was doing, the slowest calls) can
+            // be read with one's own eyes. Never on a full run: it stops it.
+            int leashAt = arguments.IndexOf("--leash-ms");
+            if (leashAt >= 0 && leashAt + 1 < arguments.Count)
+            {
+                int ms;
+                if (!int.TryParse(arguments[leashAt + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out ms) || ms < 1000)
+                {
+                    Console.WriteLine("--leash-ms wants a whole number of milliseconds, at least 1000: «" +
+                                      arguments[leashAt + 1] + "» is not one.");
+                    return 2;
+                }
+                Leash = new Shared.Leash(ms);
+                arguments.RemoveRange(leashAt, 2);
+            }
+
             // `--group <names>`: a single family of checks, while working.
             //
             // ── WHY IT EXISTS (entry F13) ─────────────────────────────────
@@ -677,6 +697,7 @@ namespace Oce.Solid.Agent.Bench
             CheckCountPerGroup();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
+            Console.WriteLine(Slowest());
 
             var summary =
                 (notLaunched.Count > 0
@@ -2559,6 +2580,7 @@ namespace Oce.Solid.Agent.Bench
             // THE LEASH (entry K18): it announces what it is about to do,
             // and says when it came back. The guardian watches from outside.
             Leash.Begin(operation, DateTime.Now);
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             object outcome;
             try
             {
@@ -2568,6 +2590,7 @@ namespace Oce.Solid.Agent.Bench
                 });
             }
             finally { Leash.Finished(); }
+            Lasted(operation, clock.ElapsedMilliseconds);
             bool succeeded = (bool)_tOutcome.GetField("Succeeded").GetValue(outcome);
             if (!succeeded)
             {
@@ -2957,8 +2980,119 @@ namespace Oce.Solid.Agent.Bench
         // would turn a slow check into a false alarm, and a false
         // alarm switches the guardian off the next day.
         // ══════════════════════════════════════════════════════════════
-        internal static readonly Shared.Leash Leash =
+        internal static Shared.Leash Leash =
             new Shared.Leash(90000);
+
+        // THE SLOWEST CALLS OF THE RUN (27/10/2026). The first full bench after
+        // brief R11 stopped at 94 s on «spur_gear» after almost four hours; alone,
+        // on the same SOLIDWORKS right after, the same call took 19.8 s. Nothing
+        // in the run said how long the other calls had lasted, so nothing said
+        // whether SOLIDWORKS had been slowing down for hours or had stopped at
+        // once. The ten slowest, with the time of day, are written before the
+        // summary and by the guardian when it stops the run.
+        // A class of its own and not KeyValuePair: the contract checks count
+        // every «.Value» on a receiver they cannot type.
+        private sealed class SlowCall
+        {
+            internal string Call;
+            internal long Ms;
+        }
+
+        private static List<SlowCall> _slowest = new List<SlowCall>();
+        private static readonly object _slowestKey = new object();
+        private static int _callsTimed;
+
+        private static void Lasted(string what, long ms)
+        {
+            lock (_slowestKey)
+            {
+                _callsTimed++;
+                // A local list and not the field: an «Add» on a field of type
+                // List<T> is a call the language checks cannot decide.
+                var all = new List<SlowCall>(_slowest);
+                all.Add(new SlowCall
+                {
+                    Call = what + " at " + DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
+                    Ms = ms,
+                });
+                all.Sort((a, b) => b.Ms.CompareTo(a.Ms));
+                if (all.Count > 10) all.RemoveRange(10, all.Count - 10);
+                _slowest = all;
+            }
+        }
+
+        private static string Slowest()
+        {
+            lock (_slowestKey)
+            {
+                var lines = new List<string>();
+                lines.Add("slowest calls of the run (" + _callsTimed + " timed):");
+                foreach (var s in _slowest)
+                    lines.Add("    " + (s.Ms / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + " s  " + s.Call);
+                return string.Join(System.Environment.NewLine, lines);
+            }
+        }
+
+        /// <summary>
+        /// WHAT SOLIDWORKS IS DOING WHILE A CALL DOES NOT COME BACK (27/10/2026).
+        /// The leash says which call and for how long; it cannot say whether
+        /// SOLIDWORKS is still working on it (a slow call: processor) or waits
+        /// for something (a window, a lock, the network: no processor). The
+        /// processor time of SLDWORKS is read twice, five seconds apart, with
+        /// «Responding» and its visible windows: a modal shows up there by its
+        /// title. Raw numbers first; the reading of them can be wrong: below half
+        /// a second of processor in five seconds it is called idle.
+        /// </summary>
+        private static string WhatSolidWorksIsDoing()
+        {
+            System.Diagnostics.Process[] all;
+            try { all = System.Diagnostics.Process.GetProcessesByName("SLDWORKS"); }
+            catch (Exception ex) { return "the SOLIDWORKS processes cannot be read: " + ex.Message; }
+            if (all.Length == 0) return "no SLDWORKS process is running";
+            var lines = new List<string>();
+            foreach (var p in all)
+            {
+                try
+                {
+                    var before = p.TotalProcessorTime;
+                    System.Threading.Thread.Sleep(5000);
+                    p.Refresh();
+                    long cpuMs = (long)(p.TotalProcessorTime - before).TotalMilliseconds;
+                    lines.Add("SOLIDWORKS pid " + p.Id + ": processor " + cpuMs + " ms in 5 s (" +
+                              (cpuMs >= 500 ? "busy: the call is slow" : "idle: the call waits for something") +
+                              "), responding " + p.Responding + ", visible windows: " + VisibleWindowsOf((uint)p.Id));
+                }
+                catch (Exception ex) { lines.Add("SOLIDWORKS pid " + p.Id + " cannot be read: " + ex.Message); }
+            }
+            return string.Join(System.Environment.NewLine, lines);
+        }
+
+        // Buffers of char and not StringBuilder: the contract checks count the
+        // name of its namespace, written in full, as a call they cannot decide.
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetWindowTextW", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int TitleOf(IntPtr h, char[] buffer, int size);
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int ClassOf(IntPtr h, char[] buffer, int size);
+
+        /// <summary>Class and title of the visible top-level windows of a process, at most eight.</summary>
+        private static string VisibleWindowsOf(uint pid)
+        {
+            var found = new List<string>();
+            EnumWindows((h, l) =>
+            {
+                uint its;
+                GetWindowThreadProcessId(h, out its);
+                if (its != pid || !IsWindowVisible(h)) return true;
+                var kind = new char[64];
+                int kindLength = ClassOf(h, kind, kind.Length);
+                var title = new char[256];
+                int titleLength = TitleOf(h, title, title.Length);
+                found.Add(new string(kind, 0, Math.Max(0, kindLength)) + " «" +
+                          new string(title, 0, Math.Max(0, titleLength)) + "»");
+                return found.Count < 8;
+            }, IntPtr.Zero);
+            return found.Count == 0 ? "none" : string.Join("; ", found);
+        }
 
         private static System.Threading.Thread _guardian;
 
@@ -2991,9 +3125,16 @@ namespace Oce.Solid.Agent.Bench
                     Console.WriteLine(report);
                     Console.WriteLine("INVALID RUN: it stopped here, and " +
                                       "what comes after was not tried.");
+                    Console.Out.Flush();
+                    var doing = WhatSolidWorksIsDoing();
+                    var slowest = Slowest();
+                    Console.WriteLine(doing);
+                    Console.WriteLine(slowest);
                     Console.WriteLine(new string('!', 76));
                     Console.Out.Flush();
                     Log(report);
+                    Log(doing);
+                    Log(slowest);
                     // `System.Environment` in full: SOLIDWORKS's interop
                     // has an `Environment` of its own, and without the whole name the
                     // compiler does not know which of the two.
@@ -3019,6 +3160,7 @@ namespace Oce.Solid.Agent.Bench
             // operation: `NewDocument` reading the template from a
             // network share. The leash serves above all here.
             Leash.Begin("NewDocument (the document template)", DateTime.Now);
+            var newClock = System.Diagnostics.Stopwatch.StartNew();
             IModelDoc2 born;
             try
             {
@@ -3027,6 +3169,7 @@ namespace Oce.Solid.Agent.Bench
                     : _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
             }
             finally { Leash.Finished(); }
+            Lasted("NewDocument", newClock.ElapsedMilliseconds);
 
             if (born != null) { Sentinel.Succeeded(); return born; }
 

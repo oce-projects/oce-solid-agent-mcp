@@ -601,8 +601,13 @@ using System.Runtime.InteropServices;
 //          parameters answers equation_before for a variable it rewrote.
 // 0.167.1: VerticesNotDrawn reads the points of the sketch once instead of
 //          two COM calls per vertex and per point.
-[assembly: AssemblyVersion("0.167.1.0")]
-[assembly: AssemblyFileVersion("0.167.1.0")]
+// 0.168.0: report 8cd843: the reading before a step leaves the edges out when
+//          the step names none (DocumentState.ReadWithoutEdges,
+//          PlanExecutor.MentionsEdges); a kept «expect» is said
+//          (StepExpectations.Held, expect_verdict) and a missed one keeps the
+//          numbers of the step.
+[assembly: AssemblyVersion("0.168.0.0")]
+[assembly: AssemblyFileVersion("0.168.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -617,4 +622,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.167.1")]
+[assembly: AssemblyInformationalVersion("0.168.0")]

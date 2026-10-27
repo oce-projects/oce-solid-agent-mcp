@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using static Oce.Solid.Agent.ContractTests.Program;
 using static Shared.McpClient;
 
@@ -142,6 +143,22 @@ namespace Oce.Solid.Agent.ContractTests
                       "it answers instead of waiting for an impossible confirmation");
             }
             finally { Close(q); }
+
+            // AND THE ANSWER SAYS THAT NOBODY WAS ASKED (report 8cd843 N1,
+            // 27/10/2026): delete_mate ran and only the log said so. Without
+            // SOLIDWORKS the plan never runs here, so the source is read: the
+            // field is written, and the log line comes right before the plan
+            // runs, after the refusal of a resend (N6).
+            var tools = File.ReadAllText(Path.Combine(Root(), "Tools", "McpTools.cs"));
+            int note = tools.IndexOf("ahead as before.\");", StringComparison.Ordinal);
+            int resend = tools.IndexOf("I have already run this plan", StringComparison.Ordinal);
+            int run = tools.IndexOf("var done = _session.ExecutePlan(", StringComparison.Ordinal);
+            Check("with a client that cannot ask, the answer says in «confirmation» that nobody was asked",
+                  tools.Contains("result[\"confirmation\"] =") && tools.Contains("Nobody was asked to confirm "),
+                  "Tools/McpTools.cs");
+            Check("and the log says «going ahead» only when the plan runs, after the refusal of a resend",
+                  note > 0 && resend > 0 && run > 0 && resend < note && note < run,
+                  "note at " + note + ", resend refusal at " + resend + ", plan run at " + run);
         }
     }
 }

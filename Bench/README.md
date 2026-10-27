@@ -335,8 +335,14 @@ reproduced on demand (entry K17; on 23/9/2026 it cost an hour and a half of run
 and nine right cases painted red).
 
 What it does **not** cover: a SOLIDWORKS that hangs *inside* a call instead of
-answering `null`. There no answer comes back to be counted, and the run stays
-hung — that is entry K18, not done.
+answering `null`. There no answer comes back to be counted: that is the leash
+(entry K18), which stops the run with exit 5 when a call has not come back after
+90 s. Since 27/10/2026, before stopping, it reads the processor time of SLDWORKS
+twice five seconds apart (busy: the call is slow; idle: it waits for a window, a
+lock, the network), says whether SOLIDWORKS responds and which windows it has
+open, and writes the ten slowest calls of the run with the time of day; a whole
+run writes them before the summary too. To see it fire: `--leash-ms 1500` with
+one small `--group` (never on a full run: it stops it).
 
 ### What the run reads from the NETWORK, and what it does not (entry K19)
 

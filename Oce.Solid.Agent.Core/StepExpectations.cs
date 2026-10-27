@@ -103,6 +103,37 @@ namespace Oce.Solid.Agent.Core
             return misses;
         }
 
+        /// <summary>
+        /// What «expect» checked and found kept, one entry per key, for the
+        /// outcome of a step whose expectations all held: «held: removed_mm3 7.07
+        /// (expected 7.07 ±0.01)». Report 8cd843 N8, 27/10/2026: a plan with six
+        /// expectations kept said the word «expect» nowhere, and a check that
+        /// passes in silence reads as a check not made. Null without «expect».
+        /// </summary>
+        public static string Held(Dictionary<string, object> expect, Dictionary<string, object> measurements)
+        {
+            if (expect == null || expect.Count == 0) return null;
+            var parts = new List<string>();
+            foreach (string key in expect.Keys)
+            {
+                object wanted = expect[key];
+                double tolerance = DefaultTolerance;
+                var detailed = wanted as Dictionary<string, object>;
+                if (detailed != null)
+                {
+                    detailed.TryGetValue("equal_to", out wanted);
+                    object t;
+                    double given;
+                    if (detailed.TryGetValue("tolerance", out t) && Number(t, out given)) tolerance = given;
+                }
+                object measured;
+                Measured(measurements, key, out measured);
+                parts.Add(key + " " + Text(measured) + " (expected " + Text(wanted) + (IsNumeric(wanted) ? " ±" +
+                          tolerance.ToString("0.######", CultureInfo.InvariantCulture) : "") + ")");
+            }
+            return "held: " + string.Join("; ", parts);
+        }
+
         /// <summary>The measurement of that name; «volume_mm3» falls back on «volume_after_mm3».</summary>
         private static bool Measured(Dictionary<string, object> measurements, string key, out object value)
         {
