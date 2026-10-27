@@ -6,9 +6,10 @@
   "references": "planes and axes to build on",
   "assemblies": "putting together parts that already exist. Inserting is NOT mating: always look at «resting»",
   "physical_properties": "what the part IS, not its shape",
-  "drawing": "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF",
+  "drawing": "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF (the part is saved first, with «save_document» of the family «documents»)",
   "checks": "saying how it turned out, without touching it",
   "exports": "getting the part out of SOLIDWORKS: STL for 3D printing, STEP and IGES for whoever has to machine it",
+  "documents": "the open document as a file: saving a part, an assembly or a drawing",
   "identity": "what the part says about itself: drawing number, revision, customer, and its variants",
   "sheet_metal": "bent sheet metal and its flat pattern as DXF for cutting",
   "dimensions": "dimensions and tolerances put on the PART (DimXpert), not on a drawing"
@@ -3058,9 +3059,9 @@
   },
   {
    "name": "save_document",
-   "family": "drawing",
+   "family": "documents",
    "summary": "Saves the open document.",
-   "details": "Saves the active document to disk — part, assembly or drawing. It sits among the drawing operations because a drawing needs it first, and it saves any document.\n\nIt also serves as the FIRST STEP of a drawing: a view attaches to the path of the part, so a part never saved cannot be put on a drawing.\n\nThe file written is read back: path and size are in the measurements.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the model needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.",
+   "details": "Saves the active document to disk — part, assembly or drawing.\n\nIt also serves as the FIRST STEP of a drawing: a view attaches to the path of the part, so a part never saved cannot be put on a drawing.\n\nThe file written is read back: path and size are in the measurements.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the model needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.",
    "schema": {
     "type": "object",
     "properties": {

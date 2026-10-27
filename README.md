@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.146.3-blue)
-![Library version](https://img.shields.io/badge/library-0.168.2-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.147.0-blue)
+![Library version](https://img.shields.io/badge/library-0.169.0-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -222,6 +222,7 @@ here is what the add-in does.
 | `assemblies` | insert, mate, mirror, fix and replace components | an assembly |
 | `drawing` | sheets, views, dimensions, notes, balloons, tables, symbols, PDF | a drawing (`create_drawing` starts from a part or an assembly) |
 | `exports` | STL, STEP, IGES | a part or an assembly (`export_stl` and `export_iges` want a part) |
+| `documents` | saving the open document to disk | a part, an assembly or a drawing |
 | `identity` | custom properties and configurations | a part or an assembly (`set_property` takes any document) |
 | `checks` | measurements and checks without touching the part: mass, bounding box, distances, interference, title block, dependencies | mostly a part; `interference_check` wants an assembly, `title_block` a drawing |
 

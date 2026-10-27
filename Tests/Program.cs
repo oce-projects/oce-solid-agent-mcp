@@ -970,6 +970,7 @@ namespace Oce.Solid.Agent.ContractTests
                 { "physical_properties",    "swDocPART"     },
                 { "checks",    "swDocPART"     },
                 { "exports", "swDocPART"     },
+                { "documents",   "swDocPART"     },
                 { "identity",     "swDocPART"     },
                 { "document",    "swDocPART"     },
                 { "sheet_metal",      "swDocPART"     },

@@ -32,6 +32,31 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.147.0 — 27 October 2026 · library 0.169.0 · third round of session 8cd843: N7, N11, N12 (branch `night-2026-10-26-asm`)
+
+- **Third round on SOLIDWORKS (session 8cd843, bridge 0.146.3, 29 calls)**:
+  held N10 (the first undo after a refused plan and its `note_refused_plan` say
+  the same thing, the second withdraws the good plan) and N4 (after a plan with
+  `parameters` the undo no longer says «not yet run any that built something»).
+  `on_window_change=stop` stopped at step 3 after two cuts (2610 to 2603.7 mm³).
+- **N7**: `save_document` saved an assembly well but sat in the family
+  `drawing`. It is now in a family of its own, `documents` («the open document as
+  a file»); the line of `drawing` says that a part is saved first with it.
+  Checked in `CatalogTests`.
+- **N11**: a plan with an extrusion and `parameters` answered
+  `undo_entry_recorded` true, and the undo after it refused (rightly: no equation
+  is in an undo entry). A plan whose memory is dropped although it changed
+  something now says so in its own answer: `undo_possible` false and
+  `note_undo` with the reason.
+- **N12**: the stop for a window that came to the front said «I touched
+  nothing» at step 3, after two cuts. The step now says «I did not run this step;
+  the 2 step(s) before it are done», and a plan that stops after some steps
+  answers `steps_done`, `steps_in_plan` and `note_stopped` (what stays, and
+  whether «undo» withdraws it).
+- **Contract** (`Zc2114UndoHonestyContract`): the after-plan check asks for
+  `note_undo` and `note_stopped`, the executor check for the guard on the steps
+  already run, each with a changed copy that must turn red.
+
 ## 0.146.3 — 27 October 2026 · library 0.168.2 · second round of session 8cd843, N10 corrected (branch `night-2026-10-26-asm`)
 
 - **Second round on SOLIDWORKS (session 8cd843, bridge 0.146.2, 24 calls, the

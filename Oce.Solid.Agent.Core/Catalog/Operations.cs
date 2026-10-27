@@ -57,7 +57,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                     "what the part IS, not its shape"),
                 new KeyValuePair<string, string>(
                     "drawing",
-                    "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF"),
+                    "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF " +
+                    "(the part is saved first, with «save_document» of the family «documents»)"),
                 // THE FAMILY THAT DOES NOT DRAW. Up to 0.76.0 no
                 // operation of the catalog could answer «how did it turn out?»:
                 // the measurements were there but they were private inside the operations, and the
@@ -69,6 +70,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                     "exports",
                     "getting the part out of SOLIDWORKS: STL for 3D printing, STEP "
                     + "and IGES for whoever has to machine it"),
+                // THE OPEN DOCUMENT AS A FILE (report 8cd843 N7, 27/10/2026):
+                // «save_document» sat in «drawing», and an assembly was saved
+                // through an operation filed among the drawings.
+                new KeyValuePair<string, string>(
+                    "documents",
+                    "the open document as a file: saving a part, an assembly or a drawing"),
                 // WHAT THE PART SAYS ABOUT ITSELF. The drawing number and the
                 // revision are not geometry, but they are what reaches the
                 // title block and the PDM card: a right part with the wrong
@@ -3821,14 +3828,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                 new OperationSpec
                 {
                     Name = "save_document",
-                    Family = "drawing",
+                    Family = "documents",
                     RequestedDocument = "any",
                     Tested = true,
                     Summary =
                         "Saves the open document.",
                     Description =
-                        "Saves the active document to disk — part, assembly or drawing. It sits among the "
-                        + "drawing operations because a drawing needs it first, and it saves any document."
+                        "Saves the active document to disk — part, assembly or drawing."
                         + "\n\nIt also "
                         + "serves as the FIRST STEP of a drawing: a view attaches to the path "
                         + "of the part, so a part never saved cannot be put on a drawing."

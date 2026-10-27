@@ -485,9 +485,11 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("the memory decided by hand", "= MemoryAfterPlan(", "= MemoryAfterPlanByHand("),
                 Change("the window of a refused plan taken for its document", " && !planRun.StoppedBeforeWriting;", ";"),
                 Change("an assembly never counted as built (R23)", "AssemblyBuilt(snapshotBefore, snapshotAfter)", "false"),
+                Change("N11: the refusal of undo said only by the undo", "if (memoryAction == MemoryDrop && somethingToWithdraw)", "if (false)"),
+                Change("N12: a stopped plan silent about what stays", "result[\"note_stopped\"] =", "result[\"note_quiet\"] ="),
             });
             Check("the after-plan check turns red on each changed copy", afterPlanRed.Count == 0,
-                  afterPlanRed.Count == 0 ? "15 changes, each one red" : string.Join(" | ", afterPlanRed));
+                  afterPlanRed.Count == 0 ? "17 changes, each one red" : string.Join(" | ", afterPlanRed));
 
             var undo = UndoProblems(tools);
             Check("`undo` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
@@ -530,9 +532,10 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("the plan document not handed on", ".PlanDocument = planDocument;", ".FinalDocument = planDocument;"),
                 Change("a closing not noted", "FinishUndoRecording(undoRecordedOn));\n                    if (planDocumentReopened)",
                        "FinishUndoRecording(undoRecordedOn));\n                    FinishUndoRecording(undoRecordedOn);\n                    if (planDocumentReopened)"),
+                Change("N12: «I touched nothing» after steps that ran", "in front. \" + (result.ExecutedSteps == 0", "in front. \" + (true"),
             });
             Check("the executor check turns red on each changed copy", finishRed.Count == 0,
-                  finishRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", finishRed));
+                  finishRed.Count == 0 ? "4 changes, each one red" : string.Join(" | ", finishRed));
 
             var sess = SessionProblems(session);
             Check("the session hands the checked identity to the executor, says when it threw and when another bridge held the turn",
@@ -589,6 +592,15 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add("the memory is not decided by MemoryAfterPlan");
             if (plan.IndexOf("AssemblyBuilt(snapshotBefore, snapshotAfter)", StringComparison.Ordinal) < 0)
                 problems.Add("a plan that changed the components or mates of an assembly is never counted as built (R23)");
+            // Report 8cd843 N11 and N12 (27/10/2026): «undo_entry_recorded» true
+            // and then an undo that refused; a stop that said «I touched nothing»
+            // after two cuts.
+            if (plan.IndexOf("if (memoryAction == MemoryDrop && somethingToWithdraw)", StringComparison.Ordinal) < 0 ||
+                plan.IndexOf("result[\"note_undo\"] =", StringComparison.Ordinal) < 0)
+                problems.Add("a plan that «undo» will refuse does not say so in its own answer (report 8cd843 N11)");
+            if (plan.IndexOf("planRun.ExecutedSteps > 0", StringComparison.Ordinal) < 0 ||
+                plan.IndexOf("result[\"note_stopped\"] =", StringComparison.Ordinal) < 0)
+                problems.Add("a plan stopped halfway does not say which steps stay (report 8cd843 N12)");
             return problems;
         }
 
@@ -667,6 +679,11 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add(finishes + " closings of the recording, " + noted + " of them noted: expected 2 and 2");
             if (code.IndexOf(".PlanDocument = planDocument;", StringComparison.Ordinal) < 0)
                 problems.Add("the plan's document is not handed on in the result");
+            // Report 8cd843 N12: «I touched nothing» only when no step ran yet.
+            int changed = code.IndexOf("\"The active document changed while I was running: \"", StringComparison.Ordinal);
+            int guard = changed < 0 ? -1 : code.IndexOf("result.ExecutedSteps == 0", changed, StringComparison.Ordinal);
+            if (changed < 0 || guard < 0 || guard - changed > 600)
+                problems.Add("the stop for a window that changed says «I touched nothing» after steps that ran (report 8cd843 N12)");
             return problems;
         }
 

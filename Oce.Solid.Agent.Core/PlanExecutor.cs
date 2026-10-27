@@ -485,6 +485,9 @@ namespace Oce.Solid.Agent.Core
                         // The state sent to the server was read BEFORE the
                         // network call; this is the document that is written
                         // to AFTER. Between the two there is the whole HTTP round trip.
+                        // «I touched nothing» only when no step ran yet (report
+                        // 8cd843 N12, 27/10/2026): stopped at step 3, the two
+                        // cuts before it were in the part.
                         if (!SameObject(model, expectedDocument))
                         {
                             return new SwOperations.Outcome
@@ -494,7 +497,10 @@ namespace Oce.Solid.Agent.Core
                                     "The active document changed while I was running: " +
                                     "the plan was for «" + expectedPath + "», " +
                                     "now «" + Identity(model) + "» is " +
-                                    "in front. I touched nothing.",
+                                    "in front. " + (result.ExecutedSteps == 0
+                                        ? "I touched nothing."
+                                        : "I did not run this step; the " + result.ExecutedSteps +
+                                          " step(s) before it are done and stay on «" + expectedPath + "»."),
                             };
                         }
 

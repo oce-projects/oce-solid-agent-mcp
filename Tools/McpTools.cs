@@ -310,7 +310,7 @@ namespace Oce.Solid.Agent.Tools
                                 ["description"] =
                                     "only one family: extrusions, features, weldments, " +
                                     "references, assemblies, physical_properties, drawing, " +
-                                    "checks, exports, identity, sheet_metal, dimensions",
+                                    "checks, exports, documents, identity, sheet_metal, dimensions",
                             },
                         },
                         new string[0]),
@@ -3519,6 +3519,44 @@ namespace Oce.Solid.Agent.Tools
                     // Kept: the name follows a save of the same document.
                     if (memoryBefore != null && sameDocument) memoryBefore.Document = planIdentity;
                     break;
+            }
+
+            // «undo» WILL REFUSE THIS PLAN, said by the plan and not first by
+            // the undo (report 8cd843 N11, 27/10/2026): an extrusion with
+            // «parameters» answered «undo_entry_recorded» true, and the undo
+            // after it refused, rightly, for the equations.
+            bool somethingToWithdraw = checkIfRepeated && (hasBuilt || visibleChange);
+            if (memoryAction == MemoryDrop && somethingToWithdraw)
+            {
+                result["undo_possible"] = false;
+                result["note_undo"] =
+                    "«undo» will refuse to withdraw this plan" +
+                    (planRun != null && planRun.UndoEntryOnPlanDocument == true
+                        ? ", although SOLIDWORKS recorded its undo entry («undo_entry_recorded» true)"
+                        : "") +
+                    ". " + memoryReason;
+            }
+
+            // A PLAN STOPPED HALFWAY SAYS WHAT STAYS (report 8cd843 N12): the
+            // stop said «I touched nothing» of its own step, and the two cuts
+            // before it were in the part.
+            if (planRun != null && !string.IsNullOrEmpty(planRun.Error) && planRun.ExecutedSteps > 0 && steps != null)
+            {
+                string planName = ReadableName(planIdentity);
+                result["steps_done"] = planRun.ExecutedSteps;
+                result["steps_in_plan"] = steps.Length;
+                result["note_stopped"] =
+                    "The plan stopped at step " + (planRun.ExecutedSteps + 1) + " of " + steps.Length + ": the " +
+                    planRun.ExecutedSteps + " step(s) before it are done and stay on «" + planName + "», and the " +
+                    "«error» of the step that stopped says whether that step made anything. " +
+                    (memoryAction == MemoryNew
+                        ? anotherInFront && !frontIsThePlans
+                            ? "«undo» withdraws the whole plan once «" + planName + "» is in front again («document» " +
+                              "with «action»: «activate»)."
+                            : "«undo» withdraws the whole plan."
+                        : memoryAction == MemoryDrop
+                            ? "«undo» cannot withdraw them: " + (result.ContainsKey("note_undo") ? "see «note_undo»." : memoryReason)
+                            : "They changed nothing I compare, so «undo» has nothing of theirs to withdraw.");
             }
 
             // WE REMEMBER WHAT WAS DONE, and only if something was really done
