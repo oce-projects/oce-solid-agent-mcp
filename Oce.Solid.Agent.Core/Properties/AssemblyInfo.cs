@@ -674,8 +674,13 @@ using System.Runtime.InteropServices;
 //          sheet; delete_view refuses a view asked by number on a drawing of
 //          more sheets (N57); move_view and delete_view say the sheet; the
 //          section no longer reports hatches_solids (observation 2).
-[assembly: AssemblyVersion("0.174.6.0")]
-[assembly: AssemblyFileVersion("0.174.6.0")]
+// 0.174.7: round 16 of report 8cd843: detail_view refuses a scale not
+//          larger than the one of its view (N58); title_block reads the
+//          models of the other sheets and says the names asked with
+//          $PRPSHEET that they lack, in the verdict too (N59); the sheets
+//          of the state say «active» false (observation).
+[assembly: AssemblyVersion("0.174.7.0")]
+[assembly: AssemblyFileVersion("0.174.7.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -690,4 +695,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.6")]
+[assembly: AssemblyInformationalVersion("0.174.7")]

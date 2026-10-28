@@ -110,14 +110,17 @@ namespace Oce.Solid.Agent.Core
                             ["uid"] = "S" + (i + 1),
                             ["name"] = names[i],
                         };
-                        if (string.Equals(names[i], active, StringComparison.Ordinal))
-                            entry["active"] = true;
+                        // FALSE TOO, NOT LEFT OUT (report 8cd843 round 16, observation):
+                        // only the active sheet carried the field, and a field that
+                        // appears only when true cannot be read as false.
+                        bool isActive = string.Equals(names[i], active, StringComparison.Ordinal);
+                        entry["active"] = isActive;
 
                         // The properties of the sheet can be read only from the
                         // ACTIVE one without changing sheet, and changing sheet to
                         // read would be a read that modifies: what can be read is read
                         // and the rest is left unsaid.
-                        if (entry.ContainsKey("active"))
+                        if (isActive)
                         {
                             var p = SheetPropertyOf(drawing);
                             if (p != null)

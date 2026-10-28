@@ -179,7 +179,9 @@ namespace Oce.Solid.Agent.ContractTests
         private const string FixActive = "int acc = ActiveMates(MatesOf(c), off);";
         private const string OldFix = "int acc = MatesOf(c);";
         private const string OwnerSheet = "if (note != null && owner == (int)swAnnotationOwner_e.swAnnotationOwner_DrawingSheet) onTheSheet++;";
-        private const string OwnerElse = "else if (note != null) outside.Add(note);";
+        // «notes», not «outside», since library 0.174.7: the loop moved into FormatNotes,
+        // which reads the format of the other sheets too (report 8cd843 N59).
+        private const string OwnerElse = "else if (note != null) notes.Add(note);";
         private const string LeftOutSaid = "[\"notes_on_the_sheet_left_out\"] = notesOnTheSheet,";
         private const string FlagBefore = "try { unsavedBeforePdf = model.GetSaveFlag(); } catch { }";
         private const string FlagAfter = "try { unsavedAfterPdf = model.GetSaveFlag(); } catch { }";

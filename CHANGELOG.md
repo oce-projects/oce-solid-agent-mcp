@@ -32,6 +32,46 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.8 — 28 October 2026 · library 0.174.7 · sixteenth round of session 8cd843: N58, N59 (branch `night-2026-10-26-asm`)
+
+- **Sixteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.7)**: N57 held. With
+  each sheet active every view said its right `sheet` (8, 1 and 2 views); `delete_view`
+  «V1» with the third sheet active was refused naming «Vista del disegno10», and the
+  views stayed as they were; a detail on the third sheet was made and taken away by its
+  name; `move_view` by number moved the right view and back. `hatches_solids` is gone,
+  the section was born «slid -45 mm», the PDF has 3 pages. SOLIDWORKS did not fall.
+- **N58 (P3)**: `detail_view` took a detail at 2:1 from a view at 5:1, and on the sheet
+  it came out smaller than the view it was asked to enlarge (14.4 x 16.6 mm for a
+  circle of 10 mm). Now a scale not larger than the one of the view, read from
+  `IView.GetXform`, is refused before anything is drawn, with both scales and one twice
+  as large (`DetailNotLarger`). A view whose scale cannot be read is left to the refusal
+  that already covers it.
+- **N59 (P2)**: `title_block` read only the active sheet. The third sheet of round 16
+  showed the coupler alone, and its title block took two `$PRPSHEET` properties from
+  it: both empty in the PDF, while the answer, read on the first sheet, said «no empty
+  box». Now `other_sheets` lists every other sheet, read through `ISheet.GetViews`
+  without activating it: its format, the view named in its sheet properties, its views,
+  its own title block, read from the «view» that carries its format
+  (`IDrawingDoc.GetViews`, one list per sheet with the sheet first, matched by name
+  because the order is undetermined), and each model its views show with the value of
+  every name that title block asks with `$PRPSHEET`, or the names the model lacks or
+  gives no value to. The names empty there and not on the active sheet are said in
+  `other_sheets_warning` and at the end of the verdict («BUT ON THE OTHER SHEETS»); those
+  empty on both are only counted, being already in `requested_but_empty` (scenario t60 on
+  a copy of the drawing of round 16: the coupler lacked 22 names, 20 of them empty on the
+  first sheet too, and the first warning buried «Materiale» and «STATO» among them;
+  `NotEmptyHere`). A sheet whose format has no note asks for
+  nothing (a sheet made with `paper_size` has none, measured on the bench); a sheet whose
+  format cannot be reached is checked with the names of the active sheet, said so. The
+  notes of a format are read by one function for both (`FormatNotes`), and the mark of
+  the names from the part is one constant (`FromThePart`).
+- **Observation**: the sheets of the state carried `active` only when true; now the
+  others say `active` false.
+- Catalog of `detail_view` and `title_block`; bench cases
+  `limit_detail_not_larger_than_view` and `title_block_says_the_other_sheets` (two parts
+  from the assembly preparation, so that one sheet shows a property the other lacks);
+  contract Zc2199. Zc2195 follows the notes of a format into `FormatNotes`.
+
 ## 0.152.7 — 28 October 2026 · library 0.174.6 · fifteenth round of session 8cd843: N57 (branch `night-2026-10-26-asm`)
 
 - **Fifteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.6)**: N52 to N56 held

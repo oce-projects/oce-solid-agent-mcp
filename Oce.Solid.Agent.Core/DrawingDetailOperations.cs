@@ -181,6 +181,11 @@ namespace Oce.Solid.Agent.Core
             // cannot be activated: it hands the circle to another view (N41, measured).
             double[] xform = null;
             try { xform = target.GetXform() as double[]; } catch { }
+            // NOT SMALLER THAN ITS VIEW (report 8cd843 N58, round 16): a detail at 2:1 of a
+            // view at 5:1 was accepted, and on the sheet it shrank the piece it was asked
+            // to enlarge. Refused here, before anything is drawn.
+            string notLarger = DetailNotLarger(scale1, xform, targetName);
+            if (notLarger != null) return Failed(notLarger);
             double angle = 0;
             try { angle = target.Angle; } catch { }
             bool inView = false;
@@ -657,6 +662,35 @@ namespace Oce.Solid.Agent.Core
         {
             if (xform == null || xform.Length < 3 || !(xform[2] > 0)) return null;
             return new[] { (x - xform[0]) / xform[2], (y - xform[1]) / xform[2] };
+        }
+
+        /// <summary>
+        /// Why a detail at «asked» would not enlarge its view (report 8cd843 N58, round 16),
+        /// null when it would, or when the scale of the view cannot be read (ViewSketchProblem
+        /// refuses that case). The scale of the view is GetXform[2], the one SheetToViewSketch
+        /// divides by. Equal counts as not larger: a detail at the scale of its view shows the
+        /// same thing again. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string DetailNotLarger(double asked, double[] xform, string viewName)
+        {
+            if (xform == null || xform.Length < 3 || !(xform[2] > 0)) return null;
+            double view = xform[2];
+            if (asked > view * (1 + 1e-6)) return null;
+            return string.Format(CultureInfo.InvariantCulture,
+                "«scale» {0:0.####} ({1}) is not larger than the scale of the view «{2}», {3}: the detail would show " +
+                "the piece {4} instead of enlarging it (measured: a detail at 2:1 of a view at 5:1 came out smaller " +
+                "than the view). Give a scale larger than {5:0.####}, for example {6:0.####}. I touched nothing.",
+                asked, ScaleAsRatio(asked), viewName, ScaleAsRatio(view),
+                asked < view * (1 - 1e-6) ? "smaller" : "at the same size", view, view * 2);
+        }
+
+        /// <summary>«5:1» or «1:2» instead of 5 or 0.5: it is how a scale is written on a drawing.</summary>
+        private static string ScaleAsRatio(double scale)
+        {
+            if (!(scale > 0)) return scale.ToString(CultureInfo.InvariantCulture);
+            return scale >= 1
+                ? Math.Round(scale, 4).ToString(CultureInfo.InvariantCulture) + ":1"
+                : "1:" + Math.Round(1 / scale, 4).ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>

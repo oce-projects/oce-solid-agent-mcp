@@ -1,0 +1,44 @@
+{
+  "name": "limit_detail_not_larger_than_view",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N58 (round 16, 28/10/2026). A detail at 2:1 was taken from a view at 5:1 and accepted: on the sheet it came out smaller than the view it was asked to enlarge, 14.4 x 16.6 mm for a circle of 10 mm.",
+
+  "_what_changes_compared_to_the_twin": "Only «scale»: 0.5 here, 2 in the twin. The front view of the plate is at scale 1 (measured on 27/10/2026, scenario t40), so 0.5 shrinks it; were the sheet at 1:2, 0.5 would be the same size, and that is refused too.",
+
+  "defect_caught": "That a detail no larger than its view is drawn. The message must say that the scale is not larger than the one of the view, give a larger one, and say nothing was touched.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "the plate of the drawing cases" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_detail_not_larger_than_view.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the active document is the drawing" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_detail_not_larger_than_view.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the front view is the one the detail is taken from" } ] },
+
+    { "operation": "detail_view",
+      "arguments": { "label": "B", "scale": 0.5, "radius_mm": 8, "x_mm": 55 },
+      "must_fail": {
+        "message_includes": ["is not larger than the scale of the view", "Give a scale larger than", "I touched nothing"],
+        "twin": "detail_enlarges"
+      } }
+  ]
+}

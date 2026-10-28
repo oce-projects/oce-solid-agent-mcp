@@ -13,6 +13,7 @@
 # Raised for brief R15 (26/10/2026): Oce.Solid.Agent.Core/StlMesh.cs|Add 4. Every call is List<T>.Add on a list of the mesh itself (a field, an out variable, a typed local); the scanner reads a declared type only without angle brackets, so a List<T> receiver stays undecided however it is typed.
 # Raised for round 14 of report 8cd843 (27/10/2026): Oce.Solid.Agent.Core/BalloonSpreadOperations.cs|Value 1 and Oce.Solid.Agent.Core/DrawingViewOperations.cs|Add 1, |Value 1. Each is a KeyValuePair<string, ...>.Value of a typed foreach or List<string>.Add on a typed local; the scanner reads a declared type only without angle brackets, as for R15.
 # Raised for round 15 of report 8cd843 (28/10/2026): Oce.Solid.Agent.Core/DrawingViewOperations.cs|Text 1. It is the namespace System.Text of «using System.Text.RegularExpressions;», for the Regex of UidOnManySheets; the scanner reads the segment of a namespace as a call.
+# Raised for round 16 of report 8cd843 (28/10/2026): Oce.Solid.Agent.Core/TitleBlockOperations.cs|Add 7. They are List<string>.Add on the parameters warnings, missing and blank of OtherSheets and PropertyValues, and on an element of the local List<List<string>> viewsOfModel; 7 with notes.Add in FormatNotes, the loop of TitleBlockNotes moved into a function with the list as parameter. The scanner types only the receivers declared as locals with new.
 Bench/ClientPort.cs|Close	2
 Bench/ClientPort.cs|Delete	2
 Bench/ClientPort.cs|GetType	1
@@ -180,6 +181,7 @@ Oce.Solid.Agent.Core/SwOperations.cs|Select2	3
 Oce.Solid.Agent.Core/SwOperations.cs|Type	3
 Oce.Solid.Agent.Core/SwOperations.cs|Value	37
 Oce.Solid.Agent.Core/TextOperations.cs|Value	4
+Oce.Solid.Agent.Core/TitleBlockOperations.cs|Add	7
 Oce.Solid.Agent.Core/TitleBlockOperations.cs|GetText	1
 Oce.Solid.Agent.Core/TitleBlockOperations.cs|Name	1
 Oce.Solid.Agent.Core/TitleBlockOperations.cs|Text	1

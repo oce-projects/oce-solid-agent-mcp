@@ -3691,6 +3691,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "I REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle "
                         + "outside enlarges empty space, and the enlarged empty space is "
                         + "still a view that looks good.\n\n"
+                        + "I REFUSE IF THE SCALE ASKED («scale») IS NOT LARGER THAN THE SCALE OF THE VIEW: a detail at 2:1 of a "
+                        + "view at 5:1 shrinks the piece instead of enlarging it (measured). The message gives the "
+                        + "scale of the view and one twice as large.\n\n"
                         + "AND I TELL YOU IF THE CIRCLE BECAME A DETAIL, counting "
                         + "the detail circles on the source view before and after. "
                         + "If it does not go up I refuse, and remove both the new view "
@@ -3778,7 +3781,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "text is drawn inside the sheet format, not fed."
                         + "\n\nOnly the notes of the sheet FORMAT are the title block: a note put on "
                         + "the sheet, as a general note, is left out and counted "
-                        + "(«notes_on_the_sheet_left_out»).",
+                        + "(«notes_on_the_sheet_left_out»)."
+                        + "\n\nTHE OTHER SHEETS ARE NOT ACTIVATED, and not left unsaid either («other_sheets»): for "
+                        + "each one I read its own title block, from the view that carries its format, and the models "
+                        + "of its views, and look on them for the names it asks with `$PRPSHEET`. A sheet that shows "
+                        + "another part takes them from that part: if they are not there, or have no value, and this "
+                        + "sheet does not show them empty too, I say it in «other_sheets_warning» and in the verdict; "
+                        + "those empty on this sheet too are only counted, they are already in «requested_but_empty». "
+                        + "When I cannot reach its title block I use the "
+                        + "names of this one and say so; activating the sheet and calling me again reads it whole.",
                     Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",
