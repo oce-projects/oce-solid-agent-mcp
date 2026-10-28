@@ -101,6 +101,12 @@ You do not need Visual Studio, a .NET SDK, Python or an internet connection to
 3. If an assistant does the installing for you, give it
    **[INSTALL-FOR-AI.md](INSTALL-FOR-AI.md)**: a procedure with the command, the
    expected exit code and the recovery for every step.
+4. **Install the skill too**, from [Skills/](Skills/README.md). The bridge gives the AI
+   the operations; the skill gives it the method, the known pitfalls and the advice of
+   an experienced designer on parts, mates, tree organization, drawings and 3D printing.
+   Without it the models and drawings come out worse. The installer does not copy it
+   yet: [Skills/README.md](Skills/README.md) says where it goes for Claude Code and
+   for other clients.
 
 The installer writes to your own user folder, needs no administrator rights, adds an
 entry named `solidworks` to the MCP clients it finds **without overwriting** the
