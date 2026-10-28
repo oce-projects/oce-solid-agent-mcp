@@ -1,6 +1,6 @@
 # Drawings with the bridge
 
-<!-- Part of skill solidworks-bridge 0.1.0. Recipe used in test rounds 14-20 on bridge
+<!-- Part of skill solidworks-bridge 0.2.0. Recipe used in test rounds 14-24 on bridge
 0.152.x: a 3-sheet A3 drawing of an assembly (views, section, details, BOM, balloons,
 one part alone on sheet 3). -->
 
@@ -24,6 +24,33 @@ one part alone on sheet 3). -->
 11. Turn the PDF pages into images and **look at them**: views inside the frame, no overlaps,
     every balloon arrow on its part, the BOM equal to the balloons.
 
+## A part drawing the way the designer wants it (bridge 0.152.10)
+
+Read the rules first: `designer-advice.md`, section "Drawings". On bridge 0.152.10 this is how
+to get closest to them (tested on 26P000007, round 24):
+
+1. **Views at the sheet scale.** `standard_views` always made views at 0.5 (sheet 1:1 and 2:1
+   tried). Instead: `set_sheet` with the scale, then `model_view` `front`, `top` and `left` at
+   sheet coordinates. First-angle projection: `top` **below** `front`, `left` **to the right**
+   of `front`, same x or same y. These views are not linked: moving one does not move the others.
+2. `model_view` `isometric` in a free corner.
+3. `detail_view` on the side view, circle on the whole profile (`radius_mm` about 6.5 for a
+   9 x 7 mm profile), `scale` 5, `label` A; `move_view` it with `x_mm`, `y_mm`.
+4. Read every view with `inspect_part` `view_edges` and choose the `edges`.
+5. **Chamfer first**, on the view where you want it: the first `drawing_dimension` call puts the
+   chamfer callout by itself on the view it works on, and refuses it later on another view.
+6. **One step per dimension** with the same `offset_mm` makes one row (a chain). In one step
+   with many edges the dimensions go down in a staircase. Rows: small ones at 12, chains at 22
+   and 32, the overall size at 42.
+7. **Detail dimensions above the detail:** a negative `offset_mm` moves a horizontal row up
+   (-50 put it above a 54 mm tall detail). Vertical dimensions: `offset_mm` 12, 24, 36 step
+   them out on the side.
+8. Export the PDF, turn it into an image, **look at it**, fix, then `save_document`.
+
+What 0.152.10 cannot do yet (asked of the bridge, see `known-pitfalls.md`): a distance between
+two edges, text added to a dimension, the side of a dimension, arrow placement, the detail circle
+style, moving a dimension, a scale on `section_view`.
+
 ## View names
 
 - `model_view` and `detail_view` answer with the name of the view they created
@@ -40,6 +67,8 @@ one part alone on sheet 3). -->
   ("visible edges 0") and removed.
 - The circle must lie inside the view outline, or it is refused ("does not fit").
 - The detail scale must be **larger** than the scale of the view it comes from.
+- The bridge places the label under the detail and the horizontal dimensions under it too:
+  they collide. Put the dimensions above (negative `offset_mm`).
 - To choose the spot, look at the exported PDF as an image and place the circle on an edge
   you can see. See `known-pitfalls.md`: the outline of a view has a margin around the drawing.
 

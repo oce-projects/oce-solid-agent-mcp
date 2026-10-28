@@ -1,7 +1,7 @@
 # Advice from an experienced designer
 
-<!-- Part of skill solidworks-bridge 0.1.0. Rules 1-7 of "Mates" and "Organizing the tree"
-come from an assembly corrected by hand by an experienced designer (28/10/2026);
+<!-- Part of skill solidworks-bridge 0.2.0. Rules 1-7 of "Mates" and "Organizing the tree", and
+the "Drawings" section, come from an assembly and drawings corrected by hand by an experienced designer (28/10/2026);
 the rest is common good practice. -->
 
 The aim is **design intent**: a model that stays right when a size changes, and that another
@@ -67,6 +67,58 @@ designer understands by reading the tree. A model that only looks right today is
 
 ## Drawings
 
-- Dimension what production and inspection need, not every edge.
-- A note on the first sheet says the material, how it is made, and what is still provisional.
+These rules come from drawings corrected by hand by an experienced designer (28/10/2026).
+
+### Who reads the drawing
+
+- The drawing is read in the **workshop**, often by people without a strong technical
+  background. It must let them work **on their own**, without asking.
+- **Better one dimension too many than one too few.** A dimension that is missing stops the
+  work; one that is repeated costs nothing.
+- Every feature needs its **size and its position**. A slot with its length but not its distance
+  from the end cannot be made.
+- Add a word to a dimension when it says what it is for: "2,5 CANALE" (channel), not only "2,5".
+- On an assembly, also put the dimension that states **the purpose** of the design (for example
+  where the primers sit when they slide). This is judgment, not a rule: put it when the part
+  exists for that reason.
+
+### Scale
+
+- Every orthographic view (front, top, side...) is at the **scale written in the title block**.
+- The isometric view may have another scale: it only shows the shape. It must fit on the sheet.
+- Section views and details **enlarge** (2:1, 5:1), never shrink.
+
+### Dimensions
+
+- Chains: put the **small dimensions nearest to the part**, then the chains of longer ones,
+  and the **overall size last**, farthest out.
+- **Arrows follow the text.** Text between the extension lines: arrows inside. Text outside
+  (the space is too small): arrows outside. Never text inside with the arrows outside.
+- Dimensions of a **detail go above it**, never between the detail and its label
+  ("DETTAGLIO A / SCALA 5 : 1").
+- Vertical dimensions step outwards: the shortest nearest to the part.
+- Chamfer: a callout with a leader from outside the part, "0,4 x 45°". The text never sits on
+  the lines of the part.
+- On an assembly, positions decided by the mates are **reference dimensions in parentheses**:
+  (35), (135).
+
+### Details
+
+- The circle takes in the whole feature (for a profile: the whole profile).
+- Style **"with leader"** (SOLIDWORKS: "Con linea di associazione"): the letter sits at the end
+  of a short line from the circle. "Fix position" on; no profile, full outline or jagged
+  outline.
+- The label says the letter and the scale: "DETTAGLIO A / SCALA 5 : 1".
+
+### Layout
+
+- Notes at the top left: material and how the part is made, then "QUOTE NON INDICATE: DA
+  MODELLO 3D" (sizes not dimensioned come from the 3D model).
+- Views do not touch each other or the isometric view.
+- An assembly drawing fits on **one sheet** when it can: views, section, detail, BOM and balloons.
+- The BOM sits **on top of the title block**, as wide as it.
+- Balloons go on every view where they help: isometric, section and detail, repeated.
+- Each drawing is saved **in the same folder and with the same name as its 3D file**
+  (26P000007.SLDPRT and 26P000007.SLDDRW side by side): with another path SOLIDWORKS loses
+  the references.
 - Section views and details only where they show something the main views do not.

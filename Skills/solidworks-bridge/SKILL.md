@@ -6,7 +6,7 @@ description: How to design parts, assemblies and drawings in SOLIDWORKS through 
 # Designing with the SOLIDWORKS bridge
 
 <!--
-Skill version: 0.1.2 (draft)
+Skill version: 0.2.0 (draft)
 Tested with: oce-solid-agent-mcp bridge 0.152.10, SOLIDWORKS Premium 2021 SP5.1 (Italian UI)
 Changelog:
 0.1.0 - 2026-10-28 - first draft, written from 20 test rounds on a real assembly
@@ -17,6 +17,9 @@ Changelog:
 0.1.2 - 2026-10-28 - `inspect_part` `view_edges` to choose the edges of
                      `drawing_dimension`; a plan that cites an identifier after
                      `document` open wants `inspect_part` first.
+0.2.0 - 2026-10-28 - drawing rules of the experienced designer (who reads the drawing,
+                     scale, chains, arrows, details, layout) and the 0.152.10 recipe to
+                     get close to them; nine new drawing pitfalls.
 -->
 
 This skill is for the AI that drives the bridge. It does not replace the bridge's own
@@ -92,6 +95,11 @@ Full recipe in `references/drawings.md`. The short version:
 3. `section_view`, `note`, `detail_view` (with `x_mm`, `y_mm`, `radius_mm` on real edges).
 4. `new_sheet` + `model_view` + `drawing_bom` + `balloons` for the assembly sheet.
 5. `export_pdf` with `search` for the texts that must be there, then **look at the PDF as an image**.
+
+The drawing is for the workshop: **better one dimension too many than one too few**, every
+feature with size and position, orthographic views at the title block scale. All the designer's
+rules are in `references/designer-advice.md` ("Drawings"); how to reach them with bridge 0.152.10
+is in `references/drawings.md`.
 
 ## 5. Before you say "done"
 
