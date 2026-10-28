@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
@@ -104,7 +105,8 @@ namespace Oce.Solid.Agent.Core
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = viewName,
-                ["asked_mm"] = new object[] { Math.Round(want[0] * 1000, 2), Math.Round(want[1] * 1000, 2) },
+                ["sheet"] = ActiveSheet(drawing),     // V1 counts the views of this sheet only (N57)
+                ["asked_mm"] =new object[] { Math.Round(want[0] * 1000, 2), Math.Round(want[1] * 1000, 2) },
                 ["moved_mm"] = new object[] { Math.Round(gotX * 1000, 2), Math.Round(gotY * 1000, 2) },
                 ["centre_before_mm"] = new object[] { Math.Round(cx * 1000, 2), Math.Round(cy * 1000, 2) },
                 ["centre_after_mm"] = new object[] { Math.Round((outlineAfter[0] + outlineAfter[2]) / 2.0 * 1000, 2), Math.Round((outlineAfter[1] + outlineAfter[3]) / 2.0 * 1000, 2) },
@@ -167,6 +169,7 @@ namespace Oce.Solid.Agent.Core
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = viewName,
+                ["sheet"] = ActiveSheet(drawing),     // V1 counts the views of this sheet only (N57)
                 ["removed"] = gone.ToArray(),
                 ["how_many_removed"] = gone.Count,
                 ["views_before"] = namesBefore.Count,
@@ -201,8 +204,39 @@ namespace Oce.Solid.Agent.Core
             }
             var view = ResolveView(drawing, names, wanted, out reason);
             if (reason != null) return null;
-            if (view == null) reason = "I cannot take the view «" + wanted + "».";
+            if (view == null) { reason = "I cannot take the view «" + wanted + "»."; return null; }
+            // A VIEW TAKEN AWAY BY ITS NUMBER, ON A DRAWING OF MORE SHEETS (report 8cd843 N57, round 15):
+            // V1 is the first view of the ACTIVE sheet, so after new_sheet or activate_sheet the same
+            // V1 is another view. Moving the wrong one can be seen and undone; taking it away cannot.
+            if (verb == "take away")
+            {
+                int sheets = 0;
+                try { sheets = drawing.GetSheetCount(); } catch { }
+                reason = UidOnManySheets(wanted, KnownViewName(names, wanted), view.GetName2(), ActiveSheet(drawing), sheets);
+                if (reason != null) return null;
+            }
             return view;
+        }
+
+        /// <summary>The name of the active sheet, or null when it cannot be read.</summary>
+        private static string ActiveSheet(IDrawingDoc drawing)
+        {
+            try { return (drawing.GetCurrentSheet() as ISheet)?.GetName(); } catch { return null; }
+        }
+
+        /// <summary>
+        /// Why a view cannot be taken away by its number V1, V2 … (report 8cd843 N57), null when it
+        /// can: the number counts the views of the active sheet only, and with two sheets or more the
+        /// same number names another view on another sheet. A view really called «V1» is a name, not
+        /// a number. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string UidOnManySheets(string wanted, bool isRealName, string viewName, string sheet, int sheets)
+        {
+            if (sheets < 2 || isRealName || wanted == null) return null;
+            if (!Regex.IsMatch(wanted.Trim(), @"^[Vv]\d+$")) return null;
+            return "«" + wanted.Trim() + "» numbers the views of the active sheet «" + sheet + "» only, and this drawing has " +
+                   sheets + " sheets: on another sheet the same number is another view. To take a view away, give its name: " +
+                   "here «" + wanted.Trim() + "» is «" + viewName + "». I touched nothing.";
         }
 
         /// <summary>

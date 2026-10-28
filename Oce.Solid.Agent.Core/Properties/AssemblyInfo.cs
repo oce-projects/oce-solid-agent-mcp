@@ -669,8 +669,13 @@ using System.Runtime.InteropServices;
 //          replaced, and refuses with «overwrite» false (N55); balloons whose
 //          arrows end within 5 mm of another are put again on a visible line
 //          of their own part (N56); inspect_part gives the outline of a view.
-[assembly: AssemblyVersion("0.174.5.0")]
-[assembly: AssemblyFileVersion("0.174.5.0")]
+// 0.174.6: round 15 of report 8cd843: every view of the state says its sheet,
+//          and the state says that V1, V2 ... count the views of the active
+//          sheet; delete_view refuses a view asked by number on a drawing of
+//          more sheets (N57); move_view and delete_view say the sheet; the
+//          section no longer reports hatches_solids (observation 2).
+[assembly: AssemblyVersion("0.174.6.0")]
+[assembly: AssemblyFileVersion("0.174.6.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -685,4 +690,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.5")]
+[assembly: AssemblyInformationalVersion("0.174.6")]

@@ -728,7 +728,7 @@ cases/assemblies/     26   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      56   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      57   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);
@@ -797,7 +797,8 @@ cases/drawing/      56   the first case that gets to the DRAWING (entry GT0);
                        outline, and moved off its line, refused; a view deleted,
                        and one that has a section, refused unless asked
                        (report 8cd843 N54); the save says the file it replaced,
-                       and with «overwrite» false it refuses (N55)
+                       and with «overwrite» false it refuses (N55); a view asked
+                       by number on a drawing of two sheets is not taken away (N57)
 cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        two different places; the trim really shortens the bar,
                        and refuses between bars that do not meet; the bead

@@ -262,6 +262,9 @@ namespace Oce.Solid.Agent.Core
                         var entry = new Dictionary<string, object>
                         {
                             ["uid"] = "V" + totalViews,
+                            // V1, V2 ... count the views of the ACTIVE sheet (report 8cd843 N57):
+                            // on another sheet the same uid is another view.
+                            ["sheet"] = active,
                         };
                         try { entry["name"] = v.Name; } catch { }
                         try { entry["kind"] = ViewTypeName(v.Type); } catch { }
@@ -335,6 +338,10 @@ namespace Oce.Solid.Agent.Core
 
             if (views.Count > 0) data["views"] = views;
             data["views_total"] = totalViews;
+            if (sheets.Count > 1)
+                data["note_views"] = "V1, V2 ... number the views of the active sheet «" + active + "» only, and the views of the " +
+                                     "other sheets are not listed: after «new_sheet» or «activate_sheet» the same uid is another view. " +
+                                     "«delete_view» wants the name of the view on a drawing of more sheets.";
             data["dimensions_total"] = quoteTotali;
             data["center_marks_total"] = totalCenterMarks;
             data["dimensions_with_number_not_from_model_total"] = totalBogusNumbers;

@@ -3511,7 +3511,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "the view, by name or V1, V2 ... as the state of the drawing lists them."),
+                            "view", O("type", "string", "description", "the view, by name or V1, V2 ... as the state of the drawing lists them for the ACTIVE sheet (on another sheet the same number is another view)."),
                             "dx_mm", O("type", "number", "description", "how far to move it, positive to the right, in sheet millimetres."),
                             "dy_mm", O("type", "number", "description", "how far to move it, positive upward, in sheet millimetres."),
                             "x_mm", O("type", "number", "description", "where its centre goes, from the left edge of the sheet. Instead of dx_mm and dy_mm."),
@@ -3537,12 +3537,16 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«with_derived» is true. Views projected from it stay where they are, without a parent "
                         + "(«without_parent_now»). A detail taken away takes its circle off the view it enlarged.\n\n"
                         + "«removed» lists the views that are gone, read again from the sheet after the deletion; a "
-                        + "«warning» says if SOLIDWORKS took more, or fewer, than expected.",
+                        + "«warning» says if SOLIDWORKS took more, or fewer, than expected; «sheet» is the sheet it "
+                        + "was on.\n\n"
+                        + "I REFUSE IF THE DRAWING HAS MORE SHEETS AND «view» IS A NUMBER (V1, V2 ...): the number counts "
+                        + "the views of the active sheet only, and on another sheet the same number is another view "
+                        + "(report 8cd843 N57). Give the name of the view, as «inspect_part» lists it.",
                     Precondition = "an open drawing with the view on its current sheet",
                     Schema = O(
                         "type", "object",
                         "properties", O(
-                            "view", O("type", "string", "description", "the view, by name or V1, V2 ... as the state of the drawing lists them."),
+                            "view", O("type", "string", "description", "the view, by name or V1, V2 ... as the state of the drawing lists them for the ACTIVE sheet (on another sheet the same number is another view)."),
                             "with_derived", O("type", "boolean", "description", "true: take away also the sections and details made from it. Default false (refused if there are).")),
                         "required", A("view")),
                 },

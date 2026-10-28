@@ -2898,7 +2898,7 @@
     "properties": {
      "view": {
       "type": "string",
-      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them."
+      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them for the ACTIVE sheet (on another sheet the same number is another view)."
      },
      "dx_mm": {
       "type": "number",
@@ -2929,13 +2929,13 @@
    "name": "delete_view",
    "family": "drawing",
    "summary": "Takes away a view of the drawing, and reads back which views went.",
-   "details": "Takes away ONE view of the current sheet, with what is in it: its dimensions, notes and balloons. A bill of materials stays: it is on the sheet, not in the view (measured).\n\nSECTIONS AND DETAILS MADE FROM IT GO WITH IT (measured: taking away the front view took its section and its two details). So I refuse a view that has them, and name them, unless «with_derived» is true. Views projected from it stay where they are, without a parent («without_parent_now»). A detail taken away takes its circle off the view it enlarged.\n\n«removed» lists the views that are gone, read again from the sheet after the deletion; a «warning» says if SOLIDWORKS took more, or fewer, than expected.",
+   "details": "Takes away ONE view of the current sheet, with what is in it: its dimensions, notes and balloons. A bill of materials stays: it is on the sheet, not in the view (measured).\n\nSECTIONS AND DETAILS MADE FROM IT GO WITH IT (measured: taking away the front view took its section and its two details). So I refuse a view that has them, and name them, unless «with_derived» is true. Views projected from it stay where they are, without a parent («without_parent_now»). A detail taken away takes its circle off the view it enlarged.\n\n«removed» lists the views that are gone, read again from the sheet after the deletion; a «warning» says if SOLIDWORKS took more, or fewer, than expected; «sheet» is the sheet it was on.\n\nI REFUSE IF THE DRAWING HAS MORE SHEETS AND «view» IS A NUMBER (V1, V2 ...): the number counts the views of the active sheet only, and on another sheet the same number is another view (report 8cd843 N57). Give the name of the view, as «inspect_part» lists it.",
    "schema": {
     "type": "object",
     "properties": {
      "view": {
       "type": "string",
-      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them."
+      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them for the ACTIVE sheet (on another sheet the same number is another view)."
      },
      "with_derived": {
       "type": "boolean",

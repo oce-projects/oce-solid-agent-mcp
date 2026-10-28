@@ -32,6 +32,36 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.7 — 28 October 2026 · library 0.174.6 · fifteenth round of session 8cd843: N57 (branch `night-2026-10-26-asm`)
+
+- **Fifteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.6)**: N52 to N56 held
+  on a drawing of two sheets made again from the start. The section was born «slid
+  -45 mm», between the front and the side view. `move_view` moved a free view and an
+  aligned one along its line, refused and put back two moves across it, and the front
+  view took its three aligned views with it and back. `delete_view` took away a detail
+  of trial and refused the front view. `overwrite` false refused, and the file stayed
+  as it was. The arrows 4 and 6 moved onto their own parts. SOLIDWORKS did not fall: one
+  drawing, one sheet, the longest step 4984 ms. The assembly was not mounted further:
+  the true positions and whether to mount the two loose parts are the owner's decisions.
+- **N57 (P3)**: with the second sheet active, `inspect_part` gave V1 to the isometric
+  view of that sheet, while on the first sheet V1 is the front view, and no view said
+  its sheet. The numbers count the views of the active sheet, and so does every
+  operation that takes a view. Now every view of the state says its `sheet`, and a
+  drawing of more sheets gets `note_views`, which says it. `move_view` and
+  `delete_view` say the `sheet` they acted on. `delete_view` refuses a view asked by
+  number on a drawing of more sheets, naming the view the number stands for: a view
+  moved by mistake can be seen and moved back, a view taken away cannot
+  (`UidOnManySheets`). A view really called «V1» is a name, and goes.
+- **Observation 2**: `hatches_solids` read 0 beside a PDF with the hatching. It is
+  `IView.GetSolidHatchCount`, the areas filled solid, zero on a section by its nature;
+  it is no longer in the answer of `section_view`, and stays in the comments and in
+  `Checks/SectionView`. `hatches` is the count that says the cut met material.
+- Observation 1 of the report (the name of a view depends on the history of the
+  drawing: a refused detail uses a number) is advice for whoever writes plans, not a
+  defect: the name to use is the one the answer of `model_view` gives.
+- Catalog of `move_view` and `delete_view`; bench case
+  `limit_delete_view_by_number_on_two_sheets`; contract Zc2198.
+
 ## 0.152.6 — 27 October 2026 · library 0.174.5 · SOLIDWORKS no longer falls after some drawings made through the bridge (branch `night-2026-10-26-asm`)
 
 - **Found while checking 0.152.5**: SOLIDWORKS fell inside `new_sheet` in the bench

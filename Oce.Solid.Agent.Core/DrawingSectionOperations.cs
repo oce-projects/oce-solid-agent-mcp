@@ -376,11 +376,11 @@ namespace Oce.Solid.Agent.Core
             // it is used.*
             try { hatching = sectionView.GetFaceHatchCount(); } catch { }
 
-            // The other one is read all the same and reported: it is zero on a
-            // good section, and having it alongside is what stops
-            // someone from trying again in six months.
-            int solids = -1;
-            try { int q; sectionView.GetSolidHatchCount(out q); solids = q; } catch { }
+            // The other counter, GetSolidHatchCount, counts the areas filled solid and is zero on
+            // a good section (measured, Checks/SectionView). It was reported beside `hatches`
+            // until 0.174.6 so that nobody tried it again; round 15 of report 8cd843 read that
+            // 0 as «no hatching» next to a PDF with the hatching, so it stays here and in
+            // Checks/SectionView, not in the answer.
 
             // ── THE SECTION OF THE VIEW ASKED (N48) ──────────────────────
             //
@@ -466,13 +466,10 @@ namespace Oce.Solid.Agent.Core
                     Math.Round(x1 * 1000, 2), Math.Round(y1 * 1000, 2),
                     Math.Round(x2 * 1000, 2), Math.Round(y2 * 1000, 2),
                 },
-                // TWO NUMBERS, AND THE SECOND IS ZERO BY ITS NATURE. `hatches` is the
-                // count of face hatchings, which is what says whether
-                // the cut met material; `hatches_solids` is
-                // the other counter, which on a section is zero — it is here
-                // so that nobody tries the already measured route again.
+                // `hatches` is the count of face hatchings, which is what says whether
+                // the cut met material (the solid fills, zero on a section, are left
+                // out: see above).
                 ["hatches"] = hatching,
-                ["hatches_solids"] = solids,
                 // What the section was made from (N48), and where the line went in the
                 // sketch of that view (its own coordinates, see SheetToViewSketch).
                 ["base_view"] = sectionBase ?? "not readable",
