@@ -1,0 +1,64 @@
+{
+  "name": "pdf_search_finds_a_wrapped_text",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 19 (28/10/2026), observation. A value of four words in a box of the title block was wrapped by SOLIDWORKS over two lines, and «export_pdf» with «search» put it in «not_found» while the PDF printed it. Measured on that PDF: PdfText gives each printed line as a line of its own, the first ending in a space.",
+
+  "defect_caught": "A printed text said «not found» because it runs over two lines; and, the other way round, a search that ignores more than the line break, finding a text that is not printed.",
+
+  "_why_a_note_of_two_lines": "The wrap of round 19 came from a box too narrow for the value, on a title block of the workshop that the bench does not write. A note with a line break prints the same thing, two lines one under the other, and the bench can write it. If SOLIDWORKS does not take the line break of «note» as a new line, the twin text below says so: it would be found whole, and the case red.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the plate the drawing shows: if this does not add up, the drawing below is of another part" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\pdf_search_finds_a_wrapped_text.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the file of the part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the steps measure the drawing" } ] },
+
+    { "operation": "model_view",
+      "arguments": { "model": "{WORK}\\pdf_search_finds_a_wrapped_text.sldprt",
+                     "view": "isometric", "x_mm": 320, "y_mm": 200 },
+      "expect": [
+        { "what": "measurements.views_after", "equal_to": 1,
+          "why": "a drawing with a view, as the drawings the search is used on" } ] },
+
+    { "operation": "note",
+      "arguments": { "text": "WRAPPED FIRST LINE\nSECOND LINE 19", "x_mm": 20, "y_mm": 250 },
+      "expect": [
+        { "what": "measurements.notes_placed", "equal_to": 1,
+          "why": "the text of two lines that the last step must find again in the PDF" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\pdf_search_finds_a_wrapped_text.slddrw" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "«export_pdf» without a path writes next to the drawing" } ] },
+
+    { "operation": "export_pdf",
+      "arguments": { "search": ["WRAPPED FIRST LINE", "WRAPPED FIRST LINE SECOND LINE 19", "WRAPPED FIRST LINE SECOND LINE 20"] },
+      "expect": [
+        { "what": "measurements.found", "equal_to": ["WRAPPED FIRST LINE"],
+          "why": "one line of the note, found as it is printed. Only it: the whole text, if found here, would mean the note was printed on one line, and the case would not measure the wrap" },
+        { "what": "measurements.found_on_several_lines", "equal_to": ["WRAPPED FIRST LINE SECOND LINE 19"],
+          "why": "THE FIX: the two lines read as one text across the line break. Until bridge 0.152.9 this text went to «not_found»" },
+        { "what": "measurements.not_found", "equal_to": ["WRAPPED FIRST LINE SECOND LINE 20"],
+          "why": "THE RED IN THE SAME RUN: the same two lines with the last character changed. Ignoring the line break must not become finding what is not printed" },
+        { "what": "measurements.on_several_lines_note", "includes": ["only across a line break", "look at the box"],
+          "why": "the answer says what a text on several lines asks of whoever reads it: a value wrapped in its box can run out of it, as the second line did in round 19" },
+        { "what": "measurements.pages", "equal_to": 1,
+          "why": "the pages counted in the file written, as in drawing_exports_to_pdf" } ] }
+  ]
+}

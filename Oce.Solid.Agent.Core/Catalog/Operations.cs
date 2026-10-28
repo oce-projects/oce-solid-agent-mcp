@@ -2772,7 +2772,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "must be there (the drawing number, the part name) and I tell "
                         + "you which are there («found») and which are not "
                         + "(«not_found»). The text in the PDF is written as glyph indices, "
-                        + "and a search in the bytes does not find it: here it is decoded."
+                        + "and a search in the bytes does not find it: here it is decoded. "
+                        + "A text found only across a line break, as a value wrapped in its box "
+                        + "and printed over two lines, is in «found_on_several_lines», not in "
+                        + "«not_found», with «on_several_lines_note»: look at the box, a wrapped "
+                        + "value can run out of it."
                         + "\n\nWhen writing the PDF marks a saved drawing as changed (measured on a "
                         + "drawing of two sheets), the answer says «marked_unsaved» true: put "
                         + "«save_document» after «export_pdf», or «document close» refuses the drawing.",
@@ -3796,7 +3800,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "sheet does not show them empty too, I say it in «other_sheets_warning» and in the verdict; "
                         + "those empty on this sheet too are only counted, they are already in «requested_but_empty». "
                         + "When I cannot reach its title block I use the "
-                        + "names of this one and say so; activating the sheet and calling me again reads it whole.",
+                        + "names of this one and say so; activating the sheet and calling me again reads it whole."
+                        + "\n\nWHAT A BOX SHOWS IS WHAT THE DRAWING CALCULATED LAST. After «set_property» on the "
+                        + "model in view a box can still show the old value, and a PDF written then may print the old "
+                        + "value or the new one: every field that is one `$PRPSHEET` link is compared with the value "
+                        + "the model has now, and the ones that differ are in «requested_shown_with_an_old_value» with "
+                        + "«model_has», said in the verdict too. Close the drawing and open it again before trusting "
+                        + "those boxes and before writing the PDF.",
                     Precondition = "an open drawing",
                     Schema = O(
                         "type", "object",

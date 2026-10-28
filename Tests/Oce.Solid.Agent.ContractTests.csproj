@@ -116,6 +116,7 @@
     <Compile Include="Zc2198DrawingRound15Contract.cs" />
     <Compile Include="Zc2199DrawingRound16Contract.cs" />
     <Compile Include="Zc2200DrawingRound17Contract.cs" />
+    <Compile Include="Zc2201DrawingRound19Contract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />
     <Compile Include="Zc215IdentityContract.cs" />
     <Compile Include="SolidWorksNamesContract.cs" />

@@ -1176,10 +1176,21 @@ namespace Oce.Solid.Agent.Core
                 string text = "";
                 try { text = PdfText.Read(location); } catch { }
                 var foundItems = new List<object>();
+                var wrappedItems = new List<string>();
                 var missingItems = new List<object>();
                 foreach (var c in searched)
-                    (text.IndexOf(c, StringComparison.Ordinal) >= 0 ? foundItems : missingItems).Add(c);
+                {
+                    string where = PdfSearchVerdict(text, c);
+                    if (where == "found") foundItems.Add(c);
+                    else if (where == "on_several_lines") wrappedItems.Add(c);
+                    else missingItems.Add(c);
+                }
                 measurements["found"] = foundItems.ToArray();
+                // A value wrapped in its box is printed, over two lines: it is not
+                // «not_found» (report 8cd843, round 19), but it is worth a look.
+                measurements["found_on_several_lines"] = wrappedItems.ToArray();
+                string wrappedNote = OnSeveralLinesNote(wrappedItems);
+                if (wrappedNote != null) measurements["on_several_lines_note"] = wrappedNote;
                 measurements["not_found"] = missingItems.ToArray();
                 if (missingItems.Count > 0)
                     measurements["warning"] = "I do not find in the written PDF: «" + string.Join("», «", missingItems) +
@@ -2033,6 +2044,49 @@ namespace Oce.Solid.Agent.Core
                        sheets + (sheets == 1 ? " sheet" : " sheets") + ". The file is there and it is not the one " +
                        "you need: look at it before sending it to the shop. (" + path + ")";
             return null;
+        }
+
+        /// <summary>
+        /// WHERE A SEARCHED TEXT IS IN THE TEXT OF THE PDF (report 8cd843, round 19,
+        /// observation, 28/10/2026). A value too long for its box is wrapped by
+        /// SOLIDWORKS, and PdfText gives each printed line as a line of its own:
+        /// measured on the PDF of round 19, a value of four words in a box of the
+        /// title block came out as two lines, the first ending in a space. The plain
+        /// search said «not_found» for a text that is printed. Only the line breaks
+        /// are ignored, joined by a space or by nothing (a word cut in two): every
+        /// other character must match as asked. «found», «on_several_lines» or
+        /// «not_found». No interop type: Oce.Solid.Agent.ContractTests calls it by
+        /// reflection.
+        /// </summary>
+        internal static string PdfSearchVerdict(string text, string wanted)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(wanted)) return "not_found";
+            if (text.IndexOf(wanted, StringComparison.Ordinal) >= 0) return "found";
+            // The spaces and tabs at a line break go with it: «A \nB» is «A B» or «AB».
+            string[] lines = text.Replace("\r\n", "\n").Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (i < lines.Length - 1) lines[i] = lines[i].TrimEnd(' ', '\t');
+                if (i > 0) lines[i] = lines[i].TrimStart(' ', '\t');
+            }
+            string joinedBySpace = string.Join(" ", lines);
+            string joinedByNothing = string.Join("", lines);
+            if (joinedBySpace.IndexOf(wanted, StringComparison.Ordinal) >= 0 ||
+                joinedByNothing.IndexOf(wanted, StringComparison.Ordinal) >= 0)
+                return "on_several_lines";
+            return "not_found";
+        }
+
+        /// <summary>
+        /// What «found_on_several_lines» means, for the answer; null when it is empty.
+        /// </summary>
+        internal static string OnSeveralLinesNote(List<string> texts)
+        {
+            if (texts == null || texts.Count == 0) return null;
+            return "«" + string.Join("», «", texts) + "» " + (texts.Count == 1 ? "is" : "are") +
+                   " in the PDF only across a line break: printed over more than one line, or where one text " +
+                   "ends and the next begins. A value wrapped in a box of the title block can run out of it: " +
+                   "look at the box.";
         }
     }
 }

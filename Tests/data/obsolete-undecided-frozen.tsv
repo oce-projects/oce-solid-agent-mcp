@@ -108,7 +108,6 @@ Oce.Solid.Agent.Core/DrawingDimensionOperations.cs|Value	17
 Oce.Solid.Agent.Core/DrawingLabelOperations.cs|Text	1
 Oce.Solid.Agent.Core/DrawingLabelOperations.cs|Type	1
 Oce.Solid.Agent.Core/DrawingLabelOperations.cs|Value	1
-Oce.Solid.Agent.Core/DrawingOperations.cs|Add	1
 Oce.Solid.Agent.Core/DrawingOperations.cs|Delete	1
 Oce.Solid.Agent.Core/DrawingOperations.cs|GetFirstDisplayDimension	1
 Oce.Solid.Agent.Core/DrawingOperations.cs|Text	1

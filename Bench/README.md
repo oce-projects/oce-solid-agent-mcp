@@ -728,7 +728,7 @@ cases/assemblies/     26   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      60   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      61   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);

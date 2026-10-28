@@ -683,8 +683,12 @@ using System.Runtime.InteropServices;
 //          view or in the order of the bill of materials, and says the
 //          numbers a tie between crowded arrows decided (N60); title_block
 //          compares the formats of the sheets by their file (observation).
-[assembly: AssemblyVersion("0.174.8.0")]
-[assembly: AssemblyFileVersion("0.174.8.0")]
+// 0.174.9: round 19 of report 8cd843: export_pdf finds a searched text
+//          wrapped over two lines, and says it in found_on_several_lines
+//          with a note, not in not_found (observation); title_block says the
+//          boxes that show a value the model no longer has (N61).
+[assembly: AssemblyVersion("0.174.9.0")]
+[assembly: AssemblyFileVersion("0.174.9.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -699,4 +703,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.8")]
+[assembly: AssemblyInformationalVersion("0.174.9")]

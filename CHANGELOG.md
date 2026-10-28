@@ -32,6 +32,38 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.10 — 28 October 2026 · library 0.174.9 · nineteenth round of session 8cd843: N61 (branch `night-2026-10-26-asm`)
+
+- **Nineteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.9)**: the assembly as in
+  round 18 (15 mates, the two Solid parts free, interference 19.033 mm³); the drawing made
+  from nothing, 3 sheets, PDF 16 of 16 texts; the balloons around the view with the same
+  tie, in the order of the bill of materials the same numbers as round 18. `title_block`
+  with each sheet active in turn named the other two with `A3.slddrt` and the right models;
+  the drawing closed and opened again read the same. One drawing made, three opened from
+  disk, SOLIDWORKS did not fall.
+- **Observation**: `export_pdf` with `search` put in `not_found` a value of the title block
+  that the PDF printed, wrapped over two lines in its box. Measured on that PDF: `PdfText`
+  gives each printed line as a line of its own, the first ending in a space. Now a text
+  found only across a line break (joined by a space, or by nothing for a word cut in two)
+  is in `found_on_several_lines` with `on_several_lines_note`, which says to look at the
+  box (`PdfSearchVerdict`, `OnSeveralLinesNote`); every other character must match as asked.
+- **N61 (P3)**: after `set_property` on the model in view and its save, `title_block` read the
+  old value of the box until the drawing was opened again, while the PDF written in between
+  printed the new one: the answer and the PDF said two different things. In scenario t61 (a
+  new part, the drawing of the workshop, bridge 0.152.10) the PDF written in between printed
+  the OLD value too: a PDF written then may print either. The text of a note is the one the
+  drawing calculated last. Now every box that is one `$PRPSHEET` link and nothing else, the
+  format codes such as `<FONT size=8PTS>` aside (the boxes of the workshop have them, measured
+  in t61), is compared with the value the model has now, in each drawer
+  (`FirstViewModel`, `CurrentValues`, `ShowsAnOldValue`): the ones that differ from all are in
+  `requested_shown_with_an_old_value` with `model_has`, and `old_value_note`, said in the
+  verdict too (`OldValueNote`), tells to open the drawing again. The box is not refreshed:
+  what refreshes it, other than opening the drawing again, was not measured. The owner put the
+  title block aside for now (relayed by session 8cd843): this is the measurement only.
+- Catalogs of `export_pdf` and `title_block`; bench case `pdf_search_finds_a_wrapped_text`;
+  scenario t61 on copies for N61 (no operation of a plan brings the part forward once the
+  drawing is made); contract Zc2201.
+
 ## 0.152.9 — 28 October 2026 · library 0.174.8 · seventeenth round of session 8cd843: N60 (branch `night-2026-10-26-asm`)
 
 - **Seventeenth round on SOLIDWORKS (session 8cd843, bridge 0.152.8)**: N58, N59 and the

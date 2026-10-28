@@ -109,6 +109,11 @@ namespace Oce.Solid.Agent.Core
             var requestedItems = new List<string>();
             var empty = new List<string>();
             var shown = new List<string>();
+            // The fields that are one `$PRPSHEET` link and nothing else, compared with the
+            // model further down (N61).
+            var singleAsks = new List<string>();
+            var singleShows = new List<string>();
+            var singleNames = new List<string>();
             int connected = 0;
 
             foreach (var n in note)
@@ -156,6 +161,12 @@ namespace Oce.Solid.Agent.Core
                 if (names.Count > 0) entry["property"] = names.ToArray();
                 if (onlyFixed && !string.IsNullOrWhiteSpace(show)) entry["only_fixed_text"] = true;
                 fields.Add(entry);
+                if (names.Count == 1 && names[0].EndsWith(FromThePart, StringComparison.Ordinal) && !showNothing)
+                {
+                    singleAsks.Add(asks);
+                    singleShows.Add(show);
+                    singleNames.Add(BareName(names[0]));
+                }
             }
 
             var measurements = new Dictionary<string, object>
@@ -260,6 +271,35 @@ namespace Oce.Solid.Agent.Core
                     "Writing them again changes nothing. Try rebuilding the drawing " +
                     "and reading again; if they stay empty, the link is broken.";
 
+            // ── A VALUE THE MODEL NO LONGER HAS (report 8cd843 N61, round 19) ──
+            //
+            // The text of a note is the one the drawing calculated last. After
+            // «set_property» on the model shown in the view, and its save, this operation
+            // still read the old value of the field until the drawing was opened again,
+            // while the PDF written in between printed the new one: the answer and the PDF
+            // said two different things. Each field that is one `$PRPSHEET` link and
+            // nothing else is compared with the value the model has now, in each drawer:
+            // different from all of them is an old value. ALWAYS, EVEN EMPTY, for the reason
+            // given above `requested_present_on_model_but_shown_empty`.
+            var oldValues = new List<object>();
+            string viewConfiguration;
+            var viewModel = FirstViewModel(drawing, out viewConfiguration);
+            if (viewModel != null)
+                for (int i = 0; i < singleAsks.Count; i++)
+                {
+                    List<string> current = CurrentValues(viewModel, viewConfiguration, singleNames[i]);
+                    if (ShowsAnOldValue(singleAsks[i], singleShows[i], current))
+                        oldValues.Add(new Dictionary<string, object>
+                        {
+                            ["property"] = singleNames[i],
+                            ["shows"] = singleShows[i],
+                            ["model_has"] = current.ToArray(),
+                        });
+                }
+            measurements["requested_shown_with_an_old_value"] = oldValues.ToArray();
+            string oldValueNote = OldValueNote(oldValues.Count);
+            if (oldValueNote != null) measurements["old_value_note"] = oldValueNote;
+
             string viewByProperty = TestText(() => sheet.CustomPropertyView);
             if (!string.IsNullOrWhiteSpace(viewByProperty))
                 measurements["sheet_properties_source_view"] = viewByProperty;
@@ -309,6 +349,9 @@ namespace Oce.Solid.Agent.Core
             if (otherWarnings.Count > 0)
                 measurements["verdict"] = measurements["verdict"] + " BUT ON THE OTHER SHEETS: " +
                                           measurements["other_sheets_warning"];
+            // A box that shows a value is not a box that shows the right one (N61).
+            if (oldValueNote != null)
+                measurements["verdict"] = measurements["verdict"] + " AND " + oldValueNote;
 
             _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
@@ -773,6 +816,107 @@ namespace Oce.Solid.Agent.Core
                    "» of the active sheet: its title block may ask for other names than those above. " +
                    "Activate it and call «title_block» to read them.";
         }
+
+        /// <summary>
+        /// The model of the first real view of the active sheet, the one `$PRPSHEET` takes
+        /// from, with the configuration the view shows (N61). Null when it cannot be reached.
+        /// </summary>
+        private static IModelDoc2 FirstViewModel(IDrawingDoc drawing, out string configuration)
+        {
+            configuration = null;
+            try
+            {
+                // The first «view» is the SHEET: the real views begin after.
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
+                while (v != null)
+                {
+                    IModelDoc2 m = null;
+                    try { m = v.ReferencedDocument as IModelDoc2; } catch { }
+                    if (m != null)
+                    {
+                        try { configuration = v.ReferencedConfiguration; } catch { }
+                        return m;
+                    }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// The values «name» has now on the model, resolved, one per drawer that gives it
+        /// one: the document, the configuration of the view, the active configuration
+        /// (N61). Which drawer wins when they differ was not measured, so all are kept.
+        /// </summary>
+        private static List<string> CurrentValues(IModelDoc2 m, string configuration, string name)
+        {
+            var values = new List<string>();
+            var drawers = new List<string> { "" };
+            if (!string.IsNullOrWhiteSpace(configuration)) drawers.Add(configuration);
+            try
+            {
+                IConfigurationManager g = m.ConfigurationManager as IConfigurationManager;
+                IConfiguration activeConfiguration = g == null ? null : g.ActiveConfiguration as IConfiguration;
+                string active = activeConfiguration == null ? null : activeConfiguration.Name;
+                if (!string.IsNullOrWhiteSpace(active) && !drawers.Contains(active, StringComparer.Ordinal)) drawers.Add(active);
+            }
+            catch { }
+            foreach (var d in drawers)
+            {
+                try
+                {
+                    var gp = m.Extension.get_CustomPropertyManager(d) as ICustomPropertyManager;
+                    var names = gp?.GetNames() as string[];
+                    var real = names?.FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+                    if (real == null) continue;
+                    string raw, resolved;
+                    bool wasResolved, link;
+                    gp.Get6(real, false, out raw, out resolved, out wasResolved, out link);
+                    if (!string.IsNullOrWhiteSpace(resolved) && !values.Contains(resolved, StringComparer.Ordinal)) values.Add(resolved);
+                }
+                catch { }
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// Whether a field shows a value the model no longer has (report 8cd843 N61): the
+        /// field asks one `$PRPSHEET` link and nothing else, shows a value, and the model
+        /// has values for it now, none equal to the one shown (spaces at the ends aside).
+        /// A field with fixed text around its link is never judged: what it shows is not
+        /// the value alone. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool ShowsAnOldValue(string asks, string shows, List<string> current)
+        {
+            if (string.IsNullOrWhiteSpace(asks) || string.IsNullOrWhiteSpace(shows)) return false;
+            if (current == null || current.Count == 0) return false;
+            var links = Connection.Matches(asks);
+            if (links.Count != 1 || !links[0].Groups[1].Success) return false;
+            // The format codes are not text: the box of the workshop asks
+            // «<FONT size=8PTS>$PRPSHEET:"..."» (scenario t61, 28/10/2026).
+            if (FormatCode.Replace(Connection.Replace(asks, ""), "").Trim().Length > 0) return false;
+            foreach (var c in current)
+                if (c != null && string.Equals(c.Trim(), shows.Trim(), StringComparison.Ordinal)) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// What is said when fields show an old value (N61), null when none does. Pure, so
+        /// the contract suite reads it.
+        /// </summary>
+        internal static string OldValueNote(int fields)
+        {
+            if (fields <= 0) return null;
+            return (fields == 1 ? "1 field of the title block shows" : fields + " fields of the title block show") +
+                   " a value the model no longer has (see «requested_shown_with_an_old_value», «model_has»): " +
+                   "the text of a note is the one the drawing calculated last. A PDF written now may print the " +
+                   "old value or the new one (both measured). Close the drawing and open it again before trusting " +
+                   "the boxes, and before writing the PDF.";
+        }
+
+        /// <summary>A format code of a note, «&lt;FONT size=8PTS&gt;»: not text (N61).</summary>
+        private static readonly Regex FormatCode = new Regex("<[^<>]*>");
 
         /// <summary>The mark ConnectedNames puts on a name asked with `$PRPSHEET`.</summary>
         private const string FromThePart = "  (from the part, not from the drawing)";
