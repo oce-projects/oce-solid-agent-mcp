@@ -9,7 +9,9 @@ one part alone on sheet 3). -->
 1. `create_drawing` (`paper_size`), `standard_views` (`model`), `model_view` isometric,
    `save_document` with the drawing path.
 2. `drawing_dimension` on the front view, then on the top view (`overall`, `components`).
-   Each one takes 15-30 s: it is computing, not stuck.
+   Each one takes 15-30 s: it is computing, not stuck. Choose the `edges` from `inspect_part`
+   with `view_edges`: each edge with its number, kind, mm, facing and position on the sheet.
+   Chosen blind, they give dimensions nobody needs (5 mm, 133 mm instead of the overall size).
 3. `section_view` (`view`, `orientation`, `offset_mm`, `label`) and `note` (general notes).
    The bridge slides the section along its view to where nothing else is.
 4. `detail_view` for each detail (see "Details" below).

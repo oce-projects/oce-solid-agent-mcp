@@ -14,5 +14,6 @@ When the bridge is newer, check whether it still happens before working around i
 | 0.152.x | `balloons` with the default order can swap two numbers between two equal runs (`numbers_decided_by_a_tie`). | Use `order` `bill_of_materials` when the numbers must not move. |
 | 0.152.9 - 0.152.10 | After `set_property` on a model, an open drawing keeps the old text in the title block until it is closed and reopened. One test exported the PDF with the old value, one with the new. | Close and reopen the drawing before `export_pdf`. |
 | 0.152.x | A refused `detail_view` still uses up a view number: the names of the next views shift. | Read the view name from each answer. |
+| 0.152.10 | After `document` `open` brings a document to the front, a plan that cites an identifier (V1, F3, C1) is refused: «I have not read ... since «document» brought it to the front». | Call `inspect_part` after `document` `open`, then copy the identifiers from it. |
 | 0.152.x | A plan with an operation that does not exist is refused whole, before any step runs. | Check the name with `list_operations` or `describe_operation` (argument `name`). |
 | all | SOLIDWORKS is one program shared by every session and by the person. A test bench refuses to start while documents are open. | Agree on turns; leave SOLIDWORKS with no documents open when you finish. |

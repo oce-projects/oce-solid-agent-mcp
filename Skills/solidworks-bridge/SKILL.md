@@ -6,7 +6,7 @@ description: How to design parts, assemblies and drawings in SOLIDWORKS through 
 # Designing with the SOLIDWORKS bridge
 
 <!--
-Skill version: 0.1.1 (draft)
+Skill version: 0.1.2 (draft)
 Tested with: oce-solid-agent-mcp bridge 0.152.10, SOLIDWORKS Premium 2021 SP5.1 (Italian UI)
 Changelog:
 0.1.0 - 2026-10-28 - first draft, written from 20 test rounds on a real assembly
@@ -14,6 +14,9 @@ Changelog:
                      an assembly corrected by hand by an experienced designer.
 0.1.1 - 2026-10-28 - names checked against the bridge sources: the bridge has no
                      width mate, the version comes from the server, `offset_mm`.
+0.1.2 - 2026-10-28 - `inspect_part` `view_edges` to choose the edges of
+                     `drawing_dimension`; a plan that cites an identifier after
+                     `document` open wants `inspect_part` first.
 -->
 
 This skill is for the AI that drives the bridge. It does not replace the bridge's own
@@ -32,7 +35,9 @@ descriptions (`list_operations`, `describe_operation`): it says **how to work** 
 ## 1. The working method
 
 1. **Look before you touch.** Call `inspect_part` before any plan. Face, edge and component
-   identifiers (F1, E4, C1) are born there and hold **for that reading only**.
+   identifiers (F1, E4, C1) are born there and hold **for that reading only**. After `document`
+   `open` too: a plan that cites an identifier (V1, F3, C1, M1) is refused until `inspect_part`
+   has read the document; a plan that cites none runs.
 2. **Read again after every change.** After a plan the part is different: old identifiers are void.
 3. **Ask for a picture when the shape is in doubt.** `inspect_part` with `views` (start with
    `isometric`). Never take a measurement from a picture: measure with the `checks` operations.
@@ -81,7 +86,9 @@ See `references/designer-advice.md` for how to build a part with design intent.
 Full recipe in `references/drawings.md`. The short version:
 
 1. `create_drawing` (paper size), `standard_views`, `model_view` isometric, `save_document`.
-2. `drawing_dimension` per view (it takes time: 15-30 s each is normal).
+2. `drawing_dimension` per view (it takes time: 15-30 s each is normal). To choose its `edges`,
+   read them first: `inspect_part` with `view_edges` (`{"view": "V1"}`) lists each edge with the
+   number `edges` takes, its kind, its mm, how it faces and where it sits on the sheet.
 3. `section_view`, `note`, `detail_view` (with `x_mm`, `y_mm`, `radius_mm` on real edges).
 4. `new_sheet` + `model_view` + `drawing_bom` + `balloons` for the assembly sheet.
 5. `export_pdf` with `search` for the texts that must be there, then **look at the PDF as an image**.
