@@ -15,7 +15,7 @@ namespace Oce.Solid.Agent.Core
     /// part was 5 and which 6. AutoBalloon5 chooses the points; nothing in its options chooses
     /// them apart.
     ///
-    /// ── WHAT WAS MEASURED (misure\sonda_viste_giro14.ps1, on a copy) ─────────
+    /// ── WHAT WAS MEASURED (a probe on a copy of the drawing of round 14) ─────────
     ///
     ///   - IAnnotation.GetLeaderPointsAtIndex(0): two points, the LAST is the arrow tip, in
     ///     sheet coordinates (balloon 4 at x 266 mm: points 261.4 and 253.6 mm);

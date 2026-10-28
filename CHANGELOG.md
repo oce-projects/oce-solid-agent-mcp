@@ -32,6 +32,38 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.6 — 27 October 2026 · library 0.174.5 · SOLIDWORKS no longer falls after some drawings made through the bridge (branch `night-2026-10-26-asm`)
+
+- **Found while checking 0.152.5**: SOLIDWORKS fell inside `new_sheet` in the bench
+  (case `two_sheets_and_the_same_projection_angle`, after about 50 drawings) and in a
+  scenario on a copy (after about 9), with `RPC_E_SERVERFAULT` and the same stack in
+  the journal: the window of a drawing being painted, `uiBaseView_c::OnPaint` and
+  `uiModelView_c::OnPrepareDC`. The code of `new_sheet` had not changed since 0.152.3,
+  and 12 sheets made one after another by a probe on a drawing opened from disk did not
+  fall (0.44 to 0.59 s each).
+- **Measured, the same cycle 15 times on a fresh SOLIDWORKS** (a drawing from a part,
+  a second sheet, save, close):
+
+  | driven by | cycles | fall | working set of SLDWORKS |
+  |---|---|---|---|
+  | bridge 0.152.5 | 7 | at the 8th | not logged |
+  | bridge 0.152.5 | 10 | at the 11th | 532 to 1094 MB |
+  | bridge with a collection after every call | 15 | none | 537 to 812 MB |
+  | a probe, without the bridge | 20 | none | 660 to 746 MB |
+
+  GDI objects (at most 2091) and USER objects (1722) stayed far from their limit of
+  10000 per process. The bridge never released a SOLIDWORKS object: each one it reads comes as a
+  runtime callable wrapper, and SOLIDWORKS keeps the object alive until the wrapper is
+  finalized, which the garbage collector of this small process seldom does. A drawing
+  closed through the bridge stayed in SOLIDWORKS.
+- Now the bridge collects and finalizes after every `tools/call`, after the answer is
+  sent (`ReleaseSolidWorksObjects`): the client does not wait for it; measured inside
+  the call it cost about 0.9 s.
+- The falls of rounds 13 and 14 (`create_drawing` at the 15th and 23rd drawing,
+  a drawing opened at the 16th) had another stack, also while a drawing window was
+  painted; whether they had the same cause is not tested.
+- Contract Zc2197: the release is wired after the answer.
+
 ## 0.152.5 — 27 October 2026 · library 0.174.5 · fourteenth round of session 8cd843: N52 to N56 (branch `night-2026-10-26-asm`)
 
 - **Fourteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.4)**: N47 to N51

@@ -362,6 +362,9 @@ namespace Oce.Solid.Agent.ContractTests
         private const string DeleteCase = "case \"delete_view\": return DeleteView(model, arguments);";
         private const string OutlineSaid = "entry[\"outline_mm\"] = new object[]";
         private const string OldCaveat = "whether the section view overlaps the others or the title block";
+        private const string Answered = "if (response != null && !isNotification) Protocol.Send(output, response);";
+        private const string Released = "if (method == \"tools/call\") ReleaseSolidWorksObjects();";
+        private const string Finalizers = "GC.WaitForPendingFinalizers();";
 
         private static readonly string[][] Files =
         {
@@ -373,6 +376,7 @@ namespace Oce.Solid.Agent.ContractTests
             new[] { "view", "Oce.Solid.Agent.Core", "DrawingViewOperations.cs" },
             new[] { "ops", "Oce.Solid.Agent.Core", "SwOperations.cs" },
             new[] { "state", "Oce.Solid.Agent.Core", "DrawingState.cs" },
+            new[] { "program", "", "Program.cs" },
         };
 
         /// <summary>The lines each file must hold, with what is lost without them.</summary>
@@ -401,6 +405,8 @@ namespace Oce.Solid.Agent.ContractTests
             new[] { "ops", MoveCase, "move_view is in the catalog and not run (N54)" },
             new[] { "ops", DeleteCase, "delete_view is in the catalog and not run (N54)" },
             new[] { "state", OutlineSaid, "inspect_part does not say where a view is seen (observation 2)" },
+            new[] { "program", Released, "the SOLIDWORKS objects of a call stay alive, and SOLIDWORKS falls after some drawings (scenarios t45, t46)" },
+            new[] { "program", Finalizers, "the wrappers are collected but not finalized, and SOLIDWORKS keeps the objects (t48)" },
         };
 
         /// <summary>The lines that must not come back, with what they bring back.</summary>
@@ -457,6 +463,14 @@ namespace Oce.Solid.Agent.ContractTests
                 int call = kept < 0 ? -1 : save.IndexOf(SaveCall, kept, StringComparison.Ordinal);
                 if (kept < 0 || call < 0)
                     wrong.Add("the refusal of «overwrite» false comes after the save (N55)");
+            }
+            string program;
+            if (sources.TryGetValue("program", out program) && program != null)
+            {
+                int answered = program.IndexOf(Answered, StringComparison.Ordinal);
+                int released = answered < 0 ? -1 : program.IndexOf(Released, answered, StringComparison.Ordinal);
+                if (answered < 0 || released < 0)
+                    wrong.Add("the objects are released before the answer is sent, and the client waits for it (t48)");
             }
             string view;
             if (sources.TryGetValue("view", out view) && view != null)
@@ -515,11 +529,13 @@ namespace Oce.Solid.Agent.ContractTests
                    t => t.Replace(Kept, "") + "\n// " + Kept);
             mutate("the view taken away before its sections are looked at", "view",
                    t => t.Replace(Held, "").Replace(RemoveCall, RemoveCall + "\n" + Held));
+            mutate("the objects released before the answer is sent", "program",
+                   t => t.Replace(Released, "").Replace(Answered, Released + "\n" + Answered));
 
             bool ok = real.Count == 0 && blind.Count == 0;
             string detailText = real.Count > 0 ? string.Join("; ", real)
                               : blind.Count > 0 ? "the rule does not see: " + string.Join("; ", blind)
-                              : Lines.Length + " lines, " + Gone.Length + " old lines kept out, six orders; " + copies + " changed copies all red";
+                              : Lines.Length + " lines, " + Gone.Length + " old lines kept out, seven orders; " + copies + " changed copies all red";
             Check(label, ok, detailText);
         }
     }

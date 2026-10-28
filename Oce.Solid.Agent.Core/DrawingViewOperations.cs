@@ -18,7 +18,7 @@ namespace Oce.Solid.Agent.Core
     ///
     /// ── WHAT SOLIDWORKS DOES, MEASURED ON A COPY OF THE DRAWING OF ROUND 14 ──
     ///
-    /// (misure\sonda_viste_giro14.ps1, 27/10/2026)
+    /// (a probe on a copy of the drawing of round 14, 27/10/2026)
     ///
     /// IView.Position (IView~Position.html, Remarks: «If it is aligned with another view,
     /// it will only be allowed to move along the alignment vector. If it has child views

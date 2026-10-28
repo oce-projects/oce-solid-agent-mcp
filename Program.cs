@@ -193,10 +193,40 @@ namespace Oce.Solid.Agent
                         Protocol.Send(output, Protocol.Error(
                             id, Protocol.InternalError, ex.Message));
                 }
+                if (method == "tools/call") ReleaseSolidWorksObjects();
             }
 
             Protocol.Note("[bridge] closed");
             return 0;
+        }
+
+        /// <summary>
+        /// LETS SOLIDWORKS FREE WHAT A CALL TOUCHED (report 8cd843, round 14, 27/10/2026).
+        ///
+        /// Every SOLIDWORKS object the bridge reads (a document, a sheet, a view, a note)
+        /// comes to this process as a runtime callable wrapper, and SOLIDWORKS keeps the
+        /// object alive until the wrapper is finalized. The wrappers are small in this
+        /// process, so its garbage collector seldom runs, and a drawing closed through the
+        /// bridge stayed in the memory of SOLIDWORKS. Measured on a fresh SOLIDWORKS with
+        /// the same cycle (a drawing, a second sheet, save, close), 15 times:
+        /// through bridge 0.152.5 the working set of SLDWORKS went from 532 to 1094 MB in
+        /// 10 cycles and SOLIDWORKS fell painting the window of the next drawing
+        /// (uiBaseView_c::OnPaint, uiModelView_c::OnPrepareDC), at the 8th cycle in a
+        /// second run; with a collection after every call, 15 cycles and no fall, from
+        /// 537 to 812 MB; the same cycle driven without the bridge, 20 cycles and no fall,
+        /// from 660 to 746 MB. GDI (at most 2091) and USER objects (1722) were far from
+        /// their limit of 10000. It runs after the answer is sent, so the client does not
+        /// wait for it (about 0.9 s per call, measured inside the call).
+        /// </summary>
+        private static void ReleaseSolidWorksObjects()
+        {
+            try
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            }
+            catch (Exception ex) { Protocol.Note("[bridge] releasing the SOLIDWORKS objects of the call: " + ex.Message); }
         }
 
         private static Dictionary<string, object> Serve(
