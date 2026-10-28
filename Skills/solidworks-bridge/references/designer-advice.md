@@ -94,6 +94,8 @@ These rules come from drawings corrected by hand by an experienced designer (28/
   and the **overall size last**, farthest out.
 - **Arrows follow the text.** Text between the extension lines: arrows inside. Text outside
   (the space is too small): arrows outside. Never text inside with the arrows outside.
+- **Short dimensions** (about 1-2 mm on the sheet, where the number does not fit): the number
+  goes **outside** the extension lines and the arrows point in from outside.
 - Dimensions of a **detail go above it**, never between the detail and its label
   ("DETTAGLIO A / SCALA 5 : 1").
 - Vertical dimensions step outwards: the shortest nearest to the part.
