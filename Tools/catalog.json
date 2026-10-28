@@ -2667,7 +2667,7 @@
    "name": "balloons",
    "family": "drawing",
    "summary": "Ballooning: the balloons with the BOM item numbers on the components of a view, counted.",
-   "details": "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item number (AutoBalloon5). It counts them on the view before and after, and tells you the numbers written. Then it compares the items of the BOM with the balloons of the WHOLE drawing and tells you which items are left without one (that component is not seen in this view: balloon another view). If every item already has its balloon elsewhere, it adds none and answers «nothing to add in this view».\n\nTHE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer hold: I read the table again after the balloons and give you «bom_rows_after», the rows as the table prints them now, and «bom_renumbered».\n\nARROWS THAT END IN THE SAME PLACE ARE MOVED: when the arrow of a balloon ends within 5 mm of another arrow (measured: three arrows in the mouth of one part, 0.7 to 2.3 mm apart), I put a new balloon with the same number on the point of a visible line of its own part farthest from the other arrows, where the old balloon was, and take the old one away only then. «arrows_moved» lists each move; «arrows_note» names the ones I could not separate.\n\nI REFUSE IF there is no BOM on the drawing yet (ballooning carries its item number: put it first with «drawing_bom») or if there is no assembly behind the view.\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 runs. balloons_returned is the number of notes AutoBalloon5 returned (null when it returned no array), and balloons_count_note appears when it disagrees with the count in the view.",
+   "details": "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item number (AutoBalloon5). It counts them on the view before and after, and tells you the numbers written. Then it compares the items of the BOM with the balloons of the WHOLE drawing and tells you which items are left without one (that component is not seen in this view: balloon another view). If every item already has its balloon elsewhere, it adds none and answers «nothing to add in this view».\n\nTHE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer hold: I read the table again after the balloons and give you «bom_rows_after», the rows as the table prints them now, and «bom_renumbered».\n\nTHE ORDER IS YOURS TO CHOOSE («order»): «around_the_view» (the default) numbers them as above; «bill_of_materials» keeps the numbers the table already has, and the table is not renumbered. Around the view, two balloons whose arrows end in the same place are put in order by AutoBalloon5, not by me: the same plan on the same assembly swapped two such numbers between two runs (measured). I list them in «numbers_decided_by_a_tie» with «numbers_note»; the order of the bill of materials gives the same numbers every time.\n\nARROWS THAT END IN THE SAME PLACE ARE MOVED: when the arrow of a balloon ends within 5 mm of another arrow (measured: three arrows in the mouth of one part, 0.7 to 2.3 mm apart), I put a new balloon with the same number on the point of a visible line of its own part farthest from the other arrows, where the old balloon was, and take the old one away only then. «arrows_moved» lists each move; «arrows_note» names the ones I could not separate.\n\nI REFUSE IF there is no BOM on the drawing yet (ballooning carries its item number: put it first with «drawing_bom») or if there is no assembly behind the view.\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 runs. balloons_returned is the number of notes AutoBalloon5 returned (null when it returned no array), and balloons_count_note appears when it disagrees with the count in the view.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2684,6 +2684,14 @@
        "below"
       ],
       "description": "how to arrange the balloons around the view. Default square."
+     },
+     "order": {
+      "type": "string",
+      "enum": [
+       "around_the_view",
+       "bill_of_materials"
+      ],
+      "description": "the order of the numbers: around_the_view (default) numbers the balloons as they go around the view and renumbers the bill of materials; bill_of_materials keeps the numbers the bill of materials has, the same every run."
      }
     },
     "required": []

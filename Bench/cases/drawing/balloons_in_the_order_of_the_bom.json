@@ -1,0 +1,144 @@
+{
+  "name": "balloons_in_the_order_of_the_bom",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N60 (round 17, 28/10/2026). Rounds 16 and 17 ran the same plan on the same assembly, and the balloons 4 and 6 swapped components, the bill of materials with them: around the view, two balloons whose arrows end in the same place are put in order by AutoBalloon5. «order» «bill_of_materials» keeps the numbers the table already has.",
+  "defect_caught": "That the balloons asked in the order of the bill of materials renumber the table all the same, or that the answer does not say which order was used.",
+  "assembly": {
+    "components": [
+      {
+        "name": "base",
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 10,
+              "centered": true
+            }
+          }
+        ]
+      },
+      {
+        "name": "cover",
+        "position_mm": [
+          0,
+          7,
+          0
+        ],
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 4,
+              "centered": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "operation": "save_document",
+      "arguments": {
+        "path": "{WORK}\\balloons_in_the_order_of_the_bom.sldasm"
+      },
+      "expect": [
+        {
+          "what": "measurements.warnings",
+          "equal_to": 0,
+          "why": "the view attaches to the FILE of the assembly"
+        }
+      ]
+    },
+    {
+      "operation": "create_drawing",
+      "arguments": {
+        "paper_size": "A3"
+      },
+      "expect": [
+        {
+          "what": "state.kind",
+          "equal_to": "drawing"
+        }
+      ]
+    },
+    {
+      "operation": "standard_views",
+      "arguments": {
+        "model": "{WORK}\\balloons_in_the_order_of_the_bom.sldasm"
+      },
+      "expect": [
+        {
+          "what": "measurements.views_created",
+          "equal_to": 3
+        }
+      ]
+    },
+    {
+      "operation": "drawing_bom",
+      "arguments": {
+        "view": "V1"
+      },
+      "expect": [
+        {
+          "what": "measurements.entries",
+          "equal_to": 2,
+          "why": "base and cover"
+        },
+        {
+          "what": "measurements.quantity_in_table",
+          "equal_to": 2,
+          "why": "one part per item"
+        },
+        {
+          "what": "measurements.match",
+          "equal_to": true,
+          "why": "the table and the assembly, each read on its own"
+        },
+        {
+          "what": "measurements.inside_sheet",
+          "equal_to": true,
+          "why": "measured and put in a free place"
+        }
+      ]
+    },
+    {
+      "operation": "balloons",
+      "arguments": {
+        "view": "V1",
+        "order": "bill_of_materials"
+      },
+      "expect": [
+        {
+          "what": "measurements.order",
+          "equal_to": "bill_of_materials",
+          "why": "the order used is said in the answer, not only asked"
+        },
+        {
+          "what": "measurements.balloons_placed",
+          "equal_to": 2,
+          "why": "one balloon per component, as in bom_counts_the_components"
+        },
+        {
+          "what": "measurements.bom_renumbered",
+          "equal_to": false,
+          "why": "THE LINE OF N60: with swBalloonItemNumbers_DoNotChangeItemNumbers the table keeps its numbers (measured on a copy of the drawing of round 13: items 7 to 13 kept)"
+        },
+        {
+          "what": "measurements.numbers",
+          "includes": [
+            "1",
+            "2"
+          ],
+          "why": "the balloons carry the numbers of the table"
+        }
+      ]
+    }
+  ]
+}

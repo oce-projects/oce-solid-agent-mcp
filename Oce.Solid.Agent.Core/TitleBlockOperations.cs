@@ -162,6 +162,10 @@ namespace Oce.Solid.Agent.Core
             {
                 ["sheet"] = SheetName(sheet) ?? "",
                 ["sheet_format"] = TestText(() => sheet.GetSheetFormatName()),
+                // THE FILE, not the name (report 8cd843 round 17, observation): the name is
+                // the one of the instance, «...foglio1», «...foglio2», on three sheets of the
+                // same A3.
+                ["sheet_format_file"] = SheetFormatFile(TestText(() => sheet.GetTemplateName())),
                 ["notes_in_title_block"] = note.Count,
                 ["notes_linked"] = connected,
                 // The notes put on the sheet, left out of the title block (N45).
@@ -275,7 +279,7 @@ namespace Oce.Solid.Agent.Core
             // `requested_present_on_model_but_shown_empty`.
             var otherWarnings = new List<string>();
             measurements["other_sheets"] = OtherSheets(
-                drawing, SheetName(sheet), measurements["sheet_format"] as string,
+                drawing, SheetName(sheet), measurements["sheet_format_file"] as string,
                 requestedItems, empty, otherWarnings).ToArray();
             if (otherWarnings.Count > 0)
                 measurements["other_sheets_warning"] = string.Join(" ", otherWarnings);
@@ -555,9 +559,10 @@ namespace Oce.Solid.Agent.Core
                     continue;
                 }
 
-                string format = TestText(() => other.GetSheetFormatName());
-                entry["sheet_format"] = format;
-                string formatWarning = OtherFormatWarning(name, format, activeFormat);
+                entry["sheet_format"] = TestText(() => other.GetSheetFormatName());
+                string formatFile = SheetFormatFile(TestText(() => other.GetTemplateName()));
+                entry["sheet_format_file"] = formatFile;
+                string formatWarning = OtherFormatWarning(name, formatFile, activeFormat);
                 if (formatWarning != null) entry["different_format"] = true;
 
                 // ITS OWN TITLE BLOCK: the names it asks, not those of the active sheet.

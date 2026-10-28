@@ -32,6 +32,32 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.152.9 — 28 October 2026 · library 0.174.8 · seventeenth round of session 8cd843: N60 (branch `night-2026-10-26-asm`)
+
+- **Seventeenth round on SOLIDWORKS (session 8cd843, bridge 0.152.8)**: N58, N59 and the
+  observation held. A detail at 5 and at 2 from a view at 5:1 was refused; at 10 on an
+  edge it was born with 8 visible edges. With sheet 1 active `other_sheets_warning`
+  named sheet 3, the coupler, «Materiale» and «STATO»; written on the copy of the
+  coupler and saved, the warning went away and the PDF printed both. `active` true and
+  false on the three sheets. The assembly: the 15 certain mates were all there, the two
+  Solid parts left free (the owner's decision), interference 19.033 mm³; the drawing made
+  again, 3 sheets, PDF 16 of 16 texts. SOLIDWORKS did not fall.
+- **N60 (P3)**: the same plan on the same assembly, rounds 16 and 17, and the balloons
+  4 and 6 swapped components, the bill of materials with them. The two are the balloons
+  whose arrows ended 0.73 mm apart: around the view, which of them comes first is the
+  choice of AutoBalloon5, and the API has no call to set an item number (only
+  `IBomTableAnnotation.Sort`). Which order a drawing wants is the owner's decision, still
+  open, so the default stays around the view. `balloons` now takes `order`:
+  «around_the_view» (default) or «bill_of_materials», which keeps the numbers the table
+  has (`swBalloonItemNumbers_DoNotChangeItemNumbers`, `BalloonItemOrder`); the answer says
+  the `order`, and around the view it lists in `numbers_decided_by_a_tie` the balloons
+  whose arrows were crowded, with `numbers_note` (`NumbersByTieNote`).
+- **Observation**: `different_format` was true for three sheets of the same A3: the
+  formats were compared by the names of their instances («...foglio1», «...foglio2»).
+  Now by the file (`ISheet.GetTemplateName`, `SheetFormatFile`), said in
+  `sheet_format_file`.
+- Catalog of `balloons`; bench case `balloons_in_the_order_of_the_bom`; contract Zc2200.
+
 ## 0.152.8 — 28 October 2026 · library 0.174.7 · sixteenth round of session 8cd843: N58, N59 (branch `night-2026-10-26-asm`)
 
 - **Sixteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.7)**: N57 held. With

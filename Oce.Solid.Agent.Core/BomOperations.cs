@@ -724,6 +724,45 @@ namespace Oce.Solid.Agent.Core
         // ──────────────────────────────────────────────────────────────────
         // ballooning (the balloons with the item numbers)
         // ──────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// The ItemOrder of AutoBalloon5 for «order» (report 8cd843 N60, round 17), null
+        /// when it is not one of the two. «around_the_view» is
+        /// swBalloonItemNumbers_OrderSequentially: the balloons numbered as they go around
+        /// the view, and the bill of materials renumbered to match (N50, measured).
+        /// «bill_of_materials» is swBalloonItemNumbers_DoNotChangeItemNumbers: the numbers
+        /// the bill of materials already has (measured on a copy of the drawing of round
+        /// 13: items 7 to 13 kept). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static int? BalloonItemOrder(string order)
+        {
+            switch ((order ?? "").Trim().ToLowerInvariant())
+            {
+                case "around_the_view": return (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_OrderSequentially;
+                case "bill_of_materials": return (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_DoNotChangeItemNumbers;
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// What is said of the numbers a tie decided (report 8cd843 N60), null when no arrow
+        /// was crowded. Rounds 16 and 17 ran the same plan on the same assembly: the two
+        /// balloons whose arrows ended 0.73 mm apart swapped numbers 4 and 6, and the bill of
+        /// materials with them; the other five kept theirs. Which of two balloons with the
+        /// same arrow comes first around the view is AutoBalloon5's choice, and the API has
+        /// no call to set an item number (only IBomTableAnnotation.Sort). Pure, so the
+        /// contract suite reads it.
+        /// </summary>
+        internal static string NumbersByTieNote(int crowded)
+        {
+            if (crowded <= 0) return null;
+            return (crowded == 1 ? "One balloon" : crowded + " balloons") + " had the arrow ending within " +
+                   Math.Round(CrowdedArrows * 1000, 1).ToString(CultureInfo.InvariantCulture) + " mm of another: " +
+                   "which of them comes first around the view was the choice of AutoBalloon5, and the same plan on the " +
+                   "same assembly swapped two such numbers between two runs (4 and 6, the bill of materials with them). " +
+                   "For numbers that repeat run to run, «order» «bill_of_materials» keeps the numbers the bill of " +
+                   "materials already has.";
+        }
+
         private Outcome Balloons(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
@@ -751,6 +790,14 @@ namespace Oce.Solid.Agent.Core
                 case "below": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Bottom; break;
                 default: return Failed("«layout» is one of «square», «circle», «above», «below», not «" + arrangement + "».");
             }
+            // THE ORDER OF THE NUMBERS (report 8cd843 N60, round 17): around the view by
+            // default, as every drawing had it; the order of the bill of materials on request,
+            // the one that does not depend on where AutoBalloon5 puts each balloon.
+            string order = (Str(a, "order", "around_the_view") ?? "around_the_view").Trim().ToLowerInvariant();
+            int? itemOrder = BalloonItemOrder(order);
+            if (itemOrder == null)
+                return Failed("«order» is one of «around_the_view», «bill_of_materials», not «" + order + "»: " +
+                              "use one of the two, or leave it out for around_the_view.");
 
             int before = ViewBalloons(view);
             // The rows of the bill of materials before the balloons (N50): AutoBalloon5
@@ -796,7 +843,8 @@ namespace Oce.Solid.Agent.Core
                 // swBalloonItemNumbers_DoNotChangeItemNumbers it kept 7 to 13. The order is
                 // now set, not left to the default, and kept as every drawing had it (which
                 // order a drawing wants is not decided here); the answer gives the rows again.
-                opt.ItemOrder = (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_OrderSequentially;
+                // «order» chooses it since library 0.174.8 (N60, see BalloonItemOrder).
+                opt.ItemOrder = (int)itemOrder;
                 born = drawing.AutoBalloon5(opt);
             }
             catch (Exception ex) { model.ClearSelection2(true); return Failed("The balloons were not created: " + ex.Message); }
@@ -811,6 +859,7 @@ namespace Oce.Solid.Agent.Core
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = view.GetName2(),
+                ["order"] = order,
                 ["balloons_before"] = NumberOrNull(before),
                 ["balloons_after"] = NumberOrNull(after),
                 ["balloons_placed"] = before >= 0 && after >= 0 ? (object)(after - before) : null,
@@ -826,6 +875,14 @@ namespace Oce.Solid.Agent.Core
                 measurements["arrows_moved"] = moves.Cast<object>().ToArray();
                 if (spreadNote != null) measurements["arrows_note"] = spreadNote;
                 measurements["numbers"] = BalloonNumbers(view).ToArray();
+                // THE NUMBERS A TIE DECIDED (report 8cd843 N60): see NumbersByTieNote.
+                if (order == "around_the_view" && moves.Count > 0)
+                {
+                    var tied = new List<object>();
+                    foreach (var m in moves) tied.Add(m["number"] + " " + m["component"]);
+                    measurements["numbers_decided_by_a_tie"] = tied.ToArray();
+                    measurements["numbers_note"] = NumbersByTieNote(moves.Count);
+                }
             }
             // THE BILL OF MATERIALS AFTER THE BALLOONS (N50): renumbered or not, and its
             // rows as they are now, the ones the print shows.

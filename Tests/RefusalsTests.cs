@@ -318,8 +318,11 @@ namespace Oce.Solid.Agent.ContractTests
         /// «overwrite» false, N55; a circle or a cutting line that snapped, N52; a
         /// section with no free place along its line, N53), two of them read by the
         /// detector as saying what to do: 287 of 1024.
+        /// **288 (28/10/2026, round 17 of report 8cd843): +1.** An «order» of the
+        /// balloons that is not one of the two (N60) is refused with «use one of the
+        /// two, or leave it out»: 288 of 1025.
         /// </summary>
-        private const int Floor = 287;
+        private const int Floor = 288;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -333,8 +336,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 287;   // 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 1024;
+        private const int ShareFloorWithRemedy = 288;   // 28/10/2026, round 17 of report 8cd843 (N60): 288 of 1025; 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1025;
 
         /// <summary>
         /// The openings with which this code says no.

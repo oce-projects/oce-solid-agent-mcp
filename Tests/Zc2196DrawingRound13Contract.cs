@@ -253,7 +253,9 @@ namespace Oce.Solid.Agent.ContractTests
         private const string FormatPassed = "format != null ? (int)swDwgTemplates_e.swDwgTemplateCustom : (int)swDwgTemplates_e.swDwgTemplateNone,";
         private const string OldNoFormat = "\"\",                        // TemplateName: none";
         private const string FormatReadBack = "string formatWrong = NewSheetFormatProblem(format, formatAfter);";
-        private const string OrderSet = "opt.ItemOrder = (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_OrderSequentially;";
+        // The order chosen by «order» since library 0.174.8 (report 8cd843 N60), still set
+        // before AutoBalloon5 and never left to the default.
+        private const string OrderSet = "opt.ItemOrder = (int)itemOrder;";
         private const string RowsBefore = "var rowsBefore = BomRowsOfDrawing(drawing);";
         private const string RowsAfter = "var rowsAfter = BomRowsOfDrawing(drawing);";
         private const string BalloonCall = "born = drawing.AutoBalloon5(opt);";

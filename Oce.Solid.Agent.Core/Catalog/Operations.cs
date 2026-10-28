@@ -3269,6 +3269,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer "
                         + "hold: I read the table again after the balloons and give you «bom_rows_after», the rows as "
                         + "the table prints them now, and «bom_renumbered».\n\n"
+                        + "THE ORDER IS YOURS TO CHOOSE («order»): «around_the_view» (the default) numbers them as above; "
+                        + "«bill_of_materials» keeps the numbers the table already has, and the table is not renumbered. "
+                        + "Around the view, two balloons whose arrows end in the same place are put in order by AutoBalloon5, "
+                        + "not by me: the same plan on the same assembly swapped two such numbers between two runs "
+                        + "(measured). I list them in «numbers_decided_by_a_tie» with «numbers_note»; the order of the "
+                        + "bill of materials gives the same numbers every time.\n\n"
                         + "ARROWS THAT END IN THE SAME PLACE ARE MOVED: when the arrow of a balloon ends within 5 mm "
                         + "of another arrow (measured: three arrows in the mouth of one part, 0.7 to 2.3 mm apart), "
                         + "I put a new balloon with the same number on the point of a visible line of its own part "
@@ -3286,7 +3292,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "type", "object",
                         "properties", O(
                             "view", O("type", "string", "description", "the view (V1, V2...) or by name. Default the first."),
-                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "how to arrange the balloons around the view. Default square.")),
+                            "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "how to arrange the balloons around the view. Default square."),
+                            "order", O("type", "string", "enum", A("around_the_view", "bill_of_materials"), "description", "the order of the numbers: around_the_view (default) numbers the balloons as they go around the view and renumbers the bill of materials; bill_of_materials keeps the numbers the bill of materials has, the same every run.")),
                         "required", A()),
                 },
                 new OperationSpec

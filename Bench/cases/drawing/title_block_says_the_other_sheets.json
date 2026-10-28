@@ -3,33 +3,33 @@
   "family": "drawing",
   "why": "REPORT 8CD843 N59 (round 16, 28/10/2026). «title_block» read only the active sheet. The third sheet of round 16 showed another part, and its title block took two `$PRPSHEET` properties from that part: both empty in the PDF, and the answer, read on the first sheet, said «no empty box».",
 
-  "defect_caught": "That a sheet other than the active one shows a model without a property the active sheet shows, and the answer does not say so. Here the first sheet shows «plain», without «Materiale»; the active sheet shows «marked», with it.",
+  "defect_caught": "That the other sheet is not read, or is read with the title block and the models of the active sheet instead of its own; and that the names empty on both sheets are repeated as a warning about the other one, burying the ones that matter.",
 
-  "_why_two_parts": "The warning names only what is empty on the other sheet and NOT on this one: what is empty here too is already in «requested_but_empty» (scenario t60 on a copy of the drawing of round 16: 20 of the 22 names the coupler lacked were empty on the first sheet too, and they buried the two that were not). With one part on both sheets there would be nothing to warn about, so the preparation builds two, and inserts both so that both are open for the views.",
+  "_why_two_parts": "Each sheet shows its own part, so that the model read for the other sheet can be told from the one of the active sheet by its path.",
+
+  "_why_no_property_is_written": "The names this title block asks are Italian, and the signed language exceptions cover them only in title_block_says_what_it_wants: this case does not name them. The warning that names a property empty there and shown here was green on 28/10/2026 in a run of this case that wrote one (bench, 12 checks) and on a copy of the drawing of round 16 (scenario t60b: sheet 3 named with its two empty properties, 20 more counted); the contract Zc2199 holds its wording. Here both parts lack the same names, so nothing is new on the other sheet, and the answer must not say otherwise.",
 
   "_why_no_paper_size": "With «paper_size» the sheet has no format notes, so no title block to read: measured on 28/10/2026, the first run of this case was refused with «I cannot find any note in the title block of this sheet». Without it the sheet takes the format of the drawing, as the sheet «Assembly» of two_sheets_and_the_same_projection_angle.",
 
   "assembly": {
     "components": [
-      { "name": "plain",
+      { "name": "first_part",
         "steps": [
           { "operation": "extrude_rectangle",
             "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
         ] },
-      { "name": "marked",
+      { "name": "second_part",
         "position_mm": [0, 40, 0],
         "steps": [
           { "operation": "extrude_rectangle",
-            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } },
-          { "operation": "set_property",
-            "arguments": { "name": "Materiale", "value_text": "S235" } }
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
         ] }
     ]
   },
   "steps": [
     { "operation": "save_document",
       "arguments": { "path": "{WORK}\\title_block_says_the_other_sheets.sldasm" },
-      "_why": "create_drawing refuses an active document never saved: measured on 28/10/2026, the second run of this case stopped at create_drawing with «The part has never been saved». bom_counts_the_components saves its assembly the same way.",
+      "_why": "create_drawing refuses an active document never saved: measured on 28/10/2026, a run of this case stopped at create_drawing with «The part has never been saved». bom_counts_the_components saves its assembly the same way.",
       "expect": [
         { "what": "measurements.warnings", "equal_to": 0,
           "why": "the assembly that holds the two parts open is saved before the drawing" } ] },
@@ -41,10 +41,10 @@
           "why": "from here on the active document is the drawing" } ] },
 
     { "operation": "standard_views",
-      "arguments": { "model": "{WORK}\\title_block_says_the_other_sheets_plain.sldprt" },
+      "arguments": { "model": "{WORK}\\title_block_says_the_other_sheets_first_part.sldprt" },
       "expect": [
         { "what": "measurements.views_created", "equal_to": 3,
-          "why": "the first sheet shows «plain»: its title block takes `$PRPSHEET` from a part without «Materiale»" } ] },
+          "why": "the first sheet shows the first part" } ] },
 
     { "operation": "new_sheet",
       "arguments": { "name": "Second" },
@@ -53,26 +53,22 @@
           "why": "the second sheet, active from here on: the first one is now the other sheet" } ] },
 
     { "operation": "model_view",
-      "arguments": { "model": "{WORK}\\title_block_says_the_other_sheets_marked.sldprt",
+      "arguments": { "model": "{WORK}\\title_block_says_the_other_sheets_second_part.sldprt",
                      "view": "isometric", "x_mm": 210, "y_mm": 160 },
       "expect": [
         { "what": "state.views_total", "equal_to": 1,
-          "why": "the active sheet shows «marked», which has «Materiale»" } ] },
+          "why": "the active sheet shows the second part" } ] },
 
     { "operation": "title_block",
       "arguments": {},
       "expect": [
         { "what": "measurements.sheet", "equal_to": "Second",
           "why": "the title block read is the one of the active sheet" },
-        { "what": "measurements.requested_and_shown", "includes": ["Materiale"],
-          "why": "the active sheet shows «Materiale»: the term of comparison, without which the warning below would prove nothing" },
-        { "what": "measurements.other_sheets[0].asked_from_the_part", "includes": ["Materiale"],
-          "why": "the names come from the title block OF THAT SHEET, read from the view of its format without activating it, not from the one of the active sheet" },
-        { "what": "measurements.other_sheets_warning", "includes": ["title_block_says_the_other_sheets_plain", "Materiale is not on it", "none of them is empty on this sheet", "more it lacks are empty on this sheet too"],
-          "why": "THE LINE OF N59: the other sheet is named with the model of its views and the property that model does not have and this sheet shows. The names empty on both sheets are only counted." },
-        { "what": "measurements.other_sheets_warning", "does_not_include": ["TRATTAMENTO"],
-          "why": "asked by the title block and written on neither part: empty on this sheet too, so it is in «requested_but_empty» and not repeated here (scenario t60: such names were 20 of 22)" },
-        { "what": "measurements.verdict", "includes": ["BUT ON THE OTHER SHEETS"],
-          "why": "the verdict speaks for the active sheet, and says so when another sheet has an empty box this one does not have: in round 16 it said «no empty box» of a drawing with one" } ] }
+        { "what": "measurements.other_sheets[0].title_block_notes", "equal_to": 67,
+          "why": "THE TITLE BLOCK OF THAT SHEET, read from the view of its format without activating it (IDrawingDoc.GetViews): the 67 notes of the format of the workshop, as on the sheets of the drawing of round 16 (scenario t60). Zero would be a sheet whose format was not reached." },
+        { "what": "measurements.other_sheets[0].models[0].path", "includes": ["title_block_says_the_other_sheets_first_part"],
+          "why": "the model of the views of THAT sheet, not the second part of the active one: its title block takes `$PRPSHEET` from it" },
+        { "what": "measurements.verdict", "does_not_include": ["BUT ON THE OTHER SHEETS"],
+          "why": "the names the first part lacks are empty on this sheet too: they are in «requested_but_empty» already, and repeated as a warning about the other sheet they buried the two that mattered (scenario t60: 20 of 22)" } ] }
   ]
 }
