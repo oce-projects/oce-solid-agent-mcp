@@ -175,6 +175,19 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private List<Tuple<IEdge, int>> _rankedEdges;
 
+        /// <summary>
+        /// THE CURVES OF THE EDGES, HELD WITH THE READING (library 0.187.0, 30/10/2026). One
+        /// <see cref="EdgeReading"/> per edge of <see cref="_rankedEdges"/>, in the same order.
+        /// Nothing reads them after the state is built: they are here so that whoever keeps this
+        /// reading alive keeps alive the ICurve objects too. A probe of 30/10/2026 (RAG note 95)
+        /// measured that SOLIDWORKS throws away the geometry it evaluated once the bridge lets go
+        /// of the COM objects: holding the reading kept the faces fast, not the edges, because
+        /// their curves were not held. The bridge keeps the last reading only with
+        /// OCE_KEEP_LAST_READING=1 (bridge 0.160.0); otherwise this list dies with the reading,
+        /// as before.
+        /// </summary>
+        private List<EdgeReading> _edgeReadings;
+
         /// <summary>From which feature each body is born, as the state read it (indexed like the bodies).</summary>
         private string[] _bodyFeatureOfFace;
 
@@ -1734,6 +1747,7 @@ namespace Oce.Solid.Agent.Core
                     edgeReadings.Add(rankedEdge.Item2);
                 }
                 docState._rankedEdges = sortedItems;
+                docState._edgeReadings = edgeReadings;
 
                 // WHICH EDGES ARE LISTED (brief R17). By default the longest
                 // MaxEdges; with a filter, the ones that match it, with the SAME

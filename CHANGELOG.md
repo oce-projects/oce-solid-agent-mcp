@@ -32,6 +32,106 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.160.3 — 30 October 2026 · library 0.188.0 · `OCE_UI_FREEZE` can name one part (`graphics` or `tree`), to tell which one stops the falls of the drawing cycle (branch `night-2026-10-26-asm`)
+
+- **The measure that asks for it.** The cycle of 15 drawings (scenario t45: a plate, then 15
+  times activate the part, `inspect_part`, a `build` with create_drawing + new_sheet +
+  save_document, `document close`), every run on a freshly restarted SOLIDWORKS, runs
+  alternated: without `OCE_UI_FREEZE` it fell 11 times in 11 on 30/10/2026, always while
+  SOLIDWORKS painted a drawing view (`gfxSgSheetView_c::removeOleBitmapNode` →
+  `uoBillboardi_c::make`, or `mfc140u.dll` at offset `0x23dc91`); with `OCE_UI_FREEZE=1` it
+  reached 15 drawings 3 times in 3. `OCE_API_SEQUENCE=0` did not help (3 falls in 3). The same
+  calls made by a probe outside the repository, with the bridge's rebuilds, undo recording,
+  collections and readings imitated, did not fall in 16 runs alternated with the bridge.
+- **What changed.** `UiFreeze.PartsOf` (library 0.188.0): `1`, `true`, `on` still turn off all
+  three (the tree, its window, the graphics of the view); `graphics` turns off only
+  `IModelView.EnableGraphicsUpdate`, `tree` only `EnableFeatureTree` and
+  `EnableFeatureTreeWindow`. Unset or anything else: nothing, as before. The default does not
+  change. README: the variable has its row in the table.
+- **Measured with the change: it is the graphics.** The same cycle, runs alternated: `graphics`
+  0 falls in 4 runs, `tree` 4 in 4 (at drawing 5, 5, 8 and 5), nothing 3 in 3. Over the day,
+  with the graphics of the view left on the bridge fell 17 times in 19 runs; with them off
+  (`1` in 8 runs, `graphics` in 4) 0 times in 12. Two-sided Fisher exact test, p = 6.45 × 10⁻⁷.
+- **The cause, found the same evening: a sketch picture in the sheet format.** The drawing
+  template and the sheet format of the workshop carry the logo of the title block as a sketch
+  picture (`SketchBitmap`). SOLIDWORKS 2021 SP5 (29.5.1) falls when a drawing view takes off
+  the scene a sheet whose format holds one: the crash dumps of SOLIDWORKS stop in
+  `moSketchBitmap_c::getProfileFeature` → `CObject::IsKindOf`, under
+  `gfxSgDrawingView_c::removeSheet` → `removeOleBitmapNode`. A script outside the repository
+  that only makes a new drawing, adds a second sheet and closes it (no bridge, and the PDM
+  add-in is not needed) fell in 4 runs out of 4 with copies of the two files as they are (4
+  falls in 33 drawings), and in 0 runs out of 4 (80 drawings) with the same copies without the
+  picture. Through the bridge, with `OCE_LOCAL_COPIES` on the same copies: 4 in 4 against 0 in
+  4. Fisher, p = 0.0286 for each. Collections, the finalizer gate and `CommandInProgress`
+  change only how often it falls.
+- **The default still does not change**, by decision of the owner (30/10/2026): the workshop
+  replaces the picture with a logo drawn in lines inside a block. A workshop whose title block
+  holds a sketch picture can set `OCE_UI_FREEZE=graphics`. README and the summary of `UiFreeze`
+  carry the numbers.
+
+---
+
+## 0.160.2 — 30 October 2026 · library 0.187.0 · no SOLIDWORKS object is released while a call runs (`OCE_FINALIZER_GATE`); it does NOT cure the falls of the drawing cycle (branch `night-2026-10-26-asm`)
+
+- **The hypothesis.** The main thread of the bridge is in the MTA, so the wrappers of the
+  SOLIDWORKS objects are released by the .NET finalizer thread at any moment after a collection,
+  also while SOLIDWORKS is inside a call of the bridge. A probe outside the repository that drives
+  the same cycle of drawings fell twice in 7 runs while a thread collected every 50 ms during the
+  calls (round k2 at the 8th drawing, round a2 at the 10th), and never in 18 runs without it.
+- **What changed.** `Shared/FinalizerGate.cs`: before `Serve` the finalizer thread is held (a
+  keeper object whose finalizer waits); after the answer it is let go, and the collection of
+  0.152.6 runs. `OCE_FINALIZER_GATE` (`0`, `false` or `off`) leaves it open. The bench holds it in
+  the same way for every step of a case: `ReleaseAsTheBridge` opens it, collects and closes it
+  again, `RunSteps` opens it when the case ends, `TestAssembly` opens it before its own
+  collection. Three contract checks: with the gate open a dropped object is finalized within 2 s;
+  with it closed nothing is finalized in 1 s, and the object is finalized once it opens; the
+  wiring in `Program.cs` (6 changed copies, all red).
+- **Measured: it does not cure the falls.** The same cycle of 15 drawings, every run on a freshly
+  restarted SOLIDWORKS, the gate on and off alternated: on, 3 falls in 3 valid runs (at drawing
+  13, 12 and 10); off, 3 in 3 (at 8, 11 and 11). A fourth run with the gate on hung for 590 s
+  creating the first part from the template on the network share, which is not the gate. The two
+  crash signatures in the Windows log (`mfc140u.dll` at offset `0x23dc91`, and an unknown module
+  with BEX64) appear both with the gate on and with it off. The gate was held in every call but
+  two (the note «not held within 2000 ms»).
+- **Kept on**, by decision of the owner (30/10/2026): a release in the middle of a call is a real
+  risk (the probe), and the cause of the falls is looked for elsewhere. Over the day the bridge
+  fell in 20 runs out of 21 of this cycle, the probe in 2 out of 25. The journal of SOLIDWORKS
+  records the same API calls for both, `EditRebuild3` included (a probe series that repeats it
+  never fell): the difference is in what the bridge reads, which the journal does not record.
+- README: the «bridge» badge says 0.160.2.
+
+## 0.160.1 — 30 October 2026 · library 0.187.0 · the documents of the last plan are let go at the end of every call (branch `night-2026-10-26-asm`)
+
+- **The fall.** A cycle of 15 drawings (new drawing + second sheet + save, then close) driven
+  through the bridge on a fresh SOLIDWORKS: bridge 0.159.10 fell 4 times out of 4 (at drawing 5, 8,
+  10 and 14), always painting a drawing view (`uiBaseView_c::OnPaint`,
+  `uiDrawingView_c::getSheetRect`, from `uiStatusBar_c::OnChangeScaleStd`). The same cycle without
+  the bridge had run 25 times with no fall (28/10/2026); with `OCE_API_SEQUENCE=0` it still fell.
+  The collection after every call (0.152.6) had been proved with one round only.
+- **What the bridge kept.** `Session.LastPlanResult` holds the plan's document and the document it
+  ended on, and `LastTurnRefusedDocument` another one, until the NEXT plan. McpTools reads them in
+  the same call, right after the plan. After a plan that makes a drawing, the drawing stayed held
+  through its `close`: the collection could not release it, and SOLIDWORKS kept a closed drawing.
+- **Now.** `Session.ForgetLastPlan()` runs at the end of every `tools/call`, before the collection.
+  Closing a document also forgets the plan to withdraw when its document is the one closed
+  (`Session.IsOpen`, by COM identity): a closed document has no undo stack to press.
+
+## 0.160.0 — 30 October 2026 · library 0.187.0 · `OCE_KEEP_LAST_READING`: the last reading kept alive between calls, off by default, to measure (branch `night-2026-10-26-asm`)
+
+- **Why.** After every `tools/call` the bridge collects the garbage (0.152.6, against the falls
+  of SOLIDWORKS after 8-11 drawings), and a probe of 30/10/2026 measured that SOLIDWORKS then
+  throws away the geometry it evaluated: the next reading of the same welded frame cost about
+  2,100 ms instead of about 150 ms. Holding the last reading kept the faces fast, not the edges,
+  because the curves of the edges were not held.
+- **Library 0.187.0.** `DocumentState` keeps one `EdgeReading` per ranked edge (`_edgeReadings`),
+  with its `ICurve`. Nothing reads it after the state is built; the state is the same.
+- **Bridge.** With `OCE_KEEP_LAST_READING` set to `1`, `true` or `on`, `Session` keeps the last
+  `DocumentState` of `inspect_part` and of the plans (both reading paths: whole and filtered). A
+  new reading replaces the old one. Before every `document` call the kept reading is let go and
+  collected, so a document is never closed while the bridge holds its faces. Off by default:
+  without the variable nothing changes.
+- README: the variable in the table of the environment.
+
 ## 0.159.10 — 30 October 2026 · library 0.186.1 · the history check of the user name, blind since it was written, sees again (branch `night-2026-10-26-asm`)
 
 - **The defect.** `Checks/check-publishability.ps1` looks for the user name in the history to

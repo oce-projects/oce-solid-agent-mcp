@@ -1071,6 +1071,16 @@ namespace Oce.Solid.Agent.Tools
                     _seen = null;
                     _signatureSeen = null;
                     _seenSignatures = null;
+                    // The plan to withdraw, when its document is the one closed (bridge 0.160.1): a
+                    // closed document has no undo stack to press, and holding it kept it alive in
+                    // SOLIDWORKS after the collection at the end of this call (see
+                    // Session.ForgetLastPlan).
+                    if (_lastPlan != null && _lastPlan.DocumentRef != null && !_session.IsOpen(_lastPlan.DocumentRef))
+                    {
+                        _lastPlan = null;
+                        _noMemoryBecause = "the document of the last plan was closed";
+                        _noMemoryOnDrawing = false;
+                    }
                     closed["next_step"] = closed["in_front_now"] == null
                         ? "There is no open document any more: use «create» or «open» to continue."
                         : "In front now is «" + Convert.ToString(closed["in_front_now"]) + "». " +

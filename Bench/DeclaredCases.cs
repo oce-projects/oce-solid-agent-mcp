@@ -1466,9 +1466,11 @@ namespace Oce.Solid.Agent.Bench
             // The tree and the graphics off for the steps, as for a plan (bridge 0.158.0):
             // before the first reading, as the plan executor does, and back on whatever
             // happens to the case.
+            // The finalizer gate closed by the last step (ReleaseAsTheBridge) opens after the
+            // graphics are back on: the case is over, nothing of SOLIDWORKS is running.
             FreezeOn(doc);
             try { return RunStepsFrozen(itemName, testCase, doc, twins, filePath, toClean); }
-            finally { FreezeOff(); }
+            finally { FreezeOff(); Shared.FinalizerGate.Open(); }
         }
 
         private static bool RunStepsFrozen(

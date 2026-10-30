@@ -3379,9 +3379,16 @@ namespace Oce.Solid.Agent.Bench
         // starts as a call of the bridge starts: nothing of the previous reading kept, the
         // garbage collected. OCE_BENCH_RELEASE (0, false or off) turns it off, to measure the
         // two ways.
+        //
+        // AND NOTHING IS RELEASED WHILE THE STEP RUNS (bridge 0.160.2, see Shared.FinalizerGate):
+        // the bridge holds the finalizer thread for the whole call, so the bench holds it from
+        // here to the next step. The gate is opened first, or the collection would wait for the
+        // finalizers for ever; RunSteps opens it when the case ends. OCE_FINALIZER_GATE (0, false
+        // or off) leaves it open, as in the bridge.
         private static void ReleaseAsTheBridge()
         {
             if (!Wanted("OCE_BENCH_RELEASE")) return;
+            Shared.FinalizerGate.Open();
             Timed("release objects as the bridge", () =>
             {
                 GC.Collect();
@@ -3389,6 +3396,8 @@ namespace Oce.Solid.Agent.Bench
                 GC.Collect();
                 return true;
             });
+            if (Shared.FinalizerGate.Wanted && !Shared.FinalizerGate.Close(2000))
+                Console.WriteLine("  the finalizer thread was not held within 2000 ms: a SOLIDWORKS object may be released while this step runs");
         }
 
         /// <summary>Whether <see cref="ReleaseAsTheBridge"/> runs (OCE_BENCH_RELEASE).</summary>

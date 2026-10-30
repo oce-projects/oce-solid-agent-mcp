@@ -620,6 +620,9 @@ namespace Oce.Solid.Agent.Bench
                     Close(loaded);
             // As the probe, before looking: the COM wrappers of the closed
             // documents are let go, so that nothing of this process keeps one.
+            // The finalizer gate open first (Shared.FinalizerGate): closed, the wait below
+            // would never end.
+            Shared.FinalizerGate.Open();
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();

@@ -374,6 +374,17 @@ namespace Oce.Solid.Agent.Bridge
                      string.Equals(v, "off", StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>What `OCE_KEEP_LAST_READING` means: off unless `1`, `true` or `on` (bridge 0.160.0).</summary>
+        internal static bool KeepLastReadingWanted()
+        {
+            var v = System.Environment.GetEnvironmentVariable("OCE_KEEP_LAST_READING");
+            if (string.IsNullOrWhiteSpace(v)) return false;
+            v = v.Trim();
+            return v == "1" ||
+                   string.Equals(v, "true", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(v, "on", StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static bool NoAttachRequested()
         {
             var v = System.Environment.GetEnvironmentVariable("OCE_NO_ATTACH");
@@ -738,6 +749,7 @@ namespace Oce.Solid.Agent.Bridge
             {
                 var docState = Oce.Solid.Agent.Core.PhaseClock.Time(
                     "session.state_read", () => ReadState(model, false));
+                Keep(docState);
                 return docState?.Data;
             }
             catch (Exception ex)
@@ -811,6 +823,47 @@ namespace Oce.Solid.Agent.Bridge
         /// </summary>
         public object LastTurnRefusedDocument { get; private set; }
 
+        /// <summary>
+        /// LETS GO OF THE DOCUMENTS OF THE LAST PLAN at the end of every tools/call (bridge
+        /// 0.160.1, 30/10/2026). <see cref="LastPlanResult"/> holds the plan's document and the
+        /// document it ended on, and <see cref="LastTurnRefusedDocument"/> another one: McpTools reads
+        /// them right after <see cref="ExecutePlan(List{PlanStep}, out string, Mcp.Progress.Wire, string)"/>,
+        /// in the same call, and nobody after it. Kept until the next plan, they kept alive across
+        /// calls the drawing a «build» had just made: the drawing was then closed, the collection after
+        /// the call could not release it, and SOLIDWORKS kept a closed drawing alive. Measured on
+        /// 30/10/2026, cycle of 15 drawings (new drawing + second sheet + save, close) on a fresh
+        /// SOLIDWORKS: bridge 0.159.10 fell 4 times out of 4, always painting a drawing view
+        /// (uiBaseView_c::OnPaint, uiDrawingView_c::getSheetRect); the same cycle without the bridge
+        /// had run 25 times without falling (28/10/2026). RAG note 95, par. 12.
+        /// </summary>
+        public void ForgetLastPlan()
+        {
+            LastPlanResult = null;
+            LastPlanExecutorThrew = false;
+            LastTurnRefusedDocument = null;
+        }
+
+        /// <summary>True when <paramref name="document"/> is one of the documents open in SOLIDWORKS now (by COM identity).</summary>
+        public bool IsOpen(object document)
+        {
+            if (document == null) return false;
+            var sw = _sw as ISldWorks;
+            if (sw == null) return false;
+            try
+            {
+                // As FindOpen in Documents.cs walks them, with the same bound.
+                var doc = sw.GetFirstDocument() as IModelDoc2;
+                int guard = 0;
+                while (doc != null && guard++ < 500)
+                {
+                    if (SameComObject(doc, document)) return true;
+                    doc = doc.GetNext() as IModelDoc2;
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private Dictionary<string, object> State(bool withAnchor, out string error)
         {
             return State(withAnchor, null, null, out error);
@@ -833,6 +886,7 @@ namespace Oce.Solid.Agent.Bridge
                     () => filter == null && edges == null
                         ? ReadState(doc, withAnchor)
                         : DocumentState.ReadFiltered(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter, edges));
+                Keep(docState);
                 return docState?.Data;
             }
             catch (Exception ex)
@@ -840,6 +894,41 @@ namespace Oce.Solid.Agent.Bridge
                 error = "I cannot read the document: " + ex.Message;
                 return null;
             }
+        }
+
+        /// <summary>
+        /// THE LAST READING, KEPT ALIVE ACROSS CALLS (bridge 0.160.0, 30/10/2026), only with
+        /// OCE_KEEP_LAST_READING=1; off by default.
+        ///
+        /// After every tools/call the bridge collects the garbage (Program.cs,
+        /// ReleaseSolidWorksObjects, 0.152.6), so every COM object of the call is released, and a
+        /// probe of 30/10/2026 measured that SOLIDWORKS then throws away the geometry it evaluated:
+        /// the next reading of the same welded frame cost about 2,100 ms instead of about 150 ms
+        /// (RAG note 95). Holding the last DocumentState holds its faces, its edges and (library
+        /// 0.187.0) the curves of its edges, so the next reading of an unchanged part may find them
+        /// evaluated. Whether it does, and at what cost in the memory of SOLIDWORKS, is what the
+        /// switch is for: it is a test, not a decision.
+        ///
+        /// One reading at a time: a new one replaces the old one, which the collection after the
+        /// call releases. Forgotten before every «document» call (Program.cs), so that a document
+        /// is never closed while the bridge holds its faces: the collection that cured the falls
+        /// after 8-11 drawings stays whole.
+        /// </summary>
+        private DocumentState _keptReading;
+
+        private static readonly bool KeepLastReading = KeepLastReadingWanted();
+
+        private void Keep(DocumentState reading)
+        {
+            if (KeepLastReading && reading != null) _keptReading = reading;
+        }
+
+        /// <summary>Lets go of the kept reading. True when there was one (the caller then collects).</summary>
+        public bool ForgetKeptReading()
+        {
+            if (_keptReading == null) return false;
+            _keptReading = null;
+            return true;
         }
 
         /// <summary>

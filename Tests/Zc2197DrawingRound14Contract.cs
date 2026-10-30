@@ -363,7 +363,9 @@ namespace Oce.Solid.Agent.ContractTests
         private const string OutlineSaid = "entry[\"outline_mm\"] = new object[]";
         private const string OldCaveat = "whether the section view overlaps the others or the title block";
         private const string Answered = "if (response != null && !isNotification) Protocol.Send(output, response);";
-        private const string Released = "if (method == \"tools/call\") ReleaseSolidWorksObjects();";
+        // Bridge 0.160.1 put ForgetLastPlan before the collection, in a block: the call alone is
+        // the anchor, and the order check looks for it after the answer.
+        private const string Released = "ReleaseSolidWorksObjects();";
         private const string Finalizers = "GC.WaitForPendingFinalizers();";
 
         private static readonly string[][] Files =

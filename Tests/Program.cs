@@ -420,6 +420,7 @@ namespace Oce.Solid.Agent.ContractTests
             Zc2195DrawingRound12Contract.RunAll();
             Zc2196DrawingRound13Contract.RunAll();
             Zc2197DrawingRound14Contract.RunAll();
+            FinalizerGateContract.RunAll();
             Zc2198DrawingRound15Contract.RunAll();
             Zc2199DrawingRound16Contract.RunAll();
             Zc2200DrawingRound17Contract.RunAll();

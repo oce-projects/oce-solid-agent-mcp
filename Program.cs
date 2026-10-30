@@ -5,6 +5,7 @@ using System.Text;
 using Oce.Solid.Agent.Mcp;
 using Oce.Solid.Agent.Bridge;
 using Oce.Solid.Agent.Tools;
+using Shared;
 
 namespace Oce.Solid.Agent
 {
@@ -181,6 +182,20 @@ namespace Oce.Solid.Agent
                 // is listening: they would find an answer they were not expecting.
                 bool isNotification = !message.ContainsKey("id");
 
+                // NO DOCUMENT CHANGES WHILE A READING IS HELD (bridge 0.160.0, see
+                // Session.ForgetKeptReading): with OCE_KEEP_LAST_READING=1 the last reading keeps
+                // faces and edges alive; before a «document» call it is let go and collected, so a
+                // document is closed with nothing of it held, as without the switch.
+                if (method == "tools/call" && IsDocumentCall(parameters) && session.ForgetKeptReading())
+                    ReleaseSolidWorksObjects();
+
+                // NO SOLIDWORKS OBJECT IS RELEASED WHILE THE CALL RUNS (bridge 0.160.2, see
+                // Shared.FinalizerGate): the finalizer thread is held from here to the answer, and
+                // what a collection finds dead meanwhile is released by the collection below.
+                bool gate = FinalizerGate.Wanted;
+                if (gate && !FinalizerGate.Close(GateWaitMs))
+                    Protocol.Note("[bridge] the finalizer thread was not held within " + GateWaitMs +
+                                  " ms: a SOLIDWORKS object may be released while this call runs");
                 try
                 {
                     var response = Serve(method, parameters, tools, session, catalog, id);
@@ -193,7 +208,14 @@ namespace Oce.Solid.Agent
                         Protocol.Send(output, Protocol.Error(
                             id, Protocol.InternalError, ex.Message));
                 }
-                if (method == "tools/call") ReleaseSolidWorksObjects();
+                finally { if (gate) FinalizerGate.Open(); }
+                if (method == "tools/call")
+                {
+                    // The documents of the last plan are let go first, or the collection cannot
+                    // release them (bridge 0.160.1, see Session.ForgetLastPlan).
+                    session.ForgetLastPlan();
+                    ReleaseSolidWorksObjects();
+                }
             }
 
             Protocol.Note("[bridge] closed");
@@ -217,7 +239,23 @@ namespace Oce.Solid.Agent
         /// from 660 to 746 MB. GDI (at most 2091) and USER objects (1722) were far from
         /// their limit of 10000. It runs after the answer is sent, so the client does not
         /// wait for it (about 0.9 s per call, measured inside the call).
+        ///
+        /// It was not enough (30/10/2026: 8 falls in 8 runs of the same cycle, bridge 0.159.10 and
+        /// 0.160.1). One hypothesis: a collection also starts by itself during a call, and the
+        /// finalizer thread then releases wrappers while SOLIDWORKS is working. Since 0.160.2 the
+        /// finalizer thread is held while a call runs (Shared.FinalizerGate), and this collection
+        /// runs with the gate open. Measured the same day, the gate does not cure the falls either
+        /// (3 falls in 3 runs with it, 3 in 3 without): it stays against the release in the middle
+        /// of a call, and the cause of the falls is elsewhere.
         /// </summary>
+        /// <summary>
+        /// How long a call waits for the finalizer thread to be held (Shared.FinalizerGate).
+        /// After the collection of the previous call nothing is left to finalize, and it is held
+        /// at once; a finalizer thread still busy after 2 s is stuck on something else, and the
+        /// call goes on rather than wait for it.
+        /// </summary>
+        private const int GateWaitMs = 2000;
+
         private static void ReleaseSolidWorksObjects()
         {
             try
@@ -227,6 +265,13 @@ namespace Oce.Solid.Agent
                 GC.Collect();
             }
             catch (Exception ex) { Protocol.Note("[bridge] releasing the SOLIDWORKS objects of the call: " + ex.Message); }
+        }
+
+        /// <summary>True when the parameters of a tools/call name the «document» tool.</summary>
+        private static bool IsDocumentCall(Dictionary<string, object> parameters)
+        {
+            return parameters != null && parameters.TryGetValue("name", out var n) &&
+                   string.Equals(Convert.ToString(n), "document", StringComparison.Ordinal);
         }
 
         private static Dictionary<string, object> Serve(

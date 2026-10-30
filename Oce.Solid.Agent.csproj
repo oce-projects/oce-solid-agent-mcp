@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="Shared\FinalizerGate.cs" />
     <Compile Include="Mcp\Protocol.cs" />
     <Compile Include="Mcp\McpResources.cs" />
     <Compile Include="Mcp\Elicitation.cs" />

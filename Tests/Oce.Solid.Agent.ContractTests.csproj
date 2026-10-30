@@ -62,6 +62,8 @@
     <Compile Include="..\Shared\SolidWorksSentinel.cs" />
     <Compile Include="..\Shared\PreparationFailed.cs" />
     <Compile Include="..\Shared\Leash.cs" />
+    <Compile Include="..\Shared\FinalizerGate.cs" />
+    <Compile Include="FinalizerGateContract.cs" />
     <Compile Include="Load.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="CatalogTests.cs" />

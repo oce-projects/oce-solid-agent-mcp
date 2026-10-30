@@ -768,8 +768,14 @@ using System.Runtime.InteropServices;
 //          `title_block` and the tables of the sheet are null when they cannot be read; the
 //          pieces of a view without the array of its lines are null; the true zeros carry
 //          the marker with the reason.
-[assembly: AssemblyVersion("0.186.1.0")]
-[assembly: AssemblyFileVersion("0.186.1.0")]
+// 0.187.0: the reading holds the curves of its edges (one EdgeReading per ranked edge), so that
+//          whoever keeps the reading alive keeps them too; the bridge does it only with
+//          OCE_KEEP_LAST_READING=1 (bridge 0.160.0). Nothing else changes in the state.
+// 0.188.0: OCE_UI_FREEZE can name one part: `graphics` (only the graphics of the view) or `tree`
+//          (only the tree and its window); `1`, `true`, `on` still turn off all three. The cycle of
+//          15 drawings fell 11 times in 11 without the freeze and 0 in 3 with it (30/10/2026).
+[assembly: AssemblyVersion("0.188.0.0")]
+[assembly: AssemblyFileVersion("0.188.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -784,4 +790,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.186.1")]
+[assembly: AssemblyInformationalVersion("0.188.0")]
