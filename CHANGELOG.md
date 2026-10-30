@@ -32,6 +32,24 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.159.10 — 30 October 2026 · library 0.186.1 · the history check of the user name, blind since it was written, sees again (branch `night-2026-10-26-asm`)
+
+- **The defect.** `Checks/check-publishability.ps1` looks for the user name in the history to
+  push with `git grep -P`, and the pattern carries `"signed_by": "` (the one place the name is
+  allowed). Windows PowerShell 5.1 drops the double quotes inside an argument it hands to a
+  program: git received a broken expression, answered «fatal: -e option ... unmatched» with exit
+  128, and `RunGit` throws stderr away, so the check printed «ok  no the user name» on every push
+  since the pattern was written (W3.1-bis.11). The check of the working tree (`Select-String`,
+  inside PowerShell) was never blind.
+- **Repaired twice**: the quotes go to git as `\x22`, the same character for PCRE with no quote
+  for PowerShell to drop; and an exit of `git grep` above 1 (it could not search) is now a
+  failure of the check («git grep could not search the history»), not «nothing found».
+- **Seen firing** on the 45 commits not yet pushed of this branch: «the user name ... in 186
+  places, 21 files» (it said «ok» on the same commits an hour before), and the S: share in 1
+  place. The working tree: 49 places, the same as before.
+- The names and the path in those commits are taken out by rewriting them before the push
+  (decision of the owner, 30/10/2026); this entry is written after it.
+
 ## 0.159.9 — 30 October 2026 · library 0.186.1 · the pre-push hook no longer writes into the repository it guards (branch `night-2026-10-26-asm`)
 
 - **What happened.** The push of 0.159.8 from a linked worktree ran the pre-push hook, and

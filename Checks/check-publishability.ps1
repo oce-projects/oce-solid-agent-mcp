@@ -454,9 +454,24 @@ if ($toPush.Count -eq 0) {
     Write-Host "  .. $($toPush.Count) commits to look at"
 
     function LookAtHistory($itemName, $pattern, $why, $caseSensitive, $except = @()) {
+        # THE QUOTES GO TO GIT AS \x22 (30/10/2026). Windows PowerShell 5.1 drops the
+        # double quotes inside an argument it hands to a program: the user name pattern,
+        # with its `"signed_by": "`, reached git without them, git refused it («fatal:
+        # -e option ... unmatched»), exit 128, and with stderr thrown away this said
+        # «ok  no the user name» on every push since the pattern was written. \x22 is
+        # the same character for PCRE, and has no quote for PowerShell to drop.
+        $forGit = $pattern -replace '"', '\x22'
         $foundItems = @(RunGit (@('grep', '--text', '-n', '--no-color') +
             $(if ($caseSensitive) { @() } else { @('-i') }) +
-            @('-P', '-e', $pattern) + $toPush))
+            @('-P', '-e', $forGit) + $toPush))
+        # git grep: 0 found, 1 nothing found, more than 1 it could not search. A search
+        # that did not run is not «nothing found».
+        $searchExit = $LASTEXITCODE
+        if ($searchExit -gt 1) {
+            $script:trouble++
+            Write-Host "  XX  $itemName ($why): git grep could not search the history (exit $searchExit)"
+            return
+        }
 
         # Shape of a line: <sha>:<path>:<line>:<text>
         $gaps = @($foundItems | Where-Object {
