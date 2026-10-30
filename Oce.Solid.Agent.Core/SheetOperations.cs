@@ -116,9 +116,11 @@ namespace Oce.Solid.Agent.Core
             // of the title block among its notes. A «paper_size» asked keeps the sheet
             // without a format: the format of the current sheet is drawn for its own size.
             string currentTemplate = null;
-            try { currentTemplate = current.GetTemplateName(); } catch { }
+            // The format is named as the installation names it, and opened from its local
+            // copy when OCE_LOCAL_COPIES asks for it (LocalCopies.cs).
+            try { currentTemplate = LocalCopies.Original(current.GetTemplateName()); } catch { }
             string format = string.IsNullOrWhiteSpace(formatName) ? SheetFormatFile(currentTemplate) : null;
-            if (format != null && !System.IO.File.Exists(format))
+            if (format != null && !System.IO.File.Exists(LocalCopies.Of(format)))
                 return Failed(
                     "The current sheet uses the format «" + format + "», and I cannot find that file: the new sheet would " +
                     "have no frame and no title block. Make the file reachable and ask again, or give «paper_size» " +
@@ -133,7 +135,7 @@ namespace Oce.Solid.Agent.Core
                     format != null ? (int)swDwgTemplates_e.swDwgTemplateCustom : (int)swDwgTemplates_e.swDwgTemplateNone,
                     scaleNum, scaleDen,
                     firstAngle,               // ← PASSED ON AGAIN, not decided here
-                    format ?? "",              // TemplateName: the format of the current sheet, or none
+                    format != null ? LocalCopies.Of(format) : "",  // TemplateName: the format of the current sheet, or none
                     0, 0,                      // Width/Height: count only with the «custom» format
                     "",                        // PropertyViewName
                     0, 0, 0, 0, 0, 0);         // zones: not used
@@ -166,7 +168,7 @@ namespace Oce.Solid.Agent.Core
 
             // AND THE FORMAT OF THE NEW SHEET IS RE-READ FROM THE NEW SHEET (N49).
             string formatAfter = null;
-            try { formatAfter = newItem == null ? null : SheetFormatFile(newItem.GetTemplateName()); } catch { }
+            try { formatAfter = newItem == null ? null : SheetFormatFile(LocalCopies.Original(newItem.GetTemplateName())); } catch { }
             string formatWrong = NewSheetFormatProblem(format, formatAfter);
             if (formatWrong != null)
                 return Failed(

@@ -321,8 +321,27 @@ namespace Oce.Solid.Agent.ContractTests
         /// **288 (28/10/2026, round 17 of report 8cd843): +1.** An «order» of the
         /// balloons that is not one of the two (N60) is refused with «use one of the
         /// two, or leave it out»: 288 of 1025.
+        /// **289 (28/10/2026, round 20 of report 8cd843): +1.** A circle of a detail in
+        /// the margin of a view, meeting none of its lines (N62), is refused with «move it
+        /// onto a line of that drawing with «x_mm», «y_mm» and «radius_mm»»: 289 of 1026.
+        /// **290 (28/10/2026, round 20 of report 8cd843): +1.** A sketch asked to
+        /// «sketch_details» that is not in the part (N63) is refused with «use one of
+        /// them, or leave «sketch» out»: 290 of 1028.
+        /// **296 (28/10/2026, round 21 of report 8cd843, point 1): +6.** The scale of a
+        /// view: a scale that cannot be read («give it as «1:2» or «2:1»», on
+        /// «set_view_scale», «standard_views» and «model_view»), a view that is not
+        /// there («use one of them»), a view already at that scale («give another
+        /// «scale»»), new views that cannot be told from the old ones («use
+        /// «set_view_scale»»).
+        /// **297 (28/10/2026, round 21, point 4): +1.** «decimals» of
+        /// «drawing_dimension» that is not a whole number from 0 to 8 («give a whole
+        /// number from 0 to 8, or leave «decimals» out»).
+        /// **298 (28/10/2026, round 21, point 2): +1.** «overall» and «edges» together on
+        /// a view of a part («two calls: one with «overall», one with «edges»»).
+        /// **299 (28/10/2026, round 21, point 7): +1.** A «width» mate without its
+        /// second faces, or with them on another mate («Give «face_a2» and «face_b2»»).
         /// </summary>
-        private const int Floor = 288;
+        private const int Floor = 313;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -336,8 +355,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 288;   // 28/10/2026, round 17 of report 8cd843 (N60): 288 of 1025; 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 1025;
+        private const int ShareFloorWithRemedy = 313;   // 28/10/2026, round 22 of report 8cd843 (the drawings of 26M000002 against the owner's): 313 of 1073; 28/10/2026, round 21 of report 8cd843 (the width mate): 299 of 1045; 28/10/2026, round 21 of report 8cd843 (the overall size of a part): 298 of 1040; 28/10/2026, round 21 of report 8cd843 (the decimals of a dimension): 297 of 1039; 28/10/2026, round 21 of report 8cd843 (the scale of a view): 296 of 1038; 28/10/2026, round 20 of report 8cd843 (N63): 290 of 1028; 28/10/2026, round 20 of report 8cd843 (N62): 289 of 1026; 28/10/2026, round 17 of report 8cd843 (N60): 288 of 1025; 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1073;
 
         /// <summary>
         /// The openings with which this code says no.

@@ -114,8 +114,10 @@ namespace Oce.Solid.Agent.ContractTests
         private const string OrderSaid = "[\"order\"] = order,";
         private const string TieSaid = "measurements[\"numbers_decided_by_a_tie\"] = tied.ToArray();";
         private const string Spread = "var moves = SpreadCrowdedBalloons(model, view, out spreadNote);";
-        private const string FileOfActive = "[\"sheet_format_file\"] = SheetFormatFile(TestText(() => sheet.GetTemplateName())),";
-        private const string FileOfOther = "string formatFile = SheetFormatFile(TestText(() => other.GetTemplateName()));";
+        // Since library 0.179.1 the file is named as the installation names it, also when a
+        // local copy was opened (LocalCopies.cs).
+        private const string FileOfActive = "[\"sheet_format_file\"] = SheetFormatFile(LocalCopies.Original(TestText(() => sheet.GetTemplateName()))),";
+        private const string FileOfOther = "string formatFile = SheetFormatFile(LocalCopies.Original(TestText(() => other.GetTemplateName())));";
         private const string ComparedByFile = "string formatWarning = OtherFormatWarning(name, formatFile, activeFormat);";
         private const string OldCompared = "OtherFormatWarning(name, format, activeFormat)";
 

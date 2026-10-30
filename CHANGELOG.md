@@ -32,6 +32,493 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.159.7 — 30 October 2026 · library 0.186.0 · the bench lets the objects go as the bridge does (branch `night-2026-10-26-asm`)
+
+- **Bench, every declared step starts as a call of the bridge starts**: the garbage is
+  collected (`GC.Collect`, `WaitForPendingFinalizers`, `GC.Collect`, the same three calls as
+  `ReleaseSolidWorksObjects` in the bridge) and the step reads the document again instead of
+  getting the object of the last reading. The bridge collects after every `tools/call` since
+  0.152.6 and keeps no reading between two calls (`Session.State` hands back the dictionary
+  only). Why: when the wrappers of faces, edges and curves are finalized, SOLIDWORKS throws away
+  the geometry it had evaluated for them. Measured on 30 October with a probe outside the
+  repository (RAG note 95), a welded frame read with no rebuild: about 150 ms with no collection
+  between two readings, about 2,100 ms after one (8 readings of 8). The bench measured warm
+  readings the bridge never makes, and turned cold only where the collector happened to run;
+  an A/B of the state reading gave a false +49.6 % for that reason. The collection is the phase
+  «release objects as the bridge» in the `TIME` lines; `OCE_BENCH_RELEASE` (`0`, `false` or
+  `off`) turns it off, to measure the two ways. Short bench of 17 cases, two runs: 164 tests per
+  run and none failed; the sum of the cases went from 213.1 s and 204.8 s to 357.6 s and
+  364.7 s, the cost the bridge pays and the bench did not see (on the welded frame with its
+  drawing, about 4.6 s per collection, and colder operations: `save_document` 0.8 s → 5.8 s).
+- **Six pattern cases name their edge by where it is** (`grid_3x2`, `three_holes_pitch_40`,
+  `skip_the_second_copy`, `limit_copy_that_never_existed`, `limit_grid_does_not_count_as_a_row`,
+  `limit_zero_is_not_a_copy`): `@edge(axis=X,length~=200,n=1)` became
+  `@edge(axis=X,length~=200,y~=60,z~=20)`, the edge they had always taken. The plate has four
+  edges of 200 mm along X; `n=1` took the first in the order of the ranking, and library 0.186.0
+  orders equal edges by the middle of their ends, so the first became another edge, with the
+  other direction, and the pattern went towards +X (centres [0, 25, 50, 75] instead of [-75, -50,
+  -25, 0]). Measured: red with library 0.186.0 with and without the collection, green with
+  library 0.185.0. The rule of entry E18 already says it: `n=` chooses by order, an edge is named
+  by where it is.
+
+## 0.159.6 — 30 October 2026 · library 0.186.0 · the same state in every run: sets in a fixed order (branch `night-2026-10-26-asm`)
+
+Found by the bench of 30 October (57 cases, two equal runs with library 0.185.0, states
+saved, RAG note 95): 288 state files of 291 identical between the runs, and the three that
+were not differed only in an order that SOLIDWORKS does not keep from run to run.
+
+- **Library 0.186.0, `DocumentState`, the body's feature**: `created_by` is the oldest feature
+  among the faces of the body (the smallest `IFace2.GetFeatureId`), no longer the feature of the
+  first face. On a combined body SOLIDWORKS lists first the faces of the input body that
+  survived the combine, and which one survives changes: merge_two_cubes gave the extrusion in one
+  run and the move/copy feature in the other. On a body made by one feature, or a bar with its
+  trims, it is the same feature as before.
+- **Ties in the rankings**: faces of equal area are ordered by body, then by feature number;
+  edges of equal length by body, then by the middle of their ends (from the array that
+  `ReadEdge` already holds). What is still equal keeps the order of SOLIDWORKS. The feature
+  number of every face is read once and the listing takes it from there.
+- **`between`**: the two faces of an edge are written lower number first.
+- **`documents_open`**: sorted by title, then path (the base and the lid of an assembly came in
+  the two orders).
+- The summary of `AreaOrZero` had ended up above `RankKey` in library 0.184.0; it is back on
+  its method.
+- Measured after the change: a short bench of 17 cases, three equal runs with SOLIDWORKS
+  restarted, 164 tests per run and none failed; the saved states identical in all three runs
+  (21,029 values of 21,029, 80 files of 80). The states of library 0.185.0 that differed between
+  its two runs, sorted by the new rules with a tool outside the repository, become identical
+  except `documents_open` (RAG note 95). Reading time, every reading cold as in the bridge, the
+  same as library 0.185.0 within -2.7 % to +2.8 % on four parts.
+
+## 0.159.5 — 30 October 2026 · library 0.185.0 · the length of a straight edge from its ends (branch `night-2026-10-26-asm`)
+
+- **Library 0.185.0, `DocumentState.ReadEdge`**: a straight edge (curve type `LINE_TYPE` from
+  the array of `GetCurveParams2`) takes its length from the distance between its ends, without
+  `ICurve.GetLength3`; the other curves keep `GetLength3`. Library 0.181.0 had kept
+  `GetLength3` on segments too because the chord, 3e-13 mm away, swapped edges of equal length
+  in the ranking; since library 0.184.0 the ranking sorts on the length rounded to the sixth
+  decimal. Probe outside the repository (RAG note 95), four parts, 317 edges: the length without
+  `GetLength3` equal to it to the sixth decimal on 317 of 317 (largest difference 3.4e-13 mm),
+  0 places of the ranking changed. Read right after a rebuild, the edges of a welded frame went
+  from 1,078.4 ms to 980.0 ms with segments and circles both taken without `GetLength3`; most of
+  that time is SOLIDWORKS evaluating each edge again after the rebuild, whatever call comes
+  first.
+
+## 0.159.4 — 30 October 2026 · library 0.184.0 · equal measures ranked in the order of SOLIDWORKS (branch `night-2026-10-26-asm`)
+
+Sixth of the six analyses the owner asked for on 29 October: the ties in the rankings.
+
+- **Library 0.184.0, `DocumentState.RankKey`**: faces are ranked by area in mm² and edges by
+  length in mm rounded to the sixth decimal. The rankings are stable sorts, so measures that
+  are equal by design now keep the order in which SOLIDWORKS lists faces and edges, the same in
+  every run, instead of the order of the last bits of a double. Why: in the bench A/B of
+  libraries 0.180.0 and 0.181.0 (RAG notes 94 and 95) eight arcs of radius 5 mm, 7.85 mm long,
+  came in another order once the length was computed through another call, and with the
+  ceiling of 30 listed edges other arcs entered the list (2 entries of 1,828). No call is
+  added.
+
+## 0.159.3 — 30 October 2026 · library 0.183.0 · the faces of the state with fewer calls (branch `night-2026-10-26-asm`)
+
+First of the six analyses the owner asked for on 29 October («all six, in order»): the faces, the
+slowest phase of the reading after library 0.181.0.
+
+- **Library 0.183.0, `DocumentState`**: the normal of a face is `IFace2.Normal` (one call; the
+  page says it is 0,0,0 for a face that is not planar) instead of `IGetSurface`, `IsPlane`,
+  `PlaneParams` and `FaceInSurfaceSense`; the surface is asked only for a face that is not
+  planar, for the cylinder. The feature number of a listed face is `IFace2.GetFeatureId`, and
+  the name is asked to the feature once per number; the first face of every number still asks
+  its feature, and the name is cached only if its `GetID` is that number. Probe outside the
+  repository (RAG note 95), four parts, 136 faces: the same 71 planar faces, the same normal to
+  4 decimals on 71 of 71 (none reversed), `GetFeatureId` equal to `GetID` on 126 of 126;
+  normals and features of the 72 faces of a welded frame from 82.6 ms to 44.0 ms (medians of 5).
+
+## 0.159.2 — 30 October 2026 · library 0.182.0 · one line of times per case in the bench journal (branch `night-2026-10-26-asm`)
+
+The owner asked to check the bench and improve it.
+
+- **Bench, `CasePhasesBegin` / `CasePhasesEnd`**: every declared case writes one line to
+  `Bench/in-progress.txt`: `TIME <case> <total> s | <phase> <s> x<times> | ... | inside them:
+  ... | outside the phases <s>`. A phase recorded while a `Timed` phase runs (the new document
+  inside the preparation) is listed «inside them» and not added again. Why: in the A/B of
+  libraries 0.180.0 and 0.181.0 (29 October, 42 cases, four runs) `cut_list_in_the_drawing`
+  took 45.1 s up to its first check instead of 12.5-14.3 s in one run out of eight (33.8 s in
+  another run of the freeze A/B), and about 27 of those seconds were in no phase that the
+  totals of the run could point at. The totals of the run do not change.
+
+## 0.159.1 — 29 October 2026 · library 0.182.0 · the bodies of the state in the order of their names (branch `night-2026-10-26-asm`)
+
+Fifth of the six analyses the owner asked for on 29 October («all six, in order»): the number of
+the bodies that changes between two identical runs.
+
+- **Library 0.182.0, `DocumentState`**: the solid bodies are sorted by name, in natural order
+  («[9]» before «[10]»; on equal names the order of `GetBodies2`), instead of being taken in
+  the order of `IPartDoc.GetBodies2`, whose page says it «May vary». Measured on the states
+  saved by the four runs of the freeze A/B (42 cases, compared by a script outside the
+  repository, RAG note 95):
+  of the 9 states with more than one body, 4 to 9 had the bodies in another order between two
+  runs, always with the same names and never a name twice; sorting by name makes all of them
+  equal. Since the rankings of faces and edges are stable sorts, equal faces and edges of
+  different bodies (four equal tubes) also kept the order of their bodies: their F and E
+  numbers now stay the same too. The name of each body is read once and used again for its
+  `name`. The operations do not change: they find a body by its signature, not by position.
+
+## 0.159.0 — 29 October 2026 · library 0.181.0 · the edges of the state asked with one array each (branch `night-2026-10-26-asm`)
+
+The owner asked, after the tree and the graphics, for fewer calls per edge, with the accuracy it
+costs measured.
+
+- **Library 0.181.0, `DocumentState.ReadEdge`**: every edge of the ranking is read with
+  `IEdge.GetCurve`, `IEdge.GetCurveParams2` (one array of doubles: ends, parameters, packed curve
+  type) and `ICurve.GetLength3` between the same parameters, instead of `GetCurve`,
+  `GetCurveParams3`, `UMinValue`, `UMaxValue` and `GetLength3`. The listed edges take their point
+  and their direction from the array; a circle asks only `CircleParams`. Probe
+  (outside the repository, RAG note 94; 317 edges of four parts): indices 0-7 identical to
+  `GetCurveParams3`, the curve type in the high half of PackDouble1, same lengths and same
+  ranking; the ranking of 192 edges from 925.4 ms to 79.1 ms (medians of 5). The chord was not
+  used even for straight edges: it moved 53 of 192 edges of equal length in the ranking.
+- **Contracts**: `IEdge.GetCurveParams2` in `DocumentState.cs` is OBSOLETE-MEASURED under
+  `fillet_rounds_the_four_corners`.
+
+## 0.158.0 — 29 October 2026 · library 0.180.0 · the tree and the graphics turned off while a plan runs, behind OCE_UI_FREEZE, and the bench writes the state of every step (branch `night-2026-10-26-asm`)
+
+The owner asked to try, first of the remaining ways to make the bridge faster, «the tree and the
+graphics off while a plan runs», and to measure how much accuracy it costs.
+
+- **Library 0.180.0, `UiFreeze`**: `IFeatureManager.EnableFeatureTree`,
+  `EnableFeatureTreeWindow` and `IModelView.EnableGraphicsUpdate` set to false on the plan's
+  document for the length of the plan, and on the new document when a step changes it;
+  only what was on is turned off, only that is put back, then the tree is updated
+  (`UpdateFeatureTree`) and the view redrawn (`IModelView.GraphicsRedraw`, not the obsolete
+  `IModelDoc2.GraphicsRedraw2`). Pages of the guide cited in
+  UiFreeze.cs. Phases `plan.ui_freeze` and `plan.ui_thaw`. **Off unless `OCE_UI_FREEZE` is
+  `1`, `true` or `on`**: the default is decided after the measurement.
+- **Bench**: the same freeze around the steps of a declared case (by reflection, phases
+  `ui freeze` and `ui thaw`; a library without UiFreeze runs as before), and
+  `OCE_BENCH_STATE_DUMP=<folder>` writes the state read before the first step and after
+  every step to `<case>__<step>.json`, so two runs can be compared field by field.
+
+## 0.157.4 — 29 October 2026 · library 0.179.4 · the bench prints the library's phases, and two slow operations get phases of their own (branch `night-2026-10-26-asm`)
+
+The ten slowest calls of run g22_6 are seven `mate` (14.6 to 18.6 s each), two
+`drawing_dimension` and one `hole_wizard`; `create_drawing` steps took 10.6 s on average even
+with the templates from the local copy. Before changing them, the time inside is measured:
+
+- **Library 0.179.4, `mate`**: a stopwatch around the two readings of the directions before
+  `AddMate5` and around the two after it, added to PhaseClock as `mate.direction_test` through the new `PhaseClock.Spent` (`Add` under a name the interop does not use: the contract on undecided calls counts every `Add`). Each
+  reading is up to thirteen rebuilds (MateOperations.cs, «COST»); the calls are left as the
+  Z-C14 contract reads them.
+- **Library 0.179.4, `create_drawing`**: `drawing.new_document` around `ISldWorks.NewDocument`
+  (the drawing template and the sheet format it names).
+- **Bench**: `PhaseClock.Begin` once at the start of the run, on the thread of the cases, and
+  the library's totals (`state.*`, `mate.direction_test`, `drawing.new_document`, ...) printed
+  after the bench's own phases and written to the log. A library without PhaseClock adds
+  nothing.
+
+## 0.157.3 — 29 October 2026 · library 0.179.3 · the tree of the state asks SOLIDWORKS less (branch `night-2026-10-26-asm`)
+
+Measured first. The library 0.179.2 against 0.179.1 (an A/B script outside the repository, four parts, two
+alternated rounds, CommandInProgress set as in the bridge): the full reading of the state
+went from 1,549.3 to 1,105.5 ms on a welded frame (−28.6 %) and from 450.0 to 209.7 ms on a
+plate with holes and a chamfer (−53.4 %), with the JSON of the state identical in 12
+comparisons out of 12. Then the same was done on the tree (`state.features`, 7.4 % of the time
+of the plans in the bridge log of 26-29 October):
+
+- **Library 0.179.3, `FeatureParameters`**: `IFeature.GetDefinition` only for the five types
+  it reads (`HoleWzd`, `Extrusion`, `Cut`, `Fillet`, `Chamfer`). It was asked of every
+  feature that counts — a shell, a rib, a structural member — and thrown away.
+  `ThreadDiameter` and `DefaultRadius` are read once instead of twice.
+- **Library 0.179.3, the walk of the tree**: `IFeature.Name` only for an axis and a feature
+  that counts; planes, folders and the other features never used it. The comment that said
+  the name was read for every feature is corrected.
+- **NOT the same state on weldments, and the A/B said it.** `GetDefinition` on a structural
+  member made SOLIDWORKS load the profile library part from the share
+  (the `.SLDLFP` of the square tube, in the profile folder on the network share) as an
+  open document, so `documents_open` counted 2 instead of 1; and the order of the bodies changed
+  between two openings of the same part with 0.179.2 (`weld_symbol_on_the_joint`: the tube body,
+  then the body of the trim feature, in the first round, the other way in the
+  second), while with 0.179.3 it was the same in both rounds. On the two parts without
+  structural members the JSON of the state stays identical. Whether this is the cause of the
+  unstable body numbers of the weldment cases is not proven (two rounds); the short bench runs
+  three weldment cases. Times: RAG note 93.
+
+## 0.157.2 — 29 October 2026 · library 0.179.2 · the state asks SOLIDWORKS less, and the bench says where its time goes (branch `night-2026-10-26-asm`)
+
+The owner asked to make drawing faster, starting from the slowest operations. Two measures
+set the target. The bridge log of 26-29 October (read by a script outside the repository, 37 plans, 52
+steps, 166.9 s) puts 99.0 s (59.3 %) in reading the state and 55.8 s (33.4 %) in the
+operations; inside the readings the edges are 53.8 s (32.2 % of the plans) and the faces
+29.8 s (17.9 %). The bench, for its part, could not say where its hours go: run g22_5
+(6,696 s) kept only the ten slowest calls, and it never set `CommandInProgress`, which the
+bridge sets on every call since 0.130.2 (10.58 times faster on 26 October).
+
+- **Library 0.179.2, `DocumentState`: the same values with fewer calls.** The listed edges
+  used to read their length again, the curve parameters again for the point and the curve
+  again for the direction, about fourteen calls each with six repeated. The ranking now
+  keeps one `EdgeReading` per edge (curve, parameters, length, from the same GetCurve and
+  GetCurveParams3 as before) and the listed edges and the edge filter use it. The listed
+  faces reuse the area read for the ranking (asked again only when it was zero, where the
+  second call tells «not read» from a reading), read IGetSurface once for the normal and
+  the cylinder, and GetFeature once for `from_feature` and `feature_id` (`FaceFeature`,
+  now without callers, is removed). Same calls on the same entities: same values, same
+  ranking, same identifiers. How much time it saves is NOT measured yet: a probe outside
+  the repository reads the same part with the library before and after.
+- **Bench: time by phase.** Every run now prints, after the slowest calls, the seconds and
+  the count of each phase: `call <operation>` (the operation alone), `read state`, `read
+  state again before the step`, `read state, every face`, `volume`, `after step`, `new
+  document`, `case: prepare the document`, `case: close the documents`. The table also goes
+  to the log.
+- **Bench: the sequence of API calls, as in the bridge.** The operation, the after-step,
+  the state readings and the volume run with `ISldWorks.CommandInProgress` set, with the
+  bridge's rule: set only if it was false, put back only what was set here, so nested
+  phases change nothing. `OCE_API_SEQUENCE` set to `0`, `false` or `off` turns it off, and
+  the first line of the log says which of the two the run measured.
+- **Bench: one reading of the state per step instead of two.** `Run` read the whole state
+  again just before every step, a few lines after the reading the declared cases had just
+  made. The declared cases now hand `Run` the object of that reading while nothing has
+  changed the document since; after `select_first` or `activate_before` (the state lists
+  the selection and the configurations of the open documents) they hand the dictionary
+  only, and `Run` reads again as before. The checks between the two readings only read
+  (volume, bodies, box, cylinders, centre of mass, last plane).
+
+## 0.157.1 — 29 October 2026 · library 0.179.1 · the templates the operations open, from a local copy when asked (branch `night-2026-10-26-asm`)
+
+The owner asked for a faster bench. The templates of this workstation live on a network share,
+and on 28 October a new sheet with its format on the share took 3-47 s, with a local copy of
+the same file 0.33-0.55 s (probes t55-t58). The bench already copied its own part template
+(`Bench/Program.cs`, `LocalModel`, 23 September); the templates the operations open were
+still read from the share.
+
+- **`OCE_LOCAL_COPIES`** = «folder on the share|local folder» (`Core/LocalCopies.cs`). A path
+  under the first folder is opened from the same place under the second, when the file is
+  there; otherwise the share is read as before. Unset, nothing changes. The preferences of
+  SOLIDWORKS are never written: a run that dies halfway must not leave the user's SOLIDWORKS
+  pointing at a copy.
+- Where: the template of `create_drawing`, the format passed to `NewSheet4` by `new_sheet`,
+  the folders where the bill of materials and the hole table look for their table template,
+  the part template of the section probe of the frames.
+- **What is reported does not change**: the template of a drawing, the format of a sheet
+  (`new_sheet`, `title_block`) and the table template go back to the path of the installation
+  (`LocalCopies.Original`). A drawing made from the local template still names the share in
+  its first sheet; without this a second sheet made from the local format would name the copy,
+  and `title_block` would call the two formats different.
+- The bench says in its first line when the variable is set. The launcher used on this
+  workstation (outside the repository) fills the local folder with robocopy at every start and
+  sets the variable for the bench process only.
+- Contract `LocalCopiesContract`: the copy is opened only when it exists, the share is reported,
+  a path outside the share and an empty or malformed variable change nothing. A share written
+  in capitals is compared ignoring case: the rest of the path keeps the capitals it came with.
+- Contract `Zc2200DrawingRound17Contract`: the two lines that name the format of a sheet by its
+  file now read it through `LocalCopies.Original`.
+
+Not measured yet: how much faster the bench is. The comparison is the run of the same four
+families with and without the variable.
+
+## 0.157.0 — 28 October 2026 · library 0.179.0 · twenty-second round of session 8cd843: the drawings of 26M000002 set against the owner's (branch `night-2026-10-26-asm`)
+
+Session 8cd843 drew 26P000007 with bridge 0.152.10 and set the five drawings of 26M000002
+against the ones the owner corrected by hand (his copies of 28 October, RAG note 90). Its list, points
+1 to 14; none of this is measured on SOLIDWORKS yet: two bench cases are written with it.
+
+- **The distance between two edges, MINOR** (point 1, and 16): `drawing_dimension` dimensioned
+  the length of ONE edge, so the position of the rib (21 mm from the ends), the width of the
+  channel (3.4) and the overall heights (7.05, 5.85, 3.35, 5) could not be placed, and the
+  vertical edges cut by the 0.4 chamfer would have printed 5.45 instead of 5.85. `between`
+  takes pairs of edge numbers; each pair must be two straight edges, both vertical or both
+  horizontal on the sheet (`BetweenProblem`), placed with the road of the overall size
+  (`AddDimension`, then Horizontal/Vertical2) and read back against their distance on the
+  sheet divided by the scale, or taken away. A call of its own (`DrawingBetweenDimensions.cs`),
+  on a part and on an assembly alike.
+- **The layout, MINOR** (points 2, 7, 14): `row` puts every dimension of the call at the same
+  `offset_mm`, a chain (one step per dimension was the only way); `horizontal_side`
+  above/below and `vertical_side` right/left; on a detail view the horizontal dimensions go
+  above by default (below sits its label, and a dimension went between the two). For
+  `edges` and `between`; `laid_out` says it.
+- **Text on the dimension and the parentheses, MINOR** (points 5, 6): `prefix`, `suffix`
+  («2,5 CHANNEL») and `parentheses` («(35)», a reference dimension) on every dimension the
+  call places from `edges`, `between` or `overall`, written after the decimals and read back
+  (`GetText`, `ShowParenthesis`); what did not stick is in `decorations_not_kept`.
+  `PrintedNumber` reads «(35)» as 35.
+- **The arrows where the text is, MINOR** (point 12, the owner's fixed rule): SOLIDWORKS put the
+  arrows outside every short dimension of 26P000007 with the text inside. Now the text stays
+  inside with the arrows inside when it fits with an arrow on each side (`ArrowsFor`, 3.5 mm
+  per arrow, a hypothesis), otherwise it is moved out beyond the higher end with the arrows
+  outside; `ArrowSide` is set and read back, each row says `arrows` and `text_moved_out`.
+- **Holes and chamfers in another view, MINOR** (point 11): `holes`: false and `chamfers`:
+  false leave them out of a call (the chamfer then goes on its detail); `automatic_left_out`.
+- **The scale of a section, MINOR** (point 4): `section_view` `scale` («2:1»), the section set
+  free of its view, given the ratio before it is placed and read back (`scale`); refused and
+  removed with its line when the view does not read it.
+- **The detail circle, MINOR** (point 13): `circle_style` (default `with_leader`, the letter at
+  the end of a short line, as the owner draws it; `standard` was the style until now) and
+  `lock_position` (default true, `IDetailCircle.PinPosition`), both read back.
+- **The balloons again, MINOR** (point 9): AutoBalloon5 puts no balloon on a part ballooned in
+  another view. `balloons` `again`: true puts one balloon per part and configuration that has
+  none in THIS view, one at a time (`SelectByID2` on a visible line, the selection checked to
+  be on that part, `InsertBOMBalloon2`), the balloon moved out of the view on that side
+  (`BalloonRepeatOperations.cs`).
+- **The bill of materials over the title block, MINOR** (point 10): `drawing_bom`
+  `over_title_block` rests the table on the title block the format declares, its columns
+  brought to its width by one factor and read again; `rows_on_more_lines`, `warning_covers`.
+- **move_annotation, new operation, MINOR** (point 8): a dimension or a note found as
+  `delete_annotation` finds it, moved to `x_mm`/`y_mm` or by `dx_mm`/`dy_mm`, read back; for a
+  dimension `arrows` and the overlaps of its view.
+- **read_drawing, new operation, MINOR** (point 20): a finished drawing read sheet by sheet,
+  nothing brought in front: per view its scale, model and outline, every dimension with kind,
+  value, printed text, prefix, suffix, parentheses, arrows and position, the notes, the BOM
+  balloons with their number and the tables row by row; the notes inside the declared title
+  block counted, not listed (`ReadDrawingOperations.cs`). 111 operations.
+- Already in 0.154-0.156, not in 0.152.10: the decimals (point 15), notes and detail labels in
+  `overlapping_texts` (point 3), `scale` on `standard_views` keeping the views projected (point 17).
+- Contract Zc2204 (12 groups: the pure rules and 26 lines, five orders, each rule red on a
+  changed copy). Bench cases `between_edges_gives_the_height_past_a_chamfer` and
+  `bom_over_the_title_block_and_balloons_again`. The new refusals name what to do. Floor of
+  the refusals 313.
+
+## 0.156.1 — 28 October 2026 · library 0.178.1 · twenty-first round of session 8cd843: the chamfer «0,4 x 15,23°» (branch `night-2026-10-26-asm`)
+
+- **The chamfer of 26P000011, PATCH**: the front view printed «0,4 x 15,23°» for its chamfer, and
+  that chamfer is 0.4 x 45° (its definition, read by the state in rounds 9 and 20: `leg1_mm` 0.4,
+  `angle_deg` 45). Not data of the model: the chamfer dimension measured the chamfer seen
+  askew, 0.415 mm x cos 15.23° = 0.4. The same 15.23° came out in N23 (round 7) and passed
+  `ChamferValuesProblem`, which only refuses the impossible (an angle outside 0..90, a leg of
+  zero). Now each edge of a chamfer carries the legs its definition allows (`ChamferPairsOf`,
+  read by type with `DocumentState.ChamferSizes`; `ChamferLegPairs`: two legs, or a leg with
+  the other at leg x tan or leg / tan of the angle), and a chamfer dimension whose two legs
+  are none of them (`ChamferNotTrueSize`, 0.01 mm plus 1 %) is taken away and the next edge of
+  the same chamfer in the view is tried; when none agrees, `edges_not_dimensioned` says why
+  and where to dimension it. Each row of `chamfers` says `as_the_feature` and
+  `matches_the_feature`. Not measured on SOLIDWORKS yet: bench case
+  `chamfer_dimension_matches_its_feature` (a 3 x 6, not at 45°, kept in its true size).
+- Contract Zc2203: check of the chamfer (5 definitions, 11 readings, the 15.23° of 26P000011
+  among them) and 3 lines more in the wiring, with the order «compared before it is kept».
+
+## 0.156.0 — 28 October 2026 · library 0.178.0 · twenty-first round of session 8cd843, point 5: a dimension over a label or the title block (branch `night-2026-10-26-asm`)
+
+- **Point 5, the overlaps with the labels and the title block, MINOR**: on the real drawings of
+  round 21 dimensions went over the label of a detail and over the title block, and
+  «overlapping_texts» said nothing: it compared each dimension text with the other texts and
+  with the lines of its own view, and the answer said «nor the title block». Now it is also
+  compared with every note of the sheet and of its views (`NoteBoxes`: `INote.GetExtent`, the
+  reading `ViewWithItsNotes` uses; the label of a detail is a note of its view, the boxes of
+  the title block are notes of the sheet) and with the title block the format declares
+  (`DeclaredTitleBlock`, `ITitleBlock.GetExtents` as `ReadSheet` reads it). A box inside the
+  declared title block is said once, as the title block (`WhatTheTextCovers`). The new field
+  `overlaps_checked_against` says what was compared: how many notes, or that their walk broke
+  off (then none is compared, N47), and whether the title block was read from the format
+  (`OverlapsCheckedAgainst`). Both routes of `drawing_dimension` (part and assembly). Not
+  measured on SOLIDWORKS yet: bench case `dimension_over_a_note_is_said` (two notes of 70
+  lines of 130 characters, from the top and from the bottom of the A3, so that the case does
+  not depend on which way a note grows from its text point).
+- Contract Zc2203: check «point 5» (4 extents, 4 notes named, 4 texts placed, 2 texts of what
+  was compared) and 5 lines more in the wiring.
+
+## 0.155.0 — 28 October 2026 · library 0.177.0 · twenty-first round of session 8cd843, point 7: the width mate (branch `night-2026-10-26-asm`)
+
+- **Point 7, the width mate, MINOR**: the owner's rule 2 for 26M000002 is «centre with width», and
+  he mated four components of it by hand that way: the bridge read the width mates (N63) and
+  could not make one. Now «mate» takes «variant» «width» with two faces on each component:
+  «face_a» and «face_a2», the width on component_a; «face_b» and «face_b2», the tab on
+  component_b. The tab goes in the middle (AddMate5 with `swMateWidth_Centered`). The marks
+  are in `SelectionMarks.cs`: 16 for the tab (IAssemblyDoc~AddMate5.html, Remarks), 1 for the
+  width (the example Create_Width_Mate_Example_CSharp.htm; AddMate5 names one mark only):
+  not measured yet. Refused before anything is touched: a width mate without its second faces,
+  the same face twice, second faces on another mate (`WidthFacesProblem`,
+  `WidthSameFaceProblem`). The second faces are found again after the test of the directions,
+  like the first ones, and the answer says `width_faces` and `tab_faces`.
+- The seen-red check of Zc14 «readings around the mate» now looks for each face found again
+  by name (faceA, faceB, and faceA2, faceB2 when the step picks them): with two faces more, a
+  count of `PickFace(tested` stayed at 2 with face B taken before the test. One more change
+  in its list: a width face not found again.
+- `prerequisite.js` takes «width» among the values of a mate (it follows KnownTypes).
+- Contract Zc2203: check «point 7» (4 variants, 6 sets of faces, 3 pairs) and 5 lines more in
+  the wiring, with the order «refused before a face is picked». Refusal floors 299 and 299 of
+  1045. Bench case `the_width_mate_centres_the_tab`.
+
+## 0.154.0 — 28 October 2026 · library 0.176.0 · twenty-first round of session 8cd843: the scale of a view, the number on the sheet (branch `night-2026-10-26-asm`)
+
+- **Twenty-first round (session 8cd843, bridge 0.152.10)**: the real drawings of 26P000007, 08,
+  09, 11 and 26M000002, in the blank drawings the owner made in OpenPDM, while he watched. Seven
+  points asked, in order of use; points 1 to 4 are here; the overlaps with the labels and the
+  title block and model_dimensions are still open; the width mate is in 0.155.0.
+- **Point 1, the scale of a view, MINOR**: `standard_views` put 26P000007 (175 mm) at 1:2 on an
+  A3 with the sheet at 1:1, the title block printed «1:1», and nothing could change it. Now
+  «scale» («1:2», «2:1») on `standard_views` (set on the new views that do not follow a parent,
+  the projected ones follow) and on `model_view`, read before anything is made; new operation
+  `set_view_scale` for a view already on the sheet. The recipe of the guide: `IView.ScaleRatio`
+  (numerator first), which turns `UseSheetScale` off by itself, then `EditRebuild3`; every view
+  is read back after the rebuild. The answers say `view_scales`, `sheet_scale`, and
+  `scale_note` when a view has another scale than the sheet (`DifferentScaleText`: the title
+  block prints the sheet's; the way out is `set_sheet`). Bench case
+  `view_scale_is_set_and_followed`.
+- **Point 4, the number on the sheet (P1)**: 0.75 mm printed «0,8», 1.835 «1,8», 3.535 «3,5»,
+  10.018 «10»: the template gives one decimal. Now every dimension `drawing_dimension` places
+  (contours, holes, chamfers, the round bar, the overall size of an assembly) is read back, and
+  when the sheet prints another number than the value its decimals are raised to the ones the
+  value needs, at most 3 (`ExactTextShown`, `IDisplayDimension.SetPrecision3`; the row says
+  `printed_before` and `decimals`). «decimals» (0 to 8) fixes them for the call; a dimension
+  that then prints another number is listed in `rounded_on_the_sheet`. The hole callouts are
+  left as they are (their first number is not the value). Bench case
+  `dimension_prints_its_value`.
+- **Point 2, the overall size of a part**: «overall» was read on the views of an assembly only.
+  On a view of a part, asked without «edges», it now takes the same route (`OverallOnAPart`,
+  `DimensionAssemblyView` with `ofAPart`): the outermost straight edges, the dimension read back
+  and compared with their distance on the sheet; the answer says `view_of` «part» and
+  `part_note`. With «edges» it is refused: two calls. Bench case `part_overall_size`.
+- **Point 3, the edges with their geometry**: they were there already, in «inspect_part» with
+  «view_edges» (each edge with the number «edges» takes, its kind, its mm, how it faces, where
+  it sits on the sheet), and the round chose blind for want of knowing it. Now the answer of
+  `drawing_dimension` says it in `edges_listed_by`, and so does the description of «edges».
+- Contract Zc2203 (5 checks: the scale read and written, the note on the sheet, the printed
+  number, the wiring with 18 lines and two orders); Zc2192 counts `ExactTextShown` as
+  «what the sheet prints» (N35).
+
+## 0.153.0 — 28 October 2026 · library 0.175.0 · twentieth round of session 8cd843: N62, N63, N64, N65 (branch `night-2026-10-26-asm`)
+
+- **Twentieth round on SOLIDWORKS (session 8cd843, bridge 0.152.10)**: the owner corrected the
+  assembly by hand and the round read it on copies: the parts unchanged, the mates from 15
+  distances to 10 (5 coincident, 4 width, 1 distance), the coupler lower and the two Solid
+  parts suppressed in a folder, interference 19.033 to 14.763 mm³. The drawing made again,
+  9 texts of 9; the wrapped search found the wrapped value. N61 not checked: the owner put the
+  title block aside. SOLIDWORKS did not fall.
+- **N62 (P3)**: the outline of a view keeps a margin around what it draws (5.8 mm on each side
+  on the PNG of round 20, 5.9 mm read back in scenario t62), and a circle of a detail in that
+  margin passed the check on the outline and enlarged nothing (0 visible edges). Now the lines
+  the view shows are read (`DrawnPieces`, the `PolylinePieces` of `GetPolylines7` measured in
+  round 14): a circle out of their box and meeting none of them is refused before anything is
+  drawn, saying where the view draws from the centre of the outline (`InTheMarginOnly`,
+  `DrawnBoxText`). A circle across an end of the part sticks out of that box and still
+  passes; a circle inside a face is still found empty after it is made. The answer of
+  `detail_view` says `drawing_of_the_view_mm` and `checked_on`; the state says `drawn_mm` of
+  each view.
+- **N64 (P2)**: `verdict_constraints` said «It is NOT assembled: 4 of 7 non-fixed components has
+  no mate» of an assembly SOLIDWORKS called fully defined: 26P000009-2 is placed by a local
+  pattern, 10, 12 and 13 are suppressed. A suppressed component and a pattern instance
+  (`IComponent2.IsPatternInstance`) with no mate of its own are left out of the count, said in
+  `components_suppressed_not_judged`, `components_placed_by_a_pattern`, `pattern_instance` and
+  in the verdict (`NotJudgedText`). Scenario t62 on the copy: «All 3 non-fixed components have
+  at least one mate», 3 suppressed and 1 placed by a pattern left out.
+- **N65 (request)**: the state did not say in which folder of the tree a component is. Now
+  `in_folders` (`ComponentFolders`, features «FtrFolder» and `IFeatureFolder.GetFeatures`);
+  the end of a folder, a folder feature too («Cartella1___EndTag___», scenario t62), is left
+  out. On the copy: 10, 12 and 13 in «ACCESSORI EXTRA».
+- **N63 (request), MINOR**: the owner corrected four parts by hand and the round could not see
+  what he changed in the sketches: the state gives a sketch as one «ProfileFeature» among the
+  features. New operation `sketch_details` (family features, part, it only reads): for each
+  sketch, the ones an extrusion absorbed too (`IFeatureManager.GetFeatures(true)`), `status`
+  (fully defined, under defined ...), `segments` and `segments_by_kind`,
+  `construction_segments`, `relations` and `relations_by_kind` (the names of
+  `swConstraintType_e` without the prefix), `dimensions` with name and value. A sketch asked
+  by a name it does not have is refused with the names there are. Bench case
+  `sketch_details_reads_the_rectangle`. And the state says how each mate is set: «alignment»
+  in the words `mate` takes (`IMate2.Alignment`; swMateAlign_e gives 1 two names, and
+  «opposite» is the one `mate` writes), «value» (`IMate2.DisplayDimension2(0)`, in mm or in
+  degrees, null for a mate with no dimension) and «entity_kinds» (`IMateEntity2.ReferenceType2`,
+  swSelectType_e). Bench case `the_state_reads_how_a_mate_is_set`; contract Zc2202 (13 values,
+  4 lines more).
+- Catalog of `detail_view` and `sketch_details`; bench cases `limit_detail_circle_in_the_margin`,
+  `sketch_details_reads_the_rectangle` and `the_state_reads_how_a_mate_is_set`; scenario t62;
+  contract Zc2202. N64 and N65 have no bench case: no operation of a plan suppresses a
+  component, makes a pattern of components or a folder.
+
 ## 0.152.10 — 28 October 2026 · library 0.174.9 · nineteenth round of session 8cd843: N61 (branch `night-2026-10-26-asm`)
 
 - **Nineteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.9)**: the assembly as in

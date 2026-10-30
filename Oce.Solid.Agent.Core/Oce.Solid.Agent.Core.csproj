@@ -102,6 +102,8 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PhaseClock.cs" />
+    <Compile Include="LocalCopies.cs" />
+    <Compile Include="UiFreeze.cs" />
     <Compile Include="Catalog\Node.cs" />
     <Compile Include="Catalog\OperationSpec.cs" />
     <Compile Include="Catalog\Operations.cs" />
@@ -112,7 +114,14 @@
     <Compile Include="SwOperations.cs" />
     <Compile Include="WeldmentOperations.cs" />
     <Compile Include="AnchorOperations.cs" />
+    <Compile Include="SketchDetailOperations.cs" />
     <Compile Include="TitleBlockOperations.cs" />
+    <Compile Include="DimensionPrecisionOperations.cs" />
+    <Compile Include="ViewScaleOperations.cs" />
+    <Compile Include="DrawingBetweenDimensions.cs" />
+    <Compile Include="BalloonRepeatOperations.cs" />
+    <Compile Include="DrawingMoveAnnotation.cs" />
+    <Compile Include="ReadDrawingOperations.cs" />
     <Compile Include="CenterMarkOperations.cs" />
     <Compile Include="DrawingDimensionOperations.cs" />
     <Compile Include="DrawingAssemblyDimensions.cs" />

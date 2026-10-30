@@ -78,6 +78,8 @@ namespace Oce.Solid.Agent.ContractTests
                 { "engrave_text.text", "idem" },
                 { "activate_sheet.name", "which sheet: they are all legitimate" },
                 { "move_view.view", "which view to move: a default would move one nobody asked for (report 8cd843 N54)" },
+                { "set_view_scale.view", "which view to scale: a default would change one nobody asked for (report 8cd843, round 21)" },
+                { "set_view_scale.scale", "the scale is the whole request: there is no scale that suits every part" },
                 { "delete_view.view", "which view to take away: a default would delete one nobody asked for (N54)" },
                 { "cosmetic_thread.designation", "M10x1.5 is decided by the mating" },
                 { "measure_between.uid", "between what and what it is measured" },

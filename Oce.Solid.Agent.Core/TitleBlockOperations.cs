@@ -176,7 +176,8 @@ namespace Oce.Solid.Agent.Core
                 // THE FILE, not the name (report 8cd843 round 17, observation): the name is
                 // the one of the instance, «...foglio1», «...foglio2», on three sheets of the
                 // same A3.
-                ["sheet_format_file"] = SheetFormatFile(TestText(() => sheet.GetTemplateName())),
+                // Named as the installation names it, also when a local copy was opened (LocalCopies.cs).
+                ["sheet_format_file"] = SheetFormatFile(LocalCopies.Original(TestText(() => sheet.GetTemplateName()))),
                 ["notes_in_title_block"] = note.Count,
                 ["notes_linked"] = connected,
                 // The notes put on the sheet, left out of the title block (N45).
@@ -603,7 +604,7 @@ namespace Oce.Solid.Agent.Core
                 }
 
                 entry["sheet_format"] = TestText(() => other.GetSheetFormatName());
-                string formatFile = SheetFormatFile(TestText(() => other.GetTemplateName()));
+                string formatFile = SheetFormatFile(LocalCopies.Original(TestText(() => other.GetTemplateName())));
                 entry["sheet_format_file"] = formatFile;
                 string formatWarning = OtherFormatWarning(name, formatFile, activeFormat);
                 if (formatWarning != null) entry["different_format"] = true;

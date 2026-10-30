@@ -1,0 +1,84 @@
+{
+  "name": "view_scale_is_set_and_followed",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 21, POINT 1 (28/10/2026). On the real drawings of 26M000002 «standard_views» put a part 175 mm long at 1:2 on an A3 with the sheet at 1:1 (args21 003, 006), and nothing could change it: «standard_views» and «model_view» had no «scale», and no operation scaled a view already on the sheet. Now «scale» on both and «set_view_scale»; the projected views must follow their parent.",
+
+  "defect_caught": "A scale asked and not set, or set and not read back; a projected view left at the old scale when its parent changes; a view scaled again to the scale it has, or by a scale that cannot be read, or on a view that is not there, answered as done.",
+
+  "_why_these_numbers": "A plate 175 x 40 x 20 mm, the length of 26P000007: at 1:1 its three views fit an A3 (420 x 297 mm), at 1:2 they are half as big. The isometric view at 1:4 is a quarter, 0.25.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 175, "width_mm": 40,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 140000,
+          "why": "the plate the views show: 175 x 40 x 20 mm" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\view_scale_is_set_and_followed.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the active document is the drawing" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\view_scale_is_set_and_followed.sldprt", "scale": "1:1" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the three views, as before «scale» existed" },
+        { "what": "measurements.scale", "equal_to": "1:1",
+          "why": "the scale asked, said back" },
+        { "what": "measurements.view_scales[0].scale", "equal_to": "1:1",
+          "why": "READ FROM THE VIEW AFTER THE REBUILD (IView.ScaleRatio), not taken from the call" },
+        { "what": "measurements.view_scales[1].scale", "equal_to": "1:1",
+          "why": "the second view of the call at the same scale: set on it, or followed from its parent" },
+        { "what": "measurements.view_scales[2].scale", "equal_to": "1:1",
+          "why": "the third view as well" } ] },
+
+    { "operation": "set_view_scale",
+      "arguments": { "view": "V1", "scale": "1:2" },
+      "expect": [
+        { "what": "measurements.scale_before", "equal_to": "1:1",
+          "why": "the scale the view had, read before the change" },
+        { "what": "measurements.scale_after", "equal_to": "1:2",
+          "why": "THE CHANGE, READ BACK from the view after the rebuild" },
+        { "what": "measurements.view_scales[1].scale", "equal_to": "1:2",
+          "why": "THE PROJECTED VIEW FOLLOWS ITS PARENT (IView.UseParentScale), what round 21 asked: a drawing whose views do not share the scale is a wrong drawing" },
+        { "what": "measurements.view_scales[2].scale", "equal_to": "1:2",
+          "why": "the other projected view follows too" } ] },
+
+    { "operation": "set_view_scale",
+      "arguments": { "view": "V1", "scale": "2:4" },
+      "_why_2_4": "the same scale written another way: the view is compared by the value, 0.5, not by the text",
+      "must_fail": {
+        "message_includes": ["is already at 1:2", "nothing to change", "Give another «scale»", "I touched nothing"],
+        "twin": "view_scale_is_set_and_followed" } },
+
+    { "operation": "set_view_scale",
+      "arguments": { "view": "V1", "scale": "half" },
+      "must_fail": {
+        "message_includes": ["The scale «half» cannot be used", "Give it as «1:2» or «2:1»", "I touched nothing"],
+        "twin": "view_scale_is_set_and_followed" } },
+
+    { "operation": "set_view_scale",
+      "arguments": { "view": "V9", "scale": "1:2" },
+      "must_fail": {
+        "message_includes": ["There is no view «V9»", "The views are:", "Use one of them"],
+        "twin": "view_scale_is_set_and_followed" } },
+
+    { "operation": "model_view",
+      "arguments": { "view": "isometric", "x_mm": 330, "y_mm": 220, "scale": "1:4" },
+      "expect": [
+        { "what": "measurements.scale_ratio", "equal_to": "1:4",
+          "why": "the scale asked for the isometric view, read back from it" },
+        { "what": "measurements.scale", "equal_to": 0.25,
+          "why": "the same scale as a decimal, the field «model_view» already had" } ] }
+  ]
+}

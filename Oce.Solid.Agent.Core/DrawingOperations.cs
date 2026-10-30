@@ -161,7 +161,10 @@ namespace Oce.Solid.Agent.Core
                 try { template = _sw.GetUserPreferenceStringValue(DefaultDrawingTemplate); }
                 catch { template = null; }
             }
-            if (string.IsNullOrWhiteSpace(template) || !File.Exists(template))
+            // A local copy of the template is opened when OCE_LOCAL_COPIES asks for it
+            // (LocalCopies.cs); the answer keeps naming the template of the installation.
+            string opened = LocalCopies.Of(template);
+            if (string.IsNullOrWhiteSpace(template) || !File.Exists(opened))
                 return Failed(
                     "I cannot find the drawing template of this installation " +
                     (string.IsNullOrWhiteSpace(template)
@@ -174,7 +177,8 @@ namespace Oce.Solid.Agent.Core
             // doing it in two steps would mean a wasted sheet.
             int sheetFormat = SheetFormatCode(Str(a, "paper_size", "A3"));
             object newItem;
-            try { newItem = _sw.NewDocument(template, sheetFormat, 0, 0); }
+            // Timed (library 0.179.4): the drawing template and the sheet format it names.
+            try { newItem = PhaseClock.Time("drawing.new_document", () => _sw.NewDocument(opened, sheetFormat, 0, 0)); }
             catch (Exception ex) { return Failed("I cannot create the drawing: " + ex.Message); }
 
             var drawing = newItem as IModelDoc2;
@@ -345,6 +349,17 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "«" + modelPath + "» does not appear to be open. The " +
                     "views would be created empty without any error.");
+            // THE SCALE ASKED (report 8cd843, round 21, point 1): read before anything is made.
+            string scaleAsked = Str(a, "scale", null);
+            double[] scaleRatio = null;
+            if (!string.IsNullOrWhiteSpace(scaleAsked))
+            {
+                string scaleWhy;
+                scaleRatio = ParseScale(scaleAsked, out scaleWhy);
+                if (scaleRatio == null)
+                    return Failed("The scale «" + scaleAsked + "» cannot be used: " + scaleWhy +
+                                  ". Give it as «1:2» or «2:1», or leave «scale» out. I touched nothing.");
+            }
 
             int before = CountViews(drawing);
             if (before < 0)
@@ -367,6 +382,10 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { viewsBefore = null; }
+            if (scaleRatio != null && viewsBefore == null)
+                return Failed("The names of the views already on the sheet cannot be read, so the new views " +
+                              "could not be told from them and given the scale «" + scaleAsked + "». " +
+                              "Leave «scale» out and use «set_view_scale» on each new view. I touched nothing.");
             bool ok;
             try { ok = drawing.Create1stAngleViews2(swPath); }
             catch (Exception ex) { return Failed("Views not created: " + ex.Message); }
@@ -384,6 +403,17 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "The call succeeded but the views are still " + before +
                     ": the drawing is empty. I do not call it successful.");
+
+            // The scale asked, on the views this call made, read back from each one.
+            List<string> scaleSetOn = null;
+            if (scaleRatio != null)
+            {
+                string scaleProblem = ScaleNewViews(model, drawing, viewsBefore, scaleRatio, out scaleSetOn);
+                if (scaleProblem != null)
+                    return Failed("The views were made, but at the scale " + ScaleText(scaleRatio) + " " + scaleProblem +
+                                  ". The views now read: " + ViewScalesText(ViewScales(drawing)) +
+                                  ". «undo» withdraws the plan, or «set_view_scale» changes a view.");
+            }
 
             // THE DRAWING IS REBUILT BEFORE ANSWERING (29/9/2026). The centre marks
             // SOLIDWORKS puts on holes when it creates a view (document option
@@ -506,7 +536,28 @@ namespace Oce.Solid.Agent.Core
                 // The marks SOLIDWORKS put, after the rebuild and before the bridge.
                 ["centre_marks_after_rebuild"] = centreMarks >= 0 ? (object)centreMarks : null,
                 ["centre_marks_added_by_bridge"] = addedByBridge,
+                // The scale of every view of the sheet, read back (round 21, point 1).
+                ["view_scales"] = ViewScales(drawing),
             };
+            if (scaleRatio != null)
+            {
+                measurements["scale"] = ScaleText(scaleRatio);
+                measurements["scale_set_on"] = scaleSetOn;
+            }
+            // The views of this call whose scale is not the sheet's (round 21): the title
+            // block prints the sheet's. All the views when the old ones could not be read.
+            ICollection<string> madeNow = null;
+            if (viewsBefore != null)
+            {
+                var fresh = new List<string>();
+                foreach (var viewName in ViewNames(drawing))
+                    if (!viewsBefore.Contains(viewName)) fresh.Add(viewName);
+                madeNow = fresh;
+            }
+            string sheetScale;
+            string sheetNote = SheetScaleNote(drawing, (List<Dictionary<string, object>>)measurements["view_scales"], madeNow, out sheetScale);
+            measurements["sheet_scale"] = sheetScale;
+            if (sheetNote != null) measurements["scale_note"] = sheetNote;
             if (holesInViewsWithoutMarks > 0)
             {
                 measurements["holes_in_views_without_centre_marks"] = holesInViewsWithoutMarks;
@@ -563,6 +614,18 @@ namespace Oce.Solid.Agent.Core
                     "I do not know the view «" + requested + "». I know nine: " +
                     "isometric, dimetric, trimetric, front, back, top, " +
                     "bottom, right, left.");
+
+            // THE SCALE ASKED (report 8cd843, round 21, point 1): read before anything is made.
+            string scaleAsked = Str(a, "scale", null);
+            double[] scaleRatio = null;
+            if (!string.IsNullOrWhiteSpace(scaleAsked))
+            {
+                string scaleWhy;
+                scaleRatio = ParseScale(scaleAsked, out scaleWhy);
+                if (scaleRatio == null)
+                    return Failed("The scale «" + scaleAsked + "» cannot be used: " + scaleWhy +
+                                  ". Give it as «1:2» or «2:1», or leave «scale» out. I touched nothing.");
+            }
 
             double x = Units.M(Num(a, "x_mm", 0));
             double y = Units.M(Num(a, "y_mm", 0));
@@ -641,10 +704,20 @@ namespace Oce.Solid.Agent.Core
                         ? "The part says it has these views: " + string.Join(", ", itsItems) + "."
                         : "The part does not declare any named view."));
 
+            if (scaleRatio != null)
+            {
+                string scaleProblem = ApplyViewScale(model, view, scaleRatio);
+                if (scaleProblem != null)
+                    return Failed("The view was made, but at the scale " + ScaleText(scaleRatio) + " " + scaleProblem +
+                                  ". «undo» withdraws the plan, or «set_view_scale» changes the view.");
+            }
+
             string itemName = "";
             double scale = 0;
+            double[] ratioRead = null;
             try { itemName = view.Name; } catch { }
             try { scale = view.ScaleDecimal; } catch { }
+            try { ratioRead = view.ScaleRatio as double[]; } catch { }
 
             var measurements = new Dictionary<string, object>
             {
@@ -655,6 +728,7 @@ namespace Oce.Solid.Agent.Core
                 ["names_rejected"] = refused.Count > 0 ? (object)string.Join(",", refused) : null,
                 ["name"] = itemName,
                 ["scale"] = scale > 0 ? (object)Math.Round(scale, 4) : null,
+                ["scale_ratio"] = ScaleText(ratioRead),
                 ["views_after"] = after,
             };
             // The first model view renames a drawing without a file (N27).

@@ -125,6 +125,26 @@ namespace Oce.Solid.Agent.Core
             if (!FaceRequest(a, "face_b", out facingB, out pointB, out faceProblem)) return Failed(faceProblem);
             string labelA = FaceLabel(facingA, pointA), labelB = FaceLabel(facingB, pointB);
 
+            // THE WIDTH MATE (report 8cd843, round 21, point 7): the rule 2 of the owner, «centre
+            // with width», and the bridge could only read it. It wants two faces on each
+            // component: the width on component_a (the sides of a channel), the tab on
+            // component_b (the sides of the clip), and puts the tab in the middle of the width
+            // (swMateWidth_Centered, the WidthMateOption 0 AddMate5 is called with).
+            bool width = WidthAsked(Str(a, "variant", "coincident"));
+            double[] pointA2 = null, pointB2 = null;
+            string facingA2 = null, facingB2 = null, labelA2 = null, labelB2 = null;
+            string widthProblem = WidthFacesProblem(width, a.ContainsKey("face_a2"), a.ContainsKey("face_b2"));
+            if (widthProblem != null) return Failed(widthProblem);
+            if (width)
+            {
+                if (!FaceRequest(a, "face_a2", out facingA2, out pointA2, out faceProblem)) return Failed(faceProblem);
+                if (!FaceRequest(a, "face_b2", out facingB2, out pointB2, out faceProblem)) return Failed(faceProblem);
+                labelA2 = FaceLabel(facingA2, pointA2);
+                labelB2 = FaceLabel(facingB2, pointB2);
+                string sameProblem = WidthSameFaceProblem(labelA, labelA2, labelB, labelB2);
+                if (sameProblem != null) return Failed(sameProblem);
+            }
+
             string requested = (Str(a, "variant", "coincident") ?? "").Trim().ToLowerInvariant();
             if ((requested == "concentric" || requested == "tangent") && pointA == null && pointB == null)
                 return Failed(
@@ -145,6 +165,14 @@ namespace Oce.Solid.Agent.Core
             if (faceA == null) return Failed("On «" + uidA + "»: " + why1);
             var faceB = PickFace(compB, facingB, pointB, out string why2);
             if (faceB == null) return Failed("On «" + uidB + "»: " + why2);
+            IFace2 faceA2 = null, faceB2 = null;
+            if (width)
+            {
+                faceA2 = PickFace(compA, facingA2, pointA2, out string why3);
+                if (faceA2 == null) return Failed("On «" + uidA + "»: " + why3);
+                faceB2 = PickFace(compB, facingB2, pointB2, out string why4);
+                if (faceB2 == null) return Failed("On «" + uidB + "»: " + why4);
+            }
 
             string typeName = Str(a, "variant", "coincident");
             int typ = MateType(typeName);
@@ -205,8 +233,13 @@ namespace Oce.Solid.Agent.Core
             // blocked by definition.
             string nameA = NameOf(compA), nameB = NameOf(compB);
             var topLevel = TopLevelNamesOf(assemblyDoc);
+            // Timed (library 0.179.4): the test of the directions is up to thirteen rebuilds per
+            // component per reading, read before and after the mate; PhaseClock says how much
+            // of the call it is ("mate.direction_test", once before and once after).
+            System.Diagnostics.Stopwatch directionClock = System.Diagnostics.Stopwatch.StartNew();
             var beforeA = ReadBlockedDirections(model, assemblyDoc, nameA, topLevel);
             var beforeB = ReadBlockedDirections(model, assemblyDoc, nameB, topLevel);
+            PhaseClock.Spent("mate.direction_test", directionClock.Elapsed.TotalMilliseconds);
 
             // The test moved the components and rebuilt: the handles and the
             // faces are taken again, as after the mate below.
@@ -222,6 +255,15 @@ namespace Oce.Solid.Agent.Core
                 return Failed("On «" + uidB + "», after the test of its directions: " + why2 +
                                DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
                                " Nothing was mated. Read the assembly state again and ask for the mate once more.");
+            if (width)
+            {
+                faceA2 = PickFace(testedA, facingA2, pointA2, out why1);
+                faceB2 = PickFace(testedB, facingB2, pointB2, out why2);
+                if (faceA2 == null || faceB2 == null)
+                    return Failed("On «" + (faceA2 == null ? uidA : uidB) + "», after the test of its directions: " +
+                                   (faceA2 == null ? why1 : why2) + DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
+                                   " Nothing was mated. Read the assembly state again and ask for the mate once more.");
+            }
 
             object mate;
             int error = 0;
@@ -235,8 +277,19 @@ namespace Oce.Solid.Agent.Core
                 // one face only, or a face left selected by an earlier step or
                 // by hand. The finally below clears the selection on this exit
                 // too.
-                bool selectedA = (faceA as IEntity).Select4(true, null);
-                bool selectedB = selectedA && (faceB as IEntity).Select4(true, null);
+                // A WIDTH MATE (round 21, point 7): IAssemblyDoc~AddMate5.html, Remarks,
+                // «swMateType_e.swMateWIDTH: use selection mark 16»; the example Create and Edit
+                // Width Mate (C#) selects the two width faces with mark 1 and the two tab faces
+                // with mark 16. Select (DraftOperations.cs) reads each answer of Select4.
+                var widthHandler = width ? model.SelectionManager as ISelectionMgr : null;
+                bool selectedA = width
+                    ? Select(widthHandler, faceA, SelectionMarks.WidthMateWidthFaces) &&
+                      Select(widthHandler, faceA2, SelectionMarks.WidthMateWidthFaces)
+                    : (faceA as IEntity).Select4(true, null);
+                bool selectedB = selectedA && (width
+                    ? Select(widthHandler, faceB, SelectionMarks.WidthMateTabFaces) &&
+                      Select(widthHandler, faceB2, SelectionMarks.WidthMateTabFaces)
+                    : (faceB as IEntity).Select4(true, null));
                 if (!selectedA || !selectedB)
                     return Failed(
                         "I could not select the «" + (selectedA ? labelB : labelA) + "» face of " +
@@ -256,7 +309,7 @@ namespace Oce.Solid.Agent.Core
                 mate = assemblyDoc.AddMate5(
                     typ, align, flip,
                     Units.M(distance), Units.M(distance), Units.M(distance),
-                    0, 0, 0, 0, 0, false, false, 0, out error);
+                    0, 0, 0, 0, 0, false, false, (int)swMateWidthOptions_e.swMateWidth_Centered, out error);
             }
             catch (Exception ex)
             {
@@ -300,8 +353,10 @@ namespace Oce.Solid.Agent.Core
             // SOLIDWORKS's own answer is read first, to be quoted: on a
             // redundant mate it says nothing is wrong (probe zc14, 30/9/2026).
             int whatsWrong = HowManyProblems(model);
+            System.Diagnostics.Stopwatch directionClockAfter = System.Diagnostics.Stopwatch.StartNew();
             var afterA = beforeA.Status == ReadingMeasured ? ReadBlockedDirections(model, assemblyDoc, nameA, topLevel) : beforeA;
             var afterB = beforeB.Status == ReadingMeasured ? ReadBlockedDirections(model, assemblyDoc, nameB, topLevel) : beforeB;
+            PhaseClock.Spent("mate.direction_test", directionClockAfter.Elapsed.TotalMilliseconds);
             string verdict = MateVerdict(
                 BothReadings(beforeA, afterA), beforeA.Blocked, afterA.Blocked,
                 BothReadings(beforeB, afterB), beforeB.Blocked, afterB.Blocked);
@@ -315,7 +370,8 @@ namespace Oce.Solid.Agent.Core
             if (verdict == MateRedundant && !OnlyStandardMates(model, out notStandard))
                 verdict = MateNotJudged;
             string mateSaid =
-                "«" + labelA + "» of " + uidA + " on «" + labelB + "» of " + uidB + " (" + typeName +
+                "«" + labelA + (width ? "» and «" + labelA2 : "") + "» of " + uidA + " on «" + labelB +
+                (width ? "» and «" + labelB2 : "") + "» of " + uidB + " (" + typeName + (width ? ", centered" : "") +
                 (typ == (int)swMateType_e.swMateDISTANCE
                     ? " " + distance.ToString("0.###", CultureInfo.InvariantCulture) + " mm" : "") + ")";
             string directions =
@@ -375,6 +431,11 @@ namespace Oce.Solid.Agent.Core
                 ["mates_before"] = new object[] { priorA, priorB },
                 ["mates_after"] = new object[] { laterA, laterB },
             };
+            if (width)
+            {
+                measurements["width_faces"] = new object[] { labelA, labelA2 };
+                measurements["tab_faces"] = new object[] { labelB, labelB2 };
+            }
             if (typ == (int)swMateType_e.swMateDISTANCE)
             {
                 measurements["distance_mm"] = distance;
@@ -1218,7 +1279,47 @@ namespace Oce.Solid.Agent.Core
         // for a face named by a point, which can be curved; between two faces named
         // by direction the refusal sits in Mate.
         private static readonly string[] KnownTypes =
-            { "coincident", "parallel", "perpendicular", "distance", "concentric", "tangent" };
+            { "coincident", "parallel", "perpendicular", "distance", "concentric", "tangent", "width" };
+
+        /// <summary>Whether «variant» asks a width mate (round 21, point 7). Pure.</summary>
+        internal static bool WidthAsked(string variant)
+        {
+            return string.Equals((variant ?? "").Trim(), "width", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// What is wrong with the second faces (round 21, point 7): a width mate wants
+        /// «face_a2» and «face_b2», any other mate refuses them. Null when they are right.
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string WidthFacesProblem(bool width, bool hasA2, bool hasB2)
+        {
+            if (width && (!hasA2 || !hasB2))
+                return "A «width» mate wants two faces on each component: «face_a» and «face_a2», the two faces of " +
+                       "the width on «component_a» (the sides of a channel), «face_b» and «face_b2», the two faces of " +
+                       "the tab on «component_b» (the sides of the clip that goes in the middle). Give " +
+                       (!hasA2 && !hasB2 ? "«face_a2» and «face_b2»" : !hasA2 ? "«face_a2»" : "«face_b2»") +
+                       ". I touched nothing.";
+            if (!width && (hasA2 || hasB2))
+                return "«face_a2» and «face_b2» are only for a «width» mate: the other mates take one face on each " +
+                       "component. Remove them, or ask for «width». I touched nothing.";
+            return null;
+        }
+
+        /// <summary>
+        /// A width mate between a face and itself (round 21, point 7): the two faces of the
+        /// width, or of the tab, asked the same way. Null when they differ. Pure.
+        /// </summary>
+        internal static string WidthSameFaceProblem(string a1, string a2, string b1, string b2)
+        {
+            if (string.Equals(a1, a2, StringComparison.OrdinalIgnoreCase))
+                return "«face_a» and «face_a2» are the same face («" + a1 + "»): a width is between two faces, give the " +
+                       "opposite one in «face_a2» (left and right, front and back). I touched nothing.";
+            if (string.Equals(b1, b2, StringComparison.OrdinalIgnoreCase))
+                return "«face_b» and «face_b2» are the same face («" + b1 + "»): a tab is between two faces, give the " +
+                       "opposite one in «face_b2» (left and right, front and back). I touched nothing.";
+            return null;
+        }
 
         private static int MateType(string itemName)
         {
@@ -1231,6 +1332,7 @@ namespace Oce.Solid.Agent.Core
                 case "distance": return (int)swMateType_e.swMateDISTANCE;
                 case "concentric": return (int)swMateType_e.swMateCONCENTRIC;
                 case "tangent": return (int)swMateType_e.swMateTANGENT;
+                case "width": return (int)swMateType_e.swMateWIDTH;
                 default: return -1;
             }
         }

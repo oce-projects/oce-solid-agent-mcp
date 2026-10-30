@@ -1,0 +1,387 @@
+{
+  "name": "between_edges_gives_the_height_past_a_chamfer",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 22 (28/10/2026). On the drawing of 26P000007 the position of the rib, the width of the channel and the overall heights could not be dimensioned: «drawing_dimension» dimensioned the length of ONE edge, and the vertical edges cut by the 0.4 chamfer would have printed 5,45 instead of 5,85. «between» dimensions the distance of two parallel edges, read back against their distance on the sheet. The same round asked the row, the side, a text on the dimension, the parentheses, the arrows where the text is, the scale of a section, the style of the detail circle and moving a dimension: each is asked here and read back.",
+  "defect_caught": "A distance between two edges that is the length of one of them, a pair of perpendicular or oblique edges dimensioned anyway, «between» mixed with «edges», a text or parentheses asked and not on the sheet, arrows outside a text that sits inside, a section that keeps the scale of its view, a detail circle in another style or free to move, a dimension that does not go where it was asked.",
+  "_why_these_numbers": "The plate of «chamfer_dimension_matches_its_feature», 120 x 80 x 10 with the top back edge chamfered 3 x 6. Its side view V3 shows five edges: the bottom (80), the top cut by the chamfer, the front vertical (10), the back vertical cut by the chamfer, and the oblique chamfer. The ten pairs of «between» hold two parallel pairs: the two verticals, 80 apart (a horizontal distance, placed first), and the two horizontals, 10 apart, the overall height that the cut vertical edge does not give. The other eight are perpendicular or take the oblique edge. If V3 shows another count of edges, the first step says it: then the probe of the edges comes first.",
+  "start": {
+    "new_part": true
+  },
+  "steps": [
+    {
+      "operation": "extrude_rectangle",
+      "arguments": {
+        "plane": "top",
+        "length_mm": 120,
+        "width_mm": 80,
+        "thickness_mm": 10,
+        "centered": true
+      },
+      "expect": [
+        {
+          "what": "volume_mm3",
+          "equal_to": 96000,
+          "why": "120 x 80 x 10"
+        }
+      ]
+    },
+    {
+      "operation": "chamfer_edges",
+      "arguments": {
+        "edges_uid": [
+          "@edge(axis=X,length~=120,y~=10,z~=-40)"
+        ],
+        "leg_mm": 3,
+        "angle_deg": 45,
+        "second_leg_mm": 6
+      },
+      "expect": [
+        {
+          "what": "volume_mm3",
+          "equal_to": 94920,
+          "tolerance": 0.01,
+          "tolerance_why": "96000 - 1080 exactly; the hundredth is the reading of the volume",
+          "why": "the chamfer 3 x 6 that cuts the top and the back edge of the side view"
+        }
+      ]
+    },
+    {
+      "operation": "save_document",
+      "arguments": {
+        "path": "{WORK}\\between_edges_gives_the_height_past_a_chamfer.sldprt"
+      },
+      "expect": [
+        {
+          "what": "measurements.warnings",
+          "equal_to": 0,
+          "why": "a view attaches to the FILE of the part"
+        }
+      ]
+    },
+    {
+      "operation": "create_drawing",
+      "arguments": {
+        "paper_size": "A3"
+      },
+      "expect": [
+        {
+          "what": "state.kind",
+          "equal_to": "drawing",
+          "why": "from here the drawing is measured"
+        }
+      ]
+    },
+    {
+      "operation": "standard_views",
+      "arguments": {
+        "model": "{WORK}\\between_edges_gives_the_height_past_a_chamfer.sldprt"
+      },
+      "expect": [
+        {
+          "what": "measurements.views_created",
+          "equal_to": 3,
+          "why": "front, top, side"
+        }
+      ]
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V3",
+        "between": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      },
+      "expect": [
+        {
+          "what": "measurements.dimensions_placed",
+          "equal_to": 2,
+          "why": "THE TWO PARALLEL PAIRS AND NO OTHER: before round 22 «between» was not read"
+        },
+        {
+          "what": "measurements.dimensions[0].mm",
+          "equal_to": 80,
+          "tolerance": 0.001,
+          "tolerance_why": "the distance of the two vertical edges, read back",
+          "why": "the horizontal distances are placed first"
+        },
+        {
+          "what": "measurements.dimensions[1].mm",
+          "equal_to": 10,
+          "tolerance": 0.001,
+          "tolerance_why": "the overall height between the two horizontal edges, read back",
+          "why": "THE HEIGHT PAST THE CHAMFER: the back vertical edge is 7 long, the distance of the faces is 10"
+        },
+        {
+          "what": "measurements.dimensions[1].orientation",
+          "equal_to": "between, vertical",
+          "why": "the row says what it measures"
+        },
+        {
+          "what": "measurements.edges_not_dimensioned",
+          "includes": [
+            "they are not parallel",
+            "an oblique edge"
+          ],
+          "why": "the pairs that have no distance are said, not dimensioned"
+        },
+        {
+          "what": "measurements.dimensions[0].arrows",
+          "equal_to": "inside",
+          "why": "THE ARROWS WHERE THE TEXT IS: 80 mm of distance hold the text and an arrow on each side"
+        }
+      ]
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V3",
+        "between": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "row": true,
+        "horizontal_side": "above",
+        "vertical_side": "left",
+        "suffix": " CHANNEL",
+        "parentheses": true
+      },
+      "expect": [
+        {
+          "what": "measurements.laid_out",
+          "equal_to": "in a row, the horizontal ones above, the vertical ones on the left",
+          "why": "the row and the sides asked, said back"
+        },
+        {
+          "what": "measurements.dimensions[0].parentheses_read",
+          "equal_to": true,
+          "why": "THE REFERENCE DIMENSION: the parentheses read back from the dimension"
+        },
+        {
+          "what": "measurements.decorations_not_kept",
+          "does_not_include": [
+            "did not stick",
+            "instead of"
+          ],
+          "why": "the text after the value and the parentheses stuck on every dimension"
+        }
+      ]
+    },
+    {
+      "operation": "move_annotation",
+      "arguments": {
+        "name": "RD1",
+        "dx_mm": 5,
+        "dy_mm": 0
+      },
+      "expect": [
+        {
+          "what": "measurements.moved",
+          "equal_to": true,
+          "why": "MOVED, NOT TAKEN AWAY: before round 22 a dimension could only be deleted and placed again"
+        },
+        {
+          "what": "measurements.kind",
+          "equal_to": "dimension",
+          "why": "the first dimension of the drawing"
+        }
+      ]
+    },
+    {
+      "operation": "section_view",
+      "arguments": {
+        "view": "V1",
+        "label": "A",
+        "scale": "1:1"
+      },
+      "expect": [
+        {
+          "what": "measurements.scale",
+          "equal_to": "1:1",
+          "why": "THE SCALE OF THE SECTION, read back: before round 22 it took the scale of its view"
+        },
+        {
+          "what": "measurements.hatches",
+          "equal_to": 1,
+          "why": "the cut met the plate"
+        }
+      ]
+    },
+    {
+      "operation": "detail_view",
+      "arguments": {
+        "view": "V1",
+        "label": "B",
+        "scale": 2,
+        "radius_mm": 4,
+        "x_mm": 27
+      },
+      "_why_x_mm_27": "V1 is the plate seen from the front, 120 x 10 mm at the scale 1:2 of standard_views, 60 x 5 mm on the sheet: as in detail_enlarges, the circle takes the right end of the plate, where the view shows edges.",
+      "expect": [
+        {
+          "what": "measurements.circle_style",
+          "equal_to": "with_leader",
+          "why": "THE STYLE OF THE OWNER: the letter at the end of a short line from the circle, read back"
+        },
+        {
+          "what": "measurements.position_locked",
+          "equal_to": true,
+          "why": "the detail does not move when its view changes size"
+        }
+      ]
+    },
+    {
+      "operation": "read_drawing",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "measurements.sheets_read",
+          "equal_to": 1,
+          "why": "the drawing has one sheet"
+        },
+        {
+          "what": "measurements.dimensions_total",
+          "equal_to": 4,
+          "why": "THE DRAWING READ BACK: two distances, then the same two in a row with the suffix and the parentheses; the move kept them"
+        },
+        {
+          "what": "measurements.sheets[0].views[2].dimensions[0].parentheses",
+          "equal_to": false,
+          "why": "the first distance of V3 was asked without parentheses, and the reading says so"
+        }
+      ]
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V3",
+        "between": [
+          [
+            0,
+            1
+          ]
+        ],
+        "edges": [
+          0
+        ]
+      },
+      "must_fail": {
+        "message_includes": [
+          "«between» goes in a call of its own",
+          "I touched nothing"
+        ],
+        "twin": "between_edges_gives_the_height_past_a_chamfer"
+      }
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V3",
+        "between": [
+          [
+            2,
+            2
+          ]
+        ]
+      },
+      "must_fail": {
+        "message_includes": [
+          "names the edge 2 twice",
+          "I touched nothing"
+        ],
+        "twin": "between_edges_gives_the_height_past_a_chamfer"
+      }
+    },
+    {
+      "operation": "move_annotation",
+      "arguments": {
+        "name": "RD1",
+        "x_mm": 100
+      },
+      "must_fail": {
+        "message_includes": [
+          "wants both «x_mm» and «y_mm»",
+          "I touched nothing"
+        ],
+        "twin": "between_edges_gives_the_height_past_a_chamfer"
+      }
+    }
+  ]
+}

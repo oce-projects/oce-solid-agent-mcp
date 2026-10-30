@@ -1,0 +1,46 @@
+{
+  "name": "part_overall_size",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 21, POINT 2 (28/10/2026). «overall» worked on the views of an assembly only: on the drawings of the parts of 26M000002 the overall length, height and width had to be found among the edges, chosen blind, and came out as 5 mm and 133 mm instead. Now «overall» on a view of a part takes the route of the assembly: the outermost straight edges, the dimension read back and compared with their distance on the sheet.",
+
+  "defect_caught": "«overall» on a part ignored in silence (the view gets its contours instead), an overall dimension between edges that are not the outermost, and «overall» with «edges» on a part taken as one of the two.",
+
+  "_why_these_numbers": "The plate of «dimensions_arrive_in_the_pdf», 120 x 80 x 10 mm: its front view (V1) shows the length 120 across and the thickness 10 up.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 96000, "why": "the plate whose overall size is dimensioned" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\part_overall_size.sldprt" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "the drawing is the active document" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\part_overall_size.sldprt" },
+      "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "the views the dimensions go on" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "view": "V1", "overall": "both" },
+      "expect": [
+        { "what": "measurements.view_of", "equal_to": "part",
+          "why": "THE ROUTE OF THE OVERALL SIZE, on a part: before round 21 «overall» was not read here" },
+        { "what": "measurements.overall_mm.horizontal", "equal_to": 120, "tolerance": 0.001,
+          "tolerance_why": "the overall length, read back from the dimension placed" },
+        { "what": "measurements.overall_mm.vertical", "equal_to": 10, "tolerance": 0.001,
+          "tolerance_why": "the overall height of the front view, the thickness" },
+        { "what": "measurements.dimensions_placed", "equal_to": 2,
+          "why": "the two overall dimensions and nothing else: no contour, hole or chamfer on this call" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "view": "V2", "overall": "both", "edges": [0] },
+      "must_fail": {
+        "message_includes": ["On a view of a part «overall» and «edges» go in two calls", "I touched nothing"],
+        "twin": "part_overall_size" } }
+  ]
+}

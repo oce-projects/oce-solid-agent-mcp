@@ -1142,6 +1142,34 @@ namespace Oce.Solid.Agent.Core.Catalog
                 },
                 new OperationSpec
                 {
+                    Name = "sketch_details",
+                    Family = "features",
+                    RequestedDocument = "part",
+                    Tested = true,
+                    Example = "{}",   // from `sketch_details_reads_the_rectangle`
+                    Summary = "Reads what the sketches of a part are made of: segments, relations, dimensions, "
+                        + "and whether each one is fully defined. It changes nothing.",
+                    Description =
+                        "Reads the sketches of the part, to learn how a part drawn by hand is made: the state gives "
+                        + "a sketch only as one feature among the others. For each sketch («sketch_names», the ones "
+                        + "absorbed by an extrusion too): «status» (fully defined, under defined, over defined, no "
+                        + "solution ...), «segments» and «segments_by_kind» (line, arc, spline ...), "
+                        + "«construction_segments», «relations» and «relations_by_kind» (coincident, horizontal, "
+                        + "fixed ...), and «dimensions», each with its name and its value in mm or in degrees. "
+                        + "It only reads: nothing in the part changes.\n\nI REFUSE IF THE SKETCH ASKED («sketch») "
+                        + "IS NOT IN THE PART, and say which sketches there are.",
+                    Precondition = "an open part",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "sketch", O(
+                                "type", "string",
+                                "description", "the name of one sketch, as the tree gives it (" + "«Schizzo1», «Sketch1», in the "
+                                    + "language of the installation). Leave it out to read them all.")),
+                        "required", A()),
+                },
+                new OperationSpec
+                {
                     Name = "set_dimension",
                     Family = "features",
                     RequestedDocument = "part",
@@ -2977,15 +3005,39 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "after, one by one. If none is born I tell you, and I tell you which edges I tried."
                         + "\n\nWHERE THEY END UP: outside the view — the "
                         + "horizontal ones below, the vertical ones at the side, inside the sheet frame "
-                        + "— from the smallest to the largest."
+                        + "— from the smallest to the largest. «horizontal_side» puts the horizontal ones "
+                        + "above, «vertical_side» the vertical ones on the left; «row» puts every dimension "
+                        + "of the call at the same distance «offset_mm», a chain instead of a staircase (the "
+                        + "total goes in a second call with a larger «offset_mm»). They hold for «edges» and "
+                        + "«between»; holes, chamfers and the overall size keep their own places."
+                        + "\n\nTHE DISTANCE BETWEEN TWO EDGES: «between» takes pairs of edge numbers, "
+                        + "[[3, 7], [7, 12]], and dimensions the distance of each pair: two straight edges, both "
+                        + "vertical on the sheet (a horizontal distance) or both horizontal (a vertical one). It "
+                        + "is the dimension of a position (a rib 21 mm from the end), of a width between two "
+                        + "faces, of an overall height when the side edges are cut by a chamfer. Each value is "
+                        + "read back and must be the distance of the two edges on the sheet divided by the "
+                        + "scale, or I take it away and say why. «between» goes in a call of its own (not with "
+                        + "«edges» or «overall»), puts no holes or chamfers, and is placed even when another "
+                        + "view has the same distance: you named it. It works on a view of an assembly too."
+                        + "\n\nTEXT ON THE DIMENSION: «prefix» and «suffix» write a text before and after "
+                        + "the value («2,5 CHANNEL»), «parentheses» shows it as a reference dimension «(35)». "
+                        + "They go on every dimension the call places from «edges», «between» or «overall», not "
+                        + "on hole callouts and chamfers; each is read back, and what did not stick is in "
+                        + "«decorations_not_kept»."
+                        + "\n\nHOLES AND CHAMFERS IN ANOTHER VIEW: «holes»: false and «chamfers»: false leave "
+                        + "them out of this call, so they go on a later view (the chamfer on its detail): "
+                        + "«automatic_left_out» says what was left out."
                         + "\n\nOVERLAPS ARE CHECKED AND REPORTED, not avoided: the true rectangle of "
                         + "every dimension text, read back from SOLIDWORKS, against the other texts of "
-                        + "the whole drawing and against the lines of the part in this view. "
+                        + "the whole drawing, the lines of the part in this view, every note of the sheet "
+                        + "and of its views (the label of a detail or a section is a note of its view) and "
+                        + "the title block when the format declares it; «overlaps_checked_against» says what "
+                        + "was compared. "
                         + "«overlapping_texts» lists each overlap, and the answer also gives "
                         + "their count and how many texts were read; null, not 0, means the texts "
                         + "could not be read, or the walk over the dimensions of the drawing broke off "
-                        + "before the end, so overlaps are unknown. Dimension lines, "
-                        + "extension lines and the title block are not checked. The dimensions are "
+                        + "before the end, so overlaps are unknown. Dimension lines and "
+                        + "extension lines are not checked. The dimensions are "
                         + "correct; a well laid out drawing is still a trade."
                         + "\n\nI DIMENSION HOLES AND CHAMFERS BY MYSELF, in every view that shows them, even if "
                         + "you do not ask: holes with the HOLE CALLOUT («4× Ø8 THRU», with the word for «through» "
@@ -3046,12 +3098,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "to the components you list."
                         + "\n\nA DIMENSION THAT MEASURES NOTHING IS TAKEN AWAY: a length of zero or less, or a chamfer "
                         + "dimension with an angle outside 0..90 degrees, is removed and listed in "
-                        + "edges_not_dimensioned with what it read."
+                        + "edges_not_dimensioned with what it read. So is a chamfer dimension whose legs are not "
+                        + "those of its chamfer feature (the chamfer seen askew, as «0,4 x 15,23°» on a 0.4 x 45°): "
+                        + "I try the other edges of that chamfer in the view, and if none shows it in its true size "
+                        + "I say so; each row of «chamfers» says «as_the_feature» and «matches_the_feature»."
                         + "\n\nI REFUSE IF THE EDGE ASKED FOR DOES NOT EXIST in the view, and I tell you how many it "
                         + "shows. An index that is not there is the easiest mistake to make when "
                         + "dimensioning blind. And I refuse a view where nothing is left to dimension "
                         + "because everything is already dimensioned elsewhere: zero dimensions are "
-                        + "not an answer of «done».",
+                        + "not an answer of «done»."
+                        + "\n\nTHE NUMBER ON THE SHEET IS THE VALUE: a dimension whose sheet prints another "
+                        + "number (a template with one decimal printed 0.75 as «0,8») gets the decimals its "
+                        + "value needs, at most 3; its row says «printed_before» and «decimals». «decimals» "
+                        + "(0 to 8) fixes them for every dimension of the call instead, and a dimension that "
+                        + "then prints another number than its value is listed in «rounded_on_the_sheet».",
                     Precondition = "a drawing with at least one view that shows edges",
                     Schema = O(
                         "type", "object",
@@ -3064,7 +3124,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "array",
                                 "items", O("type", "integer"),
                                 "description", "the numbers of the edges to dimension, from the list the "
-                                    + "view exposes (the first is 0). Empty = the first «count»."),
+                                    + "view exposes (the first is 0). Empty = the first «count». To choose them, "
+                                    + "«inspect_part» with «view_edges» lists each edge with these numbers: its "
+                                    + "kind, its mm in the model, how it faces and where it sits on the sheet."),
                             "count", O(
                                 "type", "integer",
                                 "description", "how many dimensions to put when you do not say which "
@@ -3074,7 +3136,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "enum", A("both", "horizontal", "vertical", "none"),
                                 "description", "ON A VIEW OF AN ASSEMBLY: the overall size, «both» (length and "
                                     + "height), «horizontal», «vertical» or «none». Default «both» without «edges», "
-                                    + "«none» with «edges»."),
+                                    + "«none» with «edges». ON A VIEW OF A PART, asked without «edges»: the overall size "
+                                    + "alone, between the outermost straight edges and read back (left out, the view of a "
+                                    + "part gets its contours, holes and chamfers as before); with «edges» I refuse: two calls. "
+                                    + "It is compared with the overall dimensions of the other views only: ask it first."),
                             "components", O(
                                 "type", "array",
                                 "items", O("type", "string"),
@@ -3092,7 +3157,47 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "pitch_mm", O(
                                 "type", "number",
                                 "description", "the distance between one dimension and the "
-                                    + "next. Default 10.")),
+                                    + "next. Default 10."),
+                            "decimals", O(
+                                "type", "integer",
+                                "description", "the decimals every dimension of the call prints, 0 to 8. Left out, "
+                                    + "each dimension gets the ones its value needs (0.75 two, 120 none)."),
+                            "between", O(
+                                "type", "array",
+                                "items", O("type", "array", "items", O("type", "integer"), "minItems", 2, "maxItems", 2),
+                                "description", "pairs of edge numbers, [[3, 7], [7, 12]]: the distance between the two "
+                                    + "edges of each pair, both vertical or both horizontal on the sheet. A call of its own, "
+                                    + "at most 40 pairs. The numbers are the ones «inspect_part» with «view_edges» lists."),
+                            "row", O(
+                                "type", "boolean",
+                                "description", "true: every dimension of the call at the same distance «offset_mm», "
+                                    + "side by side, a chain. Default false, one «pitch_mm» further for each."),
+                            "horizontal_side", O(
+                                "type", "string",
+                                "enum", A("below", "above"),
+                                "description", "where the horizontal dimensions go. Default below."),
+                            "vertical_side", O(
+                                "type", "string",
+                                "enum", A("right", "left"),
+                                "description", "where the vertical dimensions go. Default right, on the left when "
+                                    + "the frame of the sheet ends; named, it is kept."),
+                            "prefix", O(
+                                "type", "string",
+                                "description", "a text before the value of each dimension placed, one line, at most 60 characters."),
+                            "suffix", O(
+                                "type", "string",
+                                "description", "a text after the value («CHANNEL» gives «2,5 CHANNEL»), one line, at most 60 characters."),
+                            "parentheses", O(
+                                "type", "boolean",
+                                "description", "true: each dimension placed shown in parentheses, «(35)», a reference "
+                                    + "dimension (a position the mates decide, on an assembly). Default false."),
+                            "holes", O(
+                                "type", "boolean",
+                                "description", "false: the holes of the view are not dimensioned in this call. Default true."),
+                            "chamfers", O(
+                                "type", "boolean",
+                                "description", "false: the chamfers of the view are not dimensioned in this call, to put "
+                                    + "them on another view (a detail). Default true.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3208,6 +3313,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                 new OperationSpec
                 {
                     Name = "drawing_bom",
+                    // Round 22 of report 8cd843, point 10: «over_title_block».
                     Family = "drawing",
                     RequestedDocument = "drawing",
                     Tested = true,
@@ -3245,14 +3351,21 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "«assembly_active_configuration», the active one after the reading. If the view's "
                         + "configuration cannot be activated, or the active one cannot be put back, I refuse "
                         + "before inserting the table and say where the assembly stayed. The exclusion from "
-                        + "the BOM is read in the configuration of the assembly that holds each component.",
+                        + "the BOM is read in the configuration of the assembly that holds each component."
+                        + "\n\nOVER THE TITLE BLOCK: «over_title_block»: true rests the table on the title block, "
+                        + "its columns widened or narrowed by one factor to the width of the title block, and read "
+                        + "again («bounding_box_table_mm», «title_block_mm», «width_note» when SOLIDWORKS did not take "
+                        + "every width). «rows_on_more_lines» counts the rows whose text went on two lines or more; "
+                        + "«warning_covers» names a view the table touches there. A format that declares no title "
+                        + "block keeps the free place, and «over_title_block_note» says so.",
                     Precondition = "a drawing with a view of a saved assembly",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O("type", "string", "description", "the view of the assembly (V1, V2...) or by name. Default the first."),
                             "variant", O("type", "string", "enum", A("top_level", "parts_only", "indented"), "description", "which BOM. Default top_level."),
-                            "template", O("type", "string", "description", "the table template. Empty = the first one in the folder of the BOM templates.")),
+                            "template", O("type", "string", "description", "the table template. Empty = the first one in the folder of the BOM templates."),
+                            "over_title_block", O("type", "boolean", "description", "true: the table on the title block, at its width. Default false, a free place.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3290,14 +3403,22 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 "
                         + "runs. balloons_returned is the number of notes AutoBalloon5 returned (null "
                         + "when it returned no array), and balloons_count_note appears when it disagrees "
-                        + "with the count in the view.",
+                        + "with the count in the view."
+                        + "\n\nTHE BALLOONS AGAIN IN ANOTHER VIEW: AutoBalloon5 puts no balloon on a part that "
+                        + "has one in another view. «again»: true puts one balloon on each part this view shows "
+                        + "that has none IN THIS VIEW (the isometric, a section, a detail), one per part and "
+                        + "configuration, with the number of the bill of materials: the arrow on a visible line "
+                        + "of the part (checked to be that part before the balloon is made), the balloon out of "
+                        + "the view on that side. «placed» gives each one, «not_placed» the parts I could not "
+                        + "reach and why. «layout» and «order» are not used there.",
                     Precondition = "a drawing with the BOM and a view of the assembly",
                     Schema = O(
                         "type", "object",
                         "properties", O(
                             "view", O("type", "string", "description", "the view (V1, V2...) or by name. Default the first."),
                             "layout", O("type", "string", "enum", A("square", "circle", "above", "below"), "description", "how to arrange the balloons around the view. Default square."),
-                            "order", O("type", "string", "enum", A("around_the_view", "bill_of_materials"), "description", "the order of the numbers: around_the_view (default) numbers the balloons as they go around the view and renumbers the bill of materials; bill_of_materials keeps the numbers the bill of materials has, the same every run.")),
+                            "order", O("type", "string", "enum", A("around_the_view", "bill_of_materials"), "description", "the order of the numbers: around_the_view (default) numbers the balloons as they go around the view and renumbers the bill of materials; bill_of_materials keeps the numbers the bill of materials has, the same every run."),
+                            "again", O("type", "boolean", "description", "true: a balloon on each part of this view that has none in this view, even when another view has it. Default false.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3623,6 +3744,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "outside the material: on the sheet there remains a view that "
                         + "looks good and shows nothing, and no error would say so. "
                         + "I prefer to fail and tell you where I cut.\n\n"
+                        + "THE SCALE: the section takes the scale of its view; «scale» («2:1») gives it its "
+                        + "own, set before it is placed and read back («scale»); if the view does not read it, "
+                        + "I remove the section and the cutting line and say why.\n\n"
                         + "THE LETTER IS ONE PER DRAWING: if «label» already "
                         + "belongs to another section or to a detail I refuse and tell you "
                         + "the ones used — two «A-A» look like the same cut. The letter the "
@@ -3657,7 +3781,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "number",
                                 "description", "depth of the cut for a partial "
                                     + "section. Default 0, which cuts all the way "
-                                    + "through.")),
+                                    + "through."),
+                            "scale", O(
+                                "type", "string",
+                                "description", "the scale of the section, «2:1» or «1:2». Left out, the scale "
+                                    + "of the view it cuts.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3702,6 +3830,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "I REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle "
                         + "outside enlarges empty space, and the enlarged empty space is "
                         + "still a view that looks good.\n\n"
+                        + "I REFUSE IF THE CIRCLE LIES IN THE MARGIN OF THE VIEW, before drawing anything: "
+                        + "«outline_mm» keeps a margin around the drawing (5.8 mm on each side, measured), "
+                        + "and a circle in it, out of what the view draws and meeting none of its lines, "
+                        + "enlarged nothing. The refusal says where the drawing is, from the centre of the "
+                        + "outline as «x_mm» and «y_mm»; «drawn_mm» in the state is the box of the lines a "
+                        + "view shows, and the answer gives it as «drawing_of_the_view_mm».\n\n"
                         + "I REFUSE IF THE SCALE ASKED («scale») IS NOT LARGER THAN THE SCALE OF THE VIEW: a detail at 2:1 of a "
                         + "view at 5:1 shrinks the piece instead of enlarging it (measured). The message gives the "
                         + "scale of the view and one twice as large.\n\n"
@@ -3757,7 +3891,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "label", O(
                                 "type", "string",
                                 "description", "the letter of the detail. Default «B», "
-                                    + "because «A» is usually taken by the section.")),
+                                    + "because «A» is usually taken by the section."),
+                            "circle_style", O(
+                                "type", "string",
+                                "enum", A("with_leader", "standard", "no_leader", "connected", "broken"),
+                                "description", "how the circle carries its letter: «with_leader» (default) puts the "
+                                    + "letter at the end of a short line from the circle; «standard» beside the circle; "
+                                    + "«no_leader», «connected» (a line to the detail view), «broken». Read back in «circle_style»."),
+                            "lock_position", O(
+                                "type", "boolean",
+                                "description", "true (default): the detail does not move when its view changes size, "
+                                    + "read back in «position_locked».")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -4102,7 +4246,9 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "at the drawing understand the part, and the three standard views on "
                         + "their own often do not.\n\nx_mm and y_mm are the position ON THE SHEET, "
                         + "with the origin at the bottom left: on an A3 (420x297) the top right corner "
-                        + "is around 320, 220.",
+                        + "is around 320, 220.\n\nTHE SCALE: «scale» («1:2», «2:1») is set on the view and "
+                        + "read back after the rebuild; left out, SOLIDWORKS chooses it. The answer says "
+                        + "«scale» (decimal) and «scale_ratio», read from the view.",
                     Precondition = "an open drawing and the part open beside it",
                     Schema = O(
                         "type", "object",
@@ -4128,7 +4274,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "position on the sheet from the bottom, in mm"),
                             "model", O(
                                 "type", "string",
-                                "description", "the path of the part. If you do not say, the first open part is used.")),
+                                "description", "the path of the part. If you do not say, the first open part is used."),
+                            "scale", O(
+                                "type", "string",
+                                "description", "the scale, «1:2» or «2:1» (a decimal with a point, «1:2.5»). "
+                                    + "Left out, SOLIDWORKS chooses it.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -4158,7 +4308,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "holes_in_views_without_centre_marks and auto_centre_marks_option (the document "
                         + "option that inserts them, null when it cannot be read). A hole the bridge could "
                         + "not mark is counted in holes_left_without_centre_mark, with centre_marks_note "
-                        + "saying what to do.",
+                        + "saying what to do."
+                        + "\n\nTHE SCALE: «scale» («1:2», «2:1») is set on the views this call makes that do "
+                        + "not follow a parent, and the projected views follow it; every new view is read back "
+                        + "after the rebuild, and one that does not read it makes the step fail. Left out, "
+                        + "SOLIDWORKS chooses it (a part 175 mm long came out at 1:2 on an A3 with the sheet at "
+                        + "1:1). The answer always says «view_scales»: the scale of every view of the sheet, and "
+                        + "whether it follows its parent or the sheet; «sheet_scale», and «scale_note» when a view "
+                        + "of this call has another scale than the sheet (the title block prints the sheet's).",
                     Precondition = "an open drawing and the part open beside it",
                     Schema = O(
                         "type", "object",
@@ -4166,7 +4323,102 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "model", O(
                                 "type", "string",
                                 "description", "the path of the part to put in view. If you do not say, the first "
-                                    + "open part is used. You find it in «documents_open» in the state.")),
+                                    + "open part is used. You find it in «documents_open» in the state."),
+                            "scale", O(
+                                "type", "string",
+                                "description", "the scale, «1:2» or «2:1» (a decimal with a point, «1:2.5»). "
+                                    + "Left out, SOLIDWORKS chooses it.")),
+                        "required", A()),
+                },
+                new OperationSpec
+                {
+                    Name = "set_view_scale",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    Tested = true,
+                    Example = "{\"view\":\"V1\",\"scale\":\"1:2\"}",   // from `view_scale_is_set_and_followed`
+                    Summary = "Changes the scale of a view already on the sheet, and reads it back.",
+                    Description =
+                        "Changes the scale of a view of the active sheet («view»: its name, or «V1» as the "
+                        + "state writes it) to «scale» («1:2», «2:1»). The views that follow it (the projected "
+                        + "views of «standard_views») change with it after the rebuild. The scale is read back from "
+                        + "the view, not taken from the call: «scale_before», «scale_after», and «view_scales», "
+                        + "the scale of every view of the sheet. A view that followed the scale of its parent "
+                        + "has its own after this (said in «parent_note»), and a view that now goes beyond the "
+                        + "sheet is said in «outside_the_sheet». «sheet_scale» is the scale of the sheet, and "
+                        + "«scale_note» says when the view does not have it: the title block prints the sheet's."
+                        + "\n\nI REFUSE IF the scale cannot be read, if "
+                        + "the view is not on the active sheet (I say which ones there are), or if it already "
+                        + "has that scale.",
+                    Precondition = "an open drawing with at least one view",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "view", O(
+                                "type", "string",
+                                "description", "the view: its name, or «V1», «V2» ... as the state writes it."),
+                            "scale", O(
+                                "type", "string",
+                                "description", "the new scale, «1:2» or «2:1» (a decimal with a point, «1:2.5»).")),
+                        "required", A("view", "scale")),
+                },
+                new OperationSpec
+                {
+                    Name = "read_drawing",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    // Round 22 of report 8cd843, point 20: served with its case (between_edges_gives_the_height_past_a_chamfer), not run on the bench yet.
+                    Tested = true,
+                    Summary = "Reads a finished drawing sheet by sheet: views, dimensions, notes, balloons, tables. Touches nothing.",
+                    Description =
+                        "Reads every sheet of the drawing without bringing any in front, to set one drawing "
+                        + "against another. Per sheet: its name, scale, size, the title block the format declares, "
+                        + "its own notes and tables. Per view: name, kind, scale, model, configuration, outline; "
+                        + "every dimension with «kind» (linear, diameter, angular, chamfer ...), its value («mm», or "
+                        + "«deg» for an angle), «text_shown» (what the sheet prints), «prefix», «suffix», "
+                        + "«parentheses», «arrows», «position_mm» and «attached_to»; every note with its text; every "
+                        + "BOM balloon with its number and part; every table with its rows, the header first. «sheet» "
+                        + "reads one sheet only.\n\nNOT READ: the lines, the hatching, centre marks and the symbols of "
+                        + "finish, datum and tolerance; the notes inside the title block are counted "
+                        + "(«notes_in_title_block»), not listed.",
+                    Precondition = "an open drawing",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "sheet", O("type", "string", "description", "the name of one sheet to read. Left out, every sheet.")),
+                        "required", A()),
+                },
+                new OperationSpec
+                {
+                    Name = "move_annotation",
+                    Family = "drawing",
+                    RequestedDocument = "drawing",
+                    // Round 22 of report 8cd843, point 8: served with its case (between_edges_gives_the_height_past_a_chamfer), not run on the bench yet.
+                    Tested = true,
+                    Summary = "Moves a dimension or a note of the drawing, and reads back where it went.",
+                    Description =
+                        "Moves one dimension or one note of the current sheet, found as «delete_annotation» "
+                        + "finds it: «name» (the name drawing_dimension gives, «RD1@Drawing View1@...», or the "
+                        + "name of a note) or «text» (the exact text of a note). Where: «x_mm» and «y_mm», the "
+                        + "place on the sheet from its lower left corner, or a shift «dx_mm», «dy_mm» from where "
+                        + "it is. The dimension keeps its name, its value and its decimals; it is not taken away "
+                        + "and placed again.\n\nREAD BACK: «moved» is said only when the annotation reads the "
+                        + "place asked («position_before_mm», «position_after_mm»). For a dimension «arrows» "
+                        + "(«inside», «outside») sets the side of its arrows, read back in «arrows», and the "
+                        + "texts of its view are compared again («overlapping_texts»).\n\nI REFUSE IF no "
+                        + "annotation or more than one answers (I name them), if the place is outside the "
+                        + "sheet, and if both a place and a shift are given.",
+                    Precondition = "an open drawing with the dimension or the note on its current sheet",
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "name", O("type", "string", "description", "the name of the dimension or of the note, as the plan that placed it gave it."),
+                            "text", O("type", "string", "description", "the exact text of a note, in place of «name»."),
+                            "x_mm", O("type", "number", "description", "where it goes on the sheet, from the left edge, in mm. With «y_mm»."),
+                            "y_mm", O("type", "number", "description", "where it goes on the sheet, from the bottom edge, in mm. With «x_mm»."),
+                            "dx_mm", O("type", "number", "description", "a shift to the right (negative: left), in mm of sheet."),
+                            "dy_mm", O("type", "number", "description", "a shift upward (negative: down), in mm of sheet."),
+                            "arrows", O("type", "string", "enum", A("inside", "outside"), "description", "for a dimension: the side of its arrows.")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -5011,9 +5263,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "variant", O(
                                 "type", "string",
                                 "description", "coincident (default), parallel, perpendicular, distance, "
-                                    + "concentric or tangent. Concentric and tangent want a curved face, so at least "
+                                    + "concentric, tangent or width. Concentric and tangent want a curved face, so at least "
                                     + "one of the two faces must be named by a point: between two faces named by "
-                                    + "direction (always flat) I refuse them."),
+                                    + "direction (always flat) I refuse them. WIDTH puts the tab of component_b in the "
+                                    + "middle of the width of component_a: give «face_a2» and «face_b2» too."),
+                            "face_a2", O(
+                                "description", "ONLY FOR «width»: the second face of the width on component_a, "
+                                    + "opposite «face_a» (left and right, front and back); a direction or "
+                                    + "{\"point_mm\": [x, y, z]}, as «face_a»."),
+                            "face_b2", O(
+                                "description", "ONLY FOR «width»: the second face of the tab on component_b, "
+                                    + "opposite «face_b»; a direction or {\"point_mm\": [x, y, z]}, as «face_b»."),
                             "distance_mm", O(
                                 "type", "number",
                                 "description", "only for «distance»: how far apart they are. "

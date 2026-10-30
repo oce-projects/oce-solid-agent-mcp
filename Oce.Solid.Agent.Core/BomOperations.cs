@@ -124,7 +124,7 @@ namespace Oce.Solid.Agent.Core
             var table = bom as ITableAnnotation;
             if (bom == null || table == null)
                 return Failed("SOLIDWORKS did not create the bill of materials and did not say why (table template «" +
-                               (tableModel ?? "") + "»).");
+                               LocalCopies.Original(tableModel ?? "") + "»).");
 
             // ── THE ROWS, READ ──────────────────────────────────────────────
             int lines = 0, columns = 0;
@@ -209,6 +209,59 @@ namespace Oce.Solid.Agent.Core
             catch { }
             string tableName = null;
             try { tableName = (table.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
+
+            // OVER THE TITLE BLOCK, AT ITS WIDTH (report 8cd843, round 22, point 10): the owner rests the
+            // bill of materials on the title block. The columns are widened or narrowed by one
+            // factor (ITableAnnotation~SetColumnWidth.html, swTableRowColChange_TableSizeCanChange)
+            // and the table read again; a format that declares no title block keeps the free place.
+            if (Bool(a, "over_title_block", false))
+            {
+                double[] block = DeclaredTitleBlock(drawing);
+                if (block == null)
+                    measurements["over_title_block_note"] = "The format of the sheet declares no title block " +
+                        "(ITitleBlock.GetExtents): the table went to a free place instead.";
+                else if (w > 0 && h > 0)
+                {
+                    double factor = ColumnFactor(w, block[2] - block[0]);
+                    try
+                    {
+                        for (int c = 0; c < table.ColumnCount; c++)
+                            table.SetColumnWidth(c, table.GetColumnWidth(c) * factor,
+                                                 (int)swTableRowColSizeChangeBehavior_e.swTableRowColChange_TableSizeCanChange);
+                    }
+                    catch { }
+                    double wide = 0, high = 0;
+                    var heights = new List<double>();
+                    try
+                    {
+                        for (int c = 0; c < table.ColumnCount; c++) wide += table.GetColumnWidth(c);
+                        for (int r = 0; r < table.RowCount; r++) { double rh = table.GetRowHeight(r); high += rh; heights.Add(rh); }
+                    }
+                    catch { }
+                    try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(block[0], block[3] + high, 0); } catch { }
+                    measurements["table_location"] = "over the title block";
+                    measurements["title_block_mm"] = new object[]
+                    {
+                        Math.Round(block[0] * 1000, 1), Math.Round(block[1] * 1000, 1),
+                        Math.Round(block[2] * 1000, 1), Math.Round(block[3] * 1000, 1),
+                    };
+                    measurements["bounding_box_table_mm"] = new object[] { Math.Round(wide * 1000, 1), Math.Round(high * 1000, 1) };
+                    if (Math.Abs(wide - (block[2] - block[0])) > 0.001)
+                        measurements["width_note"] = "The table is " + Math.Round(wide * 1000, 1).ToString(CultureInfo.InvariantCulture) +
+                            " mm wide and the title block " + Math.Round((block[2] - block[0]) * 1000, 1).ToString(CultureInfo.InvariantCulture) +
+                            " mm: SOLIDWORKS did not take every width.";
+                    // A ROW ON TWO LINES (the owner's drawing: long descriptions left their cell).
+                    int tall = TallerRows(heights);
+                    measurements["rows_on_more_lines"] = tall;
+                    var placedSheet = ReadSheet(drawing, null, tableName);
+                    string covers = placedSheet.Touches(block[0], block[3] + 0.0005, block[0] + wide, block[3] + high);
+                    if (covers != null)
+                        measurements["warning_covers"] = "Over the title block the table touches " + covers +
+                            ": move that view with «move_view».";
+                    measurements["inside_sheet"] = true;
+                    return SucceededWithoutCreating(measurements);
+                }
+            }
             var sheet = ReadSheet(drawing, null, tableName);
             string location = null;
             var down = w > 0 && h > 0 ? FreePlace(sheet, w, h, out location) : null;
@@ -225,6 +278,30 @@ namespace Oce.Solid.Agent.Core
             measurements["table_location"] = location;
             measurements["inside_sheet"] = true;
             return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// The factor that brings a table <paramref name="tableWidth"/> wide to
+        /// <paramref name="blockWidth"/> (round 22, point 10); 1 when either is not a width. Pure.
+        /// </summary>
+        internal static double ColumnFactor(double tableWidth, double blockWidth)
+        {
+            return tableWidth > 1e-6 && blockWidth > 1e-6 ? blockWidth / tableWidth : 1.0;
+        }
+
+        /// <summary>
+        /// How many rows are more than one and a half times the lowest row: a text on two
+        /// lines or more (round 22, point 10). Pure.
+        /// </summary>
+        internal static int TallerRows(IList<double> heights)
+        {
+            if (heights == null || heights.Count == 0) return 0;
+            double lowest = double.MaxValue;
+            foreach (double h in heights) if (h > 1e-6) lowest = Math.Min(lowest, h);
+            if (lowest == double.MaxValue) return 0;
+            int tall = 0;
+            foreach (double h in heights) if (h > lowest * 1.5) tall++;
+            return tall;
         }
 
         /// <summary>
@@ -798,6 +875,11 @@ namespace Oce.Solid.Agent.Core
             if (itemOrder == null)
                 return Failed("«order» is one of «around_the_view», «bill_of_materials», not «" + order + "»: " +
                               "use one of the two, or leave it out for around_the_view.");
+
+            // THE BALLOONS AGAIN IN ANOTHER VIEW (report 8cd843, round 22, point 9): one at a
+            // time, BalloonRepeatOperations.cs; AutoBalloon5 skips a part ballooned elsewhere.
+            if (Bool(a, "again", false))
+                return BalloonsAgain(model, drawing, view);
 
             int before = ViewBalloons(view);
             // The rows of the bill of materials before the balloons (N50): AutoBalloon5

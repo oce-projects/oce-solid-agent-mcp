@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // Oce.Solid.Agent.Core — the drawing operations for SOLIDWORKS, without the PDM.
@@ -687,8 +687,84 @@ using System.Runtime.InteropServices;
 //          wrapped over two lines, and says it in found_on_several_lines
 //          with a note, not in not_found (observation); title_block says the
 //          boxes that show a value the model no longer has (N61).
-[assembly: AssemblyVersion("0.174.9.0")]
-[assembly: AssemblyFileVersion("0.174.9.0")]
+// 0.175.0: round 20 of report 8cd843: detail_view refuses a circle in the
+//          margin of the outline, saying where the view draws, and the state
+//          says drawn_mm (N62); the verdict on the mates leaves out the
+//          suppressed components and those a pattern places (N64); the state
+//          says the folders of a component (N65); new operation
+//          sketch_details reads what the sketches are made of (N63).
+// 0.176.0: round 21 of report 8cd843: «scale» on standard_views and
+//          model_view, new operation set_view_scale, the note when a view has
+//          another scale than the sheet (point 1); every dimension placed
+//          prints its value, «decimals» on drawing_dimension (point 4).
+// 0.177.0: round 21 of report 8cd843, point 7: «mate» makes a width mate
+//          («variant» width, «face_a2» and «face_b2», centred).
+// 0.178.0: round 21 of report 8cd843, point 5: the texts of the
+//          dimensions compared with the notes of the sheet and of its views
+//          and with the title block; «overlaps_checked_against».
+// 0.178.1: round 21 of report 8cd843: a chamfer dimension compared with
+//          the definition of its feature (26P000011, «0,4 x 15,23°»).
+// 0.179.0: round 22 of report 8cd843 (the drawings of 26M000002 set against the owner's):
+//          «between», «row», the sides, «prefix»/«suffix», «parentheses», «holes» and
+//          «chamfers» on drawing_dimension, the arrows where the text is, a detail
+//          dimensioned above; «scale» on section_view; «circle_style» and
+//          «lock_position» on detail_view; «again» on balloons; «over_title_block»
+//          on drawing_bom; new operations move_annotation and read_drawing.
+// 0.179.1: OCE_LOCAL_COPIES (LocalCopies.cs): the templates the operations open (drawing,
+//          sheet format, table templates, the part of the section probe) are opened
+//          from a local copy when the variable asks for it, and reported with the path
+//          of the installation. Unset, nothing changes. Asked by the owner to make the bench
+//          faster (29/10/2026).
+// 0.179.2: the state asks SOLIDWORKS less for the same values (DocumentState.cs): the
+//          listed edges reuse the curve, parameters and length read for the ranking
+//          (EdgeReading), the listed faces reuse the area of the ranking and read their
+//          surface and feature once. Same calls on the same entities: same values,
+//          same ranking, same identifiers. Asked by the owner to make drawing faster
+//          (29/10/2026): the edges were 32.2 % of the time of the plans in the bridge log.
+// 0.179.3: the tree of the state asks less (DocumentState.cs): GetDefinition only for the five
+//          types FeatureParameters reads (it was asked of every feature that counts and
+//          thrown away), the name of a feature only where it is used (axes and features
+//          that count), ThreadDiameter and DefaultRadius read once. NOT the same state on
+//          weldments: GetDefinition on a structural member loaded the profile .SLDLFP from the
+//          share as an open document and the order of the bodies changed between openings.
+// 0.179.4: PhaseClock phases inside two slow operations, to see where their time goes:
+//          «mate.direction_test» around the two readings of the directions before and
+//          after AddMate5 (MateOperations.cs), «drawing.new_document» around the
+//          NewDocument of create_drawing (DrawingOperations.cs); PhaseClock.Spent. Nothing else changes.
+// 0.180.0: UiFreeze (UiFreeze.cs): the FeatureManager tree, its window and the graphics of the
+//          view turned off while a plan runs (PlanExecutor, phases «plan.ui_freeze» and
+//          «plan.ui_thaw»), put back as they were, the tree updated and the view redrawn (IModelView.GraphicsRedraw).
+//          Only what was on is turned off. Off unless OCE_UI_FREEZE is 1, true or on: asked
+//          by the owner to measure it, speed and accuracy, before deciding (29/10/2026).
+// 0.181.0: the edges of the state read with IEdge.GetCurveParams2 (DocumentState.cs, ReadEdge):
+//          GetCurve, the array (ends, parameters, packed curve type) and GetLength3 between the
+//          same parameters, instead of GetCurve, GetCurveParams3, UMinValue, UMaxValue and
+//          GetLength3; the listed edges take point and direction from the array, a circle asks
+//          only CircleParams. Same lengths, same ranking (probe on 317 edges of four parts);
+//          the ranking of 192 edges from 925.4 ms to 79.1 ms. Obsolete call, measured.
+// 0.182.0: the bodies of the state in the natural order of their names (DocumentState.cs),
+//          not in the order of GetBodies2, which «May vary»: between two identical bench runs
+//          4 to 9 of the 9 states with more than one body had them in another order, same
+//          names. C1, C2 and the F/E numbers of equal faces and edges of different bodies are
+//          now the same in every run. The name is read once and used again.
+// 0.183.0: the listed faces of the state ask IFace2.Normal (one call) instead of IGetSurface,
+//          IsPlane, PlaneParams and FaceInSurfaceSense, and the surface only when the face is
+//          not planar; the feature number from IFace2.GetFeatureId, its name asked once per
+//          number (checked against GetID on the first face of each). Probe on 136 faces of four
+//          parts: same planar faces, same normals, same feature numbers.
+// 0.184.0: the rankings of faces and edges sort on the measure rounded to the sixth decimal
+//          (mm², mm): measures equal by design keep the order of SOLIDWORKS instead of the
+//          order of the last bits of a double, which changed when the length was computed
+//          through another call (eight equal arcs, A/B of 0.180.0 and 0.181.0).
+// 0.185.0: the length of a straight edge is the distance between its ends from the array of
+//          GetCurveParams2, without GetLength3; safe since the rounded key of 0.184.0. Probe on
+//          317 edges of four parts: equal to GetLength3 to the sixth decimal, ranking unchanged.
+// 0.186.0: the same state in every run. `created_by` is the oldest feature of the body's faces;
+//          ties ordered by body, then feature number (faces) or middle of the ends (edges);
+//          `between` lower number first; `documents_open` by title. Bench of 30/10/2026: 3
+//          state files of 291 differed between two equal runs, all by an order.
+[assembly: AssemblyVersion("0.186.0.0")]
+[assembly: AssemblyFileVersion("0.186.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -703,4 +779,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.174.9")]
+[assembly: AssemblyInformationalVersion("0.186.0")]

@@ -556,6 +556,76 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// Like <see cref="FeatureOfFace"/>, for the faces of one listing (library 0.183.0):
+        /// the number from IFace2.GetFeatureId (IFace2~GetFeatureId.html: «Order number of
+        /// the owning feature»), one call that returns a number and not an object, and the
+        /// name asked to the feature only once per number.
+        ///
+        /// Measured on 30/10/2026 with a probe outside the repository (RAG note 95):
+        /// GetFeatureId equal to GetFeature().GetID() on 126 faces of 126 (four parts).
+        /// It is not taken on trust all the same: the first face of every number still asks
+        /// its feature, and the name goes in the cache only if that feature's GetID is the
+        /// same number. If it is not, nothing is cached and every face of that number keeps
+        /// the reading of before — slower, and right.
+        /// </summary>
+        private static void FeatureOfListedFace(
+            IFace2 face, Dictionary<int, string> namesById, out int id, out string itemName)
+        {
+            int quick;
+            try { quick = face.GetFeatureId(); }
+            catch
+            {
+                FeatureOfFace(face, out id, out itemName);
+                return;
+            }
+            FeatureOfListedFace(face, quick, namesById, out id, out itemName);
+        }
+
+        /// <summary>
+        /// Like the one above, with the number already read by <see cref="FeatureNumber"/>
+        /// (library 0.186.0): -1, the number that could not be read, reads the feature as
+        /// <see cref="FeatureOfFace"/> does.
+        /// </summary>
+        private static void FeatureOfListedFace(
+            IFace2 face, int quick, Dictionary<int, string> namesById, out int id, out string itemName)
+        {
+            if (quick < 0)
+            {
+                FeatureOfFace(face, out id, out itemName);
+                return;
+            }
+            string known;
+            if (namesById.TryGetValue(quick, out known))
+            {
+                id = quick;
+                itemName = known;
+                return;
+            }
+            FeatureOfFace(face, out id, out itemName);
+            if (itemName != null && id == quick) namesById[quick] = itemName;
+        }
+
+        /// <summary>
+        /// IFace2.GetFeatureId (see <see cref="FeatureOfListedFace(IFace2, Dictionary{int, string}, out int, out string)"/>),
+        /// or -1 when it does not answer.
+        /// </summary>
+        private static int FeatureNumber(IFace2 face)
+        {
+            try { return face.GetFeatureId(); }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// The feature number as a sort key (library 0.186.0, see <see cref="RankKey"/>):
+        /// a number that could not be read sorts after the others of its group.
+        /// </summary>
+        private static int FeatureRank(Dictionary<IFace2, int> numbers, IFace2 face)
+        {
+            int number;
+            return numbers.TryGetValue(face, out number) && number >= 0 ? number : int.MaxValue;
+        }
+
+        /// <summary>
         /// Reads the document. It must be called ON THE SOLIDWORKS THREAD.
         /// </summary>
         /// <param name="sw">
@@ -815,7 +885,13 @@ namespace Oce.Solid.Agent.Core
             {
                 string typ = "";
                 string itemName = "";
-                try { typ = f.GetTypeName2(); itemName = f.Name; } catch { }
+                try { typ = f.GetTypeName2(); } catch { }
+                // The name only where it is used (library 0.179.3): an axis and a feature
+                // that counts. Planes, folders and the other features never read it.
+                if (typ == "RefAxis" || FeaturesThatCount.Contains(typ))
+                {
+                    try { itemName = f.Name; } catch { }
+                }
 
                 if (typ == "RefPlane") nPlanes++;
                 // ONLY THE REAL AXES.
@@ -883,10 +959,11 @@ namespace Oce.Solid.Agent.Core
                     // nothing — and redo it.
                     //
                     // THE COST DOES NOT CHANGE, and it is the reason why it can be
-                    // done. `GetTypeName2()` and `Name` are already read for EVERY
+                    // done. `GetTypeName2()` is already read for EVERY
                     // feature of the tree, before this check, to
-                    // decide what type it is: the light pass already existed and
-                    // was already paid for. Here only a reference to
+                    // decide what type it is, and `Name` for every feature that
+                    // counts (since 0.179.3 not for the others): the light pass already
+                    // existed and was already paid for. Here only a reference to
                     // a list is added. The expensive part — `GetID`, `IsSuppressed`,
                     // `GetErrorCode2`, the parameters, the dimensions — stays on eighty
                     // exact features, only that now they are the LAST ones.
@@ -955,8 +1032,53 @@ namespace Oce.Solid.Agent.Core
 
             object bodiesObj = null;
             try { bodiesObj = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, false); } catch { }
-            var bodies = (bodiesObj as object[] ?? new object[0])
+            var gotBodies = (bodiesObj as object[] ?? new object[0])
                 .Select(o => o as IBody2).Where(b => b != null).ToList();
+
+            // THE BODIES IN THE NATURAL ORDER OF THEIR NAMES (library 0.182.0), not in
+            // the order of GetBodies2.
+            //
+            // IPartDoc~GetBodies2.html, Remarks: «May vary the order in which bodies
+            // are returned». It varies, and between two IDENTICAL runs: measured on
+            // 29/10/2026 on the states saved by four bench runs of the same 42 cases
+            // (compared by a script outside the repository, RAG note 95), the nine states with more than one
+            // body had their bodies in a different order in 4 to 9 states out of 9,
+            // always with the same names and never one name twice. «C1» was one bar
+            // in a run and another bar in the next; and since faces and edges of equal
+            // measure keep the order of their bodies (the rankings are stable sorts),
+            // the F and E numbers of four equal tubes moved with them.
+            //
+            // The names follow the order of creation («... 80X80X5(1)[1]», «[2]», ...):
+            // sorted by name, the order is the same in every run. Natural, so that
+            // «[10]» comes after «[9]»; on equal names, the order of GetBodies2. The
+            // operations do not depend on this order: they find a body by its
+            // signature, never by its position (BodyOperations, entry Z-C21.2).
+            //
+            // The name is read here once and used again for the «name» of the body.
+            var nameOf = new List<string>();
+            var nameRead = new List<bool>();
+            for (int i = 0; i < gotBodies.Count; i++)
+            {
+                var gotBody = gotBodies[i];
+                try { nameOf.Add(gotBody.Name); nameRead.Add(true); }
+                catch { nameOf.Add(null); nameRead.Add(false); }
+            }
+            var bodyOrder = new List<int>();
+            for (int i = 0; i < gotBodies.Count; i++) bodyOrder.Add(i);
+            bodyOrder.Sort((x, y) =>
+            {
+                int c = NaturalCompare(nameOf[x], nameOf[y]);
+                return c != 0 ? c : x.CompareTo(y);
+            });
+            var bodies = new List<IBody2>();
+            var bodyNames = new List<string>();
+            var bodyNameRead = new List<bool>();
+            foreach (var k in bodyOrder)
+            {
+                bodies.Add(gotBodies[k]);
+                bodyNames.Add(nameOf[k]);
+                bodyNameRead.Add(nameRead[k]);
+            }
 
             // The material: EXPLICIT null when there is none.
             //
@@ -1052,7 +1174,8 @@ namespace Oce.Solid.Agent.Core
                 {
                     var body = bodies[i];
                     var entry = new Dictionary<string, object> { ["uid"] = "C" + (i + 1) };
-                    try { entry["name"] = body.Name; } catch { }
+                    // Read once, where the bodies are sorted by it (library 0.182.0).
+                    if (bodyNameRead[i]) entry["name"] = bodyNames[i];
                     var box = BoundingBox(body);
                     if (box != null)
                     {
@@ -1099,8 +1222,10 @@ namespace Oce.Solid.Agent.Core
                     // for identical fields (`uid`/`name`) and for those that
                     // repeat another field (`from_feature` on a weldment).
                     // It does not hold for two fields that say different things.
-                    string feat = BodyFeature(body);
-                    if (feat != null) entry["created_by"] = feat;
+                    //
+                    // WRITTEN FURTHER BELOW, where the faces are read (library 0.186.0):
+                    // the feature is the oldest of the body's faces, and the faces are
+                    // read once, there. It is the last key of the entry, as before.
                     describedBodies.Add(entry);
 
                     // And the body must be able to be FOUND AGAIN. Without this signature,
@@ -1229,20 +1354,54 @@ namespace Oce.Solid.Agent.Core
                 // and cut once.
                 var allFaces = new List<Tuple<IFace2, int, double>>();
                 var allEdges = new List<Tuple<IEdge, int>>();
+                // The feature number of every face, read once (library 0.186.0): it decides
+                // from which feature a body is born and the order of faces of equal area, and
+                // the listing below takes it from here instead of asking again.
+                var faceFeatureId = new Dictionary<IFace2, int>();
+                // Feature number -> name, for this reading only (library 0.183.0, see
+                // FeatureOfListedFace).
+                var featureNameById = new Dictionary<int, string>();
                 // From which feature EACH BODY is born. It serves to avoid repeating
                 // on every face a thing that the field «body» already says: see
                 // the comment on `from_feature` further below.
+                //
+                // THE OLDEST FEATURE OF ITS FACES, NOT THE FEATURE OF THE FIRST FACE (library
+                // 0.186.0). SOLIDWORKS lists the faces of a combined body starting from the
+                // input body that survived the combine, and which one survives changes from
+                // run to run. Measured on the bench of 30/10/2026 (two equal runs, RAG note
+                // 95): merge_two_cubes gave as `created_by` the extrusion in one run and the
+                // move/copy feature in the other, and the faces of equal area changed
+                // identifiers with it. The smallest feature number among the faces does not depend on that
+                // order; on a body made by one feature, or a bar with its trims, it is the
+                // same feature the first face gave.
                 var bodyFeature = new string[bodies.Count];
-                for (int i = 0; i < bodies.Count; i++) bodyFeature[i] = BodyFeature(bodies[i]);
                 for (int i = 0; i < bodies.Count; i++)
                 {
+                    IFace2 oldestFace = null;
+                    int oldestId = int.MaxValue;
                     var facesObj = bodies[i].GetFaces() as object[];
                     if (facesObj != null)
                         foreach (var o in facesObj)
                         {
                             var x = o as IFace2;
-                            if (x != null) allFaces.Add(Tuple.Create(x, i, AreaOrZero(x)));
+                            if (x == null) continue;
+                            allFaces.Add(Tuple.Create(x, i, AreaOrZero(x)));
+                            int featureNumber = FeatureNumber(x);
+                            faceFeatureId[x] = featureNumber;
+                            if (featureNumber >= 0 && featureNumber < oldestId)
+                            {
+                                oldestId = featureNumber;
+                                oldestFace = x;
+                            }
                         }
+                    if (oldestFace != null)
+                    {
+                        int oldestRead;
+                        FeatureOfListedFace(oldestFace, oldestId, featureNameById, out oldestRead, out bodyFeature[i]);
+                    }
+                    else bodyFeature[i] = BodyFeature(bodies[i]);
+                    if (i < describedBodies.Count && bodyFeature[i] != null)
+                        describedBodies[i]["created_by"] = bodyFeature[i];
                     var edgesObj = bodies[i].GetEdges() as object[];
                     if (edgesObj != null)
                         foreach (var o in edgesObj)
@@ -1256,7 +1415,13 @@ namespace Oce.Solid.Agent.Core
                 // works on, and they are the ones a short description must have.
                 // ZERO-E-ZERO: it is a sort key, not a statement —
                 // a face that does not give its area ends up at the bottom, and that is all.
-                var sorted = allFaces.OrderByDescending(t => t.Item3).ToList();
+                // The key rounded to a millionth of mm² (library 0.184.0, see RankKey). Equal
+                // areas: by body, then by feature number (library 0.186.0, see RankKey).
+                var sorted = allFaces
+                    .OrderByDescending(t => RankKey(Units.Mm2(t.Item3)))
+                    .ThenBy(t => t.Item2)
+                    .ThenBy(t => FeatureRank(faceFeatureId, t.Item1))
+                    .ToList();
                 docState._ranked = sorted;
                 docState._bodyFeatureOfFace = bodyFeature;
 
@@ -1276,14 +1441,10 @@ namespace Oce.Solid.Agent.Core
                 }
                 else
                 {
-                    var bodyNames = new List<string>();
-                    foreach (IBody2 named in bodies)
-                    {
-                        string n = null;
-                        try { n = named.Name; } catch { }
-                        bodyNames.Add(n ?? "");
-                    }
-                    int wantedBody = filter.BodyIndex(bodyNames);
+                    // The names read once where the bodies are sorted (library 0.182.0).
+                    var faceBodyNames = new List<string>();
+                    foreach (var n in bodyNames) faceBodyNames.Add(n ?? "");
+                    int wantedBody = filter.BodyIndex(faceBodyNames);
                     if (wantedBody == -1)
                         data["faces_filter_problem"] =
                             "«faces.body» names «" + filter.Body + "», and this part has " + bodies.Count +
@@ -1327,11 +1488,25 @@ namespace Oce.Solid.Agent.Core
                     // (entry Z-C8). ZERO-E-ZERO: in the signature it stays 0, because whoever
                     // reads `Measure` always looks at `> 0` and takes it for «not
                     // measured».
+                    // The area read for the ranking is the same GetArea on the same face
+                    // (library 0.179.2): it is asked again only when it gave zero, where
+                    // a second call is what tells «not read» from a reading.
                     double? readArea = null;
-                    try { readArea = Units.Mm2(t.Item1.GetArea()); } catch { }
+                    if (t.Item3 > 0) readArea = Units.Mm2(t.Item3);
+                    else
+                    {
+                        try { readArea = Units.Mm2(t.Item1.GetArea()); } catch { }
+                    }
                     double areaMm2 = readArea ?? 0;
                     var point = PointOnFace(t.Item1);
+                    // The normal from IFace2.Normal; the surface only for a face that is
+                    // not planar, for the cylinder (library 0.183.0, see FaceNormalVector).
                     var normal = FaceNormalVector(t.Item1);
+                    ISurface faceSurface = null;
+                    if (normal == null)
+                    {
+                        try { faceSurface = t.Item1.IGetSurface(); } catch { }
+                    }
                     var entry = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
@@ -1363,7 +1538,7 @@ namespace Oce.Solid.Agent.Core
                     // value.
                     double[] cylinderCenter = null;
                     if (normal == null &&
-                        CylinderOf(t.Item1, out radiusMm, out cylinderAxis, out cylinderCenter))
+                        CylinderOf(faceSurface, out radiusMm, out cylinderAxis, out cylinderCenter))
                     {
                         entry["radius_mm"] = Math.Round(radiusMm, 3);
                         entry["diameter_mm"] = Math.Round(radiusMm * 2, 3);
@@ -1388,7 +1563,15 @@ namespace Oce.Solid.Agent.Core
                     // hole, a pocket, a fillet on a part — and it is
                     // exactly the case that is needed for «take that hole to
                     // M10».
-                    string fromFeature = FaceFeature(t.Item1);
+                    // One GetFeature for the name and the id (library 0.179.2): FaceFeature
+                    // and FeatureOfFace asked the same feature twice on every listed face.
+                    int featureId;
+                    string featureItem;
+                    int knownNumber;
+                    if (faceFeatureId.TryGetValue(t.Item1, out knownNumber))
+                        FeatureOfListedFace(t.Item1, knownNumber, featureNameById, out featureId, out featureItem);
+                    else FeatureOfListedFace(t.Item1, featureNameById, out featureId, out featureItem);
+                    string fromFeature = featureItem;
                     if (fromFeature != null
                         && (t.Item2 >= bodyFeature.Length
                             || !string.Equals(fromFeature, bodyFeature[t.Item2], StringComparison.Ordinal)))
@@ -1478,10 +1661,7 @@ namespace Oce.Solid.Agent.Core
                     // a bench check that watches that ceiling.
                     //
                     // With the map at the end the long names are four, and on
-                    // every face the number stays.
-                    int featureId;
-                    string featureItem;
-                    FeatureOfFace(t.Item1, out featureId, out featureItem);
+                    // every face the number stays. Read above, with `from_feature`.
                     if (featureItem != null)
                     {
                         entry["feature_id"] = featureId;
@@ -1529,9 +1709,30 @@ namespace Oce.Solid.Agent.Core
                 }
 
                 lap.Next("faces");
-                var sortedItems = (withEdges ? allEdges : new List<Tuple<IEdge, int>>())
-                    .OrderByDescending(t => LengthMm(t.Item1))
+                // One reading per edge, kept for the listed ones (library 0.179.2, see
+                // EdgeReading). OrderByDescending is stable and reads each key once, as the
+                // ranking by LengthMm did: same order, same identifiers.
+                // Loops and not Select: the language checks cannot type the receiver of a
+                // Select, and SOLIDWORKS has members called Select.
+                var measuredEdges = new List<Tuple<Tuple<IEdge, int>, EdgeReading>>();
+                if (withEdges)
+                    foreach (var edgeItem in allEdges) measuredEdges.Add(Tuple.Create(edgeItem, ReadEdge(edgeItem.Item1)));
+                // The key rounded to a millionth of mm (library 0.184.0, see RankKey). Equal
+                // lengths: by body, then by the middle of the ends (library 0.186.0, see RankKey).
+                var rankedEdges = measuredEdges
+                    .OrderByDescending(measured => RankKey(measured.Item2.LengthMm))
+                    .ThenBy(measured => measured.Item1.Item2)
+                    .ThenBy(measured => MiddleKey(measured.Item2, 0))
+                    .ThenBy(measured => MiddleKey(measured.Item2, 1))
+                    .ThenBy(measured => MiddleKey(measured.Item2, 2))
                     .ToList();
+                var sortedItems = new List<Tuple<IEdge, int>>();
+                var edgeReadings = new List<EdgeReading>();
+                foreach (var rankedEdge in rankedEdges)
+                {
+                    sortedItems.Add(rankedEdge.Item1);
+                    edgeReadings.Add(rankedEdge.Item2);
+                }
                 docState._rankedEdges = sortedItems;
 
                 // WHICH EDGES ARE LISTED (brief R17). By default the longest
@@ -1550,13 +1751,9 @@ namespace Oce.Solid.Agent.Core
                 }
                 else
                 {
+                    // The names read once where the bodies are sorted (library 0.182.0).
                     var edgeBodyNames = new List<string>();
-                    foreach (IBody2 named in bodies)
-                    {
-                        string n = null;
-                        try { n = named.Name; } catch { }
-                        edgeBodyNames.Add(n ?? "");
-                    }
+                    foreach (var n in bodyNames) edgeBodyNames.Add(n ?? "");
                     int wantedEdgeBody = edgeFilter.BodyIndex(edgeBodyNames);
                     if (wantedEdgeBody == -1)
                         data["edges_filter_problem"] =
@@ -1581,7 +1778,7 @@ namespace Oce.Solid.Agent.Core
                         if (straightRead.ContainsKey(r)) return;
                         string along;
                         double radius;
-                        straightRead[r] = EdgeDirection(sortedItems[r].Item1, out along, out radius);
+                        straightRead[r] = EdgeDirection(edgeReadings[r], sortedItems[r].Item1, out along, out radius);
                         curveRead[r] = along;
                     };
                     listedEdges = data.ContainsKey("edges_filter_problem")
@@ -1589,7 +1786,7 @@ namespace Oce.Solid.Agent.Core
                         : edgeFilter.Choose(
                             sortedItems.Count,
                             r => sortedItems[r].Item2,
-                            r => { double len = LengthMm(sortedItems[r].Item1); return len >= 0 ? len : (double?)null; },
+                            r => { double len = edgeReadings[r].LengthMm; return len >= 0 ? len : (double?)null; },
                             r => { readCurve(r); return !straightRead[r]; },
                             r => { readCurve(r); return curveRead[r]; },
                             r => EdgeBoundsFace(sortedItems[r].Item1, boundedFace),
@@ -1607,9 +1804,10 @@ namespace Oce.Solid.Agent.Core
                 foreach (var edgeRankIndex in listedEdges)
                 {
                     var t = sortedItems[edgeRankIndex];
+                    var edgeReading = edgeReadings[edgeRankIndex];
                     var uid = "E" + (edgeRankIndex + 1);
-                    double len = LengthMm(t.Item1);
-                    var point = PointOnEdge(t.Item1);
+                    double len = edgeReading.LengthMm;
+                    var point = PointOnEdge(edgeReading, t.Item1);
                     var entry = new Dictionary<string, object>
                     {
                         ["uid"] = uid,
@@ -1633,7 +1831,7 @@ namespace Oce.Solid.Agent.Core
                     // are the edges in the direction of the thickness.
                     string axisLength;
                     double edgeRadius;
-                    if (EdgeDirection(t.Item1, out axisLength, out edgeRadius))
+                    if (EdgeDirection(edgeReading, t.Item1, out axisLength, out edgeRadius))
                     {
                         if (axisLength != null) entry["along"] = axisLength;
                     }
@@ -1935,6 +2133,15 @@ namespace Oce.Solid.Agent.Core
         private static void FeatureParameters(
             IFeature f, string typ, Dictionary<string, object> entry)
         {
+            // THE DEFINITION ONLY FOR THE TYPES THAT READ IT (library 0.179.3). It was
+            // asked of every feature that counts — a shell, a rib, a structural member —
+            // and thrown away for all but these five: one call to SOLIDWORKS per
+            // feature per reading of the state, for nothing. AND NOT HARMLESS: on a
+            // structural member it made SOLIDWORKS load the profile .SLDLFP from the
+            // share as an open document, and the order of the bodies changed between
+            // two openings of the same part (A/B of 29/10/2026, RAG note 93).
+            if (typ != "HoleWzd" && typ != "Extrusion" && typ != "Cut" &&
+                typ != "Fillet" && typ != "Chamfer") return;
             object definition;
             try { definition = f.GetDefinition(); }
             catch { return; }
@@ -1959,8 +2166,9 @@ namespace Oce.Solid.Agent.Core
                         Math.Max(d.ThruTapDrillDiameter, d.TapDrillDiameter),
                         Math.Max(d.ThruHoleDiameter, d.HoleDiameter)) * 1000.0;
                     if (diam > 0) entry["diameter_mm"] = Math.Round(diam, 2);
-                    if (d.ThreadDiameter > 0)
-                        entry["thread_mm"] = Math.Round(d.ThreadDiameter * 1000.0, 2);
+                    double thread = d.ThreadDiameter;
+                    if (thread > 0)
+                        entry["thread_mm"] = Math.Round(thread * 1000.0, 2);
                     double prof = Math.Max(d.HoleDepth, d.Depth) * 1000.0;
                     if (prof > 0) entry["depth_mm"] = Math.Round(prof, 2);
                 }
@@ -1985,8 +2193,9 @@ namespace Oce.Solid.Agent.Core
                 {
                     var d = definition as ISimpleFilletFeatureData2;
                     if (d == null) return;
-                    if (d.DefaultRadius > 0)
-                        entry["radius_mm"] = Math.Round(d.DefaultRadius * 1000.0, 2);
+                    double radius = d.DefaultRadius;
+                    if (radius > 0)
+                        entry["radius_mm"] = Math.Round(radius * 1000.0, 2);
                     if (d.IsMultipleRadius) entry["radius_variable"] = true;
                     // NOT FilletItemsCount (C7-2): «This method returns -1 if
                     // this simple fillet feature is not multiple radius»
@@ -2206,14 +2415,15 @@ namespace Oce.Solid.Agent.Core
         /// site: outside of here nobody can invoke it.
         /// </summary>
         private static bool CylinderOf(
-            IFace2 face, out double radiusMm, out double[] axis, out double[] center)
+            ISurface surface, out double radiusMm, out double[] axis, out double[] center)
         {
             radiusMm = 0;
             axis = null;
             center = null;
             try
             {
-                var surface = face.IGetSurface();
+                // The surface comes from the caller (library 0.179.2): it already read
+                // it for the normal, and IGetSurface was asked twice on every curved face.
                 if (surface == null || !surface.IsCylinder()) return false;
                 var par = surface.CylinderParams as double[];
                 if (par == null || par.Length < 7) return false;
@@ -2252,9 +2462,74 @@ namespace Oce.Solid.Agent.Core
         {
             along = null;
             radius = 0;
+            ICurve curva;
+            try { curva = edge.IGetCurve(); }
+            catch { return true; }
+            return CurveDirection(curva, out along, out radius);
+        }
+
+        /// <summary>The direction from the curve of <paramref name="reading"/> when it has one (library 0.179.2).</summary>
+        private static bool EdgeDirection(EdgeReading reading, IEdge edge, out string along, out double radius)
+        {
+            // FROM THE ARRAY OF GetCurveParams2 when its curve type says (library 0.181.0): a
+            // straight edge points from one end to the other, which is the direction LineParams
+            // gives, so it needs no call; a circle needs only CircleParams for its radius, not
+            // IsLine and IsCircle first. Any other curve is asked as before.
+            if (reading != null && reading.Array != null && reading.Array.Length >= 6)
+            {
+                var a = reading.Array;
+                if (reading.CurveType == (int)swCurveTypes_e.LINE_TYPE)
+                {
+                    double dx = a[3] - a[0], dy = a[4] - a[1], dz = a[5] - a[2];
+                    double length = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                    if (length > 0)
+                    {
+                        radius = 0;
+                        along = AxisAlong(dx / length, dy / length, dz / length);
+                        return true;
+                    }
+                }
+                else if (reading.CurveType == (int)swCurveTypes_e.CIRCLE_TYPE && reading.Curve != null)
+                {
+                    along = null;
+                    radius = 0;
+                    try
+                    {
+                        var c = reading.Curve.CircleParams as double[];
+                        if (c != null && c.Length >= 7) radius = Units.Mm(c[6]);
+                    }
+                    catch { }
+                    return false;
+                }
+            }
+            if (reading != null && reading.Curve != null) return CurveDirection(reading.Curve, out along, out radius);
+            return EdgeDirection(edge, out along, out radius);
+        }
+
+        /// <summary>
+        /// «along an axis» only if it really fits (shared by LineParams and by the ends of the
+        /// array): a diagonal has no axis.
+        /// </summary>
+        private static string AxisAlong(double x, double y, double z)
+        {
+            const double almostOne = 0.99;
+            if (Math.Abs(x) > almostOne) return "X";
+            if (Math.Abs(y) > almostOne) return "Y";
+            if (Math.Abs(z) > almostOne) return "Z";
+            return null;
+        }
+
+        /// <summary>
+        /// <see cref="EdgeDirection"/> on a curve already read (library 0.179.2): the
+        /// state reads the curve of every edge once, to measure its length, and the
+        /// listed edges ask it again only when that reading did not give one.
+        /// </summary>
+        private static bool CurveDirection(ICurve curva, out string along, out double radius)
+        {
+            along = null;
+            radius = 0;
             try
             {
-                var curva = edge.IGetCurve();
                 if (curva == null) return false;
                 if (!curva.IsLine())
                 {
@@ -2270,11 +2545,7 @@ namespace Oce.Solid.Agent.Core
                 // «along an axis» is said only if it really fits: a
                 // diagonal has no axis, and calling it «along X» would be
                 // a convenient lie — of the kind that gives no error.
-                double[] d = { Math.Abs(par[3]), Math.Abs(par[4]), Math.Abs(par[5]) };
-                const double almostOne = 0.99;
-                if (d[0] > almostOne) along = "X";
-                else if (d[1] > almostOne) along = "Y";
-                else if (d[2] > almostOne) along = "Z";
+                along = AxisAlong(par[3], par[4], par[5]);
                 return true;
             }
             catch { return true; }
@@ -2314,6 +2585,41 @@ namespace Oce.Solid.Agent.Core
                 return false;
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// Two names compared as a person reads them: the runs of digits by their
+        /// value, so that «[9]» comes before «[10]»; everything else character by
+        /// character (ordinal). A missing name goes after every name.
+        /// Used to sort the bodies (library 0.182.0).
+        /// </summary>
+        internal static int NaturalCompare(string a, string b)
+        {
+            if (a == null) return b == null ? 0 : 1;
+            if (b == null) return -1;
+            int i = 0, j = 0;
+            while (i < a.Length && j < b.Length)
+            {
+                if (char.IsDigit(a[i]) && char.IsDigit(b[j]))
+                {
+                    int si = i, sj = j;
+                    while (si < a.Length && a[si] == '0') si++;
+                    while (sj < b.Length && b[sj] == '0') sj++;
+                    int ei = si, ej = sj;
+                    while (ei < a.Length && char.IsDigit(a[ei])) ei++;
+                    while (ej < b.Length && char.IsDigit(b[ej])) ej++;
+                    if (ei - si != ej - sj) return (ei - si).CompareTo(ej - sj);
+                    int c = string.CompareOrdinal(a, si, b, sj, ei - si);
+                    if (c != 0) return c;
+                    i = ei;
+                    j = ej;
+                    continue;
+                }
+                if (a[i] != b[j]) return a[i].CompareTo(b[j]);
+                i++;
+                j++;
+            }
+            return (a.Length - i).CompareTo(b.Length - j);
         }
 
         private static bool SameComObject(object a, object b)
@@ -2372,7 +2678,12 @@ namespace Oce.Solid.Agent.Core
                 }
                 // If one of the two is outside the ceiling on faces, better
                 // nothing than a maimed pair that looks complete.
-                return names.Count == 2 ? names.ToArray() : null;
+                if (names.Count != 2) return null;
+                // The lower number first (library 0.186.0): the pair is a set, and the order
+                // in which SOLIDWORKS hands the two faces changed between two equal runs on
+                // a combined body (RAG note 95).
+                if (FaceFilter.RankOf(names[0]) > FaceFilter.RankOf(names[1])) names.Reverse();
+                return names.ToArray();
             }
             catch { return null; }
         }
@@ -2465,7 +2776,7 @@ namespace Oce.Solid.Agent.Core
         /// it is the behaviour of before, and it is right for the
         /// vast majority of the dimensions.
         /// </summary>
-        private static Dictionary<string, object> Dimension(IDimension d, string itemName)
+        internal static Dictionary<string, object> Dimension(IDimension d, string itemName)
         {
             // ── AND THE RIGHT ENUM IS NOT THE ONE THAT IT SEEMS ──────────
             //
@@ -2522,13 +2833,6 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
-        /// <summary>The name of the feature that generated this face.</summary>
-        private static string FaceFeature(IFace2 face)
-        {
-            try { return (face.GetFeature() as IFeature)?.Name; }
-            catch { return null; }
-        }
-
         private static string BodyFeature(IBody2 body)
         {
             try
@@ -2576,9 +2880,19 @@ namespace Oce.Solid.Agent.Core
         {
             start = null;
             fine = null;
+            ICurveParamData data;
+            try { data = ApiHelpers.EdgeParameters(edge); }
+            catch { return false; }
+            return EndsOf(data, out start, out fine);
+        }
+
+        /// <summary>The ends from curve parameters already read (library 0.179.2).</summary>
+        private static bool EndsOf(ICurveParamData data, out double[] start, out double[] fine)
+        {
+            start = null;
+            fine = null;
             try
             {
-                var data = ApiHelpers.EdgeParameters(edge);
                 if (data == null) return false;
                 start = data.StartPoint as double[];
                 fine = data.EndPoint as double[];
@@ -2598,7 +2912,123 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         internal static double LengthMm(IEdge edge)
         {
-            if (edge == null) return -1;
+            return ReadEdge(edge).LengthMm;
+        }
+
+        /// <summary>
+        /// ONE READING OF AN EDGE (library 0.179.2, 29/10/2026): its curve, its
+        /// parameters and its length, from the same GetCurve and GetCurveParams3.
+        ///
+        /// The state measures the length of EVERY edge to rank them, and then, for
+        /// each listed edge, read the length again, the curve parameters again for
+        /// the point and the curve again for the direction: about fourteen calls
+        /// to SOLIDWORKS per listed edge, six of them repeated. On 26-29/10/2026 the
+        /// edges were 53.8 s of the 166.9 s of the plans in the bridge log (32.2 %).
+        /// The listed edges now use this reading; the values are the same calls on
+        /// the same edge, so the ranking and the identifiers do not change.
+        /// </summary>
+        private sealed class EdgeReading
+        {
+            internal ICurve Curve;
+            internal ICurveParamData Parameters;
+            // Library 0.181.0: the array of IEdge.GetCurveParams2 (ends, parameters, packed curve
+            // type) and the curve type unpacked from it; null and 0 when the array did not come.
+            internal double[] Array;
+            internal int CurveType;
+            internal double LengthMm = -1;
+        }
+
+        /// <summary>
+        /// The curve type packed in PackDouble1 of IEdge.GetCurveParams2. The guide,
+        /// IEdge~GetCurveParams2.html: «PackDouble1 Two packed integers: Unused curveType as
+        /// documented in ICurve::Identity». Which half of the 64 bits holds it was measured, not
+        /// read: a probe outside the repository compared it with ICurve.Identity on every edge
+        /// (RAG note 94).
+        /// </summary>
+        private static int PackedCurveType(double packed)
+        {
+            long bits = BitConverter.DoubleToInt64Bits(packed);
+            return (int)(bits >> 32);
+        }
+
+        private static EdgeReading ReadEdge(IEdge edge)
+        {
+            var reading = new EdgeReading();
+            if (edge == null) return reading;
+
+            // THREE CALLS PER EDGE, NOT FIVE, AND NO OBJECT TO MARSHAL (library 0.181.0, 29/10/2026:
+            // The owner asked for fewer calls per edge, with the accuracy it costs measured).
+            //
+            // The ranking reads EVERY edge: GetCurve, GetCurveParams3, UMinValue, UMaxValue and
+            // GetLength3 were five calls out of process per edge, one of them handing back an
+            // ICurveParamData object; state.edges was 40.5 % of the library's state phases in the
+            // short bench (RAG note 93, par. 3.2). IEdge.GetCurveParams2 gives the ends, the two
+            // parameters and the curve type in ONE array of doubles (the guide: «Calls to this
+            // method must be preceded by a call to IEdge::GetCurve»), and GetLength3 measures between
+            // the same two parameters. Measured with a probe outside the repository (RAG note 94) on 317 edges of
+            // four parts: indices 0-7 identical to GetCurveParams3 on every edge, the curve type in
+            // the high half of PackDouble1 on every edge, the ranking of all edges in 925.4 ms the
+            // old way and 79.1 ms this way on the 192 edges of cut_list_says_whether_it_compared
+            // (medians of 5, -91.5 %; RAG note 94).
+            //
+            // NOT THE CHORD, EVEN FOR A STRAIGHT EDGE — up to library 0.184.0: the distance between
+            // the ends differs from GetLength3 by up to 3e-13 mm, enough to swap edges of equal
+            // length in the ranking (53 places of 192 on the same part) and so their identifiers.
+            //
+            // THE CHORD FOR A SEGMENT, from library 0.185.0. Since 0.184.0 the ranking sorts on the
+            // length rounded to the sixth decimal (RankKey), and 3e-13 mm no longer swaps anything.
+            // Measured on 30/10/2026 with a probe outside the repository (RAG note 95), four parts,
+            // 317 edges: the length without GetLength3 equal to GetLength3 to the sixth decimal on
+            // 317 of 317, largest difference 3.4e-13 mm, 0 places of the ranking changed; on a
+            // segment it is one call less, and no evaluation of the curve. Read right after a
+            // rebuild — as the bridge reads after every plan — the edges of a welded frame (192)
+            // went from 1,078.4 ms to 980.0 ms (-9.1 %, segments and circles; here only the
+            // segments): the bulk of that time is SOLIDWORKS evaluating each edge again after the
+            // rebuild, whatever call touches it first. Other curves keep GetLength3.
+            //
+            // The call is obsolete («Superseded by IEdge::GetCurveParams3»): it is measured, not
+            // frozen (Tests/ObsoleteCallsContract.cs). If the array does not come, the reading
+            // goes on as in library 0.179.2, below.
+            try
+            {
+                var curve = edge.GetCurve() as ICurve;
+                // OBSOLETE-MEASURED: fillet_rounds_the_four_corners — IEdge~GetCurveParams2.html; the
+                // indices and the packed curve type measured against GetCurveParams3 and
+                // ICurve.Identity (a probe outside the repository, RAG note 94).
+                var array = edge.GetCurveParams2() as double[];
+                if (array != null && array.Length >= 9)
+                {
+                    reading.Curve = curve;
+                    reading.Array = array;
+                    reading.CurveType = PackedCurveType(array[8]);
+                    // A segment: the distance between its ends is its length (library 0.185.0).
+                    if (reading.CurveType == (int)swCurveTypes_e.LINE_TYPE)
+                    {
+                        double sx = array[3] - array[0], sy = array[4] - array[1], sz = array[5] - array[2];
+                        double chord = Math.Sqrt(sx * sx + sy * sy + sz * sz);
+                        if (chord > 0)
+                        {
+                            reading.LengthMm = Units.Mm(chord);
+                            return reading;
+                        }
+                    }
+                    if (curve != null)
+                    {
+                        double length = curve.GetLength3(array[6], array[7]);
+                        if (length > 0)
+                        {
+                            reading.LengthMm = Units.Mm(length);
+                            return reading;
+                        }
+                    }
+                    // The chord only when GetLength3 does not answer, as below (entry E19).
+                    double ex = array[3] - array[0], ey = array[4] - array[1], ez = array[5] - array[2];
+                    reading.LengthMm = Units.Mm(Math.Sqrt(ex * ex + ey * ey + ez * ez));
+                    return reading;
+                }
+            }
+            catch { }
+            reading = new EdgeReading();
             // THE TRUE LENGTH, NOT THE CHORD (entry E19, 25/9/2026).
             //
             // Up to library 0.119.0 here there was the distance between the ends,
@@ -2621,23 +3051,48 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curva);
+                reading.Curve = curva;
+                reading.Parameters = parameters;
                 if (curva != null && parameters != null)
                 {
                     double real = curva.GetLength3(parameters.UMinValue, parameters.UMaxValue);
-                    if (real > 0) return Units.Mm(real);
+                    if (real > 0)
+                    {
+                        reading.LengthMm = Units.Mm(real);
+                        return reading;
+                    }
                 }
             }
             catch { }
             double[] a, b;
-            if (!Ends(edge, out a, out b)) return -1;
+            if (!Ends(edge, out a, out b)) return reading;
             double dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
-            return Units.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
+            reading.LengthMm = Units.Mm(Math.Sqrt(dx * dx + dy * dy + dz * dz));
+            return reading;
         }
 
         private static double[] PointOnEdge(IEdge edge)
         {
+            return PointOnEdge(null, edge);
+        }
+
+        /// <summary>
+        /// The middle of the ends, from the parameters of <paramref name="reading"/>
+        /// when it has them (library 0.179.2), otherwise read again from the edge.
+        /// </summary>
+        private static double[] PointOnEdge(EdgeReading reading, IEdge edge)
+        {
             double[] a, b;
-            if (!Ends(edge, out a, out b)) return null;
+            if (reading != null && reading.Array != null && reading.Array.Length >= 6)
+            {
+                // The ends of the array of GetCurveParams2 (library 0.181.0): no call.
+                a = new[] { reading.Array[0], reading.Array[1], reading.Array[2] };
+                b = new[] { reading.Array[3], reading.Array[4], reading.Array[5] };
+            }
+            else if (reading == null || reading.Parameters == null || !EndsOf(reading.Parameters, out a, out b))
+            {
+                if (!Ends(edge, out a, out b)) return null;
+            }
             return new[]
             {
                 Math.Round(Units.Mm((a[0] + b[0]) / 2), 3),
@@ -2779,11 +3234,58 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// The key of the rankings of faces (mm²) and edges (mm), rounded to the sixth
+        /// decimal (library 0.184.0). A value that is not positive (an unreadable area or
+        /// length) is left as it is: it sorts last, as before.
+        ///
+        /// WHY. The rankings are stable sorts, so equal measures keep the order in which
+        /// SOLIDWORKS lists the faces and edges. But «equal» was decided by the last bits
+        /// of a double. Measured on 29/10/2026 (A/B
+        /// of libraries 0.180.0 and 0.181.0 on the bench, RAG notes 94 and 95): eight arcs of
+        /// radius 5 mm, all 7.85 mm long, came in another order once the length was computed
+        /// through another call, and with the ceiling of 30 listed edges other arcs entered
+        /// the list (2 entries of 1,828 changed). A millionth of a millimetre is far below
+        /// anything the state shows (two decimals) and far above the noise of a double: the
+        /// measures that are equal by design stay equal.
+        ///
+        /// AND EQUAL MEASURES NO LONGER TAKE THE ORDER OF SOLIDWORKS AS IT COMES (library
+        /// 0.186.0). That order is not the same in every run: on a combined body SOLIDWORKS
+        /// lists first the faces and edges of the input body that survived the combine, and
+        /// which one survives changes. Measured on the bench of 30/10/2026 (57 cases, two
+        /// equal runs, RAG note 95): 288 state files of 291 identical, and the three that
+        /// were not were all an order — the faces and edges of merge_two_cubes and
+        /// default_combine, the two faces of an edge, the open documents of an assembly.
+        /// Equal measures are now ordered by body, then a face by its feature number
+        /// (<see cref="FeatureRank"/>) and an edge by the middle of its ends
+        /// (<see cref="MiddleKey"/>): two readings that cost no call, the number being read
+        /// once for every face anyway. What is still equal after that keeps the order of
+        /// SOLIDWORKS.
+        /// </summary>
+        private static double RankKey(double value)
+        {
+            return value > 0 ? Math.Round(value, 6) : value;
+        }
+
+        /// <summary>
+        /// One coordinate (0 = x, 1 = y, 2 = z) of the middle of the ends of an edge, in
+        /// metres rounded to the nanometre, from the array of GetCurveParams2 that
+        /// <see cref="ReadEdge"/> already holds (library 0.186.0, see <see cref="RankKey"/>).
+        /// The middle and not one end: the same edge can be handed in the other direction.
+        /// An edge without the array sorts after the others of its group.
+        /// </summary>
+        private static double MiddleKey(EdgeReading reading, int axis)
+        {
+            if (reading == null || reading.Array == null || reading.Array.Length < 6) return double.MaxValue;
+            return Math.Round((reading.Array[axis] + reading.Array[axis + 3]) / 2, 9);
+        }
+
+        /// <summary>
         /// The area of a face in m2, or 0 when it cannot be read. It is a sort
         /// key and nothing else — a face that does not give its area ends up at
         /// the bottom of the ranking — and every place that WRITES an area
         /// reads it again and turns an unreadable one into null.
         /// </summary>
+
         private static double AreaOrZero(IFace2 face)
         {
             // ZERO-E-ZERO: a sort key, not a statement. An unreadable area sorts
@@ -2861,20 +3363,29 @@ namespace Oce.Solid.Agent.Core
         /// face is oriented against its surface. Verified
         /// by reflection on the interop 29.5.1.1.
         /// </summary>
+        /// <remarks>
+        /// ONE CALL, NOT FOUR (library 0.183.0). Up to 0.182.0 the normal was IGetSurface,
+        /// IsPlane, PlaneParams and FaceInSurfaceSense. IFace2~Normal.html: «Array of 3
+        /// doubles»; «If the face is not a planar face, then this property returns 0,0,0».
+        /// Measured on 30/10/2026 with a probe outside the repository (RAG note 95) on the
+        /// four parts of the state A/B, 136 faces: the same planar faces (71), the same
+        /// normal to 4 decimals on 71 of 71, none reversed — so `Normal` already carries the
+        /// sense that FaceInSurfaceSense gave, and the two faces of the plate above stay
+        /// opposite. Normals and features of the 72 faces of a welded frame: 82.6 ms
+        /// before, 44.0 ms with Normal and GetFeatureId (medians of 5).
+        /// A negative zero is written as zero (+ 0.0): the states before never carried one.
+        /// </remarks>
         private static double[] FaceNormalVector(IFace2 face)
         {
             try
             {
-                var surface = face.IGetSurface();
-                if (surface == null || !surface.IsPlane()) return null;
-                var plane = surface.PlaneParams as double[];
-                if (plane == null || plane.Length < 3) return null;
-                double sign = face.FaceInSurfaceSense() ? -1.0 : 1.0;
+                var n = face?.Normal as double[];
+                if (n == null || n.Length < 3 || (n[0] == 0 && n[1] == 0 && n[2] == 0)) return null;
                 return new[]
                 {
-                    Math.Round(plane[0] * sign, 4),
-                    Math.Round(plane[1] * sign, 4),
-                    Math.Round(plane[2] * sign, 4),
+                    Math.Round(n[0], 4) + 0.0,
+                    Math.Round(n[1], 4) + 0.0,
+                    Math.Round(n[2], 4) + 0.0,
                 };
             }
             catch { return null; }

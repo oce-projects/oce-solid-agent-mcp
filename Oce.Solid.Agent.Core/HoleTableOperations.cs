@@ -258,7 +258,7 @@ namespace Oce.Solid.Agent.Core
                 ["positions_checked"] = true,
                 ["tables_in_drawing"] = DrawingTables(drawing),
             };
-            if (!string.IsNullOrEmpty(tableModel)) measurements["table_template"] = tableModel;
+            if (!string.IsNullOrEmpty(tableModel)) measurements["table_template"] = LocalCopies.Original(tableModel);
             // THE HOLES TWICE (26/9/2026, the first drawing looked at with the table):
             // if the view already had the hole callouts, the table repeats them.
             // «Each element is dimensioned only once»: it is stated. In the right
@@ -409,8 +409,10 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 string folders = _sw.GetUserPreferenceStringValue(preference) ?? "";
-                foreach (var c in folders.Split(';'))
+                foreach (var declared in folders.Split(';'))
                 {
+                    // Its local copy when OCE_LOCAL_COPIES asks for it (LocalCopies.cs).
+                    string c = LocalCopies.Of(declared);
                     if (string.IsNullOrWhiteSpace(c) || !System.IO.Directory.Exists(c)) continue;
                     var f = System.IO.Directory.GetFiles(c, "*" + ext, System.IO.SearchOption.AllDirectories);
                     if (f.Length > 0) { Array.Sort(f, StringComparer.OrdinalIgnoreCase); return f[0]; }

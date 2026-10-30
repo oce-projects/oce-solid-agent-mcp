@@ -118,6 +118,13 @@ namespace Oce.Solid.Agent.Core
             double xMin = outline[0], yMin = outline[1], xMax = outline[2], yMax = outline[3];
             double wide = xMax - xMin, up = yMax - yMin;
 
+            // WHAT THE VIEW DRAWS (report 8cd843 N62, round 20): the outline keeps a margin
+            // around the drawing, 5.8 mm on each side on the PNG of round 20. The lines the
+            // view shows (GetPolylines7, PolylinePieces) and their box; null when they cannot
+            // be read.
+            List<double[]> drawnPieces = DrawnPieces(target);
+            double[] drawn = PiecesBox(drawnPieces);
+
             // ── WHERE, AND HOW BIG ──────────────────────────────────────
             //
             // In millimetres of SHEET, as for the section: on the sheet the view
@@ -147,11 +154,36 @@ namespace Oce.Solid.Agent.Core
                     " mm of sheet. A circle that sticks out enlarges empty space, and " +
                     "the enlarged empty space is still a view that looks good.");
 
+            // AND IT MUST TAKE A LINE OF THE DRAWING, NOT THE MARGIN (N62). Inside the outline
+            // but out of what the view draws and meeting none of its lines, round 20 had 0
+            // visible edges (1016c): refused here, before anything is drawn, saying where the
+            // drawing is. A circle wholly inside the drawing that meets no line (inside a face)
+            // is still found empty after it is made (limit_detail_on_empty_space).
+            if (InTheMarginOnly(cx, cy, radius, drawn, drawnPieces))
+                return Failed(
+                    "The circle of the detail meets no line of the view «" + targetName +
+                    "»: center (" + Math.Round((cx - (xMin + xMax) / 2.0) * 1000, 1) + ", " +
+                    Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 1) + ") mm from the center, radius " +
+                    Math.Round(radiusMm, 1) + " mm, it lies in the margin of the outline. " +
+                    DrawnBoxText(drawn, outline) + " Move it onto a line of that drawing with «x_mm», " +
+                    "«y_mm» and «radius_mm». I touched nothing.");
+
             double scale1 = Num(a, "scale", 2);
             if (scale1 <= 0)
                 return Failed("«scale» must be greater than zero: I read " + scale1 + ".");
             string label = Str(a, "label", "B");
             if (string.IsNullOrWhiteSpace(label)) label = "B";
+            // THE STYLE OF THE CIRCLE (report 8cd843, round 22, point 13): the owner draws the
+            // letter at the end of a short line from the circle, «with leader», and locks the
+            // position of the detail. IDrawingDoc~CreateDetailViewAt4.html, Style «as defined
+            // in swDetViewStyle_e»; IDetailCircle~PinPosition.html, «True to prevent the detail
+            // view from moving if the parent view changes size».
+            string circleStyleAsked = (Str(a, "circle_style", "with_leader") ?? "with_leader").Trim().ToLowerInvariant();
+            int? circleStyle = DetailCircleStyle(circleStyleAsked);
+            if (circleStyle == null)
+                return Failed("«circle_style» is one of «with_leader», «standard», «no_leader», «connected», «broken», not «" +
+                              circleStyleAsked + "». I touched nothing.");
+            bool lockPosition = Bool(a, "lock_position", true);
             // A DETAIL «B» NEXT TO A SECTION «B-B» (entry Z-C13): it is refused beforehand.
             string doubled = LetterAlreadyUsed(drawing, label);
             if (doubled != null) return Failed(doubled);
@@ -281,7 +313,7 @@ namespace Oce.Solid.Agent.Core
             {
                 born = drawing.CreateDetailViewAt4(
                     xDetail, yDetail, 0.0,
-                    (int)swDetViewStyle_e.swDetViewSTANDARD, scale1, 1.0, label,
+                    (int)circleStyle, scale1, 1.0, label,
                     (int)swDetCircleShowType_e.swDetCircleCIRCLE,
                     false, false, false, 0);
             }
@@ -406,10 +438,24 @@ namespace Oce.Solid.Agent.Core
                     SheetLineRemovedOrNot(circleRemoved, "circle"));
             }
 
+            // The style read back, and the position locked once the detail is in its place.
+            IDetailCircle detailCircle = null;
+            try { detailCircle = detailView.GetDetail() as IDetailCircle; } catch { }
+            int styleRead = -1;
+            bool? pinnedRead = null;
+            if (detailCircle != null)
+            {
+                if (lockPosition) try { detailCircle.PinPosition = true; } catch { }
+                try { styleRead = detailCircle.GetStyle(); } catch { }
+                try { pinnedRead = detailCircle.PinPosition; } catch { }
+            }
             string readLetter = ViewLetter(detailView);
             var outside = new Dictionary<string, object>
             {
                 ["label_reread"] = readLetter,
+                ["circle_style"] = DetailCircleStyleName(styleRead),
+                ["circle_style_asked"] = circleStyleAsked,
+                ["position_locked"] = pinnedRead,
                 ["view_read_from"] = viewReadFrom,
                 ["view_detailed"] = targetName,
                 ["views_before"] = viewsBefore,
@@ -426,6 +472,9 @@ namespace Oce.Solid.Agent.Core
                     Math.Round((cy - (yMin + yMax) / 2.0) * 1000, 2),
                     Math.Round(radiusMm, 2),
                 },
+                // What the circle was checked on (N62), in the frame of «circle_mm».
+                ["checked_on"] = drawn != null ? "the outline of the view and the lines it draws" : "the outline of the view (its lines could not be read)",
+                ["drawing_of_the_view_mm"] = BoxFromCentre(drawn, outline),
                 ["circles_before"] = circlesBefore,
                 ["circles_after"] = circlesAfter,
                 // Where the circle was drawn (N41, N47): always the sketch of the view
@@ -858,6 +907,114 @@ namespace Oce.Solid.Agent.Core
             if (!deleted) return false;
             int now = ViewSketchSegmentCount(view);
             return now >= 0 && now == segmentsBefore;
+        }
+
+        /// <summary>
+        /// The box on the sheet (metres: x min, y min, x max, y max) of the lines
+        /// <paramref name="view"/> shows, hidden ones left out (report 8cd843 N62): the
+        /// drawing without the margin the outline keeps around it. Null when the lines cannot
+        /// be read.
+        /// </summary>
+        internal static double[] DrawnBox(IView view)
+        {
+            return PiecesBox(DrawnPieces(view));
+        }
+
+        /// <summary>
+        /// The straight pieces on the sheet of the lines <paramref name="view"/> shows
+        /// (PolylinePieces of GetPolylines7, measured in round 14), null when they cannot be
+        /// read (N62).
+        /// </summary>
+        private static List<double[]> DrawnPieces(IView view)
+        {
+            try
+            {
+                object lines;
+                var edges = view.GetPolylines7(1, out lines) as object[];
+                return PolylinePieces(lines as double[], edges == null ? 0 : edges.Length, view.GetXform() as double[]);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Whether a circle lies only in the margin of a view (N62): not wholly inside the box of
+        /// what the view draws, and meeting none of its pieces. False when the lines are not
+        /// known, so that nothing is refused on a reading that failed. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static bool InTheMarginOnly(double cx, double cy, double r, double[] drawn, List<double[]> pieces)
+        {
+            if (drawn == null || pieces == null || pieces.Count == 0 || r <= 0) return false;
+            if (CircleInsideBox(cx, cy, r, drawn)) return false;
+            foreach (var p in pieces)
+                if (p != null && p.Length >= 4 && PointToSegment(p, cx, cy) <= r) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// The box of the pieces of PolylinePieces (x0, y0, x1, y1): x min, y min, x max, y
+        /// max; null when there is no piece (N62). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static double[] PiecesBox(List<double[]> pieces)
+        {
+            if (pieces == null || pieces.Count == 0) return null;
+            double x0 = double.MaxValue, y0 = double.MaxValue, x1 = double.MinValue, y1 = double.MinValue;
+            foreach (var p in pieces)
+            {
+                if (p == null || p.Length < 4) return null;
+                x0 = Math.Min(x0, Math.Min(p[0], p[2])); x1 = Math.Max(x1, Math.Max(p[0], p[2]));
+                y0 = Math.Min(y0, Math.Min(p[1], p[3])); y1 = Math.Max(y1, Math.Max(p[1], p[3]));
+            }
+            return new[] { x0, y0, x1, y1 };
+        }
+
+        /// <summary>
+        /// Whether the circle of centre (cx, cy) and radius r lies inside the box (x min, y
+        /// min, x max, y max), all in the same unit (N62). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool CircleInsideBox(double cx, double cy, double r, double[] box)
+        {
+            if (box == null || box.Length < 4 || r <= 0) return false;
+            return cx - r >= box[0] && cx + r <= box[2] && cy - r >= box[1] && cy + r <= box[3];
+        }
+
+        /// <summary>
+        /// The box (metres on the sheet) given in millimetres from the centre of the outline,
+        /// the frame of «x_mm», «y_mm» and «circle_mm» (N62). Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static object[] BoxFromCentre(double[] box, double[] outline)
+        {
+            if (box == null || box.Length < 4 || outline == null || outline.Length < 4) return null;
+            double mx = (outline[0] + outline[2]) / 2.0, my = (outline[1] + outline[3]) / 2.0;
+            return new object[]
+            {
+                Math.Round((box[0] - mx) * 1000, 1), Math.Round((box[1] - my) * 1000, 1),
+                Math.Round((box[2] - mx) * 1000, 1), Math.Round((box[3] - my) * 1000, 1),
+            };
+        }
+
+        /// <summary>
+        /// Where the view draws, for the refusal of a circle that does not fit (N62): x and y
+        /// from the centre of the outline, and the outline with its margin beside it. Pure, so
+        /// the contract suite reads it.
+        /// </summary>
+        internal static string DrawnBoxText(double[] drawn, double[] outline)
+        {
+            if (outline == null || outline.Length < 4) return "";
+            string outlineSize = Math.Round((outline[2] - outline[0]) * 1000, 1).ToString(CultureInfo.InvariantCulture) + " x " +
+                                 Math.Round((outline[3] - outline[1]) * 1000, 1).ToString(CultureInfo.InvariantCulture);
+            var b = BoxFromCentre(drawn, outline);
+            if (b == null)
+                return "The view is " + outlineSize + " mm of sheet by its outline; I could not read its lines, and the " +
+                       "outline keeps a margin around the drawing.";
+            return "The view draws from x " + Mm(b[0]) + " to " + Mm(b[2]) + " and from y " + Mm(b[1]) + " to " + Mm(b[3]) +
+                   " mm from that center (its outline, " + outlineSize + " mm, keeps a margin around the drawing).";
+        }
+
+        private static string Mm(object v)
+        {
+            return Convert.ToDouble(v).ToString("0.#", CultureInfo.InvariantCulture);
         }
     }
 }

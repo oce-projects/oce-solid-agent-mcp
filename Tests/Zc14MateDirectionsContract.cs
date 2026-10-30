@@ -207,6 +207,7 @@ namespace Oce.Solid.Agent.ContractTests
                        "beforeA.Status == ReadingMeasured ? NotRead("),
                 Change(Mates, "no reading before the mate", "var beforeB = ReadBlockedDirections(", "var beforeB = NotRead("),
                 Change(Mates, "a face not found again after the test", "PickFace(testedB", "PickFace(compB"),
+                Change(Mates, "a width face not found again after the test", "faceA2 = PickFace(testedA", "faceA2 = PickFace(compA"),
                 Change(Mates, "no verdict", "string verdict = MateVerdict(", "string verdict = MateVerdictOld("));
 
             Checked(sources, "limit mates",
@@ -303,9 +304,19 @@ namespace Oce.Solid.Agent.ContractTests
             // PickFace since brief R12 (26/10/2026): it finds the face by direction
             // (FaceNormalOf with ComponentAxes) or by a point (FaceAtPoint), on the
             // component it is handed.
-            int facesAgain = lastRead < 0 ? 0 : Count(before.Substring(lastRead), "PickFace(tested");
-            if (facesAgain < 2)
-                problems.Add(facesAgain + " faces found again on the tested components between the test and AddMate5, expected 2: " +
+            // Face by face since round 21, point 7 (28/10/2026): a width mate picks two
+            // faces more, so a count of PickFace(tested could stay at 2 with face B
+            // taken on the component before the test.
+            string fromTest = lastRead < 0 ? "" : before.Substring(lastRead);
+            var stale = new List<string>();
+            if (!Regex.IsMatch(fromTest, @"\bfaceA\s*=\s*PickFace\(testedA\b")) stale.Add("faceA");
+            if (!Regex.IsMatch(fromTest, @"\bfaceB\s*=\s*PickFace\(testedB\b")) stale.Add("faceB");
+            if (Regex.IsMatch(body, @"\bfaceA2\s*=\s*PickFace\(") &&
+                !Regex.IsMatch(fromTest, @"\bfaceA2\s*=\s*PickFace\(testedA\b")) stale.Add("faceA2");
+            if (Regex.IsMatch(body, @"\bfaceB2\s*=\s*PickFace\(") &&
+                !Regex.IsMatch(fromTest, @"\bfaceB2\s*=\s*PickFace\(testedB\b")) stale.Add("faceB2");
+            if (stale.Count > 0)
+                problems.Add(string.Join(", ", stale) + " not found again on the tested components between the test and AddMate5: " +
                              "the rebuilds of the test can leave the first faces stale");
             if (!Regex.IsMatch(after, @"\bverdict\s*=\s*" + VerdictMember + @"\("))
                 problems.Add("the verdict is not taken from " + VerdictMember + " after the mate");

@@ -1,0 +1,145 @@
+{
+  "name": "bom_over_the_title_block_and_balloons_again",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 22, POINTS 9 AND 10 (28/10/2026). On the drawing of 26M000002 the owner rests the bill of materials on the title block, as wide as it, and repeats the balloons on the isometric, the section and the detail. «drawing_bom» put the table in a free place, and «balloons» put none on a part that had its balloon in another view. Now «over_title_block» and «again».",
+  "defect_caught": "A table that does not go on the title block or keeps its own width, and a view where the balloons are not repeated because another view has them.",
+  "_why_these_numbers": "The assembly of «balloons_in_the_order_of_the_bom»: a base and a cover, two items. V1 is ballooned first; V3 (the side) shows both parts again, so «again» puts two balloons there.",
+  "assembly": {
+    "components": [
+      {
+        "name": "base",
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 10,
+              "centered": true
+            }
+          }
+        ]
+      },
+      {
+        "name": "cover",
+        "position_mm": [
+          0,
+          7,
+          0
+        ],
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 4,
+              "centered": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "operation": "save_document",
+      "arguments": {
+        "path": "{WORK}\\bom_over_the_title_block_and_balloons_again.sldasm"
+      },
+      "expect": [
+        {
+          "what": "measurements.warnings",
+          "equal_to": 0,
+          "why": "the view attaches to the FILE of the assembly"
+        }
+      ]
+    },
+    {
+      "operation": "create_drawing",
+      "arguments": {
+        "paper_size": "A3"
+      },
+      "expect": [
+        {
+          "what": "state.kind",
+          "equal_to": "drawing"
+        }
+      ]
+    },
+    {
+      "operation": "standard_views",
+      "arguments": {
+        "model": "{WORK}\\bom_over_the_title_block_and_balloons_again.sldasm"
+      },
+      "expect": [
+        {
+          "what": "measurements.views_created",
+          "equal_to": 3
+        }
+      ]
+    },
+    {
+      "operation": "drawing_bom",
+      "arguments": {
+        "view": "V1",
+        "over_title_block": true
+      },
+      "expect": [
+        {
+          "what": "measurements.match",
+          "equal_to": true,
+          "why": "the table and the assembly, each read on its own"
+        },
+        {
+          "what": "measurements.table_location",
+          "equal_to": "over the title block",
+          "why": "ON THE TITLE BLOCK: before round 22 the table went to a free place (a hypothesis that the A3 format declares its title block)"
+        }
+      ]
+    },
+    {
+      "operation": "balloons",
+      "arguments": {
+        "view": "V1",
+        "order": "bill_of_materials"
+      },
+      "expect": [
+        {
+          "what": "measurements.balloons_placed",
+          "equal_to": 2,
+          "why": "one balloon per part on the front view"
+        }
+      ]
+    },
+    {
+      "operation": "balloons",
+      "arguments": {
+        "view": "V3",
+        "again": true
+      },
+      "expect": [
+        {
+          "what": "measurements.again",
+          "equal_to": true,
+          "why": "the route of one balloon at a time"
+        },
+        {
+          "what": "measurements.balloons_placed",
+          "equal_to": 2,
+          "why": "THE BALLOONS AGAIN: both parts have their balloon in V1, and V3 gets its own"
+        },
+        {
+          "what": "measurements.numbers",
+          "includes": [
+            "1",
+            "2"
+          ],
+          "why": "the numbers of the table"
+        }
+      ]
+    }
+  ]
+}

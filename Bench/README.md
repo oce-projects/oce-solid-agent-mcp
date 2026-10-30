@@ -373,6 +373,13 @@ the cases and the binaries wherever the clone is, which may be on the network
 
 The one that was removed is the **most frequent**, not the only one.
 
+Since library 0.179.1 (29/10/2026) the templates the **operations** open can come
+from a local copy too: `OCE_LOCAL_COPIES` = «folder on the share|local folder».
+The template of `create_drawing`, the format of `new_sheet` and the folders of the
+table templates are opened from the local folder when the file is there, and the
+answers keep naming the share. The bench says it in its first line
+(«templates from the local copy ...»). Unset, the share is read as before.
+
 ### The pairs — `cases/pairs/`
 
 Every case with `must_fail` **must** name in `twin` a case that succeeds,
@@ -612,7 +619,7 @@ there but is not in the list is not read, and one in the list that is not there
 is a bench error.
 
 ```
-cases/features/ 38   the shell, and which side it removes from;
+cases/features/ 39   the shell, and which side it removes from;
                        the symmetric plate that grows on both sides
                        with edit_extrusion (revision of 27/9, Z-C20);
                        the dimension that pushes the slot out of the material,
@@ -693,7 +700,9 @@ cases/document_properties/   13   the two drawers, and the code that goes into t
                        one property written in both drawers by «scope» (R8)
 cases/text/        6   engraving, and the lettering that comes out of the face
 cases/frames/        1   the welded profiles, read from the standard library ({PROFILES})
-cases/assemblies/     26   inserting is not mating; one constraint is not enough;
+cases/assemblies/     28   inserting is not mating; one constraint is not enough;
+                       the width mate puts the tab in the middle (round 21);
+                       how a mate is set: alignment, value, entities (N63);
                        two equal bases and a STEP: one shape per part,
                        the mass per instance (Z-C20);
                        the rebuilt cover keeps the constraints and breaks them;
@@ -728,7 +737,7 @@ cases/assemblies/     26   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      61   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      69   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);

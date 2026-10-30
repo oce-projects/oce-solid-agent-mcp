@@ -77,6 +77,10 @@ namespace Oce.Solid.Agent.ContractTests
             ["Oce.Solid.Agent.Core/DrawingRoundOperations.cs|IModelDoc2.GraphicsRedraw2|stepped_shaft_dimensioned_from_the_side"] =
                 new MeasuredCall(2, "not measured: IModelView::GraphicsRedraw never tried here; the case proves the redraw makes " +
                                     "ISilhouetteEdge.GetFace answer (N20, remeasure in Z-C21.7)"),
+            ["Oce.Solid.Agent.Core/DocumentState.cs|IEdge.GetCurveParams2|fillet_rounds_the_four_corners"] =
+                new MeasuredCall(1, "tried, works: GetCurveParams3 gives the same ends and parameters (a probe outside the " +
+                                    "repository, 29/10/2026) but needs UMinValue, UMaxValue and GetLength3 for every edge and " +
+                                    "StartPoint, EndPoint for every listed one; kept for speed (library 0.181.0, RAG note 94)"),
         };
 
         /// <summary>

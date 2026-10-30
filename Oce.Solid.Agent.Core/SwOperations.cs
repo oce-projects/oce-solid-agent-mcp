@@ -282,7 +282,7 @@ namespace Oce.Solid.Agent.Core
             "surface_finish", "datum", "geometric_tolerance",
             "section_view", "detail_view", "move_view", "delete_view",
             "new_sheet", "activate_sheet", "drawing_cut_list",
-            "interference_check", "title_block",
+            "interference_check", "title_block", "sketch_details", "set_view_scale", "move_annotation", "read_drawing",
             "circular_sweep",
             "mirror",
             "move_bodies", "trim_members",
@@ -322,7 +322,7 @@ namespace Oce.Solid.Agent.Core
                 "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
                 "surface_finish", "datum", "geometric_tolerance", "section_view",
                 "detail_view", "move_view", "delete_view", "new_sheet", "activate_sheet", "drawing_cut_list",
-                "title_block", "export_pdf", "save_document", "structural_member",
+                "title_block", "sketch_details", "set_view_scale", "move_annotation", "read_drawing", "export_pdf", "save_document", "structural_member",
                 "rectangular_frame", "cut_list", "rib", "suppress_mate", "delete_mate", "place_component",
             };
 
@@ -562,6 +562,12 @@ namespace Oce.Solid.Agent.Core
                     // Moves or takes away a view (report 8cd843 N54): see
                     // `DrawingViewOperations.cs`.
                     case "move_view": return MoveView(model, arguments);
+                    // The scale of a view already on the sheet (report 8cd843, round 21), in ViewScaleOperations.cs.
+                    case "set_view_scale": return ViewScale(model, arguments);
+                    // A dimension or a note moved (report 8cd843, round 22, point 8), in DrawingMoveAnnotation.cs.
+                    case "move_annotation": return MoveAnnotation(model, arguments);
+                    // A finished drawing read sheet by sheet (report 8cd843, round 22, point 20), in ReadDrawingOperations.cs.
+                    case "read_drawing": return ReadDrawing(model, arguments);
                     case "delete_view": return DeleteView(model, arguments);
                     // The sheets, in SheetOperations.cs. `export_pdf` already counts
                     // the pages of the PDF, and that count was always 1
@@ -581,6 +587,8 @@ namespace Oce.Solid.Agent.Core
                     // it says which properties it ASKS FOR and which it SHOWS, so the
                     // name to write is copied instead of guessed.
                     case "title_block": return TitleBlock(model, arguments);
+                    // What a sketch is made of (report 8cd843 N63), in SketchDetailOperations.cs.
+                    case "sketch_details": return SketchDetails(model, arguments);
                     case "export_pdf": return ExportPdf(model, arguments);
                     case "save_document": return SaveDocument(model, arguments);
 

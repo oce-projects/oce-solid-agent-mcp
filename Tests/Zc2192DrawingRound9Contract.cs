@@ -217,7 +217,8 @@ namespace Oce.Solid.Agent.ContractTests
         // The call itself: since library 0.174.2 it is wrapped in the timing of its
         // phase (round 11), so the anchor is the call, not the assignment.
         private const string EdgesRead = "view.GetVisibleEntities2(";
-        private const string AskedPassed = "dimensionOffset, planStep, scale, mu, tr, componentsAsked);";
+        // Since round 21 (point 2) the route says whether the view is of a part: false here.
+        private const string AskedPassed = "dimensionOffset, planStep, scale, mu, tr, componentsAsked, false);";
         private const string NotInViewKey = "measurements[\"components_not_in_view\"] = notInView.ToArray();";
         private const string OldLateCheck = "OverallComponents(a.ContainsKey(\"components\")";
         private const string RuleCalled = "if (RebuildsAfterStep(";
@@ -231,6 +232,9 @@ namespace Oce.Solid.Agent.ContractTests
         private const string OldNote = "left out (none is a warning)";
         private const string Position = "described[\"position_mm\"] = WhereItEnded(";
         private const string Shown = "described[\"text_shown\"] = TextShown(";
+        // Since round 21 (point 4) a dimension placed reads what it prints after its decimals
+        // are made to print its value: the same N35, through ExactTextShown.
+        private const string ExactShown = "described[\"text_shown\"] = ExactTextShown(";
 
         private static readonly string[][] Files =
         {
@@ -301,7 +305,7 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 string text;
                 if (!sources.TryGetValue(key, out text) || text == null) continue;
-                int positions = Count(text, Position), shown = Count(text, Shown);
+                int positions = Count(text, Position), shown = Count(text, Shown) + Count(text, ExactShown);
                 if (positions == 0 || shown != positions)
                     wrong.Add(key + ": " + shown + " dimensions say what the sheet prints, of " + positions + " (N35)");
             }
@@ -348,10 +352,11 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 string text;
                 if (!sources.TryGetValue(key, out text) || text == null) continue;
-                int first = text.IndexOf(Shown, StringComparison.Ordinal);
+                string form = text.Contains(ExactShown) ? ExactShown : Shown;
+                int first = text.IndexOf(form, StringComparison.Ordinal);
                 if (first < 0) continue;
                 mutate("one dimension of " + key + " without what it prints", key,
-                       t => t.Substring(0, first) + "/* gone */" + t.Substring(first + Shown.Length));
+                       t => t.Substring(0, first) + "/* gone */" + t.Substring(first + form.Length));
             }
 
             bool ok = real.Count == 0 && blind.Count == 0;

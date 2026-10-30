@@ -393,9 +393,14 @@ namespace Oce.Solid.Agent.Core
             // NewDocument below), never retargeted in silence.
             IModelDoc2 undoRecordedOn = null;
             bool planDocumentReopened = false;
+            // THE TREE AND THE GRAPHICS OFF FOR THE PLAN, when OCE_UI_FREEZE asks for it
+            // (library 0.180.0, see UiFreeze): on the document held, and moved with it
+            // when a step changes document; put back in the finally below.
+            UiFreeze freeze = null;
             await _onSwThread(() =>
             {
                 undoRecordedOn = StartUndoRecording(expectedDocument);
+                freeze = PhaseClock.Time("plan.ui_freeze", () => UiFreeze.Begin(expectedDocument));
                 return null;
             });
 
@@ -586,6 +591,8 @@ namespace Oce.Solid.Agent.Core
                                 }
                                 expectedDocument = e.NewDocument;
                                 result.FinalDocument = expectedDocument;
+                                if (freeze != null) PhaseClock.Time("plan.ui_thaw", () => { freeze.Dispose(); return true; });
+                                freeze = PhaseClock.Time("plan.ui_freeze", () => UiFreeze.Begin(expectedDocument));
                                 _log("[agent] from here on the plan works on «" +
                                      Identity(expectedDocument) + "», with its own undo entry");
                             }
@@ -660,6 +667,10 @@ namespace Oce.Solid.Agent.Core
             {
                 await _onSwThread(() =>
                 {
+                    // The tree and the graphics first: what follows reads nothing
+                    // from them, and the user gets them back whatever happened.
+                    if (freeze != null) PhaseClock.Time("plan.ui_thaw", () => { freeze.Dispose(); return true; });
+
                     // The error window goes back to how it was: it is
                     // a setting of whoever is working, not ours. It is put back
                     // only if it could be read — writing an invented

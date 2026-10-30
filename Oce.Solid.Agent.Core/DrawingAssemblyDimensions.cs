@@ -325,12 +325,30 @@ namespace Oce.Solid.Agent.Core
                    "edges with «edges» (read them with «inspect_part» and «view_edges»).";
         }
 
+        /// <summary>
+        /// Whether «overall» asks the overall size of a part (report 8cd843, round 21, point 2):
+        /// null when it is left out, «none» or not a word «drawing_dimension» takes (the view of a
+        /// part then goes its usual way); «with edges» when «edges» are named too (two calls);
+        /// the mode otherwise. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string OverallOnAPart(Dictionary<string, object> a, bool edgesNamed)
+        {
+            object raw;
+            if (a == null || !a.TryGetValue("overall", out raw) || raw == null) return null;
+            string problem;
+            string mode = OverallMode(raw, edgesNamed, out problem);
+            if (mode == null || mode == "none") return null;
+            return edgesNamed ? "with edges" : mode;
+        }
+
         private Outcome DimensionAssemblyView(
             IModelDoc2 model, IDrawingDoc drawing, IView view, string viewName, object[] edges,
             List<ProjectedEdge> all, List<Circle> circles, List<int> named, Dictionary<string, object> a,
             double[] contour, double dimensionOffset, double planStep, double scale, IMathUtility mu, MathTransform tr,
-            HashSet<string> asked)
+            HashSet<string> asked, bool ofAPart)
         {
+            // The same route for the overall size of a part (round 21, point 2): only the words change.
+            string whose = ofAPart ? "part" : "assembly";
             string modeProblem;
             string mode = OverallMode(a.ContainsKey("overall") ? a["overall"] : null, named != null, out modeProblem);
             if (mode == null)
@@ -446,7 +464,8 @@ namespace Oce.Solid.Agent.Core
                     described["orientation"] = s.Facing;
                     described["component"] = s.Component;
                     described["position_mm"] = WhereItEnded(d);
-                    described["text_shown"] = TextShown(d);
+                    described["text_shown"] = ExactTextShown(d, described);
+                    DecorateDimension(d, described);
                     if (d != null) born.Add(described);
                     else RecordBornWithoutObject(born, described, failed,
                         i + " (the dimension was born but SOLIDWORKS did not hand it back: its value was not read back, check it on the sheet)");
@@ -460,7 +479,7 @@ namespace Oce.Solid.Agent.Core
                     int axis = horizontal ? axes[0] : axes[1];
                     if (axis < 0)
                     {
-                        failed.Add(word + " (no axis of the assembly runs along the " + (horizontal ? "horizontal" : "vertical") +
+                        failed.Add(word + " (no axis of the " + whose + " runs along the " + (horizontal ? "horizontal" : "vertical") +
                                    " of this view: an isometric or turned view has no overall dimension, use a front, top or side view)");
                         continue;
                     }
@@ -505,7 +524,7 @@ namespace Oce.Solid.Agent.Core
                         // Three decimals, as «dimensions_mm» writes it: «16.26» stood beside
                         // 16.258 for the same size (report 8cd843 N38).
                         elsewhere.Add(word + " " + expectedMm.ToString("0.###", Ci) + " mm along " + "XYZ"[axis] +
-                                      " (already dimensioned in another view of this assembly)");
+                                      " (already dimensioned in another view of this " + whose + ")");
                         continue;
                     }
 
@@ -572,7 +591,8 @@ namespace Oce.Solid.Agent.Core
                     described["expected_mm"] = Math.Round(expectedMm, 3);
                     described["placed_with"] = route;
                     described["position_mm"] = WhereItEnded(d);
-                    described["text_shown"] = TextShown(d);
+                    described["text_shown"] = ExactTextShown(d, described);
+                    DecorateDimension(d, described);
                     // AN OVERALL THAT ENDS ON A LOOSE COMPONENT (N30) measures where
                     // it rests, not where it is mounted: it is named, and the
                     // dimension stays, because the person may want exactly that.
@@ -615,17 +635,18 @@ namespace Oce.Solid.Agent.Core
                 return Failed(NothingNewOnTheView(viewName, elsewhere, only, notInView));
             if (put <= 0)
                 return Failed(
-                    "No dimension was created on the view «" + viewName + "» of the assembly (" + components.Count +
-                    " components, " + all.Count + " edges measured): " +
+                    "No dimension was created on the view «" + viewName + "» of the " + whose + " (" +
+                    (ofAPart ? "" : components.Count + " components, ") + all.Count + " edges measured): " +
                     string.Join("; ", failed.Concat(elsewhere)) + ". Read the edges with «inspect_part» and «view_edges», " +
                     "and name the ones to dimension with «edges»." + ComponentsSaid(only, notInView));
 
             var texts = PhaseClock.Time("drawing_dimension.texts", () => DimensionTexts(drawing));
-            var overlapping = PhaseClock.Time("drawing_dimension.texts", () => TextsThatOverlap(drawing, view, texts));
+            string overlapsCheckedAgainst = null;
+            var overlapping = PhaseClock.Time("drawing_dimension.texts", () => TextsThatOverlap(drawing, view, texts, out overlapsCheckedAgainst));
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = viewName,
-                ["view_of"] = "assembly",
+                ["view_of"] = whose,
                 ["components_in_view"] = components.Count,
                 ["edges_available"] = edges.Length,
                 ["edges_tried"] = named == null ? 0 : named.Count,
@@ -643,19 +664,24 @@ namespace Oce.Solid.Agent.Core
                 ["dimensions_mm"] = MillimetersInARow(born),
                 // What the sheet prints, beside what the model holds (report 8cd843 N35).
                 ["dimensions_shown"] = TextsShownInARow(born),
+                ["decorations_not_kept"] = DecorationsNotKept(born).ToArray(),
                 ["edges_not_dimensioned"] = failed.ToArray(),
                 ["already_dimensioned_elsewhere"] = elsewhere.ToArray(),
                 ["already_dimensioned_read_from"] =
-                    "the overall dimensions of the other views of this assembly (two straight edges each); a dimension " +
-                    "of a single edge is not compared on an assembly",
+                    "the overall dimensions of the other views of this " + whose + " (two straight edges each); a dimension " +
+                    "of a single edge is not compared here",
                 ["contour_view_mm"] = InMillimeters(contour),
                 ["texts_read"] = texts == null ? null : (object)texts.Count,
                 ["overlapping_texts"] = overlapping == null ? null : overlapping.ToArray(),
                 ["how_many_texts_overlap"] = texts == null || overlapping == null ? null : (object)overlapping.Count,
+                ["overlaps_checked_against"] = overlapsCheckedAgainst,
                 ["offset_used_mm"] = Math.Round(dimensionOffset * 1000, 2),
                 ["pitch_used_mm"] = Math.Round(planStep * 1000, 2),
-                ["assembly_note"] =
-                    "A VIEW OF AN ASSEMBLY: I put the overall length and height (between the outermost straight edges, " +
+                [ofAPart ? "part_note" : "assembly_note"] = ofAPart
+                    ? "THE OVERALL SIZE OF A PART: the overall length and height between the outermost straight edges, " +
+                      "read back and compared with their distance on the sheet. The holes, chamfers and other edges are " +
+                      "dimensioned by «drawing_dimension» without «overall»; the third overall size on a view that shows it."
+                    : "A VIEW OF AN ASSEMBLY: I put the overall length and height (between the outermost straight edges, " +
                     "read back and compared with their distance on the sheet) and the edges you name, each edge brought " +
                     "onto the sheet with its component's placement. No hole callouts, chamfer dimensions or diameters: " +
                     "they are details of a part, and they go on the drawing of that part. The third overall size is " +
@@ -670,7 +696,7 @@ namespace Oce.Solid.Agent.Core
             // key names no warning, so «count» 3 gave two dimensions in silence.
             if (named == null && a.ContainsKey("count"))
                 measurements["warning_count_not_used"] = CountNotUsedWarning(mode);
-            _log("[agent] " + put + " dimensions on the assembly view «" + viewName + "»: " + ValuesInLine(born));
+            _log("[agent] " + put + " dimensions on the " + whose + " view «" + viewName + "»: " + ValuesInLine(born));
             return WithoutFeature(measurements);
         }
 

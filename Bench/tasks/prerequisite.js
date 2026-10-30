@@ -512,7 +512,7 @@ class Bridge {
 // check of stepProblems nor the dry run of the bridge sees a wrong one: this does.
 // MateOperations.cs is the source of both tables (the self-test reads it).
 // Concentric and tangent are back since brief R12 (26/10/2026), for a face named by a point.
-const MATE_VALUES = { variant: ['coincident', 'parallel', 'perpendicular', 'distance', 'concentric', 'tangent'], alignment: ['aligned', 'opposite'] };
+const MATE_VALUES = { variant: ['coincident', 'parallel', 'perpendicular', 'distance', 'concentric', 'tangent', 'width'], alignment: ['aligned', 'opposite'] };
 const PLACEHOLDERS = ['WORK', 'PROFILES'];
 
 function mateValueProblems(step, label) {

@@ -153,6 +153,18 @@ namespace Oce.Solid.Agent.Core
             string label = Str(a, "label", "A");
             if (string.IsNullOrWhiteSpace(label)) label = "A";
             double depthM = Num(a, "depth_mm", 0) / 1000.0;
+            // THE SCALE OF THE SECTION (report 8cd843, round 22, point 4): the section took the
+            // scale of its view, 1:2 on 26M000002, where the owner wanted A-A at 2:1. Read before
+            // anything is drawn (ViewScaleOperations.cs).
+            double[] sectionRatio = null;
+            if (a.ContainsKey("scale"))
+            {
+                string scaleWhy;
+                sectionRatio = ParseScale(Str(a, "scale", null), out scaleWhy);
+                if (sectionRatio == null)
+                    return Failed("The scale «" + Str(a, "scale", "") + "» cannot be used: " + scaleWhy +
+                                  ". Give it as «2:1» or «1:2», or leave «scale» out for the scale of the view. I touched nothing.");
+            }
             // TWO «A-A» ON THE SAME DRAWING (entry Z-C13): it is refused first.
             string doubled = LetterAlreadyUsed(drawing, label);
             if (doubled != null) return Failed(doubled);
@@ -424,6 +436,28 @@ namespace Oce.Solid.Agent.Core
                     Math.Round((facing == "vertical" ? x1 : y1) * 1000, 2) + " mm of sheet. " +
                     "Move the cut with «offset_mm».");
 
+            // ── THE SCALE ASKED, before the free place: it changes the size ─────
+            // A section follows its view (IView~UseParentScale.html); it is set free first,
+            // then given the ratio and read back after the rebuild (ApplyViewScale).
+            if (sectionRatio != null)
+            {
+                try { sectionView.UseParentScale = false; } catch { }
+                string sectionScaleProblem = ApplyViewScale(model, sectionView, sectionRatio);
+                if (sectionScaleProblem != null)
+                {
+                    bool viewIsNew = !viewNames.Contains(sectionName);
+                    bool viewRemoved = viewIsNew && RemoveNewView(model, sectionName);
+                    bool lineRemoved = removeLine(line);
+                    return Failed("I asked the section «" + sectionName + "» for " + ScaleText(sectionRatio) + " and " +
+                        sectionScaleProblem + ". " +
+                        (viewRemoved ? "I removed the view «" + sectionName + "»"
+                                     : "I could not remove the view «" + sectionName + "» (remove it — " + Sentences.HowToWithdrawIt + ")") +
+                        SheetLineRemovedOrNot(lineRemoved, "cutting line"));
+                }
+            }
+            double[] sectionRatioRead = null;
+            try { sectionRatioRead = sectionView.ScaleRatio as double[]; } catch { }
+
             // ── THE SECTION IN A FREE PLACE (report 8cd843 N53, round 14) ──────
             //
             // CreateSectionViewAt5 puts it beside the view, where the side view of a
@@ -479,6 +513,9 @@ namespace Oce.Solid.Agent.Core
                     Math.Round(to[0] * 1000, 2), Math.Round(to[1] * 1000, 2),
                 },
                 ["depth_mm"] = Math.Round(depthM * 1000, 2),
+                // The scale read back from the section (round 22, point 4), and the one asked.
+                ["scale"] = ScaleText(sectionRatioRead),
+                ["scale_asked"] = ScaleText(sectionRatio),
                 // Where the section went (N53): beside the view or slid along its line.
                 ["placed"] = sectionWhere,
                 ["what_it_does_not_check"] =

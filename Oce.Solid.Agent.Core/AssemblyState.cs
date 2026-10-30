@@ -192,10 +192,18 @@ namespace Oce.Solid.Agent.Core
             // it could be avoided.
             var entries = ComponentsInOrder(all);
 
+            // THE FOLDERS OF THE TREE (report 8cd843 N65, round 20): the owner keeps the variants
+            // he turns on when needed suppressed in a folder named for them («ACCESSORI
+            // EXTRA» on 26M000002), and without the folder they read as parts thrown away.
+            var folders = ComponentFolders(assemblyDoc as IModelDoc2);
+
             var list = new List<Dictionary<string, object>>();
             int suppressedOnes = 0, light = 0, grounded = 0;
             int counted = 0, resting = 0;
             int nested = 0;
+            // Not judged for mates (report 8cd843 N64, round 20): a suppressed component is
+            // not in the assembly, and a pattern instance is placed by its pattern.
+            int suppressedNotJudged = 0, placedByPattern = 0;
             var degreesNotGiven = new List<string>();
             var free = new List<string>();
             for (int i = 0; i < entries.Count; i++)
@@ -206,6 +214,11 @@ namespace Oce.Solid.Agent.Core
                     ["uid"] = "C" + (i + 1),
                     ["name"] = entries[i].Key,
                 };
+                string itsFolders;
+                if (folders != null && folders.TryGetValue(entries[i].Key, out itsFolders)) entry["in_folders"] = itsFolders.Split(FolderSeparator);
+                bool isSuppressed = false, byPattern = false;
+                try { byPattern = c.IsPatternInstance(); } catch { }
+                if (byPattern) entry["pattern_instance"] = true;
 
                 // TOP LEVEL OR INSIDE A SUB-ASSEMBLY (L11-3, Z-C21.5). The list
                 // above holds every level, and some answers only hold for the
@@ -246,7 +259,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     int docState = c.GetSuppression2();
                     entry["state"] = StateName(docState);
-                    if (docState == (int)swComponentSuppressionState_e.swComponentSuppressed) suppressedOnes++;
+                    if (docState == (int)swComponentSuppressionState_e.swComponentSuppressed) { suppressedOnes++; isSuppressed = true; }
                     if (docState == (int)swComponentSuppressionState_e.swComponentLightweight ||
                         docState == (int)swComponentSuppressionState_e.swComponentFullyLightweight)
                         light++;
@@ -425,7 +438,17 @@ namespace Oce.Solid.Agent.Core
                 // with its sub-assembly, which is judged as one top-level
                 // component. Counting it as «not fixed» would call the second
                 // part of every rigid sub-assembly loose.
-                if (!isFixed && topLevel != false)
+                // NOR A SUPPRESSED ONE, NOR ONE A PATTERN PLACES (report 8cd843 N64, round 20):
+                // the verdict said «4 of 7 non-fixed components has no mate» of an assembly
+                // SOLIDWORKS called fully defined, naming 26P000009-2, placed by a local
+                // pattern, and 10, 12, 13, suppressed in a folder of variants.
+                if (!isFixed && topLevel != false && isSuppressed) suppressedNotJudged++;
+                else if (!isFixed && topLevel != false && byPattern && itsMates <= 0)
+                {
+                    placedByPattern++;
+                    entry["resting"] = false;
+                }
+                else if (!isFixed && topLevel != false)
                 {
                     counted++;
                     if (itsMates == 0)
@@ -456,6 +479,9 @@ namespace Oce.Solid.Agent.Core
             // left out of the fixed count above and of the count below.
             // Written only when the top-level list was read, zero included.
             if (topLevelNames != null) data["nested_components"] = nested;
+            // Left out of the count below, zero included (N64).
+            data["components_suppressed_not_judged"] = suppressedNotJudged;
+            data["components_placed_by_a_pattern"] = placedByPattern;
 
             // ── «IS THIS ASSEMBLY CONSTRAINED?» IN ONE LINE (entry GA5) ──
             //
@@ -488,7 +514,11 @@ namespace Oce.Solid.Agent.Core
                     data["verdict_constraints"] += " The " + nested + " component(s) inside sub-assemblies are " +
                                                 "not in this count: each moves with its sub-assembly, counted " +
                                                 "as one top-level component.";
+                string leftOut = NotJudgedText(suppressedNotJudged, placedByPattern);
+                if (leftOut != null) data["verdict_constraints"] += " " + leftOut;
             }
+            else if (suppressedNotJudged + placedByPattern > 0)
+                data["verdict_constraints"] = NotJudgedText(suppressedNotJudged, placedByPattern);
 
             // THE THING THAT IS NOT KNOWN, SAID. It is not a technical detail: whoever
             // reads «assembly_constrained: true» must know that it means «every
@@ -727,7 +757,10 @@ namespace Oce.Solid.Agent.Core
         /// name (SOLIDWORKS's, in the language of the session: «Coincidente1» in
         /// Italian, «Coincident1» in English), both taken by «suppress_mate» and
         /// «delete_mate»; its kind, whether it is
-        /// suppressed, and the components it holds by their uid. The mates are
+        /// suppressed, and the components it holds by their uid; how it is set
+        /// (N63): «alignment» in the words «mate» takes, «value» (the dimension of a
+        /// distance or an angle, null when the mate has none) and «entity_kinds» (face,
+        /// edge, plane ...), one for each component. The mates are
         /// the sub-features of the MateGroup feature, as in
         /// <c>OnlyStandardMates</c>; IMate2~MateEntity.html gives each entity and
         /// IMateEntity2~ReferenceComponent.html its component. A component of a
@@ -765,11 +798,16 @@ namespace Oce.Solid.Agent.Core
                         try { name = sub.Name; } catch { }
                         entry["name"] = name;
                         try { entry["kind"] = TypeName(mate.Type); } catch { entry["kind"] = null; }
+                        // How the mate is set (N63): its alignment (IMate2~Alignment.html,
+                        // swMateAlign_e) in the words «mate» takes, and its value.
+                        try { entry["alignment"] = AlignmentName(mate.Alignment); } catch { entry["alignment"] = null; }
+                        entry["value"] = MateValue(mate);
                         bool? off = null;
                         try { off = ApiHelpers.IsSuppressedHere(sub); } catch { }
                         entry["suppressed"] = off;
                         if (off == true) suppressed++;
                         var held = new List<string>();
+                        var kinds = new List<string>();
                         try
                         {
                             int n = mate.GetMateEntityCount();
@@ -781,10 +819,15 @@ namespace Oce.Solid.Agent.Core
                                 try { cn = c == null ? null : c.Name2; } catch { }
                                 string uid;
                                 held.Add(cn == null ? "?" : uidOf.TryGetValue(cn, out uid) ? uid : cn);
+                                // IMateEntity2~ReferenceType2.html: swSelectType_e (N63).
+                                string entityKind = null;
+                                try { entityKind = e == null ? null : SelectKindName(e.ReferenceType2); } catch { }
+                                kinds.Add(entityKind ?? "?");
                             }
                         }
                         catch { }
                         entry["components"] = held;
+                        entry["entity_kinds"] = kinds;
                         if (list.Count < MaxMates) list.Add(entry);
                     }
                     sub = sub.GetNextSubFeature() as IFeature;
@@ -847,6 +890,72 @@ namespace Oce.Solid.Agent.Core
                     var n = Enum.GetName(typeof(swMateType_e), t);
                     return n == null ? "type " + t : n.Replace("swMate", "").ToLowerInvariant();
             }
+        }
+
+        /// <summary>
+        /// The alignment of a mate in the words «mate» takes (N63): swMateAlign_e 0
+        /// «aligned», 1 «opposite» (swMateAlignANTI_ALIGNED, what MateOperations writes for
+        /// «opposite»), 2 «closest». The enum gives each value two names (swAlignSAME is 1
+        /// as well): the names of the mates are the ones meant here (IMate2~Alignment.html).
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string AlignmentName(int alignment)
+        {
+            switch (alignment)
+            {
+                case (int)swMateAlign_e.swMateAlignALIGNED: return "aligned";
+                case (int)swMateAlign_e.swMateAlignANTI_ALIGNED: return "opposite";
+                case (int)swMateAlign_e.swMateAlignCLOSEST: return "closest";
+                default: return "alignment " + alignment;
+            }
+        }
+
+        /// <summary>
+        /// The kind of a mate entity (N63), from swSelectType_e
+        /// (IMateEntity2~ReferenceType2.html): face, edge, vertex, plane, axis, point,
+        /// sketch_point, sketch_segment, component, coordinate_system; any other value by its
+        /// enum name without «swSel», in lower case. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string SelectKindName(int kind)
+        {
+            switch (kind)
+            {
+                case (int)swSelectType_e.swSelFACES: return "face";
+                case (int)swSelectType_e.swSelEDGES: return "edge";
+                case (int)swSelectType_e.swSelVERTICES: return "vertex";
+                case (int)swSelectType_e.swSelDATUMPLANES: return "plane";
+                case (int)swSelectType_e.swSelDATUMAXES: return "axis";
+                case (int)swSelectType_e.swSelDATUMPOINTS: return "point";
+                case (int)swSelectType_e.swSelSKETCHPOINTS: return "sketch_point";
+                case (int)swSelectType_e.swSelEXTSKETCHPOINTS: return "sketch_point";
+                case (int)swSelectType_e.swSelSKETCHSEGS: return "sketch_segment";
+                case (int)swSelectType_e.swSelEXTSKETCHSEGS: return "sketch_segment";
+                case (int)swSelectType_e.swSelCOMPONENTS: return "component";
+                case (int)swSelectType_e.swSelCOORDSYS: return "coordinate_system";
+                default:
+                    var n = Enum.GetName(typeof(swSelectType_e), kind);
+                    return n == null ? "kind " + kind : n.Replace("swSel", "").ToLowerInvariant();
+            }
+        }
+
+        /// <summary>
+        /// The value of a mate (N63): its first display dimension (IMate2~DisplayDimension2.html:
+        /// index 0 is the first display dimension of every kind of mate), read as every
+        /// dimension of the state («mm», or «deg» for an angle). Null when the mate has none
+        /// (coincident, concentric ...) or when it cannot be read.
+        /// </summary>
+        private static Dictionary<string, object> MateValue(IMate2 mate)
+        {
+            try
+            {
+                IDisplayDimension display = mate.get_DisplayDimension2(0) as IDisplayDimension;
+                IDimension dimension = display == null ? null : display.GetDimension2(0);
+                if (dimension == null) return null;
+                string dimensionName = null;
+                try { dimensionName = dimension.FullName; } catch { }
+                return Dimension(dimension, dimensionName ?? "?");
+            }
+            catch { return null; }
         }
 
         private static string StateName(int docState)
@@ -977,6 +1086,73 @@ namespace Oce.Solid.Agent.Core
                 return true;
             }
             catch { return false; }
+        }
+
+        /// <summary>
+        /// What the verdict on the mates says of the components it did not judge (report
+        /// 8cd843 N64): the suppressed ones, not in the assembly, and those a pattern
+        /// places. Null when there are none. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NotJudgedText(int suppressed, int byPattern)
+        {
+            if (suppressed <= 0 && byPattern <= 0) return null;
+            var parts = new List<string>();
+            if (suppressed > 0)
+                parts.Add(suppressed + (suppressed == 1 ? " suppressed component is" : " suppressed components are") +
+                          " not in this count: suppressed, it is not in the assembly until it is turned on again");
+            if (byPattern > 0)
+                parts.Add(byPattern + (byPattern == 1 ? " component placed by a pattern is" : " components placed by a pattern are") +
+                          " not in this count: the pattern places it, not a mate of its own");
+            return string.Join("; ", parts) + ".";
+        }
+
+        /// <summary>Between the folders of one component in ComponentFolders.</summary>
+        private const char FolderSeparator = '\u0001';
+
+        /// <summary>
+        /// The folders of the tree each component is in, by component name (report 8cd843
+        /// N65): every feature of type «FtrFolder», and the components among its features
+        /// (IFeatureFolder.GetFeatures). A component in nested folders is listed under each
+        /// folder that gives it; their order is the order of the tree, not measured as outer
+        /// to inner. Null when the tree cannot be read.
+        /// </summary>
+        private static Dictionary<string, string> ComponentFolders(IModelDoc2 model)
+        {
+            if (model == null) return null;
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                IFeature f = model.FirstFeature() as IFeature;
+                int guard = 0;
+                while (f != null && guard++ < 100000)
+                {
+                    string typeName = null, folderName = null;
+                    try { typeName = f.GetTypeName2(); folderName = f.Name; } catch { }
+                    // The end of a folder is a folder feature too, «Cartella1___EndTag___», and it
+                    // gives the same components (scenario t62, 28/10/2026): left out.
+                    if (typeName == "FtrFolder" && folderName != null && folderName.IndexOf("___EndTag___", StringComparison.Ordinal) < 0)
+                    {
+                        IFeatureFolder folder = f.GetSpecificFeature2() as IFeatureFolder;
+                        object[] inside = null;
+                        try { inside = folder == null ? null : folder.GetFeatures() as object[]; } catch { }
+                        foreach (var o in inside ?? new object[0])
+                        {
+                            IFeature member = o as IFeature;
+                            IComponent2 component = null;
+                            try { component = member == null ? null : member.GetSpecificFeature2() as IComponent2; } catch { }
+                            string componentName = null;
+                            try { componentName = component == null ? null : component.Name2; } catch { }
+                            if (string.IsNullOrEmpty(componentName)) continue;
+                            string those;
+                            if (!map.TryGetValue(componentName, out those)) map[componentName] = folderName;
+                            else if (Array.IndexOf(those.Split(FolderSeparator), folderName) < 0) map[componentName] = those + FolderSeparator + folderName;
+                        }
+                    }
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { return null; }
+            return map;
         }
     }
 }

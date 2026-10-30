@@ -17,7 +17,7 @@
                     "tolerance_why": "the diameter is read from CylinderParams" } ] },
     { "operation": "linear_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
-                     "axis1_uid": "@edge(axis=X,length~=200,n=1)",
+                     "axis1_uid": "@edge(axis=X,length~=200,y~=60,z~=20)",
                      "pitch1_mm": 40, "instance_count1": 3,
                      "axis2_uid": "@edge(axis=Y,length~=120,n=1)",
                      "pitch2_mm": 30, "instance_count2": 2 },

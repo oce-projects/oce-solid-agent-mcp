@@ -424,6 +424,9 @@ namespace Oce.Solid.Agent.ContractTests
             Zc2199DrawingRound16Contract.RunAll();
             Zc2200DrawingRound17Contract.RunAll();
             Zc2201DrawingRound19Contract.RunAll();
+            Zc2202DrawingRound20Contract.RunAll();
+            Zc2203DrawingRound21Contract.RunAll();
+            Zc2204DrawingRound22Contract.RunAll();
             Zc215IdentityContract.RunAll();
             SolidWorksNamesContract.RunAll();
             Zc215SketchIdentityContract.RunAll();
@@ -441,6 +444,7 @@ namespace Oce.Solid.Agent.ContractTests
             R18DocumentWithoutReadingContract.RunAll();
             R5DrivenProfileContract.RunAll();
             R14ParallelCallsContract.RunAll();
+            LocalCopiesContract.RunAll();
             Zc2114UndoHonestyContract.RunAll();
             ReadmeBadgesContract.RunAll();
             LanguageGateTests.All();

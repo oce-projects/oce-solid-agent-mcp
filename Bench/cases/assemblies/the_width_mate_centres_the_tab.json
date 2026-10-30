@@ -1,0 +1,84 @@
+{
+  "name": "the_width_mate_centres_the_tab",
+  "family": "assemblies",
+  "why": "REPORT 8CD843, ROUND 21, POINT 7 (28/10/2026). The owner's rule 2 for 26M000002 is «centre with width»: he mated 4 components by hand with a width mate, and the bridge could read it (N63) but not make it. Now «mate» takes «width»: two faces of the width on component_a («face_a», «face_a2»), two faces of the tab on component_b («face_b», «face_b2»), and the tab goes in the middle of the width (swMateWidth_Centered).",
+
+  "defect_caught": "The width and the tab swapped (the marks 1 and 16 of IAssemblyDoc~AddMate5.html given the other way round), a width mate made off centre, a mate that SOLIDWORKS answers without placing the tab, and a width mate asked with one face per component taken as another mate.",
+
+  "_why_these_numbers": "The base of «the_state_reads_how_a_mate_is_set», 120 x 80 x 10 mm centred on the origin: its left and right faces at x -60 and +60 mm, the middle at x 0. The clip 40 x 20 x 4 mm starts at x 30 mm, 30 mm off the middle; centred, its origin goes to x 0. The coincident mate first puts it on the base (y 10 mm), so that the width mate moves it along x only.",
+
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
+        ] },
+      { "name": "clip",
+        "position_mm": [30, 40, 0],
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 40, "width_mm": 20, "thickness_mm": 4, "centered": true } }
+        ] }
+    ]
+  },
+  "steps": [
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincident", "alignment": "opposite"
+      },
+      "expect": [
+        { "what": "measurements.mates_after", "equal_to": [1, 1],
+          "why": "the clip lies on the base: the width mate below moves it along x only" } ] },
+
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "left", "face_a2": "right",
+        "component_b": "C2", "face_b": "left", "face_b2": "right",
+        "variant": "width"
+      },
+      "expect": [
+        { "what": "measurements.mates_after", "equal_to": [2, 2],
+          "why": "the width mate is there, counted on both components" },
+        { "what": "measurements.placement_after[1].origin_mm", "equal_to": [0, 10, 0], "tolerance": 0.01,
+          "tolerance_why": "THE TAB IN THE MIDDLE OF THE WIDTH: the clip started at x 30 mm, centred between x -60 and +60 its origin is at x 0; y 10 mm from the coincident mate, z unchanged" },
+        { "what": "measurements.width_faces", "equal_to": ["left", "right"],
+          "why": "the two faces of the width, said as they were asked" },
+        { "what": "measurements.tab_faces", "equal_to": ["left", "right"],
+          "why": "the two faces of the tab" },
+        { "what": "state.mates_list[1].kind", "equal_to": "width",
+          "why": "read back from the tree: IMate2.Type gives swMateWIDTH" } ] },
+
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "left", "face_a2": "right",
+        "component_b": "C2", "face_b": "left",
+        "variant": "width"
+      },
+      "must_fail": {
+        "message_includes": ["A «width» mate wants two faces on each component", "Give «face_b2»", "I touched nothing"],
+        "twin": "the_width_mate_centres_the_tab" } },
+
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "left", "face_a2": "left",
+        "component_b": "C2", "face_b": "left", "face_b2": "right",
+        "variant": "width"
+      },
+      "must_fail": {
+        "message_includes": ["«face_a» and «face_a2» are the same face", "I touched nothing"],
+        "twin": "the_width_mate_centres_the_tab" } },
+
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up", "face_a2": "down",
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincident", "alignment": "opposite"
+      },
+      "must_fail": {
+        "message_includes": ["«face_a2» and «face_b2» are only for a «width» mate", "I touched nothing"],
+        "twin": "the_width_mate_centres_the_tab" } }
+  ]
+}

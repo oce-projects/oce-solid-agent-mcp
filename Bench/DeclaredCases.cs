@@ -1382,9 +1382,11 @@ namespace Oce.Solid.Agent.Bench
             // which would say the same thing worse.
             Preparation prepared = null;
             bool green;
+            // One line of times per case in the journal (bridge 0.159.2, see CasePhasesBegin).
+            CasePhasesBegin();
             try
             {
-                prepared = PrepareDocument(itemName, testCase);
+                prepared = Timed("case: prepare the document", () => PrepareDocument(itemName, testCase));
                 if (prepared == null || prepared.Document == null) return false;
                 green = RunSteps(itemName, testCase, prepared.Document, twins, filePath, prepared);
             }
@@ -1404,7 +1406,8 @@ namespace Oce.Solid.Agent.Bench
             catch (Exception ex) { Check(itemName, false, Why(ex)); return false; }
             finally
             {
-                ThrowAwayPreparation(prepared);
+                Timed("case: close the documents", () => { ThrowAwayPreparation(prepared); return true; });
+                CasePhasesEnd(itemName);
             }
 
             return OnThisLibrary(itemName, testCase, green);
@@ -1460,6 +1463,19 @@ namespace Oce.Solid.Agent.Bench
             List<Twinning> twins, string filePath,
             Preparation toClean = null)
         {
+            // The tree and the graphics off for the steps, as for a plan (bridge 0.158.0):
+            // before the first reading, as the plan executor does, and back on whatever
+            // happens to the case.
+            FreezeOn(doc);
+            try { return RunStepsFrozen(itemName, testCase, doc, twins, filePath, toClean); }
+            finally { FreezeOff(); }
+        }
+
+        private static bool RunStepsFrozen(
+            string itemName, Dictionary<string, object> testCase, IModelDoc2 doc,
+            List<Twinning> twins, string filePath,
+            Preparation toClean)
+        {
             var steps = Items(testCase, "steps");
             if (steps == null || steps.Count == 0) { BenchError(itemName, "«steps» is missing"); return false; }
 
@@ -1479,12 +1495,29 @@ namespace Oce.Solid.Agent.Bench
                 // on this machine SOLIDWORKS is shared, and
                 // «active» is what anybody has in front of them.
                 var current = doc;
-                var docState = ReadState(current);
+                // THE OBJECT OF THE LAST READING GOES TO THE STEP (bridge 0.157.2).
+                // Run used to read the whole state again just before the step, a few
+                // lines after this reading: two readings per step on run g22_5. The
+                // object is handed over while nothing has changed the document since
+                // it was read; null when something did (a selection, a configuration
+                // of another document), and then Run reads again as before.
+                object rawState;
+                var docState = ReadState(current, out rawState);
+                DumpState(itemName, 0, docState);
                 // The state as it was BEFORE every step: it serves «uid_from_step».
                 var statesBefore = new List<Dictionary<string, object>>();
 
                 for (int i = 0; i < steps.Count; i++)
                 {
+                    // EVERY STEP STARTS AS A CALL OF THE BRIDGE STARTS (bridge 0.159.7, see
+                    // ReleaseAsTheBridge): the previous call is over, its objects are let go,
+                    // and the step reads the document again instead of getting the object of
+                    // the last reading.
+                    if (ReleaseWanted())
+                    {
+                        rawState = null;
+                        ReleaseAsTheBridge();
+                    }
                     statesBefore.Add(docState);
                     var planStep = steps[i] as Dictionary<string, object>;
                     if (planStep == null) { BenchError(itemName, "step " + (i + 1) + " is not an object"); return false; }
@@ -1552,6 +1585,9 @@ namespace Oce.Solid.Agent.Bench
                             BenchError(label, "«select_first»: " + why);
                             return false;
                         }
+                        // The state lists what is selected: the reading is not the
+                        // document any more.
+                        rawState = null;
                     }
                     // «hide_first» (entry Z-C21.2, finding L12-1): the bodies
                     // hidden when the step starts, as whoever wants to
@@ -1569,7 +1605,7 @@ namespace Oce.Solid.Agent.Bench
                         }
                         // The state is re-read: the step receives it, and a hidden
                         // body is a fact that the state must see.
-                        docState = ReadState(current);
+                        docState = ReadState(current, out rawState);
                     }
                     // «activate_before» (Z-C21.4, finding L16-2): a configuration of
                     // ANOTHER open document made active when the step starts, as the
@@ -1586,6 +1622,8 @@ namespace Oce.Solid.Agent.Bench
                             BenchError(label, "«activate_before»: " + why);
                             return false;
                         }
+                        // The state lists the open documents and their configurations.
+                        rawState = null;
                     }
 
                     double volumeBefore = DocumentVolume(current);
@@ -1593,7 +1631,7 @@ namespace Oce.Solid.Agent.Bench
 
                     string error;
                     IModelDoc2 born;
-                    var measurements = Run(current, operation, arguments, out error, out born, docState);
+                    var measurements = Run(current, operation, arguments, out error, out born, rawState ?? docState);
                     // IT CHANGES ONLY IF THE STEP SUCCEEDED. A `create_drawing`
                     // that failed midway may have left a document on the monitor
                     // and it is not the one to continue on: following a document
@@ -1632,9 +1670,12 @@ namespace Oce.Solid.Agent.Bench
                         // error, so nobody said so.
                         if (toClean != null)
                             toClean.DocumentsToClose.Add(current);
+                        // The freeze follows the document, as in the plan executor.
+                        FreezeOn(current);
                     }
 
-                    docState = ReadState(current);
+                    docState = ReadState(current, out rawState);
+                    DumpState(itemName, i + 1, docState);
 
                     var mustFail = planStep.ContainsKey("must_fail")
                         ? planStep["must_fail"] as Dictionary<string, object> : null;

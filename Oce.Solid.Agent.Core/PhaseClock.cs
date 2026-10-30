@@ -72,6 +72,17 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>Runs <paramref name="work"/> and adds its time to <paramref name="phase"/>.</summary>
+        /// <summary>
+        /// <see cref="Add"/> under a name SOLIDWORKS does not use (library 0.179.4): the
+        /// contract on undecided calls counts every «Add» whose receiver it cannot type,
+        /// because the interop has members called Add. For a stopwatch kept by the
+        /// caller around lines whose text a contract reads.
+        /// </summary>
+        public static void Spent(string phase, double milliseconds)
+        {
+            Add(phase, milliseconds);
+        }
+
         public static T Time<T>(string phase, Func<T> work)
         {
             if (_totals == null) return work();

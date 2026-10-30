@@ -121,12 +121,16 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// Who overlaps whom: text on text (the whole drawing), and text on
-        /// an edge of its own view. The rows say the two names and the texts.
+        /// Who overlaps whom: text on text (the whole drawing), text on
+        /// an edge of its own view, and since round 21 (point 5) text on a note of
+        /// the sheet or of a view and on the title block. The rows say the two names
+        /// and the texts; «checkedAgainst» says what was compared.
         /// A margin of 0.3 mm: two texts that graze each other are not read badly.
         /// </summary>
-        private List<string> TextsThatOverlap(IDrawingDoc drawing, IView view, List<DimensionText> texts)
+        private List<string> TextsThatOverlap(IDrawingDoc drawing, IView view, List<DimensionText> texts,
+                                              out string checkedAgainst)
         {
+            checkedAgainst = null;
             // Texts not read (N47) give no overlaps to report, and the caller
             // says «not known» instead of a count.
             if (texts == null) return null;
@@ -156,7 +160,142 @@ namespace Oce.Solid.Agent.Core
                         break;
                     }
             }
+
+            // THE NOTES AND THE TITLE BLOCK (report 8cd843, round 21, point 5): the
+            // label of a detail or of a section is a note of its view (see
+            // ViewWithItsNotes), the boxes of the title block are notes of the sheet
+            // (an empty drawing counts 67 of them), and a dimension written over them
+            // was not said. The title block as a whole when the format declares it
+            // (ITitleBlock, read as ReadSheet reads it).
+            int notesRead;
+            List<string> noteNames;
+            var noteBoxes = NoteBoxes(drawing, out noteNames, out notesRead);
+            double[] titleBlock = DeclaredTitleBlock(drawing);
+            foreach (DimensionText t in texts)
+                foreach (string what in WhatTheTextCovers(t.Angles, noteNames, noteBoxes, titleBlock, margin))
+                    outside.Add("«" + t.Text + "» (" + t.View + ") over " + what);
+            checkedAgainst = OverlapsCheckedAgainst(notesRead, titleBlock != null);
             return outside;
+        }
+
+        /// <summary>
+        /// The rectangle of every note of the sheet and of its views (x0, y0, x1, y1
+        /// in sheet metres, from INote.GetExtent, the reading ViewWithItsNotes uses),
+        /// with its name at the same place of «names». «read» is the count of the notes met, -1 when
+        /// the walk broke off: a part of the notes is not the notes of the sheet
+        /// (N47), and then the list is empty.
+        /// </summary>
+        private static List<double[]> NoteBoxes(IDrawingDoc drawing, out List<string> names, out int read)
+        {
+            var boxes = new List<double[]>();
+            var found = new List<string>();
+            names = found;
+            read = 0;
+            try
+            {
+                for (var v = drawing.GetFirstView() as IView; v != null; v = v.GetNextView() as IView)
+                {
+                    string viewName = "";
+                    try { viewName = v.GetName2() ?? ""; } catch { }
+                    for (var note = v.GetFirstNote() as INote; note != null; note = note.GetNext() as INote)
+                    {
+                        read++;
+                        string text = null;
+                        double[] box = null;
+                        try { text = note.GetText(); box = ExtentBox(note.GetExtent() as double[]); } catch { }
+                        string shown = NoteShown(text);
+                        if (box == null || shown == null) continue;
+                        boxes.Add(box);
+                        found.Add("the note «" + shown + "» (" + viewName + ")");
+                    }
+                }
+            }
+            catch { read = -1; boxes.Clear(); found.Clear(); }
+            return boxes;
+        }
+
+        /// <summary>The title block the format declares (ITitleBlock.GetExtents), null when it declares none.</summary>
+        private static double[] DeclaredTitleBlock(IDrawingDoc drawing)
+        {
+            try
+            {
+                var tb = (drawing.GetCurrentSheet() as ISheet)?.TitleBlock;
+                if (tb == null) return null;
+                double x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+                tb.GetExtents(ref x0, ref y0, ref x1, ref y1);
+                return ExtentBox(new[] { x0, y0, 0, x1, y1, 0 });
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// The first line of a note, at most 40 characters, null when it has none:
+        /// a note with no text has nothing a dimension could hide. Pure.
+        /// </summary>
+        internal static string NoteShown(string text)
+        {
+            if (text == null) return null;
+            var first = text.Replace("\r", "").Split('\n')[0].Trim();
+            if (first.Length == 0) return null;
+            return first.Length > 40 ? first.Substring(0, 40) + "..." : first;
+        }
+
+        /// <summary>
+        /// The rectangle (x0, y0, x1, y1) of an extent of six numbers, two corners
+        /// with x, y, z each (INote.GetExtent), null when it is not one: fewer
+        /// numbers, or no width or no height. Pure.
+        /// </summary>
+        internal static double[] ExtentBox(double[] extent)
+        {
+            if (extent == null || extent.Length < 6) return null;
+            double x0 = Math.Min(extent[0], extent[3]), y0 = Math.Min(extent[1], extent[4]);
+            double x1 = Math.Max(extent[0], extent[3]), y1 = Math.Max(extent[1], extent[4]);
+            if (!(x1 - x0 > 1e-6) || !(y1 - y0 > 1e-6)) return null;
+            return new[] { x0, y0, x1, y1 };
+        }
+
+        private static double[][] BoxCorners(double[] b)
+        {
+            return new[] { new[] { b[0], b[1] }, new[] { b[2], b[1] }, new[] { b[2], b[3] }, new[] { b[0], b[3] } };
+        }
+
+        /// <summary>
+        /// What the text of a dimension covers (round 21, point 5): the title block
+        /// when it is declared, then each note it touches by name. A note that lies
+        /// inside the title block is one of its boxes: said once, as the title
+        /// block. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static List<string> WhatTheTextCovers(double[][] text, IList<string> noteNames, IList<double[]> noteBoxes,
+                                                       double[] titleBlock, double margin)
+        {
+            var covered = new List<string>();
+            if (text == null) return covered;
+            if (titleBlock != null && TheyTouch(text, BoxCorners(titleBlock), margin)) covered.Add("the title block");
+            for (int i = 0; i < noteBoxes.Count && i < noteNames.Count; i++)
+            {
+                var b = noteBoxes[i];
+                if (b == null) continue;
+                if (titleBlock != null && b[0] >= titleBlock[0] - 1e-6 && b[1] >= titleBlock[1] - 1e-6 &&
+                    b[2] <= titleBlock[2] + 1e-6 && b[3] <= titleBlock[3] + 1e-6) continue;
+                if (TheyTouch(text, BoxCorners(b), margin)) covered.Add(noteNames[i]);
+            }
+            return covered;
+        }
+
+        /// <summary>
+        /// What the texts of the dimensions were compared with (round 21, point 5),
+        /// in words: a reader who sees no overlap must know whether the notes and
+        /// the title block were looked at. Pure.
+        /// </summary>
+        internal static string OverlapsCheckedAgainst(int notesRead, bool titleBlockDeclared)
+        {
+            string notes = notesRead < 0
+                ? "the notes NOT read (the walk over the views broke off): a text over a label or a box is not said"
+                : notesRead + " notes of the sheet and of its views (the labels of details and sections are notes of their view)";
+            string block = titleBlockDeclared
+                ? "the title block, as the format declares it (ITitleBlock)"
+                : "the title block NOT as a whole: the format does not declare it (ITitleBlock), only its boxes that are notes";
+            return "the other dimension texts, the lines of the part in this view, " + notes + "; " + block;
         }
 
         private List<double[]> ViewSegments(IView view)

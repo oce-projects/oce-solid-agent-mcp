@@ -81,7 +81,32 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { }
-            return outside;
+
+            // BY TITLE, THEN BY PATH (library 0.186.0), not in the order SOLIDWORKS keeps
+            // them: on the bench of 30/10/2026 the base and the lid of the same assembly
+            // came in the two orders in two equal runs (RAG note 95). The list is a set;
+            // the order says nothing, and `active` says which one is being read.
+            var order = new List<int>();
+            for (int k = 0; k < outside.Count; k++) order.Add(k);
+            order.Sort((x, y) =>
+            {
+                int c = string.Compare(TextOf(outside[x], "document_title"), TextOf(outside[y], "document_title"),
+                    StringComparison.OrdinalIgnoreCase);
+                if (c == 0)
+                    c = string.Compare(TextOf(outside[x], "path"), TextOf(outside[y], "path"),
+                        StringComparison.OrdinalIgnoreCase);
+                return c != 0 ? c : x.CompareTo(y);
+            });
+            var sortedDocuments = new List<Dictionary<string, object>>();
+            foreach (var k in order) sortedDocuments.Add(outside[k]);
+            return sortedDocuments;
+        }
+
+        /// <summary>A text field of an entry of <see cref="OpenDocuments"/>, "" when absent.</summary>
+        private static string TextOf(Dictionary<string, object> entry, string key)
+        {
+            object value;
+            return entry.TryGetValue(key, out value) && value != null ? Convert.ToString(value) : "";
         }
 
         /// <summary>Sheets, views and counts of a drawing.</summary>
@@ -288,6 +313,12 @@ namespace Oce.Solid.Agent.Core
                             }
                         }
                         catch { }
+                        // WHAT THE VIEW DRAWS (report 8cd843 N62, round 20): the outline keeps a margin
+                        // around the drawing, 5.8 mm on each side on the PNG of round 20, and a circle
+                        // aimed inside the outline fell in it. The box of the lines the view shows.
+                        var d = SwOperations.DrawnBox(v);
+                        if (d != null)
+                            entry["drawn_mm"] = new object[] { Math.Round(d[0] * 1000, 1), Math.Round(d[1] * 1000, 1), Math.Round(d[2] * 1000, 1), Math.Round(d[3] * 1000, 1) };
 
                         try
                         {

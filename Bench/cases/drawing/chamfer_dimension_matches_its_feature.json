@@ -1,0 +1,113 @@
+{
+  "name": "chamfer_dimension_matches_its_feature",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 21 (28/10/2026). On the drawing of 26P000011 the front view printed «0,4 x 15,23°» for its chamfer, 0.4 x 45°: the dimension measured the chamfer seen askew (0.415 mm x cos 15.23° = 0.4), and the step said it had dimensioned the chamfer. The chamfer dimension is now compared with the definition of its feature; one that does not agree is taken away and another edge of the same chamfer is tried. This case holds the other side: a chamfer that is NOT at 45° (3 x 6), seen in its true size, keeps its dimension and is said to agree.",
+  "defect_caught": "A right chamfer dimension taken away because it is not at 45° or its legs come in the other order (the comparison of the legs taken as one way only), and a chamfer dimension that says nothing about its feature.",
+  "_why_these_numbers": "The plate of «drawing_dimensions_holes_and_chamfer» without the holes, 120 x 80 x 10, with the top back edge along X chamfered 3 x 6 (the bevel of «chamfer_3x6_bevel»): 96000 - 3 x 6 / 2 x 120 = 94920 mm3. In V3 that edge runs along the line of sight, so the chamfer is seen in its true size, as the 5 x 45 of that case.",
+  "start": {
+    "new_part": true
+  },
+  "steps": [
+    {
+      "operation": "extrude_rectangle",
+      "arguments": {
+        "plane": "top",
+        "length_mm": 120,
+        "width_mm": 80,
+        "thickness_mm": 10,
+        "centered": true
+      },
+      "expect": [
+        {
+          "what": "volume_mm3",
+          "equal_to": 96000,
+          "why": "120 x 80 x 10"
+        }
+      ]
+    },
+    {
+      "operation": "chamfer_edges",
+      "arguments": {
+        "edges_uid": [
+          "@edge(axis=X,length~=120,y~=10,z~=-40)"
+        ],
+        "leg_mm": 3,
+        "angle_deg": 45,
+        "second_leg_mm": 6
+      },
+      "expect": [
+        {
+          "what": "volume_mm3",
+          "equal_to": 94920,
+          "tolerance": 0.01,
+          "tolerance_why": "96000 - 1080 exactly; the hundredth is the reading of the volume",
+          "why": "the chamfer 3 x 6 is there: a 3 x 3 would remove 540, a 6 x 6 2160"
+        }
+      ]
+    },
+    {
+      "operation": "save_document",
+      "arguments": {
+        "path": "{WORK}\\chamfer_dimension_matches_its_feature.sldprt"
+      },
+      "expect": [
+        {
+          "what": "measurements.warnings",
+          "equal_to": 0,
+          "why": "a view attaches to the FILE of the part"
+        }
+      ]
+    },
+    {
+      "operation": "create_drawing",
+      "arguments": {
+        "paper_size": "A3"
+      },
+      "expect": [
+        {
+          "what": "state.kind",
+          "equal_to": "drawing",
+          "why": "from here the drawing is measured"
+        }
+      ]
+    },
+    {
+      "operation": "standard_views",
+      "arguments": {
+        "model": "{WORK}\\chamfer_dimension_matches_its_feature.sldprt"
+      },
+      "expect": [
+        {
+          "what": "measurements.views_created",
+          "equal_to": 3,
+          "why": "front, top, side"
+        }
+      ]
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V3"
+      },
+      "expect": [
+        {
+          "what": "measurements.chamfers[0].matches_the_feature",
+          "equal_to": true,
+          "why": "THE DIMENSION AGREES WITH THE FEATURE: a 3 x 6 seen in its true size is not taken away for not being at 45°"
+        },
+        {
+          "what": "measurements.chamfers[0].as_the_feature",
+          "equal_to": "3 x 6",
+          "why": "the definition read by its type (distance-distance), as the state reads it"
+        },
+        {
+          "what": "measurements.edges_not_dimensioned",
+          "does_not_include": [
+            "not seen in its true size"
+          ],
+          "why": "no chamfer of this view was found askew"
+        }
+      ]
+    }
+  ]
+}

@@ -68,6 +68,40 @@ namespace Oce.Solid.Agent.Core
     {
         private Outcome DrawingDimension(IModelDoc2 model, Dictionary<string, object> a)
         {
+            // THE DECIMALS (report 8cd843, round 21, point 4), read before anything is placed;
+            // every dimension of the call prints its value (DimensionPrecisionOperations.cs).
+            string decimalsWhy;
+            int? decimals = DecimalsAsked(a, out decimalsWhy);
+            if (decimals == null)
+                return Failed("«decimals» cannot be used: " + decimalsWhy + ". Give a whole number from 0 to 8, " +
+                              "or leave «decimals» out (each dimension then gets the decimals its value needs). " +
+                              "I touched nothing.");
+            // THE TEXT AND THE LAYOUT (report 8cd843, round 22, points 2, 5, 6 and 7), read
+            // before anything is placed too (DrawingBetweenDimensions.cs).
+            object prefixAsked, suffixAsked, parenthesesAsked;
+            a.TryGetValue("prefix", out prefixAsked);
+            a.TryGetValue("suffix", out suffixAsked);
+            a.TryGetValue("parentheses", out parenthesesAsked);
+            string decorationWhy = DecorationProblem(prefixAsked, suffixAsked, parenthesesAsked);
+            string sideWhy;
+            if (decorationWhy == null && SideAsked(a, "horizontal_side", "below", "above", out sideWhy) == null) decorationWhy = sideWhy;
+            if (decorationWhy == null && SideAsked(a, "vertical_side", "right", "left", out sideWhy) == null) decorationWhy = sideWhy;
+            if (decorationWhy != null)
+                return Failed(decorationWhy + ". I touched nothing.");
+            _dimensionDecimals = (int)decimals;
+            _dimensionPrefix = prefixAsked as string;
+            _dimensionSuffix = suffixAsked as string;
+            _dimensionParentheses = parenthesesAsked is bool && (bool)parenthesesAsked;
+            try
+            {
+                try { return DimensionTheView(model, a); }
+                finally { _dimensionDecimals = -1; }
+            }
+            finally { _dimensionPrefix = null; _dimensionSuffix = null; _dimensionParentheses = false; }
+        }
+
+        private Outcome DimensionTheView(IModelDoc2 model, Dictionary<string, object> a)
+        {
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed(
@@ -152,6 +186,30 @@ namespace Oce.Solid.Agent.Core
                 for (int i = 0; i < Math.Min(howMany, available); i++) chosen.Add(i);
             }
 
+            // THE DISTANCE BETWEEN TWO EDGES (report 8cd843, round 22, point 1): pairs of
+            // edges, checked before the edges are measured on the sheet.
+            List<int[]> betweenPairs = null;
+            if (a.ContainsKey("between"))
+            {
+                if (requestedList.Count > 0 || a.ContainsKey("overall"))
+                    return Failed("«between» goes in a call of its own: one call with «between» for the distances " +
+                                  "between edges, another with «edges» or «overall». I touched nothing.");
+                string betweenWhy;
+                betweenPairs = BetweenPairsAsked(a["between"], available, out betweenWhy);
+                if (betweenPairs == null)
+                    return Failed("«between» cannot be used: " + betweenWhy + ". Each pair is two edge numbers of the " +
+                                  "view, as «inspect_part» with «view_edges» lists them. I touched nothing.");
+            }
+            bool row = Bool(a, "row", false);
+            string sideUnused;
+            // ON A DETAIL ABOVE (report 8cd843, round 22, point 14): below a detail sits its label
+            // «DETAIL A / SCALE 5 : 1», and a dimension there went between the two.
+            bool above = a.ContainsKey("horizontal_side")
+                ? SideAsked(a, "horizontal_side", "below", "above", out sideUnused) == "above"
+                : IsDetailView(view);
+            bool onTheLeft = SideAsked(a, "vertical_side", "right", "left", out sideUnused) == "left";
+            bool sideNamed = a.ContainsKey("vertical_side");
+
             // ── WHERE TO PUT THEM, in SHEET coordinates ─────────────────
             //
             // THE OUTLINE IS READ ONLY ONCE, before placing any
@@ -209,13 +267,29 @@ namespace Oce.Solid.Agent.Core
                 return available;
             });
 
+            if (betweenPairs != null)
+                return DimensionBetween(model, drawing, view, viewName, edges, all, circles, betweenPairs, contour,
+                                        dimensionOffset, planStep, scale, row, above, onTheLeft);
+
             // A VIEW OF AN ASSEMBLY HAS ITS OWN ROUTE (report 8cd843 N23, round 7):
             // the overall size and the edges named, not the holes, chamfers and
             // first «count» edges of one component. See DrawingAssemblyDimensions.cs.
             if (ViewOfAnAssembly(view, all, circles))
                 return DimensionAssemblyView(model, drawing, view, viewName, edges, all, circles,
                                              requestedList.Count > 0 ? chosen : null, a, contour,
-                                             dimensionOffset, planStep, scale, mu, tr, componentsAsked);
+                                             dimensionOffset, planStep, scale, mu, tr, componentsAsked, false);
+
+            // THE OVERALL SIZE OF A PART (report 8cd843, round 21, point 2): «overall» worked on
+            // the views of an assembly only, and a round chose edges blind to get the length of a
+            // part. Asked on a view of a part, it takes the same route: the outermost straight
+            // edges, the dimension read back and compared with their distance on the sheet.
+            string partOverall = OverallOnAPart(a, requestedList.Count > 0);
+            if (partOverall == "with edges")
+                return Failed("On a view of a part «overall» and «edges» go in two calls: one with «overall» for the " +
+                              "overall size, one with «edges» for the edges you name. I touched nothing.");
+            if (partOverall != null)
+                return DimensionAssemblyView(model, drawing, view, viewName, edges, all, circles, null, a, contour,
+                                             dimensionOffset, planStep, scale, mu, tr, null, true);
 
             // THE DIMENSIONS THE DRAWING ALREADY HAS, IN ALL THE VIEWS (entry GT11). «Each
             // element of the object must be dimensioned no more than once»
@@ -226,6 +300,15 @@ namespace Oce.Solid.Agent.Core
             // and configuration, and without the dimensions hidden by hand (C8-2):
             // what was read is in the answer, see KeysAlreadyDimensioned.
             var already = KeysAlreadyDimensioned(drawing, view, out var existingRead);
+
+            // THE HOLES AND THE CHAMFERS IN ANOTHER VIEW (report 8cd843, round 22, point 11): they
+            // went by themselves on the first view dimensioned, and the detail where the chamfer
+            // reads best answered «already dimensioned». «false» leaves them to a later call.
+            bool holesWanted = Bool(a, "holes", true);
+            bool chamfersWanted = Bool(a, "chamfers", true);
+            var leftOut = new List<string>();
+            if (!holesWanted) leftOut.Add("holes");
+            if (!chamfersWanted) leftOut.Add("chamfers");
 
             var failed = new List<string>();
             var externalDiameters = new List<Dictionary<string, object>>();
@@ -322,7 +405,7 @@ namespace Oce.Solid.Agent.Core
                 // ONE COUNTER PER BAND, not a single one for all of them. The previous
                 // draft had a global one, and so the second dimension
                 // went down one step even if it went to the right.
-                int below = 0, sideways = 0, onLeft = 0;
+                int below = 0, sideways = 0, onLeft = 0, overTheTop = 0;
 
                 // ── THE HOLES, FIRST OF ALL (entry GT11) ────────────────
                 //
@@ -346,7 +429,7 @@ namespace Oce.Solid.Agent.Core
                 // if the table is there, the holes are its own.
                 holesInTable = HolesInHoleTable(drawing);
                 var trueHoles = circles.FindAll(c => c.Type == "hole");
-                if (trueHoles.Count > 0 && holesInTable <= 0)
+                if (trueHoles.Count > 0 && holesInTable <= 0 && holesWanted)
                     DimensionTheHoles(model, drawing, trueHoles, all, already, contour, dimensionOffset, planStep, scale,
                                ref below, ref sideways, ref onLeft, sheetDimensions, born, holes, elsewhere, failed);
                 DimensionTheContours(model, drawing, circles.FindAll(c => c.Type == "outline"), already, contour, dimensionOffset, planStep,
@@ -376,26 +459,43 @@ namespace Oce.Solid.Agent.Core
                         // placed outside the figures» (Zanichelli
                         // sheet, ARRANGEMENT OF THE MEASUREMENT LINES).
                         // Therefore: horizontal BELOW, vertical ON THE SIDE.
+                        // «horizontal_side», «vertical_side» and «row» (report 8cd843, round 22,
+                        // points 2 and 7): above or below, right or left, and in a row every
+                        // dimension of the call on the same line, the band of the holes beyond.
                         double x, y;
                         if (s.Facing == "horizontal")
                         {
                             x = s.Half;
-                            y = contour[1] - dimensionOffset - below * planStep;
-                            below++;
+                            if (above)
+                            {
+                                y = contour[3] + dimensionOffset + overTheTop * planStep;
+                                if (!row) overTheTop++;
+                            }
+                            else
+                            {
+                                y = contour[1] - dimensionOffset - below * planStep;
+                                if (!row) below++;
+                            }
+                        }
+                        else if (s.Facing == "vertical" && onTheLeft)
+                        {
+                            x = contour[0] - dimensionOffset - onLeft * planStep;
+                            y = s.Half;
+                            if (!row) onLeft++;
                         }
                         else if (s.Facing == "vertical")
                         {
                             x = contour[2] + dimensionOffset + sideways * planStep;
                             y = s.Half;
-                            sideways++;
+                            if (!row) sideways++;
                             // INSIDE THE FRAME: a view on the right edge of the
                             // sheet sends the band out of the drawing. Then to the
-                            // left — same rule as the holes.
-                            if (sheetDimensions != null && x > sheetDimensions[0] - 0.015)
+                            // left — same rule as the holes; not when the right was asked.
+                            if (!sideNamed && sheetDimensions != null && x > sheetDimensions[0] - 0.015)
                             {
-                                sideways--;
+                                if (!row) sideways--;
                                 x = contour[0] - dimensionOffset - onLeft * planStep;
-                                onLeft++;
+                                if (!row) onLeft++;
                             }
                         }
                         else
@@ -438,7 +538,13 @@ namespace Oce.Solid.Agent.Core
                         }
                         described["orientation"] = s.Facing;
                         described["position_mm"] = WhereItEnded(nature);
-                        described["text_shown"] = TextShown(nature);
+                        described["text_shown"] = ExactTextShown(nature, described);
+                        DecorateDimension(nature, described);
+                        // THE ARROWS WHERE THE TEXT IS (report 8cd843, round 22, point 12).
+                        if (s.Facing == "horizontal")
+                            ArrowsByText(nature, described, Math.Min(s.FromSheet[0], s.ToSheet[0]), Math.Max(s.FromSheet[0], s.ToSheet[0]), true);
+                        else if (s.Facing == "vertical")
+                            ArrowsByText(nature, described, Math.Min(s.FromSheet[1], s.ToSheet[1]), Math.Max(s.FromSheet[1], s.ToSheet[1]), false);
                         born.Add(described);
                     }
                     catch (Exception ex)
@@ -449,7 +555,8 @@ namespace Oce.Solid.Agent.Core
                 }
 
                 // ── THE CHAMFERS, WITH THE CHAMFER DIMENSION (entry GT11) ─────
-                DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, born, chamfers, elsewhere, failed);
+                if (chamfersWanted)
+                    DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, born, chamfers, elsewhere, failed);
             }
             finally
             {
@@ -507,12 +614,18 @@ namespace Oce.Solid.Agent.Core
             // (DimensionTextOperations): text on text over the whole drawing, text
             // on a line of the part in this view.
             var dimensionsTexts = DimensionTexts(drawing);
-            var overlapping = TextsThatOverlap(drawing, view, dimensionsTexts);
+            string overlapsCheckedAgainst;
+            var overlapping = TextsThatOverlap(drawing, view, dimensionsTexts, out overlapsCheckedAgainst);
 
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = viewName,
                 ["edges_available"] = available,
+                // Where to choose «edges» from (report 8cd843, round 21, point 3): the
+                // listing existed, and a round chose blind for want of knowing it.
+                ["edges_listed_by"] = "«inspect_part» with «view_edges» {\"view\": \"" + viewName +
+                                      "\"}: each edge with the number «edges» takes, its kind, its mm, how it faces " +
+                                      "and where it sits on the sheet",
                 ["edges_tried"] = chosen.Count,
                 ["dimensions_before"] = before,
                 ["dimensions_after"] = after,
@@ -537,6 +650,15 @@ namespace Oce.Solid.Agent.Core
                 ["dimensions_mm"] = MillimetersInARow(born),
                 // What the sheet prints, beside what the model holds (report 8cd843 N35).
                 ["dimensions_shown"] = TextsShownInARow(born),
+                // A number on the sheet other than the value (round 21, point 4): none, unless
+                // «decimals» asked fewer than a value needs or SOLIDWORKS refused them.
+                ["decimals_asked"] = _dimensionDecimals >= 0 ? (object)_dimensionDecimals : null,
+                ["rounded_on_the_sheet"] = RoundedOnTheSheet(born).ToArray(),
+                ["decorations_not_kept"] = DecorationsNotKept(born).ToArray(),
+                ["automatic_left_out"] = leftOut.ToArray(),
+                ["laid_out"] = (row ? "in a row" : "from the smaller to the larger") + ", the horizontal edges " +
+                                (above ? "above" : "below") + ", the vertical ones on the " +
+                                (onTheLeft ? "left" : sideNamed ? "right" : "right, on the left when the frame ends"),
                 ["edges_not_dimensioned"] = failed.ToArray(),
 
                 // ── HOLES, CHAMFERS, AND WHAT WAS ALREADY DIMENSIONED (entry GT11) ──
@@ -611,6 +733,7 @@ namespace Oce.Solid.Agent.Core
                 ["how_many_texts_overlap"] = dimensionsTexts == null || overlapping == null ||
                                                   (dimensionsTexts.Count == 0 && after > 0)
                     ? null : (object)overlapping.Count,
+                ["overlaps_checked_against"] = overlapsCheckedAgainst,
                 ["offset_used_mm"] = Math.Round(dimensionOffset * 1000, 2),
                 ["pitch_used_mm"] = Math.Round(planStep * 1000, 2),
 
@@ -635,9 +758,10 @@ namespace Oce.Solid.Agent.Core
                     "functional dimension must not be derived from others: the designer knows " +
                     "that. I can say how many I put, not whether the part is defined.\n" +
                     "The TEXT of the dimensions I do look at (since 26/9/2026): its real rectangle, " +
-                    "read by SOLIDWORKS, against the other texts of the drawing and the lines of the " +
-                    "part in this view — «overlapping_texts». I do not look at the dimension " +
-                    "lines and the leader lines, nor the title block. And I do not look " +
+                    "read by SOLIDWORKS, against the other texts of the drawing, the lines of the " +
+                    "part in this view, the notes of the sheet and of its views (the labels of details and " +
+                    "sections) and the title block — «overlapping_texts»; «overlaps_checked_against» says " +
+                    "what was compared. I do not look at the dimension lines and the leader lines. And I do not look " +
                     "at: whether a position dimension of the holes should have been taken from another " +
                     "functional reference (I take the borders); which system to adopt among " +
                     "serial, parallel and overlapping dimensions; whether a dimension should have " +
@@ -680,6 +804,12 @@ namespace Oce.Solid.Agent.Core
             public string InModel;
             /// <summary>The chamfer feature it belongs to, or null.</summary>
             public string ChamferFeature;
+            /// <summary>
+            /// The pairs of legs (mm) the definition of that chamfer allows, and the
+            /// chamfer in words («0.4 x 45°»): null when it cannot be read.
+            /// </summary>
+            public List<double[]> ChamferPairs;
+            public string ChamferSaid;
             /// <summary>The entity as the view exposes it, to select it.</summary>
             public object Entity;
             /// <summary>The component it belongs to on a view of an assembly (Name2), null on a part.</summary>
@@ -790,6 +920,7 @@ namespace Oce.Solid.Agent.Core
                 s.ToModel = a;
                 s.InModel = KeyInModel(da, a);
                 s.ChamferFeature = TouchesAChamfer(edge);
+                if (s.ChamferFeature != null) s.ChamferPairs = ChamferPairsOf(edge, out s.ChamferSaid);
                 s.Entity = entity;
                 try { s.Component = component?.Name2; } catch { }
                 try { s.Straight = (edge.GetCurve() as ICurve)?.IsLine() == true; } catch { }
@@ -1272,7 +1403,7 @@ namespace Oce.Solid.Agent.Core
                 }
                 described["orientation"] = "outer diameter";
                 described["position_mm"] = WhereItEnded(q);
-                described["text_shown"] = TextShown(q);
+                described["text_shown"] = ExactTextShown(q, described);
                 if (q != null) born.Add(described);
                 else RecordBornWithoutObject(born, described, failed,
                     "external diameter Ø" + dm + " (the dimension was born but SOLIDWORKS did not hand it back: " +
@@ -1644,7 +1775,7 @@ namespace Oce.Solid.Agent.Core
             var described = DescribeDimension(dimension, hole.Index);
             described["orientation"] = horizontal ? "horizontal position of the hole" : "vertical position of the hole";
             described["position_mm"] = WhereItEnded(dimension);
-            described["text_shown"] = TextShown(dimension);
+            described["text_shown"] = ExactTextShown(dimension, described);
             object mm;
             if (described.TryGetValue("mm", out mm) && mm != null &&
                 Math.Abs(Convert.ToDouble(mm, Ci) - expectedMm) > 0.05)
@@ -1669,6 +1800,9 @@ namespace Oce.Solid.Agent.Core
             List<string> elsewhere, List<string> failed)
         {
             var done = new HashSet<string>(StringComparer.Ordinal);
+            // Report 8cd843, round 21: the chamfers whose dimension did not measure them
+            // on an edge of this view, with why; said at the end if no edge did.
+            var notTrueSize = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var s in all)
             {
                 if (s.ChamferFeature == null || s.Facing != "oblique" || done.Contains(s.ChamferFeature)) continue;
@@ -1724,7 +1858,7 @@ namespace Oce.Solid.Agent.Core
                 var described = DescribeDimension(dimension, s.Index);
                 described["orientation"] = "chamfer dimension";
                 described["position_mm"] = WhereItEnded(dimension);
-                described["text_shown"] = TextShown(dimension);
+                described["text_shown"] = ExactTextShown(dimension, described);
 
                 // THE CHAMFER DIMENSION IS MADE OF TWO DIMENSIONS, and the first one is
                 // THE ANGLE. Measured on 25/9/2026: GetDimension2(0) = 0.785 rad
@@ -1769,6 +1903,30 @@ namespace Oce.Solid.Agent.Core
                                           "» with «delete_annotation»)"));
                     continue;
                 }
+                // A CHAMFER NOT SEEN IN ITS TRUE SIZE (report 8cd843, round 21): on
+                // 26P000011 the front view printed «0,4 x 15,23°» for its chamfer, which
+                // is 0.4 x 45° (its definition, read by the state in rounds 9 and 20):
+                // 0.415 mm x cos 15.23° = 0.4, the chamfer seen askew. The same 15.23°
+                // came out in N23 and passed ChamferValuesProblem, which only knows the
+                // impossible. Compared with the legs of the feature; the dimension is
+                // taken away and the next edge of the same chamfer is tried.
+                string notTrue = ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid,
+                    angle.HasValue ? angle.GetValueOrDefault() * 180.0 / Math.PI : (double?)null, side as double?, s.ChamferPairs);
+                if (notTrue != null && dimension != null)
+                {
+                    bool gone = RemoveNewAnnotation(model, dimension.GetAnnotation() as IAnnotation,
+                                                    () => CountDimensions(drawing), dimensionsBefore);
+                    if (gone)
+                    {
+                        done.Remove(s.ChamferFeature);
+                        notTrueSize[s.ChamferFeature] = notTrue;
+                    }
+                    else
+                        RecordFailure(failed, "chamfer «" + s.ChamferFeature + "» (" + notTrue + ": I could not take it away, remove «" +
+                                      Convert.ToString(described.ContainsKey("name") ? described["name"] : null) +
+                                      "» with «delete_annotation»)");
+                    continue;
+                }
                 described["mm"] = side;
                 var line = new Dictionary<string, object>
                 {
@@ -1776,6 +1934,10 @@ namespace Oce.Solid.Agent.Core
                     ["leg_mm"] = side,
                     ["angle_deg"] = angle.HasValue ? (object)Math.Round(angle.Value * 180.0 / Math.PI, 2) : null,
                     ["face_width_mm"] = width.HasValue ? (object)Math.Round(width.Value * 1000.0, 3) : null,
+                    // What the definition says, and whether the dimension agrees with it
+                    // (null: the definition or a value could not be read).
+                    ["as_the_feature"] = s.ChamferSaid,
+                    ["matches_the_feature"] = s.ChamferPairs == null || !angle.HasValue || side == null ? null : (object)true,
                 };
                 chamfers.Add(line);
                 if (dimension != null) born.Add(described);
@@ -1784,6 +1946,96 @@ namespace Oce.Solid.Agent.Core
                     "back: its values were not read back, check it on the sheet)");
                 already.Add(key);
             }
+            foreach (string feature in notTrueSize.Keys)
+                if (!done.Contains(feature))
+                    RecordFailure(failed, "chamfer «" + feature + "» (" + notTrueSize[feature] + "; I took it away, and no other edge " +
+                                  "of it in this view shows it in its true size: dimension it in a view that looks along the " +
+                                  "chamfered edge)");
+        }
+
+        /// <summary>
+        /// The pairs of legs the definition of the chamfer of «edge» allows, read by
+        /// its type with the rule of the state (DocumentState.ChamferSizes), and the
+        /// chamfer in words in «said». Null when the definition cannot be read.
+        /// </summary>
+        private static List<double[]> ChamferPairsOf(IEdge edge, out string said)
+        {
+            said = null;
+            try
+            {
+                var faces = edge.GetTwoAdjacentFaces2() as object[];
+                if (faces == null) return null;
+                foreach (var o in faces)
+                {
+                    var f = (o as IFace2)?.GetFeature() as IFeature;
+                    if (f == null || f.GetTypeName2() != "Chamfer") continue;
+                    var d = f.GetDefinition() as IChamferFeatureData2;
+                    if (d == null) return null;
+                    var sizes = new Dictionary<string, object>();
+                    DocumentState.ChamferSizes(d.Type, side => d.GetEdgeChamferDistance(side), () => d.EdgeChamferAngle,
+                                               side => d.GetVertexChamferDistance(side), sizes);
+                    return ChamferLegPairs(sizes, out said);
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// The pairs of legs (mm) a chamfer read by DocumentState.ChamferSizes allows,
+        /// and the chamfer in words. Two legs: that pair. A leg and an angle: the
+        /// other leg is leg x tan or leg / tan of the angle, as the angle is taken
+        /// from one face or the other (both kept: the guide does not say which). One
+        /// leg alone: equal legs. A vertex chamfer, or no leg: null. Pure.
+        /// </summary>
+        internal static List<double[]> ChamferLegPairs(Dictionary<string, object> sizes, out string said)
+        {
+            said = null;
+            if (sizes == null || sizes.ContainsKey("vertex_distances_mm")) return null;
+            double leg1 = sizes.ContainsKey("leg1_mm") ? Convert.ToDouble(sizes["leg1_mm"], Ci) : 0;
+            double leg2 = sizes.ContainsKey("leg2_mm") ? Convert.ToDouble(sizes["leg2_mm"], Ci) : 0;
+            double deg = sizes.ContainsKey("angle_deg") ? Convert.ToDouble(sizes["angle_deg"], Ci) : 0;
+            if (!(leg1 > 0)) return null;
+            var pairs = new List<double[]>();
+            if (leg2 > 0)
+            {
+                pairs.Add(new[] { leg1, leg2 });
+                said = leg1.ToString("0.###", Ci) + " x " + leg2.ToString("0.###", Ci);
+            }
+            else if (deg > 0 && deg < 90)
+            {
+                double tan = Math.Tan(deg * Math.PI / 180.0);
+                pairs.Add(new[] { leg1, leg1 * tan });
+                pairs.Add(new[] { leg1, leg1 / tan });
+                said = leg1.ToString("0.###", Ci) + " x " + deg.ToString("0.##", Ci) + "°";
+            }
+            else
+            {
+                pairs.Add(new[] { leg1, leg1 });
+                said = leg1.ToString("0.###", Ci) + " x " + leg1.ToString("0.###", Ci);
+            }
+            return pairs;
+        }
+
+        /// <summary>
+        /// Why a chamfer dimension does not measure its chamfer (report 8cd843, round
+        /// 21), or null when it does or cannot be judged (pairs or values unknown).
+        /// The dimension gives a leg and an angle: its other leg is leg x tan(angle).
+        /// It measures the chamfer when its two legs are one of the pairs, in either
+        /// order, within 0.01 mm plus 1 %. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string ChamferNotTrueSize(string feature, string said, double? angleDeg, double? legMm, List<double[]> pairs)
+        {
+            if (pairs == null || pairs.Count == 0 || !angleDeg.HasValue || !legMm.HasValue) return null;
+            double leg = legMm.GetValueOrDefault(), deg = angleDeg.GetValueOrDefault();
+            if (!(deg > 0 && deg < 90) || !(leg > 0)) return null;
+            double other = leg * Math.Tan(deg * Math.PI / 180.0);
+            Func<double, double, bool> near = (x, y) => Math.Abs(x - y) <= 0.01 + 0.01 * Math.Max(Math.Abs(x), Math.Abs(y));
+            foreach (var p in pairs)
+                if ((near(leg, p[0]) && near(other, p[1])) || (near(leg, p[1]) && near(other, p[0]))) return null;
+            return "the chamfer «" + feature + "» is " + (said ?? "?") + " and the dimension read " +
+                   leg.ToString("0.###", Ci) + " x " + deg.ToString("0.##", Ci) +
+                   "°: in this view the chamfer is not seen in its true size";
         }
 
         /// <summary>

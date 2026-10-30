@@ -745,6 +745,13 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         private static double DocumentVolume(IModelDoc2 doc)
         {
+            // Timed, and inside the sequence of API calls (bridge 0.157.2): the
+            // declared cases read it before every step.
+            return Timed("volume", () => InSequence(() => VolumeOf(doc)));
+        }
+
+        private static double VolumeOf(IModelDoc2 doc)
+        {
             double v = 0;
             // A DRAWING has no bodies. Since the session can keep
             // two documents open, the active document may well

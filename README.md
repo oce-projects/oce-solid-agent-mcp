@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.152.10-blue)
-![Library version](https://img.shields.io/badge/library-0.174.9-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.159.7-blue)
+![Library version](https://img.shields.io/badge/library-0.186.0-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -25,7 +25,7 @@
 *An independent project, not affiliated with Dassault Systèmes.*
 
 An MCP server for the **SOLIDWORKS® software**: it lets any model — local or
-remote — build a part, an assembly or a drawing through 107 operations, each one
+remote — build a part, an assembly or a drawing through 111 operations, each one
 measured inside the software, and above all **look at what came out**. Every
 operation reads the document again after it runs and reports what SOLIDWORKS
 software really did; a step that could not be verified is reported as such, never
@@ -144,7 +144,7 @@ read it (`inspect_part`). Only then ask for a change: the identifiers a plan nee
 
 ## The tools
 
-Nine tools, not one per operation: exposing a tool for each of the 107 operations
+Nine tools, not one per operation: exposing a tool for each of the 111 operations
 would cost tens of thousands of characters of schemas in every request
 and would make it easy to skip the first step. The operations sit behind `build`
 and `measure`, and are discovered on demand.
@@ -199,12 +199,12 @@ Why some of this is built the way it is:
 
 ## The operations
 
-`Tools/catalog.json` lists 107 operations in 12 families. It is an exported copy,
+`Tools/catalog.json` lists 111 operations in 12 families. It is an exported copy,
 written by the bridge itself (see [Tools/update.md](Tools/update.md)), and holds only
 the operations **measured inside the SOLIDWORKS software**: an operation that exists
 in the library but could not be shown to create what it promises stays out of the
 file, so a client cannot call it. The bench prints both numbers in its header
-("runnable: 107 operations (in catalog: 105)").
+("runnable: 111 operations (in catalog: 111)").
 
 Each operation carries its limits and its refusals in the description the model
 reads. The same operations are the ones the OpenPDM add-in runs, so what is tested
@@ -368,7 +368,7 @@ the CI would believe it.
   starts one.
 - **Only measured operations are exposed.** There is no generic "call any API method"
   tool yet: `api_search` and `api_signature` read the API, but the changes go through
-  the 107 operations.
+  the 111 operations.
 - **Identifiers are positional** and valid for one reading; plans must name faces from
   a fresh `inspect_part`.
 - **Writes are fenced** by `OCE_WRITE_ROOT` and `OCE_READ_ONLY_FOLDERS`, and a
@@ -386,7 +386,7 @@ the CI would believe it.
 
 ## Languages of SOLIDWORKS software
 
-**The project is in English**: the ten tools and their sub-actions, the 107
+**The project is in English**: the ten tools and their sub-actions, the 111
 operations and their families, every argument and the value of every argument whose
 schema lists one, the selectors (`@face(normal=front)`), the fields of every answer,
 the keys of `Tools/catalog.json`, the MCP resources (`catalog://operations`,
