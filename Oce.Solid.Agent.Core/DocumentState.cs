@@ -2595,6 +2595,8 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         internal static int NaturalCompare(string a, string b)
         {
+            // ZERO-E-ZERO: a comparison, not a count: 0 says «the same place in the
+            // order», and two missing names do share it.
             if (a == null) return b == null ? 0 : 1;
             if (b == null) return -1;
             int i = 0, j = 0;

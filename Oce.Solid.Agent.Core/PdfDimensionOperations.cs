@@ -52,7 +52,8 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 var data = d == null ? null : d.GetDisplayData() as IDisplayData;
-                int n = data == null ? 0 : data.GetTextCount();
+                if (data == null) return null;
+                int n = data.GetTextCount();
                 var texts = new List<string>();
                 for (int i = 0; i < n; i++) texts.Add(data.GetTextAtIndex(i));
                 return TextShownOf(texts);

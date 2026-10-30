@@ -763,8 +763,13 @@ using System.Runtime.InteropServices;
 //          ties ordered by body, then feature number (faces) or middle of the ends (edges);
 //          `between` lower number first; `documents_open` by title. Bench of 30/10/2026: 3
 //          state files of 291 differed between two equal runs, all by an order.
-[assembly: AssemblyVersion("0.186.0.0")]
-[assembly: AssemblyFileVersion("0.186.0.0")]
+// 0.186.1: zero is not «I do not know» (the pre-push hook stopped the push of 0.186.0 on 12
+//          points): `edges_total` of `view_edges`, `notes_on_the_sheet_left_out` of
+//          `title_block` and the tables of the sheet are null when they cannot be read; the
+//          pieces of a view without the array of its lines are null; the true zeros carry
+//          the marker with the reason.
+[assembly: AssemblyVersion("0.186.1.0")]
+[assembly: AssemblyFileVersion("0.186.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -779,4 +784,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.186.0")]
+[assembly: AssemblyInformationalVersion("0.186.1")]

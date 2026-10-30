@@ -649,6 +649,8 @@ namespace Oce.Solid.Agent.Core
                 ["view_of"] = whose,
                 ["components_in_view"] = components.Count,
                 ["edges_available"] = edges.Length,
+                // ZERO-E-ZERO: «named» is null when no edge was named with «edges»
+                // (OverallMode), so none was tried.
                 ["edges_tried"] = named == null ? 0 : named.Count,
                 ["overall"] = mode,
                 ["overall_mm"] = overallRead,
@@ -755,7 +757,7 @@ namespace Oce.Solid.Agent.Core
             var perComponent = new Dictionary<string, int>(StringComparer.Ordinal);
             double[] box = { double.MaxValue, double.MaxValue, double.MinValue, double.MinValue };
             int matched = 0, unreadable = 0;
-            int total = edges == null ? 0 : edges.Length;
+            int total = edges == null ? -1 : edges.Length;   // no array: how many is not known
             for (int i = 0; i < total; i++)
             {
                 var row = new Dictionary<string, object> { ["edge"] = i };
@@ -812,7 +814,7 @@ namespace Oce.Solid.Agent.Core
             {
                 ["view"] = view.GetName2() ?? "",
                 ["scale"] = Math.Round(scale, 4),
-                ["edges_total"] = total,
+                ["edges_total"] = total >= 0 ? (object)total : null,
                 ["edges_matching"] = matched,
                 ["edges_listed"] = listed.Count,
                 ["edges_unreadable"] = unreadable,

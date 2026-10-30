@@ -366,7 +366,11 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 var sheetView = drawing.GetFirstView() as IView;
-                var t = sheetView?.GetTableAnnotations() as object[];
+                if (sheetView == null) return -1;
+                var t = sheetView.GetTableAnnotations() as object[];
+                // ZERO-E-ZERO: no array from GetTableAnnotations is a sheet without tables,
+                // as every other reading of tables in the library takes it (BomOperations,
+                // ReadDrawingOperations); not measured here, a failure throws and gives -1.
                 return t == null ? 0 : t.Length;
             }
             catch { return -1; }

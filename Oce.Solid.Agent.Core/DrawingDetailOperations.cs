@@ -931,7 +931,8 @@ namespace Oce.Solid.Agent.Core
             {
                 object lines;
                 var edges = view.GetPolylines7(1, out lines) as object[];
-                return PolylinePieces(lines as double[], edges == null ? 0 : edges.Length, view.GetXform() as double[]);
+                if (edges == null) return null;   // a reading that failed, not a view without lines
+                return PolylinePieces(lines as double[], edges.Length, view.GetXform() as double[]);
             }
             catch { return null; }
         }

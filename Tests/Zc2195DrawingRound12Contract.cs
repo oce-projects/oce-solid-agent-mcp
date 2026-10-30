@@ -182,7 +182,8 @@ namespace Oce.Solid.Agent.ContractTests
         // «notes», not «outside», since library 0.174.7: the loop moved into FormatNotes,
         // which reads the format of the other sheets too (report 8cd843 N59).
         private const string OwnerElse = "else if (note != null) notes.Add(note);";
-        private const string LeftOutSaid = "[\"notes_on_the_sheet_left_out\"] = notesOnTheSheet,";
+        // Null when an annotation of the format could not be read, since library 0.186.1.
+        private const string LeftOutSaid = "[\"notes_on_the_sheet_left_out\"] = notesOnTheSheet >= 0 ? (object)notesOnTheSheet : null,";
         private const string FlagBefore = "try { unsavedBeforePdf = model.GetSaveFlag(); } catch { }";
         private const string FlagAfter = "try { unsavedAfterPdf = model.GetSaveFlag(); } catch { }";
         private const string PdfWrite = "pdf, ref errors, ref warnings);";

@@ -32,6 +32,34 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.159.8 — 30 October 2026 · library 0.186.1 · zero is not «I do not know» (branch `night-2026-10-26-asm`)
+
+The pre-push hook stopped the push of 0.159.7: `Checks/zero-or-unknown.js` found 12 points
+where a count could say zero for a reading that failed. Each one was read in its context.
+
+- **Repaired, the answer can now say «I do not know»**:
+  - `view_edges`: `edges_total` is null when the view gives no array of edges
+    (`GetVisibleEntities2`), not 0;
+  - `title_block`: `notes_on_the_sheet_left_out` is null when an annotation of the format
+    could not be read (`FormatNotes` returns -1), not the count of the ones read before it;
+  - removing a view: `tables_on_the_sheet_before` and `_after` are null when the sheet has no
+    first view to read, not 0.
+- **Repaired, same answer as before**: the pieces of the lines of a view are null when
+  `GetPolylines7` gives no array of records (balloon spreading, the box of a detail view; an
+  empty list before, which the callers already took as «cannot read»); `TextShown` returns null
+  at once when the display data is missing; `WidestText` gives -1 instead of 0 when the text
+  cannot be read (the callers take only a width above 0).
+- **True zeros, with the marker and the reason**: `NaturalCompare` (a comparison, two missing
+  names share the same place), `edges_tried` (no edge named, none tried), `OtherSheetWarning`
+  (a list left null holds no name), the tables of the sheet when `GetTableAnnotations` gives no
+  array (as every other reading of tables in the library takes it; not measured here).
+- The contract that reads the wiring of the title block (`Zc2195DrawingRound12Contract`) looks
+  for the new line of `notes_on_the_sheet_left_out`.
+- Not run against SOLIDWORKS: the paths changed are the ones of a reading that failed.
+  `zero-or-unknown.js`: 0 points left. Contract suite: 996 checks, 4 failed, all four about the
+  last bench run (a partial run, on library 0.186.0, older than this change, so not every
+  operation has a green case in it); the full bench was not run again.
+
 ## 0.159.7 — 30 October 2026 · library 0.186.0 · the bench lets the objects go as the bridge does (branch `night-2026-10-26-asm`)
 
 - **Bench, every declared step starts as a call of the bridge starts**: the garbage is

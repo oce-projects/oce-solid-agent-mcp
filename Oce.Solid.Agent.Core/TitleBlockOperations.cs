@@ -181,7 +181,7 @@ namespace Oce.Solid.Agent.Core
                 ["notes_in_title_block"] = note.Count,
                 ["notes_linked"] = connected,
                 // The notes put on the sheet, left out of the title block (N45).
-                ["notes_on_the_sheet_left_out"] = notesOnTheSheet,
+                ["notes_on_the_sheet_left_out"] = notesOnTheSheet >= 0 ? (object)notesOnTheSheet : null,
                 ["searched_in"] = fromWhere,
                 ["fields"] = fields.ToArray(),
             };
@@ -404,13 +404,15 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The notes of the format carried by a sheet «view», added to «notes»; the
-        /// number of notes put on the sheet, left out, is returned. The view is the
-        /// first one of the active sheet (TitleBlockNotes) or the first one of the list
-        /// of another sheet (SheetViews, report 8cd843 N59).
+        /// number of notes put on the sheet, left out, is returned, -1 when an annotation
+        /// could not be read. The view is the first one of the active sheet
+        /// (TitleBlockNotes) or the first one of the list of another sheet (SheetViews,
+        /// report 8cd843 N59).
         /// </summary>
         private static int FormatNotes(IView sheetView, List<INote> notes)
         {
             int onTheSheet = 0;
+            bool unread = false;
             try
             {
                 var ann = sheetView.GetFirstAnnotation3() as IAnnotation;
@@ -442,12 +444,12 @@ namespace Oce.Solid.Agent.Core
                         if (note != null && owner == (int)swAnnotationOwner_e.swAnnotationOwner_DrawingSheet) onTheSheet++;
                         else if (note != null) notes.Add(note);
                     }
-                    catch { }
+                    catch { unread = true; }
                     ann = ann.GetNext3() as IAnnotation;
                 }
             }
-            catch { }
-            return onTheSheet;
+            catch { unread = true; }
+            return unread ? -1 : onTheSheet;
         }
 
         /// <summary>
@@ -789,6 +791,8 @@ namespace Oce.Solid.Agent.Core
             string sheetName, string modelPath, List<string> missing, List<string> blank, bool oneOfSeveral,
             int alsoEmptyHere)
         {
+            // ZERO-E-ZERO: the lists are built by the caller from names it read; a list
+            // left null holds no name, so there is nothing to say of it.
             int m = missing == null ? 0 : missing.Count, b = blank == null ? 0 : blank.Count;
             if (m + b == 0) return null;
             var parts = new List<string>();

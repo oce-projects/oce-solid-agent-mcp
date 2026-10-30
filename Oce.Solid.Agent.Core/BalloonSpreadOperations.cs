@@ -78,7 +78,8 @@ namespace Oce.Solid.Agent.Core
             {
                 object lines;
                 var edges = view.GetPolylines7(1, out lines) as object[];
-                pieces = PolylinePieces(lines as double[], edges == null ? 0 : edges.Length, view.GetXform() as double[]);
+                // No array of records is a reading that failed, not a view without lines.
+                pieces = edges == null ? null : PolylinePieces(lines as double[], edges.Length, view.GetXform() as double[]);
             }
             catch { }
             if (pieces == null || pieces.Count == 0 || mu == null)

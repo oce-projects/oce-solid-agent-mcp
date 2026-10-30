@@ -261,18 +261,19 @@ namespace Oce.Solid.Agent.Core
             return textWidth > 0 && textWidth + 2 * arrowRoom <= gap ? "inside" : "outside";
         }
 
-        /// <summary>The widest text of a dimension on the sheet, metres; 0 when it cannot be read.</summary>
+        /// <summary>The widest text of a dimension on the sheet, metres; -1 when it cannot be read.</summary>
         private static double WidestText(IDisplayDimension d)
         {
-            double widest = 0;
             try
             {
                 var data = d.GetDisplayData() as IDisplayData;
-                int n = data == null ? 0 : data.GetTextCount();
+                if (data == null) return -1;
+                double widest = -1;
+                int n = data.GetTextCount();
                 for (int i = 0; i < n; i++) widest = Math.Max(widest, data.GetTextInBoxWidthAtIndex(i));
+                return widest;
             }
-            catch { }
-            return widest;
+            catch { return -1; }
         }
 
         /// <summary>
