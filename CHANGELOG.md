@@ -32,6 +32,32 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.159.9 — 30 October 2026 · library 0.186.1 · the pre-push hook no longer writes into the repository it guards (branch `night-2026-10-26-asm`)
+
+- **What happened.** The push of 0.159.8 from a linked worktree ran the pre-push hook, and
+  the hook ran the self-test of `Checks/expected-keys-test.js`. Git runs a hook with
+  `GIT_DIR` set, and the self-test builds four tiny repositories for the language gate with
+  `git init` and `git add -A`: with `GIT_DIR` inherited, both went to the repository being
+  pushed. The main repository got `core.bare = true` in its `config` (written at the second of
+  the hook; its own working tree then answered «fatal: this operation must be run in a work
+  tree»), and the index of the worktree held the three files of the last tiny repository
+  (`Checks/language/exceptions.json`, `Checks/language/lexicon.json`, `notes.md`) instead of
+  884. No commit and no ref moved. Both were repaired by hand (`core.bare false`, `git reset`).
+- **Reproduced before the repair of the code**, on a throw-away repository with a linked
+  worktree and `GIT_DIR` set as git sets it: `core.bare` false → true, index 1 file → 3; from the
+  main repository the index only.
+- **Two guards**, each enough alone (measured):
+  - `Checks/expected-keys-test.js` drops the variables of `git rev-parse --local-env-vars`
+    before anything else: the same probe leaves the throw-away repository as it was (`core.bare`
+    false, index 1 file), and the self-test still passes its 28 cases;
+  - `Checks/hooks/pre-push` drops the same variables at its top, so every check finds the
+    repository from the working tree, as when it is run by hand: with the old self-test (the
+    one of HEAD, without its guard) and the block taken from the hook, the probe leaves the
+    repository as it was; without the block, `core.bare` true and 3 files.
+- `token-stream.js` and `same-il.ps1` call git with `-C` on folders of their own too, only to
+  read: with `GIT_DIR` inherited they would have read the repository being pushed. The guard of
+  the hook covers them.
+
 ## 0.159.8 — 30 October 2026 · library 0.186.1 · zero is not «I do not know» (branch `night-2026-10-26-asm`)
 
 The pre-push hook stopped the push of 0.159.7: `Checks/zero-or-unknown.js` found 12 points

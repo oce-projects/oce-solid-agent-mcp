@@ -46,6 +46,21 @@ const os = require('os');
 const cp = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+
+// THE VARIABLES OF THE REPOSITORY THAT RUNS THE HOOK ARE DROPPED FIRST (30/10/2026).
+// Inside a hook git exports GIT_DIR, and every git below inherited it: the
+// `git init` and `git add -A` of the tiny repositories of the language gate
+// wrote into the repository being pushed. From the linked worktree of the push
+// of 30/10/2026 the main repository got `core.bare = true` (its own working
+// tree answered «this operation must be run in a work tree») and the index of
+// the worktree held the three files of the last tiny repository. The list is
+// the one of `git rev-parse --local-env-vars`; without it, git finds the real
+// repository from the working directory, ROOT, as when run by hand.
+for (const name of ['GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_CONFIG', 'GIT_CONFIG_PARAMETERS',
+  'GIT_CONFIG_COUNT', 'GIT_OBJECT_DIRECTORY', 'GIT_DIR', 'GIT_WORK_TREE', 'GIT_IMPLICIT_WORK_TREE',
+  'GIT_GRAFT_FILE', 'GIT_INDEX_FILE', 'GIT_NO_REPLACE_OBJECTS', 'GIT_REPLACE_REF_BASE', 'GIT_PREFIX',
+  'GIT_SHALLOW_FILE', 'GIT_COMMON_DIR']) delete process.env[name];
+
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'expected-keys-'));
 
 // The readers, and the keys they expect (the names are the protocol of today:
