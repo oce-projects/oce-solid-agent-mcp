@@ -32,6 +32,35 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.160.4 — 31 October 2026 · library 0.188.0 · the obsolete-call scanner knows a class of the repository named with its namespace (branch `night-2026-10-26-asm`)
+
+- **The red.** The contracts after the full bench of 0.160.3: «undecided calls (receiver type
+  not in the source) do not grow» was red on `Bench/Program.cs|Close 0 -> 1`, the line
+  `Shared.FinalizerGate.Close(2000)` of 0.160.2. The receiver is a class of this repository;
+  the scanner took `FinalizerGate` as a member of something whose type it does not know.
+- **Now.** `ObsoleteCallScanner` keeps the namespaces declared in the scanned source. A
+  qualifier that is one of them, followed by a class declared in the source, decides the call:
+  it is not a SOLIDWORKS type. A qualifier that is a variable (`x.G.Close`) still decides
+  nothing. No count is raised in `obsolete-undecided-frozen.tsv`; the 694 undecided calls of
+  the other files are as before.
+- Contract check «a class of the repository named with its namespace decides the call» (2
+  snippets), seen red before the change (1000 checks, 5 failed) and green after; one more
+  snippet that must stay undecided.
+- **The full bench of 0.160.3** (commit e0fae9f, 31/10/2026 00:10-01:48, 5834 s): 2596 tests,
+  3 failed. They are the three cases already red in the run of 30/10/2026 05:48 on library
+  0.186.0, which is pushed: `between_edges_gives_the_height_past_a_chamfer` (step 10, the
+  detail shows no edge), `bom_over_the_title_block_and_balloons_again` (step 4, «above the
+  title block» instead of «over the title block»), `the_width_mate_centres_the_tab` (step 2,
+  origin [0, 5, 0] instead of [0, 10, 0]). A first run stopped at 1403 s on a structural member
+  that did not answer for 93 s (`InsertStructuralWeldment4` with the profile on the network
+  share; the journal of SOLIDWORKS records it as finished about three minutes later), with 484
+  checks green and none red before it. The library does not change in 0.160.4, so the run
+  stands for it. Its report is not committed: one failure line quotes the Italian name of a
+  drawing view, which the language gate refuses. The report committed before it was a partial
+  run (30/10/2026 06:03) that left these three cases out.
+
+---
+
 ## 0.160.3 — 30 October 2026 · library 0.188.0 · `OCE_UI_FREEZE` can name one part (`graphics` or `tree`), to tell which one stops the falls of the drawing cycle (branch `night-2026-10-26-asm`)
 
 - **The measure that asks for it.** The cycle of 15 drawings (scenario t45: a plate, then 15

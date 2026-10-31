@@ -163,6 +163,9 @@ namespace Oce.Solid.Agent.ContractTests
             @"\b(I?[A-Z]\w*)(\[\])?\s+([A-Za-z_]\w*)\s*(?:<[^()<>]*>)?\s*\(", RegexOptions.Compiled);
         private static readonly Regex TypeHeaderRx = new Regex(@"\b(class|struct|interface|record|enum)\s+([A-Za-z_]\w*)", RegexOptions.Compiled);
         private static readonly Regex NamespaceRx = new Regex(@"\bnamespace\b", RegexOptions.Compiled);
+        private static readonly Regex NamespaceNameRx = new Regex(@"\bnamespace\s+([A-Za-z_][\w.]*)", RegexOptions.Compiled);
+        // `Shared.FinalizerGate` at the end of the text before a member: a qualifier, then a name.
+        private static readonly Regex QualifiedClassRx = new Regex(@"(?<![\w.])([A-Za-z_]\w*(?:\s*\.\s*[A-Za-z_]\w*)*)\s*\.\s*([A-Za-z_]\w*)\s*$", RegexOptions.Compiled);
         private static readonly Regex TypeTokenRx = new Regex(
             @"(?:\bnew\s+|\bas\s+|\bis\s+|\btypeof\s*\(\s*|<\s*)(?<t>I?[A-Z]\w*)|\(\s*(?<t>I?[A-Z]\w*)\s*\)", RegexOptions.Compiled);
         private static readonly Regex MemberRx = new Regex(@"\.\s*([A-Za-z_]\w*)\b", RegexOptions.Compiled);
@@ -213,6 +216,7 @@ namespace Oce.Solid.Agent.ContractTests
         private readonly List<SourceFile> _files = new List<SourceFile>();
         private readonly HashSet<string> _typesNamed = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _classNames = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<string> _namespaces = new HashSet<string>(StringComparer.Ordinal);
         // class name -> field or property name -> the types it is declared with
         private readonly Dictionary<string, Dictionary<string, HashSet<string>>> _fields =
             new Dictionary<string, Dictionary<string, HashSet<string>>>(StringComparer.Ordinal);
@@ -382,7 +386,12 @@ namespace Oce.Solid.Agent.ContractTests
                         var s = new Scope { Parent = top(), Depth = stack.Count };
                         var tm = TypeHeaderRx.Match(h);
                         if (tm.Success) { s.Kind = ScopeKind.Type; s.ClassName = tm.Groups[2].Value; _classNames.Add(s.ClassName); }
-                        else if (NamespaceRx.IsMatch(h)) s.Kind = ScopeKind.Namespace;
+                        else if (NamespaceRx.IsMatch(h))
+                        {
+                            s.Kind = ScopeKind.Namespace;
+                            var nm = NamespaceNameRx.Match(h);
+                            if (nm.Success) _namespaces.Add(nm.Groups[1].Value);
+                        }
                         else s.Kind = ScopeKind.Code;
                         if (s.Kind == ScopeKind.Code && pending.Count > 0 && pendingOwner == top() && parens[parens.Count - 1] == 0)
                         {
@@ -530,7 +539,7 @@ namespace Oce.Solid.Agent.ContractTests
             if (member.Success)
             {
                 string t;
-                return Accessors.TryGetValue(member.Groups[1].Value, out t) ? t : null;
+                return Accessors.TryGetValue(member.Groups[1].Value, out t) ? t : ClassOfTheRepository(before);
             }
             var ident = TrailingIdentRx.Match(before);
             if (ident.Success) return TypeOf(f, line, col, ident.Groups[1].Value);
@@ -565,6 +574,22 @@ namespace Oce.Solid.Agent.ContractTests
                 if (callee.Success && callee.Groups["m"].Success) return MethodType("|" + callee.Groups["m"].Value);
             }
             return null;
+        }
+
+        /// <summary>
+        /// A class of the repository named with a namespace of the repository right before the
+        /// member (`Shared.FinalizerGate.Close(2000)`, 0.160.4): the source says its type, and it
+        /// is not a SOLIDWORKS type. The name returned is outside the universe of the list, so
+        /// the call is neither obsolete nor undecided. A qualifier that is not a namespace
+        /// declared here (a variable, `x.G`) decides nothing.
+        /// </summary>
+        private string ClassOfTheRepository(string before)
+        {
+            var q = QualifiedClassRx.Match(before);
+            if (!q.Success) return null;
+            var ns = Regex.Replace(q.Groups[1].Value, @"\s+", "");
+            return _namespaces.Contains(ns) && _classNames.Contains(q.Groups[2].Value)
+                ? "class of the repository " + q.Groups[2].Value : null;
         }
 
         private string MethodType(string key)

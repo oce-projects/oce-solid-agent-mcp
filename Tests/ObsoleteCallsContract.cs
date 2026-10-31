@@ -259,6 +259,17 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 "class C {\n void A() { IConfigurationManager g = null; }\n void B() { var g = Find(); var n = g.Name; }\n}",
                 "class C {\n void A(IFeature f) { }\n void B() { var n = f.Select2(false, 0); }\n}",
+                // A class of the repository reached through a variable, not through its
+                // namespace: the variable decides, and its type is not said.
+                "namespace N {\n static class G { public static bool Close(int ms) { return true; } }\n class C { void B() { var x = Find(); var b = x.G.Close(5); } }\n}",
+            };
+            // A class of the repository named with its namespace (`Shared.FinalizerGate.Close`,
+            // 0.160.4) is a receiver whose type the source says: not a SOLIDWORKS call,
+            // not undecided.
+            var mustBeDecided = new[]
+            {
+                "namespace N {\n static class G { public static bool Close(int ms) { return true; } }\n class C { void B() { var b = N.G.Close(5); } }\n}",
+                "namespace N.M {\n static class G { public static bool Close(int ms) { return true; } }\n class C { void B() { var b = N.M.G.Close(5); } }\n}",
             };
             var missed = mustFlag.Where(l => ScanSnippet(list, l).Count != 1).ToList();
             var wrong = mustPass.Where(l => ScanSnippet(list, l).Count != 0).ToList();
@@ -267,6 +278,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var s = new ObsoleteCallScanner(list);
                 s.Add("snippet.cs", l.Split('\n'));
                 return s.Scan().Count != 0 || s.Undecided != 1;
+            }).ToList();
+            var notDecided = mustBeDecided.Where(l =>
+            {
+                var s = new ObsoleteCallScanner(list);
+                s.Add("snippet.cs", l.Split('\n'));
+                return s.Scan().Count != 0 || s.Undecided != 0;
             }).ToList();
             Check("the scanner catches obsolete calls on typed receivers", missed.Count == 0,
                   (mustFlag.Length - missed.Count) + " of " + mustFlag.Length + " (declared, accessor, cast, interpolated string, " +
@@ -277,6 +294,9 @@ namespace Oce.Solid.Agent.ContractTests
             Check("a type declared out of scope leaves the call undecided", notUndecided.Count == 0,
                   notUndecided.Count == 0 ? mustBeUndecided.Length + " snippets: the other method's variable is not used"
                                           : string.Join(" | ", notUndecided));
+            Check("a class of the repository named with its namespace decides the call", notDecided.Count == 0,
+                  notDecided.Count == 0 ? mustBeDecided.Length + " snippets: neither obsolete nor undecided"
+                                        : string.Join(" | ", notDecided));
 
             // ── THE REAL SOURCE ──────────────────────────────────────────
             var cases = BankCases();
