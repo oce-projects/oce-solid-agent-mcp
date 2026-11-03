@@ -13,7 +13,8 @@
                                    { "start": [0, 300, 0], "end": [0, 300, 400] } ] },
       "must_fail": {
         "message_includes": ["Read after the refusal", "the group holds 2 of the 2 segments drawn",
-                             "4 ends of the drawn segments meet no end of another", "583.095 mm"],
+                             "4 ends of the drawn segments meet no end of another", "583.095 mm",
+                             "the call took", "open for editing", "document in front", "SOLIDWORKS holds"],
         "volume_unchanged": true,
         "twin": "a_member_not_born_says_what_it_read" } },
 

@@ -847,8 +847,11 @@ using System.Runtime.InteropServices;
 // 0.198.10: a hole position dimension is put on the centre of the hole when SOLIDWORKS put it on the nearest
 //          or furthest point (IDimension.SetArcEndCondition), and the answer says which ends were read and moved.
 // 0.198.11: words only, for the language gate: two comments of DrawingDimensionStyle.cs; no behaviour changes.
-[assembly: AssemblyVersion("0.198.11.0")]
-[assembly: AssemblyFileVersion("0.198.11.0")]
+// 0.198.12: after a null of InsertStructuralWeldment5 the answer also reads the time of the call, an open sketch,
+//          the document in front, the documents and window resources of SOLIDWORKS; WithoutSketch logs why it
+//          leaves a sketch. Readings and a log line only.
+[assembly: AssemblyVersion("0.198.12.0")]
+[assembly: AssemblyFileVersion("0.198.12.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -863,4 +866,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.198.11")]
+[assembly: AssemblyInformationalVersion("0.198.12")]

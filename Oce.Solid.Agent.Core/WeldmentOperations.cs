@@ -757,6 +757,7 @@ namespace Oce.Solid.Agent.Core
 
             // ── the structural member ────────────────────────────────────
             IFeature feature;
+            long insertionMs = -1;
             try
             {
                 // ConnectedSegmentsOption = 1, and the number is MEASURED.
@@ -783,12 +784,14 @@ namespace Oce.Solid.Agent.Core
                 //
                 // The groups too must be typed, for the same reason as the
                 // segments above.
+                var insertionClock = System.Diagnostics.Stopwatch.StartNew();
                 feature = model.FeatureManager.InsertStructuralWeldment5(
                     Path: profile,
                     ConnectedSegmentsOption: 1,
                     AllowProtrusion: false,
                     Groups: new[] { (StructuralMemberGroup)theGroup },
                     ConfigurationName: configuration) as IFeature;
+                insertionMs = insertionClock.ElapsedMilliseconds;
             }
             catch (Exception ex)
             {
@@ -803,7 +806,7 @@ namespace Oce.Solid.Agent.Core
             {
                 // Read BEFORE WithoutSketch: it may delete the sketch, and the
                 // drawn segments with it (library 0.198.9, see WhatTheNullLeft).
-                string readAfter = WhatTheNullLeft(theGroup, created, profile);
+                string readAfter = WhatTheNullLeft(model, theGroup, created, profile, insertionMs);
                 return Failed(
                     "The structural member was not created: SOLIDWORKS returned no feature " +
                     "and no reason." + readAfter + " Usually it is the " +
@@ -2829,10 +2832,32 @@ namespace Oce.Solid.Agent.Core
         ///   whether the profile library is open, that is whether SOLIDWORKS read
         ///   it (it opens it by itself on an insertion, see StructuralMember).
         ///
+        /// Library 0.198.12 adds five, because the unexpected null comes back only in
+        /// long runs (2 in 3 full benches, 1 in 9 replays of the bench prefix, 0 in 34
+        /// shorter runs) and in both full benches it came with the sketch of the path
+        /// left in the part:
+        ///
+        ///   how long the call took, in milliseconds;
+        ///
+        ///   whether a sketch is still open for editing (ISketchManager~ActiveSketch.html:
+        ///   «Gets the active sketch»). A probe of 3/11/2026 found that an open
+        ///   sketch does not give the null (the member was born 3 times in 3, and the
+        ///   insertion closed the sketch): the reading is there to rule it out;
+        ///
+        ///   which document is in front (ISldWorks~ActiveDoc.html): the insertion opens
+        ///   the profile library by itself;
+        ///
+        ///   how many documents SOLIDWORKS holds (ISldWorks~GetDocumentCount.html), and
+        ///   its window resources, GDI and USER objects of its process
+        ///   (ISldWorks~GetProcessID.html, GetGuiResources of user32): short of them
+        ///   SOLIDWORKS skips work without an error (a session of about 4,900 documents,
+        ///   1/10/2026).
+        ///
         /// It does not throw. A reading that fails is left out, it is not written as
         /// zero: zero segments in the group is a finding, an unread group is not.
         /// </summary>
-        private string WhatTheNullLeft(IStructuralMemberGroup group, List<ISketchSegment> drawn, string profile)
+        private string WhatTheNullLeft(IModelDoc2 model, IStructuralMemberGroup group,
+            List<ISketchSegment> drawn, string profile, long insertionMs)
         {
             var facts = new List<string>();
             try
@@ -2891,7 +2916,75 @@ namespace Oce.Solid.Agent.Core
             else
                 facts.Add("the profile library «" + itemName + "» is not open");
 
+            if (insertionMs >= 0)
+                facts.Add(string.Format(CultureInfo.InvariantCulture,
+                    "the call took {0} ms", insertionMs));
+
+            try
+            {
+                var open = model?.SketchManager?.ActiveSketch;
+                if (open == null) facts.Add("no sketch is open for editing");
+                else
+                {
+                    string openName = "";
+                    try { openName = (open as IFeature)?.Name ?? ""; } catch { }
+                    facts.Add(openName.Length > 0
+                        ? "a sketch is still open for editing: «" + openName + "»"
+                        : "a sketch is still open for editing");
+                }
+            }
+            catch { }
+
+            try
+            {
+                var front = _sw?.ActiveDoc as IModelDoc2;
+                string frontTitle = "", ours = "";
+                try { frontTitle = front?.GetTitle() ?? ""; } catch { }
+                try { ours = model?.GetTitle() ?? ""; } catch { }
+                if (front == null) facts.Add("no document is in front");
+                else if (ours.Length > 0 && string.Equals(frontTitle, ours, StringComparison.OrdinalIgnoreCase))
+                    facts.Add("this part is the document in front");
+                else facts.Add("the document in front is «" + frontTitle + "», not this part");
+            }
+            catch { }
+
+            try
+            {
+                facts.Add(string.Format(CultureInfo.InvariantCulture,
+                    "SOLIDWORKS holds {0} documents", _sw.GetDocumentCount()));
+            }
+            catch { }
+            string resources = WindowResources(_sw);
+            if (resources != null) facts.Add(resources);
+
             return " Read after the refusal: " + string.Join("; ", facts) + ".";
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetGuiResources(IntPtr hProcess, uint uiFlags);
+
+        /// <summary>
+        /// The window resources of the SOLIDWORKS process (library 0.198.12), for
+        /// <see cref="WhatTheNullLeft"/>: GDI objects (GetGuiResources flag 0), USER
+        /// objects (flag 1), kernel handles and private memory. Null when the process
+        /// cannot be read: GetGuiResources answers 0 on a failure, and 0 objects read
+        /// that way would be a false finding.
+        /// </summary>
+        private static string WindowResources(ISldWorks sw)
+        {
+            try
+            {
+                using (var process = System.Diagnostics.Process.GetProcessById(sw.GetProcessID()))
+                {
+                    uint gdi = GetGuiResources(process.Handle, 0);
+                    uint user = GetGuiResources(process.Handle, 1);
+                    if (gdi == 0 && user == 0) return null;
+                    return string.Format(CultureInfo.InvariantCulture,
+                        "SOLIDWORKS uses {0} GDI objects, {1} USER objects, {2} handles, {3:0} MB of private memory",
+                        gdi, user, process.HandleCount, process.PrivateMemorySize64 / 1048576.0);
+                }
+            }
+            catch { return null; }
         }
 
         /// <summary>

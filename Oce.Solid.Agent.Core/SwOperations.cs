@@ -7915,9 +7915,35 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
+        /// <summary>
+        /// The way out of <see cref="WithoutSketch"/> when the sketch stays (library
+        /// 0.198.12): the reason goes to the log, with whether a sketch is still open for
+        /// editing (ISketchManager~ActiveSketch.html). Up to 0.198.11 every reason gave
+        /// the same sentence and none was logged, and the unexpected nulls of
+        /// the structural member in the full benches of 2/11/2026 came with it.
+        /// </summary>
+        private string LeftBehind(string why, IModelDoc2 model)
+        {
+            string open = "";
+            try
+            {
+                var sketch = model?.SketchManager?.ActiveSketch;
+                if (sketch != null)
+                {
+                    string name = "";
+                    try { name = (sketch as IFeature)?.Name ?? ""; } catch { }
+                    open = name.Length > 0 ? "; a sketch is still open for editing: «" + name + "»"
+                                           : "; a sketch is still open for editing";
+                }
+            }
+            catch { }
+            _log("[agent] the sketch stays in the part: " + why + open);
+            return LeftSketchBehind;
+        }
+
         private string WithoutSketch(IModelDoc2 model)
         {
-            if (model == null) return LeftSketchBehind;
+            if (model == null) return LeftBehind("no document", model);
 
             // ── 2 and 3. the newest feature BORN IN THIS STEP ───────────
             // (Z-C21.5, scheme S7): not the last feature of the tree, which on
@@ -7927,30 +7953,33 @@ namespace Oce.Solid.Agent.Core
             List<IFeature> features;
             List<string> names, types;
             if (_featureNamesAtStepStart == null ||
-                !ReadFeatureTree(model, out features, out names, out types)) return LeftSketchBehind;
+                !ReadFeatureTree(model, out features, out names, out types))
+                return LeftBehind(_featureNamesAtStepStart == null
+                    ? "the tree at the start of the step was not read" : "the tree could not be read now", model);
             var born = BornFeatureIndices(names, _featureNamesAtStepStart);
-            if (born.Count == 0) return LeftSketchBehind;
+            if (born.Count == 0) return LeftBehind("no feature was born in this step", model);
             IFeature last = features[born[born.Count - 1]];
             int featureNow = features.Count;
 
             // ── 1. and it must be a sketch, and NOT the origin ──────────
             ISketch sketch = null;
             try { sketch = last.GetSpecificFeature2() as ISketch; } catch { }
-            if (sketch == null) return LeftSketchBehind;
+            if (sketch == null) return LeftBehind("the newest feature born in this step is not a sketch", model);
             string typ = "";
             try { typ = last.GetTypeName2(); } catch { }
-            if (typ == PartOrigin) return LeftSketchBehind;
+            if (typ == PartOrigin) return LeftBehind("the newest feature born in this step is the origin", model);
 
             // ── 4. and it must have no children ─────────────────────────
-            try { if (last.IGetChildCount() > 0) return LeftSketchBehind; }
-            catch { return LeftSketchBehind; }
+            try { if (last.IGetChildCount() > 0) return LeftBehind("the sketch has children", model); }
+            catch { return LeftBehind("its children could not be counted", model); }
 
             // What must NOT change, read before touching anything. If it cannot
             // be read (entry Z-C8), nothing is deleted: without the before we could not
             // say that removing the sketch did not change the part.
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
-            if (volumeBefore == null || bodiesBefore < 0) return LeftSketchBehind;
+            if (volumeBefore == null || bodiesBefore < 0)
+                return LeftBehind("the volume or the bodies could not be read before deleting", model);
 
             string itemName = "";
             try { itemName = last.Name; } catch { }
@@ -7959,7 +7988,7 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 model.ClearSelection2(true);
-                if (!last.Select2(false, 0)) return LeftSketchBehind;
+                if (!last.Select2(false, 0)) return LeftBehind("Select2 did not select it", model);
                 removed = model.Extension.DeleteSelection2(
                     (int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
@@ -7973,7 +8002,7 @@ namespace Oce.Solid.Agent.Core
                 try { model.ClearSelection2(true); } catch { }
             }
 
-            if (!removed) return LeftSketchBehind;
+            if (!removed) return LeftBehind("DeleteSelection2 answered false", model);
 
             // ── and now we count ────────────────────────────────────────
             int featureAfter = CountFeature(model);

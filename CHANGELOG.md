@@ -32,6 +32,30 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.170.12 — 3 November 2026 · library 0.198.12 · an unexpected null of a structural member says more, and why a sketch stays (branch `night-2026-10-26-asm`)
+
+- **Why.** The null of `InsertStructuralWeldment5` on a valid path is still open: 2 in 4 full benches
+  (0.198.8 and 0.198.9; none in 0.198.10 and 0.198.11), 1 in 9 replays of the bench prefix, 0 in 34
+  shorter runs. In both full benches with the null the answer ended with «The sketch I had drawn stayed
+  in the part»: `WithoutSketch` could not delete the sketch of the path, and in 0.198.9 the same happened
+  at the step before, in the same part. In the green benches that step removed its sketch. `WithoutSketch`
+  gives that sentence for about ten different reasons, and logged none of them.
+- **A hypothesis refuted.** A probe outside the repository drew the L of step 2 of
+  `a_member_not_born_says_what_it_read` the library's way, three rounds alternated. With the sketch closed
+  (the control) the member was born 3 times in 3: 2 bodies, 1322967.371 mm3, as the case wants. With the
+  sketch left open for editing it was born too, 3 times in 3, and the insertion closed the sketch. An open
+  sketch does not give the null. The probe passed an adversarial review first: its first version rebuilt
+  the part after a null, which the library does not do, and that could close the sketch and refute the
+  hypothesis for nothing.
+- **What changed.** After a null, `WhatTheNullLeft` also reads how long the call took (ms), whether a
+  sketch is open for editing (`ISketchManager.ActiveSketch`), which document is in front
+  (`ISldWorks.ActiveDoc`), how many documents SOLIDWORKS holds (`GetDocumentCount`), and the GDI and USER
+  objects, handles and private memory of its process (`GetProcessID`, `GetGuiResources` of user32). When
+  `WithoutSketch` leaves a sketch, the log says which check stopped it and whether a sketch is open for
+  editing (`LeftBehind`). No behaviour changes: readings and a log line only.
+- **The case.** `a_member_not_born_says_what_it_read`, step 1, expects four more pieces of the refusal:
+  «the call took», «open for editing», «document in front» and «SOLIDWORKS holds».
+
 ## 0.170.11 — 3 November 2026 · library 0.198.11 · the texts the language gate refused (branch `night-2026-10-26-asm`)
 
 - **Why.** The pre-push hook stopped the push of 0.161.0-0.170.10: the language gate found 6 Italian
