@@ -755,6 +755,23 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter, EdgeFilter edgeFilter,
             bool withEdges = true)
         {
+            // A DRAG THAT NOBODY RELEASES (library 0.198.7): reading a drawing view can simulate a click
+            // (uiViewBucket_c::getPolylines -> s_selectByPick, stack of 02/11/2026 12:07) and start a drag of
+            // it; the state says when one was ended with Escape (StuckDragGuard).
+            int mark;
+            using (StuckDragGuard.During(out mark))
+            {
+                var docState = ReadListingWatched(model, sw, withAnchor, filter, edgeFilter, withEdges);
+                var released = StuckDragGuard.Since(mark);
+                if (released.Count > 0 && docState?.Data != null) docState.Data["drag_released_with_escape"] = released.ToArray();
+                return docState;
+            }
+        }
+
+        private static DocumentState ReadListingWatched(
+            IModelDoc2 model, ISldWorks sw, bool withAnchor, FaceFilter filter, EdgeFilter edgeFilter,
+            bool withEdges)
+        {
             var docState = new DocumentState();
             if (model == null) return docState;
             docState.Model = model;

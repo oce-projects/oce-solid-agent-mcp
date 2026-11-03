@@ -68,11 +68,40 @@ namespace Oce.Solid.Agent.Core
             double cx = (outline[0] + outline[2]) / 2.0, cy = (outline[1] + outline[3]) / 2.0;
             var want = MoveAsked(dx, dy, x, y, cx, cy);
             var before = OutlinesOfTheSheet(drawing);
+            var withNotesBefore = WithNotesOfTheSheet(drawing);
             int alignment = -1;
             try { alignment = view.GetAlignment(); } catch { }
 
+            // OFF ITS LINE ON REQUEST (note 98, defect 5): the owner puts a section away from the line of
+            // its view (26M000002: section A-A 64.5 mm lower than the line of view 1). IView~RemoveAlignment
+            // .html: «Removes the alignment from this drawing view», not the one of the views aligned to it;
+            // a refused move gives back the default alignment (IView~UseDefaultAlignment.html) with the place.
+            bool unaligned = false;
+            if (Bool(a, "unalign", false) && AlignedToItsParent(alignment))
+            {
+                try { view.RemoveAlignment(); } catch { }
+                int now = -1;
+                try { now = view.GetAlignment(); } catch { }
+                if (AlignedToItsParent(now))
+                    return Failed("I asked SOLIDWORKS to take «" + viewName + "» off the line of its parent view (IView.RemoveAlignment) " +
+                                  "and it is still " + AlignmentName(now) + ": I moved nothing. Give only the move along that line, or move its parent view instead.");
+                unaligned = true;
+                alignment = now;
+            }
+            Func<string> back = () =>
+            {
+                string said = PutBack(view, p, outline);
+                if (!unaligned) return said;
+                try { view.UseDefaultAlignment(); } catch { }
+                int again = -1;
+                try { again = view.GetAlignment(); } catch { }
+                return said + (AlignedToItsParent(again)
+                    ? " Its alignment to its parent view is back."
+                    : " I could not give back its alignment to its parent view (now " + AlignmentName(again) + ").");
+            };
+
             try { view.Position = new[] { p[0] + want[0], p[1] + want[1] }; }
-            catch (Exception ex) { return Failed("SOLIDWORKS did not take the new position of «" + viewName + "»: " + ex.Message); }
+            catch (Exception ex) { return Failed("SOLIDWORKS did not take the new position of «" + viewName + "»: " + ex.Message + back()); }
 
             var after = OutlinesOfTheSheet(drawing);
             double[] outlineAfter = OutlineOf(view);
@@ -81,25 +110,46 @@ namespace Oce.Solid.Agent.Core
             string partly = MoveNotDone(want[0], want[1], gotX, gotY, 0.0001);
             if (partly != null)
             {
-                string back = PutBack(view, p, outline);
-                return Failed("The view «" + viewName + "» " + partly + AlignmentWords(view, alignment) + back);
+                return Failed("The view «" + viewName + "» " + partly + AlignmentWords(view, alignment) + back());
             }
 
             // EVERY VIEW THAT MOVED, the one asked and those aligned to it, is judged against what
             // did not move: they keep their places among themselves.
             List<string> moved = MovedViews(before, after);
             if (!moved.Contains(viewName)) moved.Add(viewName);
+            var labelsOut = new List<string>();
             foreach (string m in moved)
             {
                 var mv = ViewByName(drawing, m);
-                var r = mv == null ? null : ViewWithItsNotes(mv);
+                // THE LABELS GO WITH THE OUTLINE (note 98, defect 6): right after Position the outline
+                // has moved and the extent of the labels still says the old place, so the rectangle
+                // read now spans both. On a copy of 26M000002 (02/11/2026) detail B moved 100 mm up,
+                // past view 2, into a free place, was refused with «its labels» at y 20.6..181.9 mm.
+                // The rectangle read before the move, moved as far as the outline moved, as a detail
+                // and a section do (LandedWithTheOutline).
+                double[] r0, o0, o1;
+                var r = withNotesBefore.TryGetValue(m, out r0) && before.TryGetValue(m, out o0) && after.TryGetValue(m, out o1)
+                    ? LandedWithTheOutline(r0, o0, o1)
+                    : null;
+                if (r == null && mv != null) r = ViewWithItsNotes(mv);
                 if (r == null) continue;
                 var sheet = ReadSheet(drawing, mv, null, moved);
                 string touches = sheet.Touches(r[0], r[1], r[2], r[3]);
                 if (touches == null) continue;
-                string back = PutBack(view, p, outline);
+                // ONLY ITS OWN LABELS IN THE WAY (replay of 02/11/2026, step 038): a label moved apart
+                // first (move_annotation) goes with the view by the same shift; the label of detail B
+                // read (-141.42, -11.19) mm after the view went (-253.98, -39.82) mm, and the plan then
+                // put it back. When the view alone lands free, it moves, and the answer says where its
+                // labels went, for move_annotation.
+                double[] alone;
+                if (after.TryGetValue(m, out alone) && alone != null && sheet.Touches(alone[0], alone[1], alone[2], alone[3]) == null)
+                {
+                    labelsOut.Add("with its labels, «" + m + "» " + touches + " (with them " + MmRect(r) + ", the view alone " + MmRect(alone) +
+                                  "): move the labels with «move_annotation»");
+                    continue;
+                }
                 return Failed("Moved so, the view «" + m + "»" + (m == viewName ? "" : " (it moves with «" + viewName + "», aligned to it)") +
-                              " " + touches + " (with its labels " + MmRect(r) + "). Move it somewhere else, or make room first" + back);
+                              " " + touches + " (with its labels " + MmRect(r) + "). Move it somewhere else, or make room first" + back());
             }
 
             var measurements = new Dictionary<string, object>
@@ -114,7 +164,9 @@ namespace Oce.Solid.Agent.Core
                 ["views_moved_with_it"] = moved.Where(n => n != viewName).ToArray(),
                 ["how_many_moved_with_it"] = moved.Count(n => n != viewName),
                 ["alignment"] = AlignmentName(alignment),
+                ["alignment_removed"] = unaligned,
             };
+            if (labelsOut.Count > 0) measurements["labels_out_of_place"] = labelsOut.ToArray();
             _log("[agent] view «" + viewName + "» moved by " + Math.Round(gotX * 1000, 1) + ", " + Math.Round(gotY * 1000, 1) + " mm, with " + (moved.Count - 1) + " more");
             return WithoutFeature(measurements);
         }
@@ -310,7 +362,13 @@ namespace Oce.Solid.Agent.Core
             string parent = BaseViewName(view);
             return ": it is aligned to " + (parent != null ? "«" + parent + "»" : "its parent view") +
                    ", and an aligned view moves only along the line that joins them (IView~Position.html). Give only the move " +
-                   "along that line, or move «" + (parent ?? "its parent view") + "» instead";
+                   "along that line, move «" + (parent ?? "its parent view") + "» instead, or add «unalign»: true to take it off that line";
+        }
+
+        /// <summary>Whether a view is aligned to its parent view (swViewAligned or swViewAlignBoth). Pure, so the contract suite reads it.</summary>
+        internal static bool AlignedToItsParent(int alignment)
+        {
+            return alignment == (int)swViewAlignment_e.swViewAligned || alignment == (int)swViewAlignment_e.swViewAlignBoth;
         }
 
         /// <summary>
@@ -342,6 +400,27 @@ namespace Oce.Solid.Agent.Core
                     try { n = v.GetName2(); } catch { }
                     var o = OutlineOf(v);
                     if (n != null && o != null) d[n] = o;
+                }
+            }
+            catch { }
+            return d;
+        }
+
+        /// <summary>
+        /// Every view of the current sheet with its notes (ViewWithItsNotes), by name, read before a
+        /// move: after it the labels still say the old place (note 98, defect 6).
+        /// </summary>
+        private static Dictionary<string, double[]> WithNotesOfTheSheet(IDrawingDoc drawing)
+        {
+            var d = new Dictionary<string, double[]>();
+            try
+            {
+                for (var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView; v != null; v = v.GetNextView() as IView)
+                {
+                    string n = null;
+                    try { n = v.GetName2(); } catch { }
+                    var r = ViewWithItsNotes(v);
+                    if (n != null && r != null) d[n] = r;
                 }
             }
             catch { }

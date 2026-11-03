@@ -78,30 +78,12 @@ namespace Oce.Solid.Agent.Core
                                 double angle = data.GetTextAngleAtIndex(i);
                                 string t = data.GetTextAtIndex(i) ?? "";
                                 if (p == null || w <= 0 || h <= 0 || t.Trim().Length == 0) continue;
-                                // The reference: lower left (1), which is the only one seen.
-                                // The others are brought to the lower left corner.
-                                double ux = Math.Cos(angle), uy = Math.Sin(angle), vx = -uy, vy = ux;
-                                double x0 = p[0], y0 = p[1];
-                                switch (data.GetTextRefPositionAtIndex(i))
-                                {
-                                    case (int)swTextPosition_e.swUPPER_LEFT: x0 -= vx * h; y0 -= vy * h; break;
-                                    case (int)swTextPosition_e.swCENTER: x0 -= ux * w / 2 + vx * h / 2; y0 -= uy * w / 2 + vy * h / 2; break;
-                                    case (int)swTextPosition_e.swUPPER_RIGHT: x0 -= ux * w + vx * h; y0 -= uy * w + vy * h; break;
-                                    case (int)swTextPosition_e.swLOWER_RIGHT: x0 -= ux * w; y0 -= uy * w; break;
-                                    case (int)swTextPosition_e.swUPPER_CENTER: x0 -= ux * w / 2 + vx * h; y0 -= uy * w / 2 + vy * h; break;
-                                }
                                 outside.Add(new DimensionText
                                 {
                                     View = viewName,
                                     Name = SafeName(dd),
                                     Text = t.Trim(),
-                                    Angles = new[]
-                                    {
-                                        new[] { x0, y0 },
-                                        new[] { x0 + ux * w, y0 + uy * w },
-                                        new[] { x0 + ux * w + vx * h, y0 + uy * w + vy * h },
-                                        new[] { x0 + vx * h, y0 + vy * h },
-                                    },
+                                    Angles = TextCorners(p, w, h, angle, data.GetTextRefPositionAtIndex(i)),
                                 });
                             }
                         }
@@ -113,6 +95,132 @@ namespace Oce.Solid.Agent.Core
             }
             catch { return null; }   // N47: a list cut short is not the list of the drawing
             return outside;
+        }
+
+        /// <summary>
+        /// The four corners on the sheet of a text at <paramref name="p"/>, <paramref name="w"/> wide
+        /// and <paramref name="h"/> high, turned by <paramref name="angle"/>, from its reference
+        /// point (swTextPosition_e): lower left (1), which is the only one seen; the others are
+        /// brought to the lower left corner. Metres. Pure.
+        /// </summary>
+        internal static double[][] TextCorners(double[] p, double w, double h, double angle, int reference)
+        {
+            double ux = Math.Cos(angle), uy = Math.Sin(angle), vx = -uy, vy = ux;
+            double x0 = p[0], y0 = p[1];
+            switch (reference)
+            {
+                case (int)swTextPosition_e.swUPPER_LEFT: x0 -= vx * h; y0 -= vy * h; break;
+                case (int)swTextPosition_e.swCENTER: x0 -= ux * w / 2 + vx * h / 2; y0 -= uy * w / 2 + vy * h / 2; break;
+                case (int)swTextPosition_e.swUPPER_RIGHT: x0 -= ux * w + vx * h; y0 -= uy * w + vy * h; break;
+                case (int)swTextPosition_e.swLOWER_RIGHT: x0 -= ux * w; y0 -= uy * w; break;
+                case (int)swTextPosition_e.swUPPER_CENTER: x0 -= ux * w / 2 + vx * h; y0 -= uy * w / 2 + vy * h; break;
+            }
+            return new[]
+            {
+                new[] { x0, y0 },
+                new[] { x0 + ux * w, y0 + uy * w },
+                new[] { x0 + ux * w + vx * h, y0 + uy * w + vy * h },
+                new[] { x0 + vx * h, y0 + vy * h },
+            };
+        }
+
+        /// <summary>
+        /// The lines every dimension of the drawing draws (dimension and extension lines, leaders),
+        /// {x0, y0, x1, y1} on the sheet in metres, but those of the dimension whose name is «except»;
+        /// null when the walk broke off or the display data of one dimension cannot be read: its lines
+        /// would be missing, and a text put across them would be called free. IDisplayData.GetLineAtIndex3 (IDisplayData~GetLineAtIndex3.html,
+        /// Remarks): [colour, line type, line style, line weight, start x y z, end x y z]; taken in sheet
+        /// metres as the text positions of the same display data (DimensionTexts).
+        /// </summary>
+        private static List<double[]> DimensionLines(IDrawingDoc drawing, string except)
+        {
+            var outside = new List<double[]>();
+            try
+            {
+                var v = drawing.GetFirstView() as IView;
+                while (v != null)
+                {
+                    var dd = v.GetFirstDisplayDimension5() as IDisplayDimension;
+                    while (dd != null)
+                    {
+                        try
+                        {
+                            if (SafeName(dd) != except)
+                            {
+                                var data = dd.GetDisplayData() as IDisplayData;
+                                if (data == null) return null;
+                                int n = data.GetLineCount();
+                                for (int i = 0; i < n; i++)
+                                {
+                                    var l = data.GetLineAtIndex3(i) as double[];
+                                    if (l != null && l.Length >= 10) outside.Add(new[] { l[4], l[5], l[7], l[8] });
+                                }
+                            }
+                        }
+                        catch { }
+                        dd = dd.GetNext5() as IDisplayDimension;
+                    }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { return null; }
+            return outside;
+        }
+
+        /// <summary>
+        /// The corners on the sheet of every text of one dimension (TextCorners, the reading of
+        /// DimensionTexts); empty when none can be read, and MoveChamferText then tries the next place:
+        /// a text it cannot read is never called free.
+        /// </summary>
+        private static List<double[][]> TextCornersOf(IDisplayDimension dd)
+        {
+            var outside = new List<double[][]>();
+            try
+            {
+                var data = dd.GetDisplayData() as IDisplayData;
+                if (data == null) return outside;
+                int n = data.GetTextCount();
+                for (int i = 0; i < n; i++)
+                {
+                    var p = data.GetTextPositionAtIndex(i) as double[];
+                    double w = data.GetTextInBoxWidthAtIndex(i), h = data.GetTextHeightAtIndex(i);
+                    string t = data.GetTextAtIndex(i) ?? "";
+                    if (p == null || w <= 0 || h <= 0 || t.Trim().Length == 0) continue;
+                    outside.Add(TextCorners(p, w, h, data.GetTextAngleAtIndex(i), data.GetTextRefPositionAtIndex(i)));
+                }
+            }
+            catch { }
+            return outside;
+        }
+
+        /// <summary>
+        /// The rectangle {x0, y0, x1, y1} that holds every text of one dimension on the sheet, metres;
+        /// null when none can be read. The same reading as DimensionTexts.
+        /// </summary>
+        private static double[] TextBounds(IDisplayDimension dd)
+        {
+            double[] box = null;
+            try
+            {
+                var data = dd.GetDisplayData() as IDisplayData;
+                if (data == null) return null;
+                int n = data.GetTextCount();
+                for (int i = 0; i < n; i++)
+                {
+                    var p = data.GetTextPositionAtIndex(i) as double[];
+                    double w = data.GetTextInBoxWidthAtIndex(i), h = data.GetTextHeightAtIndex(i);
+                    string t = data.GetTextAtIndex(i) ?? "";
+                    if (p == null || w <= 0 || h <= 0 || t.Trim().Length == 0) continue;
+                    foreach (double[] c in TextCorners(p, w, h, data.GetTextAngleAtIndex(i), data.GetTextRefPositionAtIndex(i)))
+                    {
+                        if (box == null) box = new[] { c[0], c[1], c[0], c[1] };
+                        box[0] = Math.Min(box[0], c[0]); box[1] = Math.Min(box[1], c[1]);
+                        box[2] = Math.Max(box[2], c[0]); box[3] = Math.Max(box[3], c[1]);
+                    }
+                }
+            }
+            catch { return null; }
+            return box;
         }
 
         private static string SafeName(IDisplayDimension dd)
@@ -165,12 +273,12 @@ namespace Oce.Solid.Agent.Core
             // label of a detail or of a section is a note of its view (see
             // ViewWithItsNotes), the boxes of the title block are notes of the sheet
             // (an empty drawing counts 67 of them), and a dimension written over them
-            // was not said. The title block as a whole when the format declares it
-            // (ITitleBlock, read as ReadSheet reads it).
+            // was not said. The title block as a whole when the format declares it or draws
+            // it (TitleBlockOfTheSheet, as ReadSheet reads it).
             int notesRead;
             List<string> noteNames;
             var noteBoxes = NoteBoxes(drawing, out noteNames, out notesRead);
-            double[] titleBlock = DeclaredTitleBlock(drawing);
+            double[] titleBlock = TitleBlockOfTheDrawing(drawing, out _);
             foreach (DimensionText t in texts)
                 foreach (string what in WhatTheTextCovers(t.Angles, noteNames, noteBoxes, titleBlock, margin))
                     outside.Add("«" + t.Text + "» (" + t.View + ") over " + what);
@@ -214,17 +322,14 @@ namespace Oce.Solid.Agent.Core
             return boxes;
         }
 
-        /// <summary>The title block the format declares (ITitleBlock.GetExtents), null when it declares none.</summary>
-        private static double[] DeclaredTitleBlock(IDrawingDoc drawing)
+        /// <summary>
+        /// The title block of the current sheet: declared by the format or drawn by its lines
+        /// (TitleBlockOfTheSheet), null when neither; <paramref name="from"/> says which.
+        /// </summary>
+        private static double[] TitleBlockOfTheDrawing(IDrawingDoc drawing, out string from)
         {
-            try
-            {
-                var tb = (drawing.GetCurrentSheet() as ISheet)?.TitleBlock;
-                if (tb == null) return null;
-                double x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-                tb.GetExtents(ref x0, ref y0, ref x1, ref y1);
-                return ExtentBox(new[] { x0, y0, 0, x1, y1, 0 });
-            }
+            from = null;
+            try { return TitleBlockOfTheSheet(drawing.GetCurrentSheet() as ISheet, out from); }
             catch { return null; }
         }
 

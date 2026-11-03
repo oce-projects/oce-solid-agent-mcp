@@ -42,6 +42,8 @@ namespace Oce.Solid.Agent.Core
         private string _dimensionPrefix;
         /// <summary>The text written after the value; null for none.</summary>
         private string _dimensionSuffix;
+        /// <summary>The text written under the dimension line, under the value («CHANNEL» under «3,4»); null for none.</summary>
+        private string _dimensionBelow;
         /// <summary>Whether each dimension placed is shown in parentheses, as a reference dimension.</summary>
         private bool _dimensionParentheses;
 
@@ -181,6 +183,29 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// Why «below» cannot be used, null when it can or was not asked: a text of one line, at
+        /// most LongestDimensionText characters (note 98, defect 2: the owner writes «CHANNEL» under
+        /// the 3,4, not after it). Pure.
+        /// </summary>
+        internal static string BelowProblem(object below)
+        {
+            if (below == null) return null;
+            string text = below as string;
+            if (text == null) return "«below» is a text, not «" + below + "»";
+            if (text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0) return "«below» is one line";
+            if (text.Trim().Length == 0) return "«below» is empty";
+            if (text.Length > LongestDimensionText) return "«below» has " + text.Length + " characters, more than " + LongestDimensionText;
+            return null;
+        }
+
+        /// <summary>What of «below» did not stick, read back after writing; null when it did. Pure.</summary>
+        internal static string BelowNote(string asked, string read)
+        {
+            if (string.IsNullOrEmpty(asked) || (read ?? "").Trim() == asked.Trim()) return null;
+            return "the text under the line reads «" + (read ?? "nothing") + "» instead of «" + asked + "»: write it by hand on the sheet";
+        }
+
+        /// <summary>
         /// What of «prefix», «suffix» and «parentheses» did not stick on a dimension, read
         /// back after writing; null when all of it did. A text is compared without the
         /// blanks at its ends. Pure.
@@ -223,7 +248,18 @@ namespace Oce.Solid.Agent.Core
         private void DecorateDimension(IDisplayDimension d, Dictionary<string, object> row)
         {
             if (d == null || row == null) return;
-            if (string.IsNullOrEmpty(_dimensionPrefix) && string.IsNullOrEmpty(_dimensionSuffix) && !_dimensionParentheses) return;
+            if (string.IsNullOrEmpty(_dimensionPrefix) && string.IsNullOrEmpty(_dimensionSuffix) && !_dimensionParentheses &&
+                string.IsNullOrEmpty(_dimensionBelow)) return;
+            if (!string.IsNullOrEmpty(_dimensionBelow))
+            {
+                string belowRead = null;
+                try { d.SetText((int)swDimensionTextParts_e.swDimensionTextCalloutBelow, _dimensionBelow); } catch { }
+                try { belowRead = d.GetText((int)swDimensionTextParts_e.swDimensionTextCalloutBelow); } catch { }
+                row["below_read"] = belowRead;
+                string belowNote = BelowNote(_dimensionBelow, belowRead);
+                if (belowNote != null) row["decoration_note"] = belowNote;
+                if (string.IsNullOrEmpty(_dimensionPrefix) && string.IsNullOrEmpty(_dimensionSuffix) && !_dimensionParentheses) return;
+            }
             if (!string.IsNullOrEmpty(_dimensionPrefix))
                 try { d.SetText((int)swDimensionTextParts_e.swDimensionTextPrefix, _dimensionPrefix); } catch { }
             if (!string.IsNullOrEmpty(_dimensionSuffix))
@@ -239,7 +275,8 @@ namespace Oce.Solid.Agent.Core
             if (!string.IsNullOrEmpty(_dimensionSuffix)) row["suffix_read"] = suffixRead;
             if (_dimensionParentheses) row["parentheses_read"] = parenthesesRead;
             string note = DecorationNote(_dimensionPrefix, prefixRead, _dimensionSuffix, suffixRead, _dimensionParentheses, parenthesesRead);
-            if (note != null) row["decoration_note"] = note;
+            object before;
+            if (note != null) row["decoration_note"] = row.TryGetValue("decoration_note", out before) && before is string ? (string)before + "; " + note : note;
         }
 
         /// <summary>
@@ -259,6 +296,94 @@ namespace Oce.Solid.Agent.Core
         internal static string ArrowsFor(double gap, double textWidth, double arrowRoom)
         {
             return textWidth > 0 && textWidth + 2 * arrowRoom <= gap ? "inside" : "outside";
+        }
+
+        /// <summary>
+        /// The box {x0, y0, x1, y1} of the edges of a view on the sheet, metres, kept inside
+        /// <paramref name="outline"/> when there is one: a detail lists the edges outside its circle too
+        /// (26M000002 detail B: down to x -243 mm). Null without edges.
+        /// </summary>
+        private static double[] ExtentOf(List<ProjectedEdge> edges, double[] outline)
+        {
+            double[] box = null;
+            if (edges == null) return null;
+            foreach (ProjectedEdge e in edges)
+                foreach (double[] p in new[] { e.FromSheet, e.ToSheet })
+                {
+                    if (p == null || p.Length < 2) continue;
+                    if (box == null) box = new[] { p[0], p[1], p[0], p[1] };
+                    box[0] = Math.Min(box[0], p[0]); box[1] = Math.Min(box[1], p[1]);
+                    box[2] = Math.Max(box[2], p[0]); box[3] = Math.Max(box[3], p[1]);
+                }
+            if (box != null && outline != null && outline.Length >= 4)
+            {
+                box = new[] { Math.Max(box[0], outline[0]), Math.Max(box[1], outline[1]), Math.Min(box[2], outline[2]), Math.Min(box[3], outline[3]) };
+                if (box[0] >= box[2] || box[1] >= box[3]) return null;
+            }
+            return box;
+        }
+
+        /// <summary>The height of the first text of a dimension on the sheet, metres; -1 when it cannot be read.</summary>
+        private static double TextHeight(IDisplayDimension d)
+        {
+            try
+            {
+                var data = d.GetDisplayData() as IDisplayData;
+                return data == null || data.GetTextCount() < 1 ? -1 : data.GetTextHeightAtIndex(0);
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// THE DIMENSIONS ALREADY IN THE VIEW, for the layout (02/11/2026, note 100, defect 1): one row
+        /// of ExistingDimension each. A distance between two straight parallel edges gives its kind and
+        /// its two extension lines (the edges brought onto the sheet as «view_edges» brings them,
+        /// ReadEdge); any other dimension gives its text only. Its text is the rectangle of its texts
+        /// (TextBounds) centred on its position, as the layout places a new one. Hidden by hand: not on
+        /// the paper, left out. <paramref name="unread"/> counts those that could not be read.
+        /// </summary>
+        private static double[][] DimensionsInTheView(IView view, IMathUtility mu, MathTransform tr, out int unread)
+        {
+            var rows = new List<double[]>();
+            unread = 0;
+            IDisplayDimension d = null;
+            try { d = view.GetFirstDisplayDimension5() as IDisplayDimension; } catch { }
+            for (int guard = 0; d != null && guard < 1000; guard++)
+            {
+                try
+                {
+                    bool hidden = false;
+                    try { hidden = ApiHelpers.IsHiddenByHand(d); } catch { }
+                    if (!hidden)
+                    {
+                        double[] box = TextBounds(d);
+                        var annotation = d.GetAnnotation() as IAnnotation;
+                        var at = annotation == null ? null : annotation.GetPosition() as double[];
+                        if (box == null || at == null || at.Length < 2) unread++;
+                        else
+                        {
+                            double kind = -1, low = 0, high = 0;
+                            var attached = annotation.GetAttachedEntities3() as object[];
+                            if (attached != null && attached.Length == 2)
+                            {
+                                ProjectedEdge a = ReadEdge(view, attached[0], -1, mu, tr), b = ReadEdge(view, attached[1], -1, mu, tr);
+                                if (a != null && b != null && a.Facing == b.Facing && a.Facing != "oblique")
+                                {
+                                    // Two vertical edges make a horizontal distance, along X.
+                                    kind = a.Facing == "vertical" ? 1 : 0;
+                                    int k = kind > 0.5 ? 0 : 1;
+                                    low = Math.Min(a.FromSheet[k], b.FromSheet[k]);
+                                    high = Math.Max(a.FromSheet[k], b.FromSheet[k]);
+                                }
+                            }
+                            rows.Add(ExistingDimension(kind, low, high, at[0], at[1], (box[2] - box[0]) / 2, (box[3] - box[1]) / 2));
+                        }
+                    }
+                }
+                catch { unread++; }
+                try { d = d.GetNext5() as IDisplayDimension; } catch { d = null; }
+            }
+            return rows.ToArray();
         }
 
         /// <summary>The widest text of a dimension on the sheet, metres; -1 when it cannot be read.</summary>
@@ -354,12 +479,53 @@ namespace Oce.Solid.Agent.Core
         /// parallel edges, read back against their distance on the sheet. Works on a view of
         /// a part and of an assembly alike: the edges come from the list the view exposes.
         /// </summary>
+        /// <summary>A distance placed by «between», kept for the layout that follows (DrawingDimensionStyle.cs).</summary>
+        private sealed class BetweenPlaced
+        {
+            internal Dictionary<string, object> Row;
+            internal IDisplayDimension Dimension;
+            internal ProjectedEdge First, Second;
+            internal bool Horizontal;
+            internal double ExpectedMm;
+        }
+
         private Outcome DimensionBetween(
             IModelDoc2 model, IDrawingDoc drawing, IView view, string viewName, object[] edges,
             List<ProjectedEdge> all, List<Circle> circles, List<int[]> pairs, double[] contour,
-            double dimensionOffset, double planStep, double scale, bool row, bool above, bool left)
+            double dimensionOffset, double planStep, double scale, bool row, bool above, bool left,
+            bool horizontalNamed, bool verticalNamed, bool offsetNamed, bool pitchNamed,
+            IMathUtility mu, MathTransform tr, bool repeat)
         {
+            // THE STYLE, read before anything is placed: a file asked and not readable is a refusal,
+            // not a drawing laid out another way without a word.
+            string styleWhy;
+            DimensionStyle style = StyleOfThisCall(out styleWhy);
+            if (style == null)
+                return Failed("The dimension style cannot be used: " + styleWhy + ". Correct the file, or remove " +
+                              DrawingStyleVariable + " to use the built-in one. I touched nothing.");
+            style = style.Copy();
+            if (offsetNamed) style.FirstRowMm = dimensionOffset * 1000;
+            if (pitchNamed) style.PitchMm = planStep * 1000;
+
             var failed = new List<string>();
+            // ONE DIMENSION PER EXTENT ON THE WHOLE DRAWING (02/11/2026). The owner's four drawings
+            // held 7 dimensions too many in 51 (the 19 and the 11 of 26P000008 in two views, the 175
+            // next to 19 + 145 + 11), and «between» put them all back: it did not look at the other
+            // views. Now a pair whose extent the drawing already gives, by one dimension or through
+            // a chain, is refused, and the answer says which dimensions give it. «repeat» true, or
+            // «parentheses» true (a reference dimension, the way a closing dimension is written),
+            // places it anyway. Compared on a view of a part, square to the model's axes: the tracts
+            // are model coordinates, and on a view of an assembly those of two components do not meet.
+            var owners = new Dictionary<string, string>(StringComparer.Ordinal);
+            ExistingDimensionsReading existingRead;
+            var already = new HashSet<string>(KeysAlreadyDimensioned(drawing, view, mu, out existingRead, owners), StringComparer.Ordinal);
+            int[] axes = SheetAxes(mu, tr);
+            bool ofAnAssembly = all.Exists(t => t.Component != null);
+            string notCompared = ofAnAssembly ? "a view of an assembly: the tracts of two components are not compared"
+                               : axes[0] < 0 || axes[1] < 0 ? "a view turned off the axes of the model"
+                               : null;
+            bool repeatAllowed = repeat || _dimensionParentheses;
+            var refused = new List<string>();
             // Each pair checked on the sheet before anything is placed: horizontal distances
             // (two vertical edges) and vertical ones (two horizontal edges).
             var horizontalPairs = new List<object[]>();
@@ -386,12 +552,32 @@ namespace Oce.Solid.Agent.Core
                     failed.Add(pair[0] + "-" + pair[1] + " (" + problem + ")");
                     continue;
                 }
+                string tract = notCompared != null ? null
+                             : TractBetween(first.FromModel, first.ToModel, second.FromModel, second.ToModel, axes);
+                if (tract != null)
+                {
+                    string[] chain = repeatAllowed ? null : ChainThrough(already, tract);
+                    if (chain != null)
+                    {
+                        refused.Add(pair[0] + "-" + pair[1] + " (" + Math.Round(gapMm, 3).ToString(CultureInfo.InvariantCulture) +
+                                    " mm: " + RepeatedWhy(tract, chain, owners) + ")");
+                        continue;
+                    }
+                    already.Add(tract);
+                    if (!owners.ContainsKey(tract)) owners[tract] = "the pair " + pair[0] + "-" + pair[1] + " of this call";
+                }
                 if (k == 0) horizontalPairs.Add(new object[] { first, second, gapMm });
                 else verticalPairs.Add(new object[] { first, second, gapMm });
             }
+            if (horizontalPairs.Count + verticalPairs.Count == 0 && failed.Count == 0)
+                return Failed("Every pair of «between» in the view «" + viewName + "» dimensions an extent the drawing " +
+                              "already gives: " + string.Join("; ", refused) + ". Each extent is dimensioned once on the " +
+                              "whole drawing (UNI ISO 129-1); pass «repeat»: true to place them anyway, or «parentheses»: " +
+                              "true to write them as reference dimensions. I touched nothing.");
             if (horizontalPairs.Count + verticalPairs.Count == 0)
                 return Failed("No pair of «between» can be dimensioned in the view «" + viewName + "»: " +
-                              string.Join("; ", failed) + ". Read the edges with «inspect_part» and «view_edges» " +
+                              string.Join("; ", failed) + (refused.Count == 0 ? "" : "; already given by the drawing: " + string.Join("; ", refused)) +
+                              ". Read the edges with «inspect_part» and «view_edges» " +
                               "(each edge with its number, how it faces on the sheet and where it sits). I touched nothing.");
 
             // FROM THE SMALL TO THE LARGE moving away from the part, as the edges are; in a
@@ -406,8 +592,15 @@ namespace Oce.Solid.Agent.Core
             if (before < 0)
                 return Failed("I cannot count the dimensions of the drawing before starting: without that number I " +
                               "could not tell you which ones I put. I touched nothing.");
+            // What the view already holds, read before the new ones are born: the layout lines up with
+            // its rows and keeps off its texts (note 100, defect 1).
+            int unreadInTheView;
+            double[][] inTheView = DimensionsInTheView(view, mu, tr, out unreadInTheView);
 
             var born = new List<Dictionary<string, object>>();
+            // An array, not a list: the obsolete-call contract cannot type a generic list.
+            var placedItems = new BetweenPlaced[horizontalPairs.Count + verticalPairs.Count];
+            int placedCount = 0;
             bool askedForTheValue = true, off = false;
             try
             {
@@ -419,6 +612,8 @@ namespace Oce.Solid.Agent.Core
                 }
                 catch { /* if it cannot be switched off, the first one that hangs will say so */ }
 
+                // FIRST EACH DIMENSION IS BORN, out of the way as before; where it goes is
+                // decided after, when the width of every text can be read (LayOutDimensions).
                 int step = 0;
                 foreach (object[] item in horizontalPairs)
                 {
@@ -429,10 +624,13 @@ namespace Oce.Solid.Agent.Core
                                      : contour[1] - dimensionOffset - step * planStep;
                     if (!row) step++;
                     string failure;
-                    Dictionary<string, object> placed = PlaceBetween(model, drawing, edges, first, second, true, (double)item[2], x, y, out failure);
+                    IDisplayDimension d;
+                    Dictionary<string, object> placed = PlaceBetween(model, drawing, edges, first, second, true, (double)item[2], x, y, out failure, out d);
                     if (placed == null) failed.Add(failure);
                     else if (failure == null) born.Add(placed);
                     else RecordBornWithoutObject(born, placed, failed, failure);
+                    if (placed != null)
+                        placedItems[placedCount++] = new BetweenPlaced { Row = placed, Dimension = d, First = first, Second = second, Horizontal = true, ExpectedMm = (double)item[2] };
                 }
                 step = 0;
                 foreach (object[] item in verticalPairs)
@@ -444,10 +642,13 @@ namespace Oce.Solid.Agent.Core
                                     : contour[2] + dimensionOffset + step * planStep;
                     if (!row) step++;
                     string failure;
-                    Dictionary<string, object> placed = PlaceBetween(model, drawing, edges, first, second, false, (double)item[2], x, y, out failure);
+                    IDisplayDimension d;
+                    Dictionary<string, object> placed = PlaceBetween(model, drawing, edges, first, second, false, (double)item[2], x, y, out failure, out d);
                     if (placed == null) failed.Add(failure);
                     else if (failure == null) born.Add(placed);
                     else RecordBornWithoutObject(born, placed, failed, failure);
+                    if (placed != null)
+                        placedItems[placedCount++] = new BetweenPlaced { Row = placed, Dimension = d, First = first, Second = second, Horizontal = false, ExpectedMm = (double)item[2] };
                 }
             }
             finally
@@ -466,6 +667,56 @@ namespace Oce.Solid.Agent.Core
             if (put <= 0)
                 return Failed("No dimension «between» was created on the view «" + viewName + "» (there were " + before +
                               ", there are " + after + "): " + string.Join("; ", failed) + ".");
+
+            // ── WHERE THEY GO: the owner's style (DrawingDimensionStyle.cs) ──
+            // Measured from the lines the view draws: the outline keeps about 5.9 mm of margin.
+            double[] drawn = DrawnBox(view);
+            string measuredFrom = drawn != null ? "the lines the view draws" : null;
+            // Without its lines, the extent of its edges: the outline keeps 5.9 mm more, and on 26M000002
+            // detail B the 12 went that much further out than the owner's (note 100).
+            if (drawn == null && (drawn = ExtentOf(all, contour)) != null) measuredFrom = "the edges of the view (its lines could not be read)";
+            if (drawn == null) { drawn = contour; measuredFrom = "the outline of the view (neither its lines nor its edges could be read)"; }
+            var toLay = new double[placedCount][];
+            for (int i = 0; i < placedCount; i++)
+            {
+                BetweenPlaced p = placedItems[i];
+                IDisplayDimension d = p.Dimension;
+                int k = p.Horizontal ? 0 : 1, across = 1 - k;
+                double[] ends = { p.First.FromSheet[across], p.First.ToSheet[across], p.Second.FromSheet[across], p.Second.ToSheet[across] };
+                double sideAsked = p.Horizontal ? (horizontalNamed ? (above ? 2 : 1) : 0) : (verticalNamed ? (left ? 1 : 2) : 0);
+                double box = d == null ? -1 : WidestText(d), height = d == null ? -1 : TextHeight(d);
+                // The widest line: the value, or the text under the line («below»).
+                double choice = Math.Max(TextWidthForTheChoice(p.Row.TryGetValue("text_shown", out var shown) ? shown as string : null, height, style),
+                                         TextWidthForTheChoice(_dimensionBelow, height, style));
+                p.Row["text_box_mm"] = box > 0 ? (object)Math.Round(box * 1000, 2) : null;
+                p.Row["text_width_for_the_choice_mm"] = choice > 0 ? (object)Math.Round(choice * 1000, 2) : null;
+                toLay[i] = new[]
+                {
+                    p.Horizontal ? 1.0 : 0.0,
+                    Math.Min(p.First.FromSheet[k], p.Second.FromSheet[k]), Math.Max(p.First.FromSheet[k], p.Second.FromSheet[k]),
+                    Math.Min(Math.Min(ends[0], ends[1]), Math.Min(ends[2], ends[3])), Math.Max(Math.Max(ends[0], ends[1]), Math.Max(ends[2], ends[3])),
+                    box, p.ExpectedMm, sideAsked, choice, height,
+                };
+            }
+            double[][] places = LayOutDimensions(toLay, drawn, style, row, SheetDimensions(drawing), inTheView);
+            // The dimensions of the view once these are placed: the old ones and the new ones, for the label of a detail.
+            var afterLayout = new List<double[]>(inTheView);
+            double lowestUnder = double.NaN;
+            for (int i = 0; i < placedCount && places != null; i++)
+            {
+                BetweenPlaced p = placedItems[i];
+                IDisplayDimension d = p.Dimension;
+                double[] at = places[i];
+                if (d == null || at == null) continue;
+                ApplyPlace(d, p.Row, at, p.Horizontal);
+                double halfBox = toLay[i][5] > 0 ? toLay[i][5] / 2 : 0, halfHeight = (toLay[i][9] > 0 ? toLay[i][9] : 0.0035) / 2;
+                afterLayout.Add(ExistingDimension(p.Horizontal ? 1 : 0, toLay[i][1], toLay[i][2], at[0], at[1],
+                                                  p.Horizontal ? halfBox : halfHeight, p.Horizontal ? halfHeight : halfBox));
+            }
+            lowestUnder = LowestUnder(afterLayout.ToArray(), drawn);
+            // THE LABEL OF A DETAIL UNDER ITS DIMENSIONS (the owner moves it there: 26P000008, detail A).
+            Dictionary<string, object> detailLabel = IsDetailView(view) && !double.IsNaN(lowestUnder)
+                ? MoveDetailLabel(view, lowestUnder, style.DetailLabelGapMm) : null;
 
             double[] afterContour = ContourOf(view);
             var texts = DimensionTexts(drawing);
@@ -490,11 +741,22 @@ namespace Oce.Solid.Agent.Core
                 ["decorations_not_kept"] = DecorationsNotKept(born).ToArray(),
                 ["edges_not_dimensioned"] = failed.ToArray(),
                 ["laid_out"] = (row ? "in a row, " : "from the smaller to the larger, ") +
-                               "the horizontal ones " + (above ? "above" : "below") +
-                               ", the vertical ones on the " + (left ? "left" : "right"),
-                ["not_compared_with_other_views"] =
-                    "a distance asked with «between» is placed even when another view dimensions the same extent: " +
-                    "you named it",
+                               "the horizontal ones " + (horizontalNamed ? (above ? "above" : "below") : SideWords(style, true)) +
+                               ", the vertical ones " + (verticalNamed ? "on the " + (left ? "left" : "right") : SideWords(style, false)),
+                ["style"] = style.Describe(),
+                ["measured_from"] = measuredFrom,
+                ["detail_label"] = detailLabel,
+                // WHAT THE DRAWING ALREADY GAVE (02/11/2026): the pairs refused, each with the
+                // dimensions that give its extent; why a view was not compared; what was read.
+                ["already_given_refused"] = refused.ToArray(),
+                ["repeat"] = repeatAllowed,
+                ["not_compared"] = notCompared,
+                ["already_dimensioned_read_from"] =
+                    (existingRead.EverySheet ? "every sheet" : "current sheet only") +
+                    (existingRead.Complete ? "" : ", interrupted: some views were not read"),
+                // WHAT THE VIEW HELD (02/11/2026): the dimensions already there the layout kept off.
+                ["dimensions_already_in_the_view"] = inTheView.Length,
+                ["dimensions_in_the_view_not_read"] = unreadInTheView,
                 ["texts_read"] = texts == null ? null : (object)texts.Count,
                 ["overlapping_texts"] = overlapping == null ? null : overlapping.ToArray(),
                 ["how_many_texts_overlap"] = texts == null || overlapping == null || (texts.Count == 0 && after > 0)
@@ -502,11 +764,121 @@ namespace Oce.Solid.Agent.Core
                 ["overlaps_checked_against"] = overlapsCheckedAgainst,
                 ["contour_view_mm"] = InMillimeters(contour),
                 ["contour_view_after_mm"] = InMillimeters(afterContour),
-                ["offset_used_mm"] = Math.Round(dimensionOffset * 1000, 2),
-                ["pitch_used_mm"] = Math.Round(planStep * 1000, 2),
+                ["offset_used_mm"] = Math.Round(style.FirstRowMm, 2),
+                ["pitch_used_mm"] = Math.Round(style.PitchMm, 2),
             };
             _log("[agent] " + put + " dimensions «between» on the view «" + viewName + "»: " + ValuesInLine(born));
             return WithoutFeature(measurements);
+        }
+
+        /// <summary>
+        /// Puts a dimension where the layout says (one row of LayOutDimensions): its text there, the
+        /// arrows inside or outside as the text is, and in its row of the answer the side, the row,
+        /// where the text is and where it was read back. Shared by «between» and the automatic route
+        /// (note 98, defect 4).
+        /// </summary>
+        private static void ApplyPlace(IDisplayDimension d, Dictionary<string, object> row, double[] at, bool horizontal)
+        {
+            bool textInside = at[2] > 0.5;
+            row["side"] = horizontal ? (at[3] > 0.5 ? "above" : "below") : (at[3] > 0.5 ? "right" : "left");
+            row["row"] = (int)at[4] + 1;
+            row["row_mm"] = Math.Round(at[5] * 1000, 2);
+            row["text"] = textInside ? "between the extension lines"
+                        : at[6] > 0.5 ? "outside, beyond the lower end" : "outside, beyond the higher end";
+            row["text_moved_out"] = !textInside;
+            try
+            {
+                var annotation = d.GetAnnotation() as IAnnotation;
+                if (annotation != null) annotation.SetPosition2(at[0], at[1], 0);
+            }
+            catch { }
+            row["position_mm"] = WhereItEnded(d);
+            var ended = row["position_mm"] as object[];
+            if (ended == null || Math.Abs(Convert.ToDouble(ended[0], CultureInfo.InvariantCulture) - at[0] * 1000) > 0.1 ||
+                Math.Abs(Convert.ToDouble(ended[1], CultureInfo.InvariantCulture) - at[1] * 1000) > 0.1)
+                row["layout_note"] = "laid out at x " + Math.Round(at[0] * 1000, 2).ToString(CultureInfo.InvariantCulture) + " y " +
+                                     Math.Round(at[1] * 1000, 2).ToString(CultureInfo.InvariantCulture) + " mm, and it reads " +
+                                     (ended == null ? "no position" : "x " + ended[0] + " y " + ended[1] + " mm") + ": move it with «move_annotation»";
+            int wanted = textInside ? (int)swDimensionArrowsSide_e.swDimArrowsInside : (int)swDimensionArrowsSide_e.swDimArrowsOutside;
+            int read = -1;
+            try { d.ArrowSide = wanted; } catch { }
+            try { read = d.ArrowSide; } catch { }
+            row["arrows"] = read == (int)swDimensionArrowsSide_e.swDimArrowsInside ? "inside"
+                          : read == (int)swDimensionArrowsSide_e.swDimArrowsOutside ? "outside" : null;
+            if (read != wanted)
+                row["arrows_note"] = "I asked the arrows " + (textInside ? "inside" : "outside") + " and SOLIDWORKS reads " +
+                                     (read < 0 ? "nothing" : ((swDimensionArrowsSide_e)read).ToString()) + ": set them by hand";
+        }
+
+        /// <summary>The side of a direction in «laid_out» when the call names none: by the edges, or the tie side alone.</summary>
+        private static string SideWords(DimensionStyle style, bool horizontal)
+        {
+            string tie = horizontal ? style.TieHorizontal : "on the " + style.TieVertical;
+            if (!style.SideByEdges) return tie;
+            return "on the side their edges reach (" + tie + " when both are as near)";
+        }
+
+        /// <summary>
+        /// Moves the label of a detail under its lowest dimension (DetailLabelY): the label is the
+        /// one note of the view (ViewWithItsNotes in DrawingDetailOperations.cs), read back
+        /// after the move. A view with no note or more than one is left as it is, and the row
+        /// says why. Not measured on SOLIDWORKS yet.
+        /// </summary>
+        private static Dictionary<string, object> MoveDetailLabel(IView view, double lowestText, double gapMm)
+        {
+            var row = new Dictionary<string, object> { ["moved"] = false };
+            INote label = null;
+            int notes = 0;
+            try
+            {
+                for (var note = view.GetFirstNote() as INote; note != null && notes < 50; note = note.GetNext() as INote)
+                {
+                    notes++;
+                    label = note;
+                }
+            }
+            catch { }
+            if (notes != 1)
+            {
+                row["why"] = notes == 0 ? "the detail has no note to move as its label"
+                                        : "the detail has " + notes + " notes, and I do not know which one is its label";
+                return row;
+            }
+            IAnnotation annotation = null;
+            double[] before = null;
+            try
+            {
+                annotation = label.GetAnnotation() as IAnnotation;
+                before = annotation == null ? null : annotation.GetPosition() as double[];
+            }
+            catch { }
+            if (before == null || before.Length < 2)
+            {
+                row["why"] = "I cannot read where the label of the detail is";
+                return row;
+            }
+            row["before_mm"] = new object[] { Math.Round(before[0] * 1000, 2), Math.Round(before[1] * 1000, 2) };
+            double? labelAt = DetailLabelY(before[1], lowestText, gapMm);
+            if (labelAt == null)
+            {
+                row["why"] = "the label is already under the dimensions";
+                return row;
+            }
+            double y = (double)labelAt;
+            double[] after = null;
+            try
+            {
+                annotation.SetPosition2(before[0], y, 0);
+                after = annotation.GetPosition() as double[];
+            }
+            catch { }
+            if (after != null && after.Length >= 2)
+                row["after_mm"] = new object[] { Math.Round(after[0] * 1000, 2), Math.Round(after[1] * 1000, 2) };
+            row["moved"] = after != null && after.Length >= 2 && Math.Abs(after[1] - y) < 0.0001;
+            if (!(bool)row["moved"])
+                row["why"] = "I asked the label at y " + Math.Round(y * 1000, 2).ToString(CultureInfo.InvariantCulture) +
+                             " mm and it does not read there: move it with «move_annotation»";
+            return row;
         }
 
         /// <summary>
@@ -514,12 +886,15 @@ namespace Oce.Solid.Agent.Core
         /// the sheet divided by the scale, decorated. A value that is not that distance is
         /// taken away and said. Null with <paramref name="failure"/> when nothing stays; the
         /// row with <paramref name="failure"/> when the dimension was born without its object.
+        /// Where it goes and its arrows are decided after (DimensionBetween, LayOutDimensions):
+        /// <paramref name="placedDimension"/> hands it over, null when SOLIDWORKS did not.
         /// </summary>
         private Dictionary<string, object> PlaceBetween(
             IModelDoc2 model, IDrawingDoc drawing, object[] edges, ProjectedEdge first, ProjectedEdge second,
-            bool horizontal, double expectedMm, double x, double y, out string failure)
+            bool horizontal, double expectedMm, double x, double y, out string failure, out IDisplayDimension placedDimension)
         {
             failure = null;
+            placedDimension = null;
             string pairText = first.Index + "-" + second.Index;
             int dimensionsBefore = CountDimensions(drawing);
             IDisplayDimension d = null;
@@ -566,8 +941,7 @@ namespace Oce.Solid.Agent.Core
             described["position_mm"] = WhereItEnded(d);
             described["text_shown"] = ExactTextShown(d, described);
             DecorateDimension(d, described);
-            int k = horizontal ? 0 : 1;
-            ArrowsByText(d, described, first.FromSheet[k], second.FromSheet[k], horizontal);
+            placedDimension = d;
             if (d == null)
                 failure = pairText + " (the dimension was born but SOLIDWORKS did not hand it back: its value was not read back, check it on the sheet)";
             return described;

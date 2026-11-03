@@ -32,6 +32,852 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.170.11 — 3 November 2026 · library 0.198.11 · the texts the language gate refused (branch `night-2026-10-26-asm`)
+
+- **Why.** The pre-push hook stopped the push of 0.161.0-0.170.10: the language gate found 6 Italian
+  occurrences in 3 files, all written by 0.161.0-0.163.0. They were the name of a mode and of a variable
+  of an internal script, the name of the folder of a drawing run, and a word of a dimension text quoted
+  in the label of a check.
+- **What changed.** Only words: two comments of `DrawingDimensionStyle.cs`, two comments and the label of
+  a check in `Tests/RealRunContract.cs`, and a comment line of `Tests/data/real-run-1102.tsv` (the
+  contract skips the lines that start with `#`). No behaviour changes, and no exception added to the
+  gate.
+- **The bench.** The freshness contract reads the date of the commit, and a file of the library changed
+  after the full bench of 0.198.10 (2634 tests, 0 failed): the full bench runs again on 0.198.11.
+
+## 0.170.10 — 2 November 2026 · library 0.198.10 · a hole position dimension goes on the centre of the hole (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench on library 0.198.9 (21:36, 2.552 tests, 8 failed) had a new red:
+  `drawing_dimensions_holes_and_chamfer`, step 11, «does not say «105»: 8, 15, 101, 15, 65». 101 is 105
+  minus the 4 mm radius of the Ø8 hole. The same case alone, with SOLIDWORKS restarted before each run:
+  green 4 times out of 4 (21:53-21:58).
+- **The defect.** `HolePosition` selects the circle of the hole and the reference edge and calls
+  `AddHorizontalDimension2`/`AddVerticalDimension2`. Which point of the circle the dimension takes (the
+  centre, the nearest point or the furthest) is its arc end condition (guide page
+  `IDimension~SetArcEndCondition.html`), and the bridge never looked at it: SOLIDWORKS chose. The answer
+  already carried a «warning» when the value was off by more than 0.05 mm, and nothing acted on it.
+- **What changed.** `CentreTheArcEnds` (DrawingDimensionOperations.cs) reads both ends of the new
+  dimension with `IDimension.GetArcEndCondition`, and puts back on the centre, with `SetArcEndCondition`,
+  an end that is on the nearest or the furthest point. Both ends are read, so the order of the selection
+  is not assumed. It runs before the dimension is described, so the millimetres in the answer are the
+  corrected ones. Every hole position in the answer has `arc_ends`: what was read on each end and what
+  was moved.
+- **Seen on SOLIDWORKS.** A probe outside the repository, on the plate of the case, the library's way (Select4 on the circle, then on the left edge, `AddHorizontalDimension2`): born on the
+  centre, 105 mm, end 1 = 1 (centre), end 2 = 0 (not on an arc). End 1 set to the nearest point: 101 mm,
+  the value of the red; to the furthest: 109 mm; back to the centre: 105 mm. `SetArcEndCondition`
+  returned 0 every time, and the value changed at once, before `GraphicsRedraw2`: the library does not call
+  it (the guide asks it only to see the change, and the frozen count of that call stays). A second version
+  of the probe put end 1 on the nearest point again (101 mm) and called the library's own `CentreTheArcEnds` by
+  reflection: 105 mm, «end 1 was on the nearest point, put on the centre: it reads centre»; a second call
+  moved nothing. Alone the bench case is born on the centre and never runs that branch.
+- **The case.** `drawing_dimensions_holes_and_chamfer`, step 11, three new lines on `dimensions[2]`, the
+  105: its orientation, `arc_ends` with «on the centre», and without the words of a move that failed. On
+  library 0.198.9 (`-Library`, a copy of the old DLL, SHA-256 58480ecb…) the bench
+  stops on «missing field: measurements.dimensions[2].arc_ends»; on 0.198.10 the case is green twice, 50
+  tests each, with «end 1 on the centre; end 2 not on an arc».
+
+## 0.170.9 — 2 November 2026 · library 0.198.9 · a structural member that is not born says what was read (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench on library 0.198.8 (18:28-19:35, 2.624 tests) had one red case and its twin:
+  `a_frame_too_small_closes_the_profile_library`, step 2, the frame of 1000 x 800 mm in 80X80X5 tube.
+  `InsertStructuralWeldment5` returned null; the bridge log says the insertion opened the profile library
+  and left it modified, so the file on S: was read. The same case repeated alone 8 times right after, on
+  the same SOLIDWORKS session: 8 green. In the logs of the full benches since 28/10/2026 the message
+  appears only in this run. The SOLIDWORKS journal (`swxJRNL.swj`) shows the 3D sketch of that step and
+  no member group: SOLIDWORKS writes there only what is born. The drag guard is ruled out by time: it acts
+  after 3 s of a held mouse, and the two calls of the case took 0,7 s together.
+- **The defect.** The null branch answered only «Usually it is the path: segments that do not touch, or
+  that cross in a way the profile cannot turn», a guess, and read nothing. The red left nothing to look at.
+- **What changed.** `WhatTheNullLeft` (WeldmentOperations.cs) reads three things after the null, before
+  `WithoutSketch` may delete the sketch, and the refusal says each one that was read: the segments the
+  group holds against those drawn (`IStructuralMemberGroup.GetSegmentsCount`, guide page
+  `IStructuralMemberGroup~GetSegmentsCount.html`); the ends of the drawn segments that meet no end of
+  another within 0.01 mm, read back with `ISketchLine.GetStartPoint2`/`GetEndPoint2`, and the farthest of
+  them; whether the profile library is open. A reading that fails is left out, not written as zero. The
+  hint about the path stays after the readings.
+- **Seen on SOLIDWORKS.** New bench case `weldments/a_member_not_born_says_what_it_read`: two segments that
+  do not touch and are not parallel in one group (the refusal), and the same two joined in an L (the
+  twin). On library 0.198.8 (`-Library`, a copy of the old DLL): **red**, «it refused but does not say
+  «Read after the refusal»». On 0.198.9: **green**, the refusal reads «the group holds 2 of the 2
+  segments drawn; 4 ends of the drawn segments meet no end of another (the farthest is 583.095 mm from
+  the nearest); the profile library «TUBO STRUTTURALE QUADRO.SLDLFP» is open: SOLIDWORKS read it», and the
+  twin is 2 bars of 1322967.371 mm3. 583.095 mm is sqrt(500^2 + 300^2), computed before the run.
+- **Not found.** Why SOLIDWORKS returned null on the 1000 x 800 frame once in 9 runs of the case is not
+  known: the next time the refusal carries the three readings.
+
+## 0.170.8 — 2 November 2026 · library 0.198.8 · the drag guard seen firing, and the reds of 0.198.7 nobody had seen (branch `night-2026-10-26-asm`)
+
+- **Why.** The guard of 0.198.7 had never been seen firing. In an A/B on SOLIDWORKS (12 runs of
+  `chamfered_shaft_does_not_dimension_the_legs`, `OCE_DRAG_GUARD=off` and on alternated, 13:04 to 13:14)
+  it posted Escape 0 times, and the only proof that it was wired was a line of its source. It also looked
+  only at the thread of `Process.MainWindowHandle`, one window of the process: a capture held by another
+  window of SOLIDWORKS, or by a thread whose window is not the main one, was not seen.
+- **The guard (`StuckDragGuard`).** `WindowThreadsOf` lists, with `EnumWindows`, the threads that own a
+  top-level window of the processes named `ProcessName`, and every one of them is read with
+  `GetGUIThreadInfo`. `ProcessName` is `SLDWORKS` and can be set, so that the contracts point the guard at
+  their own process.
+- **The contract (`StuckDragGuardContract`, 2 checks).** A window on a thread of the contract process takes
+  the mouse (`SetCapture`, no button down) and lets it go on Escape, as `CRectTracker::Track` does. The
+  control first, guard off: the window still held the mouse after 5.052 ms, Escape 0, events 0. Then guard
+  on: the window let go after 3.608 ms, Escape received once, one event kept (second run: 5.090 ms and
+  3.592 ms). Where a thread cannot take the mouse at all, both checks are «not runnable here», with the
+  reading of `GetGUIThreadInfo` that proves it.
+- **The reds of 0.198.7 nobody had seen (the contracts had not run on it).** `check-catalog.ps1` read 0
+  `case` labels: it looked inside `public Outcome Run(`, and since 0.198.7 `Run` only watches the call and
+  the switch is in `RunWatched`; it now reads the method that holds `switch (operation)`, as
+  `Tests/Program.cs` does. `List<string>.Add` on the field `Events` is an undecided call for the scanner of
+  obsolete calls (a declared type with angle brackets): the count is raised with its reason in
+  `Tests/data/obsolete-undecided-frozen.tsv`. `OCE_DRAG_GUARD` was read and not in the README: it has its row.
+  The informational version, the badges and the installer said 0.198.7 and 0.170.7.
+- **Measured: the about 30 s of `drawing_dimension` come with the disconnected remote session, not with the
+  guard.** The slowest `drawing_dimension` of each run, on 64 runs of the case between 11:30 and 13:14, read
+  from the reports of the runs; the remote session of the owner was disconnected at 12:46:35:
+
+  | runs | before 12:46:35 | after 12:46:35 |
+  |---|---|---|
+  | under 20 s | 35 of 36 (1,5 to 17,4 s) | 1 of 28 (12,3 s) |
+  | 20 s or more | 1 of 36 (40,0 s) | 27 of 28 (29,8 to 36,1 s) |
+
+  The first run after the disconnection shows it in one run: a `drawing_dimension` of 1,9 s at 12:46:33,
+  the next one of 31,0 s at 12:47:12. With the guard off and on the times are the same (29,8 to 31,3 s
+  and 29,8 to 30,8 s, the first run off 12,3 s). That the disconnection is the cause is not tested: a run
+  with the session connected and disconnected alternated is needed.
+- **Contracts.** 1.029 checks, 4 failed, 2 not runnable here. The 4 reds are of the bench report:
+  `Bench/report/last.json` is the partial run written by the repeated runs of the case (29 tests on
+  0.198.7, 13:14), and a whole bench on 0.198.8 is needed. Not run: the bench.
+
+## 0.170.7 — 2 November 2026 · library 0.198.7 · a drag of the view that nobody releases, ended with Escape (branch `night-2026-10-26-asm`)
+
+- **Why.** `chamfered_shaft_does_not_dimension_the_legs` hung in 3 runs of 8 with library 0.198.6 and in 1
+  of 8 with 0.198.2, and two whole benches of bridge 0.170.6 were lost. The stacks of SOLIDWORKS of 11:59
+  and 12:07 both end in `CRectTracker::Track`: a simulated click (`ISilhouetteEdge.Select2`, through
+  `auModelDoc_c::s_selectByPick`, or a reading of the view through `uiViewBucket_c::getPolylines`) took the
+  drawing view and started a drag of it (`uiSelectionMan_c::startDragDrop`), and the main thread of
+  SOLIDWORKS held the mouse waiting for a button that nobody pressed (the capture read with
+  `GetGUIThreadInfo`, no button down). Escape posted to the window that held the mouse ended the drag
+  without moving anything: the bench went on within 8 s and the case was green.
+- **The guard (`StuckDragGuard`).** While a call of the bridge runs (`During`), a timer looks every 0,5 s
+  at SOLIDWORKS: a window that has held the mouse for 3 s, with no menu and no move or size loop open (the
+  flags of `GUITHREADINFO`) and no mouse button down (`GetAsyncKeyState`), gets Escape once, and the event
+  is kept. A drag of the owner's holds a button and is never touched; outside the calls nothing is looked at.
+- **Where.** `SwOperations.Run` runs the operation (`RunWatched`) inside `During`, and `DocumentState`
+  reads a listing (`ReadListingWatched`) inside it too. An answer whose call ended a drag says so in
+  `drag_released_with_escape`, and the log of the bridge has the sentence.
+- **The switch.** `OCE_DRAG_GUARD=off`: nothing is watched, to measure the two ways on the same build.
+- **Contracts.** The wiring in `Zc2204DrawingRound22Contract`: `During` in the operations and in the
+  state, and no Escape while a button is down.
+
+## 0.170.6 — 2 November 2026 · library 0.198.6 · the leader of a chamfer text judged by the lines it crosses, and the tables in the way of a balloon (branch `night-2026-10-26-asm`)
+
+- **Why (the two points left open by the night's report).** On 26P000011 view 2 the text of the profile
+  chamfer went 18 mm from the corner: the places tried were only along the outer side and at ±30°, 6 to
+  18 mm, and the dimensions of the view (2,1, 5,705, 0,747, 12,105) took that fan near the corner. And
+  `FreeTheBalloons` read the notes, the balloons, the other views and the title block of the sheet, not
+  its tables: a balloon could be moved onto the bill of materials.
+- **A first try that made the sheet worse (not kept).** The fan alone widened to ±90° put the text on the
+  arrow of 12,105 and its leader across 0,747 and 12,105, on SOLIDWORKS (drawing d14): a place free of
+  every text and line can still have a leader that crosses them.
+- **The chamfer text (`DrawingDimensionOperations`).** `ChamferTextCandidates` gives 49 places, 6 to 24 mm
+  every 3 mm, along the outer side and at 30°, 60° and 90° either side, each with the unit toward it;
+  the box of the text grows on the side of its own place (centred on an axis it is almost across).
+  A place is free with a margin of 0,5 mm from the other texts, the lines of the view and of the other
+  dimensions, the notes. Among the free places the leader decides: `LeaderCrossings` counts the lines of
+  the view, of the dimensions and the sides of the other texts crossed by the segment from the corner to
+  the nearest point of the box (`NearestOnBox`), the first 0,6 mm left out; the fewest crossings first,
+  then the nearest, then the order of the places. The answer says how many lines the leader crosses and
+  how many places of 49 were free.
+- **Measured on SOLIDWORKS (drawing d15, the steps of 26P000011).** View 2: 21 mm from the chamfer
+  (place 36 of 49), its leader across no line, 12 places of 49 free; view 1: 6 mm. The call took
+  10.245 ms against 17.867 ms of the first try (d14) on the same steps. A text nearer than 21 mm on view 2 needs the
+  vertical dimensions moved to the right of the part (the owner puts 12 of 19 there): a question of
+  style, left to the owner.
+- **The tables in the way of a balloon (`BalloonRepeatOperations.FreeTheBalloons`).** Every view of the
+  sheet, the sheet itself first, gives its tables (`GetTableAnnotations`) with the box `TableBoundingBox`
+  already gives the free places of `ReadSheet`; a balloon is not left over one, and the answer names it
+  («over the table «ElementoDettaglio393» (Foglio1)»).
+- **Measured on SOLIDWORKS, A/B on the same steps** (the steps 32-38 of 26M000002, then its main view 70
+  mm lower, the bill of materials over the title block, `balloons` with `layout: below`): with the
+  library before the change (d19) the 4 balloons of 4 stayed over the header of the table (centres at y
+  90,98 mm, the table from 53,5 to 93,86 mm); with 0.198.6 (d20) the 4 were moved, each «over the table»,
+  to y 100,87 mm, just above it (PDF and PNG looked at). The replay of the real steps 32-39 (d16) moved
+  7 balloons, for the frame, another balloon, a label and their own view, none for the table: there none
+  is born near it.
+- **New bench case `balloons_move_off_the_bill_of_materials`.** The base and cover of
+  `bom_over_the_title_block_and_balloons_again`, the table over the title block (its top read at y 79,21
+  mm), the side view taken off its line and centred at 315 / 100 mm, `balloons` with `layout: below`: the
+  balloons are born over the table and every one must be moved «over the table». Seen red before it was
+  trusted: with the tables taken out of `FreeTheBalloons` for one run (the file put back byte for byte,
+  same SHA-256) the step says «does not say «over the table»»; green on 0.198.6.
+- **A linking row out of date.** `Zc2204DrawingRound22Contract` still looked for the clash line of
+  0.198.5 in `MoveChamferText` (red in the contracts of 0.198.6); it reads the new one.
+- **Contracts.** `Zc2204DrawingRound22Contract` reads the 49 places (distance, direction, never past 90°,
+  one at 90°), `LeaderCrossings` (1 on its test segment) and `NearestOnBox` (4 mm, 0 mm); the linking
+  rows follow the new code, one more for the tables in `FreeTheBalloons`.
+
+## 0.170.5 — 2 November 2026 · library 0.198.5 · a display data that cannot be read is not «nothing there» (branch `night-2026-10-26-asm`)
+
+- **Why (`Checks/zero-or-unknown.js`, before the last full run of the bench).** Three points written for
+  the text of a chamfer dimension (0.197.6, 0.197.7) counted 0 lines or 0 texts when
+  `IDisplayDimension.GetDisplayData` gave nothing: `DimensionLines` would then call a text across the lines
+  of that dimension free.
+- **The fix.** `DimensionLines` gives null when the display data of one dimension cannot be read (the
+  answer then does not say «free of the lines of the other dimensions»); `TextBounds` gives null, as
+  its summary says; `TextCornersOf` gives an empty list, and `MoveChamferText` tries the next place
+  (a text it cannot read is never called free). Not measured on SOLIDWORKS: these are the paths of a
+  reading that fails.
+
+## 0.170.4 — 2 November 2026 · library 0.198.4 · the lines of the sheet format in one call (branch `night-2026-10-26-asm`)
+
+- **Why (the phases of 0.198.3 on five drawing cases of the bench).** `sheet.title_block` took 2,9 s in 4
+  calls, all of it in `sheet.format_lines`: about 0,7 s in every drawing call that looks for a free
+  place (`drawing_dimension`, `section_view`, `detail_view`, `move_view`, `drawing_bom`, `balloons`).
+  The owner's A3 declares no title block (`ISheet.TitleBlock` null), so since library 0.196.0 its 69
+  lines are read one segment at a time, eight COM calls a line from outside the process.
+- **Measured before the change** (a read-only probe from outside SOLIDWORKS, a new A3 drawing from the
+  default template and 26M000002): one segment at a time 1.708,4 to 4.854,0 ms; `ISketch.GetLines2(1)`
+  6,2 to 11,8 ms, the same 69 lines (0 mm apart both ways), the same title block 217..413 x 7..53,5 mm.
+  The order of the 12 doubles of a line (start at 6..8, end at 9..11) is the one of the guide, checked
+  on those 69 lines.
+- **The fix.** `FormatLines` asks `GetLines2` first (`LinesOfGetLines2`, pure); the segments stay as the
+  way back when the array is not whole records.
+- **Contracts.** `RealRunContract`: the measured first record and an odd array (red without
+  `LinesOfGetLines2`). `Zc2204DrawingRound22Contract`: the linkage row of the title block follows the
+  line timed in 0.198.3, and a new row holds the call of `GetLines2`.
+
+## 0.170.3 — 2 November 2026 · library 0.198.3 · the two old red cases of the bench, and the title block timed (branch `night-2026-10-26-asm`)
+
+- **Why (full run of the bench on 0.170.2, 2.600 tests, 2 failed, 4.050 s; then the two cases alone
+  with `OCE_BENCH_STATE_DUMP`).** Both cases were red in every run since they were written (30/10/2026),
+  and the bridge was right in both: the cases expected numbers they never had.
+  - `the_width_mate_centres_the_tab`: the bench inserts the base with its origin at [0, -5, 0] mm, so its
+    top face is at y 5 mm. The clip goes from [30, 38, 0] to [30, 5, 0] with the coincident mate and to
+    [0, 5, 0] with the width mate, 0 degrees of freedom left: centred, as asked. The case expected y 10.
+    Its `defect_caught` no longer claims the width and the tab swapped: centred, the two middles meet
+    either way (geometry, not measured).
+  - `between_edges_gives_the_height_past_a_chamfer`: the front view is at scale 1 (drawn 34,5 to 154,5 mm,
+    120 mm), not 1:2. With `x_mm` 27 the circle of radius 4 mm stayed inside the plate and the detail was
+    refused as empty. `x_mm` 57 puts it across the right end, 60 mm from the centre.
+- **The title block timed.** Between the full runs of 31/10 (0.160.3) and 02/11 (0.170.2) almost every
+  drawing call took about 1 s more, whatever it did (one `drawing_dimension` +1,1 s, one `section_view`
+  +1,0 s, one `move_view` +0,9 s), while SOLIDWORKS was faster everywhere else. `TitleBlockOfTheSheet`
+  is timed as `sheet.title_block`, the lines of the format as `sheet.format_lines`, in the library
+  phases the bench prints.
+- **Bench.** The two cases alone: 61 tests, 0 failed.
+
+## 0.170.2 — 2 November 2026 · library 0.198.2 · a balloon judged by its circle and its leader (branch `night-2026-10-26-asm`)
+
+- **Why (calls 32-39 of 26M000002 replayed with 0.170.1, then a read-only probe of the
+  balloons from outside SOLIDWORKS).**
+  `INote.GetExtent` of a balloon holds its leader down to the tip: the 1 of the section is 161,27 to
+  218 mm high for a circle of 9,96 mm. Judged by that box, balloons whose leader only went into their
+  view were «over their own view» and moved, and the 1 of the section went 25 mm below with its
+  leader across the label. `INote.GetBalloonInfo` gives the radius (4,98 mm) but its centre is not
+  updated after `IAnnotation.SetPosition2` (the 2 of the isometric still read its old place).
+- **The fix.** The circle comes from the leader (`BalloonCircleBox`: the first point of the leader is
+  on the circle, the centre one radius further from the tip; on the 4 of the isometric 402,96;
+  187,75 mm against 402,78; 187,41 mm of `GetBalloonInfo`). `BalloonBlocked` judges the circle
+  against the frame, the notes by their extent, the circles of the other balloons, the outlines of
+  the other views and the title block, the leaders of the other balloons across the circle, and the
+  balloon's own leader across a note or a circle (not across an outline: a leader goes into its
+  view). A balloon moved keeps its tip.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the circle of the 4 of the isometric and the leader
+  of the 1 across the label (red on 0.198.1: `BalloonCircleBox` is missing).
+
+## 0.170.1 — 2 November 2026 · library 0.198.1 · the nearest free place, and the labels that read empty (branch `night-2026-10-26-asm`)
+
+- **Why (calls 32-39 of 26M000002 replayed with 0.170.0, PDF looked at).** The 2 and the 4 of section
+  A-A and the three balloons of detail B came apart, and no balloon of the isometric crossed the frame
+  any more. Two faults were left. (1) The 1 of the section stayed on the label of the
+  section (its name and scale): that label reads « \r\n » through `INote.GetText` (its text is linked), and the
+  notes whose text reads empty were left out. (2) The balloons of the isometric pushed off the frame
+  went down to 50 mm away, with leaders across the part: only the places around the whole view were
+  tried, and the view runs up to the top of the sheet.
+- **The fix.** A note counts by its extent even when its text reads empty. A balloon not free is
+  tried first brought inside the frame, then on three rings around that place (`BalloonRing`, 1,25
+  to 3,75 balloon sizes, 36 places), and only then around the view (`BalloonCandidates`). The
+  balloons of `again` must also stay out of their own view; those of `AutoBalloon5` not (it puts
+  them inside the corners of the outline).
+- **Contracts.** `Zc2204DrawingRound22Contract`: the 36 places near a balloon (red on 0.198.0:
+  `BalloonRing` is missing); the two anchors of the wiring carry the new argument.
+
+## 0.170.0 — 2 November 2026 · library 0.198.0 · each balloon where it is free (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 7, seen on the PDF of 26M000002 made with 0.168.0).** `again` put every
+  balloon on the line from the centre of the view through its arrow, 10 mm past the outline, with no
+  look at what was there: in section A-A the 2 and the 4 at 202,78; 262,43 and 203,98; 262,42 mm, one
+  on the other, and the 1 at 202,78; 196,55 mm on the label «SCALA 2 : 1»; in detail B the 4 and
+  the 2 at 61,37; 67,76 and 61,30; 65,83 mm. `AutoBalloon5` put the 2 of the isometric across the
+  frame of the sheet.
+- **The fix.** `FreeTheBalloons`, after the arrows are spread, in `balloons` and in `again`: a
+  balloon born in the call that falls on something (`BalloonBlocked`: the frame, 12 mm from the
+  edge of the paper; the notes and balloons of the sheet and of its views; the outlines of the other
+  views; the title block; 0,5 mm of margin) is moved, keeping its arrow, to the first free place of
+  `BalloonCandidates` (39 places: the line of `BalloonOutside` turned by 15° up to 90° either side,
+  10, 18 and 26 mm past the outline). The balloons that were there before the call are not touched.
+  The answer lists each balloon moved, why, from where and to where
+  (`balloons_moved_to_a_free_place`).
+- **Contracts.** `Zc2204DrawingRound22Contract`: 39 places and four balloons judged with the
+  numbers of 26M000002 (red on 0.197.7: the methods are missing); wiring two lines more.
+
+## 0.169.7 — 2 November 2026 · library 0.197.7 · the text of a chamfer dimension off the notes (branch `night-2026-10-26-asm`)
+
+- **Why (looked at on the PDF of 26P000008 made with 0.169.6).** The text «0,4 x 45°» of detail A
+  came 2 mm above the label «DETTAGLIO A / SCALA 5 : 1»: the notes and the title block, which the
+  overlap report of `drawing_dimension` reads, were not compared when the place was chosen.
+- **The fix.** `MoveChamferText` also refuses a place whose text covers a note or the title block
+  (`WhatTheTextCovers`, the reading of the overlap report), and `text_place` says how many notes were
+  compared.
+- **Contracts.** `Zc2204DrawingRound22Contract`: wiring one line more.
+
+## 0.169.6 — 2 November 2026 · library 0.197.6 · the text of a chamfer dimension off the lines of the others (branch `night-2026-10-26-asm`)
+
+- **Why (looked at on the PDF of 26P000011 made with 0.169.5).** The text «0,5 x 59,53°» of view 2
+  came near its chamfer, free of the other texts and of the edges, but across the dimension lines of
+  «2,1» and «5,705»: those lines were not compared.
+- **The fix.** `DimensionLines`: the lines every other dimension draws, from
+  `IDisplayData.GetLineAtIndex3` (start and end at indices 4-5 and 7-8, the guide page), and
+  `MoveChamferText` keeps off them too; `text_place` says how many were compared and which place was
+  kept.
+- **Contracts.** `Zc2204DrawingRound22Contract`: wiring one line more.
+
+## 0.169.5 — 2 November 2026 · library 0.197.5 · the text of a chamfer dimension where it is free (branch `night-2026-10-26-asm`)
+
+- **Why (looked at on the PDF of 26P000011 made with 0.169.4).** In view 2 the text «0,5 x 59,53°»
+  lay over the part, its leader across the whole view. `AddChamferDim` does not put the text at the
+  point it is given: asked down left of the chamfer, it was read back 29 mm right and 19 mm above
+  (0.169.0 put the chamfer of edge 12 there too, 28 mm right and 19 mm above). So the side of the text
+  tried since 0.169.0 never reached the sheet. `move_annotation` on the same dimension moved it to
+  80,8, 82,6 mm and read it back there: `IAnnotation.SetPosition2` works on a chamfer dimension.
+- **The fix.** `MoveChamferText`: once the chamfer dimension measures its chamfer, its text is moved
+  from the middle of the chamfer towards the side it was asked on, at 6 to 18 mm every 3 mm and at
+  30° either side (`ChamferTextCandidates`, 15 places), with the corner of the text nearest the
+  chamfer on the place; the first place whose text touches no other dimension text and no edge of the
+  view is kept, otherwise the nearest, and `text_place` says which.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the 15 places in the chamfer rules (red on 0.197.4:
+  `ChamferTextCandidates` is missing); wiring one line more.
+
+## 0.169.4 — 2 November 2026 · library 0.197.4 · the key of a chamfer dimension, by its width (branch `night-2026-10-26-asm`)
+
+- **Why (measured on SOLIDWORKS with 0.169.3).** With the good leg found, 26P000008 detail A and
+  26P000011 view 1 read 0,4 x 45° at the first try; but in 26P000011 view 2 the four chamfers the
+  profile draws all went «already dimensioned». The chamfer dimension of view 1 rests on the leg 24,
+  which is 0,986 mm long like those chamfers, and 0.169.1 recorded the profile key of every edge of
+  a chamfer dimension.
+- **The fix.** A chamfer dimension already in the drawing records the profile key of the width it
+  reads (`ChamferWidthOf`, its linear value), not of the length of each edge it rests on.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the anchor of the wiring moved to the width.
+
+## 0.169.3 — 2 November 2026 · library 0.197.3 · the leg of a chamfer dimension, by the way it runs (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 1, measured on SOLIDWORKS with 0.169.2).** 26P000008 detail A and
+  26P000011 view 1 still read 135° after every try. Each leg was then asked by hand with `chamfer`
+  [[edge, leg]], on fresh copies:
+
+  | drawing | legs that read 0,4 x 45° | legs that read 135° |
+  |---|---|---|
+  | 26P000008 detail A, chamfer edge 1 | 0, 16 | 2, 6, 19 |
+  | 26P000011 view 1, chamfer edge 27 | 24 | 23, 26 |
+
+  Neither the side of the text nor the angle between the two rays from the shared end tells them
+  apart (leg 16 makes 134,9° with the chamfer and reads 45°, leg 19 makes 45,1° and reads 135°). The
+  way the edges run does, 8 of 8: SOLIDWORKS reads the angle between the two directions, start to
+  end as the view gives them, so a leg that runs the same way as the chamfer edge reads 180° minus
+  the angle. The good legs (0, 16, 24) lie on a chamfer face, and the automatic route left such
+  edges out.
+- **The fix.** `ChamferLegs` takes the edges on a chamfer face too, and sorts the legs: first those
+  that run against the chamfer edge (`ChamferLegRunsWith`), then those not on a chamfer face, then
+  the shorter leg. A chamfer dimension that reads over 90° on a leg running the same way says so in
+  its reason.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the eight legs probed in the chamfer rules (red on
+  0.197.2: `ChamferLegRunsWith` is missing); wiring two lines more.
+
+## 0.169.2 — 2 November 2026 · library 0.197.2 · the true size of a chamfer, judged on its profile (branch `night-2026-10-26-asm`)
+
+- **Why (measured on SOLIDWORKS with 0.169.1, the 30/10 sequences replayed).** The rule of 0.169.1
+  was wrong. On 26P000009 view 3 it refused the chamfer «Smusso1» because its edge 4 is 0,693 mm in
+  the model and 0,566 mm on the sheet; 0.169.0 had put a true 0,4 x 45° on that same edge (leg 0).
+  The edge is a mitre (0,4 x √3 = 0,693 mm) lying on the profile of the chamfer (0,4 x √2 = 0,566
+  mm): the view does show the chamfer in its true size, the edge picked is only another edge on the
+  same line. The 135° of 26P000008 detail A comes from the same kind of edge, so it is not a matter
+  of true size either.
+- **The fix.** `NotSeenInItsTrueSize` (was `NotParallelToTheSheet`): for a chamfer feature whose
+  definition is read, the line on the sheet over the scale is compared with the profile of the
+  chamfer, the hypotenuse of its legs (`ChamferProfileNotSeen`, 0,01 mm plus 1 %); a chamfer feature
+  not read is left to the values read back; only an edge without a feature (a chamfer the profile
+  draws, an edge named in `chamfer`) is compared with its own length in the model (`ChamferSlant`).
+- **Contracts.** `Zc2204DrawingRound22Contract`: four profiles more in the chamfer rules (26P000009
+  view 3 and 26P000008 detail A kept, 26P000011 view 1 refused, a 0,5 x 60° either way); the
+  anchors renamed.
+
+## 0.169.1 — 2 November 2026 · library 0.197.1 · chamfers in their true size (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 1, measured on SOLIDWORKS with 0.169.0).** (1) The 135° of 26P000008
+  detail A and the 164.77° of 26P000011 view 1 do not come from the side of the text: two tries on
+  the same edge gave the same angle. The edge is not parallel to the sheet: 0,693 mm in the model
+  against 0,567 mm on the sheet over the scale (26P000008), 0,576 against 0,415 and 0,61 against
+  0,566 (26P000011). No leg and no side could give a true chamfer dimension there. (2) In
+  26P000011 view 2 the two 0,5 x 59,53° chamfers drawn by the profile were dimensioned twice, and
+  the oblique line of 0,986 mm (edge 10) stayed: its legs were not each twice as long as it.
+- **The fixes.** (1) `ChamferSlant`: an edge whose length on the sheet over the scale is not its
+  length in the model (0,01 mm plus 1 %) is not tried; the automatic route says it in
+  `chamfers_failed` with the two lengths, `chamfer` refuses it («dimension it in a view that looks
+  along the chamfered edge»), and `MarkProfileChamfers` does not take it. (2) `ChamferProfileKey`:
+  the chamfers the profile draws are keyed by the length of their edge in the model (0,001 mm), so
+  those of the same length get one dimension; a chamfer dimension already in the drawing records the
+  key of its edges too. A profile chamfer now needs only to be shorter than the longer of the two
+  edges it joins.
+- **Contracts.** `Zc2204DrawingRound22Contract`: four slants and the profile key in the chamfer
+  rules (red on 0.197.0: `ChamferSlant` and `ChamferProfileKey` are missing); wiring five lines more
+  (64 lines, eight orders, 72 changed copies).
+
+## 0.169.0 — 2 November 2026 · library 0.197.0 · the chamfers of note 98 (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 1).** Four faults and a missing request. (1) On 26P000009, after the
+  `between` dimensions, the chamfer read «already dimensioned» with no chamfer dimension: any
+  dimension on an edge of the chamfer face recorded the chamfer. (2, 3) On 26P000008 detail A and
+  26P000011 view 1 the chamfer dimension read 135° and 164.77° and was taken away, with no other leg
+  tried: the bridge took the first edge meeting the chamfer and put the text on the side of the
+  centre of the view. (4) The 0,5 x 60° of 26P000011 view 2 belongs to an extrusion, not to a chamfer
+  feature: it went as an oblique line of 0,986 mm. (5) There was no way to ask the chamfer dimension
+  on two edges.
+- **The fixes.** (1) Only a chamfer dimension (`IDisplayDimension.Type2` = `swChamferDimension`)
+  records its chamfer, by feature and by the ends of its edge. (2, 3) `PlaceChamferDimension` tries
+  every straight edge that meets the chamfer as the leg, the shorter leg first (0,5 x 60°, not
+  0,866 x 30°), with the text first on the side the corner was taken from (`ChamferTextPlace`), then
+  on the side of the centre; a dimension with impossible values or not in true size is taken away
+  and the next try made, and the answer says the leg used and the tries. (4) `MarkProfileChamfers`:
+  a short oblique straight edge (10 mm at most in the model, under half of each leg) between two
+  edges perpendicular on the sheet, at 5° to 85°, is a chamfer, with its own key
+  (`chamfers_drawn_by_the_profile`). (5) `chamfer`: [5, [7, 12]] puts the chamfer dimension on the
+  oblique edge 5 (leg chosen) and on 7 resting on 12, in a call of its own; a chamfer already
+  dimensioned is refused unless `repeat`.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the rules of `chamfer`, the key, the place of the
+  text (red on 0.196.1: the methods are missing); wiring seven lines more (59 lines, eight orders, 67
+  changed copies). `Zc2203DrawingRound21Contract`: the chamfer judged before it is kept, in its new
+  place. `RefusalsTests` floors 320 and 320 of 1081.
+
+## 0.168.1 — 2 November 2026 · library 0.196.1 · the overall horizontal dimension on a tie on the other side (branch `night-2026-10-26-asm`)
+
+- **Why (note 98).** The 193,6 of 26M000002 view 1 went above, the owner's is below. Its edges reach
+  both sides of the view as near, and a tie of the horizontal ones takes the side above (6 of 7 in
+  his drawings). Of his horizontal dimensions on a tie the two overall ones, from end to end of the
+  lines of the view, are below: the 193,6 and the 15,6 of 26P000009 view 2 (2 of 2); the partial ones
+  of the same views are above (35, 135, 11,6, 2).
+- **The fix.** With the side of the edges on and no `tie_balance`, a horizontal dimension from end to
+  end of the lines of the view (0.6 mm) on a tie takes the side the tie does not take. Vertical ones
+  keep the tie side: of his two overall vertical ones on a tie one is on each side. A side asked wins.
+- **Measured on his numbers.** The replay of the real run (`RealRunContract`): 14 of 51 texts within
+  5 mm of his (was 12), 9 within 2 mm (was 7), 12 of his 41 by hand (was 10); his side 28 of 39 and
+  the choice inside or outside 46 of 51 unchanged. His four drawings laid out again: 17 of 51 and 15
+  of 41, unchanged. Floors of the replay raised to 14 and 12.
+- **Contracts.** `DimensionStyleContract`: an overall horizontal dimension on a tie (the 193,6 and
+  the 15,6 below, 35, 135, 11,6 and 2 above, a side asked kept). Red on 0.196.0 («the 193,6 above;
+  the 15,6 above»).
+
+## 0.168.0 — 2 November 2026 · library 0.196.0 · the title block drawn by the lines of the format (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 8).** The bill of materials asked `over_title_block` on 26M000002 stayed
+  about 16 mm above the title block and to its left. The owner's A3 format declares no title block
+  (`ITitleBlock` null), so the bridge went to a free place 4 mm above an estimate of half the sheet
+  x 65 mm; the format draws its title block at 217..413 x 7..53.5 mm.
+- **The fix.** When the format declares none, the title block is read from the lines of its sketch
+  (`ISheet.GetTemplateSketch`): the frame is found from the long lines, and the title block is the
+  box of the lines inside it, joined to one another, that reach the bottom-right corner of the
+  frame (`TitleBlockFromLines`, pure). It serves the free places of views and tables, the bill of
+  materials over the title block (which rests on it at its width; what it touches is checked leaving
+  the title block and its notes out, `TouchesBeside`), `read_drawing` (`title_block_mm`, and
+  `title_block_from`) and the texts written over the title block. Without either, the estimate as
+  before, and it is said.
+- **Said in every answer.** When the bill of materials cannot rest on the title block, the reason is
+  `warning_over_title_block` (was `over_title_block_note`): a `summary` answer drops the long texts
+  that only explain, and the replay of the real run with 0.166.1 put the table in a free place with
+  nothing said.
+- **Measured.** A probe on a copy of 26P000007 (02/11/2026): 71 segments, 69 lines, the frame at
+  7..413 x 7..290 mm, the title block at 217..413 x 7..53.5 mm.
+- **Contracts.** `RealRunContract`: the 69 lines give 217 7 413 53.5 mm; the frame alone, the paper
+  alone and a box in another corner give none (red on 0.195.1: the method is missing).
+  `Zc2204DrawingRound22Contract` wiring: five lines more (52 lines, eight orders, 60 changed copies).
+  `Zc2203DrawingRound21Contract`: the anchor of the title block read by its new name.
+
+## 0.167.1 — 2 November 2026 · library 0.195.1 · the side turns at the frame of the sheet (branch `night-2026-10-26-asm`)
+
+- **Why.** 26P000007 made again with 0.167.0 (the run of 30 October 2026, steps b, c and f, on a
+  copy): with `offset_mm` 30 on view 2 the 1,8 and the 3,5 stayed on the left at x 6.5 mm, inside
+  the 12 mm of the frame. The layout turned a side only when its first row came within 5 mm of the
+  edge of the paper.
+- **The fix.** A side not asked turns when the text of its first row (the row distance from the
+  lines, plus half the height of the text) would lie over the frame, 12 mm as the free places of
+  the sheet (`FrameOfTheSheet`).
+- **Contracts.** `DimensionStyleContract`: the frame of the sheet (the 1,8 turned right at
+  x 241.5 mm with 30 mm, left at x 16.5 mm with 20 mm, left without the sheet). Red on 0.195.0
+  («30 mm out the 1,8 reads left at x 6.5 mm»). The replay of the real run unchanged: 12 of 51
+  within 5 mm.
+
+## 0.167.0 — 2 November 2026 · library 0.195.0 · the automatic dimensions in the owner's style (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 4).** The dimensions `drawing_dimension` places by itself (edges, overall)
+  went one row each, 10 mm further out every time, without the style file, without seeing the
+  dimensions already in the view, and left the sheet. 26P000007 on 30 October 2026: view 2 had nine
+  rows down to the 175 at y 8.4 mm, inside the 12 mm of the frame; detail A went up to y 315.84 mm
+  on a sheet 297 mm high, 4 of its 9 dimensions out.
+- **The fix.** The automatic route reads the style before anything is placed (refused with the
+  reason when the file cannot be used, `offset_mm` and `pitch_mm` winning when named), reads the
+  dimensions already in the view before its own are born, and after they are born lays the
+  horizontal and vertical ones out with `LayOutDimensions`, as `between` does: chains in one row,
+  the next row a pitch further, the side of the edges or the side asked, a text outside when it does
+  not fit, the side turned when the first row leaves the sheet. A detail's label goes under the
+  lowest text. The answer says the style, `dimensions_already_in_the_view` and `detail_label`; each
+  dimension its side, row, row distance and where it was read back. The holes, a round part and the
+  chamfers keep their own bands.
+- **One helper.** `ApplyPlace` moves a dimension where the layout says and sets its arrows; both
+  routes use it.
+- **Contracts.** `Zc2204DrawingRound22Contract` wiring: the style, the view read before the
+  dimensions are born (with its order), the layout, the move, the shared helper (47 lines, eight
+  orders). `RefusalsTests` floors 318 and 318 of 1077.
+
+## 0.166.2 — 2 November 2026 · library 0.194.2 · the warning of `labels_out_of_place` in plain English (branch `night-2026-10-26-asm`)
+
+- «the labels of «view» goes out of the frame» read wrong: now «with its labels, «view» goes out of
+  the frame ...: move the labels with «move_annotation»». Nothing else changes.
+
+## 0.166.1 — 2 November 2026 · library 0.194.1 · `move_view` moves a view that lands free when only its labels do not, and says where they went (branch `night-2026-10-26-asm`)
+
+- **Why.** The replay of 26M000002 with 0.166.0 refused step 038, which 0.164.0 had done: the plan
+  first moves the label of detail B to its final place under the view to come (112.56, 28.63) mm,
+  then moves the view by (-253.98, -39.82) mm, then puts the label back. The label goes with the
+  view by the same shift: with 0.164.0 it read (-141.42, -11.19) mm after the move, off the sheet,
+  and the plan's next step brought it back. Since 0.164.1 `move_view` judges the labels where they
+  land, so it saw them out of the frame and refused; before, it had read them where they were and
+  said nothing.
+- **The fix.** When the view alone lands free and only its own labels are in the way, the view
+  moves and `labels_out_of_place` says, for each, what they touch, the rectangle with them and the
+  one of the view alone, for `move_annotation`. A view that lands on something itself is refused
+  as before.
+- **Contracts.** `Zc2204DrawingRound22Contract` wiring: the line that says it (42 lines).
+- **On SOLIDWORKS** (26M000002 made again, calls 32 to 47 of the real run, with 0.166.1). Step 038
+  done, with its warning: the view alone at x 71.1..154 mm, y 29.2..81.9 mm, its label off the
+  sheet until the next step of the plan put it back. Step 039 (balloons again on the section and
+  the detail), which had failed in every run, done: section 4 balloons (26P000007 1, 26P000011 4,
+  26P000008 2, 26P000009 3), detail 3 (2, 1, 4), the numbers of the bill of materials. Only the two
+  refused moves of the real run are left (034, 036). Against the owner's drawing: 11 balloons of
+  his 11 (the run of 0.161.0 4), 4 + 4 + 3 where he has 5 + 3 + 3; the six dimensions as with 0.164.0.
+
+## 0.166.0 — 2 November 2026 · library 0.194.0 · `balloons` with `again` puts the balloons on a section and on a detail (branch `night-2026-10-26-asm`)
+
+- **Why** (note 98, defect 7). The owner repeats the balloons of 26M000002 on the section and on the
+  detail: 11 balloons on his drawing, 4 on the bridge's. In the real run `again` on section A-A
+  refused every part as «covered by another component», and the detail was not reached.
+- **What was measured** (copies of 26M000002, a diagnostic build writing to the log of the bridge).
+  On the section the edge was picked and `GetSelectedObjectsComponent4` gave no `IComponent2`: in a
+  drawing it gives «Component or Drawing component» (ISelectionMgr~GetSelectedObjectsComponent4.html),
+  and on a section neither that nor the owner of the entity says a component at all. The lines of
+  each part were placed with the component the view lists, the one inside «SectionAssembly»: those
+  of 26P000011 fell on a strip 0.8 mm high of a section 46 mm high, and on the detail outside the
+  view (x -85..-51 mm on a view at x 71..154 mm). With the placement of the owner of the edges, as
+  `view_edges` reads them (`ToSheetOf`), the extent of the lines of the four parts of the section is
+  the one `view_edges` gives, to 0.1 mm. On the detail the middle of a line inside its rectangle
+  fell outside its circle, where nothing can be picked.
+- **The fix.** `ComponentSegmentsOnSheet` places the lines with the owner of the first edge. The
+  lines are cut to the outline of the view (`ClippedToOutline`) and of the eight longest the middle,
+  the quarter and the three quarters are tried, at most 16 points (`PointsToTry`). The pick is read
+  as a component, as a drawing component (`IDrawingComponent.Component`) or through the entity
+  picked (`IEntity.GetComponent`) (`PickedComponent`); a part of a section, whose key has no
+  configuration, is the part of the model (`SameBomPart`). On a line that says no component the
+  balloon is made and kept only when its number is the one the balloons of the other views give the
+  part (`ExpectedNumber`); otherwise it is taken away and the next point tried.
+- **Contracts.** `Zc2204DrawingRound22Contract`: `BalloonPick` (6 pairs of keys, 4 lines cut, 2
+  numbers, 6 points in their order) and 5 lines of wiring more (BalloonSpreadOperations.cs among
+  the files read); the anchor of the check before the balloon follows its new line. 41 lines, seven
+  orders, 48 changed copies all red.
+- **On SOLIDWORKS** (a fresh copy of 26M000002 with the 4 balloons of the isometric view). Section
+  A-A: 3 balloons of 4 (3, 1, 2); on 26P000011 the balloon born read «1» instead of «4» on every
+  point and was taken away. Detail B: 3 of 3 (4, 1, 2). The drawing reads 10 balloons, where it read 4.
+
+## 0.165.0 — 2 November 2026 · library 0.193.0 · `move_view` takes `unalign`: a view aligned to its parent can be put off that line (branch `night-2026-10-26-asm`)
+
+- **Why** (note 98, defect 5). The owner puts section A-A of 26M000002 away from the line of view 1;
+  in the real run the move (26.22, -64.49) mm of the section was refused, rightly with the rules of
+  then: an aligned view moves only along the line that joins it to its parent, and `move_view` had
+  no way to take it off.
+- **What.** `unalign` true: a view aligned to its parent (`swViewAligned` or `swViewAlignBoth`,
+  `AlignedToItsParent`) is first taken off that line, `IView.RemoveAlignment` («Removes the
+  alignment from this drawing view», not the one of the views aligned to it), and read again; still
+  aligned, nothing moves. If the move is then refused (only part of it done, or it lands on
+  something), the view goes back to its place and to its default alignment
+  (`IView.UseDefaultAlignment`), and the refusal says whether the alignment came back. The answer
+  says `alignment_removed`. Default false: the rule of the aligned views stays, and its refusal now
+  names `unalign` too.
+- **Contracts.** `Zc2204DrawingRound22Contract`: `Unalign` (5 values of the alignment), 3 lines of
+  wiring and one order more (taken off the line before `IView.Position`); 36 lines, seven orders,
+  43 changed copies all red. Refusals that say what to do: 317 of 1076 (floors raised).
+- **On SOLIDWORKS** (a copy of 26M000002, section A-A, three moves in a row). With `unalign`, by
+  (26.22, -64.49) mm: refused, its labels would fall on the isometric view; put back, «Its alignment
+  to its parent view is back». Then without `unalign`, by (0, -64.49) mm: refused as an aligned
+  view, which shows the alignment had come back. Then with `unalign`, by (0, -64.49) mm: moved,
+  read back at y 142.06..187.94 mm, «not aligned», `alignment_removed` true. Contract suite 1021
+  checks, 6 failed, all six of the bench.
+
+## 0.164.1 — 2 November 2026 · library 0.192.1 · `move_view` judges a view with its labels where they land, not where they were (branch `night-2026-10-26-asm`)
+
+- **Why** (note 98, defect 6). Right after `IView.Position` the outline of a view has moved and the
+  extent of its labels still says the old place, as a probe had shown for a detail on 27/10/2026.
+  `move_view` read the view with its notes after the move, so the rectangle it judged spanned the
+  old place and the new one. On a copy of 26M000002 (02/11/2026, bridge 0.164.0) detail B, moved
+  100 mm up from y 29..82 mm, past view 2 (y 101..120 mm), into a free place, was refused: «falls
+  on a view, a table or a note (with its labels x 71.1..154 mm, y 20.6..181.9 mm)».
+- **The fix.** `WithNotesOfTheSheet` reads every view with its notes before the move; every view
+  that moved is judged on that rectangle moved as far as its outline moved (`LandedWithTheOutline`,
+  as a detail and a section already do); the rectangle read after the move only when one is
+  missing.
+- **Contracts.** `Zc2204DrawingRound22Contract` wiring: the read before the move and the landing
+  (2 lines), the read before `IView.Position` (an order); their changed copies red (33 lines, six
+  orders, 39 changed copies).
+- **On SOLIDWORKS** (fresh copies of 26M000002, detail B moved straight up). 100 mm: 0.164.1 judged
+  its labels at y 120.6..181.9 mm instead of 20.6..181.9 and still refused, rightly: the label
+  would come 0.8 mm over view 2, inside the 4 mm clearance. 110 mm: 0.164.0 refused (labels at
+  y 20.6..191.9 mm), 0.164.1 moved it (0, 110) mm, read back at y 139.18..191.86 mm with its label
+  at y 138.63 mm, under the outline. Contract suite 1020 checks, 6 failed, all six of the bench.
+
+## 0.164.0 — 2 November 2026 · library 0.192.0 · a free place on the edge of the clearance stays free; `drawing_dimension` writes a text under the dimension line (`below`); `read_drawing` says which way a distance measures (branch `night-2026-10-26-asm`)
+
+- **Why.** The real run of 02/11/2026 (bridge 0.161.0) was made again on SOLIDWORKS
+  with bridge 0.163.0 on fresh copies of the models, every call in its order (the replay tool of
+  the internal notes). On 26M000002 detail B was born, sent «above the title block» to x 325.1..408 mm,
+  y 69..121.7 mm, landed there to 0.1 mm and was removed as falling «on the title block»; in the
+  run of 0.161.0 the same step had kept it. The place lies on the edge of the 4 mm clearance
+  exactly (the title block ends at 65 mm), and the outline read back after the move can come out
+  a hair inside it: `FreeSheet.Touches` had a micrometre of tolerance for the frame and none for
+  the views, the tables, the notes and the title block. Every later step of that drawing failed
+  with it (the label moved by name, the edges of the detail).
+- **The fix.** `FreeSheet.Hair` (1 µm) for the frame and for every box. `RealRunContract`,
+  `DetailOnTheEdge`: the free place of an 83 x 52.7 mm detail over a title block ending at
+  65 mm is «above the title block» at 325/69 mm; a nanometre lower it is still free, half a
+  millimetre lower it falls on the title block. On library 0.191.0 it is red («a nanometre lower
+  it falls on the title block»).
+- **The text under the line** (note 98, defect 2: the owner writes a word under the 3,4, not
+  after it). `drawing_dimension` takes `below`, one line of at most 60 characters (`BelowProblem`),
+  written as the callout below of each dimension the call places and read back in `below_read`;
+  what did not stick goes to `decoration_note` (`BelowNote`), with the notes of `prefix`, `suffix`
+  and `parentheses` joined. The choice inside or outside of `between` counts the wider of the
+  value and that text. `read_drawing` says `below` for each dimension that has one.
+- **Which way a distance measures** (note 98, defect 3: a text moved into a corner could be read
+  either way). `read_drawing` says `direction` for each dimension: its kind when it is horizontal
+  or vertical; for a «linear» one, from the two edges it rests on, brought onto the sheet as
+  `view_edges` does (`DimensionDirection`: two vertical edges a horizontal distance, two
+  horizontal ones a vertical distance, null for oblique or mixed edges).
+- **Contracts.** `Zc2204DrawingRound22Contract`: `BelowAndDirection` (6 texts, 3 readings back,
+  7 directions) and 5 lines of wiring more; its anchor of the reset after a call and the one of
+  `RealRunContract` on the choice inside or outside follow the lines that now carry `below`.
+- **On SOLIDWORKS.** 26M000002 made again with 0.164.0, calls 32 to 47 of the run: detail B kept
+  «above the title block», its label moved by name, the five calls of dimensions all placed, the
+  PDF written and the drawing read; only the three refusals the run of 0.161.0 had too are left (a
+  move off the line of alignment, twice, and balloons on the section whose lines are covered).
+  The edges of the assembly had other numbers in every run, 92 of 92 in view 1, 67 of 67 in view 2,
+  27 of 27 in the detail: the first replay asked for 77-27 and got two edges not parallel, so the
+  replay tool matches them by component, kind and ends on the sheet within 0.15 mm (all matched).
+  The edges of the parts kept their numbers in all 11 views. `below` on a copy of 26P000008: a
+  2.5 mm distance of detail A with a word under the line, `below_read` gave it back, `read_drawing`
+  read it with `direction` vertical (two horizontal edges); the 22 linear dimensions of that
+  drawing all have a direction, 14 horizontal and 8 vertical.
+- **Checks.** Contract suite with `OCE_NO_ATTACH=1`: 1020 checks, 6 failed, all six of the bench
+  (its last run is on library 0.188.0); language gate: only the line of `Bench/report/last.json`
+  already there.
+
+## 0.163.0 — 2 November 2026 · library 0.191.0 · the layout of `between` sees the view: rows and texts already there, chains on one row, the choice inside or outside by the widths of the rules, the label of a detail under every dimension; replayed on the readings of the real run (branch `night-2026-10-26-asm`)
+
+- **Why.** The owner's four drawings of 26M000002 were made again on SOLIDWORKS with bridge
+  0.161.0 and no hand move (note 100): 10 of 52 texts within 5 mm of his, where the layout
+  checked on numbers alone promised 15. The other session listed the defects: (1) the layout saw
+  only its own call, and a second call on the same view (another `decimals`, `suffix` or
+  `parentheses` needs one) wrote over the first (`overlapping_texts`: the 17 over the 11,9 of
+  26P000011, five pairs on 26P000008); (2) the side wrong on 28 of 52; (3) the text 4.1 mm from
+  the outline where the owner has a median of 9.6 mm; (4) the text of small horizontal
+  dimensions out to the right where he writes it between the lines; (5) the label of detail A of
+  26P000008 not moved, its two dimensions coming from two calls; (6) a contract on numbers that
+  does not see what SOLIDWORKS does; (7) repeated dimensions (done in 0.162.0).
+- **What was measured first.** `stile_quote.py` 1.5.0 (internal notes), its mode of the rules, on his 41
+  dimensions alone (the 10 bridge 0.152.10 had placed on 28/10 left out by name and text): the
+  first row 10.0 mm from the lines of the view (median of 25), 6.96 mm between rows (median of
+  10), the side of the edges 18 times in 23, ties above 6 of 9 and right 4 of 8. So the 10 mm of
+  the style stand: the 9.6 mm from the outline (15.5 from the lines) of defect 3 counted the
+  bridge's dimensions at 17.94 mm, and the sides «below» of the first views of defect 2 are
+  dimensions of the bridge of 28/10 that he kept, with his own lined up on their row. The choice
+  inside or outside is his in 38 of 41 with the widths the rules were measured with (1.8 mm a
+  character, 1 mm a comma) and in 33 of 41 with the box SOLIDWORKS reads
+  (`GetTextInBoxWidthAtIndex`: 2.58 mm a digit plus 2.6 mm of margin, probe0089): that box is
+  what put the 11, the 9,5 and the 10,9 outside (defect 4).
+- **The rows see the view** (defect 1). `DimensionsInTheView` reads, before the new dimensions are
+  born, every dimension of the view not hidden by hand: a distance between two straight parallel
+  edges with its kind and its two extension lines (the edges brought onto the sheet by `ReadEdge`,
+  as `view_edges` does), any other with its text only; the text as the rectangle of its texts
+  centred on its position (`TextBounds`, `TextCorners` taken out of `DimensionTexts`).
+  `LayOutDimensions` takes them (`ExistingDimension` rows): the rows of a side are those the
+  dimensions already there use and those of the style between them, 0.6 of a pitch from them
+  (`RowsOfASide`: he lines new ones up on a row that is there), and each dimension takes the first
+  row where its extent overlaps no other of that row and its text comes no nearer than 0.5 mm to
+  any text, of either direction, old or new. The answer says `dimensions_already_in_the_view`,
+  `dimensions_in_the_view_not_read` and for each row `row_mm`.
+- **Chains on one row.** The dimensions with the text inside that follow one another end to end
+  go in one row together, the first where all fit (`ChainsOf`): 19 / 145 / 11, and on one line
+  even when a short one with its text outside takes the row nearer the part.
+- **The text outside** (defect 4). The choice uses `TextWidthForTheChoice` (the text shown,
+  `char_mm` 1.8 and `comma_mm` 1.0 for a text 3.5 mm high, scaled to its height); the box stays the
+  room the text takes. A text that does not fit goes beyond the higher end, or with
+  `text_both_ends` (true) beyond the lower one when the higher is taken or lies over another
+  dimension of its side not placed yet (the 5 of 26P000008 view 2, so the 11 next to it keeps the
+  first row). `text` says which end. Each row says `text_box_mm` and `text_width_for_the_choice_mm`.
+- **The label of a detail** (defect 5) goes under the lowest horizontal dimension under the view
+  among all of them, old and new (`LowestUnder`).
+- **Without the lines of a view** the layout measures from the extent of its edges inside its
+  outline (`ExtentOf`), not from the outline, which keeps 5.9 mm more: on 26M000002 detail B the
+  12 went that much further out than the owner's. A detail lists the edges outside its circle too
+  (down to x -243 mm there): hence inside the outline.
+- **Style.** New keys `tie_balance` (false: a tie goes to the side with fewer dimensions of its
+  direction), `text_both_ends`, `char_mm`, `comma_mm`; the other defaults stay (the replay below
+  gives the same count with `pitch_mm` 7). `tie_horizontal` «below» would give 14 of 51 within
+  5 mm instead of 12, but 25 of his sides instead of 28: the 2 more are the old bridge's rows, so
+  «above», his own choice, stays.
+- **Contracts.** `RealRunContract` (new) replays the readings of the real run without SOLIDWORKS:
+  `Tests/data/real-run-1102.tsv`, made by `stile_quote.py` 1.5.0 `reale` from the answers of
+  `drawing_dimension` (five calls of the run) and `view_edges` of the same views,
+  each of the 51 «between» matched to the owner's (same view, text and edges). First the rules of
+  0.161.0, copied in the contract, give back every place SOLIDWORKS read, 51 of 51 within 0.15 mm
+  with their choice inside or outside: the replay is the run. Then the library lays the same calls
+  out in the same order, each seeing what the earlier ones left: 0 texts over another (the run 6),
+  12 of 51 within 5 mm (the run 10), 10 of his 41, inside or outside as he 46 of 51 (the run 40),
+  his side 28 times (the run 28); those are the floors. The label of a detail in two calls; the
+  wiring on the sources, 7 lines and their order, 8 changed copies all red. `OCE_REPLAY_DUMP` names
+  a file that gets each dimension of the replay and the other styles. `DimensionStyleContract`: the
+  owner's drawings laid out on numbers now give 17 of 51 and 15 of his 41 (floors raised from 15
+  and 13), `LayOutDimensions` takes the dimensions already there.
+- **Checks.** Contract suite with `OCE_NO_ATTACH=1`: 1018 checks, 6 failed, all six of the bench
+  (its last run is on library 0.188.0, before these changes); language gate: only the line of
+  `Bench/report/last.json` already there.
+- **On SOLIDWORKS** (02/11/2026, the four drawings made again on fresh copies, every call of the
+  real run in its order; parts with 0.163.0, 26M000002 with 0.164.0, whose layout is the same):
+  12 of 52 texts within 5 mm of the owner's, where the run of 0.161.0 had 10 — the number the
+  replay of the contract gave without SOLIDWORKS. Texts over another as the bridge reports them:
+  0 (the run 21). By drawing, within 5 mm: 26P000008 5 of 21 (the run 2), 26P000009 3 of 12 (3),
+  26P000011 3 of 13 (3), 26M000002 1 of 6 (2) with its median from 16.3 to 8.0 mm: there the 35
+  goes a row further out, over the 193,6 that the owner writes under the view.
+
+## 0.162.0 — 2 November 2026 · library 0.190.0 · one dimension per extent on the whole drawing: `between` refuses an extent the drawing already gives, in another view or through a chain, and the automatic route sees a distance between two edges (branch `night-2026-10-26-asm`)
+
+- **Why.** The owner asked whether the bridge repeats dimensions: on a drawing a dimension is
+  not repeated in another view, it confuses the shop. Measured on his four drawings of
+  26M000002 (stile_quote.py 1.4.0 of the internal notes, from the edges each dimension rests
+  on): 7 dimensions too many in 51. On 26P000008 the 19 and the 11 in views 1 and 2, the 11
+  twice in view 2, the 1,5 of view 2 again in detail A, the 175 next to 19 + 145 + 11 and the
+  145 next to 1,5 + 134 + 9,5; on 26P000011 the 2,1 in views 2 and 3. The copies of 30/10 put
+  them all back with `between`, which did not look at the other views (it said so in
+  `not_compared_with_other_views`), and the automatic route recorded as already dimensioned
+  only a dimension on ONE edge, so it put back the extent of a `between` (note 98, defect 4: 6
+  on 26P000007). No route looked at chains.
+- **`between`.** Before anything is placed, each pair gets its tract: the axis of the model the
+  distance measures (the sheet axis across the two edges, `SheetAxes`) and the two planes along
+  it (`TractBetween`), the same key as an edge of that tract. A pair whose tract the drawing
+  already gives is refused: the same tract in any view of any sheet, or a chain of tracts on
+  that axis that joins its two planes (`ChainThrough`, breadth first, the fewest dimensions).
+  `already_given_refused` lists each pair with the dimensions that give it, by value, name and
+  view; the other pairs are placed, and when every pair is refused the call is refused, with
+  the way out. `repeat`: true, or `parentheses`: true (a reference dimension, the way a closing
+  dimension is written), places them anyway. Compared on a view of a part square to the
+  model's axes; on a view of an assembly (the tracts of two components are not in one frame)
+  or a turned view `not_compared` says why. `not_compared_with_other_views` is gone.
+- **What the drawing already has.** `KeysAlreadyDimensioned` records a dimension attached to two
+  parallel straight edges as its tract, read with the axes of its own view, and says for each
+  key which dimension gives it (`DescribeExisting`).
+- **The automatic route.** `repeat` turns off the check of another view, as for `between`. An
+  edge whose two planes the other dimensions already join is left out and listed in
+  `closing_a_chain` with the chain; the refusal of a view with nothing left counts them.
+- **Contracts.** `RepeatedDimensionsContract`: the tract of two parallel edges (3 tracts, 3
+  nulls), what already gives an extent (the same tract, a chain, a difference, nothing on
+  another axis or for a hole), the 13 dimensions along X of the owner's 26P000008 replayed in
+  the order of their names (5 refused and 8 kept on 9 planes, as the program counts), and the
+  wiring on the two sources, every line first red on a changed copy.
+- **Not measured on SOLIDWORKS.** The bench case `between_edges_gives_the_height_past_a_chamfer`
+  asks the same two pairs twice in V3, the second time with `parentheses`: it must still pass.
+
+## 0.161.0 — 31 October 2026 · library 0.189.0 · `drawing_dimension` with `between` lays its dimensions out in the owner's style, measured on his drawings; `OCE_DRAWING_STYLE` changes the numbers (branch `night-2026-10-26-asm`)
+
+- **Why.** On 30/10/2026 the drawings of 26P000008, 26P000009, 26P000011 and 26M000002 were
+  made again with bridge 0.160.3, and every dimension was then moved by hand to the place the
+  owner gives it: 87 `move_annotation` on 5 drawings. He asked for the bridge to put the
+  dimension there in the first place, with his rules inside the bridge and configurable, not
+  copied drawing by drawing.
+- **How the rules were read.** His four drawings (`read_drawing`: the text of each dimension,
+  its arrows, its place) against the edges of the same views (`inspect_part` with
+  `view_edges`), with a measuring program of the internal notes: 51 linear dimensions, 41 of
+  them placed by his hand. The other 10 were born from bridge 0.152.10 on 28/10 (their name and
+  text are in its answers) and are where it put them (12 mm from the outline, 17.94 mm from the
+  lines). Five of his own on 26P000008 sit on that row, lined up with the bridge's: until 02/11
+  the distance alone decided and they counted as the bridge's (36 by his hand). 7 of the 51
+  are one too many on their drawing: 5 dimension an extent already dimensioned (the 19 and the
+  11 of 26P000008 in its views 1 and 2, the 11 twice in view 2, the 1,5 of view 2 again in
+  detail A, the 2,1 of 26P000011 in views 2 and 3) and 2 close a chain (175 = 19 + 145 + 11,
+  145 = 1,5 + 134 + 9,5). They say where such a text goes, not that the dimension belongs
+  there. The side and text counts below were made on the 36.
+- **The rules** (sheet millimetres; `DrawingDimensionStyle.cs`):
+  - measured from the **lines the view draws**, not from `GetOutline`, which keeps about 5.9 mm
+    of margin around them;
+  - the first row **10 mm** from the lines (median of the first rows he placed; four at exactly
+    10.0), **6.7 mm** from one row to the next (median of ten steps, 4.0 to 12.0);
+  - each dimension on the **side of the part its edges reach** (his side in 20 of 24); when both
+    sides are as near (within 0.5 mm), horizontal ones **above** (6 of 7 of his) and vertical
+    ones on the **right** (4 against 4, the old default kept);
+  - dimensions that do not overlap **share a row** (two that only touch, as 19 / 145 / 11 on
+    26P000008, are a chain); the ones with the text outside come nearest the part, then from the
+    smaller to the larger;
+  - a text between the extension lines when it fits with **2 mm for each arrow** (with 2 mm the
+    choice inside or outside is his in 46 of 51, with the 3.5 mm used before in 42 of 51; text
+    widths estimated in that count, 1.8 mm a digit); otherwise **11 mm beyond the higher end**,
+    centre of the text from the extension line (his median 10.7; beyond the higher end in 13 of
+    18), with the arrows outside;
+  - on a detail, its **label 6.2 mm under its lowest dimension**, centred where it was (detail A
+    of 26P000008: his label at 205.92 mm, the automatic one at 213.96 mm, the dimension 1,5 at
+    212.13 mm). One case only: a hypothesis until more are measured.
+- **Measured without SOLIDWORKS** (the four drawings laid out again from their numbers, text
+  within 5 mm of his): with the layout of 0.160.4, 2 of his 41 and 2 of the 51; with these
+  rules **13 of his 41** (8 within 2 mm) and **15 of the 51**; 15 of his 41 when the side is the
+  one he chose (a call can name it). What misses most is the side: the edges alone do not say
+  which side he takes when both are as near.
+- **How it works.** Each distance is born out of the way as before; once all are born, the width
+  of every text is read from SOLIDWORKS and `LayOutDimensions` (pure) says where each goes;
+  the text is moved there (`SetPosition2`, read back) and its arrows set and read back. Each row
+  of `dimensions` says `side`, `row`, `text` and, when it did not stay, `layout_note`; the
+  answer says `style` (the numbers and where they come from) and `measured_from`. On a detail,
+  `detail_label` says whether the label moved (only the one note of the view is moved).
+- **Configurable.** `OCE_DRAWING_STYLE` names a JSON file read at every call, with any of
+  `first_row_mm`, `pitch_mm`, `text_outside_mm`, `arrow_room_mm`, `detail_label_gap_mm`,
+  `side_by_edges`, `pack`, `tie_horizontal`, `tie_vertical`. A key it does not take, a number out
+  of its range, a word it does not take or a file that cannot be read refuses the call before
+  anything is placed, and the refusal says the way out: correct the file, or remove the
+  variable to use the built-in style. `offset_mm`, `pitch_mm`, `horizontal_side`, `vertical_side` and `row` of a
+  call still win; with `row` all go in the first row, in the order asked.
+- **What does not change.** The route of `edges`, holes, chamfers and the overall size keep their
+  layout (12 mm from the outline, 10 mm of pitch, 3.5 mm for an arrow) until they are measured
+  in the same way. The order of `dimensions` is as before: the horizontal distances first.
+- **Contracts.** `DimensionStyleContract`: the four drawings laid out again from
+  `Tests/data/owner-dimension-layout.tsv` must reach at least 15 of 51 and 13 of his 41 within
+  5 mm (the same counts as the measuring program), while the numbers of the bridge before
+  (17.94 mm from the lines, 10 mm of pitch, 3.5 mm for an arrow, below and on the right) laid
+  out by the same function stay under it, 2 of 51, so the check can go red; the
+  side of the edges; the style file and
+  its refusals; the row and the stair; the label of a detail; the wiring on the sources, every
+  line first red on a changed copy. `Zc2204DrawingRound22Contract` looks for the arrows of a
+  distance where they are set now. Refusal floors 314 and 314 of 1074 (the refusal of the
+  style). The new code reads no value of an untyped receiver: the frozen count of undecided
+  calls does not move.
+- **Not measured on SOLIDWORKS:** SOLIDWORKS was in use by the owner. No bench run. The next
+  measure is the four drawings made again with no `move_annotation`, compared with his by the
+  comparing program of the internal notes; on 30/10, with the moves by hand, 52 of 55 dimensions
+  found, median distance from his place 0.0 mm.
+- **Gap left for later:** `read_drawing` does not read the circle of a detail on its parent view
+  nor the letter of that circle, so the distance of the letter from the circle cannot be
+  measured on his drawings yet.
+
+---
+
 ## 0.160.4 — 31 October 2026 · library 0.188.0 · the obsolete-call scanner knows a class of the repository named with its namespace (branch `night-2026-10-26-asm`)
 
 - **The red.** The contracts after the full bench of 0.160.3: «undecided calls (receiver type

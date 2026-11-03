@@ -122,6 +122,10 @@
     <Compile Include="Zc2202DrawingRound20Contract.cs" />
     <Compile Include="Zc2203DrawingRound21Contract.cs" />
     <Compile Include="Zc2204DrawingRound22Contract.cs" />
+    <Compile Include="DimensionStyleContract.cs" />
+    <Compile Include="RepeatedDimensionsContract.cs" />
+    <Compile Include="RealRunContract.cs" />
+    <Compile Include="StuckDragGuardContract.cs" />
     <Compile Include="Zc2189MachiningContract.cs" />
     <Compile Include="Zc215IdentityContract.cs" />
     <Compile Include="SolidWorksNamesContract.cs" />

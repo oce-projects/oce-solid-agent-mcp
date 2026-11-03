@@ -33,6 +33,12 @@ namespace Oce.Solid.Agent.Core
     ///    (`InsertCenterLine2`) plus one generatrix makes a dimension measured
     ///    from the origin of the SHEET (212.49), and `Diametric` cannot be
     ///    switched on. Edge-on `AddDiameterDimension2` says 60 for a Ø30.
+    ///  * `ISilhouetteEdge.Select2` SIMULATES A CLICK (02/11/2026, library 0.198.7, note 101 §16.7):
+    ///    now and then the click takes the drawing view and starts dragging it, and the call does not
+    ///    come back until Escape (StuckDragGuard ends it). The two generatrices put in the selection list
+    ///    with `ISelectionMgr.AddSelectionListObject` instead (no click) make no diameter be born: the
+    ///    Ø34 and Ø30 of stepped_shaft_dimensioned_from_the_side and the Ø30 of
+    ///    the_turned_diameter_is_not_an_orphan were missing (bench of 02/11/2026). Select2 stays.
     ///
     /// IN THE CODE the `IModelDoc2.AddDimension2` of the probes is not used (forbidden by
     /// contract: no direction, entry GP6) and `Extension.AddDimension` with two

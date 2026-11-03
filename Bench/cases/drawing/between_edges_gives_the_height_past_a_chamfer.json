@@ -291,9 +291,9 @@
         "label": "B",
         "scale": 2,
         "radius_mm": 4,
-        "x_mm": 27
+        "x_mm": 57
       },
-      "_why_x_mm_27": "V1 is the plate seen from the front, 120 x 10 mm at the scale 1:2 of standard_views, 60 x 5 mm on the sheet: as in detail_enlarges, the circle takes the right end of the plate, where the view shows edges.",
+      "_why_x_mm_57": "V1 is the plate seen from the front at scale 1, MEASURED (02/11/2026, OCE_BENCH_STATE_DUMP before this step: drawn_mm 34.5..154.5 x 224.5..234.5, 120 x 10 mm on the sheet): its right end is 60 mm from the centre, and the circle of radius 4 mm from x 53 to 61 mm crosses it, as in detail_enlarges. Until 0.170.3 the case said x_mm 27 for a scale 1:2 the view does not have: the circle stayed inside the plate, met no line, and the detail was refused as empty in every run since it was written (30/10/2026).",
       "expect": [
         {
           "what": "measurements.circle_style",

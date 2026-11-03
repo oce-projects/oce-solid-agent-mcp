@@ -1,0 +1,31 @@
+{
+  "name": "a_member_not_born_says_what_it_read",
+  "family": "weldments",
+  "why": "Library 0.198.9. When InsertStructuralWeldment5 returns null, SOLIDWORKS gives no reason: no exception, and GetErrorMessages says nothing (measured on 9/9/2026, see WeldmentOperations). Up to library 0.198.8 the answer said only «Usually it is the path», a guess. In the full bench of 2/11/2026 (library 0.198.8, 19:35) the frame of 1000 x 800 mm of a_frame_too_small_closes_the_profile_library, step 2, came back null once, and green 8 times out of 8 when the case was repeated alone right after: the answer left nothing to look at. Now the null branch reads three things after the refusal and writes them: the segments the group holds against those drawn (IStructuralMemberGroup~GetSegmentsCount.html), the ends of the drawn segments that meet no end of another, read back from the sketch, and whether the profile library is open.",
+  "defect_caught": "Step 1 puts two segments that do not touch and are not parallel in one group. On library 0.198.8 the refusal says «The structural member was not created. Usually it is the path ...» and nothing that was read: the message does not include «Read after the refusal», and the step is red. On 0.198.9 it says that the group holds 2 of the 2 segments drawn and that 4 ends meet no end of another. Step 2 is the twin: the same two segments joined at a corner, an L that is born.",
+  "_the_numbers": "Step 1: segment A from (0, 0, 0) to (500, 0, 0), segment B from (0, 300, 0) to (0, 300, 400) mm: perpendicular, 300 mm apart at the nearest ends. Every one of the 4 ends is free; the farthest from the nearest end of the other segment is (500, 0, 0), 583.095 mm from (0, 300, 0) (sqrt(500^2 + 300^2) = 583.0952, computed). Step 2: the L of a_member_group_is_mitred_by_default moved 1000 mm along Y, (0, 1000, 0)-(500, 1000, 0) and (500, 1000, 0)-(500, 1000, 400), mitred by default: two bars, 1322967.37 mm3 measured by the Z-C21.3 probe on the same L. The sketch of step 1 stays in the part (the refusal says so) and holds no body.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "structural_member",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configuration": "80X80X5",
+                     "segments": [ { "start": [0, 0, 0], "end": [500, 0, 0] },
+                                   { "start": [0, 300, 0], "end": [0, 300, 400] } ] },
+      "must_fail": {
+        "message_includes": ["Read after the refusal", "the group holds 2 of the 2 segments drawn",
+                             "4 ends of the drawn segments meet no end of another", "583.095 mm"],
+        "volume_unchanged": true,
+        "twin": "a_member_not_born_says_what_it_read" } },
+
+    { "operation": "structural_member",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+                     "configuration": "80X80X5",
+                     "segments": [ { "start": [0, 1000, 0], "end": [500, 1000, 0] },
+                                   { "start": [500, 1000, 0], "end": [500, 1000, 400] } ] },
+      "expect": [
+        { "what": "bodies", "equal_to": 2,
+          "why": "the twin must be a member that really came out: two bars" },
+        { "what": "volume_mm3", "equal_to": 1322967.37, "tolerance": 0.5,
+          "tolerance_why": "the probe's miter volume on this very L, as in a_member_group_is_mitred_by_default; moving it along Y does not change it" } ] }
+  ]
+}

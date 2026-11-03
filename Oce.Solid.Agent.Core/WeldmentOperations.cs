@@ -800,10 +800,16 @@ namespace Oce.Solid.Agent.Core
             // (Z-C21.10 N31): see its summary.
 
             if (feature == null)
+            {
+                // Read BEFORE WithoutSketch: it may delete the sketch, and the
+                // drawn segments with it (library 0.198.9, see WhatTheNullLeft).
+                string readAfter = WhatTheNullLeft(theGroup, created, profile);
                 return Failed(
-                    "The structural member was not created. Usually it is the " +
+                    "The structural member was not created: SOLIDWORKS returned no feature " +
+                    "and no reason." + readAfter + " Usually it is the " +
                     "path: segments that do not touch, or that cross " +
                     "in a way the profile cannot turn." + WithoutSketch(model));
+            }
 
             double length = segments.Sum(s => Distance(s.Da, s.A));
             var measurements = new Dictionary<string, object>
@@ -2797,6 +2803,95 @@ namespace Oce.Solid.Agent.Core
         private static string Triplet(double[] p)
         {
             return string.Format("{0:0.##}, {1:0.##}, {2:0.##}", p[0], p[1], p[2]);
+        }
+
+        /// <summary>
+        /// What can be read after InsertStructuralWeldment5 returned null (library 0.198.9).
+        ///
+        /// SOLIDWORKS gives no reason: the null comes with no exception, and
+        /// GetErrorMessages says nothing (measured on 9/9/2026, see the call). Up to
+        /// 0.198.8 the answer said only «Usually it is the path», which is a guess,
+        /// and the one null of the full bench of 2/11/2026 (the frame of 1000 x 800
+        /// mm of a_frame_too_small_closes_the_profile_library, step 2, green 8 times
+        /// out of 8 when the case was repeated alone right after) left nothing to
+        /// look at. Three readings, each written only if it was read:
+        ///
+        ///   how many segments the group holds against how many were drawn
+        ///   (IStructuralMemberGroup~GetSegmentsCount.html: «Gets the number of
+        ///   segments in this structural-member group»). Zero is the known null of
+        ///   an untyped array, see where the group gets its segments;
+        ///
+        ///   how many ends of the drawn segments meet no end of another segment,
+        ///   read back from the sketch (ISketchLine.GetStartPoint2/GetEndPoint2, in
+        ///   metres). A closed frame has none, an L has two: the number is given,
+        ///   not judged;
+        ///
+        ///   whether the profile library is open, that is whether SOLIDWORKS read
+        ///   it (it opens it by itself on an insertion, see StructuralMember).
+        ///
+        /// It does not throw. A reading that fails is left out, it is not written as
+        /// zero: zero segments in the group is a finding, an unread group is not.
+        /// </summary>
+        private string WhatTheNullLeft(IStructuralMemberGroup group, List<ISketchSegment> drawn, string profile)
+        {
+            var facts = new List<string>();
+            try
+            {
+                int inGroup = group.GetSegmentsCount();
+                facts.Add(string.Format(CultureInfo.InvariantCulture,
+                    "the group holds {0} of the {1} segments drawn", inGroup, drawn.Count));
+            }
+            catch { }
+
+            // The two ends of every drawn segment, in mm; null if one cannot be read.
+            var ends = new List<double[][]>();
+            foreach (var s in drawn)
+            {
+                double[] p = null, q = null;
+                try
+                {
+                    var line = s as ISketchLine;
+                    var a = line?.GetStartPoint2() as ISketchPoint;
+                    var b = line?.GetEndPoint2() as ISketchPoint;
+                    if (a != null && b != null)
+                    {
+                        p = new[] { a.X * 1000, a.Y * 1000, a.Z * 1000 };
+                        q = new[] { b.X * 1000, b.Y * 1000, b.Z * 1000 };
+                    }
+                }
+                catch { }
+                if (p == null || q == null) { ends = null; break; }
+                ends.Add(new[] { p, q });
+            }
+            if (ends != null && ends.Count > 1)
+            {
+                // An end is free when no end of ANOTHER segment is within 0.01 mm.
+                int free = 0;
+                double farthest = 0;
+                for (int i = 0; i < ends.Count; i++)
+                    foreach (var end in ends[i])
+                    {
+                        double nearest = double.MaxValue;
+                        for (int j = 0; j < ends.Count; j++)
+                            if (j != i)
+                                foreach (var other in ends[j]) nearest = Math.Min(nearest, Distance(end, other));
+                        if (nearest > 0.01) { free++; farthest = Math.Max(farthest, nearest); }
+                    }
+                facts.Add(free == 0
+                    ? "every end of a drawn segment meets the end of another within 0.01 mm"
+                    : string.Format(CultureInfo.InvariantCulture,
+                        "{0} ends of the drawn segments meet no end of another (the farthest is {1:0.###} mm from the nearest)",
+                        free, farthest));
+            }
+
+            string itemName = profile ?? "";
+            try { itemName = Path.GetFileName(profile); } catch { }
+            if (DocumentWithPath(_sw, profile) != null)
+                facts.Add("the profile library «" + itemName + "» is open: SOLIDWORKS read it");
+            else
+                facts.Add("the profile library «" + itemName + "» is not open");
+
+            return " Read after the refusal: " + string.Join("; ", facts) + ".";
         }
 
         /// <summary>

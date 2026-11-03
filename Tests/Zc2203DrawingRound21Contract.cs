@@ -379,12 +379,12 @@ namespace Oce.Solid.Agent.ContractTests
         private const string WidthCentred = "false, false, (int)swMateWidthOptions_e.swMateWidth_Centered, out error);";
         private const string NotesCompared = "foreach (string what in WhatTheTextCovers(t.Angles, noteNames, noteBoxes, titleBlock, margin))";
         private const string NotesRead = "var noteBoxes = NoteBoxes(drawing, out noteNames, out notesRead);";
-        private const string BlockRead = "double[] titleBlock = DeclaredTitleBlock(drawing);";
+        private const string BlockRead = "double[] titleBlock = TitleBlockOfTheDrawing(drawing, out _);";
         private const string ComparedSaid = "[\"overlaps_checked_against\"] = overlapsCheckedAgainst,";
         private const string ChamferRead = "if (s.ChamferFeature != null) s.ChamferPairs = ChamferPairsOf(edge, out s.ChamferSaid);";
-        private const string ChamferJudged = "string notTrue = ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid,";
+        private const string ChamferJudged = "string wrongSize = absurd == null ? ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid, degrees, side, s.ChamferPairs) : null;";
         private const string ChamferRetried = "done.Remove(s.ChamferFeature);";
-        private const string ChamferKept = "chamfers.Add(line);";
+        private const string ChamferKept = "described[\"chamfer_tries\"] = tries;";
 
         private static readonly string[][] Files =
         {
@@ -507,7 +507,7 @@ namespace Oce.Solid.Agent.ContractTests
             mutate("«decimals» read after the dimensions are placed", "dimension",
                    t => t.Replace(DecimalsRead, "/* moved */").Replace(DecimalsBody, DecimalsBody + "\n" + DecimalsRead));
             mutate("a chamfer dimension kept before it is compared", "dimension",
-                   t => t.Replace(ChamferJudged, "string notTrue = null; string unused = ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid,"));
+                   t => t.Replace(ChamferJudged, "string wrongSize = null; string unused = ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid, degrees, side, s.ChamferPairs);"));
             mutate("the second faces of a width mate checked after a face is picked", "mates",
                    t => t.Replace(WidthRefused, "/* moved */").Replace(WidthFirstPick, WidthFirstPick + "\n" + WidthRefused));
 

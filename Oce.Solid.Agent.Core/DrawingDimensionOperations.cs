@@ -78,11 +78,12 @@ namespace Oce.Solid.Agent.Core
                               "I touched nothing.");
             // THE TEXT AND THE LAYOUT (report 8cd843, round 22, points 2, 5, 6 and 7), read
             // before anything is placed too (DrawingBetweenDimensions.cs).
-            object prefixAsked, suffixAsked, parenthesesAsked;
+            object prefixAsked, suffixAsked, parenthesesAsked, belowAsked;
             a.TryGetValue("prefix", out prefixAsked);
             a.TryGetValue("suffix", out suffixAsked);
             a.TryGetValue("parentheses", out parenthesesAsked);
-            string decorationWhy = DecorationProblem(prefixAsked, suffixAsked, parenthesesAsked);
+            a.TryGetValue("below", out belowAsked);
+            string decorationWhy = DecorationProblem(prefixAsked, suffixAsked, parenthesesAsked) ?? BelowProblem(belowAsked);
             string sideWhy;
             if (decorationWhy == null && SideAsked(a, "horizontal_side", "below", "above", out sideWhy) == null) decorationWhy = sideWhy;
             if (decorationWhy == null && SideAsked(a, "vertical_side", "right", "left", out sideWhy) == null) decorationWhy = sideWhy;
@@ -92,12 +93,13 @@ namespace Oce.Solid.Agent.Core
             _dimensionPrefix = prefixAsked as string;
             _dimensionSuffix = suffixAsked as string;
             _dimensionParentheses = parenthesesAsked is bool && (bool)parenthesesAsked;
+            _dimensionBelow = belowAsked as string;
             try
             {
                 try { return DimensionTheView(model, a); }
                 finally { _dimensionDecimals = -1; }
             }
-            finally { _dimensionPrefix = null; _dimensionSuffix = null; _dimensionParentheses = false; }
+            finally { _dimensionPrefix = null; _dimensionSuffix = null; _dimensionParentheses = false; _dimensionBelow = null; }
         }
 
         private Outcome DimensionTheView(IModelDoc2 model, Dictionary<string, object> a)
@@ -200,7 +202,26 @@ namespace Oce.Solid.Agent.Core
                     return Failed("«between» cannot be used: " + betweenWhy + ". Each pair is two edge numbers of the " +
                                   "view, as «inspect_part» with «view_edges» lists them. I touched nothing.");
             }
+            // THE CHAMFER DIMENSION ON CHOSEN EDGES (note 98, defect 1: there was no way to ask it,
+            // and a chamfer the profile draws was dimensioned as an oblique line, 0,986 on 26P000011).
+            List<int[]> chamferAsked = null;
+            if (a.ContainsKey("chamfer"))
+            {
+                if (requestedList.Count > 0 || a.ContainsKey("overall") || a.ContainsKey("between"))
+                    return Failed("«chamfer» goes in a call of its own: one call with «chamfer» for the chamfer dimensions, " +
+                                  "another with «between», «edges» or «overall». I touched nothing.");
+                string chamferWhy;
+                chamferAsked = ChamferEdgesAsked(a["chamfer"], available, out chamferWhy);
+                if (chamferAsked == null)
+                    return Failed("«chamfer» cannot be used: " + chamferWhy + ". Each entry is the oblique edge of the chamfer, " +
+                                  "or [oblique edge, leg edge], numbers of the view as «inspect_part» with «view_edges» lists " +
+                                  "them. I touched nothing.");
+            }
             bool row = Bool(a, "row", false);
+            // ONE DIMENSION PER EXTENT ON THE WHOLE DRAWING, CHAINS INCLUDED (02/11/2026: the owner
+            // asked that no dimension be repeated in another view). «repeat» true places an extent
+            // the drawing already gives, in another view or through a chain.
+            bool repeat = Bool(a, "repeat", false);
             string sideUnused;
             // ON A DETAIL ABOVE (report 8cd843, round 22, point 14): below a detail sits its label
             // «DETAIL A / SCALE 5 : 1», and a dimension there went between the two.
@@ -267,9 +288,15 @@ namespace Oce.Solid.Agent.Core
                 return available;
             });
 
+            if (chamferAsked != null)
+                return DimensionChamfersAsked(model, drawing, view, viewName, edges, all, chamferAsked, contour,
+                                              dimensionOffset, scale, mu, repeat);
+
             if (betweenPairs != null)
                 return DimensionBetween(model, drawing, view, viewName, edges, all, circles, betweenPairs, contour,
-                                        dimensionOffset, planStep, scale, row, above, onTheLeft);
+                                        dimensionOffset, planStep, scale, row, above, onTheLeft,
+                                        a.ContainsKey("horizontal_side"), sideNamed, a.ContainsKey("offset_mm"), a.ContainsKey("pitch_mm"),
+                                        mu, tr, repeat);
 
             // A VIEW OF AN ASSEMBLY HAS ITS OWN ROUTE (report 8cd843 N23, round 7):
             // the overall size and the edges named, not the holes, chamfers and
@@ -291,6 +318,11 @@ namespace Oce.Solid.Agent.Core
                 return DimensionAssemblyView(model, drawing, view, viewName, edges, all, circles, null, a, contour,
                                              dimensionOffset, planStep, scale, mu, tr, null, true);
 
+            // A CHAMFER THE PROFILE DRAWS IS A CHAMFER TOO (note 98, defect 1): the 0,5 x 60° of
+            // 26P000011 view 2 belongs to an extrusion, not to a chamfer feature, and went as an
+            // oblique line of 0,986 mm.
+            var profileChamfers = MarkProfileChamfers(all, scale);
+
             // THE DIMENSIONS THE DRAWING ALREADY HAS, IN ALL THE VIEWS (entry GT11). «Each
             // element of the object must be dimensioned no more than once»
             // holds for the DRAWING, not for the view: on 25/9/2026 the drawing of the
@@ -299,7 +331,8 @@ namespace Oce.Solid.Agent.Core
             // EVERY SHEET since Z-C21.2 (finding N43), only the views of this model
             // and configuration, and without the dimensions hidden by hand (C8-2):
             // what was read is in the answer, see KeysAlreadyDimensioned.
-            var already = KeysAlreadyDimensioned(drawing, view, out var existingRead);
+            var owners = new Dictionary<string, string>(StringComparer.Ordinal);
+            var already = KeysAlreadyDimensioned(drawing, view, mu, out var existingRead, owners);
 
             // THE HOLES AND THE CHAMFERS IN ANOTHER VIEW (report 8cd843, round 22, point 11): they
             // went by themselves on the first view dimensioned, and the detail where the chamfer
@@ -318,6 +351,7 @@ namespace Oce.Solid.Agent.Core
             var measuredValues = new List<ProjectedEdge>();
             var duplicates = new List<string>();
             var elsewhere = new List<string>();
+            var closing = new List<string>();
             var onChamfer = new List<string>();
             var seen = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var i in chosen)
@@ -361,15 +395,25 @@ namespace Oce.Solid.Agent.Core
                     duplicates.Add(i + " (same measure as the edge " + seen[s.Key] + ")");
                     continue;
                 }
-                if (s.InModel != null && already.Contains(s.InModel))
+                if (!repeat && s.InModel != null && already.Contains(s.InModel))
                 {
                     // Three decimals, as «dimensions_mm» writes it (report 8cd843 N38).
                     elsewhere.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " mm: the same extent is already dimensioned in another view)");
                     continue;
                 }
+                // A CHAIN THAT IS ALREADY CLOSED (02/11/2026): the 175 of the owner's 26P000008 next to
+                // 19 + 145 + 11 tells the same thing twice. The edge whose two planes the other
+                // dimensions of the drawing already join is left out and said, with the chain.
+                string[] chain = repeat || s.InModel == null ? null : ChainThrough(already, s.InModel);
+                if (chain != null)
+                {
+                    closing.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                                " mm: " + RepeatedWhy(s.InModel, chain, owners) + ")");
+                    continue;
+                }
                 seen[s.Key] = i;
-                if (s.InModel != null) already.Add(s.InModel);
+                if (s.InModel != null) { already.Add(s.InModel); owners[s.InModel] = "the edge " + i + " of this call"; }
                 measuredValues.Add(s);
             }
 
@@ -377,6 +421,24 @@ namespace Oce.Solid.Agent.Core
             // measurement lines shall be drawn in progressive order, from the smaller
             // to the larger, moving away from the outline of the figures».
             measuredValues.Sort((x, y) => x.Length.CompareTo(y.Length));
+
+            // THE OWNER'S STYLE FOR THE AUTOMATIC ONES TOO (note 98, defect 4): until 0.166.2 each went a
+            // row of its own, 10 mm further out every time, and they left the sheet (26P000007 on
+            // 30/10/2026: view 2 nine rows down to the 175 at y 8.4 mm, inside the 12 mm of the frame;
+            // detail A up to y 315.84 mm on a sheet 297 mm high). Read before anything is placed, as for
+            // «between», and the same layout after they are born.
+            string autoStyleWhy;
+            DimensionStyle autoStyle = StyleOfThisCall(out autoStyleWhy);
+            if (autoStyle == null)
+                return Failed("The dimension style cannot be used: " + autoStyleWhy + ". Correct the file, or remove " +
+                              DrawingStyleVariable + " to use the built-in one. I touched nothing.");
+            autoStyle = autoStyle.Copy();
+            if (a.ContainsKey("offset_mm")) autoStyle.FirstRowMm = dimensionOffset * 1000;
+            if (a.ContainsKey("pitch_mm")) autoStyle.PitchMm = planStep * 1000;
+            double[][] inTheViewAuto = null;
+            int unreadAuto = 0;
+            Dictionary<string, object> detailLabelAuto = null;
+            var laidAuto = new List<object[]>();
 
             int before = CountDimensions(drawing);
             if (before < 0)
@@ -442,6 +504,9 @@ namespace Oce.Solid.Agent.Core
                 round = DimensionTheRoundFromTheSide(model, drawing, view, mu, tr, circles.FindAll(c => c.Type == "edge_on"),
                                              already, contour, dimensionOffset, planStep, ref below, ref sideways, born, elsewhere, failed);
 
+                // What the view holds before the edges are dimensioned (the «between» of an earlier call,
+                // the holes just placed): the layout keeps off their rows and texts.
+                inTheViewAuto = DimensionsInTheView(view, mu, tr, out unreadAuto);
                 foreach (var s in measuredValues)
                 {
                     int dimensionsBefore = CountDimensions(drawing);
@@ -546,6 +611,7 @@ namespace Oce.Solid.Agent.Core
                         else if (s.Facing == "vertical")
                             ArrowsByText(nature, described, Math.Min(s.FromSheet[1], s.ToSheet[1]), Math.Max(s.FromSheet[1], s.ToSheet[1]), false);
                         born.Add(described);
+                        if (s.Facing == "horizontal" || s.Facing == "vertical") laidAuto.Add(new object[] { s, nature, described });
                     }
                     catch (Exception ex)
                     {
@@ -554,9 +620,56 @@ namespace Oce.Solid.Agent.Core
                     }
                 }
 
+                // ── WHERE THE AUTOMATIC ONES GO: the owner's style, as «between» (note 98, defect 4) ──
+                if (laidAuto.Count > 0)
+                {
+                    double[] drawnAuto = DrawnBox(view) ?? ExtentOf(all, contour) ?? contour;
+                    var toLayAuto = new double[laidAuto.Count][];
+                    for (int ia = 0; ia < laidAuto.Count; ia++)
+                    {
+                        var edgeA = (ProjectedEdge)laidAuto[ia][0];
+                        var dimA = laidAuto[ia][1] as IDisplayDimension;
+                        var rowA = (Dictionary<string, object>)laidAuto[ia][2];
+                        bool horizontalA = edgeA.Facing == "horizontal";
+                        int alongA = horizontalA ? 0 : 1, acrossA = 1 - alongA;
+                        double sideAskedA = horizontalA ? (a.ContainsKey("horizontal_side") ? (above ? 2 : 1) : 0) : (sideNamed ? (onTheLeft ? 1 : 2) : 0);
+                        double boxA = dimA == null ? -1 : WidestText(dimA), heightA = dimA == null ? -1 : TextHeight(dimA);
+                        object shownA, mmA;
+                        double choiceA = Math.Max(TextWidthForTheChoice(rowA.TryGetValue("text_shown", out shownA) ? shownA as string : null, heightA, autoStyle),
+                                                  TextWidthForTheChoice(_dimensionBelow, heightA, autoStyle));
+                        double valueA = rowA.TryGetValue("mm", out mmA) && mmA is double ? (double)mmA : edgeA.Length * 1000 / scale;
+                        rowA["text_box_mm"] = boxA > 0 ? (object)Math.Round(boxA * 1000, 2) : null;
+                        rowA["text_width_for_the_choice_mm"] = choiceA > 0 ? (object)Math.Round(choiceA * 1000, 2) : null;
+                        toLayAuto[ia] = new[]
+                        {
+                            horizontalA ? 1.0 : 0.0,
+                            Math.Min(edgeA.FromSheet[alongA], edgeA.ToSheet[alongA]), Math.Max(edgeA.FromSheet[alongA], edgeA.ToSheet[alongA]),
+                            Math.Min(edgeA.FromSheet[acrossA], edgeA.ToSheet[acrossA]), Math.Max(edgeA.FromSheet[acrossA], edgeA.ToSheet[acrossA]),
+                            boxA, valueA, sideAskedA, choiceA, heightA,
+                        };
+                    }
+                    double[][] placesAuto = LayOutDimensions(toLayAuto, drawnAuto, autoStyle, row, sheetDimensions, inTheViewAuto);
+                    var afterAuto = new List<double[]>(inTheViewAuto ?? new double[0][]);
+                    for (int ia = 0; ia < laidAuto.Count && placesAuto != null; ia++)
+                    {
+                        var dimA = laidAuto[ia][1] as IDisplayDimension;
+                        var rowA = (Dictionary<string, object>)laidAuto[ia][2];
+                        double[] atA = placesAuto[ia];
+                        if (dimA == null || atA == null) continue;
+                        bool horizontalA = toLayAuto[ia][0] > 0.5;
+                        ApplyPlace(dimA, rowA, atA, horizontalA);
+                        double halfBoxA = toLayAuto[ia][5] > 0 ? toLayAuto[ia][5] / 2 : 0, halfHeightA = (toLayAuto[ia][9] > 0 ? toLayAuto[ia][9] : 0.0035) / 2;
+                        afterAuto.Add(ExistingDimension(horizontalA ? 1 : 0, toLayAuto[ia][1], toLayAuto[ia][2], atA[0], atA[1],
+                                                        horizontalA ? halfBoxA : halfHeightA, horizontalA ? halfHeightA : halfBoxA));
+                    }
+                    double lowestAuto = LowestUnder(afterAuto.ToArray(), drawnAuto);
+                    if (IsDetailView(view) && !double.IsNaN(lowestAuto))
+                        detailLabelAuto = MoveDetailLabel(view, lowestAuto, autoStyle.DetailLabelGapMm);
+                }
+
                 // ── THE CHAMFERS, WITH THE CHAMFER DIMENSION (entry GT11) ─────
                 if (chamfersWanted)
-                    DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, born, chamfers, elsewhere, failed);
+                    DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, scale, born, chamfers, elsewhere, failed);
             }
             finally
             {
@@ -585,19 +698,20 @@ namespace Oce.Solid.Agent.Core
                 // a duplicate, or sits in the chamfer, it says so — and it stays
                 // a refusal, because zero dimensions are not a «done» answer.
                 if (failed.Count == 0 && cutting.Count > 0 && measuredValues.Count == 0 && round == null &&
-                    duplicates.Count + elsewhere.Count + onChamfer.Count == 0 && holesInTable <= 0)
+                    duplicates.Count + elsewhere.Count + closing.Count + onChamfer.Count == 0 && holesInTable <= 0)
                     return Failed(
                         "In view «" + viewName + "» the only edges are circles seen edge-on (" +
                         string.Join(", ", cutting) + ") and they do not lie on one axis: this is not a round part " +
                         "seen from the side, the only kind I can dimension here. For the diameter of a circle, use the view in " +
                         "which it is a circle (edge-on, AddDiameterDimension2 says 60 for a Ø30).");
-                if (failed.Count == 0 && ((duplicates.Count + elsewhere.Count + onChamfer.Count) > 0 || holesInTable > 0))
+                if (failed.Count == 0 && ((duplicates.Count + elsewhere.Count + closing.Count + onChamfer.Count) > 0 || holesInTable > 0))
                     return Failed(
                         "In view «" + viewName + "» there is nothing left to dimension that is not " +
                         "already dimensioned: " + duplicates.Count + " duplicates in the view, " + elsewhere.Count +
-                        " already dimensioned in another view, " + onChamfer.Count + " on the chamfer" +
+                        " already dimensioned in another view, " + closing.Count + " closing a chain, " + onChamfer.Count + " on the chamfer" +
                         (holesInTable > 0 ? ", " + holesInTable + " holes in the hole table" : "") + ". " +
-                        "Each element is dimensioned once only in the whole drawing (UNI ISO 129-1).");
+                        "Each element is dimensioned once only in the whole drawing (UNI ISO 129-1)" +
+                        (elsewhere.Count + closing.Count > 0 ? "; pass «repeat»: true to place them anyway" : "") + ".");
                 return Failed(
                     "No dimension was created (there were " + before + ", there are " + after + "). " +
                     "The view «" + viewName + "» shows " + available + " edges and " +
@@ -656,9 +770,14 @@ namespace Oce.Solid.Agent.Core
                 ["rounded_on_the_sheet"] = RoundedOnTheSheet(born).ToArray(),
                 ["decorations_not_kept"] = DecorationsNotKept(born).ToArray(),
                 ["automatic_left_out"] = leftOut.ToArray(),
-                ["laid_out"] = (row ? "in a row" : "from the smaller to the larger") + ", the horizontal edges " +
-                                (above ? "above" : "below") + ", the vertical ones on the " +
-                                (onTheLeft ? "left" : sideNamed ? "right" : "right, on the left when the frame ends"),
+                ["laid_out"] = (row ? "in a row, " : "from the smaller to the larger, ") + "the horizontal edges " +
+                               (a.ContainsKey("horizontal_side") ? (above ? "above" : "below") : SideWords(autoStyle, true)) +
+                               ", the vertical ones " + (sideNamed ? "on the " + (onTheLeft ? "left" : "right") : SideWords(autoStyle, false)) +
+                               "; the holes, a round part and the chamfers in their own bands",
+                ["style"] = autoStyle.Describe(),
+                ["dimensions_already_in_the_view"] = inTheViewAuto == null ? null : (object)inTheViewAuto.Length,
+                ["dimensions_in_the_view_not_read"] = unreadAuto,
+                ["detail_label"] = detailLabelAuto,
                 ["edges_not_dimensioned"] = failed.ToArray(),
 
                 // ── HOLES, CHAMFERS, AND WHAT WAS ALREADY DIMENSIONED (entry GT11) ──
@@ -687,6 +806,10 @@ namespace Oce.Solid.Agent.Core
                 ["round_generatrices_without_face"] = round == null ? null : (object)round.FacelessGeneratrices,
                 ["chamfers"] = chamfers.ToArray(),
                 ["already_dimensioned_elsewhere"] = elsewhere.ToArray(),
+                // THE EDGES LEFT OUT BECAUSE THE DRAWING ALREADY GIVES THEIR EXTENT THROUGH A CHAIN
+                // (02/11/2026), each with the dimensions that give it; «repeat» true places them.
+                ["closing_a_chain"] = closing.ToArray(),
+                ["repeat"] = repeat,
                 // WHAT «ALREADY DIMENSIONED» WAS READ FROM (Z-C21.2, findings N43 and
                 // C8-2). «every sheet» when IDrawingDoc.GetViews handed over the views
                 // of all the sheets, «current sheet only» when it did not and the walk
@@ -701,6 +824,7 @@ namespace Oce.Solid.Agent.Core
                 ["hidden_dimensions_not_counted"] = existingRead.Complete ? (object)existingRead.HiddenByHand : null,
                 ["views_of_other_models_not_counted"] = existingRead.Complete ? (object)existingRead.ViewsOfAnotherModel : null,
                 ["chamfer_edges"] = onChamfer.ToArray(),
+                ["chamfers_drawn_by_the_profile"] = profileChamfers,
 
                 // ── DUPLICATES ARE STATED, NOT HIDDEN ─────────────
                 //
@@ -804,6 +928,11 @@ namespace Oce.Solid.Agent.Core
             public string InModel;
             /// <summary>The chamfer feature it belongs to, or null.</summary>
             public string ChamferFeature;
+            /// <summary>
+            /// What dimensions this chamfer in the whole drawing: «chamfer|feature» for a chamfer
+            /// feature, «chamferedge|ends» for a chamfer the profile draws (note 98, defect 1).
+            /// </summary>
+            public string ChamferKey;
             /// <summary>
             /// The pairs of legs (mm) the definition of that chamfer allows, and the
             /// chamfer in words («0.4 x 45°»): null when it cannot be read.
@@ -921,6 +1050,7 @@ namespace Oce.Solid.Agent.Core
                 s.InModel = KeyInModel(da, a);
                 s.ChamferFeature = TouchesAChamfer(edge);
                 if (s.ChamferFeature != null) s.ChamferPairs = ChamferPairsOf(edge, out s.ChamferSaid);
+                if (s.ChamferFeature != null) s.ChamferKey = "chamfer|" + s.ChamferFeature;
                 s.Entity = entity;
                 try { s.Component = component?.Name2; } catch { }
                 try { s.Straight = (edge.GetCurve() as ICurve)?.IsLine() == true; } catch { }
@@ -1057,8 +1187,18 @@ namespace Oce.Solid.Agent.Core
         /// skipped by ApiHelpers.IsHiddenByHand; a hidden layer and a suppressed
         /// owner feature are not seen by IAnnotation.Visible (its Remarks) and
         /// still count.
+        ///
+        /// A DISTANCE BETWEEN TWO PARALLEL EDGES COUNTS TOO (02/11/2026: the owner asked that no
+        /// dimension be repeated in another view, it confuses the shop). Its key is the tract between the
+        /// two planes along the axis it measures (TractBetween), the same key as an edge of that
+        /// tract: a «between», or one placed by hand between two edges, was not recorded, and the
+        /// automatic route put its extent back (note 98, defect 4: 6 on 26P000007). Read with the
+        /// axes of ITS view (<paramref name="mu"/>); a view turned off the axes records nothing.
+        /// <paramref name="owners"/>, when given, gets for each key the dimension that gives it,
+        /// to say where an extent already is.
         /// </summary>
-        private static HashSet<string> KeysAlreadyDimensioned(IDrawingDoc drawing, IView view, out ExistingDimensionsReading reading)
+        private static HashSet<string> KeysAlreadyDimensioned(IDrawingDoc drawing, IView view, IMathUtility mu,
+                                                              out ExistingDimensionsReading reading, Dictionary<string, string> owners)
         {
             var outside = new HashSet<string>(StringComparer.Ordinal);
             reading = new ExistingDimensionsReading();
@@ -1083,6 +1223,10 @@ namespace Oce.Solid.Agent.Core
                     string itsModel = null;
                     try { itsModel = ApiHelpers.ReferencedModelKey(v); } catch { }
                     if (!ApiHelpers.MayShowTheSameModel(thisModel, itsModel)) { reading.ViewsOfAnotherModel++; continue; }
+                    // Which axis of the model runs along the sheet in THIS view, for a distance
+                    // between two edges; null when it cannot be read, and then such a distance is not recorded.
+                    int[] itsAxes = null;
+                    try { if (mu != null) itsAxes = SheetAxes(mu, v.ModelToViewTransform); } catch { }
                     for (var d = v.GetFirstDisplayDimension5(); d != null; d = d.GetNext5())
                     {
                         // Not on the paper, not «already dimensioned» (C8-2). A state
@@ -1090,6 +1234,11 @@ namespace Oce.Solid.Agent.Core
                         bool hidden = false;
                         try { hidden = ApiHelpers.IsHiddenByHand(d); } catch { }
                         if (hidden) { reading.HiddenByHand++; continue; }
+                        HashSet<string> keysBefore = owners == null ? null : new HashSet<string>(outside, StringComparer.Ordinal);
+                        // ONLY A CHAMFER DIMENSION DIMENSIONS A CHAMFER (note 98, defect 1): on 26P000009 a
+                        // «between» on an edge of the chamfer face made the chamfer «already dimensioned».
+                        bool chamferDimension = false;
+                        try { chamferDimension = d.Type2 == (int)swDimensionType_e.swChamferDimension; } catch { }
                         try
                         {
                             var ann = d.GetAnnotation() as IAnnotation;
@@ -1169,10 +1318,23 @@ namespace Oce.Solid.Agent.Core
                                         outside.Add(CylinderCircleKey(e) ?? "cyl?|" + dd);
                                         continue;
                                     }
-                                    var sm = TouchesAChamfer(e);
-                                    if (sm != null) outside.Add("chamfer|" + sm);
+                                    if (chamferDimension)
+                                    {
+                                        var sm = TouchesAChamfer(e);
+                                        if (sm != null) outside.Add("chamfer|" + sm);
+                                        var ek = ChamferEdgeKey(e);
+                                        if (ek != null) outside.Add(ek);
+                                    }
                                     if (c != null && c.IsLine()) straight.Add(e);
                                 }
+                            // THE WIDTH THE CHAMFER DIMENSION READS, not the length of each of its edges:
+                            // in 26P000011 view 1 the leg 24 of the 0,4 x 45° is 0,986 mm long, as the
+                            // chamfers the profile draws in view 2, and all four went «already dimensioned».
+                            if (chamferDimension)
+                            {
+                                double? chamferWidth = ChamferWidthOf(d);
+                                if (chamferWidth.HasValue) outside.Add(ChamferProfileKey(chamferWidth.GetValueOrDefault()));
+                            }
                             // THE EXTENT OF AN EDGE IS DIMENSIONED only by a dimension attached
                             // to IT ALONE (adversarial review of 27/9/2026): the position
                             // dimension of a hole takes the edge of the plate as its
@@ -1184,8 +1346,28 @@ namespace Oce.Solid.Agent.Core
                                 var k = KeyInModel(p.StartPoint as double[], p.EndPoint as double[]);
                                 if (k != null) outside.Add(k);
                             }
+                            // A DISTANCE BETWEEN TWO PARALLEL EDGES (02/11/2026): the tract between their
+                            // planes along the axis it measures, in the axes of its own view.
+                            if (straight.Count == 2 && ents.Length == 2 && attachedCircles.Count == 0 && !onGeneratrix)
+                            {
+                                var p0 = ApiHelpers.EdgeParameters(straight[0]);
+                                var p1 = ApiHelpers.EdgeParameters(straight[1]);
+                                var k = TractBetween(p0.StartPoint as double[], p0.EndPoint as double[],
+                                                     p1.StartPoint as double[], p1.EndPoint as double[], itsAxes);
+                                if (k != null) outside.Add(k);
+                            }
                         }
                         catch { }
+                        if (keysBefore != null)
+                        {
+                            string who = null;
+                            foreach (string k in outside)
+                            {
+                                if (keysBefore.Contains(k) || owners.ContainsKey(k)) continue;
+                                if (who == null) who = DescribeExisting(d, v);
+                                owners[k] = who;
+                            }
+                        }
                     }
                 }
                 reading.Complete = true;
@@ -1770,9 +1952,13 @@ namespace Oce.Solid.Agent.Core
                 failed.Add("position of the hole at " + expectedMm.ToString("0.##", Ci) + " mm (the dimension was not created)");
                 return;
             }
+            // The centre is put, not hoped for (library 0.198.10): see CentreTheArcEnds.
+            // Before DescribeDimension, so the millimetres read are the corrected ones.
+            string arcEnds = CentreTheArcEnds(dimension);
             // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80):
             // described with its value unknown, see RecordBornWithoutObject.
             var described = DescribeDimension(dimension, hole.Index);
+            if (arcEnds != null) described["arc_ends"] = arcEnds;
             described["orientation"] = horizontal ? "horizontal position of the hole" : "vertical position of the hole";
             described["position_mm"] = WhereItEnded(dimension);
             described["text_shown"] = ExactTextShown(dimension, described);
@@ -1788,14 +1974,78 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// Puts on the CENTRE of the circle every end of a position dimension that
+        /// sits on an arc and is not on the centre already. Which point of a circle
+        /// a linear dimension takes is its arc end condition, and nothing set it:
+        /// the centre, the nearest point or the furthest point of the arc
+        /// (IDimension~SetArcEndCondition.html; index 1 is the first end, 2 the
+        /// second; swArcEndCondition_e: 0 none, 1 centre, 2 nearest, 3 furthest).
+        /// In the full bench of 2/11/2026 (library 0.198.9) the 105 of
+        /// drawing_dimensions_holes_and_chamfer, step 11, came out 101: 105 minus
+        /// the 4 mm radius of the hole, the nearest point. Alone, with SOLIDWORKS
+        /// fresh, the same step was green 4 times out of 4: the condition is
+        /// SOLIDWORKS's choice, not the bridge's. Both ends are looked at, so the
+        /// order of the selection is not assumed. The guide asks GraphicsRedraw2
+        /// only to SEE the change: a probe on SOLIDWORKS read the new value at
+        /// once without it (101 mm on the nearest point, 105 mm back on the
+        /// centre, 2/11/2026), so it is not called. Returns what was read and
+        /// done, or null when there is no dimension to look at.
+        /// </summary>
+        private static string CentreTheArcEnds(IDisplayDimension dimension)
+        {
+            if (dimension == null) return null;
+            IDimension dim;
+            try { dim = dimension.GetDimension2(0) as IDimension; }
+            catch (Exception e) { return "not read: " + e.Message; }
+            if (dim == null) return null;
+            var said = new List<string>();
+            for (int end = 1; end <= 2; end++)
+            {
+                int before;
+                try { before = dim.GetArcEndCondition(end); }
+                catch (Exception e) { said.Add("end " + end + " not read: " + e.Message); continue; }
+                if (before != (int)swArcEndCondition_e.swArcEndConditionMin &&
+                    before != (int)swArcEndCondition_e.swArcEndConditionMax)
+                {
+                    said.Add("end " + end + " " + ArcEndName(before));
+                    continue;
+                }
+                int answer;
+                try { answer = dim.SetArcEndCondition(end, (int)swArcEndCondition_e.swArcEndConditionCenter); }
+                catch (Exception e) { said.Add("end " + end + " " + ArcEndName(before) + ", not moved: " + e.Message); continue; }
+                int after;
+                try { after = dim.GetArcEndCondition(end); } catch { after = -1; }
+                said.Add(string.Format(Ci, "end {0} was {1}, put on the centre: {2} (SetArcEndCondition returned {3})",
+                    end, ArcEndName(before),
+                    after == (int)swArcEndCondition_e.swArcEndConditionCenter ? "it reads centre" : "it reads " + ArcEndName(after),
+                    answer));
+            }
+            return string.Join("; ", said);
+        }
+
+        private static string ArcEndName(int condition)
+        {
+            switch (condition)
+            {
+                case (int)swArcEndCondition_e.swArcEndConditionNone: return "not on an arc";
+                case (int)swArcEndCondition_e.swArcEndConditionCenter: return "on the centre";
+                case (int)swArcEndCondition_e.swArcEndConditionMin: return "on the nearest point";
+                case (int)swArcEndCondition_e.swArcEndConditionMax: return "on the furthest point";
+                default: return "condition " + condition.ToString(Ci);
+            }
+        }
+
+        /// <summary>
         /// THE CHAMFERS: one per feature, with the chamfer dimension
         /// (`IDrawingDoc.AddChamferDim`, «5 x 45°»), where the chamfer is seen in
         /// profile — an oblique chamfer edge on the view. The chamfer
-        /// edge is selected and one of its «legs», as by hand.
+        /// edge is selected and one of its «legs», as by hand; every leg and both
+        /// sides of the text are tried (PlaceChamferDimension). A chamfer the profile
+        /// draws (MarkProfileChamfers) goes the same way.
         /// </summary>
         private void DimensionTheChamfers(
             IModelDoc2 model, IDrawingDoc drawing, object[] edges, List<ProjectedEdge> all,
-            HashSet<string> already, double[] contour, double dimensionOffset,
+            HashSet<string> already, double[] contour, double dimensionOffset, double scale,
             List<Dictionary<string, object>> born, List<Dictionary<string, object>> chamfers,
             List<string> elsewhere, List<string> failed)
         {
@@ -1806,141 +2056,47 @@ namespace Oce.Solid.Agent.Core
             foreach (var s in all)
             {
                 if (s.ChamferFeature == null || s.Facing != "oblique" || done.Contains(s.ChamferFeature)) continue;
-                done.Add(s.ChamferFeature);
-                string key = "chamfer|" + s.ChamferFeature;
-                if (already.Contains(key))
+                // A VIEW THAT DOES NOT SHOW THE PROFILE OF THE CHAMFER IN ITS TRUE SIZE does not get its
+                // chamfer dimension (note 98, defect 1): 26P000011 view 1 reads 0.415 mm on the sheet
+                // for a profile of 0.566. The edge is not what is judged: on 26P000009 view 3 a mitre
+                // edge of 0.693 mm lies on the 0.566 mm profile and gives a true 0.4 x 45°.
+                string slanted = NotSeenInItsTrueSize(s, scale);
+                if (slanted != null)
                 {
-                    elsewhere.Add("chamfer «" + s.ChamferFeature + "» (already dimensioned in this drawing)");
+                    if (!notTrueSize.ContainsKey(s.ChamferFeature)) notTrueSize[s.ChamferFeature] = slanted;
                     continue;
                 }
-                ProjectedEdge leg = null;
-                foreach (var t in all)
+                done.Add(s.ChamferFeature);
+                string key = s.ChamferKey ?? "chamfer|" + s.ChamferFeature;
+                if (already.Contains(key))
                 {
-                    if (t.ChamferFeature != null || t.Facing == "oblique") continue;
-                    foreach (var p in new[] { t.FromModel, t.ToModel })
-                        foreach (var q in new[] { s.FromModel, s.ToModel })
-                            if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) leg = t;
-                    if (leg != null) break;
+                    elsewhere.Add("chamfer «" + s.ChamferFeature + "» (already dimensioned in this drawing" +
+                                  (key.StartsWith("chamferprofile|", StringComparison.Ordinal) ? ": a chamfer the profile draws with the same length" : "") + ")");
+                    continue;
                 }
-                if (leg == null)
+                var legs = ChamferLegs(s, all);
+                if (legs.Count == 0)
                 {
                     failed.Add("chamfer «" + s.ChamferFeature + "» (no edge to rest the chamfer dimension on)");
                     continue;
                 }
-                // The text OUTSIDE the part, on the side of the chamfer: from the centre
-                // of the view towards the chamfer, beyond the outline.
-                double mx = (s.FromSheet[0] + s.ToSheet[0]) / 2, my = (s.FromSheet[1] + s.ToSheet[1]) / 2;
-                double cx = (contour[0] + contour[2]) / 2, cy = (contour[1] + contour[3]) / 2;
-                double vx = mx - cx, vy = my - cy, l = Math.Sqrt(vx * vx + vy * vy);
-                if (l < 1e-9) { vx = -1; vy = 1; l = Math.Sqrt(2); }
-                double x = mx + vx / l * (dimensionOffset + 0.006), y = my + vy / l * (dimensionOffset + 0.006);
-
-                int dimensionsBefore = CountDimensions(drawing);
-                IDisplayDimension dimension = null;
-                try
+                Dictionary<string, object> line;
+                string problem;
+                bool notTrue, withoutObject, leftOnTheSheet;
+                var described = PlaceChamferDimension(model, drawing, edges, s, legs, all, contour, dimensionOffset + 0.006,
+                                                      out line, out problem, out notTrue, out withoutObject, out leftOnTheSheet);
+                if (described == null)
                 {
-                    model.ClearSelection2(true);
-                    if ((edges[s.Index] as IEntity).Select4(false, null) &&
-                        (edges[leg.Index] as IEntity).Select4(true, null))
-                        dimension = drawing.AddChamferDim(x, y, 0) as IDisplayDimension;
-                }
-                catch { }
-                if (NotGrown(drawing, dimensionsBefore, dimension))
-                {
-                    failed.Add("chamfer «" + s.ChamferFeature + "» (the chamfer dimension was not created)");
-                    continue;
-                }
-                // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
-                // AddChamferDim.html, Return Value: «Pointer to the newly created
-                // chamfer dimension»; when it is null and the count went up, the
-                // dimension is there and its two values cannot be read: the reads
-                // below fail inside their try, and angle, side and width stay null.
-                var described = DescribeDimension(dimension, s.Index);
-                described["orientation"] = "chamfer dimension";
-                described["position_mm"] = WhereItEnded(dimension);
-                described["text_shown"] = ExactTextShown(dimension, described);
-
-                // THE CHAMFER DIMENSION IS MADE OF TWO DIMENSIONS, and the first one is
-                // THE ANGLE. Measured on 25/9/2026: GetDimension2(0) = 0.785 rad
-                // (45°), GetDimension2(1) = 7.071 mm, the width of the chamfer
-                // face — and the number on the sheet is «5 x 45°». The side that is
-                // read is therefore width x cos(angle). By index it
-                // reported 785.398 «mm», that is the angle in radians times a thousand:
-                // they are told apart by TYPE (`swDimensionParamType_e`: linear 0,
-                // angular 1), not by position.
-                double? angle = null, width = null;
-                for (int k = 0; k < 2; k++)
-                {
-                    try
-                    {
-                        var dk = dimension.GetDimension2(k) as IDimension;
-                        if (dk == null) continue;
-                        int typ = dk.GetType();
-                        if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angle = ApiHelpers.ReadDimensionInConfiguration(dk, "");
-                        else if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) width = ApiHelpers.ReadDimensionInConfiguration(dk, "");
-                    }
-                    catch { }
-                }
-                object side = null;
-                if (angle.HasValue && width.HasValue)
-                    side = Math.Round(width.Value * Math.Cos(angle.Value) * 1000.0, 3);
-                // A CHAMFER DIMENSION THAT DOES NOT MEASURE A CHAMFER IS TAKEN AWAY
-                // (report 8cd843 N23, round 7): on a view of an assembly, before the
-                // component's placement was applied, two chamfer dimensions read
-                // 15.23° and 159.25°, leg 0.4 and -0.4 mm, and the step said
-                // «succeeded». A chamfer's angle lies between 0 and 90 and its leg
-                // is above zero: outside that it rests on an edge that is not its
-                // leg, and a wrong dimension is worse than a missing one.
-                string absurd = ChamferValuesProblem(
-                    angle.HasValue ? angle.GetValueOrDefault() * 180.0 / Math.PI : (double?)null, side as double?);
-                if (absurd != null && dimension != null)
-                {
-                    bool gone = RemoveNewAnnotation(model, dimension.GetAnnotation() as IAnnotation,
-                                                    () => CountDimensions(drawing), dimensionsBefore);
-                    RecordFailure(failed, "chamfer «" + s.ChamferFeature + "» (" + absurd +
-                                  (gone ? ": I took it away)" : ": I could not take it away, remove «" +
-                                          Convert.ToString(described.ContainsKey("name") ? described["name"] : null) +
-                                          "» with «delete_annotation»)"));
-                    continue;
-                }
-                // A CHAMFER NOT SEEN IN ITS TRUE SIZE (report 8cd843, round 21): on
-                // 26P000011 the front view printed «0,4 x 15,23°» for its chamfer, which
-                // is 0.4 x 45° (its definition, read by the state in rounds 9 and 20):
-                // 0.415 mm x cos 15.23° = 0.4, the chamfer seen askew. The same 15.23°
-                // came out in N23 and passed ChamferValuesProblem, which only knows the
-                // impossible. Compared with the legs of the feature; the dimension is
-                // taken away and the next edge of the same chamfer is tried.
-                string notTrue = ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid,
-                    angle.HasValue ? angle.GetValueOrDefault() * 180.0 / Math.PI : (double?)null, side as double?, s.ChamferPairs);
-                if (notTrue != null && dimension != null)
-                {
-                    bool gone = RemoveNewAnnotation(model, dimension.GetAnnotation() as IAnnotation,
-                                                    () => CountDimensions(drawing), dimensionsBefore);
-                    if (gone)
+                    if (notTrue && !leftOnTheSheet)
                     {
                         done.Remove(s.ChamferFeature);
-                        notTrueSize[s.ChamferFeature] = notTrue;
+                        notTrueSize[s.ChamferFeature] = problem;
                     }
-                    else
-                        RecordFailure(failed, "chamfer «" + s.ChamferFeature + "» (" + notTrue + ": I could not take it away, remove «" +
-                                      Convert.ToString(described.ContainsKey("name") ? described["name"] : null) +
-                                      "» with «delete_annotation»)");
+                    else RecordFailure(failed, "chamfer «" + s.ChamferFeature + "» (" + problem + ")");
                     continue;
                 }
-                described["mm"] = side;
-                var line = new Dictionary<string, object>
-                {
-                    ["feature"] = s.ChamferFeature,
-                    ["leg_mm"] = side,
-                    ["angle_deg"] = angle.HasValue ? (object)Math.Round(angle.Value * 180.0 / Math.PI, 2) : null,
-                    ["face_width_mm"] = width.HasValue ? (object)Math.Round(width.Value * 1000.0, 3) : null,
-                    // What the definition says, and whether the dimension agrees with it
-                    // (null: the definition or a value could not be read).
-                    ["as_the_feature"] = s.ChamferSaid,
-                    ["matches_the_feature"] = s.ChamferPairs == null || !angle.HasValue || side == null ? null : (object)true,
-                };
                 chamfers.Add(line);
-                if (dimension != null) born.Add(described);
+                if (!withoutObject) born.Add(described);
                 else RecordBornWithoutObject(born, described, failed,
                     "chamfer «" + s.ChamferFeature + "» (the chamfer dimension was born but SOLIDWORKS did not hand it " +
                     "back: its values were not read back, check it on the sheet)");
@@ -1951,6 +2107,675 @@ namespace Oce.Solid.Agent.Core
                     RecordFailure(failed, "chamfer «" + feature + "» (" + notTrueSize[feature] + "; I took it away, and no other edge " +
                                   "of it in this view shows it in its true size: dimension it in a view that looks along the " +
                                   "chamfered edge)");
+        }
+
+        /// <summary>
+        /// «chamfer» of «drawing_dimension»: the oblique edge of each chamfer, alone (5) or with
+        /// the leg to rest the dimension on ([5, 9]), as a list: [5, [7, 12]]. Null with the reason
+        /// when it cannot be used; each number is checked against <paramref name="available"/>.
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static List<int[]> ChamferEdgesAsked(object raw, int available, out string why)
+        {
+            why = null;
+            var asked = new List<int[]>();
+            var asList = raw as System.Collections.IEnumerable;
+            if (raw == null || raw is string || asList == null)
+            {
+                why = "it is not a list of edge numbers or pairs, as [5, [7, 12]]";
+                return null;
+            }
+            int position = 0;
+            foreach (object item in asList)
+            {
+                position++;
+                var numbers = new List<int>();
+                var inner = item as System.Collections.IEnumerable;
+                var each = item == null || item is string || inner == null ? new object[] { item } : inner;
+                foreach (object n in each)
+                {
+                    double value;
+                    try { value = Convert.ToDouble(n, Ci); }
+                    catch { why = "the entry " + position + " holds «" + n + "», which is not a number"; return null; }
+                    if (value != Math.Floor(value) || value < 0)
+                    {
+                        why = "the entry " + position + " holds " + value.ToString(Ci) + ", which is not an edge number (whole, from 0)";
+                        return null;
+                    }
+                    if (value >= available)
+                    {
+                        why = "the edge " + value.ToString(Ci) + " of the entry " + position + " does not exist: the view has " + available + " edges";
+                        return null;
+                    }
+                    numbers.Add((int)value);
+                }
+                if (numbers.Count < 1 || numbers.Count > 2)
+                {
+                    why = "the entry " + position + " has " + numbers.Count + " numbers: the oblique edge, or the oblique edge and its leg";
+                    return null;
+                }
+                if (numbers.Count == 2 && numbers[0] == numbers[1])
+                {
+                    why = "the entry " + position + " names the edge " + numbers[0] + " twice";
+                    return null;
+                }
+                asked.Add(numbers.ToArray());
+            }
+            if (asked.Count == 0)
+            {
+                why = "the list is empty";
+                return null;
+            }
+            return asked;
+        }
+
+        /// <summary>
+        /// Why the oblique edge «s» does not show its chamfer in its true size, or null when it does or
+        /// cannot be told (note 98, defect 1). A chamfer feature whose definition is read: its line on
+        /// the sheet over the scale against the profile of the chamfer, the hypotenuse of its legs
+        /// (ChamferProfileNotSeen), whatever edge lies on that line (a mitre edge of 0.693 mm lies on
+        /// the 0.566 mm profile of a 0.4 x 45° in 26P000009 view 3, and the dimension is true). A
+        /// chamfer feature not read: null, the values read back judge it. Any other edge (a chamfer the
+        /// profile draws, an edge named in «chamfer»): its own length in the model (ChamferSlant).
+        /// </summary>
+        private static string NotSeenInItsTrueSize(ProjectedEdge s, double scale)
+        {
+            if (scale <= 0) return null;
+            if (s.ChamferPairs != null && s.ChamferPairs.Count > 0)
+                return ChamferProfileNotSeen(s.ChamferFeature, s.ChamferSaid, s.ChamferPairs, s.Length / scale * 1000.0, s.Index);
+            if (s.ChamferFeature != null && !(s.ChamferKey ?? "").StartsWith("chamferprofile|", StringComparison.Ordinal)) return null;
+            if (s.FromModel == null || s.ToModel == null) return null;
+            double dx = s.ToModel[0] - s.FromModel[0], dy = s.ToModel[1] - s.FromModel[1], dz = s.ToModel[2] - s.FromModel[2];
+            return ChamferSlant(Math.Sqrt(dx * dx + dy * dy + dz * dz), s.Length / scale, s.Index);
+        }
+
+        /// <summary>
+        /// Why a view that shows the chamfer «feature» (legs «pairs», mm) as a line of «onTheSheetMm»
+        /// over the scale does not show it in its true size, or null when that line is the hypotenuse
+        /// of one of the pairs within 0.01 mm plus 1 %. Pure.
+        /// </summary>
+        internal static string ChamferProfileNotSeen(string feature, string said, List<double[]> pairs, double onTheSheetMm, int edge)
+        {
+            if (pairs == null || pairs.Count == 0 || !(onTheSheetMm >= 0)) return null;
+            var lengths = new List<string>();
+            foreach (var p in pairs)
+            {
+                double profile = Math.Sqrt(p[0] * p[0] + p[1] * p[1]);
+                if (Math.Abs(profile - onTheSheetMm) <= 0.01 + 0.01 * profile) return null;
+                string words = Math.Round(profile, 3).ToString(Ci);
+                if (!lengths.Contains(words)) lengths.Add(words);
+            }
+            return "the chamfer «" + feature + "» is " + (said ?? "?") + ", its profile is " + string.Join(" or ", lengths) +
+                   " mm long, and its edge " + edge + " reads " + Math.Round(onTheSheetMm, 3).ToString(Ci) +
+                   " mm on the sheet: in this view the chamfer is not seen in its true size";
+        }
+
+        /// <summary>
+        /// The words of NotSeenInItsTrueSize for an edge without a chamfer feature, from the two lengths
+        /// (metres): null when the length on the sheet over the scale is the length in the model within
+        /// 0.01 mm plus 1 %. Pure.
+        /// </summary>
+        internal static string ChamferSlant(double modelLength, double onTheSheet, int edge)
+        {
+            if (!(modelLength > 0) || !(onTheSheet >= 0)) return null;
+            if (Math.Abs(modelLength - onTheSheet) <= 0.00001 + 0.01 * modelLength) return null;
+            return "its edge " + edge + " is " + Math.Round(modelLength * 1000, 3).ToString(Ci) + " mm in the model and " +
+                   Math.Round(onTheSheet * 1000, 3).ToString(Ci) + " mm on the sheet: in this view the chamfer is not seen in its true size";
+        }
+
+        /// <summary>The key of a chamfer the profile draws: the length of its edge in the model, 0.001 mm (same length, one element). Pure.</summary>
+        internal static string ChamferProfileKey(double modelLength)
+        {
+            return "chamferprofile|" + Math.Round(modelLength * 1000000).ToString(Ci);
+        }
+
+        /// <summary>The key of a chamfer by the two ends of its edge in the model, 0.01 mm, the lower end first; null without them. Pure.</summary>
+        internal static string ChamferEndsKey(double[] from, double[] to)
+        {
+            if (from == null || to == null || from.Length < 3 || to.Length < 3) return null;
+            Func<double[], string> p = v => Math.Round(v[0] * 100000).ToString(Ci) + "," + Math.Round(v[1] * 100000).ToString(Ci) + "," +
+                                            Math.Round(v[2] * 100000).ToString(Ci);
+            string a = p(from), b = p(to);
+            return "chamferedge|" + (string.CompareOrdinal(a, b) <= 0 ? a + "|" + b : b + "|" + a);
+        }
+
+        /// <summary>The key of a straight model edge a chamfer dimension rests on (ChamferEndsKey), null when it is not one.</summary>
+        private static string ChamferEdgeKey(IEdge e)
+        {
+            try
+            {
+                var c = e.GetCurve() as ICurve;
+                if (c == null || !c.IsLine()) return null;
+                var p = ApiHelpers.EdgeParameters(e);
+                return ChamferEndsKey(p.StartPoint as double[], p.EndPoint as double[]);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// The width of the chamfer face a chamfer dimension reads (its linear value, metres), null
+        /// when it cannot be read. The angle and the width are told apart by type, as in
+        /// PlaceChamferDimension.
+        /// </summary>
+        private static double? ChamferWidthOf(IDisplayDimension d)
+        {
+            for (int k = 0; k < 2; k++)
+            {
+                try
+                {
+                    var dk = d.GetDimension2(k) as IDimension;
+                    if (dk != null && dk.GetType() == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear)
+                        return ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        /// <summary>Do two edges meet at an end: in the model, or on the sheet within 0.01 mm?</summary>
+        private static bool MeetAtAnEnd(ProjectedEdge s, ProjectedEdge t)
+        {
+            foreach (var p in new[] { s.FromModel, s.ToModel })
+                foreach (var q in new[] { t.FromModel, t.ToModel })
+                    if (p != null && q != null && Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) + Math.Abs(p[2] - q[2]) < 1e-7) return true;
+            foreach (var p in new[] { s.FromSheet, s.ToSheet })
+                foreach (var q in new[] { t.FromSheet, t.ToSheet })
+                    if (Math.Abs(p[0] - q[0]) + Math.Abs(p[1] - q[1]) < 1e-5) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// The edges the chamfer dimension of the oblique edge «s» can rest on: straight, not oblique,
+        /// meeting one of its ends. First those that run against it on the sheet (ChamferLegRunsWith:
+        /// SOLIDWORKS reads 180° minus the angle on the others, 8 tries of 8 on 02/11/2026), then those
+        /// not on a chamfer face, then the one along which the chamfer reads the shorter leg (the owner
+        /// writes 0,5 x 60°, not 0,866 x 30°). An edge on a chamfer face is a leg too: in 26P000008
+        /// detail A and 26P000011 view 1 only such edges (0, 16 and 24) ran against the chamfer.
+        /// </summary>
+        private static List<ProjectedEdge> ChamferLegs(ProjectedEdge s, List<ProjectedEdge> all)
+        {
+            var legs = new List<ProjectedEdge>();
+            foreach (var t in all)
+                if (!ReferenceEquals(t, s) && t.Facing != "oblique" && t.Straight && MeetAtAnEnd(s, t))
+                    legs.Add(t);
+            double vx = s.ToSheet[0] - s.FromSheet[0], vy = s.ToSheet[1] - s.FromSheet[1];
+            var chamfer = new[] { s.FromSheet[0], s.FromSheet[1], s.ToSheet[0], s.ToSheet[1] };
+            Func<ProjectedEdge, int> along = e => ChamferLegRunsWith(chamfer, new[] { e.FromSheet[0], e.FromSheet[1], e.ToSheet[0], e.ToSheet[1] }) ? 1 : 0;
+            legs.Sort((p, q) =>
+            {
+                int byWay = along(p).CompareTo(along(q));
+                if (byWay != 0) return byWay;
+                int byFace = (p.ChamferFeature != null).CompareTo(q.ChamferFeature != null);
+                return byFace != 0 ? byFace : ChamferLegOn(vx, vy, p).CompareTo(ChamferLegOn(vx, vy, q));
+            });
+            return legs;
+        }
+
+        /// <summary>
+        /// Whether the leg {x0, y0, x1, y1} runs the same way as the chamfer edge {x0, y0, x1, y1} on the
+        /// sheet, each from its start to its end as the view gives it. SOLIDWORKS reads the angle of a
+        /// chamfer dimension between the two directions, so on such a leg it reads 180° minus the angle
+        /// of the chamfer (measured on 02/11/2026: 26P000008 detail A legs 2, 6, 19 and 26P000011 view 1
+        /// legs 23, 26 read 135°; legs 0, 16 and 24, running against, read 0,4 x 45°). Pure.
+        /// </summary>
+        internal static bool ChamferLegRunsWith(double[] chamfer, double[] leg)
+        {
+            if (chamfer == null || leg == null || chamfer.Length < 4 || leg.Length < 4) return false;
+            return (chamfer[2] - chamfer[0]) * (leg[2] - leg[0]) + (chamfer[3] - chamfer[1]) * (leg[3] - leg[1]) > 0;
+        }
+
+        /// <summary>The leg the chamfer of sheet vector (vx, vy) reads along the edge «t»: its projection on it.</summary>
+        private static double ChamferLegOn(double vx, double vy, ProjectedEdge t)
+        {
+            double ux = t.ToSheet[0] - t.FromSheet[0], uy = t.ToSheet[1] - t.FromSheet[1], l = Math.Sqrt(ux * ux + uy * uy);
+            return l < 1e-12 ? double.MaxValue : Math.Abs(vx * ux + vy * uy) / l;
+        }
+
+        /// <summary>
+        /// Where the text of a chamfer dimension goes on the side the corner was taken from: from the
+        /// middle of the chamfer edge {x0, y0, x1, y1} across it, away from the far end of the leg
+        /// (the corner lies on the leg beyond the shared end), <paramref name="distance"/> metres. Null
+        /// when the leg does not meet the chamfer on the sheet. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static double[] ChamferTextPlace(double[] chamfer, double[] leg, double distance)
+        {
+            if (chamfer == null || leg == null || chamfer.Length < 4 || leg.Length < 4) return null;
+            double best = double.MaxValue;
+            double px = 0, py = 0, fx = 0, fy = 0;
+            for (int i = 0; i < 2; i++)
+                for (int j = 0; j < 2; j++)
+                {
+                    double d = Math.Abs(chamfer[2 * i] - leg[2 * j]) + Math.Abs(chamfer[2 * i + 1] - leg[2 * j + 1]);
+                    if (d < best) { best = d; px = chamfer[2 * i]; py = chamfer[2 * i + 1]; fx = leg[2 - 2 * j]; fy = leg[3 - 2 * j]; }
+                }
+            if (best > 0.0001) return null;
+            double vx = chamfer[2] - chamfer[0], vy = chamfer[3] - chamfer[1], l = Math.Sqrt(vx * vx + vy * vy);
+            if (l < 1e-12) return null;
+            double nx = -vy / l, ny = vx / l, wx = px - fx, wy = py - fy;
+            if (nx * wx + ny * wy < 0) { nx = -nx; ny = -ny; }
+            double mx = (chamfer[0] + chamfer[2]) / 2, my = (chamfer[1] + chamfer[3]) / 2;
+            return new[] { mx + nx * distance, my + ny * distance };
+        }
+
+        /// <summary>
+        /// THE CHAMFER DIMENSION OF ONE OBLIQUE EDGE, trying its legs and both sides of its text (note
+        /// 98, defect 1: 26P000008 detail A read 135°, 26P000011 view 1 164.77°, and the one leg tried
+        /// was taken away with nothing else tried). For each leg, first the text on the side the corner
+        /// was taken from (ChamferTextPlace), then on the side of the centre of the view (the place
+        /// before 0.168.2). A dimension whose values are impossible (ChamferValuesProblem) or do not
+        /// measure the chamfer of its feature (ChamferNotTrueSize) is taken away and the next try made.
+        /// Null when none measures it: «problem» the last reason, «notTrue» when that was the true size,
+        /// «leftOnTheSheet» when a wrong one could not be taken away (then no more tries).
+        /// </summary>
+        private Dictionary<string, object> PlaceChamferDimension(IModelDoc2 model, IDrawingDoc drawing, object[] edges,
+            ProjectedEdge s, List<ProjectedEdge> legs, List<ProjectedEdge> all, double[] contour, double distance,
+            out Dictionary<string, object> line, out string problem, out bool notTrue, out bool withoutObject, out bool leftOnTheSheet)
+        {
+            line = null;
+            problem = "the chamfer dimension was not created";
+            notTrue = false;
+            withoutObject = false;
+            leftOnTheSheet = false;
+            int tries = 0;
+            var chamferBox = new[] { s.FromSheet[0], s.FromSheet[1], s.ToSheet[0], s.ToSheet[1] };
+            double mx = (s.FromSheet[0] + s.ToSheet[0]) / 2, my = (s.FromSheet[1] + s.ToSheet[1]) / 2;
+            double cx = (contour[0] + contour[2]) / 2, cy = (contour[1] + contour[3]) / 2;
+            double vx = mx - cx, vy = my - cy, l = Math.Sqrt(vx * vx + vy * vy);
+            if (l < 1e-9) { vx = -1; vy = 1; l = Math.Sqrt(2); }
+            var byTheCentre = new[] { mx + vx / l * distance, my + vy / l * distance };
+            foreach (var leg in legs)
+            {
+                var places = new List<double[]>();
+                var corner = ChamferTextPlace(chamferBox, new[] { leg.FromSheet[0], leg.FromSheet[1], leg.ToSheet[0], leg.ToSheet[1] }, distance);
+                if (corner != null) places.Add(corner);
+                if (corner == null || Math.Abs(corner[0] - byTheCentre[0]) + Math.Abs(corner[1] - byTheCentre[1]) > 0.001) places.Add(byTheCentre);
+                foreach (var at in places)
+                {
+                    tries++;
+                    int dimensionsBefore = CountDimensions(drawing);
+                    IDisplayDimension dimension = null;
+                    try
+                    {
+                        model.ClearSelection2(true);
+                        if ((edges[s.Index] as IEntity).Select4(false, null) &&
+                            (edges[leg.Index] as IEntity).Select4(true, null))
+                            dimension = drawing.AddChamferDim(at[0], at[1], 0) as IDisplayDimension;
+                    }
+                    catch { }
+                    if (NotGrown(drawing, dimensionsBefore, dimension))
+                    {
+                        problem = "the chamfer dimension was not created";
+                        continue;
+                    }
+                    // A null dimension here was BORN WITHOUT ITS OBJECT (Z-C21.8, finding N80).
+                    // AddChamferDim.html, Return Value: «Pointer to the newly created
+                    // chamfer dimension»; when it is null and the count went up, the
+                    // dimension is there and its two values cannot be read.
+                    var described = DescribeDimension(dimension, s.Index);
+                    described["orientation"] = "chamfer dimension";
+                    described["position_mm"] = WhereItEnded(dimension);
+                    described["text_shown"] = ExactTextShown(dimension, described);
+
+                    // THE CHAMFER DIMENSION IS MADE OF TWO DIMENSIONS, and the first one is
+                    // THE ANGLE. Measured on 25/9/2026: GetDimension2(0) = 0.785 rad
+                    // (45°), GetDimension2(1) = 7.071 mm, the width of the chamfer
+                    // face — and the number on the sheet is «5 x 45°». The side that is
+                    // read is therefore width x cos(angle). They are told apart by TYPE
+                    // (`swDimensionParamType_e`: linear 0, angular 1), not by position.
+                    double? angle = null, width = null;
+                    for (int k = 0; k < 2 && dimension != null; k++)
+                    {
+                        try
+                        {
+                            var dk = dimension.GetDimension2(k) as IDimension;
+                            if (dk == null) continue;
+                            int typ = dk.GetType();
+                            if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angle = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                            else if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) width = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                        }
+                        catch { }
+                    }
+                    double? side = null;
+                    if (angle.HasValue && width.HasValue)
+                        side = Math.Round(width.Value * Math.Cos(angle.Value) * 1000.0, 3);
+                    double? degrees = angle.HasValue ? angle.GetValueOrDefault() * 180.0 / Math.PI : (double?)null;
+                    // A CHAMFER DIMENSION THAT DOES NOT MEASURE A CHAMFER IS TAKEN AWAY (report 8cd843
+                    // N23; round 21 for one not seen in its true size, 0,4 x 15,23° for 0.4 x 45°).
+                    string absurd = ChamferValuesProblem(degrees, side);
+                    string wrongSize = absurd == null ? ChamferNotTrueSize(s.ChamferFeature, s.ChamferSaid, degrees, side, s.ChamferPairs) : null;
+                    if ((absurd != null || wrongSize != null) && dimension != null)
+                    {
+                        bool gone = RemoveNewAnnotation(model, dimension.GetAnnotation() as IAnnotation,
+                                                        () => CountDimensions(drawing), dimensionsBefore);
+                        problem = (absurd ?? wrongSize) + " (" + tries + " tries, the last on the edge " + leg.Index + ")";
+                        if (absurd != null && degrees > 90 &&
+                            ChamferLegRunsWith(chamferBox, new[] { leg.FromSheet[0], leg.FromSheet[1], leg.ToSheet[0], leg.ToSheet[1] }))
+                            problem += ": the edge " + leg.Index + " runs the same way as the chamfer edge on the sheet, and on such a leg " +
+                                       "SOLIDWORKS reads 180° minus the angle of the chamfer; a leg that runs the other way reads it";
+                        notTrue = absurd == null;
+                        if (!gone)
+                        {
+                            problem += ": I could not take it away, remove «" +
+                                       Convert.ToString(described.ContainsKey("name") ? described["name"] : null) + "» with «delete_annotation»";
+                            leftOnTheSheet = true;
+                            return null;
+                        }
+                        continue;
+                    }
+                    described["mm"] = side;
+                    described["chamfer_leg_edge"] = leg.Index;
+                    described["chamfer_tries"] = tries;
+                    // THE TEXT WHERE IT IS FREE: AddChamferDim does not put it at «at» (MoveChamferText).
+                    object endedAt;
+                    string textPlace = MoveChamferText(drawing, dimension, new[] { mx, my }, at, all, out endedAt);
+                    if (endedAt != null) described["position_mm"] = endedAt;
+                    described["text_place"] = textPlace;
+                    line = new Dictionary<string, object>
+                    {
+                        ["feature"] = s.ChamferFeature,
+                        ["leg_mm"] = side,
+                        ["angle_deg"] = angle.HasValue ? (object)Math.Round(angle.Value * 180.0 / Math.PI, 2) : null,
+                        ["face_width_mm"] = width.HasValue ? (object)Math.Round(width.Value * 1000.0, 3) : null,
+                        // What the definition says, and whether the dimension agrees with it
+                        // (null: the definition or a value could not be read).
+                        ["as_the_feature"] = s.ChamferSaid,
+                        ["matches_the_feature"] = s.ChamferPairs == null || !angle.HasValue || side == null ? null : (object)true,
+                        ["leg_edge"] = leg.Index,
+                        ["tries"] = tries,
+                        ["text_place"] = textPlace,
+                    };
+                    withoutObject = dimension == null;
+                    return described;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// THE TEXT OF A CHAMFER DIMENSION, MOVED WHERE IT IS FREE (note 98, defect 1). AddChamferDim
+        /// does not put the text at the point it is given: in 26P000011 view 2 (02/11/2026) it was asked
+        /// down left of the chamfer and read back 29 mm right and 19 mm above, over the part, with 0.169.0
+        /// and 0.169.4 alike; IAnnotation.SetPosition2 does move it (move_annotation to 80.8, 82.6 mm,
+        /// read back there). The places of ChamferTextCandidates are tried from the middle of the chamfer
+        /// towards «toward» (the place AddChamferDim was given), the corner of the text nearest the
+        /// chamfer on each place: the first whose text touches no other dimension text, no line of another
+        /// dimension (DimensionLines: in 26P000011 view 2 the first place, free of texts and edges, was
+        /// crossed by the lines of «2,1» and «5,705»), no note nor the title block (WhatTheTextCovers, as
+        /// the overlap report reads them: in 26P000008 detail A the text came 2 mm from the label of the
+        /// detail) and no edge of the view (the chord of a curve) is kept; otherwise the nearest, said.
+        /// The words for the answer.
+        /// </summary>
+        private static string MoveChamferText(IDrawingDoc drawing, IDisplayDimension dimension, double[] middle, double[] toward,
+                                              List<ProjectedEdge> all, out object ended)
+        {
+            ended = null;
+            IAnnotation annotation = null;
+            try { annotation = dimension?.GetAnnotation() as IAnnotation; } catch { }
+            if (annotation == null) return "not moved: the dimension has no annotation to move, the text is where SOLIDWORKS put it";
+            double ax = toward[0] - middle[0], ay = toward[1] - middle[1], al = Math.Sqrt(ax * ax + ay * ay);
+            if (al < 1e-9) return "not moved: no side to move it to";
+            ax /= al; ay /= al;
+            var places = ChamferTextCandidates(middle, new[] { ax, ay });
+            string own = SafeName(dimension);
+            var others = DimensionTexts(drawing);
+            var dimensionLines = DimensionLines(drawing, own);
+            List<string> noteNames;
+            int notesRead;
+            var noteBoxes = NoteBoxes(drawing, out noteNames, out notesRead);
+            double[] titleBlock = TitleBlockOfTheDrawing(drawing, out _);
+            var lines = new List<double[]>();
+            foreach (var e in all) lines.Add(new[] { e.FromSheet[0], e.FromSheet[1], e.ToSheet[0], e.ToSheet[1] });
+
+            // Where the text box sits from the point SetPosition2 takes, read once at the first place.
+            try { annotation.SetPosition2(places[0][0], places[0][1], 0); } catch { return "not moved: SOLIDWORKS refused the new position"; }
+            double[] box = TextBounds(dimension);
+            if (box == null) { ended = WhereItEnded(dimension); return "moved to the side of the corner, its text not read: not checked against the other texts"; }
+            double w = box[2] - box[0], h = box[3] - box[1], dx0 = box[0] - places[0][0], dy0 = box[1] - places[0][1];
+            // Library 0.198.6: 0,5 mm of clearance around the text against every line (up to 0.198.5 the box was
+            // shrunk by 0,3 mm, and on 26P000011 view 2 the text sat on the arrow of the 12,105).
+            const double margin = 0.0005;
+            Func<double[][], bool> clashes = m =>
+            {
+                if (others != null)
+                    foreach (DimensionText o in others)
+                        if (o.Name != own && TheyTouch(m, o.Angles, margin)) return true;
+                foreach (var l in lines)
+                    if (SegmentInRectangle(l, m, margin)) return true;
+                if (dimensionLines != null)
+                    foreach (var l in dimensionLines)
+                        if (SegmentInRectangle(l, m, margin)) return true;
+                return WhatTheTextCovers(m, noteNames, noteBoxes, titleBlock, margin).Count > 0;
+            };
+            // What a leader may cross: the lines of the view, of the other dimensions, the sides of the other texts.
+            var crossable = new List<double[]>(lines);
+            if (dimensionLines != null) crossable.AddRange(dimensionLines);
+            if (others != null)
+                foreach (DimensionText o in others)
+                    if (o.Name != own && o.Angles != null && o.Angles.Length == 4)
+                        for (int k = 0; k < 4; k++)
+                            crossable.Add(new[] { o.Angles[k][0], o.Angles[k][1], o.Angles[(k + 1) % 4][0], o.Angles[(k + 1) % 4][1] });
+            // Every place judged on the box read at the first place, moved there (no SetPosition2 per place):
+            // {index, lines the leader crosses, distance, x, y of SetPosition2}.
+            var free = new List<double[]>();
+            for (int i = 0; i < places.Count; i++)
+            {
+                // The box grows on the side of ITS place (a place 90° off «away» lies along the side of the part,
+                // and a box grown toward «away» from there would come back over the corner); a direction almost
+                // across an axis centres the box on that axis.
+                double ux = places[i][3], uy = places[i][4];
+                double minX = ux < -0.3 ? places[i][0] - w : ux > 0.3 ? places[i][0] : places[i][0] - w / 2;
+                double minY = uy < -0.3 ? places[i][1] - h : uy > 0.3 ? places[i][1] : places[i][1] - h / 2;
+                var rect = new[] { new[] { minX, minY }, new[] { minX + w, minY }, new[] { minX + w, minY + h }, new[] { minX, minY + h } };
+                if (clashes(rect)) continue;
+                double[] end = NearestOnBox(middle, minX, minY, minX + w, minY + h);
+                free.Add(new double[] { i, LeaderCrossings(middle, end, crossable, 0.0006), places[i][2], minX - dx0, minY - dy0 });
+            }
+            // The leader that crosses the fewest lines, then the nearest place, then the order of the places.
+            free.Sort((p, q) => p[1] != q[1] ? p[1].CompareTo(q[1]) : p[2] != q[2] ? p[2].CompareTo(q[2]) : p[0].CompareTo(q[0]));
+            foreach (var f in free)
+            {
+                int i = (int)f[0];
+                try { annotation.SetPosition2(f[3], f[4], 0); } catch { continue; }
+                // Read back where SOLIDWORKS put it: the box computed is checked on the real one.
+                var mine = TextCornersOf(dimension);
+                if (mine.Count == 0) continue;
+                bool clash = false;
+                foreach (var m in mine)
+                    if (clashes(m)) { clash = true; break; }
+                if (clash) continue;
+                ended = WhereItEnded(dimension);
+                int crossed = (int)f[1];
+                return "on the side of the corner, " + Math.Round(places[i][2] * 1000, 1).ToString(Ci) + " mm from the chamfer" +
+                       (i == 0 ? "" : " (place " + (i + 1) + " of " + places.Count + ")") +
+                       ", its leader across " + (crossed == 0 ? "no line" : crossed == 1 ? "1 line" : crossed + " lines") +
+                       " (" + free.Count + " of " + places.Count + " places free), free of the " +
+                       (others == null ? "" : "other dimension texts, ") +
+                       (dimensionLines == null ? "" : "the " + dimensionLines.Count + " lines of the other dimensions, ") +
+                       (notesRead < 0 ? "" : "the " + noteBoxes.Count + " notes, ") + (titleBlock == null ? "" : "the title block, ") + "and the lines of the view";
+            }
+            double[] nearest = { places[0][0] - dx0 - (places[0][3] < -0.3 ? w : places[0][3] > 0.3 ? 0 : w / 2),
+                                 places[0][1] - dy0 - (places[0][4] < -0.3 ? h : places[0][4] > 0.3 ? 0 : h / 2) };
+            try { annotation.SetPosition2(nearest[0], nearest[1], 0); } catch { }
+            ended = WhereItEnded(dimension);
+            return "no place 6 to 24 mm from the chamfer, within 90° of the outer side of the corner, is free of the other texts, the lines of the other dimensions, the notes, " +
+                   "the title block and the lines of the view: left at the nearest, move it with «move_annotation»";
+        }
+
+        /// <summary>
+        /// How many of <paramref name="segments"/> ({x0, y0, x1, y1}) the leader from «from» to «to» crosses, the
+        /// first <paramref name="skip"/> metres from «from» left out: the leader starts on its own edge, where the
+        /// next edges meet. Touching at an end is not crossing (ClosedShape.Intersect). Pure.
+        /// </summary>
+        internal static int LeaderCrossings(double[] from, double[] to, IList<double[]> segments, double skip)
+        {
+            double dx = to[0] - from[0], dy = to[1] - from[1], l = Math.Sqrt(dx * dx + dy * dy);
+            if (segments == null || l <= skip) return 0;
+            var start = new[] { from[0] + dx / l * skip, from[1] + dy / l * skip };
+            int n = 0;
+            foreach (var s in segments)
+                if (s != null && s.Length >= 4 && ClosedShape.Intersect(start, to, new[] { s[0], s[1] }, new[] { s[2], s[3] })) n++;
+            return n;
+        }
+
+        /// <summary>The point of the box {x0, y0, x1, y1} nearest to «p»: where a leader from «p» meets the text. Pure.</summary>
+        internal static double[] NearestOnBox(double[] p, double x0, double y0, double x1, double y1)
+        {
+            return new[] { Math.Max(x0, Math.Min(x1, p[0])), Math.Max(y0, Math.Min(y1, p[1])) };
+        }
+
+        /// <summary>
+        /// The places tried for the text of a chamfer dimension: from «middle» along the unit «away» and
+        /// at 30°, 60° and 90° either side, 6 to 24 mm every 3 mm, the nearer first and, at the same
+        /// distance, the nearer to «away» first; each {x, y, distance, ux, uy}, (ux, uy) the unit toward
+        /// the place. Pure.
+        /// Library 0.198.6: up to 0.198.5 only «away» and ±30°: on 26P000011 view 2 the dimensions of the
+        /// view (2,1, 5,705, 0,747, 12,105) take that fan near the corner and the text went 18 mm away,
+        /// its leader across the 0,747. Up to 24 mm: a place a little farther whose leader crosses nothing
+        /// beats a nearer one across a dimension (MoveChamferText).
+        /// Not beyond 90°: past the side of the corner the place is over the part.
+        /// </summary>
+        internal static List<double[]> ChamferTextCandidates(double[] middle, double[] away)
+        {
+            var places = new List<double[]>();
+            for (int k = 0; k <= 6; k++)
+            {
+                double d = 0.006 + 0.003 * k;
+                foreach (double deg in new[] { 0.0, 30.0, -30.0, 60.0, -60.0, 90.0, -90.0 })
+                {
+                    double r = deg * Math.PI / 180.0, cs = Math.Cos(r), sn = Math.Sin(r);
+                    double ux = away[0] * cs - away[1] * sn, uy = away[0] * sn + away[1] * cs;
+                    places.Add(new[] { middle[0] + ux * d, middle[1] + uy * d, d, ux, uy });
+                }
+            }
+            return places;
+        }
+
+        /// <summary>
+        /// A CHAMFER THE PROFILE DRAWS (note 98, defect 1): an oblique straight edge parallel to the sheet
+        /// whose two ends meet two straight edges perpendicular to each other on the sheet, shorter than
+        /// the longer of them and at most 10 mm in the model, at 5° to 85° from them. It gets a chamfer
+        /// dimension and its legs are not dimensioned apart, as with a chamfer feature; those of the same
+        /// length are one element (ChamferProfileKey), dimensioned once. Returns the edges marked, in words.
+        /// </summary>
+        private static string[] MarkProfileChamfers(List<ProjectedEdge> all, double scale)
+        {
+            var marked = new List<string>();
+            foreach (var s in all)
+            {
+                if (s.ChamferFeature != null || s.Facing != "oblique" || !s.Straight) continue;
+                if (s.Length / scale > 0.010 || NotSeenInItsTrueSize(s, scale) != null) continue;
+                ProjectedEdge atFrom = null, atTo = null;
+                foreach (var t in all)
+                {
+                    if (ReferenceEquals(t, s) || t.Facing == "oblique" || !t.Straight || t.ChamferFeature != null) continue;
+                    foreach (var q in new[] { t.FromSheet, t.ToSheet })
+                    {
+                        if (Math.Abs(q[0] - s.FromSheet[0]) + Math.Abs(q[1] - s.FromSheet[1]) < 1e-5) atFrom = atFrom ?? t;
+                        if (Math.Abs(q[0] - s.ToSheet[0]) + Math.Abs(q[1] - s.ToSheet[1]) < 1e-5) atTo = atTo ?? t;
+                    }
+                }
+                if (atFrom == null || atTo == null || atFrom.Facing == atTo.Facing) continue;
+                // A ramp is not a chamfer: one of the two edges it joins is longer than it (26P000011
+                // view 2: the 0,986 between a 0,747 and a longer one is a chamfer too).
+                if (s.Length >= Math.Max(atFrom.Length, atTo.Length)) continue;
+                double vx = s.ToSheet[0] - s.FromSheet[0], vy = s.ToSheet[1] - s.FromSheet[1];
+                double deg = Math.Atan2(Math.Abs(vy), Math.Abs(vx)) * 180.0 / Math.PI;
+                if (deg < 5 || deg > 85) continue;
+                s.ChamferFeature = "the chamfer the profile draws at the edge " + s.Index;
+                s.ChamferKey = ChamferProfileKey(s.Length / scale);
+                marked.Add(s.Index + " (" + Math.Round(s.Length * 1000.0 / scale, 3).ToString(Ci) + " mm at " + Math.Round(deg, 2).ToString(Ci) +
+                           "° on the sheet, between the edges " + atFrom.Index + " and " + atTo.Index + ")");
+            }
+            return marked.ToArray();
+        }
+
+        /// <summary>
+        /// THE CHAMFER DIMENSIONS ASKED ON CHOSEN EDGES («chamfer», note 98, defect 1). Each entry: the
+        /// oblique edge, and the leg when named (otherwise ChamferLegs). Refused one by one with the
+        /// reason: not a straight edge, not oblique on the sheet, no leg, already dimensioned in the
+        /// drawing (unless «repeat»), no try that measures it.
+        /// </summary>
+        private Outcome DimensionChamfersAsked(IModelDoc2 model, IDrawingDoc drawing, IView view, string viewName, object[] edges,
+            List<ProjectedEdge> all, List<int[]> asked, double[] contour, double dimensionOffset, double scale, IMathUtility mu, bool repeat)
+        {
+            ExistingDimensionsReading reading;
+            var already = repeat ? new HashSet<string>(StringComparer.Ordinal) : KeysAlreadyDimensioned(drawing, view, mu, out reading, null);
+            var born = new List<Dictionary<string, object>>();
+            var chamfers = new List<Dictionary<string, object>>();
+            var refused = new List<string>();
+            var failed = new List<string>();
+            int before = CountDimensions(drawing);
+            if (before < 0)
+                return Failed("I cannot count the dimensions of the drawing before starting: without that number I " +
+                              "could not tell you which ones I put. I touched nothing.");
+            foreach (int[] entry in asked)
+            {
+                var s = all.Find(e => e.Index == entry[0]);
+                if (s == null || !s.Straight) { refused.Add(entry[0] + " (not a straight edge on the sheet)"); continue; }
+                if (s.Facing != "oblique")
+                {
+                    refused.Add(entry[0] + " (it is " + s.Facing + " on the sheet: a chamfer is seen as an oblique edge, in the view that looks along it)");
+                    continue;
+                }
+                string slanted = NotSeenInItsTrueSize(s, scale);
+                if (slanted != null) { refused.Add(entry[0] + " (" + slanted + ": dimension it in a view that looks along the chamfered edge)"); continue; }
+                List<ProjectedEdge> legs;
+                if (entry.Length > 1)
+                {
+                    var leg = all.Find(e => e.Index == entry[1]);
+                    if (leg == null || !leg.Straight) { refused.Add(entry[0] + " (its leg " + entry[1] + " is not a straight edge on the sheet)"); continue; }
+                    double vx = s.ToSheet[0] - s.FromSheet[0], vy = s.ToSheet[1] - s.FromSheet[1], vl = Math.Sqrt(vx * vx + vy * vy);
+                    if (vl > 1e-12 && ChamferLegOn(vx, vy, leg) / vl > 0.999)
+                    {
+                        refused.Add(entry[0] + " (its leg " + entry[1] + " is parallel to it)");
+                        continue;
+                    }
+                    legs = new List<ProjectedEdge> { leg };
+                }
+                else legs = ChamferLegs(s, all);
+                if (legs.Count == 0) { refused.Add(entry[0] + " (no straight edge meets it to rest the dimension on: name the leg, [" + entry[0] + ", leg])"); continue; }
+                string key = s.ChamferKey ?? ChamferEndsKey(s.FromModel, s.ToModel);
+                if (key != null && (already.Contains(key) || (s.ChamferKey == null && already.Contains(ChamferProfileKey(s.Length / scale)))))
+                {
+                    refused.Add(entry[0] + " (its chamfer is already dimensioned in this drawing: «repeat» true to put it again)");
+                    continue;
+                }
+                Dictionary<string, object> line;
+                string problem;
+                bool notTrue, withoutObject, leftOnTheSheet;
+                var described = PlaceChamferDimension(model, drawing, edges, s, legs, all, contour, dimensionOffset + 0.006,
+                                                      out line, out problem, out notTrue, out withoutObject, out leftOnTheSheet);
+                if (described == null)
+                {
+                    failed.Add(entry[0] + " (" + problem + (notTrue ? ": dimension it in a view that looks along the chamfered edge" : "") + ")");
+                    continue;
+                }
+                chamfers.Add(line);
+                if (!withoutObject) born.Add(described);
+                else RecordBornWithoutObject(born, described, failed,
+                    entry[0] + " (the chamfer dimension was born but SOLIDWORKS did not hand it back: its values were not read back, check it on the sheet)");
+                if (key != null) already.Add(key);
+            }
+            try { model.ClearSelection2(true); } catch { }
+            int after = CountDimensions(drawing);
+            int put = after < 0 ? -1 : after - before;
+            if (put <= 0)
+                return Failed("No chamfer dimension was created on the view «" + viewName + "»: " +
+                              string.Join("; ", refused.Concat(failed)) + ".");
+            var measurements = new Dictionary<string, object>
+            {
+                ["view"] = viewName,
+                ["dimensions_before"] = before,
+                ["dimensions_after"] = after,
+                ["dimensions_placed"] = put,
+                ["dimensions"] = born.ToArray(),
+                ["chamfers"] = chamfers.ToArray(),
+                ["chamfers_refused"] = refused.ToArray(),
+                ["chamfers_failed"] = failed.ToArray(),
+                ["repeat"] = repeat,
+            };
+            _log("[agent] " + put + " chamfer dimensions on the view «" + viewName + "»: " + ValuesInLine(born));
+            return WithoutFeature(measurements);
         }
 
         /// <summary>
@@ -2159,14 +2984,127 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static string KeyInModel(double[] da, double[] a)
         {
-            double dx = a[0] - da[0], dy = a[1] - da[1], dz = a[2] - da[2];
+            int axis = AxisAlong(da, a);
+            return axis < 0 ? null : TractKey(axis, da[axis], a[axis]);
+        }
+
+        /// <summary>
+        /// The axis of the model (0 X, 1 Y, 2 Z) a segment runs along, within a thousandth of
+        /// its length; -1 for an oblique or empty one. Pure.
+        /// </summary>
+        internal static int AxisAlong(double[] p, double[] q)
+        {
+            if (p == null || q == null || p.Length < 3 || q.Length < 3) return -1;
+            double dx = q[0] - p[0], dy = q[1] - p[1], dz = q[2] - p[2];
             double l = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-            if (l < 1e-9) return null;
-            int axis = Math.Abs(dx) / l > 0.999 ? 0 : Math.Abs(dy) / l > 0.999 ? 1 : Math.Abs(dz) / l > 0.999 ? 2 : -1;
-            if (axis < 0) return null;
-            double v0 = Math.Min(da[axis], a[axis]) * 1000.0, v1 = Math.Max(da[axis], a[axis]) * 1000.0;
+            if (l < 1e-9) return -1;
+            return Math.Abs(dx) / l > 0.999 ? 0 : Math.Abs(dy) / l > 0.999 ? 1 : Math.Abs(dz) / l > 0.999 ? 2 : -1;
+        }
+
+        /// <summary>
+        /// The key of a tract of the part along an axis, from two coordinates in metres:
+        /// «X|0.00|19.00», millimetres to the hundredth, the lower first. Pure.
+        /// </summary>
+        internal static string TractKey(int axis, double p, double q)
+        {
+            double v0 = Math.Min(p, q) * 1000.0, v1 = Math.Max(p, q) * 1000.0;
             return "XYZ"[axis] + "|" + Math.Round(v0, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) +
                    "|" + Math.Round(v1, 2).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// THE TRACT BETWEEN TWO PARALLEL EDGES (02/11/2026), with the key of KeyInModel: the
+        /// axis the distance measures and the two planes along it. In a view the distance of two
+        /// edges vertical on the sheet is horizontal, so it measures the axis of the model that
+        /// runs along the sheet's horizontal (<paramref name="sheetAxes"/>, from SheetAxes), and
+        /// the other way round. Null when the two edges do not run along one same axis, when
+        /// that axis is the depth of the view (an edge seen end-on) or when the view is turned.
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string TractBetween(double[] a0, double[] a1, double[] b0, double[] b1, int[] sheetAxes)
+        {
+            if (sheetAxes == null || sheetAxes.Length < 2) return null;
+            int along = AxisAlong(a0, a1);
+            if (along < 0 || AxisAlong(b0, b1) != along) return null;
+            int measured = along == sheetAxes[1] ? sheetAxes[0] : along == sheetAxes[0] ? sheetAxes[1] : -1;
+            if (measured < 0) return null;
+            return TractKey(measured, (a0[measured] + a1[measured]) / 2, (b0[measured] + b1[measured]) / 2);
+        }
+
+        /// <summary>The three parts of a tract key (axis, from, to), or null for a key of another kind.</summary>
+        private static string[] TractParts(string key)
+        {
+            if (key == null) return null;
+            string[] parts = key.Split('|');
+            return parts.Length == 3 && parts[0].Length == 1 && "XYZ".IndexOf(parts[0][0]) >= 0 ? parts : null;
+        }
+
+        /// <summary>
+        /// WHAT ALREADY GIVES AN EXTENT (02/11/2026, the owner's drawings: 175 next to
+        /// 19 + 145 + 11 on 26P000008). The keys of <paramref name="keys"/> that give the tract
+        /// <paramref name="key"/>: the key itself when the same extent is dimensioned, otherwise
+        /// the chain of tracts on the same axis that joins its two planes, in order. Null when
+        /// nothing gives it. Only tract keys count (holes, chamfers and cylinders have keys of
+        /// their own). Two planes are the same when their keys print the same hundredth of a
+        /// millimetre, as for KeyInModel. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string[] ChainThrough(IEnumerable<string> keys, string key)
+        {
+            string[] asked = TractParts(key);
+            if (asked == null || keys == null) return null;
+            var tracts = new List<string[]>();
+            foreach (string k in keys)
+            {
+                if (k == key) return new[] { key };
+                string[] t = TractParts(k);
+                if (t != null && t[0] == asked[0]) tracts.Add(new[] { t[1], t[2], k });
+            }
+            // From one plane of the tract asked to the other, the fewest tracts first.
+            var cameFrom = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            var queue = new Queue<string>();
+            cameFrom[asked[1]] = null;
+            queue.Enqueue(asked[1]);
+            while (queue.Count > 0 && !cameFrom.ContainsKey(asked[2]))
+            {
+                string here = queue.Dequeue();
+                foreach (string[] t in tracts)
+                {
+                    string there = t[0] == here ? t[1] : t[1] == here ? t[0] : null;
+                    if (there == null || cameFrom.ContainsKey(there)) continue;
+                    cameFrom[there] = new[] { here, t[2] };
+                    queue.Enqueue(there);
+                }
+            }
+            if (!cameFrom.ContainsKey(asked[2])) return null;
+            var path = new List<string>();
+            for (string at = asked[2]; cameFrom[at] != null; at = cameFrom[at][0]) path.Insert(0, cameFrom[at][1]);
+            return path.ToArray();
+        }
+
+        /// <summary>
+        /// Why an extent is not placed: the dimension that already gives it, or the chain that
+        /// closes it, each named as <paramref name="owners"/> says (DescribeExisting). Pure.
+        /// </summary>
+        internal static string RepeatedWhy(string key, string[] chain, IDictionary<string, string> owners)
+        {
+            var named = new List<string>();
+            foreach (string k in chain)
+                named.Add(owners != null && owners.ContainsKey(k) ? owners[k] : "a dimension of the drawing (" + k + ")");
+            if (chain.Length == 1 && chain[0] == key)
+                return "the same extent is already dimensioned: " + named[0];
+            return "it closes a chain, the drawing already gives this extent with " + string.Join(" and ", named);
+        }
+
+        /// <summary>A dimension already on the drawing in words: «19» (RD2) in the view «Drawing View1».</summary>
+        private static string DescribeExisting(IDisplayDimension d, IView v)
+        {
+            double mm = double.NaN;
+            string name = null, itsView = null;
+            try { mm = ApiHelpers.ReadDimensionInConfiguration(d.GetDimension2(0) as IDimension, "") * 1000.0; } catch { }
+            try { name = (d.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
+            try { itsView = v.GetName2(); } catch { }
+            return "«" + (double.IsNaN(mm) ? "?" : Math.Round(mm, 3).ToString(Ci)) + "»" +
+                   (string.IsNullOrEmpty(name) ? "" : " (" + name + ")") + " in the view «" + (itsView ?? "?") + "»";
         }
 
         /// <summary>

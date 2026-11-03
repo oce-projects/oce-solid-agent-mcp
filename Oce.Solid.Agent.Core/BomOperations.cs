@@ -213,13 +213,18 @@ namespace Oce.Solid.Agent.Core
             // OVER THE TITLE BLOCK, AT ITS WIDTH (report 8cd843, round 22, point 10): the owner rests the
             // bill of materials on the title block. The columns are widened or narrowed by one
             // factor (ITableAnnotation~SetColumnWidth.html, swTableRowColChange_TableSizeCanChange)
-            // and the table read again; a format that declares no title block keeps the free place.
+            // and the table read again. The title block declared by the format, or drawn by its
+            // lines (note 98, defect 8: the owner's A3 declares none); without either, the free place.
             if (Bool(a, "over_title_block", false))
             {
-                double[] block = DeclaredTitleBlock(drawing);
+                string blockFrom;
+                double[] block = TitleBlockOfTheDrawing(drawing, out blockFrom);
+                // A warning, not a note: a «summary» answer drops the long texts that only explain, and
+                // until 0.168.0 the table went to a free place with nothing said (replay of 02/11/2026).
                 if (block == null)
-                    measurements["over_title_block_note"] = "The format of the sheet declares no title block " +
-                        "(ITitleBlock.GetExtents): the table went to a free place instead.";
+                    measurements["warning_over_title_block"] = "The format of the sheet declares no title block " +
+                        "(ITitleBlock.GetExtents) and its lines draw none in the bottom-right corner of the frame: " +
+                        "the table went to a free place instead.";
                 else if (w > 0 && h > 0)
                 {
                     double factor = ColumnFactor(w, block[2] - block[0]);
@@ -240,6 +245,7 @@ namespace Oce.Solid.Agent.Core
                     catch { }
                     try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(block[0], block[3] + high, 0); } catch { }
                     measurements["table_location"] = "over the title block";
+                    measurements["title_block_from"] = blockFrom;
                     measurements["title_block_mm"] = new object[]
                     {
                         Math.Round(block[0] * 1000, 1), Math.Round(block[1] * 1000, 1),
@@ -254,7 +260,9 @@ namespace Oce.Solid.Agent.Core
                     int tall = TallerRows(heights);
                     measurements["rows_on_more_lines"] = tall;
                     var placedSheet = ReadSheet(drawing, null, tableName);
-                    string covers = placedSheet.Touches(block[0], block[3] + 0.0005, block[0] + wide, block[3] + high);
+                    // The title block it rests on, and its notes, are not in its way; the frame line of
+                    // the format is the edge of the title block, inside the 12 mm of the free places.
+                    string covers = placedSheet.TouchesBeside(block[0], block[3] + 0.0005, block[0] + wide, block[3] + high, block);
                     if (covers != null)
                         measurements["warning_covers"] = "Over the title block the table touches " + covers +
                             ": move that view with «move_view».";
@@ -882,6 +890,7 @@ namespace Oce.Solid.Agent.Core
                 return BalloonsAgain(model, drawing, view);
 
             int before = ViewBalloons(view);
+            var balloonsBefore = BalloonKeys(view);
             // The rows of the bill of materials before the balloons (N50): AutoBalloon5
             // renumbers them, and the answer says so with the rows as they are after.
             var rowsBefore = BomRowsOfDrawing(drawing);
@@ -956,6 +965,10 @@ namespace Oce.Solid.Agent.Core
                 var moves = SpreadCrowdedBalloons(model, view, out spreadNote);
                 measurements["arrows_moved"] = moves.Cast<object>().ToArray();
                 if (spreadNote != null) measurements["arrows_note"] = spreadNote;
+                // EACH BALLOON WHERE IT IS FREE (note 98, defect 7): see FreeTheBalloons.
+                string freeNote;
+                measurements["balloons_moved_to_a_free_place"] = FreeTheBalloons(drawing, view, balloonsBefore, false, out freeNote).Cast<object>().ToArray();
+                if (freeNote != null) measurements["balloons_free_note"] = freeNote;
                 measurements["numbers"] = BalloonNumbers(view).ToArray();
                 // THE NUMBERS A TIE DECIDED (report 8cd843 N60): see NumbersByTieNote.
                 if (order == "around_the_view" && moves.Count > 0)

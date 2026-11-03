@@ -340,8 +340,21 @@ namespace Oce.Solid.Agent.ContractTests
         /// a view of a part («two calls: one with «overall», one with «edges»»).
         /// **299 (28/10/2026, round 21, point 7): +1.** A «width» mate without its
         /// second faces, or with them on another mate («Give «face_a2» and «face_b2»»).
+        /// **314 (31/10/2026, 0.161.0): +1.** The style of dimensioning named by
+        /// «OCE_DRAWING_STYLE» that cannot be used («correct the file, or remove
+        /// OCE_DRAWING_STYLE to use the built-in one»).
+        /// **316 (02/11/2026, 0.162.0): +2.** «between» whose every pair dimensions an
+        /// extent the drawing already gives («pass «repeat»: true to place them anyway»),
+        /// and the view with nothing left that now names «repeat» for what another view or
+        /// a chain already gives.
+        /// **317 (02/11/2026, 0.165.0): +1.** «unalign» asked and the view still on the line of
+        /// its parent («give only the move along that line, or move its parent view instead»).
+        /// **318 (02/11/2026, 0.167.0): +1.** The automatic dimensions read the style file too
+        /// («Correct the file, or remove OCE_DRAWING_STYLE to use the built-in one»).
+        /// **320 (02/11/2026, 0.169.0): +2.** «chamfer» on chosen edges: in a call of its own, and
+        /// what each entry is when it cannot be used.
         /// </summary>
-        private const int Floor = 313;
+        private const int Floor = 320;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -355,8 +368,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 313;   // 28/10/2026, round 22 of report 8cd843 (the drawings of 26M000002 against the owner's): 313 of 1073; 28/10/2026, round 21 of report 8cd843 (the width mate): 299 of 1045; 28/10/2026, round 21 of report 8cd843 (the overall size of a part): 298 of 1040; 28/10/2026, round 21 of report 8cd843 (the decimals of a dimension): 297 of 1039; 28/10/2026, round 21 of report 8cd843 (the scale of a view): 296 of 1038; 28/10/2026, round 20 of report 8cd843 (N63): 290 of 1028; 28/10/2026, round 20 of report 8cd843 (N62): 289 of 1026; 28/10/2026, round 17 of report 8cd843 (N60): 288 of 1025; 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 1073;
+        private const int ShareFloorWithRemedy = 320;   // 02/11/2026, 0.169.0 (the chamfer dimension on chosen edges): 320 of 1081; 02/11/2026, 0.167.0 (the automatic dimensions in the owner's style): 318 of 1077; 02/11/2026, 0.165.0 (move_view «unalign»): 317 of 1076; 02/11/2026, 0.162.0 (one dimension per extent on the whole drawing): 316 of 1075; 31/10/2026, 0.161.0 (the style of dimensioning of the owner): 314 of 1074; 28/10/2026, round 22 of report 8cd843 (the drawings of 26M000002 against the owner's): 313 of 1073; 28/10/2026, round 21 of report 8cd843 (the width mate): 299 of 1045; 28/10/2026, round 21 of report 8cd843 (the overall size of a part): 298 of 1040; 28/10/2026, round 21 of report 8cd843 (the decimals of a dimension): 297 of 1039; 28/10/2026, round 21 of report 8cd843 (the scale of a view): 296 of 1038; 28/10/2026, round 20 of report 8cd843 (N63): 290 of 1028; 28/10/2026, round 20 of report 8cd843 (N62): 289 of 1026; 28/10/2026, round 17 of report 8cd843 (N60): 288 of 1025; 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1081;
 
         /// <summary>
         /// The openings with which this code says no.

@@ -493,6 +493,7 @@ namespace Oce.Solid.Agent.Core
             try { tableName = (table.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
             var sheet = ReadSheet(drawing, null, tableName);
             measurements["title_block_estimated"] = sheet.EstimatedTitleBlock;
+            measurements["title_block_from"] = sheet.TitleBlockFrom;
             bool requested = a.ContainsKey("x_mm") || a.ContainsKey("y_mm");
             double px, py; string location;
             if (requested)

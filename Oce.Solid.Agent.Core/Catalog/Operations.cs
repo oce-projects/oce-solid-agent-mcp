@@ -3010,6 +3010,26 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "of the call at the same distance «offset_mm», a chain instead of a staircase (the "
                         + "total goes in a second call with a larger «offset_mm»). They hold for «edges» and "
                         + "«between»; holes, chamfers and the overall size keep their own places."
+                        + "\n\nWITH «between» THEY GO WHERE THE OWNER PUTS THEM (measured on his drawings, "
+                        + "31/10/2026): the first row 10 mm from the lines the view draws (not from its outline), "
+                        + "6.7 mm from one row to the next; each dimension on the side of the part its edges reach "
+                        + "(horizontal ones above and vertical ones on the right when both sides are as near), "
+                        + "unless «horizontal_side» or «vertical_side» names it; dimensions that do not overlap "
+                        + "share a row, the short ones with the text outside nearest the part, and a chain (dimensions "
+                        + "that follow one another end to end) stays on one row. The dimensions ALREADY IN THE VIEW "
+                        + "count: a new one lines up with their rows and keeps its text off theirs, so a second call "
+                        + "on the same view (another «decimals», «suffix» or «parentheses») does not write over the "
+                        + "first. A text that does not fit between the extension lines with 2 mm for each arrow (its "
+                        + "width counted 1.8 mm a character and 1 mm a comma, not the box SOLIDWORKS draws around it) "
+                        + "goes 11 mm beyond the higher end, or beyond the lower one when the higher is taken or lies "
+                        + "over another dimension of that side, with the arrows outside. On a detail, its label goes "
+                        + "6.2 mm under its lowest dimension, those of earlier calls included. Each row says «side», "
+                        + "«row», «row_mm» and «text»; «dimensions_already_in_the_view» says how many were seen; "
+                        + "«style» says the numbers used and where they come from: a JSON file named by the "
+                        + "environment variable OCE_DRAWING_STYLE changes them (keys first_row_mm, pitch_mm, "
+                        + "text_outside_mm, arrow_room_mm, detail_label_gap_mm, side_by_edges, pack, tie_horizontal, "
+                        + "tie_vertical, tie_balance, text_both_ends, char_mm, comma_mm), and a file that cannot be "
+                        + "used is refused before anything is placed."
                         + "\n\nTHE DISTANCE BETWEEN TWO EDGES: «between» takes pairs of edge numbers, "
                         + "[[3, 7], [7, 12]], and dimensions the distance of each pair: two straight edges, both "
                         + "vertical on the sheet (a horizontal distance) or both horizontal (a vertical one). It "
@@ -3017,8 +3037,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "faces, of an overall height when the side edges are cut by a chamfer. Each value is "
                         + "read back and must be the distance of the two edges on the sheet divided by the "
                         + "scale, or I take it away and say why. «between» goes in a call of its own (not with "
-                        + "«edges» or «overall»), puts no holes or chamfers, and is placed even when another "
-                        + "view has the same distance: you named it. It works on a view of an assembly too."
+                        + "«edges» or «overall») and puts no holes or chamfers. It works on a view of an assembly too."
+                        + "\n\nONE DIMENSION PER EXTENT, CHAINS INCLUDED: a pair whose distance the drawing already "
+                        + "gives is refused before anything is placed, in «already_given_refused» with the dimensions "
+                        + "that give it: the same extent in any view of any sheet (a dimension on one edge, or between "
+                        + "two), or a chain that it would close (175 next to 19 + 145 + 11). The other pairs are placed; "
+                        + "when every pair is refused the call is refused. «repeat»: true places them anyway, «parentheses»: true writes them as "
+                        + "reference dimensions, the way a closing dimension is shown. The automatic route leaves out "
+                        + "an edge that would close a chain the same way («closing_a_chain»). Compared on a view of a "
+                        + "part square to the model's axes; on a view of an assembly, or a turned one, «not_compared» says why."
                         + "\n\nTEXT ON THE DIMENSION: «prefix» and «suffix» write a text before and after "
                         + "the value («2,5 CHANNEL»), «parentheses» shows it as a reference dimension «(35)». "
                         + "They go on every dimension the call places from «edges», «between» or «overall», not "
@@ -3045,7 +3072,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "callouts, never one «4×») and the position from the two "
                         + "reference edges, the left one and the bottom one; chamfers with the CHAMFER "
                         + "DIMENSION («5 x 45°»), not with their edges — the hypotenuse and the "
-                        + "segments shortened by the chamfer are not dimensioned. A blind hole "
+                        + "segments shortened by the chamfer are not dimensioned. A chamfer the profile draws (a short "
+                        + "oblique edge between two perpendicular ones, no chamfer feature) is one too "
+                        + "(«chamfers_drawn_by_the_profile»). A chamfer counts as dimensioned only by a chamfer "
+                        + "dimension, not by a distance that touches its face. A blind hole "
                         + "carries the depth («Ø8 ↧5»); if the callout is not born, I write it myself from the geometry."
                         + "\n\nTHE «4×» IS READ BACK: after writing the count in front of the "
                         + "callout I read its prefix again (holes[].prefix_read). If the count did "
@@ -3100,8 +3130,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "dimension with an angle outside 0..90 degrees, is removed and listed in "
                         + "edges_not_dimensioned with what it read. So is a chamfer dimension whose legs are not "
                         + "those of its chamfer feature (the chamfer seen askew, as «0,4 x 15,23°» on a 0.4 x 45°): "
-                        + "I try the other edges of that chamfer in the view, and if none shows it in its true size "
-                        + "I say so; each row of «chamfers» says «as_the_feature» and «matches_the_feature»."
+                        + "I try every edge that meets it as the leg (the shorter leg first: 0,5 x 60°, not 0,866 x 30°) "
+                        + "and the text on the side the corner was taken from and then on the side of the centre, then "
+                        + "the other edges of that chamfer in the view, and if none shows it in its true size "
+                        + "I say so; each row of «chamfers» says «as_the_feature», «matches_the_feature», the leg used "
+                        + "and how many tries."
+                        + "\n\nTHE CHAMFER DIMENSION ON EDGES YOU CHOOSE: «chamfer»: [5, [7, 12]] puts it on the oblique "
+                        + "edge 5 (on a leg I choose) and on 7 resting on 12, in a call of its own, with the same "
+                        + "checks; a chamfer already dimensioned in the drawing is refused unless «repeat» is true."
                         + "\n\nI REFUSE IF THE EDGE ASKED FOR DOES NOT EXIST in the view, and I tell you how many it "
                         + "shows. An index that is not there is the easiest mistake to make when "
                         + "dimensioning blind. And I refuse a view where nothing is left to dimension "
@@ -3153,11 +3189,12 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "offset_mm", O(
                                 "type", "number",
                                 "description", "how far below the extent of the view to put the first "
-                                    + "dimension. Default 12."),
+                                    + "dimension. Default 12 from the outline; with «between», 10 from the lines the "
+                                    + "view draws (the style)."),
                             "pitch_mm", O(
                                 "type", "number",
                                 "description", "the distance between one dimension and the "
-                                    + "next. Default 10."),
+                                    + "next. Default 10; with «between», 6.7 between rows (the style)."),
                             "decimals", O(
                                 "type", "integer",
                                 "description", "the decimals every dimension of the call prints, 0 to 8. Left out, "
@@ -3168,29 +3205,49 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "pairs of edge numbers, [[3, 7], [7, 12]]: the distance between the two "
                                     + "edges of each pair, both vertical or both horizontal on the sheet. A call of its own, "
                                     + "at most 40 pairs. The numbers are the ones «inspect_part» with «view_edges» lists."),
+                            "chamfer", O(
+                                "type", "array",
+                                "items", O("oneOf", A(O("type", "integer"),
+                                                      O("type", "array", "items", O("type", "integer"), "minItems", 1, "maxItems", 2))),
+                                "description", "the chamfer dimension on edges you choose: the oblique edge of each chamfer, "
+                                    + "alone (the leg chosen by me) or with its leg, [5, [7, 12]]. A call of its own. The "
+                                    + "numbers are the ones «inspect_part» with «view_edges» lists."),
                             "row", O(
                                 "type", "boolean",
                                 "description", "true: every dimension of the call at the same distance «offset_mm», "
-                                    + "side by side, a chain. Default false, one «pitch_mm» further for each."),
+                                    + "side by side, a chain. Default false, one «pitch_mm» further for each; with "
+                                    + "«between», the ones that do not overlap share a row."),
                             "horizontal_side", O(
                                 "type", "string",
                                 "enum", A("below", "above"),
-                                "description", "where the horizontal dimensions go. Default below."),
+                                "description", "where the horizontal dimensions go. Default below; with «between», "
+                                    + "the side their edges reach, above when both are as near."),
                             "vertical_side", O(
                                 "type", "string",
                                 "enum", A("right", "left"),
                                 "description", "where the vertical dimensions go. Default right, on the left when "
-                                    + "the frame of the sheet ends; named, it is kept."),
+                                    + "the frame of the sheet ends; with «between», the side their edges reach, right "
+                                    + "when both are as near; named, it is kept."),
                             "prefix", O(
                                 "type", "string",
                                 "description", "a text before the value of each dimension placed, one line, at most 60 characters."),
                             "suffix", O(
                                 "type", "string",
                                 "description", "a text after the value («CHANNEL» gives «2,5 CHANNEL»), one line, at most 60 characters."),
+                            "below", O(
+                                "type", "string",
+                                "description", "a text under the dimension line, under the value («CHANNEL» under «3,4»), one line, "
+                                    + "at most 60 characters; read back in «below_read»."),
                             "parentheses", O(
                                 "type", "boolean",
                                 "description", "true: each dimension placed shown in parentheses, «(35)», a reference "
-                                    + "dimension (a position the mates decide, on an assembly). Default false."),
+                                    + "dimension (a position the mates decide, on an assembly). With «between» it also "
+                                    + "places an extent the drawing already gives. Default false."),
+                            "repeat", O(
+                                "type", "boolean",
+                                "description", "true: place an extent the drawing already gives, in another view or "
+                                    + "through a chain the dimension would close. Default false: each extent once on the "
+                                    + "whole drawing (UNI ISO 129-1)."),
                             "holes", O(
                                 "type", "boolean",
                                 "description", "false: the holes of the view are not dimensioned in this call. Default true."),
@@ -3356,8 +3413,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "its columns widened or narrowed by one factor to the width of the title block, and read "
                         + "again («bounding_box_table_mm», «title_block_mm», «width_note» when SOLIDWORKS did not take "
                         + "every width). «rows_on_more_lines» counts the rows whose text went on two lines or more; "
-                        + "«warning_covers» names a view the table touches there. A format that declares no title "
-                        + "block keeps the free place, and «over_title_block_note» says so.",
+                        + "«warning_covers» names a view the table touches there. The title block is the one the "
+                        + "format declares, or the one its lines draw in the bottom-right corner of the frame "
+                        + "(«title_block_from» says which); a format with neither keeps the free place, and "
+                        + "«warning_over_title_block» says so.",
                     Precondition = "a drawing with a view of a saved assembly",
                     Schema = O(
                         "type", "object",
@@ -3636,9 +3695,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "(measured: the front view took the top view, the side view and the section with it). "
                         + "I read the move back from the view: if SOLIDWORKS did only part of it, I put the view back "
                         + "and refuse, naming the parent view to move instead. «views_moved_with_it» lists the ones "
-                        + "that went along.\n\n"
+                        + "that went along. With «unalign» true a view aligned to its parent is first taken off that "
+                        + "line (a section put away from its view), so it moves both ways; «alignment_removed» says "
+                        + "so, and if the move is refused it goes back to its place and to its default alignment.\n\n"
                         + "I REFUSE IF THE VIEW, OR ONE THAT MOVED WITH IT, LANDS ON another view, a table, a note "
-                        + "or the title block, or leaves the frame: then I put it back where it was.",
+                        + "or the title block, or leaves the frame: then I put it back where it was. Its labels go with "
+                        + "it by the same shift (a label moved apart first too): when the view alone lands free and only "
+                        + "its labels do not, it moves, and «labels_out_of_place» says where they went, for "
+                        + "«move_annotation».",
                     Precondition = "an open drawing with the view on its current sheet",
                     Schema = O(
                         "type", "object",
@@ -3647,7 +3711,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "dx_mm", O("type", "number", "description", "how far to move it, positive to the right, in sheet millimetres."),
                             "dy_mm", O("type", "number", "description", "how far to move it, positive upward, in sheet millimetres."),
                             "x_mm", O("type", "number", "description", "where its centre goes, from the left edge of the sheet. Instead of dx_mm and dy_mm."),
-                            "y_mm", O("type", "number", "description", "where its centre goes, from the bottom edge of the sheet. Instead of dx_mm and dy_mm.")),
+                            "y_mm", O("type", "number", "description", "where its centre goes, from the bottom edge of the sheet. Instead of dx_mm and dy_mm."),
+                            "unalign", O("type", "boolean", "description", "true: a view aligned to its parent view is first taken off that line, so it moves both ways. Default false: it moves only along the line.")),
                         "required", A("view")),
                 },
                 new OperationSpec
@@ -4374,9 +4439,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "Reads every sheet of the drawing without bringing any in front, to set one drawing "
                         + "against another. Per sheet: its name, scale, size, the title block the format declares, "
                         + "its own notes and tables. Per view: name, kind, scale, model, configuration, outline; "
-                        + "every dimension with «kind» (linear, diameter, angular, chamfer ...), its value («mm», or "
-                        + "«deg» for an angle), «text_shown» (what the sheet prints), «prefix», «suffix», "
-                        + "«parentheses», «arrows», «position_mm» and «attached_to»; every note with its text; every "
+                        + "every dimension with «kind» (linear, diameter, angular, chamfer ...), «direction» (horizontal "
+                        + "or vertical for a distance, from the edges it rests on; null when it cannot be told), its value "
+                        + "(«mm», or «deg» for an angle), «text_shown» (what the sheet prints), «prefix», «suffix», "
+                        + "«below» (the text under the dimension line), «parentheses», «arrows», «position_mm» and "
+                        + "«attached_to»; every note with its text; every "
                         + "BOM balloon with its number and part; every table with its rows, the header first. «sheet» "
                         + "reads one sheet only.\n\nNOT READ: the lines, the hatching, centre marks and the symbols of "
                         + "finish, datum and tolerance; the notes inside the title block are counted "

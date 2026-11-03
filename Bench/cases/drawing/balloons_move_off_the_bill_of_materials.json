@@ -1,0 +1,157 @@
+{
+  "name": "balloons_move_off_the_bill_of_materials",
+  "family": "drawing",
+  "why": "NOTE 101, §16 (02/11/2026). «balloons» moves a balloon born over something to a free place (library 0.198.0), but up to library 0.198.5 the things in its way were the notes, the balloons, the other views and the title block, not the tables: a balloon born over the bill of materials stayed there. On 26M000002 with its view 70 mm lower and «layout: below», the four balloons sat on the header of the table with library 0.198.5 and went just above it with 0.198.6 (drawings d19 and d20).",
+  "defect_caught": "A balloon left over the bill of materials, because the tables of the sheet are not in the way of a balloon.",
+  "_why_these_numbers": "The assembly of «bom_over_the_title_block_and_balloons_again»: a base and a cover. The bill of materials rests on the title block, its top at y 79,21 mm, 217..413 mm across (read on the bench, 02/11/2026). The side view V3 (outline 91,8 x 25,8 mm) is taken off its line and centred at 315 / 100 mm: its outline ends at 87,1 mm, 7,9 mm above the table, and AutoBalloon lays the balloons of «below» about 10 mm under the outline (26M000002: 100,99 -> 90,98 mm), so they are born over the table.",
+  "assembly": {
+    "components": [
+      {
+        "name": "base",
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 10,
+              "centered": true
+            }
+          }
+        ]
+      },
+      {
+        "name": "cover",
+        "position_mm": [
+          0,
+          7,
+          0
+        ],
+        "steps": [
+          {
+            "operation": "extrude_rectangle",
+            "arguments": {
+              "plane": "top",
+              "length_mm": 120,
+              "width_mm": 80,
+              "thickness_mm": 4,
+              "centered": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "operation": "save_document",
+      "arguments": {
+        "path": "{WORK}\\balloons_move_off_the_bill_of_materials.sldasm"
+      },
+      "expect": [
+        {
+          "what": "measurements.warnings",
+          "equal_to": 0,
+          "why": "the view attaches to the FILE of the assembly"
+        }
+      ]
+    },
+    {
+      "operation": "create_drawing",
+      "arguments": {
+        "paper_size": "A3"
+      },
+      "expect": [
+        {
+          "what": "state.kind",
+          "equal_to": "drawing"
+        }
+      ]
+    },
+    {
+      "operation": "standard_views",
+      "arguments": {
+        "model": "{WORK}\\balloons_move_off_the_bill_of_materials.sldasm"
+      },
+      "expect": [
+        {
+          "what": "measurements.views_created",
+          "equal_to": 3
+        }
+      ]
+    },
+    {
+      "operation": "drawing_bom",
+      "arguments": {
+        "view": "V1",
+        "over_title_block": true
+      },
+      "expect": [
+        {
+          "what": "measurements.table_location",
+          "equal_to": "over the title block",
+          "why": "the table where the owner puts it, and where the balloons will be born"
+        }
+      ]
+    },
+    {
+      "operation": "read_drawing",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "measurements.tables_total",
+          "equal_to": 1,
+          "why": "the bill of materials, the one table of the sheet"
+        }
+      ]
+    },
+    {
+      "operation": "move_view",
+      "arguments": {
+        "view": "V3",
+        "x_mm": 315,
+        "y_mm": 100,
+        "unalign": true
+      },
+      "expect": [
+        {
+          "what": "measurements.alignment_removed",
+          "equal_to": true,
+          "why": "the side view moves both ways only off its line"
+        }
+      ]
+    },
+    {
+      "operation": "balloons",
+      "arguments": {
+        "view": "V3",
+        "order": "bill_of_materials",
+        "layout": "below"
+      },
+      "expect": [
+        {
+          "what": "measurements.balloons_moved_to_a_free_place",
+          "includes": [
+            "over the table"
+          ],
+          "does_not_include": [
+            "left="
+          ],
+          "why": "THE LINE THAT IS RED ON LIBRARY 0.198.5: the balloons are born over the bill of materials and nothing moved them (an empty list does not say «over the table»); «left=» would be a balloon that found no free place"
+        }
+      ]
+    },
+    {
+      "operation": "read_drawing",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "measurements.tables_total",
+          "equal_to": 1,
+          "why": "the table is still there, not moved instead of the balloons"
+        }
+      ]
+    }
+  ]
+}

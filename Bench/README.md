@@ -737,7 +737,7 @@ cases/assemblies/     28   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      69   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      70   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);
@@ -811,8 +811,9 @@ cases/drawing/      69   the first case that gets to the DRAWING (entry GT0);
                        a detail not larger than its view is refused (N58); the
                        title block says the other sheet whose model lacks a
                        property it asks for (N59); the balloons in the order of
-                       the bill of materials do not renumber it (N60)
-cases/weldments/   16   the BOM counts the bars, and the two numbers come from
+                       the bill of materials do not renumber it (N60); a balloon
+                       born over the bill of materials is moved off it (note 101)
+cases/weldments/   17   the BOM counts the bars, and the two numbers come from
                        two different places; the trim really shortens the bar,
                        and refuses between bars that do not meet; the bead
                        goes between faces that touch at an angle; the cap closes
@@ -834,7 +835,10 @@ cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        cap leaves out a drilled wall (Z-C21.5, N7); the cut list
                        counts the gussets and the end caps, not only the bars,
                        and the gusset at the END of a bar is found like the one
-                       at its start (D9 defects 1 and 2)
+                       at its start (D9 defects 1 and 2); a member SOLIDWORKS
+                       does not create says what was read after the refusal:
+                       the segments in the group, the free ends of the path,
+                       the profile library (library 0.198.9)
 cases/extrusions/  12   the tube has the hole; the extruded slot is as long as
                        the bounding box, ends included, and is a polygon; the
                        17-tooth wheel can be made, the 16 one refuses; the fin

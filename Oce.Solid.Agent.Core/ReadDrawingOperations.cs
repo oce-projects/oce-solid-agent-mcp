@@ -59,14 +59,51 @@ namespace Oce.Solid.Agent.Core
             return new object[] { Math.Round(p[0] * 1000, 2), Math.Round(p[1] * 1000, 2) };
         }
 
-        /// <summary>One dimension of a finished drawing, as it is on the sheet.</summary>
-        private static Dictionary<string, object> ReadOneDimension(IDisplayDimension d)
+        /// <summary>
+        /// Which way a dimension measures on the sheet: its own kind when it is «horizontal» or
+        /// «vertical»; for a «linear» one, from the two edges it rests on, two vertical edges a
+        /// horizontal distance and two horizontal ones a vertical distance; null otherwise (oblique
+        /// or mixed edges, edges not read, any other kind). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string DimensionDirection(string kind, string firstFacing, string secondFacing)
+        {
+            if (kind == "horizontal" || kind == "vertical") return kind;
+            if (kind != "linear" || firstFacing == null || firstFacing != secondFacing) return null;
+            if (firstFacing == "vertical") return "horizontal";
+            if (firstFacing == "horizontal") return "vertical";
+            return null;
+        }
+
+        /// <summary>
+        /// One dimension of a finished drawing, as it is on the sheet. <paramref name="mu"/> and
+        /// <paramref name="tr"/> (the transform of its view) bring its edges onto the sheet, for
+        /// «direction»; null, it stays unknown for a «linear» one.
+        /// </summary>
+        private static Dictionary<string, object> ReadOneDimension(IDisplayDimension d, IView v, IMathUtility mu, MathTransform tr)
         {
             var row = new Dictionary<string, object>();
             int type = -1;
             try { type = d.Type2; } catch { }
             string kind = DimensionKindName(type);
             row["kind"] = kind;
+            // WHICH WAY IT MEASURES (note 98, defect 3): a distance between two edges is «linear» for
+            // SOLIDWORKS, and a text moved out into a corner could be read either way. Two vertical
+            // edges on the sheet make a horizontal distance, two horizontal ones a vertical distance.
+            string firstFacing = null, secondFacing = null;
+            if (kind == "linear" && mu != null && tr != null)
+            {
+                try
+                {
+                    var attachedEdges = (d.GetAnnotation() as IAnnotation)?.GetAttachedEntities3() as object[];
+                    if (attachedEdges != null && attachedEdges.Length == 2)
+                    {
+                        firstFacing = ReadEdge(v, attachedEdges[0], -1, mu, tr)?.Facing;
+                        secondFacing = ReadEdge(v, attachedEdges[1], -1, mu, tr)?.Facing;
+                    }
+                }
+                catch { }
+            }
+            row["direction"] = DimensionDirection(kind, firstFacing, secondFacing);
             try
             {
                 var dim = d.GetDimension2(0) as IDimension;
@@ -85,6 +122,10 @@ namespace Oce.Solid.Agent.Core
             try { suffix = d.GetText((int)swDimensionTextParts_e.swDimensionTextSuffix); } catch { }
             if (!string.IsNullOrEmpty(prefix)) row["prefix"] = prefix;
             if (!string.IsNullOrEmpty(suffix)) row["suffix"] = suffix;
+            // The text under the dimension line (note 98, defect 2: the owner's «3,4» with a word under it read «3,4»).
+            string below = null;
+            try { below = d.GetText((int)swDimensionTextParts_e.swDimensionTextCalloutBelow); } catch { }
+            if (!string.IsNullOrEmpty(below)) row["below"] = below;
             try { row["parentheses"] = d.ShowParenthesis; } catch { }
             int arrows = -1;
             try { arrows = d.ArrowSide; } catch { }
@@ -127,9 +168,11 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>One view of a finished drawing: what it shows and every annotation on it.</summary>
-        private static Dictionary<string, object> ReadOneView(IView v)
+        private static Dictionary<string, object> ReadOneView(IView v, IMathUtility mu)
         {
             var row = new Dictionary<string, object>();
+            MathTransform tr = null;
+            try { tr = v.ModelToViewTransform; } catch { }
             try { row["name"] = v.GetName2(); } catch { }
             int type = -1;
             try { type = v.Type; } catch { }
@@ -143,7 +186,7 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 for (var d = v.GetFirstDisplayDimension5() as IDisplayDimension; d != null; d = d.GetNext5() as IDisplayDimension)
-                    dimensions.Add(ReadOneDimension(d));
+                    dimensions.Add(ReadOneDimension(d, v, mu, tr));
             }
             catch { }
             var notes = new List<Dictionary<string, object>>();
@@ -187,6 +230,8 @@ namespace Oce.Solid.Agent.Core
 
         private Outcome ReadDrawing(IModelDoc2 model, Dictionary<string, object> a)
         {
+            IMathUtility mu = null;
+            try { mu = _sw.GetMathUtility() as IMathUtility; } catch { }
             var drawing = model as IDrawingDoc;
             if (drawing == null)
                 return Failed("The active document is not a drawing: «read_drawing» reads the sheets of a drawing. Open the drawing and try again.");
@@ -220,19 +265,10 @@ namespace Oce.Solid.Agent.Core
                     sheetRow["scale"] = ScaleText(ReadScale(sheet));
                     sheetRow["size_mm"] = SheetMeasurements(sheet);
                 }
-                double[] block = null;
-                try
-                {
-                    var tb = sheet?.TitleBlock;
-                    if (tb != null)
-                    {
-                        double x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-                        tb.GetExtents(ref x0, ref y0, ref x1, ref y1);
-                        block = ExtentBox(new[] { x0, y0, 0, x1, y1, 0 });
-                    }
-                }
-                catch { }
+                string blockFrom;
+                double[] block = TitleBlockOfTheSheet(sheet, out blockFrom);
                 sheetRow["title_block_mm"] = InMillimeters(block);
+                sheetRow["title_block_from"] = blockFrom;
 
                 // The sheet itself first: its notes, the ones in the title block counted only.
                 var sheetNotes = new List<Dictionary<string, object>>();
@@ -268,7 +304,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     var v = list[i] as IView;
                     if (v == null) continue;
-                    Dictionary<string, object> vr = ReadOneView(v);
+                    Dictionary<string, object> vr = ReadOneView(v, mu);
                     viewRows.Add(vr);
                     dimensions += ((object[])vr["dimensions"]).Length;
                     notes += ((object[])vr["notes"]).Length;

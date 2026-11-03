@@ -774,8 +774,81 @@ using System.Runtime.InteropServices;
 // 0.188.0: OCE_UI_FREEZE can name one part: `graphics` (only the graphics of the view) or `tree`
 //          (only the tree and its window); `1`, `true`, `on` still turn off all three. The cycle of
 //          15 drawings fell 11 times in 11 without the freeze and 0 in 3 with it (30/10/2026).
-[assembly: AssemblyVersion("0.188.0.0")]
-[assembly: AssemblyFileVersion("0.188.0.0")]
+// 0.189.0: «drawing_dimension» with «between» lays its dimensions out in the owner's style
+//          (DrawingDimensionStyle.cs, measured on four of his drawings): 10 mm from the lines of the
+//          view, 6.7 mm between rows, the side of the edges, rows shared, a text outside 11 mm beyond
+//          the higher end, 2 mm for an arrow, the label of a detail under its dimensions; a JSON
+//          file named by OCE_DRAWING_STYLE changes the numbers. Not measured on SOLIDWORKS yet.
+// 0.190.0: one dimension per extent on the whole drawing (the owner, 02/11/2026: no dimension
+//          repeated in another view). «drawing_dimension» with «between» refuses a pair whose
+//          extent the drawing already gives, by one dimension in any view or through a chain it
+//          would close (ChainThrough), and says which dimensions give it; «repeat» or «parentheses»
+//          place it anyway. The drawing records a distance between two edges too (TractBetween), so
+//          the automatic route no longer puts back the extent of a «between»; it also leaves out an
+//          edge that closes a chain («closing_a_chain»). Not measured on SOLIDWORKS yet.
+// 0.191.0: the layout of «between» sees the view (note 100, the real run of 0.161.0: 10 of 52
+//          texts at the owner's place). The dimensions already in the view are read first
+//          (DimensionsInTheView) and the new ones line up with their rows and keep off their texts;
+//          a chain stays on one row; the choice inside or outside counts 1.8 mm a character, not
+//          the box SOLIDWORKS reads; a text outside may go beyond the lower end; the label of a
+//          detail goes under every dimension of the view; without the lines of a view, the extent
+//          of its edges inside its outline. Replayed on the readings of the run (RealRunContract).
+// 0.192.0: a free place on the edge of the clearance stays free (FreeSheet.Hair, 1 micrometre for
+//          every box as for the frame: detail B of 26M000002 landed at the place asked, to 0.1 mm, and
+//          was removed as falling on the title block, replay of 02/11/2026); «below» writes a text
+//          under the dimension line (note 98, defect 2); read_drawing says «direction» and «below».
+// 0.192.1: move_view judges every view that moved with its labels where they land: the rectangle
+//          read before the move, moved as far as the outline (note 98, defect 6; detail B of a copy
+//          of 26M000002 moved 100 mm up into a free place was refused with its old label).
+// 0.193.0: move_view takes «unalign»: a view aligned to its parent is taken off that line
+//          (IView.RemoveAlignment) and moves both ways; a refused move gives back its place and its
+//          default alignment (IView.UseDefaultAlignment). Note 98, defect 5.
+// 0.194.0: «balloons» with «again» works on a section and a detail (note 98, defect 7): the lines of
+//          a component placed with the owner of its edges, cut to the view, three points a line; the
+//          pick read as a drawing component or through its entity, a section part without
+//          configuration taken as the model part; a balloon on a line that says no component kept
+//          only when its number is the one the other views give.
+// 0.194.1: move_view moves a view that lands free when only its own labels do not, and says where
+//          they went («labels_out_of_place»): a label moved apart first goes with the view (replay of
+//          02/11/2026, step 038, refused since 0.192.1 that reads the labels where they land).
+// 0.194.2: the sentence of «labels_out_of_place» reads «with its labels, «view» goes out of ...».
+// 0.195.0: the automatic dimensions of «drawing_dimension» go where «between» puts its own: the
+//          owner's style, the dimensions already in the view, the sheet, the label of a detail (note
+//          98, defect 4: until now one row each, 10 mm further out every time, off the sheet).
+// 0.195.1: the side of a direction turns when the text of its first row would lie over the 12 mm
+//          frame of the sheet, not 5 mm from the edge of the paper (26P000007 view 2, «offset_mm» 30).
+// 0.196.0: the title block drawn by the lines of a format that declares none (ISheet.GetTemplateSketch,
+//          TitleBlockFromLines): free places, «over_title_block» of the bill of materials, read_drawing,
+//          the texts over the title block (note 98, defect 8: estimated at half the sheet x 65 mm).
+// 0.196.1: a horizontal dimension from end to end of the lines of the view whose edges reach both
+//          sides as near goes on the side the tie does not take (the owner's 193,6 and 15,6 below).
+// 0.197.0: the chamfers (note 98, defect 1): only a chamfer dimension dimensions a chamfer; every leg
+//          and both sides of the text tried; a chamfer the profile draws recognised; «chamfer» on chosen edges.
+// 0.197.1: a chamfer is dimensioned only where its edge is parallel to the sheet; the chamfers the
+//          profile draws with the same length are one; a leg shorter than the chamfer is allowed.
+// 0.197.2: the true size of a chamfer judged on the profile of its feature, not on the edge picked.
+// 0.197.3: the legs of a chamfer dimension that run against the chamfer edge first (the others read 135°).
+// 0.197.4: a chamfer dimension in the drawing keeps the profile chamfers of its width, not of the length of its leg.
+// 0.197.5: the text of a chamfer dimension moved to a free place on the side of the corner.
+// 0.197.6: the text of a chamfer dimension kept off the lines of the other dimensions too.
+// 0.197.7: the text of a chamfer dimension kept off the notes and the title block too.
+// 0.198.0: the balloons a call makes moved to a free place (no balloon on another, on a label, across the frame).
+// 0.198.1: a balloon moved to the nearest free place first; a note counts by its extent even with an empty text.
+// 0.198.2: a balloon judged by its circle and its leader, not by the extent that holds the leader.
+// 0.198.3: the title block of a sheet timed as «sheet.title_block», its format lines as «sheet.format_lines».
+// 0.198.4: the lines of the sheet format in one call (ISketch.GetLines2), about 0,7 s less in every drawing call.
+// 0.198.5: the display data of a dimension that cannot be read is «I do not know», not «no lines» (ZERO-E-ZERO).
+// 0.198.6: the text of a chamfer dimension looks for the nearest free place within 90° of the outer side, not 30°.
+// 0.198.7: a drag of the view started by a simulated click is ended with Escape during a call (StuckDragGuard).
+// 0.198.8: the guard looks at every thread with a window of SOLIDWORKS, not the one of MainWindowHandle; the
+//          process it watches can be set (StuckDragGuard.ProcessName), so the contracts see it end a capture.
+// 0.198.9: a structural member that SOLIDWORKS does not create says what was read after the refusal: the
+//          segments in the group, the free ends of the path, whether the profile library is open.
+// 0.198.10: a hole position dimension is put on the centre of the hole when SOLIDWORKS put it on the nearest
+//          or furthest point (IDimension.SetArcEndCondition), and the answer says which ends were read and moved.
+// 0.198.11: words only, for the language gate: two comments of DrawingDimensionStyle.cs; no behaviour changes.
+[assembly: AssemblyVersion("0.198.11.0")]
+[assembly: AssemblyFileVersion("0.198.11.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -790,4 +863,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.188.0")]
+[assembly: AssemblyInformationalVersion("0.198.11")]

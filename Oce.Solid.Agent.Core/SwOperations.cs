@@ -377,6 +377,26 @@ namespace Oce.Solid.Agent.Core
             DocumentState docState,
             IReadOnlyDictionary<int, References.Step> stepsDone = null)
         {
+            // A DRAG THAT NOBODY RELEASES (library 0.198.7): while the operation runs, a drag of the view
+            // started by a simulated click is ended with Escape, and the answer says so (StuckDragGuard).
+            int mark;
+            using (StuckDragGuard.During(out mark))
+            {
+                var outcome = RunWatched(model, operation, arguments, docState, stepsDone);
+                var released = StuckDragGuard.Since(mark);
+                if (released.Count > 0 && outcome != null) outcome.Measurements["drag_released_with_escape"] = released.ToArray();
+                foreach (var r in released) _log("[agent] " + operation + ": " + r);
+                return outcome;
+            }
+        }
+
+        private Outcome RunWatched(
+            IModelDoc2 model,
+            string operation,
+            Dictionary<string, object> arguments,
+            DocumentState docState,
+            IReadOnlyDictionary<int, References.Step> stepsDone)
+        {
             _stepsDone = stepsDone ?? new Dictionary<int, References.Step>();
             // It is emptied at the START: emptying it at the end would leave it full
             // when the operation fails, and the next one would inherit the

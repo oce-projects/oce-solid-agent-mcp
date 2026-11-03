@@ -183,11 +183,25 @@ namespace Oce.Solid.Agent.Core
             // ArrayData. The order of ArrayData is checked on the first point against
             // IMathPoint (measured: the row order), and with neither order matching every
             // point goes through IMathPoint as before.
+            object[] edges = null;
+            try { edges = view.GetVisibleEntities2((Component2)component, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
+            // THE OWNER OF THE EDGES, AS view_edges READS THEM (ToSheetOf): in a section the component
+            // the view lists is the one inside «SectionAssembly», and its placement put the lines of
+            // 26P000011 of 26M000002 on a strip 0.8 mm high of a section 46 mm high (02/11/2026, note 101).
+            if (edges != null && edges.Length > 0)
+            {
+                try
+                {
+                    IComponent2 owner;
+                    MathTransform ownerPlacement;
+                    var byOwner = ToSheetOf(edges[0], view.ModelToViewTransform as MathTransform, out owner, out ownerPlacement);
+                    if (byOwner != null && owner != null) toSheet = byOwner;
+                }
+                catch { }
+            }
             double[] numbers = null;
             try { numbers = toSheet.ArrayData as double[]; } catch { }
             int order = 0;   // 0 not decided, 1 rows, 2 columns, 3 IMathPoint
-            object[] edges = null;
-            try { edges = view.GetVisibleEntities2((Component2)component, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]; } catch { }
             foreach (var o in edges ?? new object[0])
             {
                 try
