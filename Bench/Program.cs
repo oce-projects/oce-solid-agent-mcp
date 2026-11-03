@@ -2947,12 +2947,29 @@ namespace Oce.Solid.Agent.Bench
         private static readonly Dictionary<string, string> _localModels =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        // ── AND A COPY THAT IS GONE IS COPIED AGAIN (bridge 0.170.14, 3/11/2026) ──
+        //
+        // The full bench of 0.170.13 begun at 12:34:33 lost every new assembly from 1608.8 s on:
+        // 27 times «SOLIDWORKS did not produce the new assembly to test on (it answered null)»,
+        // 26 bench errors, and the copy of the assembly template (.asmdot) no longer in
+        // %TEMP%\bench-models. At 13:00:00 a scheduled cleaner of %TEMP% of this workstation had
+        // run (its log: 369 deleted, 1 failed): it deletes what has not been modified for 3 days,
+        // and File.Copy keeps the time of the original (9/9/2026 for the part template, .prtdot),
+        // so the fresh copies looked abandoned. The part template stayed. Now the copy takes the
+        // time of now, and a copy that is no
+        // longer there when it is asked for is copied again, and it is said.
         internal static string LocalModel(string its)
         {
             if (string.IsNullOrWhiteSpace(its)) return its;
 
             string already;
-            if (_localModels.TryGetValue(its, out already)) return already;
+            if (_localModels.TryGetValue(its, out already))
+            {
+                if (string.Equals(already, its, StringComparison.OrdinalIgnoreCase) || File.Exists(already))
+                    return already;
+                Console.WriteLine("  the local copy " + already + " is gone: I copy the model again");
+                _localModels.Remove(its);
+            }
 
             string arrival = its;
             try
@@ -2963,6 +2980,7 @@ namespace Oce.Solid.Agent.Bench
                     Directory.CreateDirectory(folder);
                     var copy = Path.Combine(folder, Path.GetFileName(its));
                     File.Copy(its, copy, true);
+                    File.SetLastWriteTime(copy, DateTime.Now);
                     arrival = copy;
                     Console.WriteLine("  model copied locally: " +
                                       Path.GetFileName(its) + " -> " + folder);

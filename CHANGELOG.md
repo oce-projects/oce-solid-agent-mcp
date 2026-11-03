@@ -32,6 +32,25 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.170.14 — 3 November 2026 · library 0.198.12 · the local copy of a template outlives a cleaner of %TEMP% (branch `night-2026-10-26-asm`)
+
+- **Why.** The second full bench of 0.170.13 (begun at 12:34:33) ended with 0 failed tests and 26 bench
+  errors: from 1608.8 s on, every new assembly was null, 27 times «SOLIDWORKS did not produce the new
+  assembly to test on (it answered null)». The copy of the assembly template (`.asmdot`) was no longer in
+  `%TEMP%\bench-models`, the folder where `LocalModel` copies the templates of the share; the folder had
+  changed at 13:00:02. At 13:00:00 a scheduled cleaner of `%TEMP%` of this workstation had run. It deletes
+  what has not been modified for 3 days, and its log says 369 items deleted and 1 that failed. `File.Copy`
+  keeps the time of the original (9 September 2026 for the part template, `.prtdot`), so the fresh copies
+  looked abandoned. The part template stayed. The first full bench of 0.170.13 (11:24 to 12:32) did not
+  cross 13:00.
+- **What changed.** The copy takes the time of now (`File.SetLastWriteTime` after `File.Copy`). A copy that
+  is no longer there when `LocalModel` is asked for it again is copied again, and the bench says «the local
+  copy ... is gone: I copy the model again». The message of the fallback, «I use the local copy of», now
+  gives the time the copy was made, as it meant to, instead of the time of the original.
+- **The check.** `BenchLocalModelsContract`: `LocalModel` touches the copy after `File.Copy`, and looks
+  whether a cached copy still exists before handing it back. Two changed copies (no touch, a cache that
+  does not look) both turn it red.
+
 ## 0.170.13 — 3 November 2026 · library 0.198.12 · the bench releases before it closes a document (branch `night-2026-10-26-asm`)
 
 - **Why.** The full bench of library 0.198.12 stopped with exit 5 («THE CALL DOES NOT COME BACK»). The
