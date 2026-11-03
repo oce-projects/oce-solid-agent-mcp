@@ -32,6 +32,44 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.170.13 — 3 November 2026 · library 0.198.12 · the bench releases before it closes a document (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench of library 0.198.12 stopped with exit 5 («THE CALL DOES NOT COME BACK»). The
+  dump SOLIDWORKS wrote has its main thread in `ntdll!WerpWaitForCrashReporting`, reporting an access
+  violation in `slduiu.dll` at offset 0x94d513 inside a remote Release
+  (`combase!CRemoteUnknown::RemReleaseWorker`): a program outside SOLIDWORKS dropped its last reference
+  to an object, and the release read a null pointer. The same violation is in the Application log 86
+  times from 26 September to 3 November 2026. COM reports it in silence and SOLIDWORKS usually goes on;
+  this time the report did not end.
+- **Where it comes from, measured.** Bench runs of single groups, SOLIDWORKS restarted before each, on
+  3 November 2026. `client-port` alone: 0 violations in 3 runs. A bisection of the 15 groups before it
+  ended on `bare-views`: bare-views + client-port 2 of 2, numbers + client-port 0 of 2. `bare-views`
+  alone: 2 of 2, in the second the bench exited. bare-views + client-port with `OCE_BENCH_RELEASE=0`:
+  2 of 2, again at the exit; with the release on, the violation fell inside client-port, at its first
+  collection. A probe outside the repository then isolated the object: a box, one drawing view, the 8
+  co-edges of its 4 edges (`IEdge.GetCoEdges`, as `IsAVisibleHole` reads them for the center marks).
+  Released after the drawing and the part were closed: the violation in 3 scenes of 3, and the release
+  took 5065 to 5220 ms. Released before the close: 0 of 3, 21 to 26 ms. The 4 edges released after the
+  close: 0 of 2. The drawing dimensions and the drawing rounds read the co-edges of view edges too.
+- **Why the bridge is not touched.** The bridge collects after every call and, before a «document»
+  call, lets go what it still holds: a document is closed with nothing of it left in the bridge. The
+  bench did not. The groups written in C#, and the declared cases at their end, closed their documents
+  with the wrappers of the last operation still waiting for a collection, which came at the next step
+  or when the bench exited.
+- **What changed.** Every close of the bench goes through `CloseTitle`, which first collects the
+  garbage and waits for the finalizers (`ReleaseBeforeClosing`, phase «release before closing»), with
+  the finalizer gate open, and closes the gate again if it was held (`Shared.FinalizerGate.IsClosed`,
+  new). Twelve `_sw.CloseDoc` calls in BareViews, ClientPort, DimensionNumbers, Orphans, TestAssembly
+  and Program.cs now call `CloseTitle`, and so does `Close`. It does not depend on
+  `OCE_BENCH_RELEASE`: it keeps SOLIDWORKS standing, it does not imitate a timing of the bridge.
+- **The check.** `BenchReleasesBeforeClosingContract`: one `CloseDoc` in the sources of the bench, in
+  `CloseTitle`, after the release, and the release waits for the finalizers only with the gate open.
+  Five changed copies (a group that closes by itself, `Close` that closes by itself, `CloseTitle`
+  without the release or with the release after the close, the gate never opened) all turn it red.
+- **Measured after the change.** Same runs, same restarts: `bare-views` alone 0 violations in 2 runs
+  (7 tests, 0 failed), bare-views + client-port 0 in 2 (48 tests, 0 failed). The release before closing
+  cost 0.8 to 0.9 s in 3 closes, and 1.5 s in 12.
+
 ## 0.170.12 — 3 November 2026 · library 0.198.12 · an unexpected null of a structural member says more, and why a sketch stays (branch `night-2026-10-26-asm`)
 
 - **Why.** The null of `InsertStructuralWeldment5` on a valid path is still open: 2 in 4 full benches

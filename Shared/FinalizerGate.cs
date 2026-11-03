@@ -96,6 +96,9 @@ namespace Shared
             Opened.Set();
         }
 
+        /// <summary>True between <see cref="Close"/> and <see cref="Open"/>.</summary>
+        internal static bool IsClosed { get { return _closed; } }
+
         // Not inlined: no reference to the keeper may stay in the frame of Close, or the
         // collection would find it alive.
         [MethodImpl(MethodImplOptions.NoInlining)]

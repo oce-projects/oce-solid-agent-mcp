@@ -1746,7 +1746,7 @@ namespace Oce.Solid.Agent.Bench
             int closed = 0;
             foreach (var n in names)
             {
-                try { _sw.CloseDoc(n); closed++; }
+                try { CloseTitle(n); closed++; }
                 catch { }
             }
 
@@ -3611,10 +3611,61 @@ namespace Oce.Solid.Agent.Bench
             return planes;
         }
 
+        /// <summary>
+        /// RELEASE BEFORE CLOSING, AS THE BRIDGE DOES (bridge 0.170.13, 3/11/2026).
+        ///
+        /// SOLIDWORKS faults when the last reference to a co-edge read from a drawing view is
+        /// released after that drawing is closed: an access violation in slduiu.dll at offset
+        /// 0x94d513, inside the remote Release (combase!CRemoteUnknown::RemReleaseWorker). COM
+        /// catches it and reports it in silence: 86 entries of the Application log from 26/9/2026 to
+        /// 3/11/2026. The co-edges of view edges are read by IsAVisibleHole (center marks), and by
+        /// the drawing dimensions and the drawing rounds. On 3/11/2026 the report did not end: the
+        /// main thread of SOLIDWORKS stayed in it, and the full bench stopped with exit 5 («THE
+        /// CALL DOES NOT COME BACK»).
+        ///
+        /// Measured the same day. The group bare-views alone gave the violation 2 runs of 2, in the
+        /// second the bench exited; with bare-views + client-port and OCE_BENCH_RELEASE=0, 2 of 2,
+        /// again at the exit; with the release on, 2 of 2 in the middle of client-port, at its first
+        /// collection. A probe outside the repository (a box, one view, the 8 co-edges of its 4
+        /// edges, SOLIDWORKS restarted before every scene): released after the close, the
+        /// violation in 3 scenes of 3, the release took 5065 to 5220 ms; released before the close,
+        /// 0 of 3, 21 to 26 ms. The 4 edges themselves released after the close: 0 of 2.
+        ///
+        /// The bridge never does it: it collects after every call, and before a «document» call it
+        /// lets go what it still holds, so a document is closed with nothing of it left in the
+        /// bridge. The groups of the bench written in C#, and the cases at their end, closed their
+        /// documents with the wrappers of the last operation still waiting for a collection.
+        /// Every close of the bench goes through here: the garbage collected first, with the
+        /// finalizer gate open (closed, the wait would never end), and closed again if it was.
+        /// It does not depend on OCE_BENCH_RELEASE: it keeps SOLIDWORKS standing, it does not
+        /// imitate a timing of the bridge.
+        /// </summary>
+        private static void ReleaseBeforeClosing()
+        {
+            bool held = Shared.FinalizerGate.IsClosed;
+            Shared.FinalizerGate.Open();
+            Timed("release before closing", () =>
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                return true;
+            });
+            if (held && !Shared.FinalizerGate.Close(2000))
+                Console.WriteLine("  the finalizer thread was not held again within 2000 ms after the release before closing");
+        }
+
+        /// <summary>`ISldWorks.CloseDoc(title)` after <see cref="ReleaseBeforeClosing"/>: the only CloseDoc of the bench.</summary>
+        private static void CloseTitle(string title)
+        {
+            ReleaseBeforeClosing();
+            _sw.CloseDoc(title);
+        }
+
         private static void Close(IModelDoc2 doc)
         {
             if (doc == null) return;
-            try { _sw.CloseDoc(doc.GetTitle()); } catch { }
+            try { CloseTitle(doc.GetTitle()); } catch { }
         }
 
         private static void Plate(IModelDoc2 doc, double L, double W, double H)

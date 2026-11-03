@@ -64,6 +64,7 @@
     <Compile Include="..\Shared\Leash.cs" />
     <Compile Include="..\Shared\FinalizerGate.cs" />
     <Compile Include="FinalizerGateContract.cs" />
+    <Compile Include="BenchReleasesBeforeClosingContract.cs" />
     <Compile Include="Load.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="CatalogTests.cs" />

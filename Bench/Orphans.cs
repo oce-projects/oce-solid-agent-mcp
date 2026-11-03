@@ -98,7 +98,7 @@ namespace Oce.Solid.Agent.Bench
             catch (Exception ex) { BenchError("orphans", Why(ex)); }
             finally
             {
-                try { if (drawing != null) _sw.CloseDoc(drawing.GetTitle()); } catch { }
+                try { if (drawing != null) CloseTitle(drawing.GetTitle()); } catch { }
                 Close(part);
                 try { if (File.Exists(file)) File.Delete(file); } catch { }
             }

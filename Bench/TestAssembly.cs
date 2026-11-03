@@ -961,7 +961,7 @@ namespace Oce.Solid.Agent.Bench
                 foreach (var d in p.DocumentsToClose) Close(d);
                 foreach (var t in p.TitlesToClose)
                 {
-                    try { _sw.CloseDoc(t); } catch { }
+                    try { CloseTitle(t); } catch { }
                 }
             }
 

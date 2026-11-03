@@ -189,12 +189,12 @@ namespace Oce.Solid.Agent.Bench
                 // What the document cycle opened or created is closed
                 // here, whatever happened: the bench's desk must
                 // stay clean (entry K12), or the next run refuses to start.
-                try { if (!string.IsNullOrEmpty(newTitle)) _sw.CloseDoc(newTitle); } catch { }
+                try { if (!string.IsNullOrEmpty(newTitle)) CloseTitle(newTitle); } catch { }
                 try
                 {
                     if (!string.IsNullOrEmpty(saved))
                     {
-                        _sw.CloseDoc(Path.GetFileName(saved));
+                        CloseTitle(Path.GetFileName(saved));
                         if (File.Exists(saved))
                         {
                             File.SetAttributes(saved, FileAttributes.Normal);
@@ -294,7 +294,7 @@ namespace Oce.Solid.Agent.Bench
                               (toSave == null ? ", no document in hand" : "") + ")");
                 return;
             }
-            _sw.CloseDoc(toSave.GetTitle());
+            CloseTitle(toSave.GetTitle());
             newTitle = null;
 
             var open = Mcp.Obj(ResponseText(Mcp.Ask(p, 11, Call(11, "document",
@@ -316,7 +316,7 @@ namespace Oce.Solid.Agent.Bench
             // cheap red is the file's attribute: SOLIDWORKS opens it
             // all the same, read-only, WITHOUT asking anything — which is exactly
             // the silence that the entry wants to see spoken.
-            _sw.CloseDoc(Path.GetFileName(saved));
+            CloseTitle(Path.GetFileName(saved));
             File.SetAttributes(saved, FileAttributes.ReadOnly);
             var readOnlyMode = Mcp.Obj(ResponseText(Mcp.Ask(p, 12, Call(12, "document",
                 "{\"action\":\"open\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
@@ -433,9 +433,9 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (second != null) { try { Mcp.Close(second); second.Dispose(); } catch { } }
                 // The drawing first: it holds a reference to the part.
-                try { if (!string.IsNullOrEmpty(drawingTitle)) _sw.CloseDoc(drawingTitle); } catch { }
+                try { if (!string.IsNullOrEmpty(drawingTitle)) CloseTitle(drawingTitle); } catch { }
                 Close(partA);
-                try { if (!string.IsNullOrEmpty(savedB)) _sw.CloseDoc(savedB); else Close(partB); } catch { }
+                try { if (!string.IsNullOrEmpty(savedB)) CloseTitle(savedB); else Close(partB); } catch { }
                 RemoveQuietly(savedB);
                 Close(partC);
                 Close(partD);

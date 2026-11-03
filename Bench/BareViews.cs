@@ -117,8 +117,8 @@ namespace Oce.Solid.Agent.Bench
             catch (Exception ex) { BenchError("bare views", Why(ex)); }
             finally
             {
-                try { if (single != null) _sw.CloseDoc(single.GetTitle()); } catch { }
-                try { if (drawing != null) _sw.CloseDoc(drawing.GetTitle()); } catch { }
+                try { if (single != null) CloseTitle(single.GetTitle()); } catch { }
+                try { if (drawing != null) CloseTitle(drawing.GetTitle()); } catch { }
                 Close(part);
                 FileInfo leftover = new FileInfo(file);
                 try { if (leftover.Exists) leftover.Delete(); } catch { }
