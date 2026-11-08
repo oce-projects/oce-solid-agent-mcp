@@ -99,3 +99,16 @@ note-interne/
 
 # The agents' worktrees (workflow): separate working copies, never versioned.
 .claude/
+
+# The machine values of the operations toolkit (Ops\): shares, user folders, tools.
+# They are the reason the toolkit has a configuration file at all; the tracked
+# Ops\ops.config.example.psd1 shows the keys without any of them.
+Ops/ops.config.local.psd1
+# What the toolkit writes when no OutDir is configured: logs, states, records.
+Ops/out/
+
+# The ticket files an orchestrator writes in the checkout it works on (one .md per
+# ticket, in the language and with the paths of whoever wrote the request). They
+# are its working state, not part of the project: tracked, the first `git add -A`
+# would publish them, and untracked they already stop the publishability check.
+.tickets/

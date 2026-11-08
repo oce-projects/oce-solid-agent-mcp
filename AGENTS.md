@@ -49,10 +49,35 @@ outside pull requests are not merged for now). Then:
   nothing leaves the machine that must not (a local path, a user name, a private address):
   fix the cause, or widen the exception in the check and write down why.
 
+## You work on this repository autonomously (tickets, an orchestrator, no person watching)
+
+Everything above still holds. In addition:
+
+- **Start from the map and the manual.** [REPO-MAP.md](REPO-MAP.md) says where everything is
+  and who writes it; [Ops/README.md](Ops/README.md) gives every procedure with its command,
+  expected output and exit codes; [Ops/KNOWN-ERRORS.md](Ops/KNOWN-ERRORS.md) lists the traps
+  already paid for. Look there before guessing a cause.
+- **Know where you run.** In a Linux test container only the language gate can run (the
+  command is in section 1 of the manual, and it judges new files too). Build, contracts, bench
+  and deploy need the Windows machine with SOLIDWORKS: there, use `Ops\ops.ps1` (one process per
+  command, `-DryRun` on everything that changes something).
+- **Never without the owner's yes in the chat:** a deploy; restarting SOLIDWORKS over documents
+  that are not test pieces; a probe that writes on assembly objects little explored; anything
+  on the owner's real projects or in the PDM; persistent configuration (`setx`, scheduled
+  tasks, system settings). Use only dedicated test pieces.
+- **One bench at a time**, started with `Ops\ops.ps1 bench-run -Detach` and waited for once
+  with `bench-status -Wait`; no build and no COM probe while it runs; never inside a pipeline.
+- **Green is measured**: the exit code, plus `Bench/report/last.json` of a FULL run (`cases`,
+  `family`, `batch` empty, `failed` 0). Say "not tested" for what you did not run.
+- **Moved or added a folder?** Describe it in `Ops/repo-map.folders.psd1`, then
+  `Ops\ops.ps1 repo-map -Write` and `repo-map -Check`.
+
 ## Where things are
 
 | | |
 |---|---|
+| `REPO-MAP.md` | the full map: folders, entry points, where to find what, main flows |
+| `Ops/` | operations for agents and people: preflight, bench, contracts, deploy, diagnostics |
 | `Program.cs`, `Bridge/`, `Mcp/` | the bridge: the executable, the SOLIDWORKS session, the MCP protocol |
 | `Tools/` | the tool definitions (`McpTools.cs`), the catalog reader, `catalog.json` (exported, not written by hand) |
 | `Oce.Solid.Agent.Core/` | the library of operations, and the catalog they are exported from |
