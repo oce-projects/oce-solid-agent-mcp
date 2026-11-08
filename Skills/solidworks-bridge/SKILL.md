@@ -6,7 +6,7 @@ description: How to design parts, assemblies and drawings in SOLIDWORKS through 
 # Designing with the SOLIDWORKS bridge
 
 <!--
-Skill version: 0.2.1 (draft)
+Skill version: 0.2.2 (draft)
 Tested with: oce-solid-agent-mcp bridge 0.152.10, SOLIDWORKS Premium 2021 SP5.1 (Italian UI)
 Changelog:
 0.1.0 - 2026-10-28 - first draft, written from 20 test rounds on a real assembly
@@ -21,6 +21,9 @@ Changelog:
                      scale, chains, arrows, details, layout) and the 0.152.10 recipe to
                      get close to them; nine new drawing pitfalls.
 0.2.1 - 2026-10-28 - short dimensions: number outside, arrows outside.
+0.2.2 - 2026-11-08 - designer-advice: the examples of sheet texts are in English, and
+                     one line says the texts go in the language of the drawing (the
+                     Italian quotes kept the language gate of the repository red).
 -->
 
 This skill is for the AI that drives the bridge. It does not replace the bridge's own

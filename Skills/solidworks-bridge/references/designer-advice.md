@@ -69,6 +69,9 @@ designer understands by reading the tree. A model that only looks right today is
 
 These rules come from drawings corrected by hand by an experienced designer (28/10/2026).
 
+The texts on the sheet (labels, notes, words on dimensions) are written in the **language of
+the drawing**, the one of its title block. The examples below are in English.
+
 ### Who reads the drawing
 
 - The drawing is read in the **workshop**, often by people without a strong technical
@@ -77,7 +80,7 @@ These rules come from drawings corrected by hand by an experienced designer (28/
   work; one that is repeated costs nothing.
 - Every feature needs its **size and its position**. A slot with its length but not its distance
   from the end cannot be made.
-- Add a word to a dimension when it says what it is for: "2,5 CANALE" (channel), not only "2,5".
+- Add a word to a dimension when it says what it is for: "2,5 CHANNEL", not only "2,5".
 - On an assembly, also put the dimension that states **the purpose** of the design (for example
   where the primers sit when they slide). This is judgment, not a rule: put it when the part
   exists for that reason.
@@ -97,7 +100,7 @@ These rules come from drawings corrected by hand by an experienced designer (28/
 - **Short dimensions** (about 1-2 mm on the sheet, where the number does not fit): the number
   goes **outside** the extension lines and the arrows point in from outside.
 - Dimensions of a **detail go above it**, never between the detail and its label
-  ("DETTAGLIO A / SCALA 5 : 1").
+  ("DETAIL A / SCALE 5 : 1").
 - Vertical dimensions step outwards: the shortest nearest to the part.
 - Chamfer: a callout with a leader from outside the part, "0,4 x 45°". The text never sits on
   the lines of the part.
@@ -107,15 +110,15 @@ These rules come from drawings corrected by hand by an experienced designer (28/
 ### Details
 
 - The circle takes in the whole feature (for a profile: the whole profile).
-- Style **"with leader"** (SOLIDWORKS: "Con linea di associazione"): the letter sits at the end
+- Style **"with leader"** (a style of the SOLIDWORKS detail circle): the letter sits at the end
   of a short line from the circle. "Fix position" on; no profile, full outline or jagged
   outline.
-- The label says the letter and the scale: "DETTAGLIO A / SCALA 5 : 1".
+- The label says the letter and the scale: "DETAIL A / SCALE 5 : 1".
 
 ### Layout
 
-- Notes at the top left: material and how the part is made, then "QUOTE NON INDICATE: DA
-  MODELLO 3D" (sizes not dimensioned come from the 3D model).
+- Notes at the top left: material and how the part is made, then the note that the sizes not
+  dimensioned come from the 3D model ("UNDIMENSIONED SIZES: FROM THE 3D MODEL").
 - Views do not touch each other or the isometric view.
 - An assembly drawing fits on **one sheet** when it can: views, section, detail, BOM and balloons.
 - The BOM sits **on top of the title block**, as wide as it.
