@@ -30,6 +30,19 @@
 # hook that works only when git calls it cannot be tested.
 here=$(dirname "$0")
 
+# THE VARIABLES GIT EXPORTS TO A HOOK ARE DROPPED (30/10/2026). Git runs a hook
+# with GIT_DIR set, and every git called below inherited it, even with -C on
+# another folder: the self-test of expected-keys-test.js built its tiny
+# repositories INSIDE the repository being pushed. From a linked worktree the
+# main repository got core.bare = true and the worktree an index of three
+# files. The list is the one of `git rev-parse --local-env-vars`. Git runs a
+# hook from the root of the working tree, so every check finds the repository
+# from there, as when it is run by hand.
+unset GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CONFIG GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT \
+      GIT_OBJECT_DIRECTORY GIT_DIR GIT_WORK_TREE GIT_IMPLICIT_WORK_TREE GIT_GRAFT_FILE \
+      GIT_INDEX_FILE GIT_NO_REPLACE_OBJECTS GIT_REPLACE_REF_BASE GIT_PREFIX \
+      GIT_SHALLOW_FILE GIT_COMMON_DIR
+
 # The refs being pushed arrive on stdin ("<local ref> <local sha> <remote ref>
 # <remote sha>" per line). They are read first, before any command below can
 # consume stdin; run by hand without a pipe, the hook judges HEAD.
