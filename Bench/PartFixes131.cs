@@ -103,20 +103,111 @@ namespace Oce.Solid.Agent.Bench
 
         /// <summary>
         /// The plan of the drawing test, the one whose undo went wrong: a material, two guided holes in the
-        /// long leg and a slot in the end face of the short one. The identifiers are those of the bracket above
-        /// (the same part, built the same way, gives the same ranks); the case checks that the plan builds before
-        /// it asks for anything else, so a different numbering is a bench error and not a red.
+        /// long leg and a slot in the inner face of the short one, with the identifiers of <paramref name="state"/>.
+        ///
+        /// THE IDENTIFIERS ARE FOUND BY THE GEOMETRY, NOT WRITTEN (bridge 0.171.1). The case of 0.131.0 wrote F2,
+        /// F3, E3, E4, E5, E10, E14 and E16, the ranks the bracket had on that bridge; the bracket has two faces of
+        /// 6240 mm2 (the top and the bottom of the long leg) and two of 3240 mm2 (the two sides of the short one), and
+        /// the ranks of equal areas are not the same on the main line, so on 16/11/2026 the plan did not build and the
+        /// case ended as a bench error. The faces and edges are the ones the declared case
+        /// `l_bracket_drawing_end_to_end` names with its selectors, found here in the answer of `inspect_part`.
+        /// Null, with <paramref name="why"/>, when one of them is not found exactly once.
         /// </summary>
-        private const string ThreeSteps131 =
-            "{\"steps\":[" +
-            "{\"operation\":\"apply_material\",\"arguments\":{\"material\":\"S235JR\"}}," +
-            "{\"operation\":\"hole_wizard\",\"arguments\":{\"face_uid\":\"F2\",\"variant\":\"clearance\",\"size\":\"M10\"," +
-            "\"through_all\":true,\"positions\":[" +
-            "{\"x_mm\":90,\"y_mm\":30,\"anchor\":{\"x\":{\"edge_uid\":\"E10\",\"distance_mm\":30},\"y\":{\"centered_between\":[\"E3\",\"E4\"]}}}," +
-            "{\"x_mm\":30,\"y_mm\":30,\"anchor\":{\"x\":{\"edge_uid\":\"E10\",\"distance_mm\":90},\"y\":{\"centered_between\":[\"E3\",\"E4\"]}}}]}}," +
-            "{\"operation\":\"slot\",\"arguments\":{\"face_uid\":\"F3\",\"x_mm\":35,\"y_mm\":30,\"length_mm\":30,\"width_mm\":11," +
-            "\"angle_deg\":90,\"through_all\":true,\"anchor\":{\"x\":{\"edge_uid\":\"E5\",\"distance_mm\":35}," +
-            "\"y\":{\"centered_between\":[\"E14\",\"E16\"]}}}}]}";
+        private static string Pf131ThreeSteps(string state, out string why)
+        {
+            string top = Pf131FaceUid(state, "up", 6240, out why);
+            string tip = top == null ? null : Pf131EdgeUid(state, "Z", 120, 8, double.NaN, out why);
+            string near = tip == null ? null : Pf131EdgeUid(state, "X", double.NaN, 8, 0, out why);
+            string far = near == null ? null : Pf131EdgeUid(state, "X", double.NaN, 8, 60, out why);
+            string slot = far == null ? null : Pf131SlotOnly(state, 90, out why);
+            if (slot == null) return null;
+            return "{\"steps\":[" +
+                "{\"operation\":\"apply_material\",\"arguments\":{\"material\":\"S235JR\"}}," +
+                "{\"operation\":\"hole_wizard\",\"arguments\":{\"face_uid\":\"" + top + "\",\"variant\":\"clearance\",\"size\":\"M10\"," +
+                "\"through_all\":true,\"positions\":[" +
+                "{\"x_mm\":90,\"y_mm\":30,\"anchor\":{\"x\":{\"edge_uid\":\"" + tip + "\",\"distance_mm\":30},\"y\":{\"centered_between\":[\"" + near + "\",\"" + far + "\"]}}}," +
+                "{\"x_mm\":30,\"y_mm\":30,\"anchor\":{\"x\":{\"edge_uid\":\"" + tip + "\",\"distance_mm\":90},\"y\":{\"centered_between\":[\"" + near + "\",\"" + far + "\"]}}}]}}," +
+                slot + "]}";
+        }
+
+        /// <summary>
+        /// The slot of the drawing test on the inner face of the short leg (x = 8, looking right, 3240 mm2), as one
+        /// step: 35 from the top edge of that face (y = 70), centred between its two edges along Y (z = 0 and z = 60).
+        /// Null, with <paramref name="why"/>, when a face or an edge is not found exactly once.
+        ///
+        /// The face is the LARGEST planar face looking right, not the one of 3240 mm2: the tip of the long leg looks right
+        /// too (480 mm2), and a slot alone that succeeds takes 304.03 mm2 off the face, so the next attempt finds no face
+        /// of 3240 (bench of 16/11/2026, 22:21: «0 faces looking right with 3240 mm2», attempt 3).
+        /// </summary>
+        private static string Pf131SlotOnly(string state, int angle, out string why)
+        {
+            why = null;
+            string face = Pf131FaceUid(state, "right");
+            if (face == null) why = "no planar face looking right in the state";
+            string top = face == null ? null : Pf131EdgeUid(state, "Z", 8, 70, double.NaN, out why);
+            string front = top == null ? null : Pf131EdgeUid(state, "Y", 8, double.NaN, 0, out why);
+            string back = front == null ? null : Pf131EdgeUid(state, "Y", 8, double.NaN, 60, out why);
+            if (back == null) return null;
+            return "{\"operation\":\"slot\",\"arguments\":{\"face_uid\":\"" + face + "\",\"x_mm\":35,\"y_mm\":30,\"length_mm\":30,\"width_mm\":11," +
+                "\"angle_deg\":" + angle.ToString(CultureInfo.InvariantCulture) + ",\"through_all\":true,\"anchor\":{\"x\":{\"edge_uid\":\"" + top + "\",\"distance_mm\":35}," +
+                "\"y\":{\"centered_between\":[\"" + front + "\",\"" + back + "\"]}}}}";
+        }
+
+        /// <summary>The uid of the one planar face of the state that looks that way and has that area (within 1 mm2), or null with the reason.</summary>
+        private static string Pf131FaceUid(string stateText, string facing, double areaMm2, out string why)
+        {
+            why = null;
+            var faces = Mcp.Inside(Mcp.Obj(stateText), "faces") as object[];
+            var found = new List<string>();
+            foreach (var f in faces ?? new object[0])
+            {
+                var d = f as Dictionary<string, object>;
+                if (d == null || Convert.ToString(Mcp.Inside(d, "facing")) != facing) continue;
+                if (Math.Abs(Number(Mcp.Inside(d, "area_mm2")) - areaMm2) <= 1.0) found.AddRange(new[] { UidOf(d) });
+            }
+            if (found.Count == 1) return found[0];
+            why = found.Count + " faces looking " + facing + " with " + areaMm2.ToString(CultureInfo.InvariantCulture) + " mm2 in the state (" +
+                  string.Join(", ", found) + "): exactly one was expected";
+            return null;
+        }
+
+        /// <summary>
+        /// The uid of the one straight edge of the state along <paramref name="along"/> whose middle point is at the
+        /// given coordinates (within 0.5 mm; NaN for a coordinate that does not matter), or null with the reason.
+        /// </summary>
+        private static string Pf131EdgeUid(string stateText, string along, double x, double y, double z, out string why)
+        {
+            why = null;
+            var edges = Mcp.Inside(Mcp.Obj(stateText), "edges") as object[];
+            var found = new List<string>();
+            double[] wanted = { x, y, z };
+            foreach (var e in edges ?? new object[0])
+            {
+                var d = e as Dictionary<string, object>;
+                if (d == null || Convert.ToString(Mcp.Inside(d, "along")) != along) continue;
+                var point = Mcp.Inside(d, "point_mm") as object[];
+                if (point == null || point.Length < 3) continue;
+                bool here = true;
+                for (int i = 0; i < 3; i++)
+                    if (!double.IsNaN(wanted[i]) && !(Math.Abs(Number(point[i]) - wanted[i]) <= 0.5)) here = false;
+                if (here) found.AddRange(new[] { UidOf(d) });
+            }
+            if (found.Count == 1) return found[0];
+            string at = "";
+            foreach (double v in wanted) at += (at.Length == 0 ? "" : ", ") + (double.IsNaN(v) ? "any" : v.ToString(CultureInfo.InvariantCulture));
+            why = found.Count + " edges along " + along + " at (" + at + ") in the state (" + string.Join(", ", found) + "): exactly one was expected";
+            return null;
+        }
+
+        /// <summary>The error of the first step that failed in an answer of `build`, for a bench error that says why; the start of the answer when there is none.</summary>
+        private static string Pf131FirstError(string answer)
+        {
+            int failed = answer.IndexOf("\"succeeded\":false", StringComparison.OrdinalIgnoreCase);
+            int error = failed < 0 ? -1 : answer.IndexOf("\"error\":", failed, StringComparison.Ordinal);
+            if (error < 0) return Short(answer);
+            string text = answer.Substring(error);
+            return text.Length > 600 ? text.Substring(0, 600) + "..." : text;
+        }
 
         private static int Pf131Built(string answer)
         {
@@ -414,12 +505,6 @@ namespace Oce.Solid.Agent.Bench
         // 5. the first base flange of a new part
         // ─────────────────────────────────────────────────────────────────
 
-        /// <summary>The slot of the drawing test, alone, on the bracket: the step that failed with «No sketch open».</summary>
-        private const string SlotOnly131 =
-            "{\"steps\":[{\"operation\":\"slot\",\"arguments\":{\"face_uid\":\"F3\",\"x_mm\":35,\"y_mm\":30,\"length_mm\":30,\"width_mm\":11," +
-            "\"angle_deg\":0,\"through_all\":true,\"anchor\":{\"x\":{\"edge_uid\":\"E5\",\"distance_mm\":35}," +
-            "\"y\":{\"centered_between\":[\"E14\",\"E16\"]}}}}]}";
-
         /// <summary>
         /// THE CAUSE OF A BASE FLANGE THAT FAILED «WITHOUT A REASON», SHOWN. The sequence of the drawing test: a
         /// bracket, a plan with a slot, ONE undo press (SOLIDWORKS's own, from outside the bridge: it leaves the slot's
@@ -438,15 +523,19 @@ namespace Oce.Solid.Agent.Bench
                 Pf131(p, "inspect_part", "{}");
                 var bracket = Pf131(p, "build", Bracket131);
                 if (!Succeeded(bracket)) { BenchError("first flange", "the bracket was not built: " + Short(bracket)); return; }
-                Pf131(p, "inspect_part", "{}");
-                var plan = Pf131(p, "build", ThreeSteps131);
-                if (Pf131Built(plan) != 3) { BenchError("first flange", "the plan with the slot did not build: " + Short(plan)); return; }
+                string why;
+                var threeSteps = Pf131ThreeSteps(Pf131(p, "inspect_part", "{}"), out why);
+                if (threeSteps == null) { BenchError("first flange", "the plan with the slot cannot be written: " + why); return; }
+                var plan = Pf131(p, "build", threeSteps);
+                if (Pf131Built(plan) != 3) { BenchError("first flange", "the plan with the slot did not build: " + Pf131FirstError(plan)); return; }
                 first.EditUndo2(1);   // the slot goes and its sketch is left in edit
                 int failed = 0;
                 for (int k = 1; k <= 3; k++)
                 {
-                    Pf131(p, "inspect_part", "{}");
-                    if (!Succeeded(Pf131(p, "build", SlotOnly131))) failed++;
+                    // The slot alone, as the drawing test sent it after the undo, with the identifiers of this reading.
+                    var slotOnly = Pf131SlotOnly(Pf131(p, "inspect_part", "{}"), 0, out why);
+                    if (slotOnly == null) { BenchError("first flange", "the slot alone cannot be written (attempt " + k + "): " + why); return; }
+                    if (!Succeeded(Pf131(p, "build", "{\"steps\":[" + slotOnly + "]}"))) failed++;
                 }
                 // On the bridge of 0.130.2 all three fail; on this one the first failure rebuilds the part and a later
                 // attempt may work. At least one failure is the premise: steps that stopped on this part.
@@ -505,11 +594,19 @@ namespace Oce.Solid.Agent.Bench
                 string digits = new string(answer.Substring(at + 8).TakeWhile(char.IsDigit).ToArray());
                 if (digits.Length > 0) announced = int.Parse(digits, CultureInfo.InvariantCulture);
             }
-            // the names are between « and » in the segment that follows «not the same steel:» up to «Tell me which one»
-            int from = answer.IndexOf("not the same steel:", StringComparison.Ordinal);
+            // THE CANDIDATES ARE COUNTED BY THEIR LIBRARY (bridge 0.171.1). Each one is written «name» (library «...»)
+            // in the segment that follows «not the same material:» up to «Tell me which one». This case was written on
+            // 12/10/2026 against the text of that day («not the same steel:», a name without its library) and counted
+            // every «: the main line says «material» since 0.132.0 (a plastic is not a steel), and the library, which
+            // came with 0.131.0 too, puts two « in every candidate. The bench of 16/11/2026 read «0 listed» for six names.
+            const string Library = "(library «";
+            int from = answer.IndexOf("not the same material:", StringComparison.Ordinal);
             int to = answer.IndexOf("Tell me which one", StringComparison.Ordinal);
             string segment = from >= 0 && to > from ? answer.Substring(from, to - from) : "";
-            int listed = segment.Count(ch => ch == '«');
+            int listed = 0;
+            for (int found = segment.IndexOf(Library, StringComparison.Ordinal); found >= 0;
+                 found = segment.IndexOf(Library, found + Library.Length, StringComparison.Ordinal))
+                listed++;
             int cap = Pf131Cap;
             int expectedListed = announced < 0 ? -1 : Math.Min(announced, cap);
             Check("material candidates: «" + asked + "» is refused as ambiguous, and every candidate up to " + cap +

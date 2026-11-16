@@ -857,8 +857,11 @@ using System.Runtime.InteropServices;
 //          SaveAs; the document rebuilt after a plan that stops; drawing_dimension overall size, thickness and
 //          bend radius when chamfers and bends leave no edge; model_dimensions notes, duplicates and hole wizard
 //          masks; hole_table origin at the part corner; delete_annotation takes a table away.
-[assembly: AssemblyVersion("0.199.0.0")]
-[assembly: AssemblyFileVersion("0.199.0.0")]
+// 0.199.1: set_property with a drawing in front puts where the property went under a key the compact answer
+//          keeps (warning_title_block when it went to the part of the views or nothing shows it): the route of
+//          0.131.0 wrote it under title_block, and the «summary» answer of the main line dropped it.
+[assembly: AssemblyVersion("0.199.1.0")]
+[assembly: AssemblyFileVersion("0.199.1.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -873,4 +876,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.199.0")]
+[assembly: AssemblyInformationalVersion("0.199.1")]

@@ -158,12 +158,13 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 partModel = null;
             bool writeOnDrawing = true;
             string routeNote = null;
+            bool routeWarns = false;
             var drawingDoc = model as IDrawingDoc;
             if (drawingDoc != null && !onConfiguration)
             {
                 string refusal;
                 if (!PropertyRouteForDrawing(drawingDoc, itemName, out writeOnDrawing, out partModel,
-                                             out routeNote, out refusal))
+                                             out routeNote, out routeWarns, out refusal))
                     return Failed(refusal);
             }
 
@@ -198,7 +199,13 @@ namespace Oce.Solid.Agent.Core
                     "file of the part on the disk has not it until the part is saved. The undo of this plan does not " +
                     "take it back, it is another document.";
             }
-            if (routeNote != null) measurements["title_block"] = routeNote;
+            // UNDER A KEY THE COMPACT ANSWER KEEPS (bridge 0.171.1). The route came from 0.131.0, which had
+            // no compact answer; on the main line a «summary» answer drops every text of a successful step
+            // longer than 100 characters unless its key names a warning (McpTools.CompactOutcomes, brief R3),
+            // and the bench of 16/11/2026 got neither «from the MODEL of its views» nor «NO FIELD OF THE TITLE
+            // BLOCK». A property written on another document than the one in front, or that nothing shows, is
+            // a warning; «the title block reads it from the drawing» is not, and may be left out.
+            if (routeNote != null) measurements[routeWarns ? "warning_title_block" : "title_block"] = routeNote;
 
             measurements["scope"] = scope;
             if (writeOnDrawing) MarkUnsavedAfterProperty(model, measurements);
@@ -342,14 +349,17 @@ namespace Oce.Solid.Agent.Core
         /// `title_block` does: `$PRP:"name"` is the drawing's own property, `$PRPSHEET:"name"` and
         /// `$PRPVIEW:"name"` are the property of the model of the sheet's property view. The names are
         /// compared as written (the spelling of a name is what the title block looks up).
+        /// <paramref name="noteWarns"/> is false only when the title block reads the name from the drawing
+        /// itself: every other note says that the property went elsewhere, or that nothing shows it.
         /// </summary>
         private static bool PropertyRouteForDrawing(
             IDrawingDoc drawing, string itemName, out bool writeOnDrawing, out IModelDoc2 partModel,
-            out string note, out string refusal)
+            out string note, out bool noteWarns, out string refusal)
         {
             writeOnDrawing = true;
             partModel = null;
             note = null;
+            noteWarns = true;
             refusal = null;
 
             ISheet sheet = null;
@@ -382,6 +392,7 @@ namespace Oce.Solid.Agent.Core
             if (readsDrawing && !readsModel)
             {
                 note = "The title block reads «" + itemName + "» from the drawing ($PRP): written on the drawing.";
+                noteWarns = false;
                 return true;
             }
 

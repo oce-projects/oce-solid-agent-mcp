@@ -32,6 +32,82 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.171.1 — 16 November 2026 · library 0.199.1 · the six reds of the full bench on 0.171.0
+
+**What happened.** The full bench of 16 November 2026 (20:44-22:02) on the port of 0.131.0
+(bridge 0.171.0, library 0.199.0) ended with 2777 tests, 5 failed, 1 skipped and 1 bench error,
+exit 2. All six came with the port. The cause of each was looked for in the merged code. The
+library is cured where it was wrong (1, 2); the bench is cured where its reading was wrong (3, 4,
+6); one expectation is changed (5), because the case had been written for the code of 0.131.0
+and the measurement says that the main line's code is right.
+
+### 1, 2. `set_property` with a drawing in front: where the property went was not in the answer (library)
+
+- **Cause.** The route of 0.131.0 (`PropertyOperations.PropertyRouteForDrawing`) puts its
+  sentence in the measurements under `title_block`. 0.131.0 had no compact answer; the main line
+  has one: a «summary» answer drops every text of a successful step longer than 100 characters
+  unless its key names a warning (`McpTools.CompactOutcomes`, brief R3). The bench read neither
+  «from the MODEL of its views» nor «NO FIELD OF THE TITLE BLOCK».
+- **Fix.** A property written on another document than the one in front, or that nothing shows,
+  is a warning: the sentence goes under `warning_title_block`, which the compact answer keeps.
+  «The title block reads it from the drawing» is not a warning and stays under `title_block`.
+
+### 3, 4. `apply_material` candidates: «6 announced, 0 listed» and «17 announced, 0 listed» (bench)
+
+- **Cause.** The case of the group `part-fixes-131` (`Pf131CandidatesOf`) was written on
+  12 October 2026 against the text of that day: «not the same steel:» and one «name» per
+  candidate. The main line says «not the same material:» since 0.132.0 (a plastic is not a
+  steel), and the library of each candidate, which came with 0.131.0 too, puts two «» in every
+  candidate. The parser found no segment and counted 0.
+- **Fix of the case, not of the code.** The answer was right: the log of the full bench shows the
+  six names of «S235», each with «(library «solidworks din materials»)». The parser now takes the
+  segment from «not the same material:» to «Tell me which one» and counts «(library «». The
+  expectation (every candidate up to 20 is named) is unchanged.
+
+### 5. `l_bracket_drawing_end_to_end`, step 9: 5 dimensions in the front view, not 4 (case)
+
+- **Cause.** The case came from 0.131.0, whose `drawing_dimension` left out every mitre edge
+  (`s.ChamferMiter` in the filter of `DimensionTheChamfers`). The port kept the rule of the main
+  line instead: a chamfer is dimensioned on an edge that shows its profile in its true size, a
+  mitre edge included when it lies on that profile (note 98, 26P000009 view 3). In the front view
+  of the bracket the chamfered edges along Z (the tip of the long leg, the top of the short one)
+  are seen end-on, so the chamfer is seen in its true size there, and the fifth dimension is the
+  chamfer dimension.
+- **Measured** (bench of 16/11/2026, 22:18, with the checks of steps 9-15 turned into readings
+  for one run): `dimensions_mm` [120, 70, 8, 8, 1], `dimensions_shown` of the fifth «1 45»,
+  `chamfers[0]`: the chamfer feature of step 4, `leg_mm` 1, `angle_deg` 45, `as_the_feature` «1 x 45°»,
+  `matches_the_feature` true. Every other reading of steps 9 to 15 was the value the case
+  expected: the case was not red anywhere else.
+- **Changed in the case.** `dimensions_placed` 4 → 5, with the reason; three new expectations on
+  `chamfers[0]` (leg 1, angle 45, the values of the feature); the `does_not_include` of «-1»,
+  «1.414», «103» and «104» stays, with its reason rewritten: the 0.131.0 defect it catches is the
+  «-1 mm, 135°» read on a miter, not the chamfer dimension itself.
+
+### 6. `part-fixes-131`, «first flange»: the plan with the slot did not build (bench)
+
+- **Cause.** The plan of the case wrote the identifiers F2, F3, E3, E4, E5, E10, E14 and E16, the
+  ranks the bracket had on the bridge of 0.131.0. The bracket has two faces of 6240 mm2 (the top
+  and the bottom of the long leg) and two of 3240 mm2 (the two sides of the short one); the ranks
+  of equal areas are not the same on the main line, and the plan named other faces.
+- **Fix of the case.** The faces and edges are found in the answer of `inspect_part` by their
+  geometry (facing and area of the face, direction and middle point of the edge), the same ones
+  `l_bracket_drawing_end_to_end` names with its selectors, read again before every plan. The face
+  of the slot alone is the largest planar face looking right, not the one of 3240 mm2: a slot
+  alone that succeeds takes 304.03 mm2 off it (bench of 22:18: «0 faces looking right with
+  3240 mm2», attempt 3). A bench error now says which step failed and why (`Pf131FirstError`).
+
+### Measured
+
+- Bench, the six alone (`-Group part-fixes-131,cases -Case l_bracket_drawing_end_to_end`,
+  `OCE_PF131_ONLY=property,flange,material`), 16/11/2026 22:24-22:26, library 0.199.1:
+  72 tests, 0 failed, expectations 44 of 44, exit 0.
+- **Not fixed here, seen while measuring**: after step 11 (`model_dimensions`) the side view V3
+  holds 4 dimensions (state of the step: V1 5, V2 5, V3 4). The case says those four are the
+  R5.5 and the 19 of the slot and the 1 and the 45° of the chamfer; with the chamfer dimension now
+  in the front view, the chamfer would be dimensioned twice. The cleanup of the import
+  (`DrawingImportCleanup.cs`, from 0.131.0) knows linear duplicates in the same view only. Not
+  measured which four they are.
+
 ## 0.171.0 — 16 November 2026 · library 0.199.0 · what 0.131.0 had and the main line did not
 
 **What happened.** Branch `release-0.131.0` (bridge 0.131.0, library 0.154.0, 13 October 2026)

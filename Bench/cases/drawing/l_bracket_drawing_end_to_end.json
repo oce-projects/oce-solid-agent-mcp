@@ -226,8 +226,8 @@
         },
         {
           "what": "measurements.dimensions_placed",
-          "equal_to": 4,
-          "why": "the 120, the 70, the thickness 8 and the inner radius R8 of the bend (the outer R16 is the inner plus the thickness and is not dimensioned again)"
+          "equal_to": 5,
+          "why": "the 120, the 70, the thickness 8, the inner radius R8 of the bend (the outer R16 is the inner plus the thickness and is not dimensioned again) and the chamfer 1 x 45°. THE CHAMFER IS SEEN IN ITS TRUE SIZE IN THIS VIEW: the chamfered edges along Z (the tip of the long leg, the top of the short one) are seen end-on, and the mitre edge where their chamfer meets the chamfer of the outline lies on the profile, the rule of the main line (26P000009 view 3). 4 up to bridge 0.171.0: the case was written for 0.131.0, which left out every mitre edge; the bench of 16/11/2026 read 5, the fifth a chamfer dimension read back as 1 x 45°, the size of the feature"
         },
         {
           "what": "measurements.overall_dimensions[0].mm",
@@ -261,6 +261,25 @@
           "why": "the INNER radius, not the 16 of the outer face"
         },
         {
+          "what": "measurements.chamfers[0].leg_mm",
+          "equal_to": 1,
+          "tolerance": 0.001,
+          "tolerance_why": "re-read from SOLIDWORKS and rounded to the thousandth of a millimetre",
+          "why": "the chamfer dimension of the front view measures the leg of the chamfer feature, 1 mm"
+        },
+        {
+          "what": "measurements.chamfers[0].angle_deg",
+          "equal_to": 45,
+          "tolerance": 0.01,
+          "tolerance_why": "re-read from SOLIDWORKS in radians and rounded to the hundredth of a degree",
+          "why": "and its angle, 45°: not the 135° that 0.131.0 read on a miter"
+        },
+        {
+          "what": "measurements.chamfers[0].matches_the_feature",
+          "equal_to": true,
+          "why": "the values read back are the ones of the definition of the chamfer feature (1 x 45°)"
+        },
+        {
           "what": "measurements.dimensions_mm",
           "does_not_include": [
             "-1",
@@ -268,7 +287,7 @@
             "103",
             "104"
           ],
-          "why": "NEITHER a chamfer dimension on a miter NOR the length of an edge shortened by the chamfer: the 103 and the 104 are not the part"
+          "why": "NEITHER the -1 mm of a chamfer dimension read the wrong way round on a miter, NOR the length of the mitre line taken as a leg, NOR the length of an edge shortened by the chamfer: the 103 and the 104 are not the part"
         }
       ]
     },
