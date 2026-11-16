@@ -32,6 +32,114 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.171.5 — 17 November 2026 · library 0.199.3 · the chamfer of the L bracket was dimensioned twice
+
+**What was open.** 0.171.1 left a question written in its entry, not measured: after step 11 of
+`l_bracket_drawing_end_to_end` (`model_dimensions`) the side view V3 holds 4 dimensions, and two
+of them are the 1 and the 45° of the chamfer, which the front view V1 already dimensions with
+the chamfer dimension 1 x 45° of step 9. The owner's rule (02/11/2026, UNI ISO 129-1): one
+dimension per element on the whole drawing, not per view.
+
+**0.171.5 / library 0.199.3.** The branch was first committed as 0.171.3 / library 0.199.2 on
+0.171.1 (`49148ce`, where the open point is written), the same night that `port-0131-fix` took
+0.171.3 / library 0.199.2 for «a null is not «0 are left»» (`67851ee`), that two other branches
+took 0.171.2, and that `fix-ops-dash-arguments` (Ops only, library unchanged) took 0.171.4. Rebased
+on `67851ee`, then on `8158574` (0.171.4, on the report of the full bench on `67851ee`), and
+renumbered: two builds must not carry the same number.
+
+### Measured before any change (library 0.199.1)
+
+- **Which edges.** A probe case (steps 1 to 11 of the bracket, then the PDF and the saved sheet,
+  not committed) and the new mode `dimedges` of `Checks/Draw131`, on the saved sheet:
+  - V1 `RD5`, `swChamferDimension`, 45° and a face width of 1.414 mm, rests on the mitre edge
+    (119, 8, 59) → (120, 7, 60) and on the leg (120, 7, 60) → (16, 7, 60), model millimetres, both
+    edges of faces of the chamfer feature: the tip of the long leg;
+  - V3 `D1@<chamfer feature>` 1 mm (linear) and `D2@<chamfer feature>` 45° (angular), the two
+    parameters of the SAME chamfer feature. `IAnnotation.GetAttachedEntities3` reads no entity
+    for them. On the PDF they stand at the lower left corner of the side view, another chamfered
+    corner than the one of V1.
+  - **Different edges, the same chamfer feature: no model edge in common.** The chamfer 1 x 45° of
+    the whole outline is said twice on the sheet, once as a chamfer dimension and once as a length
+    and an angle. Seen on the PNG of the PDF too.
+- **The opposite order** (`model_dimensions` first, then `drawing_dimension` on V1; a second probe
+  case, not committed): V3 gets the same 1 and 45°, and V1 gets the chamfer dimension 1 x 45°
+  all the same: the duplicate is born that way too. NOT cured here, see below.
+
+### Fix (library)
+
+`DrawingImportCleanup.cs`, rule 1c of `TidyImportedDimensions`: a dimension the import brought
+that is a parameter of a chamfer feature (its full name is `Dn@feature@model.Part` and the
+feature of that name in the part of the view is a chamfer, `IFeature.GetTypeName2` «Chamfer», the
+same in every language) is taken away when a chamfer dimension that was on the drawing before the
+call, shown, in ANY view of the same model, rests on an edge of that feature (`TouchesAChamfer`,
+as `KeysAlreadyDimensioned` reads it). The answer says which chamfer dimension already says it and
+its values: «the chamfer dimension «RD5@...» of the view «...» already says the chamfer «...»
+(1 x 45°): a chamfer is dimensioned once on the whole drawing, not once per view». It is the rule
+`drawing_dimension` already kept with its key `chamfer|feature`; the import did not know it. The
+rule comes after the linear duplicates of the same view, so the 60 stays the first removal.
+
+An angle taken away is reported in degrees (`deg`) and its `mm` is null: before, the value read
+in radians times 1000 (785.398 for 45°) would have gone under `mm`.
+
+### Changed in the case
+
+`l_bracket_drawing_end_to_end`, step 11: a new first expectation `state.views[2].dimensions` = 2
+(the side view keeps the R5.5 and the 19 of the slot), `dimensions_inserted` 4 → 2, and
+`imported_dimensions_removed` includes «a chamfer is dimensioned once on the whole drawing».
+`red_before` 0.199.0 → 0.199.3.
+
+### Probe
+
+`Checks/Draw131`, mode `dimedges <drawing>`: every dimension of every view with the model edges it
+rests on and the features of their faces, then, for every chamfer feature, the dimensions that say
+it and whether two of them share a model edge. Values are read as the bridge reads them
+(`GetSystemValue2`): `GetValue3` answers in the units of the document (120 for the 120 mm), and
+`GetSystemValue3` gave nothing for the dimensions made in the drawing.
+
+### Measured after
+
+Before the rebase, on `49148ce` (the fix was then numbered library 0.199.2):
+
+- Bench, library **0.199.1** (the code before the fix), `-Case l_bracket_drawing_end_to_end` and the
+  two probe cases, 17/11/2026 00:10-00:13: 81 tests, **1 failed**, «step 11 · state.views[2].dimensions
+  4 (expected 2)», expectations 62 of 62, exit 1. The case turns red on the duplicate.
+- Bench, the fix, the case and the first probe, 00:19-00:22: 81 tests, 0 failed,
+  expectations 62 of 62, exit 0. Step 12 (`all_dimensions`) still inserts 0.
+- The saved sheet after step 11, `dimedges`: V1 5, V2 5, **V3 2** (R5.5, 19); the chamfer feature
+  is said by 1 dimension.
+- The values of the chamfer dimension in the text of the reason are read with `GetValueOrDefault`
+  (the contract on undecided calls counted three `.Value`); bench on that final library, the case
+  alone, 00:34-00:35: 65 tests, 0 failed, expectations 46 of 46, exit 0.
+
+After the rebase on `67851ee`, the case alone (`-Case l_bracket_drawing_end_to_end`; the later
+rebase on `8158574` changes only `Ops/` and the report, not the library nor the bench):
+
+- library **0.199.2** of `67851ee` (the build of its full bench, named with `-Library`),
+  02:10-02:11: 50 tests, **1 failed**, «step 11 · state.views[2].dimensions 4 (expected 2)», and
+  «red before 0.199.3 · on 0.199.2.0 it is red, as it should be»; expectations 31 of 31, exit 1;
+- library **0.199.3** (this commit), 02:12-02:13: 65 tests, 0 failed, expectations 46 of 46, exit 0.
+- Contracts (`OCE_NO_ATTACH=1`), on this commit after the rebase on `8158574`: 1066 checks,
+  3 failed, 3 not runnable here. The three are the freshness of the tracked
+  `Bench/report/last.json` (the full run on `67851ee`, library 0.199.2): they turn green only
+  with a full bench on this commit. Language gate held, publishability
+  «Clean.», repository map up to date.
+- SOLIDWORKS closed once while the probe opened the fifth drawing of the same session (`OpenDoc6`, the
+  journal stack in `sldappu uiBaseView_c::OnPaint`, no Windows error event, no minidump); restarted,
+  the same file opened and was read.
+
+### Not fixed here, seen on the sheet
+
+- **The opposite order** (above): `drawing_dimension` does not count the parameters of a chamfer
+  feature imported earlier as the chamfer dimensioned (`KeysAlreadyDimensioned` records the key
+  `chamfer|feature` for a chamfer dimension only, the rule of note 98, defect 1). Which form should
+  stay, the chamfer dimension 1 x 45° or the model's 1 and 45°, is the owner's choice.
+- **The count of the chamfers.** The chamfer runs along the whole outline, and the sheet says
+  1 x 45° once, at the tip of the long leg, with no count and no general note.
+- **The slot is not located**: R5.5 and 19, no position on the short leg (the slot of this case has
+  no anchor, so no 35 is imported).
+- The upper extension line of the 70 crosses the whole front view, from the top of the short leg to
+  the dimension line beyond the tip of the long one.
+
 ## 0.171.4 — 17 November 2026 · library 0.199.2 (unchanged) · a value that starts with «-» reaches the Ops command whole
 
 **Version number.** Written on 16 November as 0.171.2 on a branch from `main` at 0.171.0, then

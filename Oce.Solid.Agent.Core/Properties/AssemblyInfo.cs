@@ -863,8 +863,12 @@ using System.Runtime.InteropServices;
 // 0.199.2: the import cleanup of model_dimensions no longer says «0 are left» for a view whose sketch it could not
 //          read again (a null is not a count); two zeros of the port of 0.131.0 that are guards, not counts, carry
 //          the ZERO-E-ZERO marker with their reason (the pre-push hook stopped the push of 17/11/2026 on them).
-[assembly: AssemblyVersion("0.199.2.0")]
-[assembly: AssemblyFileVersion("0.199.2.0")]
+// 0.199.3: model_dimensions takes away an imported dimension of a chamfer feature when a chamfer dimension already on
+//          the drawing, in any view of the same model, says that chamfer: a chamfer is dimensioned once on the whole
+//          drawing (the L bracket had 1 x 45° in the front view and the 1 and the 45° again in the side view). An angle
+//          taken away is reported in degrees («deg»), not as millimetres.
+[assembly: AssemblyVersion("0.199.3.0")]
+[assembly: AssemblyFileVersion("0.199.3.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -879,4 +883,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.199.2")]
+[assembly: AssemblyInformationalVersion("0.199.3")]

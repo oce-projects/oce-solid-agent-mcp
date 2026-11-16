@@ -29,6 +29,9 @@ namespace Checks.Draw131
     ///         every annotation of every view with its type, position, text, attached
     ///         entities, and the dimensions of the PART with their «marked for drawing» flag.
     ///         Answers items 2, 3 and 5.
+    ///     Draw131.exe dimedges &lt;drawing.SLDDRW&gt;
+    ///         every dimension of every view with the model edges it rests on, and for every chamfer
+    ///         feature the dimensions that say it and whether two of them share an edge (bridge 0.171.5).
     ///
     /// Guide pages used (api guide, sldworksapi.chm): IView~GetVisibleEntities2,
     /// IEdge~GetTwoAdjacentFaces2, IEdge~GetCurveParams3, IView~ModelToViewTransform,
@@ -88,6 +91,7 @@ namespace Checks.Draw131
                     case "segs": Segments(drawing); break;
                     case "delsegs": DeleteSegments(doc, drawing); break;
                     case "pick": PickLines(doc, drawing); break;
+                    case "dimedges": DimensionEdges(doc, drawing); break;
                     case "survey":
                         Edges(drawing, 0); Dims(doc, drawing);
                         Guarded("dimension lines", () => DimLines(drawing));
@@ -374,6 +378,136 @@ namespace Checks.Draw131
                     f = f.GetNextFeature() as IFeature;
                 }
             }
+        }
+
+        // ── DIMENSION EDGES: which model edge every dimension rests on (bridge 0.171.5) ──
+
+        /// <summary>
+        /// For every dimension of every view: its full name, kind, values (both of a chamfer dimension), and every entity
+        /// it is attached to; an edge with its two ends in the model, on the sheet, and the features of its two faces.
+        /// Then, for every chamfer feature, the dimensions that say it (a chamfer dimension resting on one of its edges, or a
+        /// dimension of the model whose full name is «Dn@feature@...»), view by view, and whether two of them rest on the
+        /// same model edge. Answers the open point of 0.171.1: is the chamfer of the L bracket dimensioned twice, and on the
+        /// same edge? Guide pages: IAnnotation~GetAttachedEntities3, IEdge~GetTwoAdjacentFaces2, IDisplayDimension~GetDimension2,
+        /// IDisplayDimension~Type2.
+        /// </summary>
+        private static void DimensionEdges(IModelDoc2 doc, IDrawingDoc drawing)
+        {
+            var mu = (IMathUtility)_sw.GetMathUtility();
+            var byChamfer = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
+            var edgesOf = new Dictionary<string, List<string>>(StringComparer.Ordinal);   // «view|dimension» -> model edge keys
+            var v = drawing.GetFirstView() as IView;
+            int n = 0;
+            while (v != null)
+            {
+                IView view = v;
+                v = v.GetNextView() as IView;
+                bool sheet = view.Type == (int)swDrawingViewTypes_e.swDrawingSheet;
+                if (!sheet) n++;
+                string viewLabel = sheet ? "SHEET" : "V" + n;
+                MathTransform tr = null;
+                try { tr = view.ModelToViewTransform; } catch { }
+                Say("");
+                Say(viewLabel + " «" + view.GetName2() + "» dimensions " + view.GetDimensionCount());
+                for (var d = view.GetFirstDisplayDimension5() as IDisplayDimension; d != null; d = d.GetNext5() as IDisplayDimension)
+                {
+                    string full = "", values = "";
+                    int type2 = -1;
+                    try { type2 = d.Type2; } catch { }
+                    for (int k = 0; k < 2; k++)
+                    {
+                        try
+                        {
+                            var dk = d.GetDimension2(k) as IDimension;
+                            if (dk == null) continue;
+                            if (k == 0) full = dk.FullName ?? "";
+                            // the SYSTEM value, metres and radians, as the bridge reads it (ApiHelpers.ReadDimensionInConfiguration,
+                            // GetSystemValue2): GetValue3 answers in the units of the document (measured on 17/11/2026: 120 for
+                            // the 120 mm, 45 for the 45°), and GetSystemValue3 gave nothing for the dimensions made in the drawing
+                            double value = dk.GetSystemValue2("");
+                            bool angular = dk.GetType() == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular;
+                            values += (values.Length > 0 ? " / " : "") +
+                                      (angular ? (value * 180.0 / Math.PI).ToString("0.###", Ci) + "°" : Mm(value) + " mm");
+                        }
+                        catch { }
+                    }
+                    var ann = d.GetAnnotation() as IAnnotation;
+                    string annName = "";
+                    try { annName = ann == null ? "" : ann.GetName(); } catch { }
+                    Say("  DIM «" + full + "» annotation «" + annName + "» type2 " + type2 + " (" + Enum.GetName(typeof(swDimensionType_e), type2) +
+                        ") values " + values + " text «" + SafeText(d) + "»");
+                    string label = viewLabel + " «" + full + "»";
+                    var keys = new List<string>();
+                    var chamfers = new HashSet<string>(StringComparer.Ordinal);
+                    object[] ents = null;
+                    try { ents = ann == null ? null : ann.GetAttachedEntities3() as object[]; } catch { }
+                    if (ents == null) Say("     attached: none read");
+                    else
+                        foreach (var o in ents)
+                        {
+                            var e = o as IEdge;
+                            if (e == null)
+                            {
+                                Say("     attached: " + (o == null ? "null" : o is ISilhouetteEdge ? "silhouette edge" : o is ISketchSegment ? "sketch segment" :
+                                                       o is ISketchPoint ? "sketch point" : o is IVertex ? "vertex" : o.GetType().Name));
+                                continue;
+                            }
+                            var r = ReadRow(-1, e, mu, tr);
+                            string key = EdgeKey(r.A, r.B);
+                            keys.Add(key);
+                            if (r.Chamfer != null) chamfers.Add(r.Chamfer);
+                            Say("     edge " + r.Kind + " model " + P(r.A, 3) + " -> " + P(r.B, 3) + " | sheet " + P(r.SheetA, 2) + " -> " + P(r.SheetB, 2) +
+                                " " + r.Facing + (r.Radius > 0 ? " R" + r.Radius.ToString("0.###", Ci) : "") + " | faces " + r.Faces);
+                        }
+                    edgesOf[label] = keys;
+                    // which chamfer this dimension says: a chamfer dimension says the chamfer of its edges; a dimension of the
+                    // model says the feature of its name (Dn@feature@model)
+                    string owner = null;
+                    string[] parts = full.Split('@');
+                    if (parts.Length >= 2)
+                        try
+                        {
+                            var partDoc = view.ReferencedDocument as IModelDoc2;
+                            var f = partDoc == null ? null : (partDoc as IPartDoc)?.FeatureByName(parts[1]) as IFeature;
+                            if (f != null && f.GetTypeName2() == "Chamfer") owner = f.Name;
+                        }
+                        catch { }
+                    if (type2 == (int)swDimensionType_e.swChamferDimension)
+                        foreach (string c in chamfers) Add(byChamfer, c, label + " chamfer dimension");
+                    if (owner != null) Add(byChamfer, owner, label + " parameter of the feature");
+                }
+            }
+            Say("");
+            Say("CHAMFER FEATURES AND THE DIMENSIONS THAT SAY THEM");
+            foreach (var c in byChamfer)
+            {
+                Say("  «" + c.Key + "»: " + c.Value.Count + " dimension(s)");
+                foreach (string who in c.Value) Say("     " + who);
+                for (int i = 0; i < c.Value.Count; i++)
+                    for (int j = i + 1; j < c.Value.Count; j++)
+                    {
+                        string a = c.Value[i].Substring(0, c.Value[i].LastIndexOf('»') + 1), b = c.Value[j].Substring(0, c.Value[j].LastIndexOf('»') + 1);
+                        List<string> ka, kb;
+                        if (!edgesOf.TryGetValue(a, out ka) || !edgesOf.TryGetValue(b, out kb)) continue;
+                        var shared = ka.FindAll(x => kb.Contains(x));
+                        Say("     " + a + " and " + b + ": " + (shared.Count == 0 ? "NO model edge in common" : shared.Count + " model edge(s) in common: " + string.Join("; ", shared)));
+                    }
+            }
+        }
+
+        private static void Add(SortedDictionary<string, List<string>> map, string key, string value)
+        {
+            List<string> l;
+            if (!map.TryGetValue(key, out l)) { l = new List<string>(); map[key] = l; }
+            l.Add(value);
+        }
+
+        /// <summary>A model edge by its two ends, 0.01 mm, the lower end first.</summary>
+        private static string EdgeKey(double[] a, double[] b)
+        {
+            if (a == null || b == null) return "?";
+            string pa = P(a, 3), pb = P(b, 3);
+            return string.CompareOrdinal(pa, pb) <= 0 ? pa + "-" + pb : pb + "-" + pa;
         }
 
         // ── ATTEMPTS: what SOLIDWORKS does when an edge is selected and dimensioned ──

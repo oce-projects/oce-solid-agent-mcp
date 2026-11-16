@@ -34,6 +34,11 @@ namespace Oce.Solid.Agent.Core
     ///     that was made in the drawing (its name ends in «.Drawing»: the model's own end in «.Part») is taken away: the model's depth
     ///     of 60 next to the overall 60 that drawing_dimension has put, the 30 and the 90 of the hole wizard next to the positions that
     ///     drawing_dimension has put from the outline of the part. An element is dimensioned once;
+    ///  2b. an imported dimension of a CHAMFER FEATURE (its «Dn@feature@model» names a chamfer) is taken away when a chamfer
+    ///     dimension that was on the drawing before the call, in ANY view of the same model, already says that chamfer (bridge
+    ///     0.171.5): on the L bracket drawing_dimension put 1 x 45° in the front view and the import brought the 1 and the 45°
+    ///     of the same chamfer into the side view. A chamfer is dimensioned once on the whole drawing, as drawing_dimension
+    ///     already held it (the key «chamfer|feature» of KeysAlreadyDimensioned);
     ///  3. linear dimensions that lie on the same dimension line and overlap are moved apart: the shortest stays, the others go
     ///     outward one pitch each (IAnnotation~SetPosition2 on the text: the dimension line follows it), and the new place is
     ///     read back.
@@ -86,6 +91,14 @@ namespace Oce.Solid.Agent.Core
             public bool IsCallout;
             public bool IsDiameter;
             public double Mm = double.NaN;     // NaN: could not be read (not zero)
+            // an angle: its value in degrees (Mm then holds the radians times 1000, and is not reported)
+            public bool IsAngle;
+            public double Deg = double.NaN;
+            // the chamfer this dimension says (bridge 0.171.5): for a chamfer dimension the chamfer feature of the edges it rests
+            // on, for a dimension of the model the chamfer feature it is a parameter of («Dn@feature@model»); null otherwise
+            public string ChamferOf;
+            public bool ChamferDimension;
+            public string Model;               // ApiHelpers.ReferencedModelKey of its view, null when it cannot be read
             // the dimension line, when the dimension is linear and its line passes through its text
             public bool HasRow;
             public bool Horizontal;
@@ -117,6 +130,8 @@ namespace Oce.Solid.Agent.Core
                     IView view = v;
                     string viewName = "";
                     try { viewName = view.GetName2() ?? ""; } catch { }
+                    string viewModel = null;
+                    try { viewModel = ApiHelpers.ReferencedModelKey(view); } catch { }
                     var d = view.GetFirstDisplayDimension5() as IDisplayDimension;
                     while (d != null)
                     {
@@ -132,6 +147,11 @@ namespace Oce.Solid.Agent.Core
                             row.IsDiameter = !row.IsCallout && IsDiameterDimension(current);
                             if (dim != null)
                                 try { row.Mm = Math.Round(ApiHelpers.ReadDimensionInConfiguration(dim, "") * 1000.0, 3); } catch { }
+                            try { row.IsAngle = dim != null && dim.GetType() == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular; } catch { }
+                            if (row.IsAngle && !double.IsNaN(row.Mm)) row.Deg = Math.Round(row.Mm / 1000.0 * 180.0 / Math.PI, 2);
+                            row.Model = viewModel;
+                            try { row.ChamferDimension = current.Type2 == (int)swDimensionType_e.swChamferDimension; } catch { }
+                            row.ChamferOf = row.ChamferDimension ? ChamferOfItsEdges(current) : ChamferFeatureOfModelDimension(view, full);
                             rows.Add(row);
                         }
                         catch { }
@@ -176,6 +196,30 @@ namespace Oce.Solid.Agent.Core
                             break;
                         }
                 }
+                // 1c. A CHAMFER THE DRAWING ALREADY DIMENSIONS, IN ANY VIEW (bridge 0.171.5). The L bracket: drawing_dimension put the
+                // chamfer dimension 1 x 45° in the front view, and the import brought the 1 and the 45° of the same chamfer feature
+                // into the side view. A chamfer is dimensioned once on the whole drawing, not once per view (the owner's rule of
+                // 02/11/2026, UNI ISO 129-1); drawing_dimension keeps the same rule with the key «chamfer|feature»
+                // (KeysAlreadyDimensioned). Only a CHAMFER DIMENSION that was on the drawing before the call, shown, of the same model,
+                // makes an imported dimension of that chamfer feature go: the import alone is never judged against itself.
+                foreach (ImportedDimension row in rows)
+                {
+                    if (!row.Imported || row.ChamferOf == null || victims.Exists(q => ReferenceEquals(q.Row, row))) continue;
+                    foreach (ImportedDimension c in rows)
+                    {
+                        if (c.Imported || !c.ChamferDimension || c.ChamferOf != row.ChamferOf || !ApiHelpers.MayShowTheSameModel(c.Model, row.Model)) continue;
+                        bool hidden = false;
+                        try { hidden = ApiHelpers.IsHiddenByHand(c.Display); } catch { }
+                        if (hidden) continue;
+                        victims.Add(new Victim
+                        {
+                            Row = row,
+                            Why = "the chamfer dimension «" + c.Name + "» of the view «" + c.ViewName + "» already says the chamfer «" +
+                                  row.ChamferOf + "»" + ChamferValuesText(c.Display) + ": a chamfer is dimensioned once on the whole drawing, not once per view",
+                        });
+                        break;
+                    }
+                }
                 foreach (Victim p in victims)
                 {
                     ImportedDimension gone = p.Row;
@@ -195,13 +239,16 @@ namespace Oce.Solid.Agent.Core
                     if (beforeCount >= 0 && afterCount >= 0 && afterCount < beforeCount)
                     {
                         gone.Display = null;
-                        removed.Add(new Dictionary<string, object>
+                        var removedRow = new Dictionary<string, object>
                         {
                             ["name"] = gone.Name,
                             ["view"] = gone.ViewName,
-                            ["mm"] = double.IsNaN(gone.Mm) ? null : (object)gone.Mm,
+                            // an angle has no millimetres: its degrees go under «deg» (bridge 0.171.5)
+                            ["mm"] = double.IsNaN(gone.Mm) || gone.IsAngle ? null : (object)gone.Mm,
                             ["why"] = p.Why,
-                        });
+                        };
+                        if (gone.IsAngle && !double.IsNaN(gone.Deg)) removedRow["deg"] = gone.Deg;
+                        removed.Add(removedRow);
                     }
                     else
                         problems.Add("«" + gone.Name + "» should have been taken away (" + p.Why + ") and is still there (dimensions " +
@@ -331,6 +378,76 @@ namespace Oce.Solid.Agent.Core
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// The chamfer feature a chamfer dimension says: the chamfer feature of the first edge it rests on that touches one
+        /// (TouchesAChamfer, as KeysAlreadyDimensioned reads it); null when no edge can be read.
+        /// </summary>
+        private static string ChamferOfItsEdges(IDisplayDimension d)
+        {
+            try
+            {
+                var ann = d.GetAnnotation() as IAnnotation;
+                var ents = ann == null ? null : ann.GetAttachedEntities3() as object[];
+                if (ents == null) return null;
+                foreach (object o in ents)
+                {
+                    var e = o as IEdge;
+                    string feature = e == null ? null : TouchesAChamfer(e);
+                    if (feature != null) return feature;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// The chamfer feature a dimension of the model is a parameter of: its full name is «Dn@feature@model.Part», and the
+        /// feature of that name in the part of the view is a chamfer (IFeature~GetTypeName2 «Chamfer», the same in every
+        /// language of SOLIDWORKS). Null for a dimension made in the drawing (its name ends in «.Drawing»), for a feature that is
+        /// not a chamfer, and when the part cannot be read (an assembly view: its feature names carry the component).
+        /// </summary>
+        private static string ChamferFeatureOfModelDimension(IView view, string fullName)
+        {
+            if (string.IsNullOrEmpty(fullName) || fullName.EndsWith(".Drawing", StringComparison.OrdinalIgnoreCase)) return null;
+            string[] parts = fullName.Split('@');
+            if (parts.Length < 2 || string.IsNullOrEmpty(parts[1])) return null;
+            try
+            {
+                IView itsView = view;
+                IPartDoc part = null;
+                for (int level = 0; itsView != null && part == null && level < 8; level++)
+                {
+                    part = itsView.ReferencedDocument as IPartDoc;
+                    if (part == null) itsView = itsView.GetBaseView() as IView;
+                }
+                var feature = part == null ? null : part.FeatureByName(parts[1]) as IFeature;
+                return feature != null && feature.GetTypeName2() == "Chamfer" ? feature.Name : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>« (1 x 45°)»: the leg and the angle a chamfer dimension reads, as PlaceChamferDimension reads them; empty when unreadable.</summary>
+        private static string ChamferValuesText(IDisplayDimension d)
+        {
+            double? angle = null, width = null;
+            for (int k = 0; k < 2 && d != null; k++)
+            {
+                try
+                {
+                    var dk = d.GetDimension2(k) as IDimension;
+                    if (dk == null) continue;
+                    int typ = dk.GetType();
+                    if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleAngular) angle = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                    else if (typ == (int)swDimensionParamType_e.swDimensionParamTypeDoubleLinear) width = ApiHelpers.ReadDimensionInConfiguration(dk, "");
+                }
+                catch { }
+            }
+            if (!angle.HasValue || !width.HasValue) return "";
+            double radians = angle.GetValueOrDefault(), metres = width.GetValueOrDefault();
+            double leg = Math.Round(metres * Math.Cos(radians) * 1000.0, 3);
+            return " (" + leg.ToString("0.###", Ct) + " x " + Math.Round(radians * 180.0 / Math.PI, 2).ToString("0.##", Ct) + "°)";
         }
 
         /// <summary>

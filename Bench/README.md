@@ -768,7 +768,8 @@ cases/drawing/      74   the first case that gets to the DRAWING (entry GT0);
                        branch, as «table» of delete_annotation), the view that would leave the
                        sheet put back; the L bracket drawn end to end: a sheet-metal part with a
                        chamfer along the whole outline, its 120, 70, 8 and R8, the chamfer
-                       1 x 45° of the front view, which sees it in its true size (0.171.1), the
+                       1 x 45° of the front view, which sees it in its true size (0.171.1), and
+                       not again in the side view when the model dimensions are imported (0.171.5), the
                        holes positioned from the outline, the hole table that says how far its
                        origin is from the
                        corner (0.131.0, items 1 to 5); the import with all_dimensions that leaves no

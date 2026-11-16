@@ -1,7 +1,7 @@
 {
   "name": "l_bracket_drawing_end_to_end",
   "family": "drawing",
-  "red_before": "0.199.0",
+  "red_before": "0.199.3",
   "why": "0.131.0, items 1 to 5 of the drawing branch. THE PROOF SESSION OF 12/10/2026 REPEATED FROM THE BEGINNING: a sheet-metal L bracket (base flange 120 x 70 x 60, thickness 8, bend radius 8), two Ø11 holes made by the hole wizard, a slot, a chamfer 1 x 45 along the whole outline, drawn on an A3 sheet with the three standard views and the isometric one. On that sheet `drawing_dimension` failed on every view with «the chamfer dimension was not created» (every edge of the front view touches the chamfer feature, the first oblique edge it tried was an ARC, and the miters where two chamfer strips meet are not chamfers in profile), the 120, 70, 8 and R8 were nowhere (they are not dimensions of the model: the profile of the base flange is not dimensioned and the thickness and the bend radius belong to the sheet metal feature), the hole table said (14, 29) and (74, 29) for holes at 30 and 90 from the wall and answered positions_checked: true, the callout said «2× 2 x Ø11», and after all_dimensions the sheet had the Ø11 twice, the 90 and the 30 on the same dimension line and dash-dot lines outside the views.",
   "defect_caught": "A drawing_dimension that gives nothing on a view whose every edge is shortened by a chamfer or a bend; a chamfer dimension «-1 mm, 135°» on a miter; an overall size, a thickness or a bend radius that is not on the sheet; the same extent dimensioned again in the next view; a hole position measured from the tangent line where the bend begins instead of from the outline; a count written twice in a callout; a hole table that says it checked the positions when its origin is not the corner of the part; an import that leaves a diameter next to the callout that says it, two dimensions on one line, and sketch segments outside the views.",
   "start": {
@@ -358,9 +358,14 @@
       "arguments": {},
       "expect": [
         {
+          "what": "state.views[2].dimensions",
+          "equal_to": 2,
+          "why": "THE CHAMFER IS DIMENSIONED ONCE ON THE WHOLE DRAWING (bridge 0.171.5): the side view keeps the R5.5 and the 19 of the slot, NOT the 1 and the 45° of the chamfer feature, which the chamfer dimension 1 x 45° of the front view (step 9) already says. Up to bridge 0.171.1 the side view had 4"
+        },
+        {
           "what": "measurements.dimensions_inserted",
-          "equal_to": 4,
-          "why": "five dimensions of the model arrive (the depth 60, the slot R5.5 and 19, the chamfer 1 and 45°: the slot of this case has no anchor, so no 35) and one of them is taken away again: the 60 is the overall height of the top view that drawing_dimension has just put"
+          "equal_to": 2,
+          "why": "five dimensions of the model arrive (the depth 60, the slot R5.5 and 19, the chamfer 1 and 45°: the slot of this case has no anchor, so no 35) and three of them are taken away again: the 60 is the overall height of the top view that drawing_dimension has just put, the 1 and the 45° are the chamfer the front view already dimensions. 4 up to bridge 0.171.1"
         },
         {
           "what": "measurements.imported_dimensions_removed[0].mm",
@@ -375,6 +380,13 @@
             "already says"
           ],
           "why": "the reason is in the answer"
+        },
+        {
+          "what": "measurements.imported_dimensions_removed",
+          "includes": [
+            "a chamfer is dimensioned once on the whole drawing"
+          ],
+          "why": "the 1 and the 45° of the chamfer feature arrive and go again, each with the chamfer dimension of the front view that already says the chamfer"
         },
         {
           "what": "measurements.part_dimensions_not_in_drawing",
