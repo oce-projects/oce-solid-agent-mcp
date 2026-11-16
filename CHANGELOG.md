@@ -32,6 +32,37 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.171.2 — 17 November 2026 · library 0.199.1 (unchanged) · a commit hash is not an Italian word
+
+**What happened.** The full bench of 16-17 November 2026 (22:43-00:06) on 0.171.1 (commit
+`49148ce`) was green: 2809 tests, 0 failed, 1 skipped, 2288 of 2288 expectations, 4930 s. Its
+report, `Bench/report/last.json`, holds the commit in `"commit": "49148ce"`, and the language gate
+failed on it: «Bench/report/last.json:8 protocol: [ce] 49148ce». The gate read «ce» as an Italian
+word.
+
+**The cause.** `collectTokens` of `Checks/language/detect-italian.js` started every token at its
+first letter, so the digits before it were dropped: of `49148ce` only «ce» was left. The two rules
+written for this case in `isItalianName` never saw the digits: the one on hashes
+(`/^(?=[0-9a-f]*\d)[0-9a-f]{6,}$/i`) and the one on «a part of one or two letters glued to a digit
+(ce in 264ce319)». The second worked only when the digits came after the letters, as in
+`264ce319`; a hash that ends with letters was counted.
+
+**The fix.** A token keeps the digits that come right before its first letter: `49148ce` is one
+token, the hash rule sees it whole and leaves it out. The digits are walked back from the match
+instead of being put in the pattern, so a long run of digits does not make the pattern backtrack.
+Nothing else in the rules changes: a longer word glued to digits is still split and judged; only
+parts of one or two letters glued to a digit, and hashes, are left out, as the rules already said.
+
+**The check.** `Tests/LanguageGateTests.cs`: «a commit hash is not a name: «ce» of 49148ce is not
+counted, as a JSON value or in a code span». It writes `{"commit": "49148ce", "tree": "264ce319",
+"base": "9e1d2ce"}` and a Markdown line with the two hashes in code spans into the probe tree, and
+expects no occurrence from them. Seen red first, on the detector of 0.171.1: «data/probe-hashes.json:
+ce | docs/hashes.md: ce», 1066 checks, 1 failed.
+
+**What the bench covers.** The bridge and the library are byte for byte those of the green bench
+on `49148ce`: only the language gate, its contract and the version changed. The bench does not
+run the language gate; the contracts do.
+
 ## 0.171.1 — 16 November 2026 · library 0.199.1 · the six reds of the full bench on 0.171.0
 
 **What happened.** The full bench of 16 November 2026 (20:44-22:02) on the port of 0.131.0

@@ -465,10 +465,20 @@ function proseScore(t, cfg) {
 
 function proseIsItalian(t, cfg) { return proseScore(t, cfg).italian; }
 
+// A token keeps the digits BEFORE its first letter (bridge 0.171.2). It used to start at the first
+// letter, so the \u00abce\u00bb of the commit 49148ce came out alone: the rule of isItalianName on parts glued
+// to a digit, and the one on hashes, never saw the digits, and the gate counted \u00abce\u00bb in the bench
+// report of 17/11/2026. A token is still a run with at least one letter. The digits are walked
+// back from the match, not put in the pattern: a pattern that may start on a digit backtracks over
+// every long run of digits.
 function collectTokens(text, out) {
   const re = /[A-Za-z_\u00c0-\u00ff][A-Za-z0-9_\u00c0-\u00ff]*/g;
   let m;
-  while ((m = re.exec(text)) !== null) out.push(m[0]);
+  while ((m = re.exec(text)) !== null) {
+    let start = m.index;
+    while (start > 0 && text.charCodeAt(start - 1) >= 48 && text.charCodeAt(start - 1) <= 57) start--;
+    out.push(text.slice(start, m.index + m[0].length));
+  }
 }
 
 // -----------------------------------------------------------------------------

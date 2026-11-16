@@ -219,6 +219,10 @@ namespace Oce.Solid.Agent.ContractTests
             Append(repo, "QUICKSTART.md", typographic);
             WriteNew(repo, "src/appended.js", "// an English line and " + prose + " " + appended + "\n");
             WriteNew(repo, "docs/homographs.md", string.Join("\n", englishHomographs) + "\n");
+            // commit hashes: the letters after the digits are not a word. «ce» of 49148ce is the commit of the
+            // bench of 17/11/2026, and the gate counted it in Bench/report/last.json (bridge 0.171.2)
+            WriteNew(repo, "data/probe-hashes.json", "{\"commit\": \"49148ce\", \"tree\": \"264ce319\", \"base\": \"9e1d2ce\"}\n");
+            WriteNew(repo, "docs/hashes.md", "The bench ran on `49148ce`, after `264ce319`.\n");
 
             string ignored;
             Run("git", "add -A", repo, out ignored);
@@ -263,6 +267,9 @@ namespace Oce.Solid.Agent.ContractTests
             Named(outside, "markdown", "QUICKSTART.md", "the typographic apostrophe counts as the accent");
             Check("English lines with one Italian homograph each do not count",
                   !outside.Any(h => S(h, "file") == "docs/homographs.md"), string.Join(" | ", englishHomographs));
+            var hashHits = outside.Where(h => S(h, "file") == "data/probe-hashes.json" || S(h, "file") == "docs/hashes.md").ToList();
+            Check("a commit hash is not a name: «ce» of 49148ce is not counted, as a JSON value or in a code span",
+                  hashHits.Count == 0, string.Join(" | ", hashHits.Select(h => S(h, "file") + ": " + S(h, "element"))));
             Check("the totals of the report carry no category that is gone (transition)",
                   doc["totals"] is Dictionary<string, object> && !((Dictionary<string, object>)doc["totals"]).ContainsKey("transition"), "");
         }
