@@ -1,0 +1,27 @@
+{
+  "name": "limit_move_view_outside_the_sheet",
+  "family": "drawing",
+  "why": "0.131.0, item 6 of the drawing branch, ported to the main line in bridge 0.171.0 as a case of the main line's own «move_view». A view moved outside the sheet exists, is counted, and is not on the paper: no error from SOLIDWORKS would say so. The main line moves the view, reads every view that moved against the frame of the sheet and, when one leaves it, puts the view back and refuses.",
+  "_what_changes_compared_to_the_twin": "The same plate, the same three views and the same view as view_is_moved; the shift is 300 mm to the right instead of 10, which on an A3 sheet takes the front view (and the side view aligned to it) past the right edge of the frame.",
+  "_what_changed_in_the_port": "The case of 0.131.0 asked V2 with «x_mm» 5000 and «unalign», and expected the refusal of a check made BEFORE the move («outside the sheet»). The main line checks after the move and puts the view back, so the case asks a shift that SOLIDWORKS certainly makes and expects the words of the main line.",
+  "defect_caught": "A move that leaves a view off the paper and answers done. The message must say that the view goes out of the frame of the sheet and that it was put back.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 192000, "why": "the same plate as the twin" } ] },
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_move_view_outside_the_sheet.sldprt" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "the refusal must be the one on the sheet, not the one on «it is not a drawing»" } ] },
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_move_view_outside_the_sheet.sldprt" },
+      "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "the same three views as the twin" } ] },
+    { "operation": "move_view",
+      "arguments": { "view": "V1", "dx_mm": 300, "dy_mm": 0 },
+      "must_fail": { "message_includes": ["goes out of the frame of the sheet", "I put it back where it was"],
+                     "twin": "view_is_moved" } }
+  ]
+}

@@ -266,13 +266,13 @@ $lines = Get-Content $output
 # THE SUMMARY IS TAKEN FROM THE LINE THE BENCH WRITES, it is not recalculated:
 # two counts of the same number, made in two places, sooner or later diverge and
 # then nobody knows which one is the true one.
-$fine = ($lines | Where-Object { $_ -match "^(PARTIAL RUN|[0-9]+ tests,)" } | Select-Object -Last 1)
-if ($fine -eq $null) { $fine = "(the bench did not write the summary)" }
+$summaryLine = ($lines | Where-Object { $_ -match "^(PARTIAL RUN|[0-9]+ tests,)" } | Select-Object -Last 1)
+if ($summaryLine -eq $null) { $summaryLine = "(the bench did not write the summary)" }
 # [string] AND IT IS NOT ENOUGH THAT IT BE A STRING. Get-Content returns lines
 # with PowerShell's notes on them (PSPath, PSDrive, the provider...), and
 # ConvertTo-Json follows them all: the first .json that came out of here weighed 498 kB
 # of tree of the S: drive around one summary line.
-$fine = [string]$fine
+$summaryLine = [string]$summaryLine
 
 # THE OUTCOME LINES COME OUT TWICE: once while the run goes, once in the final
 # list after the ==== line. The ones after are counted, otherwise everything
@@ -312,7 +312,7 @@ if ([string]::IsNullOrWhiteSpace($expectations)) { $expectations = "expectations
 # THE GREEN CASES, BY NAME (entry Z-C6). The bench writes them on a single line; here
 # they become a list (`green_cases`) in `last.json`, which the contract suite crosses with the
 # catalog: every operation served must have a green case in the last run.
-# [string] for the same reason as $fine: no PowerShell notes in the JSON.
+# [string] for the same reason as $summaryLine: no PowerShell notes in the JSON.
 $greenLine = [string]($lines | Where-Object { $_ -match "^green cases: " } | Select-Object -Last 1)
 $greenCases = @()
 if (-not [string]::IsNullOrWhiteSpace($greenLine)) {
@@ -360,7 +360,7 @@ if (-not [string]::IsNullOrWhiteSpace($Family)) { $md.Add("| family | " + $Famil
 if (-not [string]::IsNullOrWhiteSpace($Case)) { $md.Add("| cases | " + $Case + " |") }
 $md.Add("| solidworks language | " + $sw_language + " |")
 $md.Add("")
-$md.Add("**" + $fine + "**")
+$md.Add("**" + $summaryLine + "**")
 $md.Add("")
 $md.Add("| | |")
 $md.Add("|---|---|")
@@ -434,7 +434,7 @@ $obj = [ordered]@{
     solidworks_language = $sw_language
     slow         = [bool]$Slow
     duration_s   = [int]$duration.TotalSeconds
-    summary      = $fine
+    summary      = $summaryLine
     expectations = $expectations
     passed       = $passed.Count
     failed       = $failed.Count

@@ -143,7 +143,7 @@ namespace Oce.Solid.Agent.Bench
 
         private static ISldWorks _sw;
         private static Assembly _addin;
-        private static Type _tOperations, _tState, _tOutcome;
+        private static Type _tOperations, _tState, _tOutcome, _tStep;
         private static readonly List<string> _outcomes = new List<string>();
         private static int _failed;
 
@@ -883,6 +883,12 @@ namespace Oce.Solid.Agent.Bench
                              What = "the cases that go through the bridge (F14)",
                              Actions = one(TheClientPort) },
                 // FACES BEYOND THE 60 LARGEST (W3.1-bis.12): the same road with a point and a rank.
+                // THE PART-SIDE DEFECTS OF THE DRAWING TEST OF 12/10/2026 (0.131.0): undo, set_property with
+                // a drawing in front, the angle of the slot, a malformed save path, the first base flange,
+                // the candidates of an ambiguous material. Through the bridge, with the documents read by COM.
+                new Group { Name = "part-fixes-131",
+                             What = "the part-side defects of the drawing test of 12/10/2026, through the bridge",
+                             Actions = one(TestPartFixes131) },
                 new Group { Name = "faces-beyond-sixty",
                              What = "a face beyond the 60 largest: named by its rank, found by a point",
                              Actions = one(TestFacesBeyondSixty) },
@@ -1703,13 +1709,34 @@ namespace Oce.Solid.Agent.Bench
             bool closeItYourself = lineArguments != null &&
                             Array.IndexOf(lineArguments, "--close-leftovers") >= 0;
 
+            // DOCUMENTS THAT ARE NOT THE BENCH'S AND MUST NOT BE TOUCHED (0.131.0). On a shared
+            // workstation the owner can have a part of his own open (a part of the vault, looked at in
+            // the OpenPDM pane) while a case runs; the bench refused to start, and the only way out
+            // it offered was `--close-leftovers`, which would close it and discard what is unsaved.
+            // `OCE_BENCH_SPARE_FOLDERS` (folders separated by «;») names where such documents live:
+            // a document whose path is under one of them is not counted, not listed as a leftover and
+            // never closed. Nothing is spared by default: an unset variable is the old behaviour.
+            var spareFolders = new List<string>();
+            foreach (var spare in (System.Environment.GetEnvironmentVariable("OCE_BENCH_SPARE_FOLDERS") ?? "")
+                         .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string folder = spare.Trim().TrimEnd(Path.DirectorySeparatorChar);
+                if (folder.Length > 0) spareFolders.Add(folder + Path.DirectorySeparatorChar);
+            }
             var names = new List<string>();
+            var spared = new List<string>();
             try
             {
                 var d = (IModelDoc2)_sw.GetFirstDocument();
                 while (d != null)
                 {
-                    names.Add(d.GetTitle() ?? "(untitled)");
+                    string where = "";
+                    try { where = d.GetPathName() ?? ""; } catch { }
+                    if (where.Length > 0 &&
+                        spareFolders.Any(f => where.StartsWith(f, StringComparison.OrdinalIgnoreCase)))
+                        spared.Add(d.GetTitle() ?? "(untitled)");
+                    else
+                        names.Add(d.GetTitle() ?? "(untitled)");
                     d = (IModelDoc2)d.GetNext();
                 }
             }
@@ -1722,7 +1749,24 @@ namespace Oce.Solid.Agent.Bench
                 return true;
             }
 
+            if (spared.Count > 0)
+                Console.WriteLine("desk: " + spared.Count + " document(s) of someone else left alone (OCE_BENCH_SPARE_FOLDERS): " +
+                                  string.Join(", ", spared));
             if (names.Count == 0) return true;
+
+            // `--keep-open-documents`: SOLIDWORKS is SHARED and somebody else's documents are open in it (the
+            // owner's own work, other builders). Nothing is closed and the run goes on, and it SAYS so: a
+            // family that creates its own documents and closes only those does not need the desk to be
+            // empty, and closing a colleague's unsaved part to make a bench run would be the damage this
+            // check exists to prevent. It is for a partial run (`--group`, `--case`): the state-size check
+            // of a full run still wants the clean desk, and a full run on a shared desk is not valid.
+            if (lineArguments != null && Array.IndexOf(lineArguments, "--keep-open-documents") >= 0)
+            {
+                Console.WriteLine("desk: " + names.Count + (names.Count == 1 ? " document is" : " documents are") +
+                                  " open and NOT mine (" + string.Join(", ", names.Take(5)) +
+                                  (names.Count > 5 ? ", ..." : "") + "); they are left alone (--keep-open-documents)");
+                return true;
+            }
 
             if (!closeItYourself)
             {
@@ -1758,7 +1802,11 @@ namespace Oce.Solid.Agent.Bench
                 var d = (IModelDoc2)_sw.GetFirstDocument();
                 while (d != null)
                 {
-                    remain++;
+                    string where = "";
+                    try { where = d.GetPathName() ?? ""; } catch { }
+                    if (!(where.Length > 0 &&
+                          spareFolders.Any(f => where.StartsWith(f, StringComparison.OrdinalIgnoreCase))))
+                        remain++;
                     d = (IModelDoc2)d.GetNext();
                 }
             }
@@ -1941,7 +1989,7 @@ namespace Oce.Solid.Agent.Bench
                  new[] { new[] { 0.0, 0.0 } }, 6.8);
             Hole("one blind threaded M12, 12 deep", "threaded", "M12", false, 12,
                  new[] { new[] { 30.0, 20.0 } }, 10.2);
-            Hole("due lamati M8", "counterbore", "M8", true, 0,
+            Hole("two counterbored M8", "counterbore", "M8", true, 0,
                  new[] { new[] { -50.0, 0.0 }, new[] { 50.0, 0.0 } }, 9.0);
             Hole("invented size (must fail)", "threaded", "M7", true, 0,
                  new[] { new[] { 0.0, 0.0 } }, 0, mustFail: true);
@@ -2475,15 +2523,15 @@ namespace Oce.Solid.Agent.Bench
                 int inList = list == null ? 0 : list.Count;
 
                 // 1. THE CEILING IS DECLARED.
-                int totali = final.ContainsKey("feature_total")
+                int totals = final.ContainsKey("feature_total")
                     ? Convert.ToInt32(final["feature_total"]) : 0;
                 int outside = final.ContainsKey("feature_not_listed")
                     ? Convert.ToInt32(final["feature_not_listed"]) : 0;
                 bool truncated = final.ContainsKey("truncated") &&
                                 Convert.ToBoolean(final["truncated"]);
                 Check("ceiling: declared",
-                      totali == HowMany + 1 && outside == HowMany + 1 - Cap && truncated,
-                      "listed " + inList + ", total " + totali + ", outside " + outside +
+                      totals == HowMany + 1 && outside == HowMany + 1 - Cap && truncated,
+                      "listed " + inList + ", total " + totals + ", outside " + outside +
                       ", truncated " + truncated);
 
                 // 2. AND THE ONE THAT COUNTS: THE LAST ONE IS THERE.
@@ -2578,7 +2626,8 @@ namespace Oce.Solid.Agent.Bench
         /// </summary>
         private static Dictionary<string, object> Run(
             IModelDoc2 doc, string operation, Dictionary<string, object> arguments,
-            out string error, out IModelDoc2 newDocument, object docState = null)
+            out string error, out IModelDoc2 newDocument, object docState = null,
+            object stepsDone = null, int stepOrder = 0)
         {
             error = null;
             newDocument = null;
@@ -2609,7 +2658,7 @@ namespace Oce.Solid.Agent.Bench
             {
                 outcome = InSequence(() => run.Invoke(op, new object[]
                 {
-                    doc, operation, arguments, objectState, null,
+                    doc, operation, arguments, objectState, stepsDone,
                 }));
             }
             finally { Leash.Finished(); }
@@ -2621,6 +2670,10 @@ namespace Oce.Solid.Agent.Bench
                 error = _tOutcome.GetField("Error").GetValue(outcome) as string;
                 return null;
             }
+            // WHAT THE STEP LEFT BEHIND stays at the disposal of the following ones, as the
+            // plan executor does it: it is what lets a case say `face_ref: {step: 1,
+            // kind: top_face}` and run a plate and its text as ONE plan.
+            if (stepsDone != null && stepOrder > 0) RecordStep(stepsDone, stepOrder, operation, outcome);
             // THE FIELD MAY NOT BE THERE, and it is not a fault: the bench loads the
             // library by reflection, and a library older than this
             // line does not have `NewDocument`. In that case `null` is returned and one
@@ -2657,6 +2710,32 @@ namespace Oce.Solid.Agent.Bench
             });
             Phase("after step", afterClock.ElapsedMilliseconds);
             return measured;
+        }
+
+        /// <summary>
+        /// The «steps done» of a declared case: what `face_ref`, `feature_ref` and the other
+        /// references to an earlier step of the plan read (PlanExecutor keeps the same
+        /// dictionary in production). It is built by reflection, with the library's own type
+        /// `References.Step`, so that a case runs against whichever library it is pointed at.
+        /// </summary>
+        private static object NewStepsDone()
+        {
+            _tStep = _tStep ?? ReflectionLog.Global.TypeIn(_addin, NS + "References+Step");
+            if (_tStep == null)
+                throw new InvalidOperationException("the library has no type References.Step: a case with face_ref cannot run on it");
+            // The constructor, not the static helper by name: the obsolete-call net of the contract
+            // suite reads «CreateInstance» as the one of IAttributeDef.
+            return typeof(Dictionary<,>).MakeGenericType(typeof(int), _tStep)
+                .GetConstructor(Type.EmptyTypes).Invoke(null);
+        }
+
+        private static void RecordStep(object stepsDone, int order, string operation, object outcome)
+        {
+            var step = _tStep.GetConstructor(Type.EmptyTypes).Invoke(null);
+            _tStep.GetField("Feature").SetValue(step, _tOutcome.GetField("Feature").GetValue(outcome));
+            _tStep.GetField("Direction").SetValue(step, _tOutcome.GetField("Direction").GetValue(outcome));
+            _tStep.GetField("Operation").SetValue(step, operation);
+            ((System.Collections.IDictionary)stepsDone)[order] = step;
         }
 
         private static object ReadObjectState(IModelDoc2 doc, string phase = "read state")

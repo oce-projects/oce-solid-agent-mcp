@@ -387,10 +387,10 @@ namespace Oce.Solid.Agent.Core
             public string Grid(object d)
             {
                 var l = (ILinearPatternFeatureData)d;
-                bool due = false; int n1 = 0, n2 = 0;
-                try { due = l.IsDirection2Specified(); n1 = l.D1TotalInstances; n2 = l.D2TotalInstances; }
+                bool twoDirections = false; int n1 = 0, n2 = 0;
+                try { twoDirections = l.IsDirection2Specified(); n1 = l.D1TotalInstances; n2 = l.D2TotalInstances; }
                 catch { return null; }
-                return due && n2 > 1 ? n1 + " x " + n2 : null;
+                return twoDirections && n2 > 1 ? n1 + " x " + n2 : null;
             }
         }
 
@@ -413,11 +413,11 @@ namespace Oce.Solid.Agent.Core
             public string Grid(object d)
             {
                 var c = (ICircularPatternFeatureData)d;
-                bool due = false, symmetric = false; int n1 = 0, n2 = 0;
+                bool twoDirections = false, symmetric = false; int n1 = 0, n2 = 0;
                 try
                 {
-                    due = c.Direction2;
-                    if (!due) return null;
+                    twoDirections = c.Direction2;
+                    if (!twoDirections) return null;
                     n1 = c.TotalInstances;
                     symmetric = c.Symmetric;
                     n2 = symmetric ? n1 : c.TotalInstances2;
@@ -461,10 +461,10 @@ namespace Oce.Solid.Agent.Core
             public string Grid(object d)
             {
                 var c = (ICurveDrivenPatternFeatureData)d;
-                bool due = false; int n1 = 0, n2 = 0;
-                try { due = c.Dir2Specified; n1 = c.D1InstanceCount; n2 = c.D2InstanceCount; }
+                bool twoDirections = false; int n1 = 0, n2 = 0;
+                try { twoDirections = c.Dir2Specified; n1 = c.D1InstanceCount; n2 = c.D2InstanceCount; }
                 catch { return null; }
-                return due && n2 > 1 ? n1 + " x " + n2 : null;
+                return twoDirections && n2 > 1 ? n1 + " x " + n2 : null;
             }
         }
 

@@ -87,14 +87,14 @@ namespace Oce.Solid.Agent.Core
                     "The scheme put no dimension (" + before + " -> " + after + "). " +
                     "Usually the three references are not three planar faces perpendicular to each other.");
 
-            var quote = new List<object>();
+            var dimensionNames = new List<object>();
             var values = new List<object>();
             var ann = partDoc.GetAnnotations() as object[];
             foreach (var o in ann ?? new object[0])
             {
                 var an = o as IDimXpertAnnotation;
                 if (an == null) continue;
-                quote.Add(an.Name);
+                dimensionNames.Add(an.Name);
                 int ap = an.Name.LastIndexOf('('), ch = an.Name.LastIndexOf(')');
                 double v;
                 if (ap > 0 && ch > ap && double.TryParse(an.Name.Substring(ap + 1, ch - ap - 1),
@@ -107,7 +107,7 @@ namespace Oce.Solid.Agent.Core
             {
                 ["annotations_before"] = before,
                 ["annotations_after"] = after,
-                ["dimensions"] = quote.Count <= 40 ? quote.ToArray() : quote.GetRange(0, 40).ToArray(),
+                ["dimensions"] = dimensionNames.Count <= 40 ? dimensionNames.ToArray() : dimensionNames.GetRange(0, 40).ToArray(),
                 ["values_mm"] = values.ToArray(),
                 ["characteristics"] = partDoc.GetFeatureCount(),
                 // THE ANSWER OF THE API, next to the measurement and with its name: False

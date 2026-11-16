@@ -36,7 +36,7 @@
       "arguments": { "faces_uid": ["@face(area~=17680,normal=right,n=1)",
                                    "@face(area~=40800,normal=front,n=2)"],
                      "thickness_mm": 5, "leg1_mm": 60, "leg2_mm": 60,
-                     "position": "meta" },
+                     "position": "middle" },
       "must_fail": {
         "message_includes": ["position", "center"],
         "volume_unchanged": true,

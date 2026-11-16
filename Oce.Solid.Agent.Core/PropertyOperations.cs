@@ -141,6 +141,84 @@ namespace Oce.Solid.Agent.Core
             if (scope == "both")
                 return SetPropertyOnBoth(model, itemName, val, configuration);
 
+            // ── A DRAWING IS IN FRONT (finding of 12/10/2026) ────────────
+            //
+            // The title block of a drawing does not read the drawing's own properties for
+            // everything: `$PRPSHEET:"name"` (and `$PRPVIEW`) read the property from the MODEL shown in
+            // the view the sheet names (ISheet~CustomPropertyView.html: «the drawing view to use to
+            // set the custom information for this drawing sheet»), and only `$PRP:"name"` reads the
+            // drawing. A property written on the drawing and read by a `$PRPSHEET` field was written
+            // on the wrong document: the answer said OK, the title block stayed empty, nothing said
+            // why. Now the title block is asked where it reads this name, and the property is written
+            // THERE: on the model of the views when the title block reads it from the model, on the
+            // drawing when it reads it from the drawing, on both when it reads it both ways. A name
+            // that no field reads is written on the drawing, as before, and the answer says that no
+            // field shows it. When the title block says «model» and the model cannot be reached, it
+            // refuses and says why, instead of writing where nobody reads.
+            IModelDoc2 partModel = null;
+            bool writeOnDrawing = true;
+            string routeNote = null;
+            var drawingDoc = model as IDrawingDoc;
+            if (drawingDoc != null && !onConfiguration)
+            {
+                string refusal;
+                if (!PropertyRouteForDrawing(drawingDoc, itemName, out writeOnDrawing, out partModel,
+                                             out routeNote, out refusal))
+                    return Failed(refusal);
+            }
+
+            Dictionary<string, object> measurements = null;
+            string failure = null;
+            if (writeOnDrawing)
+            {
+                failure = WriteProperty(model, itemName, val, configuration, onConfiguration,
+                                         drawingDoc != null ? "the drawing" : null, out measurements);
+                if (failure != null) return Failed(failure);
+            }
+
+            if (partModel != null)
+            {
+                Dictionary<string, object> onThePart;
+                string partPath = "";
+                try { partPath = partModel.GetPathName(); } catch { }
+                if (string.IsNullOrWhiteSpace(partPath))
+                    try { partPath = "unsaved «" + partModel.GetTitle() + "»"; } catch { }
+                failure = WriteProperty(partModel, itemName, val, null, false,
+                                         "the part «" + partPath + "» (the model of the views)", out onThePart);
+                if (failure != null)
+                    return Failed(failure + (writeOnDrawing
+                        ? " (The property WAS written on the drawing: this is the part, which is where the title block reads it.)"
+                        : ""));
+                // The part must ask to be saved too (report 8cd843 N26): see MarkUnsavedAfterProperty.
+                MarkUnsavedAfterProperty(partModel, onThePart);
+                if (measurements == null) measurements = onThePart;
+                else measurements["also_written_on_the_part"] = onThePart;
+                measurements["part_has_unsaved_changes"] =
+                    "The part is changed in memory and NOT saved: the drawing shows the value now, but the " +
+                    "file of the part on the disk has not it until the part is saved. The undo of this plan does not " +
+                    "take it back, it is another document.";
+            }
+            if (routeNote != null) measurements["title_block"] = routeNote;
+
+            measurements["scope"] = scope;
+            if (writeOnDrawing) MarkUnsavedAfterProperty(model, measurements);
+            _log("[agent] property «" + itemName + "» = «" + val + "» on " +
+                 (onConfiguration ? configuration : (partModel != null ? "the part of the views" : "document")));
+            return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// Writes one custom property on one document (or one of its configurations) and reads it
+        /// back. Returns the reason when it did not work, null when it did; the measurements go out.
+        /// <paramref name="whichDocument"/> names the document when it is not obvious from the
+        /// plan (a drawing, or the part of a drawing).
+        /// </summary>
+        private string WriteProperty(
+            IModelDoc2 target, string itemName, string val, string configuration, bool onConfiguration,
+            string whichDocument, out Dictionary<string, object> measurements)
+        {
+            measurements = null;
+
             // NO ACTIVATION AROUND THIS, ON PURPOSE (Z-C21.4, finding L8-5, NOT
             // REAL). The doubt was that writing and reading the properties of a
             // configuration that was never activated would move the active one,
@@ -160,12 +238,12 @@ namespace Oce.Solid.Agent.Core
             ICustomPropertyManager propertyManager;
             try
             {
-                propertyManager = model.Extension.get_CustomPropertyManager(
+                propertyManager = target.Extension.get_CustomPropertyManager(
                     onConfiguration ? configuration : "") as ICustomPropertyManager;
             }
-            catch (Exception ex) { return Failed("I cannot reach the properties: " + ex.Message); }
+            catch (Exception ex) { return "I cannot reach the properties: " + ex.Message; }
             if (propertyManager == null)
-                return Failed("This document does not expose the custom properties.");
+                return "This document does not expose the custom properties.";
 
             int outcome;
             try
@@ -179,12 +257,11 @@ namespace Oce.Solid.Agent.Core
                     // comfortable way of believing one has written a revision.
                     (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
             }
-            catch (Exception ex) { return Failed("The property was not written: " + ex.Message); }
+            catch (Exception ex) { return "The property was not written: " + ex.Message; }
 
             if (outcome != (int)swCustomInfoAddResult_e.swCustomInfoAddResult_AddedOrChanged)
-                return Failed(
-                    "SOLIDWORKS refused the property «" + itemName + "»: " +
-                    PropertyOutcomeName(outcome) + ".");
+                return "SOLIDWORKS refused the property «" + itemName + "»: " +
+                    PropertyOutcomeName(outcome) + ".";
 
             // IT IS ALWAYS RE-READ. `Add3` answers a code, not the value: the
             // value is told only by whoever re-reads it.
@@ -201,10 +278,9 @@ namespace Oce.Solid.Agent.Core
             string read, resolved;
             bool present = ReadPropertyBack(propertyManager, itemName, out read, out resolved);
             if (!PropertyWrittenAsAsked(val, present, read))
-                return Failed(
-                    "I wrote «" + val + "» in «" + itemName + "» and reading back I find " +
+                return "I wrote «" + val + "» in «" + itemName + "» and reading back I find " +
                     (read == null ? "nothing" : "«" + read + "»") + ". I do not confirm " +
-                    "a data sheet that is not the one you think.");
+                    "a data sheet that is not the one you think.";
 
             // AND THE OTHER DRAWER IS LOOKED AT TOO.
             //
@@ -222,26 +298,26 @@ namespace Oce.Solid.Agent.Core
                 string whereToLook = "";
                 if (!onConfiguration)
                 {
-                    var handler = model.ConfigurationManager as IConfigurationManager;
+                    var handler = target.ConfigurationManager as IConfigurationManager;
                     whereToLook = handler == null ? null : handler.ActiveConfiguration.Name;
                     otherList = "the configuration «" + whereToLook + "»";
                 }
                 if (whereToLook != null)
                 {
-                    var overThere = model.Extension.get_CustomPropertyManager(whereToLook)
+                    var overThere = target.Extension.get_CustomPropertyManager(whereToLook)
                                as ICustomPropertyManager;
                     seenOnTheOtherSide = overThere != null && ReadProperty(overThere, itemName) != null;
                 }
             }
             catch { }
 
-            var measurements = new Dictionary<string, object>
+            measurements = new Dictionary<string, object>
             {
                 ["property"] = itemName,
                 ["value_text"] = read,
                 ["location"] = onConfiguration
                     ? "the configuration «" + configuration + "»"
-                    : "the document",
+                    : (whichDocument ?? "the document"),
                 ["visible_from_other_list"] = seenOnTheOtherSide,
                 // THE TWO DRAWERS ARE SEPARATE, and it must be said every time: it is the
                 // thing nobody expects.
@@ -254,12 +330,123 @@ namespace Oce.Solid.Agent.Core
             if (onConfiguration) measurements["configuration"] = configuration;
             if (resolved != null && !string.Equals(resolved, read, StringComparison.Ordinal))
                 measurements["resolved_value"] = resolved;
+            return null;
+        }
 
-            measurements["scope"] = scope;
-            MarkUnsavedAfterProperty(model, measurements);
-            _log("[agent] property «" + itemName + "» = «" + read + "» on " +
-                 (onConfiguration ? configuration : "document"));
-            return SucceededWithoutCreating(measurements);
+        /// <summary>
+        /// WHERE A PROPERTY MUST BE WRITTEN for the title block of the drawing in front to show it
+        /// (finding of 12/10/2026). Returns false with <paramref name="refusal"/> when the title block
+        /// reads it from the model and the model cannot be reached.
+        ///
+        /// The links of the title block are read with INote~PropertyLinkedText.html, as
+        /// `title_block` does: `$PRP:"name"` is the drawing's own property, `$PRPSHEET:"name"` and
+        /// `$PRPVIEW:"name"` are the property of the model of the sheet's property view. The names are
+        /// compared as written (the spelling of a name is what the title block looks up).
+        /// </summary>
+        private static bool PropertyRouteForDrawing(
+            IDrawingDoc drawing, string itemName, out bool writeOnDrawing, out IModelDoc2 partModel,
+            out string note, out string refusal)
+        {
+            writeOnDrawing = true;
+            partModel = null;
+            note = null;
+            refusal = null;
+
+            ISheet sheet = null;
+            try { sheet = drawing.GetCurrentSheet() as ISheet; } catch { }
+            if (sheet == null)
+            {
+                note = "I could not read the sheet, so I do not know which document the title block reads: " +
+                       "the property is written on the drawing.";
+                return true;
+            }
+
+            string where;
+            var notes = TitleBlockNotes(drawing, sheet, out where, out _);
+            bool readsDrawing, readsModel;
+            string[] closeSpellings;
+            var wanted = LinksOfTheTitleBlock(notes, itemName, out readsDrawing, out readsModel, out closeSpellings);
+
+            if (!readsDrawing && !readsModel)
+            {
+                note = notes.Count == 0
+                    ? "I found no title block in this sheet, so nothing shows this property: it is written on the drawing."
+                    : "NO FIELD OF THE TITLE BLOCK READS «" + itemName + "»: it is written on the drawing, as asked, and the " +
+                      "title block will not show it." +
+                      (closeSpellings.Length > 0
+                          ? " It reads «" + string.Join("», «", closeSpellings) + "», spelt differently (capitals, spaces): that is the name to write."
+                          : (wanted.Count > 0 ? " The properties it reads are: «" + string.Join("», «", wanted) + "»." : ""));
+                return true;
+            }
+
+            if (readsDrawing && !readsModel)
+            {
+                note = "The title block reads «" + itemName + "» from the drawing ($PRP): written on the drawing.";
+                return true;
+            }
+
+            // The title block reads it from the model (maybe from the drawing too).
+            string how;
+            partModel = ModelOfThePropertyView(drawing, sheet, out how);
+            if (partModel == null)
+            {
+                refusal =
+                    "The title block of this drawing reads «" + itemName + "» from the MODEL of its views ($PRPSHEET), not from " +
+                    "the drawing, and I cannot reach that model (" + how + "). Writing it on the drawing would answer OK and " +
+                    "the title block would stay empty, so I did not write anything. Open the part the views show (document " +
+                    "tool, action «open»), or bring the part to the front and write the property there.";
+                return false;
+            }
+            writeOnDrawing = readsDrawing;
+            note = "The title block reads «" + itemName + "» from the MODEL of its views ($PRPSHEET" +
+                   (readsDrawing ? " and also $PRP from the drawing" : "") + "), not from the drawing: written on the part (" +
+                   how + ")" + (readsDrawing ? " and on the drawing" : "") + ".";
+            return true;
+        }
+
+        /// <summary>
+        /// The model the sheet's title block takes its `$PRPSHEET` properties from: the referenced
+        /// document of the view that <c>ISheet.CustomPropertyView</c> names, or, when it names none
+        /// or the view is not found, of the first real view that has one. Null with the reason in
+        /// <paramref name="how"/> when it cannot be reached (a view of a section has none:
+        /// IView~ReferencedDocument.html, Remarks).
+        /// </summary>
+        private static IModelDoc2 ModelOfThePropertyView(IDrawingDoc drawing, ISheet sheet, out string how)
+        {
+            how = "the drawing has no view that shows a model";
+            string viewName = null;
+            try { viewName = sheet.CustomPropertyView; } catch { }
+            try
+            {
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;   // the first «view» is the sheet
+                IModelDoc2 first = null; string firstName = null;
+                while (v != null)
+                {
+                    IModelDoc2 referenced = null;
+                    try { referenced = v.ReferencedDocument as IModelDoc2; } catch { }
+                    string name = null;
+                    try { name = v.GetName2(); } catch { }
+                    if (referenced != null)
+                    {
+                        if (!string.IsNullOrWhiteSpace(viewName) && string.Equals(name, viewName, StringComparison.Ordinal))
+                        {
+                            how = "the model of the view «" + name + "», the property view of the sheet";
+                            return referenced;
+                        }
+                        if (first == null) { first = referenced; firstName = name; }
+                    }
+                    v = v.GetNextView() as IView;
+                }
+                if (first != null)
+                {
+                    how = "the model of the view «" + firstName + "»" + (string.IsNullOrWhiteSpace(viewName)
+                        ? ", the first view that shows a model (the sheet names no property view)"
+                        : ", the first view that shows a model (the property view «" + viewName + "» of the sheet was not found)");
+                    return first;
+                }
+            }
+            catch (Exception ex) { how = "reading the views failed: " + ex.Message; }
+            return null;
         }
 
         /// <summary>

@@ -101,7 +101,7 @@ namespace Oce.Solid.Agent.Core
                     "it opens, gets sliced and is printed all the same. Fix the part, " +
                     "or pass «export_anyway»: true if you know what you are doing.");
 
-            // ── 2. DOVE ──────────────────────────────────────────────────
+            // ── 2. WHERE ──────────────────────────────────────────────────
             string location = Str(a, "path", null);
             if (string.IsNullOrWhiteSpace(location))
             {

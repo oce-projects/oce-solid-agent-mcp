@@ -60,9 +60,9 @@ function tell(docTitle, r) {
 console.log("The same plan " + howMany + " times: " + path.basename(plane));
 
 const without = tell("new part each time, NEVER closed", benchRun(false));
-const con = tell("new part each time, CLOSED after each plan", benchRun(true));
+const closing = tell("new part each time, CLOSED after each plan", benchRun(true));
 
 console.log("");
-console.log(without.last > without.first * 1.5 && con.last < con.first * 1.5
+console.log(without.last > without.first * 1.5 && closing.last < closing.first * 1.5
   ? "The bench was slowing itself down, and closing no longer does that."
   : "No readable difference between the two ways on this machine.");

@@ -191,6 +191,9 @@ namespace Oce.Solid.Agent.Core
             // views are always counted — they are being walked.
             int totalViews = 0;
             int? quoteTotali = 0, totalCenterMarks = 0;
+            // THE SKETCH SEGMENTS OF THE SHEET AND OF THE VIEWS (0.131.0, item 5): lines that are neither an edge of the part nor an
+            // annotation. null, not zero, when a sketch cannot be read. See DrawingImportSketchLines.cs for what puts them there.
+            int? sketchSegmentsTotal = ReadValue(() => SketchSegmentsOf(drawing.GetFirstView() as IView));
             int? gtolTot = 0, datumTot = 0, totalWelds = 0, rugTot = 0, noteTot = 0, annTot = 0;
             int orfaneTot = 0;
             // Dimensions attached to a silhouette: not counted as orphans,
@@ -239,6 +242,8 @@ namespace Oce.Solid.Agent.Core
                     // put by SOLIDWORKS when the view is created (26/9/2026).
                     int? centerMarks = ReadValue(() => { int n = CountCenterMarks.OfView(v); if (n < 0) throw new InvalidOperationException(); return n; });
                     totalCenterMarks += centerMarks;
+                    int? sketchSegments = ReadValue(() => SketchSegmentsOf(v));
+                    sketchSegmentsTotal += sketchSegments;
 
                     // IS THE NUMBER THAT IS PRINTED THE ONE OF THE MODEL? (entry Z-C2)
                     int? bogus = DimensionsByNumberNotFromTheModel(v, bogusNumbers);
@@ -336,6 +341,7 @@ namespace Oce.Solid.Agent.Core
                         // same reason — **a field that appears only when it has
                         // an interesting value teaches not to look for it.**
                         entry["center_marks"] = centerMarks;
+                        entry["sketch_segments"] = sketchSegments;
                         entry["dimensions_with_number_not_from_model"] = bogus;
                         entry["dimensions_orphan"] = orfane;
                         // Unknown when the orphans are unknown: the same reading.
@@ -378,6 +384,7 @@ namespace Oce.Solid.Agent.Core
                                      "«delete_view» wants the name of the view on a drawing of more sheets.";
             data["dimensions_total"] = quoteTotali;
             data["center_marks_total"] = totalCenterMarks;
+            data["sketch_segments_total"] = sketchSegmentsTotal;
             data["dimensions_with_number_not_from_model_total"] = totalBogusNumbers;
             if (bogusNumbers.Count > 0)
             {
@@ -417,7 +424,9 @@ namespace Oce.Solid.Agent.Core
                 "dimension is attached to are among those the view shows. A dimension " +
                 "attached to a SILHOUETTE (the apparent outline of a cylinder: the diameters of a turned part seen from the side) " +
                 "cannot be checked, because SOLIDWORKS does not match it with any silhouette " +
-                "the view shows: it is not counted as an orphan but in «dimensions_not_verifiable». " +
+                "the view shows: it is not counted as an orphan but in «dimensions_not_verifiable». The same goes for a dimension " +
+                "attached to a segment or a point of a SKETCH (the slot of a bracket, the position points of a hole): the edges of " +
+                "the view can never match a sketch entity. " +
                 "A dimension attached to a hidden edge still reads as an orphan without being " +
                 "one.";
             if (totalViews > views.Count) data["views_truncated"] = true;
@@ -504,7 +513,7 @@ namespace Oce.Solid.Agent.Core
                         if (seen) break;
                     }
                     if (seen) continue;
-                    if (IsAttachedToSilhouette(ann)) onSilhouettes++;
+                    if (IsAttachedToSilhouette(ann) || IsAttachedToASketch(ann)) onSilhouettes++;
                     else orfane++;
                 }
                 notVerifiable = onSilhouettes;
@@ -519,6 +528,31 @@ namespace Oce.Solid.Agent.Core
         /// array that cannot be read is not a silhouette: the dimension keeps
         /// the old reading, orphan when nothing visible holds it.
         /// </summary>
+        /// <summary>
+        /// True when at least one attached entity of the annotation is a segment or a point of a SKETCH (swSelSKETCHSEGS 10,
+        /// swSelSKETCHPOINTS 11). The dimensions a model imports from the sketch of a feature (the slot of a bracket, the points
+        /// of the holes of the Hole Wizard) hang on those, and the edges and vertices a view shows can never match a sketch entity:
+        /// they are not «hanging from nothing», they cannot be checked. Measured on the L bracket, 12/10/2026 (Checks/Draw131
+        /// «dims»): the R5.5, the 19 and the 35 of the slot are attached to types [10], [11,11] and [1,11], the state counted
+        /// three orphans on each of two views, and the warning said «usually the part changed after the drawing was dimensioned»,
+        /// which was not true. They are counted in «dimensions_not_verifiable», like the silhouettes.
+        /// </summary>
+        private static bool IsAttachedToASketch(IAnnotation ann)
+        {
+            try
+            {
+                var types = ann.GetAttachedEntityTypes() as Array;
+                if (types == null) return false;
+                foreach (var t in types)
+                {
+                    int type = Convert.ToInt32(t, System.Globalization.CultureInfo.InvariantCulture);
+                    if (type == (int)swSelectType_e.swSelSKETCHSEGS || type == (int)swSelectType_e.swSelSKETCHPOINTS) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private static bool IsAttachedToSilhouette(IAnnotation ann)
         {
             try
@@ -608,6 +642,19 @@ namespace Oce.Solid.Agent.Core
         /// (entry Z-C8). The null is carried along into the sums: `int?` added to
         /// null gives null, and that is exactly what is wanted.
         /// </summary>
+        /// <summary>
+        /// How many sketch segments the sketch of a view (or of the sheet) has: IView~GetSketch, ISketch~GetSketchSegments.
+        /// Throws when the sketch cannot be read (ReadValue turns that into null); a view without a sketch has none.
+        /// </summary>
+        private static int SketchSegmentsOf(IView view)
+        {
+            if (view == null) throw new InvalidOperationException();
+            ISketch sketch = view.GetSketch() as ISketch;
+            if (sketch == null) return 0;
+            object[] segments = sketch.GetSketchSegments() as object[];
+            return segments == null ? 0 : segments.Length;   // ZERO-E-ZERO: null is a sketch with no segment
+        }
+
         private static int? ReadValue(Func<int> read)
         {
             try { return read(); }

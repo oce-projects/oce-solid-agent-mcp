@@ -1,0 +1,36 @@
+{
+  "name": "number_cut_through_a_plate_and_centred",
+  "family": "text",
+  "red_before": "0.199.0",
+  "why": "THE LIVE CASE OF 12/10/2026: a 150x150x5 plate with the number 35 cut through, centred, in ONE plan. Three things engrave_text could not do and now does: the face is named before it exists (face_ref, the top of step 1), the text goes through the whole thickness (through_all), and it is placed by its centre (centered), because the width of a text is not in the string and nobody can compute where its bottom left corner must go to centre it.",
+  "defect_caught": "Before 0.131.0 the plan was impossible in one call (face_uid only), the text could only be engraved to a depth, and the anchor was the bottom left corner. A text 'centred' by guessing its width would sit 1 or 2 mm off and no check would say so; here the centre of the lettering is READ from the walls of the cut (centre_mm of the answer is the box of the outlines before the cut) and the solid says the same thing independently (the true box of the faces the cut made, probe Checks/TextThrough).",
+  "_the_numbers": "Measured by the probe Checks/TextThrough on 12/10/2026 (SOLIDWORKS 29.5.1): the lettering of «35» 20 mm high in the default font is 28.718 x 21.026 mm (box of the outlines; the second number is 20 plus the overshoot of the glyphs). Cut through a 5 mm plate it removes 882.4 mm3 centred and 884.0 anchored at the origin; engraved 0.5 mm it removes 88.42, that is an area of 176.84 mm2 (x 5 = 884.2). The three differ by 0.2 per cent and that is the noise of the mass properties of a body full of tiny faces, hence the tolerance of 2.5 mm3. The box of the walls the cut made, read from the solid, is centred on (0, 0) to the thousandth: the text is where the answer says.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 150, "width_mm": 150,
+                     "thickness_mm": 5, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 112500 } ] },
+    { "operation": "engrave_text",
+      "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "text": "35",
+                     "height_mm": 20, "through_all": true, "centered": true },
+      "expect": [
+        { "what": "measurements.through_all", "equal_to": true },
+        { "what": "measurements.depth_mm", "equal_to": 5, "tolerance": 0.01,
+          "tolerance_why": "read from the true box of the walls the cut made, in metres: a hundredth of a millimetre is the rounding" },
+        { "what": "measurements.centre_mm", "equal_to": [0, 0], "tolerance": 0.05,
+          "tolerance_why": "the operation refuses a centring more than 0.05 mm off, so this is the same limit read back from the answer" },
+        { "what": "measurements.bodies", "equal_to": 1 },
+        { "what": "measurements.width_written_mm", "equal_to": 28.718, "tolerance": 0.05,
+          "tolerance_why": "the width comes from the drawing of the glyphs of the font: below a tenth of a millimetre it is not a number to lean on" },
+        { "what": "measurements.height_written_mm", "equal_to": 21.026, "tolerance": 0.05,
+          "tolerance_why": "same reason" },
+        { "what": "measurements.material_removed_mm3", "equal_to": 883.3, "tolerance": 2.5,
+          "tolerance_why": "the three runs of the probe give 882.4, 884.0 and 884.2 (area of the blind engraving times 5): the mass properties of a body full of tiny faces are good to 0.2 per cent, not better" },
+        { "what": "measurements.area_letters_mm2", "equal_to": 176.66, "tolerance": 0.5,
+          "tolerance_why": "the volume over the thickness, so one fifth of the tolerance above; the probe gives 176.48 centred and 176.84 from the blind engraving" },
+        { "what": "volume_mm3", "equal_to": 111616.7, "tolerance": 2.5,
+          "tolerance_why": "112500 minus the volume above, read from the state: the same number from the other side" },
+        { "what": "bodies", "equal_to": 1 } ] }
+  ]
+}

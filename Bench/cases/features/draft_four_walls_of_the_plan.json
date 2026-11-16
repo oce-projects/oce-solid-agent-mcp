@@ -1,0 +1,29 @@
+{
+  "name": "draft_four_walls_of_the_plan",
+  "family": "features",
+  "red_before": "0.199.0",
+  "why": "THE DRAFT OF A BLOCK THAT THE PLAN MAKES (0.131.0). draft took identifiers only, and the four walls of a block have no identifier until the block exists: two plans, a reading of the state between them. Now the neutral face is neutral_face_ref {step, kind} and the walls are faces_ref [{step, kind: side_faces}], the one plural kind: all the flat walls of that step that run along its direction. The twin of draft_four_walls: the same block, the same 5 degrees, the same numbers.",
+  "_why_the_numbers_are_the_twins": "side_faces must be the FOUR walls and nothing else: a fifth face (the neutral one, the bottom) or a missing wall changes faces_drafted and the volume of the frustum (207080.74 against 200000). The count of faces at the angle before and after is the one of the twin.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "draft",
+      "arguments": { "neutral_face_ref": { "step": 1, "kind": "top_face" },
+                     "faces_ref": [ { "step": 1, "kind": "side_faces" } ],
+                     "angle_deg": 5 },
+      "expect": [
+        { "what": "measurements.angle_deg", "equal_to": 5 },
+        { "what": "measurements.faces_drafted", "equal_to": 4 },
+        { "what": "measurements.faces_at_corner_before", "equal_to": 0 },
+        { "what": "measurements.faces_at_corner_after", "equal_to": 4 },
+        { "what": "measurements.part_grew", "equal_to": true },
+        { "what": "measurements.material_mm3", "equal_to": 7080.74, "tolerance": 0.5,
+          "tolerance_why": "it is the volume of a frustum of a pyramid minus a prism: the calculation has a tangent inside" },
+        { "what": "volume_mm3", "equal_to": 207080.74, "tolerance": 0.5,
+          "tolerance_why": "the same number read from the state" },
+        { "what": "bodies", "equal_to": 1 } ] }
+  ]
+}

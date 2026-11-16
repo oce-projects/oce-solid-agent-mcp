@@ -167,7 +167,7 @@ namespace Oce.Solid.Agent.Core
 
             // What I create, from the oldest to the youngest: if I
             // refuse it is removed in reverse.
-            var mie = new List<IFeature>();
+            var ownFeatures = new List<IFeature>();
 
             // ── THE PLANE OF THE SKETCH ──────────────────────────────────
             IFeature sketchPlane;
@@ -182,7 +182,7 @@ namespace Oce.Solid.Agent.Core
             {
                 sketchPlane = RibPlaneOffset(model, plane, distance, out string planeReason);
                 if (sketchPlane == null) return Failed(planeReason);
-                mie.Add(sketchPlane);
+                ownFeatures.Add(sketchPlane);
             }
 
             // ── THE SKETCH: A LINE, PASSED THROUGH ModelToSketchTransform ──
@@ -193,7 +193,7 @@ namespace Oce.Solid.Agent.Core
             model.ClearSelection2(true);
             if (!sketchPlane.Select2(false, 0))
                 return Failed("I could not select the plane of the sketch." +
-                               RibWithdraw(model, mie, photo));
+                               RibWithdraw(model, ownFeatures, photo));
             model.SketchManager.InsertSketch(true);
             var sk = model.SketchManager.ActiveSketch as ISketch;
             var math = _sw.GetMathUtility() as IMathUtility;
@@ -201,8 +201,8 @@ namespace Oce.Solid.Agent.Core
             {
                 try { if (model.SketchManager.ActiveSketch != null) model.SketchManager.InsertSketch(true); } catch { }
                 // Everything born of that type goes back out, not just one.
-                mie.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
-                return Failed("The sketch of the rib did not open." + RibWithdraw(model, mie, photo));
+                ownFeatures.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
+                return Failed("The sketch of the rib did not open." + RibWithdraw(model, ownFeatures, photo));
             }
             var tr = sk.ModelToSketchTransform;
             Func<double[], double[]> inSketch = p =>
@@ -221,11 +221,11 @@ namespace Oce.Solid.Agent.Core
             model.SketchManager.InsertSketch(true);
             int sketchesBorn;
             var sketch = RibNewOfType(model, "ProfileFeature", sketchesBefore, out sketchesBorn);
-            if (sketch != null) mie.Add(sketch);
-            else mie.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
+            if (sketch != null) ownFeatures.Add(sketch);
+            else ownFeatures.AddRange(FeaturesBornOfType(model, "ProfileFeature", sketchesBefore));
             if (line == null || sketch == null)
                 return Failed(SketchNotIdentified(sketchesBorn, "The line of the rib was not created in the sketch.") +
-                               RibWithdraw(model, mie, photo));
+                               RibWithdraw(model, ownFeatures, photo));
 
             // THE TREE AFTER THE SKETCH: it is as it must be before EVERY
             // attempt. A failed attempt that leaves a feature of another
@@ -237,12 +237,12 @@ namespace Oce.Solid.Agent.Core
             // ── THE TWO DIRECTIONS OF THE MATERIAL ───────────────────────
             IFeature rib = null;
             bool hasRun = false;
-            int tentativi = 0;
+            int attemptCount = 0;
             var outcomes = new List<string>();
             foreach (bool flip in new[] { false, true })
             {
-                tentativi++;
-                string alzato = RibInsert(model, sketch, thickness, flip);
+                attemptCount++;
+                string insertError = RibInsert(model, sketch, thickness, flip);
                 try { model.EditRebuild3(); } catch { }
                 int ribsBorn;
                 var born = RibNewOfType(model, "Rib", ribBefore, out ribsBorn);
@@ -251,26 +251,26 @@ namespace Oce.Solid.Agent.Core
                 {
                     // Two ribs from one call: which one is ours is not known, so
                     // none is kept and every one goes back out.
-                    mie.AddRange(FeaturesBornOfType(model, "Rib", ribBefore));
+                    ownFeatures.AddRange(FeaturesBornOfType(model, "Rib", ribBefore));
                     return Failed(ribsBorn + " rib features were born from one InsertRib call (" + facing +
                                    "), and nothing tells which one is the rib asked for: none is kept." +
-                                   RibWithdraw(model, mie, photo));
+                                   RibWithdraw(model, ownFeatures, photo));
                 }
                 if (born == null)
                 {
-                    outcomes.Add(facing + ": no rib" + (alzato == null ? "" : " (" + alzato + ")"));
-                    var intruse = RibNewOfAll(model, namesAfterTheSketch);
-                    if (intruse.Count > 0)
+                    outcomes.Add(facing + ": no rib" + (insertError == null ? "" : " (" + insertError + ")"));
+                    var intruders = RibNewOfAll(model, namesAfterTheSketch);
+                    if (intruders.Count > 0)
                     {
                         var intruderNames = new List<string>();
-                        foreach (var f in intruse) { intruderNames.Add(RibName(f)); mie.Add(f); }
+                        foreach (var f in intruders) { intruderNames.Add(RibName(f)); ownFeatures.Add(f); }
                         return Failed(
                             "With the " + facing + " the rib was not created, but the tree grew all the same («" +
                             string.Join("», «", intruderNames) + "»): I do not try the other direction on " +
                             "top of a feature that I did not ask for. Usually the line is not between two " +
                             "walls: move it into the empty space, with the ends (or their extension) on the " +
                             "walls to join; for a boss on a planar face use «extrude_on_face»." +
-                            RibWithdraw(model, mie, photo));
+                            RibWithdraw(model, ownFeatures, photo));
                     }
                     continue;
                 }
@@ -279,7 +279,7 @@ namespace Oce.Solid.Agent.Core
                 // happens the other direction is not tried (removing only the
                 // rib while leaving the sketch is not measured): everything is
                 // withdrawn and it is said.
-                mie.Add(born);
+                ownFeatures.Add(born);
                 double? after = VolumeMm3(model);
                 if (after == null || after.Value - photo.Volume.Value < RibMinimumGrowthMm3)
                     return Failed(string.Format(CultureInfo.InvariantCulture,
@@ -289,7 +289,7 @@ namespace Oce.Solid.Agent.Core
                         "space, with the ends (or their extension) on the walls to join.{3}",
                         facing, RibName(born),
                         after == null ? "cannot be read back" : "stayed " + after.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3",
-                        RibWithdraw(model, mie, photo)));
+                        RibWithdraw(model, ownFeatures, photo)));
                 rib = born;
                 hasRun = flip;
                 outcomes.Add(facing + ": created «" + RibName(born) + "»");
@@ -305,7 +305,7 @@ namespace Oce.Solid.Agent.Core
                     "does not come out in either direction, usually there is nothing for the line to " +
                     "meet: a plate without walls (measured), or a line outside the part. For a boss on " +
                     "a planar face use «extrude_on_face»; or move the line between two walls." +
-                    RibWithdraw(model, mie, photo));
+                    RibWithdraw(model, ownFeatures, photo));
 
             // ── THE GUARDS, ON THE PART AND NOT ON THE FEATURE ───────────
             bool rebuilt = true;
@@ -313,7 +313,7 @@ namespace Oce.Solid.Agent.Core
             string broken = WhatBroke(model, photo, rebuilt, aperture: false);
             if (broken != null)
                 return Failed("The rib «" + RibName(rib) + "» was created, but " + broken + "." +
-                               RibWithdraw(model, mie, photo));
+                               RibWithdraw(model, ownFeatures, photo));
 
             double? volumeAfter = VolumeMm3(model);
             int bodiesAfter = CountSolidBodies(model);
@@ -347,7 +347,7 @@ namespace Oce.Solid.Agent.Core
                 ["requested_line_length_mm"] = Math.Round(span, 3),
                 ["plane_created"] = planeMadeHere,
                 ["material_side"] = hasRun ? "flipped" : "straight",
-                ["attempts"] = tentativi,
+                ["attempts"] = attemptCount,
                 ["added_material_mm3"] = NumberOrNull(added, 2),
                 ["volume_mm3"] = NumberOrNull(volumeAfter, 2),
                 ["bodies"] = NumberOrNull(bodiesAfter),
@@ -365,7 +365,7 @@ namespace Oce.Solid.Agent.Core
 
             _log(string.Format(CultureInfo.InvariantCulture,
                 "[agent] rib {0} on {1}{2}: {3}, volume {4} -> {5}",
-                RibName(rib), plane, planeMadeHere ? " a " + distance.ToString("0.###", CultureInfo.InvariantCulture) : "",
+                RibName(rib), plane, planeMadeHere ? " at " + distance.ToString("0.###", CultureInfo.InvariantCulture) : "",
                 string.Join("; ", outcomes), ReadValue(photo.Volume), ReadValue(volumeAfter)));
 
             // No direction in the outcome: the thickness goes along the normal of the
@@ -472,9 +472,9 @@ namespace Oce.Solid.Agent.Core
         /// feature we look that it has no children: if it has, something
         /// leaned on it and it is not my stuff.
         /// </summary>
-        private string RibWithdraw(IModelDoc2 model, List<IFeature> mie, PartPhoto before)
+        private string RibWithdraw(IModelDoc2 model, List<IFeature> ownFeatures, PartPhoto before)
         {
-            if (mie.Count == 0) return " I did not touch the part: it is as it was.";
+            if (ownFeatures.Count == 0) return " I did not touch the part: it is as it was.";
             bool everything = true;
             var names = new List<string>();
             // A SKETCH THAT A FAILED InsertRib HAS TOUCHED CANNOT BE DELETED, ONLY
@@ -489,29 +489,29 @@ namespace Oce.Solid.Agent.Core
             // declaring a restore that did not happen (full bench on 0.141.0,
             // limit_rib_on_a_plate_without_walls).
             var suppressedOnes = new List<string>();
-            for (int i = mie.Count - 1; i >= 0; i--)
+            for (int i = ownFeatures.Count - 1; i >= 0; i--)
             {
-                string itemName = RibName(mie[i]);
+                string itemName = RibName(ownFeatures[i]);
                 names.Add(itemName);
                 if (string.IsNullOrEmpty(itemName) || FindFeature(model, itemName) == null) continue;   // absorbed by whoever removed it before
                 try
                 {
-                    if (mie[i].IGetChildCount() > 0) { everything = false; continue; }
+                    if (ownFeatures[i].IGetChildCount() > 0) { everything = false; continue; }
                     model.ClearSelection2(true);
-                    if (!mie[i].Select2(false, 0)) { everything = false; continue; }
+                    if (!ownFeatures[i].Select2(false, 0)) { everything = false; continue; }
                     if (!model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed))
                     {
                         string typ = "";
-                        try { typ = mie[i].GetTypeName2(); } catch { }
+                        try { typ = ownFeatures[i].GetTypeName2(); } catch { }
                         bool suppressed = false;
                         if (typ == "ProfileFeature")
                         {
                             model.ClearSelection2(true);
-                            if (mie[i].Select2(false, 0))
+                            if (ownFeatures[i].Select2(false, 0))
                             {
                                 try { model.EditSuppress2(); } catch { }
                                 // IsSuppressed2 in the active configuration since Z-C21.7 (S3).
-                                try { suppressed = ApiHelpers.IsSuppressedHere(mie[i]); } catch { }
+                                try { suppressed = ApiHelpers.IsSuppressedHere(ownFeatures[i]); } catch { }
                             }
                         }
                         if (suppressed) suppressedOnes.Add(itemName);

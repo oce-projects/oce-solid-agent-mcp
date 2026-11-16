@@ -63,8 +63,8 @@ bridge.stdout.on("data", d => {
     leftover = leftover.slice(i + 1);
     if (!line) continue;
     let m; try { m = JSON.parse(line); } catch (e) { continue; }
-    const chi = expectation.get(m.id);
-    if (chi) { expectation.delete(m.id); chi(m); }
+    const handler = expectation.get(m.id);
+    if (handler) { expectation.delete(m.id); handler(m); }
   }
 });
 

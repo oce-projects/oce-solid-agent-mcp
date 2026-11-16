@@ -38,6 +38,23 @@ namespace Oce.Solid.Agent.Core
     /// </summary>
     public partial class SwOperations
     {
+        /// <summary>
+        /// WHAT IS KNOWN ABOUT A BASE FLANGE THAT SOLIDWORKS REFUSES WITHOUT A REASON (finding of 12/10/2026,
+        /// measured on 13/10/2026 with Checks/Part131). The first base flange of a new part failed in 5 seconds
+        /// with «does not say why», and the same call worked 50 seconds later. The cause was another part that
+        /// was still open, left by plans that had failed (a slot that found a sketch in edit, three times):
+        /// with that part open the base flange failed every time; after `EditRebuild3` of that part, or after
+        /// closing it, the same call worked every time. Its sketch in edit, its undo list, its undo recording,
+        /// the flag NeedsRebuild2 (0) and the user preferences (742 toggles compared) were not the cause. The
+        /// bridge now rebuilds the document a plan worked on when the plan stops (PlanExecutor), so it no longer
+        /// leaves one; a part left by someone else, or by an older bridge, cannot be told from here.
+        /// </summary>
+        private const string BlockedByAnotherPart =
+            " If another part is open that was left by steps that failed (a sketch in edit, a cut that did not finish), " +
+            "that has been seen to make SOLIDWORKS refuse this feature in a NEW part without a reason, every time, until " +
+            "that other part was rebuilt (bring it to the front and rebuild it) or closed (saving what must be kept): " +
+            "try that and run this step again.";
+
         private Outcome BaseFlange(IModelDoc2 model, Dictionary<string, object> a)
         {
             string error;
@@ -63,12 +80,12 @@ namespace Oce.Solid.Agent.Core
                 if (l <= 0.001)
                     return Failed("Segment " + (i + 1) + " has zero length: two equal points in a row.");
                 bool has2Bends = i > 0 && i < points.Count - 2;
-                double serve = has2Bends ? 2 * radius : radius;
-                if (points.Count > 2 && l <= serve)
+                double bendAllowance = has2Bends ? 2 * radius : radius;
+                if (points.Count > 2 && l <= bendAllowance)
                     return Failed(string.Format(CultureInfo.InvariantCulture,
                         "Segment {0} is {1:0.###} mm long and the bends with radius {2:0.###} " +
                         "use up {3:0.###}: nothing straight is left. Lengthen the segment or " +
-                        "tighten the radius.", i + 1, l, radius, serve));
+                        "tighten the radius.", i + 1, l, radius, bendAllowance));
             }
 
             string plane = Str(a, "plane", "front");
@@ -100,7 +117,8 @@ namespace Oce.Solid.Agent.Core
             }
             catch (Exception ex) { return Failed("The base flange was not created: " + ex.Message + LeftSketchBehind); }
             if (flange == null)
-                return Failed("The base flange was not created, and SOLIDWORKS does not say why." + LeftSketchBehind);
+                return Failed("The base flange was not created, and SOLIDWORKS does not say why." +
+                              BlockedByAnotherPart + LeftSketchBehind);
             model.EditRebuild3();
 
             // ── BORN IN ERROR? (entry Z-C21.2, finding L10-4) ─────────────
@@ -478,8 +496,8 @@ namespace Oce.Solid.Agent.Core
             bool straight = false;
             try
             {
-                var par = ApiHelpers.EdgeParameters(b.Edge, out ICurve curva);
-                straight = curva != null && curva.IsLine();
+                var par = ApiHelpers.EdgeParameters(b.Edge, out ICurve curve);
+                straight = curve != null && curve.IsLine();
                 b.P0 = par?.StartPoint as double[];
                 b.P1 = par?.EndPoint as double[];
             }

@@ -114,6 +114,9 @@ namespace Oce.Solid.Agent.ContractTests
                 { "mirror_component.mode", "instance, linked or unlinked are three different parts, and getting it wrong gives no error: it is always asked" },
                 { "sketch_picture.plane", "which plane the drawing is on is known by whoever looks at it: a desk plane would put it crosswise" },
                 { "geometric_tolerance.characteristic", "flatness or perpendicularity is the question: there is no desk tolerance" },
+                { "create_material.name", "the name is the material itself: a desk name would be a second «Material1» nobody can tell from the first" },
+                { "create_material.density_kg_m3", "no weight without density, and a desk density is a false weight: it is the one value a material can not do without" },
+                { "create_material.source", "where the numbers come from is written with them: a material nobody can trace is how a part gets a false weight for good" },
 
                 // ── THEY DEPEND ON THE WORKSHOP, NOT ON US (entry Z-G8) ──────
                 { "structural_member.profile_path",

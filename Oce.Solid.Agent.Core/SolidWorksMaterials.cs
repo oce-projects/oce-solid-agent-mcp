@@ -51,6 +51,8 @@ namespace Oce.Solid.Agent.Core
             public string Class = "";
             /// <summary>The EXACT name, to be copied without touching it.</summary>
             public string Name;
+            /// <summary>The database file this entry was read from (full path).</summary>
+            public string File = "";
         }
 
         private static readonly object _lock = new object();
@@ -94,6 +96,7 @@ namespace Oce.Solid.Agent.Core
                                     Archive = archive,
                                     Class = className,
                                     Name = itemName,
+                                    File = filePath,
                                 });
                             }
                         }
@@ -108,6 +111,45 @@ namespace Oce.Solid.Agent.Core
                 return _list;
             }
         }
+
+        /// <summary>
+        /// Forgets what was read, so the next search reads the databases again. Called when a database file
+        /// was written by the bridge (create_material) and when a search finds nothing: a file added by hand
+        /// after the first read must not need a restart of the bridge to be seen.
+        /// </summary>
+        public static void Invalidate()
+        {
+            lock (_lock) { _list = null; }
+        }
+
+        /// <summary>The databases (file names without extension) that hold at least one material.</summary>
+        public static string[] Libraries(ISldWorks sw, Action<string> log)
+        {
+            return LibrariesOf(All(sw, log));
+        }
+
+        /// <summary>The distinct library names of a list of materials, in the order they first appear.</summary>
+        private static string[] LibrariesOf(List<Material> materials)
+        {
+            string[] names = new string[materials.Count];
+            int count = 0;
+            foreach (Material m in materials)
+            {
+                bool known = false;
+                for (int i = 0; i < count; i++)
+                    if (string.Equals(names[i], m.Archive, StringComparison.OrdinalIgnoreCase)) known = true;
+                if (!known) names[count++] = m.Archive;
+            }
+            Array.Resize(ref names, count);
+            return names;
+        }
+
+        /// <summary>
+        /// How many candidates the refusal for an ambiguous name lists (12/10/2026: it was 8, and
+        /// «S235» has 6 steels; a refusal that names only some of the candidates leaves the model
+        /// guessing at the rest). The count of the others is always said.
+        /// </summary>
+        internal const int CandidatesListed = 20;
 
         /// <summary>
         /// Finds the material that corresponds to what the model wrote.
@@ -128,7 +170,21 @@ namespace Oce.Solid.Agent.Core
             ISldWorks sw, string requested, string requestedArchive,
             Action<string> log, out string why)
         {
+            bool nothingMatched;
+            var found = ResolveIn(sw, requested, requestedArchive, log, out why, out nothingMatched);
+            if (found != null || !nothingMatched) return found;
+            // Nothing matched at all: the databases may have changed since they were first read (a file put
+            // there by hand, or by create_material in another session). Read them again, once, and ask again.
+            Invalidate();
+            return ResolveIn(sw, requested, requestedArchive, log, out why, out nothingMatched);
+        }
+
+        private static Material ResolveIn(
+            ISldWorks sw, string requested, string requestedArchive,
+            Action<string> log, out string why, out bool nothingMatched)
+        {
             why = null;
+            nothingMatched = false;
             string searched = (requested ?? "").Trim();
             if (searched.Length == 0) { why = "The name of the material is missing."; return null; }
 
@@ -144,9 +200,23 @@ namespace Oce.Solid.Agent.Core
             var theField = all;
             if (!string.IsNullOrWhiteSpace(requestedArchive))
             {
-                var restricted = all.Where(m => m.Archive.IndexOf(
-                    requestedArchive.Trim(), StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-                if (restricted.Count > 0) theField = restricted;
+                // The library asked for is a CHOICE, so it is never ignored: before 0.131.0 a name that matched no
+                // library left the search on all of them, and the answer came from a library nobody had chosen.
+                // The whole file name wins over a piece of it («OCE custom materials» over «materials»).
+                string library = requestedArchive.Trim();
+                var restricted = all.Where(m => string.Equals(m.Archive, library, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (restricted.Count == 0)
+                    restricted = all.Where(m => m.Archive.IndexOf(library, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                if (restricted.Count == 0)
+                {
+                    nothingMatched = true;
+                    why =
+                        "No material library matches «" + library + "». The libraries on this workstation are: " +
+                        QuotedLibraries(LibrariesOf(all)) +
+                        ". Write one of them exactly in «library», or leave «library» out to search all of them.";
+                    return null;
+                }
+                theField = restricted;
             }
 
             var stages = new Func<List<Material>>[]
@@ -178,9 +248,12 @@ namespace Oce.Solid.Agent.Core
                     why =
                         "«" + searched + "» matches " + foundItems.Count +
                         " different materials, and they are not the same material: " +
-                        string.Join(", ", foundItems.Take(8).Select(m => "«" + m.Name + "»")) +
-                        (foundItems.Count > 8 ? ", and more" : "") +
-                        ". Tell me which one.";
+                        string.Join(", ", foundItems.Take(CandidatesListed).Select(m => "«" + m.Name + "» (library «" + m.Archive + "»)")) +
+                        (foundItems.Count > CandidatesListed
+                            ? ", and " + (foundItems.Count - CandidatesListed) + " more (write more of the name to narrow them down)"
+                            : "") +
+                        ". Tell me which one: write it exactly as listed in «material»; when the same name is " +
+                        "in more than one library, write its library in «library».";
                     return null;
                 }
             }
@@ -191,8 +264,10 @@ namespace Oce.Solid.Agent.Core
                 .Distinct(StringComparer.Ordinal)
                 .Take(8)
                 .ToList();
+            nothingMatched = true;
             why =
-                "In the archives of this workstation there is no material " +
+                "In the " + (ReferenceEquals(theField, all) ? "archives" : "library «" + theField[0].Archive + "»") +
+                " of this workstation there is no material " +
                 "«" + searched + "»." +
                 (similar.Count > 0
                     ? " There are: " + string.Join(", ", similar) + "."
@@ -232,6 +307,13 @@ namespace Oce.Solid.Agent.Core
             if (string.IsNullOrWhiteSpace(requested)) return null;
             string why;
             return Resolve(sw, requested, requestedArchive, null, out why) == null ? why : null;
+        }
+
+        private static string QuotedLibraries(string[] names)
+        {
+            string[] quoted = new string[names.Length];
+            for (int i = 0; i < names.Length; i++) quoted[i] = "«" + names[i] + "»";
+            return string.Join(", ", quoted);
         }
 
         private static string Compact(string s)

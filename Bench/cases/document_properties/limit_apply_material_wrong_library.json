@@ -1,0 +1,32 @@
+{
+  "name": "limit_apply_material_wrong_library",
+  "family": "document_properties",
+  "red_before": "0.199.0",
+  "why": "THE LIBRARY ARGUMENT IS A CHOICE AND IS NEVER IGNORED. Before 0.131.0 a library that matched nothing left the search on all of them, and the material came from a library nobody had chosen. Two refusals here: a library that does not exist (the answer lists the ones that do), and a library that exists but does not hold the name (the answer says which library it searched). The twin writes the right library and succeeds.",
+  "defect_caught": "apply_material with library «SolidWorks DIN Materials» and the name «PLA» used to find PLA in the library of the bridge anyway, because the unknown restriction was dropped. Here the restriction holds.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "create_material",
+      "arguments": { "name": "PLA", "class": "Plastic", "density_kg_m3": 1240, "elastic_modulus_mpa": 3600, "yield_strength_mpa": 60,
+                     "source": "NatureWorks Ingeo Biopolymer 4043D Technical Data Sheet, NW4043DFILA_051815V1",
+                     "replace": true },
+      "expect": [ { "what": "measurements.library", "equal_to": "OCE custom materials" } ] },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 50, "thickness_mm": 10, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 50000 } ] },
+    { "operation": "apply_material",
+      "arguments": { "material": "PLA", "library": "A library that does not exist" },
+      "must_fail": {
+        "message_includes": ["No material library matches", "OCE custom materials", "SolidWorks DIN Materials"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "apply_material_takes_the_library_it_is_told" } },
+    { "operation": "apply_material",
+      "arguments": { "material": "PLA", "library": "SolidWorks DIN Materials" },
+      "must_fail": {
+        "message_includes": ["library «SolidWorks DIN Materials»", "no material", "PLA"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "apply_material_takes_the_library_it_is_told" } }
+  ]
+}

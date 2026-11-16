@@ -112,6 +112,23 @@ namespace Oce.Solid.Agent.ContractTests
                       ", AllTypes and InsertModelDimensions " + allOn + ", view by view " + allViewByView);
             }
             catch (Exception ex) { Check("N9: the ModelImport members can be called", false, ex.GetType().Name + ": " + ex.Message); }
+
+            // 0.131.0 (item 5 of the drawing branch): the dimensions of the hole wizard have their own bits (swInsertHoleWizardProfileDimensions
+            // 0x10000, swInsertHoleWizardLocationDimensions 0x20000). Without them the generic masks brought nothing for a hole wizard hole and the
+            // chain fell back to InsertModelAnnotations2 with AllTypes, which draws two centre lines in every view that shows the hole.
+            try
+            {
+                const int HoleWizardBits = 0x10000 | 0x20000;
+                var withTheBits = (int[])Call(sw, "ModelImportMasks", true);
+                var withoutThem = (int[])Call(sw, "ModelImportMasks", false);
+                Check("0.131.0: with all_dimensions true the first mask asks for the hole wizard dimensions, before any fallback",
+                      withTheBits != null && withTheBits.Length > 0 && (withTheBits[0] & HoleWizardBits) == HoleWizardBits,
+                      withTheBits == null ? "null" : string.Join(", ", withTheBits));
+                Check("0.131.0: with all_dimensions false no mask carries the hole wizard bits",
+                      withoutThem != null && withoutThem.All(m => (m & HoleWizardBits) == 0),
+                      withoutThem == null ? "null" : string.Join(", ", withoutThem));
+            }
+            catch (Exception ex) { Check("0.131.0: the masks of the hole wizard can be read", false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         private static object Call(Type t, string method, params object[] args)

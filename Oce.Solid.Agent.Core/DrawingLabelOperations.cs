@@ -107,9 +107,9 @@ namespace Oce.Solid.Agent.Core
         {
             var already = SectionAndDetailLetters(drawing);
             string k = (letter ?? "").Trim().ToUpperInvariant();
-            string chi;
-            if (!already.TryGetValue(k, out chi)) return null;
-            return "On the drawing the letter «" + k + "» already belongs to " + chi + ": two sections or two details with the same " +
+            string owner;
+            if (!already.TryGetValue(k, out owner)) return null;
+            return "On the drawing the letter «" + k + "» already belongs to " + owner + ": two sections or two details with the same " +
                    "letter look like the same one (UNI EN ISO 128). Use a different letter — already used: " +
                    string.Join(", ", already.Keys) + ".";
         }

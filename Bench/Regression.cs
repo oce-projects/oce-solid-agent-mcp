@@ -288,13 +288,13 @@ namespace Oce.Solid.Agent.Bench
                     // format: «centers_x_mm [...] (expected [...])».
                     if (True(expectation, "same_as_before"))
                     {
-                        object era;
-                        if (!before.TryGetValue(Text(expectation, "what") ?? "", out era) || era == null)
+                        object earlier;
+                        if (!before.TryGetValue(Text(expectation, "what") ?? "", out earlier) || earlier == null)
                         {
                             BenchError(itemName, "«same_as_before» but the earlier measurement is not there");
                             outside.Why = "same_as_before without the earlier measurement"; return outside;
                         }
-                        expectation["equal_to"] = era;
+                        expectation["equal_to"] = earlier;
                     }
 
                     try { ok = Matches(expectation, c => FromDocument(c, here, docState), docState, done, out detail); }

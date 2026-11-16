@@ -54,7 +54,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                     "NOT mating: always look at «resting»"),
                 new KeyValuePair<string, string>(
                     "physical_properties",
-                    "what the part IS, not its shape"),
+                    // THE WEIGHT LIVES IN ANOTHER FAMILY, and the model looked for it here
+                    // (D9 task 12: 0 of 3 sessions found it, they read the weight from
+                    // inspect_part). `mass_properties` stays in «checks» because that is the
+                    // family `measure` accepts, and `measure` is how a client knows it
+                    // touches nothing; so the pointer is in the words of THIS family.
+                    "what the part IS, not its shape: its material and its WEIGHT. The weight "
+                    + "is read by «mass_properties» (family «checks»: it only reads, so it runs "
+                    + "with «measure»)"),
                 new KeyValuePair<string, string>(
                     "drawing",
                     "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF " +
@@ -605,8 +612,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "the part and as it is written on the drawing; the WIDTH is the diameter "
                         + "of the ends, that is, the diameter of the screw plus the clearance. "
                         + "For an M10 that must slide 40 mm: width 11, length 51.\n\n"
-                        + "«angle_deg» rotates the slot in the plane of the face: 0 is "
-                        + "horizontal, 90 vertical. It is needed when the adjustment "
+                        + "«angle_deg» rotates the slot in the plane of the face, AS YOU SEE THE FACE "
+                        + "in its standard view (the view that looks at it from outside the part: "
+                        + "front, back, top, bottom, right, left): 0 is horizontal, 90 vertical, "
+                        + "and in between it turns counterclockwise (30 rises to the right). On the "
+                        + "faces seen in the front, back, top and bottom views horizontal is the X "
+                        + "of the model; on the faces seen in the right and left views it is Z, and "
+                        + "vertical is Y. The answer says in «direction_in_model» where the long "
+                        + "axis really runs. It is needed when the adjustment "
                         + "must go in a specific direction.\n\nIt is not a rectangular "
                         + "pocket. «rectangular_cut» looks like it but has sharp corners, and "
                         + "the screw rattles inside it instead of sliding."
@@ -668,7 +681,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "description", "width of the slot, that is, the diameter of the round ends"),
                             "angle_deg", O(
                                 "type", "number",
-                                "description", "rotation in the plane of the face, default 0. The sketch is born "
+                                "description", "rotation in the plane of the face as you see it in its standard view "
+                                    + "(looking at the face from outside the part): 0 horizontal, 90 vertical, "
+                                    + "counterclockwise in between; default 0. «x_mm» and «y_mm» stay in model "
+                                    + "coordinates, only the angle is as seen. The sketch is born "
                                     + "dimensioned (radius and distance between centres): at 0 and 90 degrees "
                                     + "the orientation is fixed too; when oblique, the angle is dimensioned "
                                     + "against the first edge of the «anchor», and with no anchor it stays free "
@@ -2066,7 +2082,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Assigns the material to the part: without it there is no weight and no usable cut list.",
+                        "Assigns the material to the part: without it there is no weight and no usable cut list. "
+                        + "The weight itself is read by «mass_properties».",
                     Description =
                         "Assigns the material to the part. ALWAYS DO THIS, on every part you "
                         + "draw: without a material there is no density, without density "
@@ -2077,7 +2094,15 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "has the real libraries. If the name matches more than one "
                         + "material, or none, the operation fails and lists the ones that exist, "
                         + "and then you ask the user: between 1.0037 and 1.0116 you do not "
-                        + "choose at random.\n\nIF YOU DO NOT GIVE THE MATERIAL I use "
+                        + "choose at random. The refusal lists each candidate WITH its library; when the same name is in "
+                        + "more than one library, write the library in «library»."
+                        + "\n\nIF THE MATERIAL IS IN NO LIBRARY (PLA, for one, is in none of the SOLIDWORKS libraries), "
+                        + "do not pick the nearest plastic: call «create_material» once with its values and their source, "
+                        + "then this operation finds it by name."
+                        + "\n\nTO KNOW THE WEIGHT AFTERWARDS: «mass_properties» "
+                        + "(family «checks»; it runs with «measure» and touches nothing). It gives "
+                        + "mass, volume, area and centre of gravity, and it answers null instead of "
+                        + "a made-up weight when the material is missing.\n\nIF YOU DO NOT GIVE THE MATERIAL I use "
                         + "«S235JR», which is what this shop works with unless told "
                         + "otherwise, and I write it in the answer, so you know I chose it "
                         + "and you did not."
@@ -2097,14 +2122,74 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "you do not give it I use S235JR, and I write that in the answer."),
                             "library", O(
                                 "type", "string",
-                                "description", "optional: the name of the library, if you know which one to search. "
-                                    + "Leave it alone if you do not.")),
+                                "description", "optional: the library to search, as the refusal for an ambiguous name writes it "
+                                    + "(for example «SolidWorks DIN Materials» or «OCE custom materials»). A library that "
+                                    + "does not exist is refused, and the answer lists the ones that do. Leave it out to search all of them.")),
                         // Z-G3: `material` is NO longer mandatory — there is a
                         // workshop default, and the answer declares that it used
                         // it. A field that is always asked and whose answer is
                         // always the same makes the model write a line that
                         // is not a choice.
                         "required", A()),
+                },
+                new OperationSpec
+                {
+                    Name = "create_material",
+                    Family = "physical_properties",
+                    Example = "{\"name\":\"PLA\",\"density_kg_m3\":1240,\"elastic_modulus_mpa\":3600,\"yield_strength_mpa\":60,\"source\":\"NatureWorks Ingeo 4043D datasheet\"}",   // from `create_pla_and_weigh_a_plate`
+                    RequestedDocument = "none",
+                    Tested = true,
+                    Summary =
+                        "Writes a material that no SOLIDWORKS library has (PLA, a resin of the workshop) into the bridge's own "
+                        + "library, with the source of its numbers; «apply_material» then finds it by name.",
+                    Description =
+                        "Creates a material in the library «OCE custom materials», a database file the bridge owns, kept in a "
+                        + "folder SOLIDWORKS already reads for material databases. Use it when «apply_material» says that a material "
+                        + "is in no library: do NOT pick the nearest plastic, because a part with the density of another material "
+                        + "has a false weight and nothing says so.\n\nWHAT YOU MUST GIVE: «name», «density_kg_m3» and «source». "
+                        + "The source is where the numbers come from — a supplier datasheet with its code or date, a standard, or "
+                        + "«measured here, <date>». I refuse a material without one, and I do not invent numbers: a value you do "
+                        + "not know you leave out (it stays out of the material), you do not guess it. The source is written into "
+                        + "the library and returned in the answer.\n\nOPTIONAL VALUES, in these units: «elastic_modulus_mpa», "
+                        + "«poisson_ratio» (0 to 0.5), «tensile_strength_mpa», «yield_strength_mpa», «thermal_expansion_per_k», "
+                        + "«thermal_conductivity_w_mk», «specific_heat_j_kgk». A value outside what a material can have is refused "
+                        + "with the unit it should be in (a modulus in GPa where MPa is asked is a thousand times too small).\n\n"
+                        + "A NAME THAT EXISTS IS REFUSED: in this library unless you say «replace»: true, and in any other "
+                        + "library always (two materials with one name make «apply_material» ambiguous again). «replace» overwrites "
+                        + "only a material of this library.\n\nAFTERWARDS: the answer says the library and the file. Then "
+                        + "«apply_material» with the same name puts it on the part, and «mass_properties» reads the weight.\n\n"
+                        + "LIMITS. The material has the physical values only: no appearance (the part keeps its colour), no "
+                        + "sustainability data, no property curves, no temperature dependence. It does not touch any other library "
+                        + "and does not change any SOLIDWORKS option. The library lives on this workstation: another machine "
+                        + "needs the same call. If no folder SOLIDWORKS reads can be written by this account, I refuse and say so.",
+                    Precondition = null,
+                    Schema = O(
+                        "type", "object",
+                        "properties", O(
+                            "name", O(
+                                "type", "string",
+                                "description", "the name of the material as it will be listed, for example «PLA» or «PETG Prusament». "
+                                    + "No « | », quotes, « < », « > » or « & »."),
+                            "density_kg_m3", O(
+                                "type", "number",
+                                "description", "density in kilograms per cubic metre (water 1000, steel 7850). The datasheet says "
+                                    + "g/cm3 or specific gravity: multiply by 1000."),
+                            "source", O(
+                                "type", "string",
+                                "description", "where the numbers come from: the datasheet with its code or date, a standard, "
+                                    + "or «measured here, <date>». Required."),
+                            "elastic_modulus_mpa", O("type", "number", "description", "Young's modulus in MPa (3.6 GPa = 3600)"),
+                            "poisson_ratio", O("type", "number", "description", "Poisson's ratio, 0 to 0.5. Leave it out if the source does not give it."),
+                            "tensile_strength_mpa", O("type", "number", "description", "tensile strength in MPa"),
+                            "yield_strength_mpa", O("type", "number", "description", "yield strength in MPa"),
+                            "thermal_expansion_per_k", O("type", "number", "description", "thermal expansion coefficient per kelvin (steel 0.000012)"),
+                            "thermal_conductivity_w_mk", O("type", "number", "description", "thermal conductivity in W/(m K)"),
+                            "specific_heat_j_kgk", O("type", "number", "description", "specific heat in J/(kg K)"),
+                            "class", O("type", "string", "description", "the group it is listed under in SOLIDWORKS. Default «Custom»."),
+                            "description", O("type", "string", "description", "a line of text shown with the material. Default: the name."),
+                            "replace", O("type", "boolean", "description", "true to overwrite a material of this library that has the same name. Default: no, and the operation refuses."),
+                            "folder", O("type", "string", "description", "one of the folders SOLIDWORKS reads for material databases, if you do not want the first writable one. Any other folder is refused.")),
+                        "required", A("name", "density_kg_m3", "source")),
                 },
                 new OperationSpec
                 {
@@ -2887,6 +2972,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "drawing come in, fallbacks included. If the part has dimensions and "
                         + "none is marked, I refuse and say so: pass all_dimensions=true to "
                         + "import them all, or mark on the model the ones the drawing must show."
+                        + "\n\nWHAT THE ANSWER SAYS ABOUT THE PART (0.131.0). It lists, dimension by dimension, which dimensions of the part are "
+                        + "not on the drawing and why (part_dimensions_not_in_drawing). A sheet-metal part made by «base_flange» has no 120, no 70, no 8 "
+                        + "and no R8 to bring: the profile of the base flange is not dimensioned and the thickness and the bend radius belong to the "
+                        + "sheet metal feature, which has no dimension; the answer says so (sheet_metal_note) and «drawing_dimension» dimensions them from "
+                        + "the edges."
+                        + "\n\nWHAT IT TIDIES, only among the dimensions THIS call brought (imported_dimensions_removed, dimensions_moved_apart): the "
+                        + "diameter dimension of a hole whose hole callout in the same view already says the same Ø is taken away (a hole is dimensioned "
+                        + "once), and linear dimensions that lie on the same dimension line and overlap are moved apart, outward, one pitch each, and "
+                        + "read back. Nothing that was on the drawing before the call is touched. With all_dimensions the dimensions of the hole wizard "
+                        + "(its diameter and the positions of its holes) are asked for by their own bits, so that the import does not fall back to the "
+                        + "route that brings every kind of annotation."
                         + "\n\nI REFUSE IF the drawing has no views (the dimensions "
                         + "would have nothing to attach to) and if no dimension comes in: I tell you, "
                         + "with how many the part has marked, instead of answering «done».",
@@ -3070,7 +3166,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "you do not ask: holes with the HOLE CALLOUT («4× Ø8 THRU», with the word for «through» "
                         + "that SOLIDWORKS writes in the language of the installation, one callout per diameter AND depth: two through Ø8 and two blind Ø8 get two "
                         + "callouts, never one «4×») and the position from the two "
-                        + "reference edges, the left one and the bottom one; chamfers with the CHAMFER "
+                        + "reference edges, the left one and the bottom one OF THE OUTLINE of the part (on a part chamfered along its whole outline the "
+                        + "outline is made of the edges between a chamfer and the side of the part seen edge-on, not of the tangent line where a bend begins); chamfers with the CHAMFER "
                         + "DIMENSION («5 x 45°»), not with their edges — the hypotenuse and the "
                         + "segments shortened by the chamfer are not dimensioned. A chamfer the profile draws (a short "
                         + "oblique edge between two perpendicular ones, no chamfer feature) is one too "
@@ -3080,7 +3177,20 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "\n\nTHE «4×» IS READ BACK: after writing the count in front of the "
                         + "callout I read its prefix again (holes[].prefix_read). If the count did "
                         + "not stick, the holes are listed in edges_not_dimensioned and the count "
-                        + "must be written by hand; «how_many» is the number of holes, not the text."
+                        + "must be written by hand; «how_many» is the number of holes, not the text. A callout that is born with its own count "
+                        + "(the hole wizard writes «2 x» itself for a feature with two positions) is not given a second one: its count is read and must "
+                        + "be the number of holes of the group."
+                        + "\n\nWHEN THE CHAMFERS AND THE BENDS LEAVE NO EDGE TO DIMENSION (a sheet-metal bracket chamfered "
+                        + "along its whole outline: every edge the view shows touches a chamfer, and the 120 of a bent sheet is a "
+                        + "virtual sharp, not the length of any edge) I dimension what the drawing needs between the edges: the "
+                        + "OVERALL width and height between the extreme edges, the THICKNESS of the sheet (read from the part, between "
+                        + "two parallel edges one thickness apart) and the INNER bend radius (the arc of the bend seen in its true shape; the outer arc is "
+                        + "the inner plus the thickness and is not dimensioned again; a slot or a fillet is not a bend). They are in overall_dimensions, "
+                        + "each with the millimetres read back. Each is one element of the drawing: an extent already dimensioned in another view, "
+                        + "or whose value the model already brought into this view (the 60 of the depth arrives free), is not put again, and the "
+                        + "answer says so in already_dimensioned_elsewhere. Only when the edge-by-edge path had nothing left to dimension: a part "
+                        + "with edges to dimension is dimensioned as before. A short oblique edge where two chamfer strips meet is not a chamfer seen in "
+                        + "profile and is not given a chamfer dimension."
                         + "\n\nA CIRCLE IS NOT ALWAYS A HOLE: the outline of a round "
                         + "part seen from the front has a diameter dimension (outer_diameters)."
                         + "\n\nA ROUND PART SEEN FROM THE SIDE (shaft, bushing, pin) I dimension "
@@ -3277,7 +3387,17 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "must be the holes plus the header, and every position written "
                         + "must correspond to a hole of the part measured on the view. Measured: "
                         + "with the origin and the face badly selected SOLIDWORKS produces an EMPTY "
-                        + "table without an error.\n\nI REFUSE IF no face with holes looks toward the "
+                        + "table without an error.\n\nTHE ORIGIN IS THE CORNER OF THE PART, when the part has a vertex there: of the "
+                        + "vertices of the faces that look toward the reader I take the one nearest to the corner of the part in that view "
+                        + "(the extreme of the edges the view shows). A part whose corner is rounded off (a bend, a fillet, a chamfer) has no "
+                        + "vertex exactly at the corner: then the table is exact from the nearest vertex, and the answer says so. "
+                        + "«positions_checked» is true ONLY when the origin vertex is the corner of the part; otherwise it is false, "
+                        + "with «origin_gap_to_part_corner_mm», «origin_warning» and «positions_from_part_corner_mm» (the hole positions "
+                        + "from the corner of the part, which is what is usually dimensioned, in the order of the table: each row of «entries» also "
+                        + "carries its own «from_part_corner_mm»). The rows of the table are always checked "
+                        + "against the origin vertex they were made from («positions_checked_against_origin_vertex»); that says the "
+                        + "table is faithful to ITS origin, not that the origin is where the workshop measures from."
+                        + "\n\nI REFUSE IF no face with holes looks toward the "
                         + "reader in that view, and if the table is born empty or states positions "
                         + "the part does not have: in those cases I remove it.",
                     Precondition = "a drawing with a view of the part in which the holes are seen as circles",
@@ -3292,7 +3412,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "enum", A("bottom_left", "bottom_right", "top_left", "top_right"),
                                 "description", "from which corner of the drilled face the positions are measured. Default bottom_left."),
                             "x_mm", O("type", "number", "description", "where the top-left corner of the table goes on the sheet, in mm. Default 15."),
-                            "y_mm", O("type", "number", "description", "same, vertically. Default 15 below the top edge of the sheet."),
+                            "y_mm", O("type", "number", "description", "where the TOP edge of the table goes, vertically, in mm from the BOTTOM edge of the sheet (the same axis as the state of the drawing and as move_view). Default: the height of the sheet minus 15, that is 15 mm below its top edge."),
                             "tag_start", O("type", "string", "description", "the letter of the tags. Default «A».")),
                         "required", A()),
                 },
@@ -3632,7 +3752,7 @@ namespace Oce.Solid.Agent.Core.Catalog
                             "y_mm", O(
                                 "type", "number",
                                 "description", "height from the bottom edge of the sheet, "
-                                    + "in millimetres. Default 20 mm below the top edge.")),
+                                    + "in millimetres. Default: the height of the sheet minus 20, that is 20 mm below its top edge.")),
                         "required", A("text")),
                 },
                 new OperationSpec
@@ -3646,21 +3766,26 @@ namespace Oce.Solid.Agent.Core.Catalog
                     // and delete_feature does not touch an annotation.
                     Tested = true,
                     Summary =
-                        "Takes away a dimension or a note of the drawing, by its name or by the text of the note.",
+                        "Takes away a dimension, a note or a table of the drawing, by its name, by the text of the note "
+                        + "or by the number of the table.",
                     Description =
-                        "Takes away ONE dimension or ONE note from the current sheet of the drawing.\n\n"
+                        "Takes away ONE dimension, ONE note or ONE table from the current sheet of the drawing.\n\n"
                         + "WHY IT EXISTS: «undo» does not withdraw a plan on a drawing (SOLIDWORKS records no undo "
                         + "entry for it that I can take back), and «delete_feature» does not touch an annotation. "
-                        + "This is the way to take away a dimension that is wrong or one too many.\n\n"
+                        + "This is the way to take away a dimension that is wrong or one too many, or a table put "
+                        + "in the wrong place.\n\n"
                         + "BY NAME: the name «drawing_dimension» gives in «dimensions[].name» (for example "
                         + "«RD1@Drawing View1@Part.Drawing»; «RD1» alone is enough when only one dimension is called so), "
-                        + "or the «name» «note» gives. BY TEXT: the exact text of a note.\n\n"
+                        + "or the «name» «note» gives. BY TEXT: the exact text of a note. A TABLE (a hole table, a "
+                        + "bill of materials) by «table»: T1, T2... in the order of the sheet, the sheet first and then "
+                        + "view by view; a wrong number is refused with the list of the tables there are and their kind. "
+                        + "«table» goes alone, without «name» or «text».\n\n"
                         + "If nothing answers, or more than one annotation answers, I refuse and touch nothing, and I "
                         + "list the ones that answer. Only the CURRENT sheet: for another one, activate it first with "
                         + "«activate_sheet».\n\n"
                         + "I SAY «removed» ONLY WHEN IT IS GONE: after the deletion the sheet is walked again and "
-                        + "nothing may answer to the name or the text any more; the count before and after is in the "
-                        + "answer.",
+                        + "nothing may answer to the name or the text any more, or the tables are counted again; "
+                        + "the count before and after is in the answer.",
                     Precondition = "an open drawing with the annotation on its current sheet",
                     Schema = O(
                         "type", "object",
@@ -3671,7 +3796,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                                     + "gave it. Write this or «text»."),
                             "text", O(
                                 "type", "string",
-                                "description", "the exact text of a note. Write this or «name».")),
+                                "description", "the exact text of a note. Write this or «name»."),
+                            "table", O(
+                                "type", "string",
+                                "description", "a table to take away: T1, T2... in the order of the sheet (the sheet "
+                                    + "first, then view by view). Write it alone, without «name» or «text».")),
                         "required", A()),
                 },
                 new OperationSpec
@@ -3995,7 +4124,10 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "written yet, or it is written with another spelling."
                         + "\n\nBeware of `$PRPSHEET`: it takes the property from the "
                         + "PART in view, not from the drawing. They are two different drawers, "
-                        + "and mixing them up means writing on the wrong document.\n\nIf "
+                        + "and mixing them up means writing on the wrong document: with the "
+                        + "drawing in front «set_property» looks at these links itself and writes "
+                        + "on the part for a `$PRPSHEET` field (it tells you in its answer), so "
+                        + "you do not have to bring the part to the front first.\n\nIf "
                         + "the title block has no linked note I tell you, instead of "
                         + "letting you fill in properties that would not appear: that "
                         + "text is drawn inside the sheet format, not fed."
@@ -4309,9 +4441,11 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "Adds to the sheet a NAMED VIEW of the part, at the point you say.\n\n"
                         + "The most useful is the ISOMETRIC one: on its own it makes whoever looks "
                         + "at the drawing understand the part, and the three standard views on "
-                        + "their own often do not.\n\nx_mm and y_mm are the position ON THE SHEET, "
-                        + "with the origin at the bottom left: on an A3 (420x297) the top right corner "
-                        + "is around 320, 220.\n\nTHE SCALE: «scale» («1:2», «2:1») is set on the view and "
+                        + "their own often do not.\n\nx_mm and y_mm are the position of the CENTRE of the view ON THE SHEET "
+                        + "(IView~Position), with the origin at the bottom left: an A3 runs from 0, 0 to 420, 297, so "
+                        + "its top right corner is 420, 297. Keep the whole view inside the sheet, clear of the title "
+                        + "block (bottom right) and of the other views: nothing here checks it, and «move_view» puts a "
+                        + "view in a better place.\n\nTHE SCALE: «scale» («1:2», «2:1») is set on the view and "
                         + "read back after the rebuild; left out, SOLIDWORKS chooses it. The answer says "
                         + "«scale» (decimal) and «scale_ratio», read from the view.",
                     Precondition = "an open drawing and the part open beside it",
@@ -4621,7 +4755,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Volume, area, mass and center of gravity of the part. Touches nothing.",
+                        "The WEIGHT (mass) of the part, with its volume, area and center of gravity. "
+                        + "Touches nothing.",
                     Description =
                         "Answers «how much does this part weigh»: volume, surface "
                         + "area, mass, density and center of gravity.\n\nMASS WITHOUT A "
@@ -4839,9 +4974,13 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "error. If one of these does not hold I remove the fillet, check again "
                         + "that the part is as it was, and tell you. If it is not created -- "
                         + "usually the radius, which does not fit on the faces -- I say so "
-                        + "and point you to «fillet_edges».\n\nOne face per set; faces are "
-                        + "named with the identifiers of the state, not with a reference to "
-                        + "a step.",
+                        + "and point you to «fillet_edges».\n\nEach of the two faces is named "
+                        + "with an identifier of the state («face_1_uid», «face_2_uid») OR, if "
+                        + "a step of this same plan creates it, with a reference to that step "
+                        + "(«face_1_ref», «face_2_ref»; one or the other for each face, and they "
+                        + "can be mixed). A reference names ONE face of a step: the top of the "
+                        + "plate of step 1 and the wall of the hole of step 2 round the mouth of "
+                        + "that hole.",
                     Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
@@ -4850,15 +4989,21 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "string",
                                 "description", "the first face, taken from the document state "
                                     + "(for example «F1»)."),
+                            "face_1_ref", FaceRefSchema("face_1_uid", holeWall: true),
                             "face_2_uid", O(
                                 "type", "string",
                                 "description", "the second face, different from the first (for example "
                                     + "«F3»). Two flat parallel faces are not filleted together."),
+                            "face_2_ref", FaceRefSchema("face_2_uid", holeWall: true),
                             "radius_mm", O(
                                 "type", "number",
                                 "description", "the radius of the fillet, in mm. It must fit on "
                                     + "both faces.")),
-                        "required", A("face_1_uid", "face_2_uid", "radius_mm")),
+                        // face_1_uid / face_2_uid are NOT required: each face is named by its uid OR by
+                        // its _ref twin, and Bridge/Shape.Check refuses a plan that lacks a required field
+                        // whatever the twin says (only the dry run knows the twins). The library refuses
+                        // when a face is named by neither, saying what to give.
+                        "required", A("radius_mm")),
                 },
                 new OperationSpec
                 {
@@ -5085,8 +5230,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part/assembly",
                     Tested = true,
                     Summary =
-                        "Writes the STEP for whoever has to machine the part, and reads back from "
-                        + "the file which protocol actually came out.",
+                        "Writes the STEP for whoever has to machine the part, then reads the file back "
+                        + "to see which protocol it really holds.",
                     Description =
                         "Writes the part as STEP: it is the format in which a part is sent to "
                         + "a supplier, to a customer, or taken to another CAD.\n\nUnlike the "
@@ -6156,7 +6301,14 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "of shrinking. I answer how much material moved and in which "
                         + "direction, so you see it without looking at the part from the side."
                         + "\n\nFLAT FACES ONLY: a drafted cylindrical face becomes conical and "
-                        + "does not have a single inclination, so I do not count it.",
+                        + "does not have a single inclination, so I do not count it."
+                        + "\n\nFACES THAT THIS SAME PLAN CREATES. «make a block and draft its sides» "
+                        + "is one plan: «neutral_face_ref» ({step, kind}, as in «hole_wizard») names "
+                        + "the neutral face and «faces_ref» the faces to tilt, one element for each "
+                        + "reference. «side_faces» stands for ALL the flat walls of a step that run "
+                        + "along its direction -- the four sides of a block -- and is the one "
+                        + "kind that names more than one face. Each face is given by identifier OR "
+                        + "by reference, never both.",
                     Precondition = "solid_body_and_face",
                     Schema = O(
                         "type", "object",
@@ -6165,10 +6317,33 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "string",
                                 "description", "the face that STAYS FIXED, the angle is measured from it (for "
                                     + "example «F1»). Usually it is the bottom or the mouth of the mold."),
+                            "neutral_face_ref", FaceRefSchema("neutral_face_uid"),
                             "faces_uid", O(
                                 "type", "array",
                                 "items", O("type", "string"),
                                 "description", "the faces to tilt. They must touch the neutral one."),
+                            "faces_ref", O(
+                                "type", "array",
+                                "description", "the faces to tilt, when a step of this same plan creates "
+                                    + "them and so they have no identifier yet. Give this OR «faces_uid», "
+                                    + "not both.\n\nOne element for each reference.\n\nAllowed kinds:\n- "
+                                    + "side_faces: ALL the flat walls of that step that run along its "
+                                    + "direction (the four sides of a block, the walls of a pocket); "
+                                    + "curved walls are left out\n- top_face: the face at the top of the "
+                                    + "extrusion\n- bottom_face: the face on the sketch plane\n- "
+                                    + "pocket_floor: the floor of a blind pocket",
+                                "items", O(
+                                    "type", "object",
+                                    "properties", O(
+                                        "step", O(
+                                            "type", "integer",
+                                            "description", "the sequence number of the step that creates the "
+                                                + "geometry, counting from 1. It must be a step BEFORE this one."),
+                                        "kind", O(
+                                            "type", "string",
+                                            "enum", A(
+                                                "side_faces", "top_face", "bottom_face", "pocket_floor"))),
+                                    "required", A("step", "kind"))),
                             "angle_deg", O(
                                 "type", "number",
                                 "description", "by how much to tilt them, in degrees. For a mold 1-3 "
@@ -6177,7 +6352,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "boolean",
                                 "description", "true to make the walls lean the other way -- the part "
                                     + "grows instead of shrinking. Default false.")),
-                        "required", A("neutral_face_uid", "faces_uid", "angle_deg")),
+                        // neutral_face_uid / faces_uid are NOT required (see fillet_face): uid OR _ref.
+                        "required", A("angle_deg")),
                 },
                 new OperationSpec
                 {
@@ -6311,11 +6487,30 @@ namespace Oce.Solid.Agent.Core.Catalog
                     RequestedDocument = "part",
                     Tested = true,
                     Summary =
-                        "Engraves (or embosses) a text on a flat face, and "
-                        + "refuses if the text does not fit.",
+                        "Engraves (or embosses) a text on a flat face, or cuts it right through the "
+                        + "part, and refuses if the text does not fit.",
                     Description =
                         "Writes WORDS into the part: serial number, mounting direction, customer "
-                        + "name, «UP». Engraved (default) or embossed."
+                        + "name, «UP». Engraved (default), embossed, or cut right through."
+                        + "\n\nTHE FACE CAN BE ONE THAT THIS SAME PLAN CREATES. «face_ref» "
+                        + "({step, kind}, the same as in «hole_wizard») names it before it exists: "
+                        + "«a 150x150x5 plate with its number on it» is ONE plan, not two."
+                        + "\n\nCUT THROUGH (number plates, stencils): with «through_all» the text "
+                        + "goes through the whole thickness instead of being engraved to a depth. I "
+                        + "check the same thing first -- the letters must lie inside the face, and "
+                        + "I refuse telling you by how much they overflow -- and afterwards that "
+                        + "material really went away and that NOTHING CAME LOOSE. The letters that "
+                        + "have a hole inside (0, 6, 8, 9, A, B, D, O, P, Q, R) cannot be cut "
+                        + "through: the inside of the letter is attached to nothing and falls out "
+                        + "as a second body. I refuse those, remove the cut, and say so. "
+                        + "In the answer «depth_mm» is the thickness really cut, read from the "
+                        + "walls the cut made. Behind the face I cut everything that is there: on a "
+                        + "hollow part it goes through both walls."
+                        + "\n\nCENTRED: the anchor is the bottom left corner of the text, and "
+                        + "how wide the text is cannot be known from the string. With «centered» "
+                        + "«x_mm» and «y_mm» name the CENTRE of the lettering (if you give neither: "
+                        + "the centre of the face), and I draw the text, measure it, and move it "
+                        + "there. «centre_mm» in the answer is where the centre really is."
                         + "\n\nI CHECK THAT IT FITS FIRST, AND IT IS HALF OF THE JOB. The width of a text "
                         + "cannot be calculated from the string: it depends on the font, and "
                         + "«PROVA» 10 mm high in Century Gothic is 47 mm wide. A text that "
@@ -6341,14 +6536,28 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "string",
                                 "description", "the flat face to write on (for example «F1»). "
                                     + "The identifiers are in the document state."),
+                            "face_ref", FaceRefSchema(),
                             "x_mm", O(
                                 "type", "number",
                                 "description", "where the text starts on the face, in mm, in the "
-                                    + "coordinates of the face. Default 0."),
+                                    + "coordinates of the face. Default 0. With «centered»: where the "
+                                    + "CENTRE of the text goes (default: the centre of the face)."),
                             "y_mm", O(
                                 "type", "number",
                                 "description", "the other coordinate of the anchor. Default 0. The anchor "
-                                    + "is the BOTTOM LEFT CORNER of the text, not its center."),
+                                    + "is the BOTTOM LEFT CORNER of the text, not its center. With "
+                                    + "«centered»: the centre of the text (default: the centre of the face)."),
+                            "centered", O(
+                                "type", "boolean",
+                                "description", "true to place the text by its CENTRE instead of its bottom "
+                                    + "left corner: «x_mm» and «y_mm» become the centre of the lettering, "
+                                    + "and if you leave them out, the centre of the face. Default false."),
+                            "through_all", O(
+                                "type", "boolean",
+                                "description", "true to cut the text through the whole thickness (a "
+                                    + "number plate). Do not give «depth_mm» or «raised» with it. Letters "
+                                    + "with a hole inside (0 6 8 9 A B D O P Q R) are refused: the "
+                                    + "inside would fall out. Default false."),
                             "height_mm", O(
                                 "type", "number",
                                 "description", "the height of the letters in mm. Default 5."),
@@ -6371,7 +6580,8 @@ namespace Oce.Solid.Agent.Core.Catalog
                                 "type", "boolean",
                                 "description", "true for bold: thicker letters, which read better "
                                     + "on a 3D print or a casting. Default false.")),
-                        "required", A("text", "face_uid")),
+                        // face_uid is NOT required (see fillet_face): face_uid OR face_ref.
+                        "required", A("text")),
                 },
                 new OperationSpec
                 {
@@ -6403,7 +6613,19 @@ namespace Oce.Solid.Agent.Core.Catalog
                         + "I wrote I fail instead of confirming a data card that is not the one you think."
                         + "\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is "
                         + "checked as the TEXT written, and resolved_value gives what SOLIDWORKS "
-                        + "evaluates it to, when the two differ.",
+                        + "evaluates it to, when the two differ."
+                        + "\n\nWITH A DRAWING IN FRONT I WRITE WHERE THE TITLE BLOCK READS. A title block "
+                        + "links its fields to properties in two ways: «$PRP» reads the drawing's own "
+                        + "properties, «$PRPSHEET» reads the properties of the PART shown in the views. A "
+                        + "property written on the drawing and read from the part leaves the box empty, with "
+                        + "no error. So I look at the title block (as «title_block» does) and write the "
+                        + "property on the part of the views when the title block reads it from the part, on "
+                        + "the drawing when it reads it from the drawing, on both if it reads it both ways. If "
+                        + "no field reads that name I write it on the drawing, as asked, and the answer says "
+                        + "(«title_block») that nothing shows it and which names the title block does read. If "
+                        + "the title block reads it from the part and the part is not open, I refuse and say so, "
+                        + "instead of writing where nobody looks. The part is changed in memory and NOT saved: "
+                        + "save it («save_document», with the part in front) to keep the value in its file.",
                     Precondition = null,
                     Schema = O(
                         "type", "object",
@@ -6515,6 +6737,53 @@ namespace Oce.Solid.Agent.Core.Catalog
                         "required", A("name")),
                 },
             };
+
+        /// <summary>
+        /// The `face_ref` argument, in ONE place: a face that an EARLIER step of the
+        /// same plan creates, named before it exists (0.131.0).
+        ///
+        /// IT IS THE SHAPE OF `hole_wizard`'s `face_ref`, word for word: an object
+        /// {step, kind} with both required, the kinds `pocket_floor`, `bottom_face`,
+        /// `top_face`. The operations that took it before 0.131.0 (slot, extrude_on_face,
+        /// hole_wizard, fill_pattern, cylindrical_cut, rectangular_cut, create_axis) carry
+        /// seven hand-copied blocks of it, with small differences of wording; the ones added
+        /// since come from here, and Tests/FaceRefPlanContract.cs holds ALL of them to the
+        /// same shape, so that the model learns it once.
+        ///
+        /// The resolution is the library's, not a second one: SwOperations.ResolveFace
+        /// reads the argument, References.Face resolves the kind.
+        /// </summary>
+        /// <param name="uidField">the twin argument, named in the text: «face_uid», «face_1_uid».</param>
+        /// <param name="holeWall">
+        /// also allow `hole_face`, the wall of a hole, for operations that work on
+        /// a curved face too (a flat-only operation does not offer it).
+        /// </param>
+        private static Node FaceRefSchema(string uidField = "face_uid", bool holeWall = false)
+        {
+            return O(
+                "type", "object",
+                "description", "the face created by an earlier step of this same plan. Give "
+                    + "this OR " + uidField + ", not both.\n\nAllowed kinds:\n- pocket_floor: "
+                    + "the floor of the pocket (it exists only if the pocket is "
+                    + "blind)\n- bottom_face: the face on the sketch plane, "
+                    + "the bottom of the extrusion\n- top_face: the face at the "
+                    + "top of the extrusion, the one opposite the sketch plane"
+                    + (holeWall
+                        ? "\n- hole_face: the cylindrical wall of a hole (the step must have "
+                          + "left exactly one)"
+                        : ""),
+                "properties", O(
+                    "step", O(
+                        "type", "integer",
+                        "description", "the sequence number of the step that creates the geometry, counting "
+                            + "from 1. It must be a step BEFORE this one."),
+                    "kind", O(
+                        "type", "string",
+                        "enum", holeWall
+                            ? A("pocket_floor", "bottom_face", "top_face", "hole_face")
+                            : A("pocket_floor", "bottom_face", "top_face"))),
+                "required", A("step", "kind"));
+        }
 
         /// <summary>
         /// The `anchor` argument (entry E18), the same for the hole and the pocket. It is

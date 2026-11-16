@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SolidWorks.Interop.sldworks;
 
 namespace Oce.Solid.Agent.Core
@@ -393,6 +394,73 @@ namespace Oce.Solid.Agent.Core
                     reason = "Unknown face kind: «" + kind + "».";
                     return false;
             }
+        }
+
+        /// <summary>The only kind of the «face» family that names MORE than one face.</summary>
+        public const string SideFaces = "side_faces";
+
+        /// <summary>
+        /// Cosine below which a face normal is called perpendicular to the direction of
+        /// the step, so that the face is a wall that runs ALONG it. 0.01 is about 0.6
+        /// degrees: the walls of an extrusion are exactly parallel to its axis, and this
+        /// covers only the representation error.
+        /// </summary>
+        private const double WallCosine = 0.01;
+
+        /// <summary>
+        /// The faces named by one reference: ONE face for every kind of <see cref="Face"/>, ALL
+        /// the flat walls of the step for <see cref="SideFaces"/>.
+        ///
+        /// A PLURAL KIND, AND ONLY ONE. <see cref="Face"/> resolves a single face and refuses
+        /// when the role is not unambiguous: that rule is right and is not touched. A block has
+        /// four sides and none of them is «the» side, so naming them one at a time is
+        /// impossible and naming them all is not ambiguous at all: «side_faces» is the
+        /// planar faces whose normal is perpendicular to the direction of the step. A
+        /// curved wall is not in it (its normal is not one); the operations that take it
+        /// say so.
+        ///
+        /// Without the direction of the step there is no «along»: refused, saying so, and
+        /// not guessed from the geometry (a cuboid has six normals and nothing says which
+        /// axis was the extrusion).
+        /// </summary>
+        public static bool NamedFaces(
+            Step planStep, string kind, out List<IFace2> faces, out string reason)
+        {
+            faces = new List<IFace2>();
+            reason = null;
+            if (kind != SideFaces)
+            {
+                IFace2 one;
+                if (!Face(planStep, kind, out one, out reason)) return false;
+                faces = new List<IFace2> { one };
+                return true;
+            }
+
+            var all = FacesOf(planStep, out reason);
+            if (all == null) return false;
+            if (planStep.Direction == null)
+            {
+                reason =
+                    "Of the step «" + planStep.Operation + "» I do not know the direction " +
+                    "of extrusion or cut, so I cannot tell which walls run along it. " +
+                    "Name the faces by their identifiers.";
+                return false;
+            }
+            var walls = all.Where(f =>
+            {
+                var n = Normal(f);
+                return n != null && Math.Abs(Product(n, planStep.Direction)) < WallCosine;
+            }).ToList();
+            faces = walls;
+            if (faces.Count == 0)
+            {
+                reason =
+                    "The step «" + planStep.Operation + "» left no flat wall that runs along " +
+                    "its direction (a cylinder has a curved wall, and that one is not a «" +
+                    SideFaces + "»).";
+                return false;
+            }
+            return true;
         }
 
         /// <summary>

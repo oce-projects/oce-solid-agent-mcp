@@ -488,7 +488,7 @@ namespace Oce.Solid.Agent.Core
             }
             measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
 
-            // ── 3. DOVE (SheetPlacementOperations) ──────────────────────────
+            // ── 3. WHERE (SheetPlacementOperations) ──────────────────────────
             string tableName = null;
             try { tableName = (table.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
             var sheet = ReadSheet(drawing, null, tableName);

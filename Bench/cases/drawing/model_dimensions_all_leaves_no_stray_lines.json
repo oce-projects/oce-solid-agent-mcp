@@ -1,0 +1,52 @@
+{
+  "name": "model_dimensions_all_leaves_no_stray_lines",
+  "family": "drawing",
+  "why": "0.131.0, item 5 of the drawing branch. The sheet of the L bracket of 12/10/2026 had dash-dot lines running from the border of the sheet to the views, with nothing at the other end, and the answer of the bridge never mentioned them. They are not dimensions and they are not made by drawing_dimension (the first guess, because it failed 34 times in that session): measured with Checks/Draw131 «segs», which counts the sketch segments of the sheet and of every view between two calls, they are born by `model_dimensions` with all_dimensions, which took the route InsertModelAnnotations2 with AllTypes («all types of annotations»: the centre lines of the model's sketches come with the dimensions) and put two chain-style lines in the sketch of each view. The state of the drawing now counts them (`sketch_segments_total`), independently of the operation that could make them. Here a plate with two Hole Wizard holes, as in the bracket, gets the default import and then the one with all_dimensions.",
+
+  "defect_caught": "An import that leaves lines on the sheet that nobody asked for and nobody reports: the drawing looks dimensioned, prints, and carries dash-dot lines from the border to the views. The number to look at is the state's own count of sketch segments, read after the import, not what the import says about itself.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120, "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 480000, "why": "200 x 120 x 20" } ] },
+
+    { "operation": "hole_wizard",
+      "arguments": { "face_uid": "@face(normal=front)", "size": "M8", "through_all": true,
+                     "positions": [
+                       { "x_mm": -80, "y_mm": -40,
+                         "anchor": { "x": { "edge_uid": "@edge(axis=Y,x~=-100,z~=20)", "distance_mm": 20 },
+                                     "y": { "edge_uid": "@edge(axis=X,y~=-60,z~=20)", "distance_mm": 20 } } },
+                       { "x_mm": 80, "y_mm": -40,
+                         "anchor": { "x": { "edge_uid": "@edge(axis=Y,x~=100,z~=20)", "distance_mm": 20 },
+                                     "y": { "edge_uid": "@edge(axis=X,y~=-60,z~=20)", "distance_mm": 20 } } } ] },
+      "expect": [ { "what": "measurements.holes", "equal_to": 2, "why": "two Hole Wizard holes, anchored: their position dimensions are the ones the all-dimensions import brings" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\model_dimensions_all_leaves_no_stray_lines.sldprt" },
+      "expect": [ { "what": "measurements.warnings", "equal_to": 0, "why": "a view attaches to the FILE of the part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "from here the drawing is measured" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\model_dimensions_all_leaves_no_stray_lines.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3, "why": "front, top, side" },
+        { "what": "state.sketch_segments_total", "equal_to": 0,
+          "why": "THE BASELINE: the views alone leave no sketch segment on the sheet. The count is the state's own, it is not told by any operation" } ] },
+
+    { "operation": "model_dimensions",
+      "arguments": {},
+      "expect": [
+        { "what": "state.sketch_segments_total", "equal_to": 0,
+          "why": "the import of the marked dimensions leaves no sketch segment either (measured 12/10/2026: 0 after it)" } ] },
+
+    { "operation": "model_dimensions",
+      "arguments": { "all_dimensions": true },
+      "expect": [
+        { "what": "state.sketch_segments_total", "equal_to": 0,
+          "why": "THE DEFECT. After the import with all_dimensions the L bracket had 2 chain-style sketch lines in each of three views, outside the part; the count was 6. It must be 0: either the import does not draw them, or it takes them away and says so" } ] }
+  ]
+}

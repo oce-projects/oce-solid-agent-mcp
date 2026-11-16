@@ -243,7 +243,7 @@ async function main() {
     await aRun([f], null);
     const seconds = Number(process.hrtime.bigint() - startedAt) / 1e9;
     times.push({ plan: path.basename(f), seconds: seconds });
-    console.log("  [tempo] " + path.basename(f) + ": " + seconds.toFixed(1) + " s");
+    console.log("  [time] " + path.basename(f) + ": " + seconds.toFixed(1) + " s");
 
     // IT IS CLOSED AFTER EVERY PLAN, NOT AT THE END.
     //

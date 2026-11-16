@@ -98,6 +98,11 @@ namespace Oce.Solid.Agent.Core
 
             IFace2 face = null;
             var holes = new List<HoleInView>();
+            // THE VERTICES OF EVERY PLANAR FACE THAT LOOKS AT THE READER, not only of the drilled one: the corner of
+            // the part may belong to another face (the L bracket: the free end of the other flange). They are the
+            // candidates for the origin of the table (0.131.0, item 4), as model vertices, the same kind of object
+            // the origin has always been.
+            var facingVertices = new List<IVertex>();
             try
             {
                 var bodies = partDoc.GetBodies2((int)swBodyType_e.swSolidBody, true) as object[];
@@ -111,6 +116,7 @@ namespace Oce.Solid.Agent.Core
                         var nv = directionOnSheet(n);
                         double len = Math.Sqrt(nv[0] * nv[0] + nv[1] * nv[1] + nv[2] * nv[2]);
                         if (len < 1e-12 || nv[2] / len < 0.99) continue;
+                        CollectVertices(f, facingVertices);
                         var here = FaceHoles(f, onSheet);
                         if (here.Count > holes.Count) { holes = here; face = f; }
                     }
@@ -144,6 +150,37 @@ namespace Oce.Solid.Agent.Core
             catch { }
             if (vertex == null) return Failed("I cannot find a corner vertex on the face with the holes.");
 
+            // ── THE CORNER OF THE PART IN THIS VIEW, AND THE ORIGIN'S DISTANCE FROM IT (0.131.0, item 4) ──
+            //
+            // The proof session of 12/10/2026 (L bracket, sheet metal, chamfer 1 on the outline) got a table
+            // saying (14, 29) and (74, 29) for holes that are 30 and 90 from the free edge and 30 from the sides,
+            // and answered «positions_checked: true». The check compared the table with the holes MEASURED FROM
+            // THE SAME VERTEX, so it could not fail: the vertex was the corner of the FLAT face (after the bend
+            // radius 16 and the chamfer 1), not the corner of the part. Here the corner of the part is read from
+            // the edges the view shows (IView~GetVisibleEntities2, IEdge~GetCurveParams3 and ICurve~Evaluate2,
+            // sampled so that arcs count), the origin vertex is the visible vertex NEAREST to that corner
+            // (any vertex of the view may be the datum: IView~InsertHoleTable3.html, Remarks «Datum origin
+            // vertex, mark 1»), and the distance between the two is in the answer.
+            double[] corner = PartCornerOnSheet(view, onSheet, sx, sy);
+            double cornerGap = corner == null ? double.NaN : Math.Sqrt(Math.Pow(vx - corner[0], 2) + Math.Pow(vy - corner[1], 2));
+            // The candidates for the origin, nearest to the corner of the part first; the vertex of the drilled
+            // face found above stays at the end as the fallback, so a vertex the view cannot select (a hidden one)
+            // never makes the table fail where it used to be born.
+            var originCandidates = new List<Tuple<double, IVertex, double, double>>();
+            if (corner != null)
+            {
+                foreach (var v in facingVertices)
+                {
+                    var p = v.GetPoint() as double[];
+                    if (p == null) continue;
+                    var s = onSheet(p);
+                    if (s == null) continue;
+                    originCandidates.Add(Tuple.Create(Math.Sqrt(Math.Pow(s[0] - corner[0], 2) + Math.Pow(s[1] - corner[1], 2)), v, s[0], s[1]));
+                }
+                originCandidates.Sort((p, q) => p.Item1.CompareTo(q.Item1));
+            }
+            var firstVertex = vertex; double firstVx = vx, firstVy = vy;
+
             // ── WHERE THE TABLE GOES: top left of the sheet, if not told otherwise ──
             double sheetWidth = 0.420, sheetHeight = 0.297;
             try
@@ -165,7 +202,21 @@ namespace Oce.Solid.Agent.Core
             if (sdV == null || sdF == null) return Failed("I cannot prepare the selection in the view.");
             sdV.Mark = SelectionMarks.HoleTableDatumOrigin; sdV.View = (View)view;
             sdF.Mark = SelectionMarks.HoleTableHoles; sdF.View = (View)view;
-            bool okV = (vertex as IEntity).Select4(false, sdV);
+            bool okV = false;
+            int tried = 0;
+            var toTry = new List<Tuple<double, IVertex, double, double>>(originCandidates.GetRange(0, Math.Min(originCandidates.Count, 6)));
+            toTry.Add(Tuple.Create(double.NaN, firstVertex, firstVx, firstVy));
+            foreach (var cand in toTry)
+            {
+                tried++;
+                model.ClearSelection2(true);
+                if ((cand.Item2 as IEntity).Select4(false, sdV))
+                {
+                    okV = true; vertex = cand.Item2; vx = cand.Item3; vy = cand.Item4;
+                    cornerGap = double.IsNaN(cand.Item1) ? (corner == null ? double.NaN : Math.Sqrt(Math.Pow(vx - corner[0], 2) + Math.Pow(vy - corner[1], 2))) : cand.Item1;
+                    break;
+                }
+            }
             bool okF = (face as IEntity).Select4(true, sdF);
             if (!okV || !okF)
                 return Failed("I cannot select in the view the origin and the face with the holes (vertex " + okV +
@@ -213,6 +264,7 @@ namespace Oce.Solid.Agent.Core
 
             // ── THE REREAD: every row against the model ─────────────────────
             var entries = new List<object>();
+            var fromCorner = new List<object>();   // the same rows, from the corner of the part (item 4)
             int match = 0;
             for (int r = 1; r < lines; r++)
             {
@@ -224,13 +276,24 @@ namespace Oce.Solid.Agent.Core
                 bool numbers = double.TryParse(sx0.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out lx) &
                               double.TryParse(sy0.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out ly);
                 bool found = false;
+                object[] fromThePartCorner = null;
                 if (numbers)
                     foreach (var f in holes)
                     {
                         double dx = Math.Abs(f.X - vx) / scale * 1000.0, dy = Math.Abs(f.Y - vy) / scale * 1000.0;
-                        if (Math.Abs(dx - Math.Abs(lx)) <= 0.05 && Math.Abs(dy - Math.Abs(ly)) <= 0.05) { found = true; break; }
+                        if (Math.Abs(dx - Math.Abs(lx)) <= 0.05 && Math.Abs(dy - Math.Abs(ly)) <= 0.05)
+                        {
+                            found = true;
+                            // THE SAME HOLE, FROM THE CORNER OF THE PART: in the order of the table, not of the list of holes.
+                            if (corner != null)
+                                fromThePartCorner = new object[] {
+                                    Math.Round(Math.Abs(f.X - corner[0]) / scale * 1000.0, 2),
+                                    Math.Round(Math.Abs(f.Y - corner[1]) / scale * 1000.0, 2) };
+                            break;
+                        }
                     }
                 if (found) match++;
+                if (fromThePartCorner != null) fromCorner.Add(fromThePartCorner);
                 entries.Add(new Dictionary<string, object>
                 {
                     ["tag"] = tag,
@@ -238,6 +301,7 @@ namespace Oce.Solid.Agent.Core
                     ["y_mm"] = numbers ? (object)ly : sy0,
                     ["measure"] = measure,
                     ["in_model"] = found,
+                    ["from_part_corner_mm"] = fromThePartCorner,
                 });
             }
             if (match != holes.Count)
@@ -248,6 +312,7 @@ namespace Oce.Solid.Agent.Core
                     "the origin on the view: it is not the table of these holes.{2}", holes.Count, match, removed));
             }
 
+            bool originOnCorner = !double.IsNaN(cornerGap) && cornerGap / scale * 1000.0 <= 0.05;
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = viewName,
@@ -255,9 +320,25 @@ namespace Oce.Solid.Agent.Core
                 ["holes"] = holes.Count,
                 ["rows"] = lines,
                 ["entries"] = entries.ToArray(),
-                ["positions_checked"] = true,
+                // ONLY TRUE WHEN IT WAS CHECKED AGAINST THE PART (0.131.0, item 4). The check above compares the
+                // table with the holes measured from the origin vertex: it says the table is faithful to THAT
+                // vertex, and nothing about whether the vertex is where the workshop measures from. So
+                // «positions_checked» is true when the origin vertex IS the corner of the part in the view, and
+                // false (with the numbers the workshop would expect, and the gap) when it is not or when the corner
+                // could not be read.
+                ["positions_checked"] = originOnCorner,
+                ["positions_checked_against_origin_vertex"] = true,
+                ["origin_gap_to_part_corner_mm"] = double.IsNaN(cornerGap) ? null : (object)Math.Round(cornerGap / scale * 1000.0, 3),
+                ["origin_on_part_corner"] = double.IsNaN(cornerGap) ? null : (object)originOnCorner,
+                ["positions_from_part_corner_mm"] = fromCorner.ToArray(),
                 ["tables_in_drawing"] = DrawingTables(drawing),
             };
+            if (!originOnCorner)
+                measurements["origin_warning"] = double.IsNaN(cornerGap)
+                    ? "I could not read the corner of the part in this view, so I cannot say that the table is measured from it: the positions are checked against the origin vertex only."
+                    : "The origin of the table is the vertex at " + Math.Round(cornerGap / scale * 1000.0, 2).ToString("0.##", CultureInfo.InvariantCulture) +
+                      " mm from the corner of the part in this view (the part has no vertex exactly at the corner: a bend, a fillet or a chamfer rounds it off). " +
+                      "The table is exact from THAT vertex; «positions_from_part_corner_mm» gives the positions from the corner of the part, which is what is usually dimensioned.";
             if (!string.IsNullOrEmpty(tableModel)) measurements["table_template"] = LocalCopies.Original(tableModel);
             // THE HOLES TWICE (26/9/2026, the first drawing looked at with the table):
             // if the view already had the hole callouts, the table repeats them.
@@ -269,6 +350,71 @@ namespace Oce.Solid.Agent.Core
                                        "(and usually the position dimensions of the holes): with the table the holes " +
                                        "are dimensioned twice. Put the table BEFORE «drawing_dimension», which then leaves the holes to the table.";
             return WithoutFeature(measurements);
+        }
+
+        private static void CollectVertices(IFace2 f, System.Collections.IList into)
+        {
+            try
+            {
+                foreach (var oe in (f.GetEdges() as object[]) ?? new object[0])
+                {
+                    var e = oe as IEdge;
+                    foreach (var ov in new[] { e?.GetStartVertex(), e?.GetEndVertex() })
+                    {
+                        var v = ov as IVertex;
+                        if (v != null) into.Add(v);
+                    }
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// The corner of the part in the view, on the sheet (metres): the extreme of the visible edges
+        /// in the direction of the corner asked for (sx, sy = -1 left/bottom, +1 right/top). Arcs and
+        /// circles are sampled along their parameter range, so a rounded corner counts. Null if the view
+        /// shows no edge that can be read.
+        /// </summary>
+        private static double[] PartCornerOnSheet(IView view, Func<double[], double[]> onSheet, int sx, int sy)
+        {
+            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+            int points = 0;
+            try
+            {
+                foreach (var oe in (view.GetVisibleEntities2(null, (int)swViewEntityType_e.swViewEntityType_Edge) as object[]) ?? new object[0])
+                {
+                    var e = oe as IEdge;
+                    if (e == null) continue;
+                    ICurve curve;
+                    var pd = ApiHelpers.EdgeParameters(e, out curve);
+                    if (pd == null) continue;
+                    var samples = new List<double[]>();
+                    double u0, u1;
+                    if (curve != null && ApiHelpers.EdgeRangeOnCurve(pd, curve, out u0, out u1))
+                        for (int k = 0; k <= 8; k++)
+                        {
+                            var q = curve.Evaluate2(u0 + (u1 - u0) * k / 8.0, 0) as double[];
+                            if (q != null && q.Length >= 3) samples.Add(q);
+                        }
+                    else
+                    {
+                        var a = pd.StartPoint as double[]; var b = pd.EndPoint as double[];
+                        if (a != null) samples.Add(a);
+                        if (b != null) samples.Add(b);
+                    }
+                    foreach (var q in samples)
+                    {
+                        var s = onSheet(new[] { q[0], q[1], q[2] });
+                        if (s == null) continue;
+                        points++;
+                        minX = Math.Min(minX, s[0]); maxX = Math.Max(maxX, s[0]);
+                        minY = Math.Min(minY, s[1]); maxY = Math.Max(maxY, s[1]);
+                    }
+                }
+            }
+            catch { return null; }
+            if (points == 0) return null;
+            return new[] { sx < 0 ? minX : maxX, sy < 0 ? minY : maxY };
         }
 
         /// <summary>
@@ -286,9 +432,9 @@ namespace Oce.Solid.Agent.Core
                     if (ring == null || ring.IsOuter()) continue;
                     var edges = ring.GetEdges() as object[];
                     if (edges == null || edges.Length == 0) continue;
-                    var curva = (edges[0] as IEdge)?.GetCurve() as ICurve;
-                    if (curva == null || !curva.IsCircle()) continue;
-                    var cp = curva.CircleParams as double[];   // centre x,y,z, axis, radius
+                    var curve = (edges[0] as IEdge)?.GetCurve() as ICurve;
+                    if (curve == null || !curve.IsCircle()) continue;
+                    var cp = curve.CircleParams as double[];   // centre x,y,z, axis, radius
                     if (cp == null || cp.Length < 7) continue;
                     var c = onSheet(new[] { cp[0], cp[1], cp[2] });
                     outside.Add(new HoleInView { X = c[0], Y = c[1], DiameterMm = cp[6] * 2000.0 });

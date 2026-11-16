@@ -80,7 +80,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>The step to execute. Null if <see cref="Done"/>.</summary>
         public PlanStep Step;
 
-        public static NextStep Fine()
+        public static NextStep Finished()
         {
             return new NextStep { Done = true };
         }

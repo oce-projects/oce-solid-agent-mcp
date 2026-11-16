@@ -74,8 +74,8 @@ bridge.stdout.on("data", d => {
     leftover = leftover.slice(i + 1);
     if (!line) continue;
     let m; try { m = JSON.parse(line); } catch (e) { continue; }
-    const chi = expectation.get(m.id);
-    if (chi) { expectation.delete(m.id); chi(m); }
+    const handler = expectation.get(m.id);
+    if (handler) { expectation.delete(m.id); handler(m); }
   }
 });
 
@@ -175,7 +175,7 @@ async function benchRun() {
         withdrawn.failed ? shorter(withdrawn.text) : "undone");
   check("the volume goes back to zero",
         d.volume_after_mm3 != null && Math.abs(d.volume_after_mm3) < 0.001,
-        "volume " + d.volume_after_mm3 + " (era " + d.volume_before_mm3 + ")");
+        "volume " + d.volume_after_mm3 + " (was " + d.volume_before_mm3 + ")");
   check("the features go back to zero",
         d.features_after === 0,
         d.features_before + " -> " + d.features_after);

@@ -501,7 +501,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// C4-2, the rule without SOLIDWORKS (the contract group in Prove calls it
+        /// C4-2, the rule without SOLIDWORKS (the contract group in Tests calls it
         /// with the probe's numbers): per non-suppressed part instance its file and
         /// configuration key, its solid bodies and how many of them are user
         /// bodies. An instance with a user body was changed in the assembly and is

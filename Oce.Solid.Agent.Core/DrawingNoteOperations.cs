@@ -226,7 +226,7 @@ namespace Oce.Solid.Agent.Core
             if (differs != null) outside["warning_text_differs"] = differs;
 
             _log("[agent] note " + (attachedTo == "sheet" ? "on the sheet «" + sheetName + "»" : "inside a view of «" + sheetName + "»") +
-                 ": " + (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
+                 ": " + (reread ?? text) + (whereMm == null ? "" : " at " + whereMm[0] + "," + whereMm[1] + " mm"));
             return WithoutFeature(outside);
         }
 

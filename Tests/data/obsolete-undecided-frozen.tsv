@@ -77,6 +77,10 @@ Oce.Solid.Agent.Core/BalloonSpreadOperations.cs|Value	1
 Oce.Solid.Agent.Core/BodyOperations.cs|Entity	1
 Oce.Solid.Agent.Core/BodyOperations.cs|Type	1
 Oce.Solid.Agent.Core/BodyOperations.cs|Value	6
+# Raised by custom materials (13/10/2026), one entry, one reason: the `using` of the .NET namespace for text encodings (the library file of
+# SOLIDWORKS is UTF-16 and an XmlWriter needs the encoding object). It is not a call on an object: the scanner reads the dot of the namespace as a
+# call to Text, which exists on some SOLIDWORKS interfaces. The rest of the new code types its receivers or uses arrays.
+Oce.Solid.Agent.Core/CustomMaterialOperations.cs|Text	1
 Oce.Solid.Agent.Core/Catalog/Export.cs|Name	2
 Oce.Solid.Agent.Core/Catalog/Export.cs|Select	4
 Oce.Solid.Agent.Core/Catalog/Export.cs|Value	1
@@ -174,9 +178,9 @@ Oce.Solid.Agent.Core/SolidWorksMaterials.cs|Select	2
 Oce.Solid.Agent.Core/SolidWorksMaterials.cs|Text	1
 Oce.Solid.Agent.Core/StlMesh.cs|Add	4
 Oce.Solid.Agent.Core/StuckDragGuard.cs|Add	1
-Oce.Solid.Agent.Core/SwOperations.cs|Add	7
+Oce.Solid.Agent.Core/SwOperations.cs|Add	6
 Oce.Solid.Agent.Core/SwOperations.cs|Entity	3
-Oce.Solid.Agent.Core/SwOperations.cs|Face	2
+Oce.Solid.Agent.Core/SwOperations.cs|Face	1
 Oce.Solid.Agent.Core/SwOperations.cs|Name	2
 Oce.Solid.Agent.Core/SwOperations.cs|Select2	3
 Oce.Solid.Agent.Core/SwOperations.cs|Type	3

@@ -850,8 +850,15 @@ using System.Runtime.InteropServices;
 // 0.198.12: after a null of InsertStructuralWeldment5 the answer also reads the time of the call, an open sketch,
 //          the document in front, the documents and window resources of SOLIDWORKS; WithoutSketch logs why it
 //          leaves a sketch. Readings and a log line only.
-[assembly: AssemblyVersion("0.198.12.0")]
-[assembly: AssemblyFileVersion("0.198.12.0")]
+// 0.199.0: what 0.131.0 had and the main line did not (bridge 0.171.0): create_material and the bridge's own
+//          material library; the library of apply_material is a choice, 20 candidates with their library, one
+//          re-read; face_ref for engrave_text, fillet_face and draft (side_faces), text cut through and centred;
+//          set_property through the title block; slot angle as the face is seen; the save path checked before
+//          SaveAs; the document rebuilt after a plan that stops; drawing_dimension overall size, thickness and
+//          bend radius when chamfers and bends leave no edge; model_dimensions notes, duplicates and hole wizard
+//          masks; hole_table origin at the part corner; delete_annotation takes a table away.
+[assembly: AssemblyVersion("0.199.0.0")]
+[assembly: AssemblyFileVersion("0.199.0.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -866,4 +873,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.198.12")]
+[assembly: AssemblyInformationalVersion("0.199.0")]

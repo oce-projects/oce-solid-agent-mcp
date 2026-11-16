@@ -810,6 +810,9 @@ namespace Oce.Solid.Agent.Core
                     "I cannot count the dimensions of the drawing before starting: without that " +
                     "number I could not tell you which ones arrived. I touched nothing.");
             int after = before;
+            // WHAT WAS ON THE DRAWING BEFORE: the tidy-up below touches only what this call brings (0.131.0, items 3 and 5).
+            var namesBefore = DimensionNamesOfTheDrawing(drawing);
+            var segmentsBefore = SketchSegmentKeysOfTheViews(drawing);   // item 5: the sketch lines the import may draw
             string howItIsDone = null;
             int returnedItems = 0;
             var tested = new List<string>();
@@ -999,6 +1002,30 @@ namespace Oce.Solid.Agent.Core
                           "drawing_dimension."));
             }
 
+            // WHAT THE IMPORT BROUGHT THAT MUST NOT STAY (0.131.0, items 3 and 5): the diameter of a hole that already has its callout,
+            // a dimension the drawing already says in the same view, dimensions lying on the same dimension line. Done to the dimensions
+            // of THIS call only, and said in the answer. (The «orphans» of the state are not among them: they are dimensions attached to
+            // the sketch of a feature, and taking them away would take the slot's R5.5, 19 and 35 off the sheet.)
+            var tidy = new Dictionary<string, object>();
+            TidyImportedDimensions(model, drawing, namesBefore, tidy);
+            // ITEM 5: the sketch lines the import drew in the views (measured: only the all-types import does), see DrawingImportSketchLines.cs
+            {
+                var sketchLines = new List<object>();
+                var sketchProblems = new List<string>();
+                try { RemoveNewSketchSegments(model, drawing, segmentsBefore, sketchLines, sketchProblems); }
+                catch (Exception ex) { sketchProblems.Add("removing the sketch lines stopped: " + ex.Message); }
+                tidy["sketch_lines_removed"] = sketchLines.ToArray();
+                if (sketchProblems.Count > 0)
+                    tidy["sketch_lines_problems"] = sketchProblems.ToArray();
+            }
+            int afterTidy = CountDimensions(drawing);
+            if (afterTidy >= 0) after = afterTidy;
+            // EVERY DIMENSION THE IMPORT BROUGHT WAS ALREADY ON THE DRAWING (0.131.0): taken away again as duplicates, and listed. That is not a
+            // failure of the import (the drawing says all of it), and it is not «done» with a count either: the answer carries the count and the list.
+            var gone = tidy.ContainsKey("imported_dimensions_removed") ? (object[])tidy["imported_dimensions_removed"] : new object[0];
+            if (after <= before && gone.Length == 0)
+                return Failed("No dimension stayed on the drawing (there were " + before + ", there are " + after + ") and none was taken away as a duplicate. " +
+                              "Look at the drawing before going on.");
             var measurements = new Dictionary<string, object>
             {
                 ["how"] = howItIsDone,
@@ -1008,6 +1035,9 @@ namespace Oce.Solid.Agent.Core
                 ["views"] = views,
                 ["only_marked_for_drawing"] = !all,
             };
+            foreach (string tidyKey in tidy.Keys) measurements[tidyKey] = tidy[tidyKey];
+            // WHAT THE PART HAS THAT THE DRAWING DOES NOT (0.131.0, item 2): said, with the reason, instead of «done» with a count.
+            AddPartDimensionsReport(drawing, measurements);
             return WithoutFeature(measurements);
         }
 
@@ -1027,6 +1057,18 @@ namespace Oce.Solid.Agent.Core
         private const int ImportMarked = (int)swInsertAnnotation_e.swInsertDimensionsMarkedForDrawing;
         private const int ImportNotMarked = (int)swInsertAnnotation_e.swInsertDimensionsNotMarkedForDrawing;
         private const int ImportGeneric = (int)swInsertAnnotation_e.swInsertDimensions;
+
+        /// <summary>
+        /// The dimensions of the HOLE WIZARD (0.131.0, item 5): the diameter and the depth of its profile sketch
+        /// (swInsertHoleWizardProfileDimensions, 0x10000) and the position of its holes (swInsertHoleWizardLocationDimensions,
+        /// 0x20000). Without these bits the generic masks bring nothing for a hole wizard hole, the import fell back to
+        /// InsertModelAnnotations2 with AllTypes («all types of annotations, the types argument ignored») and that route left
+        /// two dash-dot centre lines (sketch segments, style swLineCENTER) in every view outside the views: measured on the L
+        /// bracket (Checks/Draw131 «segs», 12/10/2026), none of them after the import by the marked mask, two per view of the
+        /// three views that show the hole after the AllTypes one.
+        /// </summary>
+        private const int ImportHoleWizard =
+            (int)swInsertAnnotation_e.swInsertHoleWizardProfileDimensions | (int)swInsertAnnotation_e.swInsertHoleWizardLocationDimensions;
 
         /// <summary>
         /// DuplicateDims of InsertModelAnnotations3: TRUE (finding M2).
@@ -1057,7 +1099,7 @@ namespace Oce.Solid.Agent.Core
         internal static int[] ModelImportMasks(bool allDimensions)
         {
             return allDimensions
-                ? new[] { ImportMarked | ImportNotMarked | ImportGeneric, ImportNotMarked, ImportGeneric, ImportMarked }
+                ? new[] { ImportMarked | ImportNotMarked | ImportGeneric | ImportHoleWizard, ImportMarked | ImportNotMarked | ImportGeneric, ImportNotMarked, ImportGeneric, ImportMarked }
                 : new[] { ImportMarked, ImportMarked | ImportGeneric };
         }
 
@@ -1360,6 +1402,17 @@ namespace Oce.Solid.Agent.Core
                 // rule; with the string of GetPathName the save went through.
                 location = its;
             }
+            else
+            {
+                // THE PATH IS CHECKED BEFORE SaveAs, NOT AFTER IT FAILS (finding of 12/10/2026).
+                // A path whose backslashes were eaten on the way («C:Users...») is not an
+                // absolute path, SaveAs failed with swGenericSaveError and the document in
+                // memory stayed RENAMED after it, with an empty file `C` and a lock file next to
+                // it on the disk. Nothing is written, and the document is not touched, when the
+                // path cannot be a place where a document of this kind is saved.
+                string theProblem = SavePathProblem(location, DocumentTypeOf(model));
+                if (theProblem != null) return Failed(theProblem);
+            }
 
             // ANOTHER FILE ALREADY THERE (report 8cd843 N55, round 14): a save onto an existing
             // file that is not this document's own replaced it, and the answer said only the
@@ -1383,6 +1436,9 @@ namespace Oce.Solid.Agent.Core
             }
             string kept = ReplaceRefused(location, replacedBytes, replacedWritten, Bool(a, "overwrite", true));
             if (kept != null) return Failed(kept);
+
+            string titleBefore = null, pathBefore = null;
+            try { titleBefore = model.GetTitle(); pathBefore = model.GetPathName(); } catch { }
 
             try
             {
@@ -1464,7 +1520,7 @@ namespace Oce.Solid.Agent.Core
                                      "was added while another window was in front. Save it under a new name (pass a " +
                                      "new «path»): that worked in both cases, and the document saves again afterwards."
                                    : "") +
-                               SaveWarningsTail(warnings));
+                               SaveWarningsTail(warnings) + RenamedByAFailedSave(model, titleBefore, pathBefore));
             }
 
             var measurements = new Dictionary<string, object>
@@ -1504,6 +1560,106 @@ namespace Oce.Solid.Agent.Core
             return "«" + location + "» already exists (" + bytes + " bytes, written " +
                    written.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + ") and is not this document's file, " +
                    "and «overwrite» is false: I saved nothing. Give another «path», or «overwrite»: true to replace it.";
+        }
+
+        /// <summary>The type of a document (swDocumentTypes_e), 0 when it cannot be read.</summary>
+        private static int DocumentTypeOf(IModelDoc2 model)
+        {
+            try { return model.GetType(); } catch { return 0; }
+        }
+
+        /// <summary>
+        /// WHY A PATH CANNOT BE SAVED TO, told before SOLIDWORKS is asked (finding of 12/10/2026), or
+        /// null when it can. Pure apart from the existence of the folder, so a contract can call it.
+        ///
+        /// The case that made it: a path typed «C:UsersName...» (the backslashes eaten by an escape).
+        /// It is a drive-relative path, `Path.GetFullPath` turns it into a place under whatever folder
+        /// the process is in, `SaveAs` answered swGenericSaveError and the document in memory stayed
+        /// renamed after it. A path with a drive letter must have a separator right after the colon,
+        /// or be a network path (two backslashes, server, share); it must name a file, with the
+        /// extension of the kind of document; and the folder must exist (SOLIDWORKS does not create it).
+        ///
+        /// swDocumentTypes_e (swconst~swDocumentTypes_e.html): swDocPART 1, swDocASSEMBLY 2,
+        /// swDocDRAWING 3. IModelDocExtension~SaveAs.html (the call used below) takes the file name
+        /// with its extension, and the extension decides the format.
+        /// </summary>
+        internal static string SavePathProblem(string location, int documentType)
+        {
+            string path = (location ?? "").Trim();
+            if (path.Length == 0) return "The path is empty.";
+            const string untouched = " Nothing was saved and the document is as it was.";
+
+            foreach (char c in path)
+                if (c < ' ' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
+                    return "The path «" + path + "» has a character that cannot be in a file path («" +
+                           (c < ' ' ? "control character " + (int)c : c.ToString()) + "»)." + untouched;
+
+            bool driveAbsolute = path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' &&
+                                 (path[2] == '\\' || path[2] == '/');
+            bool network = path.StartsWith("\\\\", StringComparison.Ordinal) && path.Length > 2 &&
+                           path.IndexOfAny(new[] { '\\', '/' }, 2) > 2;
+            if (!driveAbsolute && !network)
+            {
+                if (path.Length >= 2 && char.IsLetter(path[0]) && path[1] == ':')
+                    return "The path «" + path + "» is not an absolute path: after the drive letter and the colon there " +
+                           "is no backslash. It usually means that the backslashes were lost on the way (in JSON each one " +
+                           "is written twice, or use forward slashes: «C:/Folder/name.SLDPRT»)." + untouched;
+                return "The path «" + path + "» is not an absolute path. Give the whole path, starting with the drive " +
+                       "(«C:\\Folder\\name.SLDPRT» or «C:/Folder/name.SLDPRT») or the network share." + untouched;
+            }
+
+            // A colon anywhere but the drive letter is a stream or a device, never a document.
+            if (path.IndexOf(':', 2) >= 0)
+                return "The path «" + path + "» has a colon after the drive letter: it is not a file path." + untouched;
+
+            string fileName = path.Substring(path.LastIndexOfAny(new[] { '\\', '/' }) + 1);
+            if (fileName.Length == 0 || fileName == "." || fileName == "..")
+                return "The path «" + path + "» ends with a folder, not with a file name." + untouched;
+
+            string wanted, kind;
+            switch (documentType)
+            {
+                case (int)swDocumentTypes_e.swDocPART: wanted = ".sldprt"; kind = "part"; break;
+                case (int)swDocumentTypes_e.swDocASSEMBLY: wanted = ".sldasm"; kind = "assembly"; break;
+                case (int)swDocumentTypes_e.swDocDRAWING: wanted = ".slddrw"; kind = "drawing"; break;
+                default: wanted = null; kind = null; break;
+            }
+            if (wanted != null && !fileName.EndsWith(wanted, StringComparison.OrdinalIgnoreCase))
+                return "The file name «" + fileName + "» does not end with " + wanted.ToUpperInvariant() +
+                       ", the extension of a " + kind + "." + untouched +
+                       " (To write another format use the export operations: this one saves the document itself.)";
+
+            string folder;
+            try { folder = Path.GetDirectoryName(path); }
+            catch (Exception ex)
+            {
+                return "The path «" + path + "» is not a valid path (" + ex.Message + ")." + untouched;
+            }
+            if (!string.IsNullOrEmpty(folder) && !Directory.Exists(folder))
+                return "The folder «" + folder + "» does not exist, and SOLIDWORKS does not create it." + untouched +
+                       " Create the folder, or give me a path inside one that exists.";
+            return null;
+        }
+
+        /// <summary>
+        /// WHAT A FAILED SaveAs LEFT BEHIND, said in the error. SOLIDWORKS can rename the document in memory
+        /// before it fails to write it (measured 12/10/2026 with a malformed path): the title and the path
+        /// are read again and, when they are not the ones from before the call, the reader is told which
+        /// name the document has now. Empty when nothing changed.
+        /// </summary>
+        private static string RenamedByAFailedSave(IModelDoc2 model, string titleBefore, string pathBefore)
+        {
+            try
+            {
+                string titleNow = model.GetTitle(), pathNow = model.GetPathName();
+                if (string.Equals(titleNow ?? "", titleBefore ?? "", StringComparison.Ordinal) &&
+                    string.Equals(pathNow ?? "", pathBefore ?? "", StringComparison.Ordinal))
+                    return "";
+                return " THE DOCUMENT WAS RENAMED all the same: it was «" + titleBefore + "» and is now «" + titleNow + "»" +
+                       (string.IsNullOrEmpty(pathNow) ? "" : " (" + pathNow + ")") +
+                       ". Save it again with a good path to give it a name that is a file.";
+            }
+            catch { return ""; }
         }
 
         // ─────────────────────────────────────────────────────────────────

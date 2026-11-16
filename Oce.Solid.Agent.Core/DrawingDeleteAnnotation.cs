@@ -7,7 +7,8 @@ namespace Oce.Solid.Agent.Core
 {
     /// <summary>
     /// TAKES AWAY A DIMENSION OR A NOTE OF A DRAWING (report 8cd843 N24, round
-    /// 7, 27/10/2026).
+    /// 7, 27/10/2026), or a TABLE with «table» (library 0.199.0, from branch
+    /// 0.131.0: DrawingDeleteTable.cs).
     ///
     /// Three dimensions put on a copy of the clip drawing could not be taken away:
     /// «undo» had no plan to withdraw (a plan on a drawing records no undo entry
@@ -111,14 +112,26 @@ namespace Oce.Solid.Agent.Core
                     "The active document is not a drawing: «delete_annotation» takes away a dimension or a note of a " +
                     "drawing. Open the drawing first; on a part use «delete_feature».");
 
-            string name = Str(a, "name", null), text = Str(a, "text", null);
+            string name = Str(a, "name", null), text = Str(a, "text", null), table = Str(a, "table", null);
             if (string.IsNullOrWhiteSpace(name)) name = null; else name = name.Trim();
             if (string.IsNullOrWhiteSpace(text)) text = null;
+            if (string.IsNullOrWhiteSpace(table)) table = null; else table = table.Trim();
+            // A TABLE (0.131.0, item 6 of the drawing branch): a hole table or a bill of materials put in
+            // the wrong place had no way back. «table» names it as T1, T2... in the order of the sheet,
+            // and goes alone: see DrawingDeleteTable.cs.
+            if (table != null)
+            {
+                if (name != null || text != null)
+                    return Failed(
+                        "Write «table» alone: it takes away a table (T1, T2...), while «name» and «text» take away a " +
+                        "dimension or a note. One thing per step. I touched nothing.");
+                return DeleteTable(model, drawing, table);
+            }
             if ((name == null) == (text == null))
                 return Failed(
                     "Write «name» or «text», one of the two: «name» is the name of a dimension as drawing_dimension " +
                     "gives it («RD1@Drawing View1@...», or «RD1» alone when it is the only one) or of a note as «note» " +
-                    "gives it; «text» is the exact text of a note. I touched nothing.");
+                    "gives it; «text» is the exact text of a note. For a table write «table» (T1, T2...). I touched nothing.");
 
             string sheetName = "";
             try { sheetName = (drawing.GetCurrentSheet() as ISheet)?.GetName() ?? ""; } catch { }

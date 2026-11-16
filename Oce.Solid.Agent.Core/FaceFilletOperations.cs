@@ -83,12 +83,14 @@ namespace Oce.Solid.Agent.Core
             // TWO FACES, AND «face_ref» NAMES ONLY ONE. `ResolveFace`
             // looks at «face_ref» before the uid: with two faces to resolve the same
             // reference would win both times, and the fillet
-            // would be asked between a face and itself.
+            // would be asked between a face and itself. So each face has its OWN reference
+            // argument (0.131.0: «face_1_ref», «face_2_ref»), and the plain «face_ref» is
+            // still refused, saying which ones to use.
             if (HasReference(a, "face_ref"))
                 return Failed(
                     "Two different faces are needed here, and «face_ref» names only one: " +
-                    "use «face_1_uid» and «face_2_uid» with the identifiers of the state. If one of " +
-                    "the two is created by a step of this plan, read the state again after that step.");
+                    "use «face_1_ref» and «face_2_ref» for faces that a step of this plan creates, " +
+                    "or «face_1_uid» and «face_2_uid» with the identifiers of the state.");
 
             double radius;
             string error;
@@ -100,11 +102,23 @@ namespace Oce.Solid.Agent.Core
 
             string uid1 = (Str(a, "face_1_uid", "") ?? "").Trim();
             string uid2 = (Str(a, "face_2_uid", "") ?? "").Trim();
-            if (uid1.Length == 0 || uid2.Length == 0)
+            bool byStep1 = HasReference(a, "face_1_ref");
+            bool byStep2 = HasReference(a, "face_2_ref");
+            if ((uid1.Length > 0 && byStep1) || (uid2.Length > 0 && byStep2))
+                return Failed(
+                    "A face is named by its identifier OR by a reference to a step, not both: with " +
+                    "both I would not know which one you mean. Give «face_1_uid» or «face_1_ref» for " +
+                    "the first face, and «face_2_uid» or «face_2_ref» for the second.");
+            if ((uid1.Length == 0 && !byStep1) || (uid2.Length == 0 && !byStep2))
                 return Failed(
                     "Tell me the two faces: «face_1_uid» and «face_2_uid», with the identifiers " +
-                    "of the state of the document (for example «F1» and «F3»). The fillet rests on " +
+                    "of the state of the document (for example «F1» and «F3»), or «face_1_ref» and " +
+                    "«face_2_ref» for faces that a step of this plan creates. The fillet rests on " +
                     "both of them.");
+            // From here on `uid1` and `uid2` are only the NAMES of the faces in the messages:
+            // the identifier, or «face_1_ref (step 1, top_face)».
+            if (byStep1) uid1 = ReferenceName(a, "face_1_ref");
+            if (byStep2) uid2 = ReferenceName(a, "face_2_ref");
 
             // THE SAME FACE TWICE. It is stated before calling: it is the
             // confusion of someone who wanted to round the edges of ONE face, and for
@@ -116,9 +130,9 @@ namespace Oce.Solid.Agent.Core
                     "face use «fillet_edges» on its edges.");
 
             string reason;
-            var face1 = ResolveFace(docState, a, uid1, out reason);
+            var face1 = ResolveFace(docState, a, uid1, out reason, "face_1_ref");
             if (face1 == null) return Failed("Face «" + uid1 + "»: " + reason);
-            var face2 = ResolveFace(docState, a, uid2, out reason);
+            var face2 = ResolveFace(docState, a, uid2, out reason, "face_2_ref");
             if (face2 == null) return Failed("Face «" + uid2 + "»: " + reason);
 
             // TWO UIDs, ONE FACE. After a recovery by signature two different
@@ -268,13 +282,13 @@ namespace Oce.Solid.Agent.Core
                     " Try a smaller radius, or «fillet_edges» on the edge between the two faces.");
 
             double? volumeAfter = VolumeMm3(model);
-            double? cambio = volumeAfter - photo.Volume;
+            double? volumeDelta = volumeAfter - photo.Volume;
 
             // A FILLET THAT DOES NOT CHANGE THE VOLUME HAS DONE NOTHING. It removes
             // material on an outside edge, adds some in an inside corner:
             // zero means neither of the two. It is said only of a volume read back
             // (entry Z-C8).
-            if (cambio.HasValue && Math.Abs(cambio.Value) < 0.01)
+            if (volumeDelta.HasValue && Math.Abs(volumeDelta.Value) < 0.01)
                 return Failed(
                     "The face fillet «" + itemName + "» was created but the volume stayed " +
                     photo.Volume.Value.ToString("0.##", CultureInfo.InvariantCulture) + " mm3: it " +
@@ -286,14 +300,14 @@ namespace Oce.Solid.Agent.Core
             // resting elsewhere. The tolerance allowed is half a tenth, or one
             // ten-thousandth of the calculation if that is larger: the number measured
             // by the probe (214.6) and the calculation (214.602) agree to the hundredth.
-            if (expected.HasValue && cambio.HasValue &&
-                Math.Abs(Math.Abs(cambio.Value) - expected.Value) > Math.Max(0.05, expected.Value * 1e-4))
+            if (expected.HasValue && volumeDelta.HasValue &&
+                Math.Abs(Math.Abs(volumeDelta.Value) - expected.Value) > Math.Max(0.05, expected.Value * 1e-4))
                 return Failed(string.Format(CultureInfo.InvariantCulture,
                     "The face fillet «{0}» was created, but it changed the volume by {1:0.##} mm3 and the " +
                     "hand calculation wants {2:0.##} (common edge {3:0.##} mm x r² x (1 − π/4)): it did " +
                     "not end up laid down on the two faces as requested.{4} For the same fillet on the " +
                     "edge between the two faces use «fillet_edges».",
-                    itemName, Math.Abs(cambio.Value), expected.Value, edge,
+                    itemName, Math.Abs(volumeDelta.Value), expected.Value, edge,
                     RemoveFaceFillet(model, feature, photo, featureBefore)));
 
             // THE RADIUS THAT THE FEATURE DECLARES (ISimpleFilletFeatureData2~
@@ -320,8 +334,8 @@ namespace Oce.Solid.Agent.Core
                 ["feature_type"] = typ,
                 ["volume_before_mm3"] = NumberOrNull(photo.Volume, 2),
                 ["volume_after_mm3"] = NumberOrNull(volumeAfter, 2),
-                ["volume_change_mm3"] = NumberOrNull(cambio, 2),
-                ["material_removed"] = cambio.HasValue ? (object)(cambio.Value < 0) : null,
+                ["volume_change_mm3"] = NumberOrNull(volumeDelta, 2),
+                ["material_removed"] = volumeDelta.HasValue ? (object)(volumeDelta.Value < 0) : null,
                 ["bodies"] = NumberOrNull(bodiesAfter),
                 ["features_in_error"] = NumberOrNull(inErrorAfter),
                 ["shared_edge_mm"] = edge >= 0 ? (object)Math.Round(edge, 2) : null,
@@ -333,7 +347,7 @@ namespace Oce.Solid.Agent.Core
                     "and compared with the volume change. Null when the two faces are not like that: " +
                     "no number is made up.",
             };
-            if (!cambio.HasValue) measurements["volume_not_read_again"] = NoteVolumeNotReread;
+            if (!volumeDelta.HasValue) measurements["volume_not_read_again"] = NoteVolumeNotReread;
 
             _log("[agent] face fillet r=" + radius.ToString("0.##", CultureInfo.InvariantCulture) +
                  " between " + uid1 + " and " + uid2 + ": «" + itemName + "», volume " + ReadValue(photo.Volume) +

@@ -76,14 +76,30 @@ namespace Oce.Solid.Agent.Core
                     "«angle_deg» must be under 90: at 90 degrees the wall lies " +
                     "down on the neutral face. For a mold, use an angle of 1-3 degrees.");
 
+            // EACH FACE BY IDENTIFIER OR BY REFERENCE TO A STEP, never both (0.131.0). The
+            // neutral face has its own reference argument, `neutral_face_ref`, and the
+            // faces to tilt a list, `faces_ref`: ResolveFace reads the argument it is told
+            // to, so a plain `face_ref` never ends up naming both.
             string neutralUid = Str(a, "neutral_face_uid", "");
-            var neutral = ResolveFace(docState, a, neutralUid, out string reason);
+            bool neutralByStep = HasReference(a, "neutral_face_ref");
+            bool facesByStep = HasList(a, "faces_ref");
+            var uid = StringList(a, "faces_uid");
+            if (neutralByStep && neutralUid.Length > 0)
+                return Failed(
+                    "The neutral face is named twice, by «neutral_face_uid» and by «neutral_face_ref». " +
+                    "Give «neutral_face_uid» or «neutral_face_ref», not both.");
+            if (facesByStep && uid.Count > 0)
+                return Failed(
+                    "The faces to tilt are named twice, by «faces_uid» and by «faces_ref». " +
+                    "Give «faces_uid» or «faces_ref», not both.");
+            string neutralName = neutralByStep ? ReferenceName(a, "neutral_face_ref") : neutralUid;
+            var neutral = ResolveFace(docState, a, neutralUid, out string reason, "neutral_face_ref");
             if (neutral == null) return Failed("Neutral face: " + reason);
 
-            var uid = StringList(a, "faces_uid");
-            if (uid.Count == 0)
+            if (uid.Count == 0 && !facesByStep)
                 return Failed(
-                    "«faces_uid» is missing: which faces to draft. The NEUTRAL face -- the one " +
+                    "«faces_uid» is missing: which faces to draft (or «faces_ref», for faces that " +
+                    "a step of this plan creates). The NEUTRAL face -- the one " +
                     "that stays still -- is given separately, in «neutral_face_uid».");
             if (uid.Contains(neutralUid, StringComparer.OrdinalIgnoreCase))
                 return Failed(
@@ -92,11 +108,41 @@ namespace Oce.Solid.Agent.Core
                     "measured from.");
 
             var faces = new List<IFace2>();
-            foreach (var u in uid)
+            var faceNames = new List<string>();
+            if (facesByStep)
             {
-                var f = ResolveFace(docState, a, u, out reason);
-                if (f == null) return Failed("Face «" + u + "»: " + reason);
-                faces.Add(f);
+                if (!FacesFromReferences(a, "faces_ref", out faces, out reason))
+                    return Failed(reason);
+                for (int k = 0; k < faces.Count; k++) faceNames.Add("faces_ref no. " + (k + 1));
+            }
+            else
+            {
+                foreach (var u in uid)
+                {
+                    var f = ResolveFace(docState, a, u, out reason);
+                    if (f == null) return Failed("Face «" + u + "»: " + reason);
+                    faces.Add(f);
+                    faceNames.Add(u);
+                }
+            }
+
+            // THE NEUTRAL FACE AMONG THE FACES TO TILT, found by SOLIDWORKS and not by name: the
+            // two names of the same face are an identifier and a reference, and they do not compare
+            // equal as text (ISldWorks~IsSame.html, «Gets whether the two specified objects are
+            // the same object»).
+            for (int k = 0; k < faces.Count; k++)
+            {
+                bool same = ReferenceEquals(neutral, faces[k]);
+                if (!same)
+                {
+                    try { same = _sw.IsSame(neutral, faces[k]) == (int)swObjectEquality.swObjectSame; }
+                    catch { }
+                }
+                if (same)
+                    return Failed(
+                        "«" + faceNames[k] + "» is the same face as the neutral one (" + neutralName +
+                        "). The neutral one is the one that does NOT move: it is the plane the angle is " +
+                        "measured from. Name the faces to tilt again, without the neutral one.");
             }
 
             var neutralNormal = FaceNormal(neutral);
@@ -120,7 +166,7 @@ namespace Oce.Solid.Agent.Core
                 return Failed("I could not select the neutral face.");
             for (int i = 0; i < faces.Count; i++)
                 if (!Select(handler, faces[i], SelectionMarks.DraftFaces))
-                    return Failed("I could not select the face «" + uid[i] + "».");
+                    return Failed("I could not select the face «" + faceNames[i] + "».");
 
             IFeature feature;
             try
@@ -160,7 +206,7 @@ namespace Oce.Solid.Agent.Core
             if (newOnes < faces.Count)
             {
                 string howToWithdraw =
-                    " Ritiralo — " + Sentences.HowToWithdrawIt + ".";
+                    " Withdraw it — " + Sentences.HowToWithdrawIt + ".";
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
                     "I asked to draft {0} faces by {1:0.###} degrees and the feature was " +

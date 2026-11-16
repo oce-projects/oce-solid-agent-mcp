@@ -1508,6 +1508,9 @@ namespace Oce.Solid.Agent.Bench
                 DumpState(itemName, 0, docState);
                 // The state as it was BEFORE every step: it serves «uid_from_step».
                 var statesBefore = new List<Dictionary<string, object>>();
+                // What each step leaves behind for the next ones: `face_ref: {step: 1, kind:
+                // top_face}` is resolved from here, as the plan executor does in production.
+                var stepsDone = NewStepsDone();
 
                 for (int i = 0; i < steps.Count; i++)
                 {
@@ -1633,7 +1636,8 @@ namespace Oce.Solid.Agent.Bench
 
                     string error;
                     IModelDoc2 born;
-                    var measurements = Run(current, operation, arguments, out error, out born, rawState ?? docState);
+                    var measurements = Run(current, operation, arguments, out error, out born, rawState ?? docState,
+                                           stepsDone, i + 1);
                     // IT CHANGES ONLY IF THE STEP SUCCEEDED. A `create_drawing`
                     // that failed midway may have left a document on the monitor
                     // and it is not the one to continue on: following a document

@@ -69,7 +69,7 @@ namespace Oce.Solid.Agent.Core
         public static IEnumerable<string> ViewNames { get { return Views.Keys; } }
 
         /// <summary>Does a view exist with this name?</summary>
-        public static bool Conosciuta(string itemName)
+        public static bool IsKnown(string itemName)
         {
             return !string.IsNullOrWhiteSpace(itemName) && Views.ContainsKey(itemName);
         }
@@ -89,7 +89,7 @@ namespace Oce.Solid.Agent.Core
             reason = null;
             if (model == null) { reason = "No open document."; return null; }
 
-            if (which != null && !Conosciuta(which))
+            if (which != null && !IsKnown(which))
             {
                 reason = "I do not know the view «" + which + "». There are: " +
                          string.Join(", ", ViewNames) + ".";

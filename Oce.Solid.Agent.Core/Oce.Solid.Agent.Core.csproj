@@ -157,6 +157,11 @@
     <Compile Include="DrawingNoteOperations.cs" />
     <Compile Include="DrawingSectionOperations.cs" />
     <Compile Include="DrawingDetailOperations.cs" />
+    <Compile Include="DrawingDeleteTable.cs" />
+    <Compile Include="DrawingOverallOperations.cs" />
+    <Compile Include="DrawingModelDimensionsReport.cs" />
+    <Compile Include="DrawingImportCleanup.cs" />
+    <Compile Include="DrawingImportSketchLines.cs" />
     <Compile Include="..\Shared\Leash.cs">
       <Link>Leash.cs</Link>
     </Compile>
@@ -166,6 +171,7 @@
     <Compile Include="DrawingOperations.cs" />
     <Compile Include="HoleOperations.cs" />
     <Compile Include="MaterialOperations.cs" />
+    <Compile Include="CustomMaterialOperations.cs" />
     <Compile Include="CheckOperations.cs" />
     <Compile Include="ExportOperations.cs" />
     <Compile Include="MeasureOperations.cs" />

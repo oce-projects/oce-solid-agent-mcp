@@ -127,7 +127,7 @@ namespace Oce.Solid.Agent.Bench
             foreach (var f in file) if (File.Exists(f)) remained++;
             Check("afterwards, nothing is left in «work»", remained == 0,
                   remained == 0
-                      ? file.Count + " file cancellati"
+                      ? file.Count + " files deleted"
                       : remained + " files left: the next run would already find them there");
         }
 

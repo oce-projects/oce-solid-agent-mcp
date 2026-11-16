@@ -32,6 +32,163 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.171.0 — 16 November 2026 · library 0.199.0 · what 0.131.0 had and the main line did not
+
+**What happened.** Branch `release-0.131.0` (bridge 0.131.0, library 0.154.0, 13 October 2026)
+and its two companions `text-fixes-core` and `readme-for-the-public` grew from 0.130.2 and
+were never merged into the main line, which went on to 0.170.15. The owner's decision
+(16 November 2026): **port only what is missing**. Where the main line already does the same
+thing, its code stays; the code of 0.131.0 comes in only for what the main line lacks, adapted
+to the main line's code. One merge, of `release-0.131.0`. The other two branches are not merged
+as branches: `text-fixes-core` has one commit with the same patch as `95ad5fe`, which the
+release brings; the three files of `readme-for-the-public` are in the main line's history byte
+for byte (`e3bc58e`, `c00a8ef`, `8e73e2b`), and were updated since. Both
+grow from the public commit `17897a5`, whose tree still holds paths of the owner's share that
+the main line cleaned since, and `Checks/check-publishability.ps1` refuses them in the history to
+push. The inventory below is the one written before the merge, with the outcome of each item.
+
+**Not measured on SOLIDWORKS.** This entry was written without running the bench: the contract
+suite, the language gate, the publishability check and the repository map were run on the
+final tree. The bench cases that came with the port, and the ones adapted, are listed at the
+end with what the full bench must confirm.
+
+### Ported (the main line did not have it)
+
+- **L1 — the language sweep inside the library and the bench** (`95ad5fe` of the release, the
+  same patch as `text-fixes-core`): identifiers, strings and comments that were still in
+  Italian. Where the main line had changed the same lines, its code was kept and the English
+  names were applied to it.
+- **P2 — `set_property` with a drawing in front** writes where the title block reads the
+  property (`$PRPSHEET` → the part of the views) and says when no field reads the name.
+  Adapted to the main line's «scope»: the route of the title block is taken only for the
+  «file» drawer of a drawing.
+- **P3 — `slot` «angle_deg» is as the face is seen** (0 horizontal, 90 vertical), with
+  `direction_in_model` in the answer. The two bench cases `blind_slot_left_face` and
+  `blind_slot_right_face` now write 90: on a face seen in the left or right view the vertical
+  is Y, and the slot runs along Y.
+- **P4 — `save_document` checks the path before `SaveAs`**: an absolute path with a separator
+  after the drive letter, the extension of the kind of document, a folder that exists. A path
+  whose backslashes were eaten («C:Users...») is refused before SOLIDWORKS renames the document
+  in memory; `Paths.CheckOne` of the bridge refuses it too; when a save fails all the same, the
+  answer says if the document was renamed. The main line's checks stay: its own file saved with
+  the string SOLIDWORKS holds, «overwrite», the open document that holds the file.
+- **P5 — a plan that stops leaves the document rebuilt**, with the main line's
+  `RebuildKeepingUndo`; the refusal of `base_flange` says what was seen.
+- **P6, M2, M3 — materials.** The refusal of an ambiguous material lists up to 20 candidates,
+  each with its library, and says how many are left out. The «library» of `apply_material` is a
+  choice and is never ignored: a library that does not exist is refused with the list of the
+  ones that do. The libraries are read again once when no material matches. The main line's
+  whole-word match of a short name stays.
+- **M1 — `create_material`**: a material that no library has is written, with the source of its
+  numbers, into the bridge's own library «OCE custom materials», in a folder SOLIDWORKS already
+  reads. New for the main line: the check of the material before the first step of a plan (in
+  `build` and in `dry_run`) lets through a name that an earlier `create_material` step of the
+  same plan writes (`McpTools.MadeEarlierInThePlan`); without it [create_material PLA,
+  apply_material PLA] was refused before its first step.
+- **F1 to F4, F7 — a face of the same plan**: `engrave_text` takes `face_ref`, «through_all» and
+  «centered» (a text whose letters have a hole inside is refused when cut through), its sizes
+  are read on the axes of the face; `fillet_face` takes `face_1_ref`/`face_2_ref`; `draft` takes
+  `neutral_face_ref` and `faces_ref` with the plural kind `side_faces`; the `*_uid` twin of these
+  `_ref` arguments is no longer required; the weight is findable (`mass_properties` named by
+  `physical_properties`, `apply_material` and `list_operations`).
+- **D1 — `drawing_dimension` on a part whose every edge is swallowed by chamfers and bends**
+  (the L bracket of 12/10/2026): when edge by edge there is nothing to dimension, the overall
+  size, the thickness of the sheet and the inner bend radius are put
+  (`DrawingOverallOperations.cs`). Merged with the main line's automatic dimensions: the main
+  line's layout in the owner's style, its chamfer dimension judged by the true size of the
+  profile, and its key of the tract between two parallel edges stay; from 0.131.0 come the
+  fallback, the chamfer faces and arcs read on each edge, the gap key of two parallel edges, and
+  arcs left out of the chamfer dimension. **Not taken**: the rule of 0.131.0 that no mitre edge
+  gets a chamfer dimension. The main line measured a mitre edge that lies on the profile and
+  gives a true 0.4 x 45° (26P000009, view 3), so the true-size check decides.
+- **D2, D3, D5 — `model_dimensions`**: `part_dimensions_not_in_drawing`, `sheet_metal_note`;
+  the imported duplicates taken away and overlapping dimensions moved apart; with
+  «all_dimensions» the masks of the Hole Wizard first, the new sketch lines taken away,
+  `sketch_segments_total` in the state.
+- **D4 — `hole_table`**: the origin at the corner of the part, `from_part_corner_mm`, and
+  `positions_checked` true only when the origin is that corner. The main line's copy of the
+  table template (`LocalCopies.Original`) stays.
+- **D6b — a table is taken away**: `delete_annotation` with «table» (T1, T2...), in
+  `DrawingDeleteTable.cs`. The view and the dimension were already there (`delete_view`,
+  `delete_annotation`).
+- **D7 — texts of the catalogue**: `y_mm` of `hole_table` and `note` from the bottom edge, the
+  position of `model_view` is the centre, the A3 corner 420 × 297.
+- **T1, F6, F8 — bench**: `--keep-open-documents`, the bridge under test from `OCE_BRIDGE`, the
+  declared cases keep the steps done (so a case can use `face_ref`), `OCE_BENCH_SPARE_FOLDERS`.
+- **T2 — group `part-fixes-131`, in part**: `property`, `slot`, `save`, `flange`, `material`.
+  Its closes now go through `CloseTitle`, as every close of the bench.
+- **T3, F9, D9, M4, S1 — probes** `Checks/Part131`, `Checks/TextThrough`, `Checks/Draw131`,
+  `Checks/CustomMaterial`, `Checks/SaveHang` (the last one never run, as on the branch).
+- **F5 — contract `Tests/FaceRefPlanContract.cs`** (32 checks), and the hole wizard bits of the
+  import masks in `Zc212DrawingContract` (+2 checks).
+
+### Already there (the main line does it its own way; its code stays)
+
+- **D6 — `move_view`**: the main line moves by «dx_mm»/«dy_mm» or puts the centre at
+  «x_mm»/«y_mm», takes a view off its line with «unalign», reads every view that moved against
+  the sheet and puts the view back when it does not fit (`DrawingViewOperations.cs`). The
+  `move_view` of 0.131.0 is not merged.
+- **D6b — `delete_drawing_item`** for a view and a dimension: `delete_view` (with
+  «with_derived») and `delete_annotation`. The operation of 0.131.0 is not merged; only the
+  table is ported, see above.
+- **R1 — `move_view` refuses a sheet it cannot read**: the main line checks after the move and
+  puts the view back; the source check of 0.131.0 in `Zc212DrawingContract` is not merged (it
+  read a file that the main line does not have).
+- **RD1 — `readme-for-the-public`**: README, QUICKSTART and INSTALL-FOR-AI are in the main
+  line's history byte for byte (`e3bc58e`, `c00a8ef`, `8e73e2b`); the branch is not merged (see
+  above).
+
+### Dropped
+
+- **P1 — the `undo` of 0.131.0** (more presses, the sketch in edit closed, what the plan made
+  deleted by hand, the material cleared, the cut list folder left out of the comparison): the
+  main line rebuilt its undo on another design (one recorded entry per plan, compared before
+  and after, never deleted by hand). The mechanism of 0.131.0 would replace it, not complete it.
+  With it go its session helpers, its contract checks (`FeatureIdsToDeleteByHand`) and the two
+  bench cases `undo` and `cuts` of `part-fixes-131`. Still open: the plan of 12/10/2026
+  (material, two guided holes, a slot) has no undo case on the main line.
+- **V1 — versions 0.131.0 / library 0.154.0**: superseded; this entry is 0.171.0 / 0.199.0.
+- **V2 — the refusal floors of 0.131.0 (257 of 967)**: measured again on the merged tree, see below.
+- **V3 — the figures of the README of 0.130.1**: the main line's README stays.
+
+### Bench cases
+
+- **Ported (14 new, 2 changed)**: the 6 of the materials (`document_properties/`), the 5 of
+  `text/`, the 2 of `features/` (draft and fillet with a face of the plan),
+  `drawing/model_dimensions_all_leaves_no_stray_lines`; and the two slot cases of the main line
+  changed to 90. The three other cases the branch changed (`symmetric_plate_grows_from_both_sides`,
+  `the_state_counts_selected_edges_and_faces`, `gusset_sits_in_the_corner`) were words only,
+  already in English on the main line.
+  `red_before` is 0.199.0 on every case that came from the branch: on a library of the main line
+  before this one they must fail.
+- **Adapted (3)**: `drawing/l_bracket_drawing_end_to_end` (the table taken away with
+  `delete_annotation` «table»); `drawing/hole_table_is_taken_away` (from
+  `delete_drawing_item_takes_away_a_view_a_dimension_and_a_table`: only the table, the view and
+  the dimension have their own cases on the main line); `drawing/limit_move_view_outside_the_sheet`
+  (the main line's `move_view`: V1 moved 300 mm to the right, refused and put back, twin
+  `view_is_moved`).
+- **Dropped (3)**: `drawing/move_view_puts_the_view_where_asked` and
+  `drawing/limit_move_view_aligned_view_cannot_leave_its_line` (the main line's `move_view` has
+  its own cases: `view_is_moved`, `limit_move_view_off_its_line`, the «unalign» of
+  `balloons_move_off_the_bill_of_materials`), `drawing/limit_delete_view_with_dependents` (the
+  same as `limit_delete_view_with_derived`).
+
+**What the full bench must confirm** (not measured): the L bracket case expects the numbers of
+0.131.0 (4 dimensions in the front view, 5 in the top view, the table origin 1 mm from the
+corner), now produced by the merged code of `drawing_dimension`; `hole_table_says_where_they_are`
+of the main line expects `positions_checked` true, which now needs the origin at the corner of
+the plate; the two new drawing cases; `create_material` has no green case yet, so the contract
+«every operation of the catalog has a GREEN case in the last run» stays red until the bench runs.
+
+### Measured on the final tree
+
+- Refusals with a way forward: 336 of 1099 (floor 320 → 336, share floor 320 of 1081 → 336 of 1099).
+- Examples: 41 (floor 40 → 41: `create_material`).
+- Undecided calls: `Oce.Solid.Agent.Core/SwOperations.cs|Add` 7 → 6 (the list of faces of a
+  `face_ref` list now takes `AddRange` of `References.NamedFaces`, for `side_faces`); the
+  material check of the plan uses `UnionWith`, not a new untyped `Add`.
+- Operations: 112 (README updated).
+
 ## 0.170.15 — 16 November 2026 · library 0.198.12 (unchanged) · main and the night line become one branch
 
 **What happened.** `main` (0.130.3) and branch `night-2026-10-26-asm` (0.170.14) had grown

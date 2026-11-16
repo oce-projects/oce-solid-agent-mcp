@@ -544,7 +544,7 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// The key of ONE cylinder of the part: the diameter and the point halfway along
-        /// the axis, in the model («cil|30.00|x,y,z», millimetres to the tenth). Two
+        /// the axis, in the model («cyl|30.00|x,y,z», millimetres to the tenth). Two
         /// steps of the same Ø, or a hole of the same Ø as a step, are
         /// different cylinders and have different keys: with the key of the diameter
         /// alone one cancelled the other (adversarial review of 27/9/2026).

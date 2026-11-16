@@ -294,10 +294,10 @@ namespace Oce.Solid.Agent.Core
                 "taken from the state (E1, E2...).", out reason);
             if (signature == null) return null;
             var edge = signature.Entity as IEdge;
-            ICurve curva = null;
+            ICurve curve = null;
             ICurveParamData par = null;
-            try { par = ApiHelpers.EdgeParameters(edge, out curva); } catch { }
-            if (curva == null || par == null || !curva.IsLine())
+            try { par = ApiHelpers.EdgeParameters(edge, out curve); } catch { }
+            if (curve == null || par == null || !curve.IsLine())
             {
                 reason = "The edge «" + uid + "» is not straight: an anchor is taken from a straight edge.";
                 return null;
@@ -934,8 +934,8 @@ namespace Oce.Solid.Agent.Core
                 var q = axis.CreatedDimension;
                 if (q == null)
                     return MovementTestNotVerifiable(axis, "the anchor dimension was not kept when it was created");
-                double era;
-                try { era = ApiHelpers.ReadDimensionInConfiguration(q, ""); }
+                double original;
+                try { original = ApiHelpers.ReadDimensionInConfiguration(q, ""); }
                 catch (Exception ex)
                 {
                     return MovementTestNotVerifiable(axis, "I cannot read the anchor dimension: " + ex.Message);
@@ -954,16 +954,16 @@ namespace Oce.Solid.Agent.Core
                     // move, the rebuild found no errors because nothing had
                     // changed, and the test «passed» without having tested.
                     // The value is read back too: moved means moved.
-                    int moveOutcome = q.SetSystemValue3(era + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
+                    int moveOutcome = q.SetSystemValue3(original + 0.0001, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
                     if (moveOutcome != (int)swSetValueReturnStatus_e.swSetValue_Successful)
                         stop = "SOLIDWORKS answered " + moveOutcome.ToString(CultureInfo.InvariantCulture) +
                                 " to SetSystemValue3 (" + ErrorCodeDecoder.SetValueStatus(moveOutcome) + ")";
                     else
                     {
                         model.EditRebuild3();
-                        double moved = era;
+                        double moved = original;
                         try { moved = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
-                        if (Math.Abs(moved - (era + 0.0001)) > 1e-9)
+                        if (Math.Abs(moved - (original + 0.0001)) > 1e-9)
                             stop = "read back, the dimension did not move";
                         else
                             broken = FeatureInError(cut, out notVerified);
@@ -974,7 +974,7 @@ namespace Oce.Solid.Agent.Core
                 {
                     try
                     {
-                        q.SetSystemValue3(era, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
+                        q.SetSystemValue3(original, (int)swSetValueInConfiguration_e.swSetValue_InThisConfiguration, null);
                         model.EditRebuild3();
                     }
                     catch { }
@@ -990,7 +990,7 @@ namespace Oce.Solid.Agent.Core
                            "): the sketch does not hold up to a change, and an anchor that does not hold up to a change is of no use.";
                 double returned = -1;
                 try { returned = ApiHelpers.ReadDimensionInConfiguration(q, ""); } catch { }
-                if (Math.Abs(returned - era) > 1e-9)
+                if (Math.Abs(returned - original) > 1e-9)
                     return "After the movement check the anchor dimension «" + axis.Name + "» did not return to its value.";
             }
             return null;
@@ -1576,12 +1576,12 @@ namespace Oce.Solid.Agent.Core
         /// `IEntity` — «as IEntity» returns null silently, and the first draft of the
         /// midline made two relations out of four be born.
         /// </summary>
-        private static bool Relation(IModelDoc2 model, object one, object due, string which)
+        private static bool Relation(IModelDoc2 model, object one, object second, string which)
         {
             try
             {
                 model.ClearSelection2(true);
-                if (!Select(one, false) || !Select(due, true)) return false;
+                if (!Select(one, false) || !Select(second, true)) return false;
                 model.SketchAddConstraints(which);
                 return true;
             }

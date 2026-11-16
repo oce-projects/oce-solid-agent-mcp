@@ -259,7 +259,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         public static readonly string[] ExecutableNames =
         {
-            "apply_material", "slot", "activate_configuration",
+            "apply_material", "create_material", "slot", "activate_configuration",
             "mate", "combine_bodies",
             "weld_bead", "create_axis", "create_configuration",
             "create_drawing", "create_plane", "cut_list",
@@ -315,7 +315,7 @@ namespace Oce.Solid.Agent.Core
             new HashSet<string>(StringComparer.Ordinal)
             {
                 "extrude_rectangle", "extrude_circle", "extrude_section", "spur_gear",
-                "extrude_profile", "extrude_regions", "apply_material", "dimension_tolerance", "create_plane",
+                "extrude_profile", "extrude_regions", "apply_material", "create_material", "dimension_tolerance", "create_plane",
                 "base_flange", "flat_pattern_dxf", "mirror", "revolve", "create_drawing",
                 "set_sheet", "standard_views", "model_view", "model_dimensions",
                 "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table",
@@ -437,6 +437,7 @@ namespace Oce.Solid.Agent.Core
                     case "hole_wizard": return HoleWizard(model, arguments, docState);
                     // The material: MaterialOperations.cs.
                     case "apply_material": return ApplyMaterial(model, arguments);
+                    case "create_material": return CreateMaterial(model, arguments);
                     case "rectangular_cut": return RectangularCut(model, arguments, docState);
                     case "slot": return Slot(model, arguments, docState);
                     case "extrude_on_face": return ExtrudeOnFace(model, arguments, docState);
@@ -567,7 +568,7 @@ namespace Oce.Solid.Agent.Core
                     // counting it in the wrong place would have closed four entries.
                     case "note": return DrawingNote(model, arguments);
                     // Takes away a dimension or a note by its name (report 8cd843
-                    // N24): see `DrawingDeleteAnnotation.cs`.
+                    // N24), or a table by its number: see `DrawingDeleteAnnotation.cs`.
                     case "delete_annotation": return DeleteAnnotation(model, arguments);
                     case "hole_table": return HoleTable(model, arguments);
                     case "flat_pattern_view": return FlatPatternView(model, arguments);
@@ -2456,9 +2457,9 @@ namespace Oce.Solid.Agent.Core
                 // geometry.
                 for (int j = 0; j < entry.Strokes.Count; j++)
                 {
-                    var fine = entry.Strokes[j].Points[entry.Strokes[j].Points.Count - 1];
+                    var strokeEnd = entry.Strokes[j].Points[entry.Strokes[j].Points.Count - 1];
                     var after = entry.Strokes[(j + 1) % entry.Strokes.Count].Points[0];
-                    if (!ClosedShape.Neighbors(fine, after, 1e-3))
+                    if (!ClosedShape.Neighbors(strokeEnd, after, 1e-3))
                     {
                         reason = string.Format(
                             System.Globalization.CultureInfo.InvariantCulture,
@@ -2466,7 +2467,7 @@ namespace Oce.Solid.Agent.Core
                             "next one starts at ({4:0.###}, {5:0.###}): the contour does " +
                             "not close, and an open contour raises no error — it just " +
                             "does not extrude.",
-                            label, j + 1, fine[0], fine[1], after[0], after[1]);
+                            label, j + 1, strokeEnd[0], strokeEnd[1], after[0], after[1]);
                         return false;
                     }
                 }
@@ -3674,7 +3675,15 @@ namespace Oce.Solid.Agent.Core
 
             double length = Num(a, "length_mm");
             double width = Num(a, "width_mm");
-            double angle = Num(a, "angle_deg", 0);
+            // THE ANGLE IS ASKED AS SEEN, AND DRAWN IN THE FACE'S AXES (finding of 12/10/2026). The
+            // description says «0 is horizontal, 90 vertical», and that is how the person looking at
+            // the face in its standard view reads it; the sketch works in the face's own axes
+            // (x_mm, y_mm), and on a face whose normal is X the first of them (Y) is the vertical one:
+            // the angle used to be applied to it as it came, and 90 came out horizontal.
+            // `angle` is the angle in the face's axes; `askedAngle` is what was asked and what is
+            // reported back.
+            double askedAngle = Num(a, "angle_deg", 0);
+            double angle = SlotAngleInFaceAxes(askedAngle, FaceNormal(face), axes);
             bool throughAll = ThroughAllAsked(a);
             double depth = Num(a, "depth_mm", 0);
             double x, y;
@@ -3849,7 +3858,8 @@ namespace Oce.Solid.Agent.Core
                 {
                     ["length_mm"] = length,
                     ["width_mm"] = width,
-                    ["angle_deg"] = angle,
+                    ["angle_deg"] = askedAngle,
+                    ["direction_in_model"] = SlotDirectionInModel(angle, axes),
                     ["through_all"] = throughAll,
                     ["area_mm2"] = Math.Round(area, 2),
                     ["material_removed_mm3"] = null,
@@ -3925,7 +3935,8 @@ namespace Oce.Solid.Agent.Core
             {
                 ["length_mm"] = length,
                 ["width_mm"] = width,
-                ["angle_deg"] = angle,
+                ["angle_deg"] = askedAngle,
+                ["direction_in_model"] = SlotDirectionInModel(angle, axes),
                 ["through_all"] = throughAll,
                 ["area_mm2"] = Math.Round(area, 2),
                 ["material_removed_mm3"] = Math.Round(removed, 2),
@@ -3933,6 +3944,65 @@ namespace Oce.Solid.Agent.Core
             };
             foreach (var entry in anchorMeasurements) slotMeasurements[entry.Key] = entry.Value;
             return Succeeded(feature, slotMeasurements, FaceNormal(face));
+        }
+
+        /// <summary>
+        /// THE ANGLE OF A SLOT AS SEEN, turned into the angle in the face's own axes (finding of
+        /// 12/10/2026). Pure, so a contract can call it.
+        ///
+        /// «As seen» means: the standard view that looks at the face from outside the part (front for a
+        /// normal +Z, back for -Z, top for +Y, bottom for -Y, right for +X, left for -X). 0 is the
+        /// horizontal of that view, 90 its vertical, and the angles in between turn counterclockwise
+        /// as the face is looked at (30 rises to the right). The view axes are those of SOLIDWORKS:
+        ///   front: right X, up Y;   back: right -X, up Y;
+        ///   top:   right X, up -Z;  bottom: right X, up Z;
+        ///   right: right -Z, up Y;  left: right Z, up Y.
+        /// «Right» is up x towards-the-viewer (a right-handed view). The result is the angle, from
+        /// the first axis of the face (the one x_mm is measured along) towards the second, of the same
+        /// direction: for a face with the normal along Z or Y it is the angle asked for on the +Z and
+        /// -Y faces and the mirror of it on the -Z and +Y ones; for a face with the normal along X the
+        /// first axis (Y) is the vertical of the view, so 0 and 90 swap. Before this the angle was
+        /// applied to the first axis as it came, whatever the face: «90» was horizontal on a side face.
+        /// With no normal (an unreadable face) the face is taken as looking along +axis.
+        /// </summary>
+        internal static double SlotAngleInFaceAxes(double askedDeg, double[] normal, double[] axes)
+        {
+            int normalAxis = (int)axes[2], first = (int)axes[0], second = (int)axes[1];
+            double sign = normal != null && normal.Length > normalAxis && normal[normalAxis] < 0 ? -1.0 : 1.0;
+
+            double[] towardsViewer = new double[3];
+            towardsViewer[normalAxis] = sign;
+            double[] up = new double[3];
+            if (normalAxis == 1) up[2] = sign > 0 ? -1.0 : 1.0;   // top view: up is -Z; bottom view: up is +Z
+            else up[1] = 1.0;                                     // front, back, right, left: up is Y
+            double[] right =
+            {
+                up[1] * towardsViewer[2] - up[2] * towardsViewer[1],
+                up[2] * towardsViewer[0] - up[0] * towardsViewer[2],
+                up[0] * towardsViewer[1] - up[1] * towardsViewer[0],
+            };
+
+            double rad = askedDeg * Math.PI / 180.0, c = Math.Cos(rad), s = Math.Sin(rad);
+            double du = c * right[first] + s * up[first];
+            double dv = c * right[second] + s * up[second];
+            double inFace = Math.Atan2(dv, du) * 180.0 / Math.PI;
+            return Math.Round(inFace, 9);
+        }
+
+        /// <summary>
+        /// WHERE THE LONG AXIS OF A SLOT RUNS in the model, in words (the answer says it, so the reader
+        /// does not have to work it out from the face): «along X», «along Z», or the components of the
+        /// direction when it is oblique. <paramref name="angleInFace"/> is the angle in the face's axes
+        /// (<see cref="SlotAngleInFaceAxes"/>).
+        /// </summary>
+        internal static string SlotDirectionInModel(double angleInFace, double[] axes)
+        {
+            string[] names = { "X", "Y", "Z" };
+            double rad = angleInFace * Math.PI / 180.0, c = Math.Cos(rad), s = Math.Sin(rad);
+            if (Math.Abs(s) < 1e-9) return "along " + names[(int)axes[0]];
+            if (Math.Abs(c) < 1e-9) return "along " + names[(int)axes[1]];
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "oblique, {0:0.###} along {1} and {2:0.###} along {3}",
+                                 c, names[(int)axes[0]], s, names[(int)axes[1]]);
         }
 
         /// <summary>
@@ -5681,8 +5751,8 @@ namespace Oce.Solid.Agent.Core
                 bool straight = false;
                 try
                 {
-                    var curva = edge == null ? null : edge.IGetCurve();
-                    straight = curva != null && curva.IsLine();
+                    var edgeCurve = edge == null ? null : edge.IGetCurve();
+                    straight = edgeCurve != null && edgeCurve.IsLine();
                 }
                 catch { }
                 if (!straight)
@@ -7287,7 +7357,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Mattoni comuni
+        // Common building blocks
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
@@ -8110,7 +8180,7 @@ namespace Oce.Solid.Agent.Core
             // the plane, exactly as for a Select2 that fails
             // (IFeature~Select2.html: «True if the feature was selected,
             // false if not»). The comparison stays Ordinal on purpose: the
-            // Forma now rewrites every enum value in the catalogue's spelling
+            // Shape now rewrites every enum value in the catalogue's spelling
             // (Bridge/Shape.cs, pattern S20); References.BasePlane compares
             // Ordinal too.
             IFeature f = References.BasePlane(model, which, out _);
@@ -8166,7 +8236,8 @@ namespace Oce.Solid.Agent.Core
             DocumentState docState,
             Dictionary<string, object> arguments,
             string uid,
-            out string reason)
+            out string reason,
+            string reference = "face_ref")
         {
             reason = null;
 
@@ -8181,14 +8252,19 @@ namespace Oce.Solid.Agent.Core
             // that both do not arrive, but if they arrived anyway it is
             // better to fail on a uid that is not there than to work silently
             // on the wrong face.
-            if (HasReference(arguments, "face_ref"))
+            //
+            // `reference` is «face_ref» for the operations that name ONE face. An
+            // operation that names two (fillet_face: face_1_ref, face_2_ref) or that
+            // has a face next to a list (draft: neutral_face_ref) says which argument
+            // to read: the resolution is this one, there is no second copy of it.
+            if (HasReference(arguments, reference))
             {
                 int number;
-                var planStep = CitedStep(arguments, "face_ref", out number, out reason);
+                var planStep = CitedStep(arguments, reference, out number, out reason);
                 if (planStep == null) return null;
                 IFace2 fromStep;
                 if (!References.Face(
-                        planStep, KindOf(arguments, "face_ref"), out fromStep, out reason))
+                        planStep, KindOf(arguments, reference), out fromStep, out reason))
                     return null;
                 _log($"[agent] face taken from step {number}");
                 return fromStep;
@@ -8198,7 +8274,7 @@ namespace Oce.Solid.Agent.Core
             {
                 reason =
                     "No face indicated. If the face is created by a previous " +
-                    "step of this plan, it must be named with face_ref.";
+                    "step of this plan, it must be named with " + reference + ".";
                 return null;
             }
             if (!docState.TryGetSignature(uid, out var signature) || signature.Type != "FACE")
@@ -9190,6 +9266,22 @@ namespace Oce.Solid.Agent.Core
             return map.TryGetValue("kind", out g) ? Convert.ToString(g) ?? "" : "";
         }
 
+        /// <summary>
+        /// How a reference to a step is named in a message: «face_1_ref (step 1, top_face)».
+        /// The identifier of a face that does not exist yet cannot be written, and a message
+        /// that says only «the first face» does not say which of two references it is.
+        /// </summary>
+        private static string ReferenceName(Dictionary<string, object> a, string theField)
+        {
+            object raw;
+            string step = "?";
+            var map = (a != null && a.TryGetValue(theField, out raw)) ? raw as Dictionary<string, object> : null;
+            object number;
+            if (map != null && map.TryGetValue("step", out number) && number != null)
+                step = Convert.ToString(number, System.Globalization.CultureInfo.InvariantCulture);
+            return theField + " (step " + step + ", " + KindOf(a, theField) + ")";
+        }
+
         private Outcome Failed(string reason)
         {
             // A failure without a written reason cannot be corrected.
@@ -9331,14 +9423,17 @@ namespace Oce.Solid.Agent.Core
                     return false;
                 }
 
-                IFace2 face;
-                if (!References.Face(planStep, KindOf(one, theField), out face, out reason))
+                // `References.NamedFaces` gives ONE face for every kind but «side_faces»
+                // (0.131.0), which gives all the flat walls of the step: the plural
+                // kind is the library's, a list element may expand into several faces.
+                List<IFace2> found;
+                if (!References.NamedFaces(planStep, KindOf(one, theField), out found, out reason))
                 {
                     reason = "Reference no. " + which + ": " +
                              (reason ?? "face not found.");
                     return false;
                 }
-                faces.Add(face);
+                faces.AddRange(found);
             }
 
             if (faces.Count == 0)

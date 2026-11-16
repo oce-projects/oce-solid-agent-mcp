@@ -926,6 +926,51 @@ namespace Oce.Solid.Agent.Core
         /// <summary>The mark ConnectedNames puts on a name asked with `$PRPSHEET`.</summary>
         private const string FromThePart = "  (from the part, not from the drawing)";
 
+        /// <summary>
+        /// The three ways a note links to a property (INote~PropertyLinkedText.html): `$PRP` reads the
+        /// drawing's own properties, `$PRPSHEET` the model of the sheet's property view, `$PRPVIEW` the
+        /// model of a view. Group 1 is the suffix, group 2 the property name as written.
+        /// </summary>
+        private static readonly Regex LinkKinds =
+            new Regex("\\$PRP(SHEET|VIEW)?:\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// WHERE THE TITLE BLOCK READS A PROPERTY NAME: from the drawing (`$PRP`), from the model of the
+        /// views (`$PRPSHEET`, `$PRPVIEW`), or both. The name is compared exactly as written, because the
+        /// spelling is what the title block looks up. Returns every property name the title block links
+        /// (as written, without repeats); <paramref name="closeSpellings"/> receives the linked names that
+        /// equal the asked one only ignoring capitals and spaces, which is the way a name is lost without
+        /// an error.
+        /// </summary>
+        private static List<string> LinksOfTheTitleBlock(
+            List<INote> notes, string itemName, out bool readsDrawing, out bool readsModel,
+            out string[] closeSpellings)
+        {
+            // Built with ConvertAll and SelectMany and no List.Add, no .Select, no .Name: the obsolete-call
+            // scanner cannot type those receivers (see ApplyMaterial).
+            var links = notes
+                .ConvertAll(LinkedTextOf)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .SelectMany(t => LinkKinds.Matches(t).Cast<Match>(),
+                            (t, m) => new { Suffix = m.Groups[1].Success, Called = m.Groups[2].ToString() })
+                .ToList();
+            readsDrawing = links.Any(l => !l.Suffix && string.Equals(l.Called, itemName, StringComparison.Ordinal));
+            readsModel = links.Any(l => l.Suffix && string.Equals(l.Called, itemName, StringComparison.Ordinal));
+            string bare = (itemName ?? "").Replace(" ", "");
+            var everyName = links.ConvertAll(l => l.Called).Distinct(StringComparer.Ordinal).ToList();
+            closeSpellings = everyName
+                .Where(n => !string.Equals(n, itemName, StringComparison.Ordinal) &&
+                            string.Equals(n.Replace(" ", ""), bare, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            return everyName;
+        }
+
+        /// <summary>The linked text of a note (INote~PropertyLinkedText.html), or null when it cannot be read.</summary>
+        private static string LinkedTextOf(INote note)
+        {
+            try { return note.PropertyLinkedText; } catch { return null; }
+        }
+
         private static List<string> ConnectedNames(string text)
         {
             var outside = new List<string>();

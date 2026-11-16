@@ -700,6 +700,17 @@ namespace Oce.Solid.Agent.Core
                     NoteUndoAnswer(result, undoRecordedOn, planDocument,
                                    FinishUndoRecording(undoRecordedOn));
                     if (planDocumentReopened) result.UndoEntryOnPlanDocument = null;
+
+                    // A PLAN THAT STOPPED LEAVES ITS DOCUMENT REBUILT (finding of 12/10/2026, measured on
+                    // 13/10/2026): a part left by failed steps (no rebuild runs after a step that failed; the
+                    // successful ones are rebuilt above) made SOLIDWORKS refuse the first base flange of the
+                    // NEXT new part, in 5 seconds and without a reason, every time; EditRebuild3 of the first
+                    // part, or closing it, cured it every time (NeedsRebuild2 said 0 all the while).
+                    if (!result.Completed || !string.IsNullOrEmpty(result.Error))
+                    {
+                        RebuildAfterAStop(expectedDocument);
+                        if (!SameObject(planDocument, expectedDocument)) RebuildAfterAStop(planDocument);
+                    }
                     return null;
                 });
             }
@@ -734,6 +745,24 @@ namespace Oce.Solid.Agent.Core
                 : new Dictionary<string, object>(measurements);
             withVolume["volume_after_mm3"] = Math.Round((double)volume, 2);
             return withVolume;
+        }
+
+        /// <summary>
+        /// Rebuilds the document a plan stopped on. Quiet when SOLIDWORKS throws: this is a courtesy to the
+        /// next document, never a reason to fail a plan that has already run.
+        /// The rebuild is <see cref="SwOperations.RebuildKeepingUndo"/> (library 0.199.0, ported from 0.131.0):
+        /// EditRebuild3 on a part or a drawing, as the branch measured it, and on an assembly the rebuild
+        /// that keeps the undo entry of the plan (brief R23).
+        /// </summary>
+        private void RebuildAfterAStop(IModelDoc2 document)
+        {
+            if (document == null) return;
+            try
+            {
+                SwOperations.RebuildKeepingUndo(document);
+                _log("[agent] «" + Identity(document) + "» rebuilt after the plan stopped");
+            }
+            catch { }
         }
 
         /// <summary>

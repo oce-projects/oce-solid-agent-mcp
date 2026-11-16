@@ -17,7 +17,7 @@
       "arguments": { "feature_uid": "@feature(kind=Extrusion,n=1)", "depth_mm": 120 },
       "expect": [
         { "what": "measurements.end_before", "equal_to": "mid plane" },
-        { "what": "measurements.end_after", "equal_to": "mid plane", "why": "PRIMA DIVENTAVA «blind»" },
+        { "what": "measurements.end_after", "equal_to": "mid plane", "why": "IT USED TO BECOME «blind»" },
         { "what": "measurements.depth_before_mm", "equal_to": 100, "why": "the depth of a mid-plane is reported" },
         { "what": "measurements.depth_after_mm", "equal_to": 120 },
         { "what": "volume_mm3", "equal_to": 720000 },

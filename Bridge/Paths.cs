@@ -69,6 +69,16 @@ namespace Oce.Solid.Agent.Bridge
 
         public static string CheckOne(string filePath, string theField = "path")
         {
+            // A DRIVE LETTER WITHOUT A SEPARATOR IS NOT AN ABSOLUTE PATH («C:UsersName...», what a path
+            // looks like when its backslashes were eaten by an escape). Path.GetFullPath accepts it and
+            // turns it into a place under the folder the process happens to be in, so everything below
+            // would judge a place nobody asked for (finding of 12/10/2026, save_document).
+            if (filePath.Length >= 2 && char.IsLetter(filePath[0]) && filePath[1] == ':' &&
+                (filePath.Length == 2 || (filePath[2] != '\\' && filePath[2] != '/')))
+                return "The path «" + filePath + "» is not an absolute path: after the drive letter and the " +
+                       "colon there is no backslash. It usually means that the backslashes were lost on the " +
+                       "way (in JSON each one is written twice, or use forward slashes: «C:/Folder/name.SLDPRT»).";
+
             string full;
             try
             {

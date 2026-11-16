@@ -1,0 +1,35 @@
+{
+  "name": "limit_create_material_that_already_exists",
+  "family": "document_properties",
+  "red_before": "0.199.0",
+  "why": "A NAME THAT EXISTS IS NOT OVERWRITTEN IN SILENCE. create_material of «PLA» twice, the second time without replace: the second one must be refused and say what to do (say replace, or choose another name). Overwriting would change the density of every part that is later given the material, and nobody asked for it. The steps after the refusal apply the material and weigh the plate: the refusal left the library as the first call wrote it (density 1240, not the 900 of the refused call).",
+  "defect_caught": "A library that takes a second call with the same name has two ways to go wrong: it adds a second entry (two «PLA» in one database, and SOLIDWORKS takes the first or the last), or it replaces the first (the density changes under parts already weighed). Both are silent. The last step reads the weight AFTER the refusal.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "create_material",
+      "arguments": { "name": "PLA", "class": "Plastic", "density_kg_m3": 1240, "elastic_modulus_mpa": 3600, "yield_strength_mpa": 60,
+                     "source": "NatureWorks Ingeo Biopolymer 4043D Technical Data Sheet, NW4043DFILA_051815V1",
+                     "replace": true },
+      "expect": [ { "what": "measurements.library", "equal_to": "OCE custom materials" } ] },
+    { "operation": "create_material",
+      "arguments": { "name": "PLA", "class": "Plastic", "density_kg_m3": 900, "source": "a different density, to be refused" },
+      "must_fail": {
+        "message_includes": ["already in the library", "OCE custom materials", "replace"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "create_pla_and_weigh_a_plate" } },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 150, "width_mm": 150, "thickness_mm": 5, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 112500 } ] },
+    { "operation": "apply_material",
+      "arguments": { "material": "PLA" },
+      "expect": [ { "what": "state.material", "includes": ["PLA"] } ] },
+    { "operation": "mass_properties",
+      "arguments": {},
+      "expect": [
+        { "what": "measurements.density_kg_m3", "equal_to": 1240, "tolerance": 0.5,
+          "tolerance_why": "the library is as the first call wrote it" },
+        { "what": "measurements.mass_kg", "equal_to": 0.1395, "tolerance": 0.0001,
+          "tolerance_why": "112500 mm3 times 1240 kg/m3 = 0.1395 kg (node)" } ] }
+  ]
+}

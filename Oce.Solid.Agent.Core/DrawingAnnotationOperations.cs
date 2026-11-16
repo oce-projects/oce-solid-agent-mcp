@@ -73,8 +73,8 @@ namespace Oce.Solid.Agent.Core
                 var e = o as IEdge;
                 try
                 {
-                    var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
-                    if (curva == null || !curva.IsLine()) continue;
+                    var p = ApiHelpers.EdgeParameters(e, out ICurve curve);
+                    if (curve == null || !curve.IsLine()) continue;
                     // The component's placement first on a view of an assembly
                     // (report 8cd843 N23): without it the side is chosen among
                     // edges that are not where the sheet shows them.

@@ -648,7 +648,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
-        /// N27, the rule without SOLIDWORKS (the contract group in Prove calls it
+        /// N27, the rule without SOLIDWORKS (the contract group in Tests calls it
         /// with the probe's assemblies): one entry per component of the tree, its
         /// key, the index of its parent (-1 at the top), whether it is an
         /// assembly, its swChildComponentInBOMOption_e (-1 if not read) and

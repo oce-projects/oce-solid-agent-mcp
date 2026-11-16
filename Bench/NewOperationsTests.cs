@@ -79,7 +79,7 @@ namespace Oce.Solid.Agent.Bench
         // that would take its children away.
         //
         // THE FILE CLAMPS HARDER. The C# looked at the volume and the field
-        // Â«soppressaÂ»; the cases also look at WHICH hole was turned off -
+        // «suppressed»; the cases also look at WHICH hole was turned off -
         // `centers_x_mm` goes from [-60, 0, 60] to [-60, 0] - and how many
         // features remain in the tree, which is the whole difference between
         // suppressing and deleting. They are launched with `--group cases`.
@@ -333,7 +333,7 @@ namespace Oce.Solid.Agent.Bench
                         f.TryGetValue("normal", out n);
                         f.TryGetValue("area_mm2", out area);
                         Console.WriteLine(string.Format(
-                            "  {0,-4} verso={1,-9} area={2,-10} normale={3}",
+                            "  {0,-4} facing={1,-9} area={2,-10} normal={3}",
                             f["uid"], v ?? "(none)", area,
                             n is System.Collections.IEnumerable && !(n is string)
                                 ? "[" + string.Join(",", (n as System.Collections.IEnumerable)

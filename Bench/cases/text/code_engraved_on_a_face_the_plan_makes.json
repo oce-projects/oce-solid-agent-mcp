@@ -1,0 +1,34 @@
+{
+  "name": "code_engraved_on_a_face_the_plan_makes",
+  "family": "text",
+  "red_before": "0.199.0",
+  "why": "THE PLATE AND ITS TEXT IN ONE PLAN (0.131.0, OpenPDM R4). On an empty part the face to write on does not exist when the plan is written, so engrave_text, which took only face_uid, needed two plans with a reading of the state between them; hole_wizard already took face_ref {step, kind}. The twin of code_engraved_in_the_center: the same block, the same «PROVA», the same anchor, the face named as «the top of step 1» instead of by a selector, and the same numbers to the hundredth.",
+  "defect_caught": "Be exact about where the defect was. The LIBRARY already resolved face_ref for engrave_text: SwOperations.ResolveFace is common code, and run directly (as this bench runs a case) the old library engraves this block with the same numbers; the only difference on 0.153.1 is that the new fields of the answer (through_all) are missing, a bench error. What was missing was the CATALOGUE: engrave_text did not declare face_ref and listed face_uid as required, so the bridge refused the plan before the library saw it. That half is held by Tests/FaceRefPlanContract.cs (red on 0.130.2: the dry run, Shape.Check) and by the end-to-end run through the real bridge. This case guards the rest: that the face the plan names is the right one, with the numbers of the twin to the hundredth.",
+  "_why_the_numbers_are_the_twins": "A face_ref that resolved to the wrong face (the bottom of the block, a side) would give a text that sticks out or a different volume; the numbers of the twin case are measured in SOLIDWORKS and are the proof that it is the same face. The 56 contours and the 47.05 mm width are the ones of the twin.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "engrave_text",
+      "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "text": "PROVA",
+                     "x_mm": -25, "y_mm": -5,
+                     "height_mm": 10, "depth_mm": 2 },
+      "expect": [
+        { "what": "measurements.text", "equal_to": "PROVA" },
+        { "what": "measurements.contours", "equal_to": 56 },
+        { "what": "measurements.width_written_mm", "equal_to": 47.05, "tolerance": 0.1,
+          "tolerance_why": "the width comes from the drawing of the glyphs of the font, and the last digit depends on the sampling of the curves: below a tenth of a millimetre it is not a number to lean on" },
+        { "what": "measurements.height_written_mm", "equal_to": 10.51, "tolerance": 0.1,
+          "tolerance_why": "same reason" },
+        { "what": "measurements.material_removed_mm3", "equal_to": 230.7, "tolerance": 0.5,
+          "tolerance_why": "the volume of an engraving is the sum of 56 curved outlines: half a cubic millimetre is the tessellation noise, not a variation" },
+        { "what": "measurements.depth_mm", "equal_to": 2,
+          "why": "an engraving to a depth reports the depth it was asked: only the cut through reads it from the walls" },
+        { "what": "measurements.through_all", "equal_to": false },
+        { "what": "measurements.bodies", "equal_to": 1 },
+        { "what": "volume_mm3", "equal_to": 199769.3, "tolerance": 0.5,
+          "tolerance_why": "the same number as the twin, read from the state" } ] }
+  ]
+}

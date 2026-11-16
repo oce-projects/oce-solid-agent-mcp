@@ -625,11 +625,11 @@ namespace Oce.Solid.Agent.Core
             bool round = false;
             try
             {
-                var curva = edge.IGetCurve();
-                round = curva != null && curva.IsCircle();
+                var curve = edge.IGetCurve();
+                round = curve != null && curve.IsCircle();
                 if (round)
                 {
-                    var p = curva.CircleParams as double[];
+                    var p = curve.CircleParams as double[];
                     if (p != null && p.Length >= 7) diameter = p[6] * 2000.0;
                 }
             }

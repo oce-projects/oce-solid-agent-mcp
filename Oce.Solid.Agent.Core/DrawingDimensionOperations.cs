@@ -343,6 +343,12 @@ namespace Oce.Solid.Agent.Core
             if (!holesWanted) leftOut.Add("holes");
             if (!chamfersWanted) leftOut.Add("chamfers");
 
+            // WHAT THIS VIEW CARRIES BEFORE THIS CALL PLACES ANYTHING (0.131.0, item 3): its linear dimensions with their direction, and the
+            // diameters of its hole callouts. A callout that came with the import says the diameter and not the position, and a
+            // position the import brought (the 30 and the 90 of the hole wizard) is not put a second time.
+            var carriedHere = LinearDimensionsOfTheView(view, false);
+            var calloutsHere = HoleCalloutDiametersOfTheView(view);
+
             var failed = new List<string>();
             var externalDiameters = new List<Dictionary<string, object>>();
             var undimensionedBorders = new List<string>();
@@ -353,6 +359,8 @@ namespace Oce.Solid.Agent.Core
             var elsewhere = new List<string>();
             var closing = new List<string>();
             var onChamfer = new List<string>();
+            int edgesAlreadyElsewhere = 0;
+            var overallDimensions = new List<Dictionary<string, object>>();
             var seen = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var i in chosen)
             {
@@ -400,6 +408,7 @@ namespace Oce.Solid.Agent.Core
                     // Three decimals, as «dimensions_mm» writes it (report 8cd843 N38).
                     elsewhere.Add(i + " (" + Math.Round(s.Length * 1000.0 / scale, 3).ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " mm: the same extent is already dimensioned in another view)");
+                    edgesAlreadyElsewhere++;
                     continue;
                 }
                 // A CHAIN THAT IS ALREADY CLOSED (02/11/2026): the 175 of the owner's 26P000008 next to
@@ -493,7 +502,7 @@ namespace Oce.Solid.Agent.Core
                 var trueHoles = circles.FindAll(c => c.Type == "hole");
                 if (trueHoles.Count > 0 && holesInTable <= 0 && holesWanted)
                     DimensionTheHoles(model, drawing, trueHoles, all, already, contour, dimensionOffset, planStep, scale,
-                               ref below, ref sideways, ref onLeft, sheetDimensions, born, holes, elsewhere, failed);
+                               ref below, ref sideways, ref onLeft, sheetDimensions, carriedHere, calloutsHere, born, holes, elsewhere, failed);
                 DimensionTheContours(model, drawing, circles.FindAll(c => c.Type == "outline"), already, contour, dimensionOffset, planStep,
                                born, externalDiameters, undimensionedBorders, elsewhere, failed);
                 foreach (var c in circles)
@@ -667,6 +676,21 @@ namespace Oce.Solid.Agent.Core
                         detailLabelAuto = MoveDetailLabel(view, lowestAuto, autoStyle.DetailLabelGapMm);
                 }
 
+                // ── WHEN THE CHAMFERS AND THE BENDS SWALLOWED EVERY EDGE (0.131.0, item 1) ───
+                //
+                // The L bracket of 12/10/2026, chamfered along its whole outline: every edge the view shows touches a
+                // chamfer, or is shortened by a bend (the 120 is a virtual sharp: the longest straight edge of the bottom
+                // is 104), so the edge-by-edge path had nothing to dimension and the operation refused, saying «the
+                // chamfer dimension was not created». What the drawing needs is not an edge: it is the OVERALL size
+                // between the extreme edges, the thickness of the sheet and the inner radius of the bend. Only here,
+                // where edge by edge there was nothing: nothing changes for a part that has edges to dimension.
+                if (measuredValues.Count == 0 && onChamfer.Count > 0 && duplicates.Count == 0 && edgesAlreadyElsewhere == 0 &&
+                    round == null && externalDiameters.Count == 0)
+                {
+                    DimensionTheOverallSize(model, drawing, view, edges, all, already, contour, dimensionOffset, planStep, scale,
+                                            ref below, ref sideways, ref onLeft, sheetDimensions, born, overallDimensions, elsewhere, failed);
+                }
+
                 // ── THE CHAMFERS, WITH THE CHAMFER DIMENSION (entry GT11) ─────
                 if (chamfersWanted)
                     DimensionTheChamfers(model, drawing, edges, all, already, contour, dimensionOffset, scale, born, chamfers, elsewhere, failed);
@@ -752,7 +776,7 @@ namespace Oce.Solid.Agent.Core
                 // `dimensions[0].mm` forces whoever tests to know **in what order**
                 // the view lists its edges — an order that nobody
                 // declares, and that changes with the part. On 18/9/2026 a bench case
-                // was written on `quote[0]` and `quote[2]` taking the
+                // was written on `dimensions[0]` and `dimensions[2]` taking the
                 // numbers from a probe made on ANOTHER part: seven edges
                 // instead of four, and the index no longer meant anything.
                 //
@@ -805,6 +829,9 @@ namespace Oce.Solid.Agent.Core
                 ["round_notes"] = round == null ? null : round.Note.ToArray(),
                 ["round_generatrices_without_face"] = round == null ? null : (object)round.FacelessGeneratrices,
                 ["chamfers"] = chamfers.ToArray(),
+                // THE OVERALL SIZE, THE THICKNESS AND THE BEND (0.131.0): only when the chamfers and the bends left no edge to
+                // dimension by itself. Each row says what it is, the millimetres read back and the edges it sits on.
+                ["overall_dimensions"] = overallDimensions.ToArray(),
                 ["already_dimensioned_elsewhere"] = elsewhere.ToArray(),
                 // THE EDGES LEFT OUT BECAUSE THE DRAWING ALREADY GIVES THEIR EXTENT THROUGH A CHAIN
                 // (02/11/2026), each with the dimensions that give it; «repeat» true places them.
@@ -939,6 +966,30 @@ namespace Oce.Solid.Agent.Core
             /// </summary>
             public List<double[]> ChamferPairs;
             public string ChamferSaid;
+            /// <summary>
+            /// 0.131.0 (item 1 of the drawing branch). One face of the edge is a chamfer face and the OTHER is a planar
+            /// face seen face-on (its normal along the normal of the sheet): the edge is the boundary of the
+            /// chamfer strip on the face that looks at the reader, an inset line, not an outline of the part.
+            /// </summary>
+            public bool ChamferBoundaryFaceOn;
+            /// <summary>
+            /// Both faces of the edge are chamfer faces: the corner where two chamfer strips meet (a miter). On the L bracket
+            /// chamfered along its whole outline every oblique edge of the front view is one of these: not a chamfer
+            /// seen in profile, and nothing AddChamferDim can dimension.
+            /// </summary>
+            public bool ChamferMiter;
+            /// <summary>An arc (a bend, a fillet), not a straight line.</summary>
+            public bool IsArc;
+            /// <summary>
+            /// For an arc: its axis, brought onto the sheet, is perpendicular to the sheet, so the arc is seen in its true shape
+            /// (a bend seen from above is a straight line, and a radius cannot be dimensioned on it).
+            /// </summary>
+            public bool ArcFaceOn;
+            /// <summary>For an arc: the radius in the model, mm, and the centre in the model, metres.</summary>
+            public double RadiusMm;
+            public double[] CenterModel;
+            /// <summary>For an arc: the centre on the sheet, metres.</summary>
+            public double[] CenterSheet;
             /// <summary>The entity as the view exposes it, to select it.</summary>
             public object Entity;
             /// <summary>The component it belongs to on a view of an assembly (Name2), null on a part.</summary>
@@ -974,7 +1025,8 @@ namespace Oce.Solid.Agent.Core
             {
                 var edge = entity as IEdge;
                 if (edge == null) return null;
-                var p = ApiHelpers.EdgeParameters(edge);
+                ICurve curveOfEdge;
+                var p = ApiHelpers.EdgeParameters(edge, out curveOfEdge);
                 if (p == null) return null;
                 var da = p.StartPoint as double[];
                 var a = p.EndPoint as double[];
@@ -1051,12 +1103,72 @@ namespace Oce.Solid.Agent.Core
                 s.ChamferFeature = TouchesAChamfer(edge);
                 if (s.ChamferFeature != null) s.ChamferPairs = ChamferPairsOf(edge, out s.ChamferSaid);
                 if (s.ChamferFeature != null) s.ChamferKey = "chamfer|" + s.ChamferFeature;
+                ClassifyChamferFaces(edge, s, mu, tr);
+                try
+                {
+                    if (curveOfEdge != null && curveOfEdge.IsCircle())
+                    {
+                        var cp = curveOfEdge.CircleParams as double[];
+                        if (cp != null && cp.Length >= 7)
+                        {
+                            s.IsArc = true;
+                            s.RadiusMm = cp[6] * 1000.0;
+                            s.CenterModel = new[] { cp[0], cp[1], cp[2] };
+                            s.CenterSheet = OnSheet(s.CenterModel, mu, tr);
+                            var arcAxis = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
+                            double arcAxisLength = arcAxis == null ? 0 : Math.Sqrt(arcAxis[0] * arcAxis[0] + arcAxis[1] * arcAxis[1] + arcAxis[2] * arcAxis[2]);
+                            s.ArcFaceOn = arcAxisLength > 1e-12 && Math.Abs(arcAxis[2]) / arcAxisLength >= 0.99;
+                        }
+                    }
+                }
+                catch { }
                 s.Entity = entity;
                 try { s.Component = component?.Name2; } catch { }
                 try { s.Straight = (edge.GetCurve() as ICurve)?.IsLine() == true; } catch { }
                 return s;
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// WHAT THE TWO FACES OF AN EDGE ARE, for the chamfers (0.131.0, item 1).
+        /// IEdge~GetTwoAdjacentFaces2.html for the faces, IFace2~GetFeature for the chamfer feature, and the normal of the
+        /// other face (ApiHelpers.NormalIfPlanar) brought onto the sheet with the transformation of the view: along the
+        /// normal of the sheet means the face is seen face-on.
+        ///
+        /// Until 0.153.1 an edge touching a chamfer was simply «a chamfer edge» and left out of the dimensions. On a
+        /// part chamfered along its whole outline (the L bracket of 12/10/2026) that was every edge of the view, and
+        /// the operation answered «the chamfer dimension was not created» for a view it had nothing to say about.
+        /// Nothing is guessed: if the faces cannot be read the flags stay false, which is what they were before.
+        /// </summary>
+        private static void ClassifyChamferFaces(IEdge edge, ProjectedEdge s, IMathUtility mu, MathTransform tr)
+        {
+            try
+            {
+                var faces = edge.GetTwoAdjacentFaces2() as object[];
+                if (faces == null || faces.Length < 2) return;
+                int chamferFaces = 0;
+                IFace2 other = null;
+                foreach (var o in faces)
+                {
+                    var f = o as IFace2;
+                    if (f == null) return;
+                    var feature = f.GetFeature() as IFeature;
+                    if (feature != null && feature.GetTypeName2() == "Chamfer") chamferFaces++;
+                    else other = f;
+                }
+                s.ChamferMiter = chamferFaces == 2;
+                if (chamferFaces == 1 && other != null)
+                {
+                    var n = ApiHelpers.NormalIfPlanar(other);
+                    if (n == null) return;
+                    var v = ((IMathVector)((IMathVector)mu.CreateVector(n)).MultiplyTransform(tr)).ArrayData as double[];
+                    if (v == null) return;
+                    double l = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+                    s.ChamferBoundaryFaceOn = l > 1e-12 && Math.Abs(v[2]) / l >= 0.99;
+                }
+            }
+            catch { }
         }
 
         /// <summary>A whole circle in the view: a hole, the outline of a round part, or a circle seen edge-on.</summary>
@@ -1081,15 +1193,15 @@ namespace Oce.Solid.Agent.Core
         {
             try
             {
-                var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
-                if (curva == null || !curva.IsCircle()) return null;
+                var p = ApiHelpers.EdgeParameters(e, out ICurve curve);
+                if (curve == null || !curve.IsCircle()) return null;
                 var da = p?.StartPoint as double[];
                 var a = p?.EndPoint as double[];
                 // A WHOLE CIRCLE has start and end at the same point: an arc
                 // (a fillet, a slot) is not a hole to call out.
                 if (da == null || a == null ||
                     Math.Abs(da[0] - a[0]) + Math.Abs(da[1] - a[1]) + Math.Abs(da[2] - a[2]) > 1e-8) return null;
-                var cp = curva.CircleParams as double[];
+                var cp = curve.CircleParams as double[];
                 if (cp == null || cp.Length < 7) return null;
                 // THE COMPONENT'S PLACEMENT FIRST on an assembly (report 8cd843 N23,
                 // see ToSheetOf); centre and axis in the model are kept in the
@@ -1123,7 +1235,7 @@ namespace Oce.Solid.Agent.Core
                 // is the foot of a boss, and a tangency circle Ø24 at the
                 // foot of a filleted Ø20 boss became «a hole» with its
                 // position dimensions. A boss has a diameter dimension.
-                else typ = IsAVisibleHole(e, curva, mu, tr) && !IsTheFootOfAStud(e) ? "hole" : "outline";
+                else typ = IsAVisibleHole(e, curve, mu, tr) && !IsTheFootOfAStud(e) ? "hole" : "outline";
                 var c = new Circle { Index = index, Edge = e, SheetCenter = center, DiameterMm = Math.Round(cp[6] * 2000.0, 3), Type = typ,
                                       ModelCenter = modelCenter, ModelAxis = new[] { modelAxis[0], modelAxis[1], modelAxis[2] } };
                 try { c.Component = component?.Name2; } catch { }
@@ -1136,6 +1248,49 @@ namespace Oce.Solid.Agent.Core
                 return c;
             }
             catch { return null; }
+        }
+
+        /// <summary>Is the edge closed on itself (a whole circle), as opposed to an arc? Unknown counts as closed, as before.</summary>
+        private static bool IsClosedEdge(IEdge e)
+        {
+            try
+            {
+                var p = ApiHelpers.EdgeParameters(e);
+                var a = p == null ? null : p.StartPoint as double[];
+                var b = p == null ? null : p.EndPoint as double[];
+                if (a == null || b == null) return true;
+                return Math.Abs(a[0] - b[0]) + Math.Abs(a[1] - b[1]) + Math.Abs(a[2] - b[2]) < 1e-8;
+            }
+            catch { return true; }
+        }
+
+        /// <summary>
+        /// The keys (ExtentKey and the gap) of a dimension between two parallel straight edges, when the separation runs along
+        /// an axis of the model: the overall size, the thickness of a sheet. See KeysOfTwoParallelEdges.
+        /// </summary>
+        private static void AddKeysOfTwoParallelEdges(IEdge first, IEdge second, double valueMm, HashSet<string> into)
+        {
+            try
+            {
+                var p1 = ApiHelpers.EdgeParameters(first);
+                var p2 = ApiHelpers.EdgeParameters(second);
+                if (p1 == null || p2 == null) return;
+                KeysOfTwoParallelEdges(p1.StartPoint as double[], p1.EndPoint as double[], p2.StartPoint as double[], p2.EndPoint as double[], valueMm, into);
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// May the edge serve as the reference of a position dimension (the left edge or the bottom edge of the part)?
+        /// A straight edge of the outline: not the oblique profile of a chamfer, not a miter where two chamfer strips
+        /// meet, not an arc, and not the boundary of a chamfer strip on the face that looks at the reader (an inset line).
+        /// An edge that touches a chamfer on its OTHER side (the side of the part seen edge-on) is the outline.
+        /// </summary>
+        private static bool IsReferenceEdge(ProjectedEdge s)
+        {
+            if (s.IsArc || s.ChamferMiter) return false;
+            if (s.ChamferFeature == null) return true;
+            return !s.ChamferBoundaryFaceOn;
         }
 
         /// <summary>
@@ -1311,6 +1466,13 @@ namespace Oce.Solid.Agent.Core
                                         if (withStraightLine) continue;
                                         var cp = c.CircleParams as double[];
                                         if (cp == null || cp.Length < 7) continue;
+                                        // AN ARC IS A RADIUS, NOT A HOLE (0.131.0, item 1): the radius of a bend, of a fillet.
+                                        // Its key says «this radius is dimensioned», and no hole of twice its size is.
+                                        if (!IsClosedEdge(e))
+                                        {
+                                            outside.Add("R|" + Math.Round(cp[6] * 1000.0, 2).ToString("0.00", Ci));
+                                            continue;
+                                        }
                                         string dd = Math.Round(cp[6] * 2000.0, 2).ToString("0.00", Ci);
                                         outside.Add("hole|" + dd);
                                         // AND ITS CYLINDER, if found: a step of a round bar and a
@@ -1355,6 +1517,12 @@ namespace Oce.Solid.Agent.Core
                                 var k = TractBetween(p0.StartPoint as double[], p0.EndPoint as double[],
                                                      p1.StartPoint as double[], p1.EndPoint as double[], itsAxes);
                                 if (k != null) outside.Add(k);
+                                // AND THE KEYS OF THE OVERALL SIZE (0.131.0, item 1): the same extent as
+                                // ExtentKey writes it, and the gap, so that the overall size or the thickness
+                                // of a sheet put in one view is not put again in another one.
+                                double itsValueMm = double.NaN;
+                                try { itsValueMm = ApiHelpers.ReadDimensionInConfiguration(d.GetDimension2(0) as IDimension, "") * 1000.0; } catch { }
+                                if (!double.IsNaN(itsValueMm)) AddKeysOfTwoParallelEdges(straight[0], straight[1], itsValueMm, outside);
                             }
                         }
                         catch { }
@@ -1607,6 +1775,7 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 model, IDrawingDoc drawing, List<Circle> circles, List<ProjectedEdge> all,
             HashSet<string> already, double[] contour, double dimensionOffset, double planStep, double scale,
             ref int below, ref int sideways, ref int onLeft, double[] sheet,
+            List<CarriedDimension> carriedHere, List<double> calloutsHere,
             List<Dictionary<string, object>> born, List<Dictionary<string, object>> holes,
             List<string> elsewhere, List<string> failed)
         {
@@ -1650,6 +1819,10 @@ namespace Oce.Solid.Agent.Core
                 if (dimensioned)
                 {
                     elsewhere.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (already dimensioned in this drawing)");
+                    // THE CALLOUT IS IN THIS VIEW, THE POSITIONS ARE NOT (0.131.0): a callout says the diameter, the count and the depth, not where the
+                    // holes are. The import brings it (hole_callouts) and the holes then had no position at all. A callout that is in ANOTHER view
+                    // (another sheet with the same top view) leaves the holes alone, as before.
+                    if (calloutsHere.Exists(dd => Math.Abs(dd - g.Key.Item1) < 0.01)) toPosition.AddRange(g.Value);
                     continue;
                 }
                 // The callout goes on the top left hole: it is the first one
@@ -1715,8 +1888,27 @@ namespace Oce.Solid.Agent.Core
                 // values unknown (the «N×» is then reported as not stuck, the depth
                 // of a blind hole as missing), the positions are still placed as
                 // dimensions of their own, and the row says why its values are null.
-                string countPrefix = g.Value.Count > 1 ? g.Value.Count.ToString(Ci) + "×" : null;
+                int holesInGroup = g.Value.Count;
+                string countPrefix = holesInGroup > 1 ? holesInGroup.ToString(Ci) + "×" : null;
+                // THE COUNT MAY BE THERE ALREADY (0.131.0). The callout of a hole made by the hole wizard with several positions
+                // is born with its own count: «2 x <MOD-DIAM> 11 THRU» on the L bracket of 12/10/2026, and the «2×» written in
+                // front of it made «2× 2 x Ø11 THRU» on the sheet. When the prefix already begins with a count, it is not
+                // written again: it is read, and it must be the number of holes of the group.
+                bool countAlreadyThere = false;
+                int countThere = -1;
                 if (countPrefix != null)
+                {
+                    string current = "";
+                    try { current = callout.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix) ?? ""; } catch { }
+                    Match carried = Regex.Match(current, @"^\s*([0-9]+)\s*[x×X]");
+                    if (carried.Success)
+                    {
+                        countAlreadyThere = true;
+                        Group theCount = carried.Groups[1];
+                        int.TryParse(theCount.Value, out countThere);
+                    }
+                }
+                if (countPrefix != null && !countAlreadyThere)
                 {
                     // «4× » IN FRONT of what is there: the prefix of a callout is
                     // already the diameter symbol (<MOD-DIAM>), and replacing it
@@ -1744,11 +1936,16 @@ namespace Oce.Solid.Agent.Core
                 // read one Ø8.
                 string prefixRead = null;
                 try { prefixRead = callout.GetText((int)swDimensionTextParts_e.swDimensionTextPrefix); } catch { }
-                if (countPrefix != null &&
+                string countProblem = null;
+                if (countAlreadyThere && countThere != holesInGroup)
+                    countProblem = "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the callout says «" + countThere + "» holes and the group has " +
+                                holesInGroup + ": the prefix reads «" + prefixRead + "»)";
+                else if (countPrefix != null && !countAlreadyThere &&
                     (prefixRead == null || !prefixRead.TrimStart().StartsWith(countPrefix, StringComparison.Ordinal)))
-                    failed.Add("holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the «" + countPrefix + "» in front did not stick: " +
+                    countProblem = "holes Ø" + g.Key.Item1.ToString("0.##", Ci) + " (the «" + countPrefix + "» in front did not stick: " +
                                 (prefixRead == null ? "the prefix could not be read back" : "the prefix reads «" + prefixRead + "»") +
-                                ", so the sheet does not say how many holes there are; add the count by hand)");
+                                ", so the sheet does not say how many holes there are; add the count by hand)";
+                if (countProblem != null) failed.Add(countProblem);
                 // THE FALLBACK DOES NOT CARRY THE DEPTH (adversarial review of
                 // 26/9/2026): if the callout is not born, the diameter dimension says
                 // «Ø8» and nothing else, and a blind hole in the workshop gets drilled through. The
@@ -1829,11 +2026,18 @@ namespace Oce.Solid.Agent.Core
             //
             // The leftmost among the verticals and the lowest among
             // the horizontals (on a tie, the longest): they are the edges of the part
-            // in this view. A chamfer is not a reference.
+            // in this view. A chamfer strip is not a reference.
+            //
+            // WHICH EDGES ARE THE OUTLINE (0.131.0, item 3). Until 0.153.1 every edge that touches a chamfer was left out.
+            // On a part chamfered along its whole outline (the L bracket of 12/10/2026, measured with Checks/Draw131
+            // «edges») that left only the tangent line where the bend begins, and the two holes were positioned from it:
+            // 14 and 74 for holes that are 30 and 90 from the outer wall. The outline of such a part is made of the edges
+            // between a chamfer face and a face seen EDGE-ON (the side of the part): the strip boundary on the face that
+            // looks at the reader (an inset line), the miter where two strips meet and an arc are still not references.
             ProjectedEdge sx = null, down = null;
             foreach (var s in all)
             {
-                if (s.ChamferFeature != null) continue;
+                if (!IsReferenceEdge(s)) continue;
                 if (s.Facing == "vertical")
                 {
                     double x = s.FromSheet[0];
@@ -1866,9 +2070,16 @@ namespace Oce.Solid.Agent.Core
                     if (!columns.TryGetValue(d, out its) || c.SheetCenter[1] < its.SheetCenter[1]) columns[d] = c;
                 }
                 foreach (var col in columns)
+                {
+                    if (CarriesTheValue(carriedHere, col.Key / scale, 1))
+                    {
+                        NoteIn(elsewhere, "hole position " + (col.Key / scale).ToString("0.##", Ci) + " mm, horizontal (the view already carries a dimension with this value)");
+                        continue;
+                    }
                     HolePosition(model, drawing, col.Value, sx, true, col.Key / scale,
                                      (col.Value.SheetCenter[0] + sx.FromSheet[0]) / 2,
                                      contour[1] - dimensionOffset - below++ * planStep, born, failed);
+                }
             }
             if (down != null)
             {
@@ -1891,6 +2102,11 @@ namespace Oce.Solid.Agent.Core
                     : lastRight <= sheet[0] - margin || lastLeft < margin;
                 foreach (var line in lines)
                 {
+                    if (CarriesTheValue(carriedHere, line.Key / scale, 2))
+                    {
+                        NoteIn(elsewhere, "hole position " + (line.Key / scale).ToString("0.##", Ci) + " mm, vertical (the view already carries a dimension with this value)");
+                        continue;
+                    }
                     // the hole of the row nearest to the side of the dimension
                     Circle chosen = line.Value[0];
                     foreach (var c in line.Value)
@@ -2055,7 +2271,9 @@ namespace Oce.Solid.Agent.Core
             var notTrueSize = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var s in all)
             {
-                if (s.ChamferFeature == null || s.Facing != "oblique" || done.Contains(s.ChamferFeature)) continue;
+                // AN ARC IS NOT A CHAMFER SEEN IN PROFILE (0.131.0): a bend or a fillet that touches a chamfer has
+                // no leg and no angle to dimension. A mitre edge is judged by its true size below, as on 26P000009.
+                if (s.ChamferFeature == null || s.Facing != "oblique" || s.IsArc || done.Contains(s.ChamferFeature)) continue;
                 // A VIEW THAT DOES NOT SHOW THE PROFILE OF THE CHAMFER IN ITS TRUE SIZE does not get its
                 // chamfer dimension (note 98, defect 1): 26P000011 view 1 reads 0.415 mm on the sheet
                 // for a profile of 0.566. The edge is not what is judged: on 26P000009 view 3 a mitre
@@ -3145,7 +3363,7 @@ namespace Oce.Solid.Agent.Core
             if (before == null || after == null || before.Length < 4 || after.Length < 4)
                 return "unknown";
             for (int i = 0; i < 4; i++)
-                if (Math.Abs(before[i] - after[i]) > 1e-9) return "si";
+                if (Math.Abs(before[i] - after[i]) > 1e-9) return "yes";
             return "no";
         }
 

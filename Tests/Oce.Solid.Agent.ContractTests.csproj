@@ -136,6 +136,7 @@
     <Compile Include="Zc215HolePointIdentityContract.cs" />
     <Compile Include="Zc2113PartDimensionContract.cs" />
     <Compile Include="FacesBeyondSixtyContract.cs" />
+    <Compile Include="FaceRefPlanContract.cs" />
     <Compile Include="Zc2111ComponentsContract.cs" />
     <Compile Include="Zc14MateDirectionsContract.cs" />
     <Compile Include="R16StepExpectationsContract.cs" />

@@ -17,7 +17,7 @@
     <!-- [CallerFilePath] of the bench recorders gives the path as seen from the
          repository, not the absolute path of this checkout: the same source
          builds the same bytes in any folder (W3.1-bis.2, item 7). -->
-    <PathMap>$(MSBuildProjectDirectory)=Banco</PathMap>
+    <PathMap>$(MSBuildProjectDirectory)=Bench</PathMap>
     <!-- WHERE THE INTEROP IS, and it can be overridden in three ways.
          `README.md` documented `set SW_REDIST=...`, but that variable was
          read only by `Program.cs` at RUN time, for the AssemblyResolve:
@@ -79,6 +79,7 @@
     <Compile Include="Regression.cs" />
     <Compile Include="ClientPort.cs" />
     <Compile Include="FacesBeyondSixty.cs" />
+    <Compile Include="PartFixes131.cs" />
     <Compile Include="Orphans.cs" />
     <Compile Include="DimensionNumbers.cs" />
     <Compile Include="BareViews.cs" />

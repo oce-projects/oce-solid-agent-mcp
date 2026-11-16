@@ -80,7 +80,7 @@ namespace Oce.Solid.Agent.Bridge
             // check of the document — is the executor, on the real
             // document and not on a photograph.
             StopHeartbeat();
-            if (_next >= _steps.Count) return Task.FromResult(NextStep.Fine());
+            if (_next >= _steps.Count) return Task.FromResult(NextStep.Finished());
             var thisOne = _steps[_next++];
             var line = "running step " + _next + " of " + _steps.Count + ": " + thisOne.Operation;
             _wire.Step(_startedAt + _next, line);

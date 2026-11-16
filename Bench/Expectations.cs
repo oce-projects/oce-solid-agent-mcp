@@ -324,7 +324,7 @@ namespace Oce.Solid.Agent.Bench
             }
             detail = what +
                 (areMissing.Count > 0 ? " does not say " + string.Join(", ", areMissing) : "") +
-                (areMissing.Count > 0 && tooMuch.Count > 0 ? ", e" : "") +
+                (areMissing.Count > 0 && tooMuch.Count > 0 ? ", and" : "") +
                 (tooMuch.Count > 0 ? " still says " + string.Join(", ", tooMuch) : "") +
                 ": " + Short(sentence);
             return false;
@@ -792,7 +792,7 @@ namespace Oce.Solid.Agent.Bench
         {
             public string Field;
             public string Value;
-            public bool Circa;
+            public bool Approximate;
         }
 
         internal static List<Condition> Conditions(string inside)
@@ -802,14 +802,14 @@ namespace Oce.Solid.Agent.Bench
             {
                 var t = part.Trim();
                 if (t.Length == 0) continue;
-                bool circa = t.Contains("~=");
-                int equal = circa ? t.IndexOf("~=", StringComparison.Ordinal) : t.IndexOf('=');
+                bool approximate = t.Contains("~=");
+                int equal = approximate ? t.IndexOf("~=", StringComparison.Ordinal) : t.IndexOf('=');
                 if (equal < 0) throw new CouldNotMeasure("condition without «=»: «" + t + "»");
                 outside.Add(new Condition
                 {
                     Field = t.Substring(0, equal).Trim(),
-                    Value = t.Substring(equal + (circa ? 2 : 1)).Trim(),
-                    Circa = circa,
+                    Value = t.Substring(equal + (approximate ? 2 : 1)).Trim(),
+                    Approximate = approximate,
                 });
             }
             return outside;
@@ -879,7 +879,7 @@ namespace Oce.Solid.Agent.Bench
                     object val;
                     if (!FieldValue(entry, c.Field, out val) || val == null)
                     { goes = false; break; }
-                    if (c.Circa)
+                    if (c.Approximate)
                     {
                         double a, b;
                         if (!double.TryParse(Convert.ToString(val, CultureInfo.InvariantCulture),
@@ -1038,7 +1038,7 @@ namespace Oce.Solid.Agent.Bench
         }
 
         // ==================================================================
-        // MINUTERIA
+        // SMALL HELPERS
         // ==================================================================
         internal static string Text(Dictionary<string, object> map, string key)
         {

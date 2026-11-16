@@ -1,0 +1,40 @@
+{
+  "name": "create_pla_and_weigh_a_plate",
+  "family": "document_properties",
+  "red_before": "0.199.0",
+  "why": "THE LIVE CASE OF 12/10/2026 (rule R5): a 150x150x5 plate to be printed in PLA, and PLA is in no SOLIDWORKS material library of the workstation. apply_material found «Custom Plastic» and «Plastiche personalizzate», called them ambiguous and stopped, and rightly: it must not choose a plastic for a material it does not know. This case is the road that was missing, in ONE plan: create_material writes PLA with its source into the library the bridge owns, apply_material finds it by name, and the plate weighs what its volume says at the density of the datasheet.",
+  "defect_caught": "Before 0.131.0 there was no way to tell the bridge what a material is: the plan stopped at apply_material, or went on with the nearest plastic (a density of 1020 for «Custom Plastic» would weigh this plate 0.1148 kg, 18 per cent light, and no check would say so). Here the mass is volume times 1240 kg/m3 AND the density is read back from SOLIDWORKS through the part, so a library written but not read, or read with another number, fails.",
+  "_the_numbers": "Source of PLA: NatureWorks, Ingeo Biopolymer 4043D Technical Data Sheet (3D printing monofilament, general purpose grade), code NW4043DFILA_051815V1, typical properties of injection moulded amorphous bars: specific gravity 1.24 g/cc (ASTM D792) = 1240 kg/m3; tensile yield strength 8700 psi (60 MPa); tensile modulus 524,000 psi (3.6 GPa) (ASTM D882). The sheet gives no Poisson ratio, no thermal values: they are left out, not guessed. The tensile strength at break (53 MPa) is NOT the tensile strength of the material (the ultimate stress is at least the yield) and is not written. Plate 150 x 150 x 5 = 112500 mm3; 112500 mm3 x 1240 kg/m3 = 0.1395 kg (computed by node: 112500 * 1e-9 * 1240 = 0.1395).",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "create_material",
+      "arguments": { "name": "PLA", "class": "Plastic", "density_kg_m3": 1240, "elastic_modulus_mpa": 3600, "yield_strength_mpa": 60,
+                     "source": "NatureWorks Ingeo Biopolymer 4043D Technical Data Sheet (3D printing monofilament, general purpose grade), NW4043DFILA_051815V1: specific gravity 1.24 g/cc (ASTM D792), tensile yield strength 60 MPa, tensile modulus 3.6 GPa (ASTM D882), typical properties of injection moulded amorphous bars. No Poisson ratio or thermal values in the sheet: left out.",
+                     "replace": true },
+      "expect": [
+        { "what": "measurements.material", "equal_to": "PLA" },
+        { "what": "measurements.library", "equal_to": "OCE custom materials" },
+        { "what": "measurements.written.density_kg_m3", "equal_to": 1240 },
+        { "what": "measurements.source", "includes": ["NatureWorks", "NW4043DFILA_051815V1"] } ] },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 150, "width_mm": 150, "thickness_mm": 5, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 112500 } ] },
+    { "operation": "apply_material",
+      "arguments": { "material": "PLA" },
+      "expect": [
+        { "what": "state.material", "includes": ["PLA"] },
+        { "what": "measurements.library", "includes": ["OCE custom materials"] } ] },
+    { "operation": "mass_properties",
+      "arguments": {},
+      "expect": [
+        { "what": "measurements.volume_mm3", "equal_to": 112500, "tolerance": 0.5,
+          "tolerance_why": "the volume is read in cubic metres and multiplied by a billion" },
+        { "what": "measurements.density_kg_m3", "equal_to": 1240, "tolerance": 0.5,
+          "tolerance_why": "the density of the datasheet, read back from the part through SOLIDWORKS" },
+        { "what": "measurements.mass_kg", "equal_to": 0.1395, "tolerance": 0.0001,
+          "tolerance_why": "112500 mm3 times 1240 kg/m3 = 0.1395 kg (node); the tenth of a gram is the rounding of the answer" },
+        { "what": "measurements.deviation_on_recompute", "equal_to": 0, "tolerance": 0.00001,
+          "tolerance_why": "the mass from SOLIDWORKS and volume times density redone by hand must agree" },
+        { "what": "measurements.material", "includes": ["PLA"] } ] }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "limit_ambiguous_material_names_its_library",
+  "family": "document_properties",
+  "red_before": "0.199.0",
+  "why": "THE REFUSAL FOR AN AMBIGUOUS MATERIAL SAYS WHERE EACH CANDIDATE LIVES. «S235» is six different steels; the refusal lists them (it listed their names before) and now each one carries its library, so that when the same name is in two libraries the model can write the library in «library» and choose. The other half is in limit_apply_material_wrong_library.",
+  "defect_caught": "A candidate listed by name alone is not enough when two libraries have an entry with that name (the custom plastic exists in a custom library in English and in Italian on this very workstation): the model could only guess. Nothing may be applied by the refused step.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 50, "thickness_mm": 10, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 50000 } ] },
+    { "operation": "apply_material",
+      "arguments": { "material": "S235" },
+      "must_fail": {
+        "message_includes": ["matches 6 different materials", "1.0037 (S235JR)", "(library «SolidWorks DIN Materials»)", "write its library in «library»"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "requested_material" } }
+  ]
+}

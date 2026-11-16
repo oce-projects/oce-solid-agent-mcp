@@ -118,7 +118,7 @@ namespace Oce.Solid.Agent.Bench
                 return;
             }
 
-            Func<double[], double[], double[], double[], string> di =
+            Func<double[], double[], double[], double[], string> differs =
                 (before, now, sBefore, sNow) =>
                     Convert.ToString(method.Invoke(
                         null, new object[] { "F6", before, now, sBefore, sNow }));
@@ -128,7 +128,7 @@ namespace Oce.Solid.Agent.Bench
             // The dimension goes from 100 to 160 and the part grows ON ONE SIDE ONLY:
             // -50 .. +110. The right face goes from 50 to 110 — sixty
             // millimeters — and sits at 100% of the side both times.
-            string testCase = di(
+            string testCase = differs(
                 new[] { 50.0, 0.0, 0.0 }, new[] { 110.0, 0.0, 0.0 },
                 new[] { -50.0, -30.0, 0.0, 50.0, 30.0, 20.0 },
                 new[] { -50.0, -30.0, 0.0, 110.0, 30.0, 20.0 });
@@ -145,7 +145,7 @@ namespace Oce.Solid.Agent.Bench
             // a plate that goes from 100 to 300 STAYS 20 mm from the edge, and the
             // fraction says it went to 60. Saying it is useful; deciding it
             // would be the defect that entry E10 exists in order not to introduce.
-            string moved = di(
+            string moved = differs(
                 new[] { 20.0, 0.0, 0.0 }, new[] { 20.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
                 new[] { 0.0, 0.0, 0.0, 300.0, 60.0, 20.0 });
@@ -156,7 +156,7 @@ namespace Oce.Solid.Agent.Bench
             // The same part that grows, but the face that moves by HALF
             // instead of staying where it was in proportion: the sentence must say
             // two different percentages and must NOT say «it still fits».
-            string different = di(
+            string different = differs(
                 new[] { 100.0, 0.0, 0.0 }, new[] { 150.0, 0.0, 0.0 },
                 new[] { 0.0, 0.0, 0.0, 100.0, 60.0, 20.0 },
                 new[] { 0.0, 0.0, 0.0, 300.0, 60.0, 20.0 });
@@ -167,7 +167,7 @@ namespace Oce.Solid.Agent.Bench
 
             // Without the box nothing is invented.
             Check("E10: without the box, no sentence",
-                  string.IsNullOrEmpty(di(
+                  string.IsNullOrEmpty(differs(
                       new[] { 50.0, 0.0, 0.0 }, new[] { 110.0, 0.0, 0.0 }, null, null)),
                   "");
         }

@@ -154,7 +154,7 @@ namespace Oce.Solid.Agent.Core
             // *an argument that changes nothing is worse than an
             // argument that is not there, because whoever sets it believes they have
             // decided something.* `false` is passed and what it entails is SAID.
-            const bool riaggancia = false;
+            const bool reattach = false;
 
             // ── IT IS COUNTED FIRST, ON THE WHOLE ASSEMBLY ──────────────
             //
@@ -208,7 +208,7 @@ namespace Oce.Solid.Agent.Core
                 response = assemblyDoc.ReplaceComponents2(
                     newItem, configuration ?? "", all,
                     (int)swReplaceComponentsConfiguration_e.swReplaceComponentsConfiguration_MatchName,
-                    riaggancia);
+                    reattach);
             }
             catch (Exception ex)
             {

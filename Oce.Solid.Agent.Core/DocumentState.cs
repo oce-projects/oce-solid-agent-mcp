@@ -1875,8 +1875,8 @@ namespace Oce.Solid.Agent.Core
                     }
                     // WHICH FACES IT RESTS ON: this is how one says «the
                     // edge of the top face» without counting millimetres.
-                    var fra = EdgeFaces(t.Item1, faceUid);
-                    if (fra != null) entry["between"] = fra;
+                    var betweenFaces = EdgeFaces(t.Item1, faceUid);
+                    if (betweenFaces != null) entry["between"] = betweenFaces;
                     if (bodies.Count > 1 && t.Item2 < MaxBodies) entry["body"] = "C" + (t.Item2 + 1);
                     edges.Add(entry);
                     docState.Signatures[uid] = new EntitySignature
@@ -2333,7 +2333,7 @@ namespace Oce.Solid.Agent.Core
         /// before: side 0, side 1 when different, the angle when not zero.
         ///
         /// No interop in the signature: the reads come in as functions, so the
-        /// rule runs without SOLIDWORKS (Prove, «the state reads a chamfer by
+        /// rule runs without SOLIDWORKS (Tests, «the state reads a chamfer by
         /// its type»), and it can be checked there that a vertex chamfer never
         /// asks for an edge distance.
         /// </summary>
@@ -2493,10 +2493,10 @@ namespace Oce.Solid.Agent.Core
         {
             along = null;
             radius = 0;
-            ICurve curva;
-            try { curva = edge.IGetCurve(); }
+            ICurve curve;
+            try { curve = edge.IGetCurve(); }
             catch { return true; }
-            return CurveDirection(curva, out along, out radius);
+            return CurveDirection(curve, out along, out radius);
         }
 
         /// <summary>The direction from the curve of <paramref name="reading"/> when it has one (library 0.179.2).</summary>
@@ -2555,23 +2555,23 @@ namespace Oce.Solid.Agent.Core
         /// state reads the curve of every edge once, to measure its length, and the
         /// listed edges ask it again only when that reading did not give one.
         /// </summary>
-        private static bool CurveDirection(ICurve curva, out string along, out double radius)
+        private static bool CurveDirection(ICurve curve, out string along, out double radius)
         {
             along = null;
             radius = 0;
             try
             {
-                if (curva == null) return false;
-                if (!curva.IsLine())
+                if (curve == null) return false;
+                if (!curve.IsLine())
                 {
-                    if (curva.IsCircle())
+                    if (curve.IsCircle())
                     {
-                        var c = curva.CircleParams as double[];
+                        var c = curve.CircleParams as double[];
                         if (c != null && c.Length >= 7) radius = Units.Mm(c[6]);
                     }
                     return false;
                 }
-                var par = curva.LineParams as double[];
+                var par = curve.LineParams as double[];
                 if (par == null || par.Length < 6) return true;
                 // «along an axis» is said only if it really fits: a
                 // diagonal has no axis, and calling it «along X» would be
@@ -2700,10 +2700,10 @@ namespace Oce.Solid.Agent.Core
         {
             try
             {
-                var due = edge.GetTwoAdjacentFaces2() as object[];
-                if (due == null) return null;
+                var adjacentFaces = edge.GetTwoAdjacentFaces2() as object[];
+                if (adjacentFaces == null) return null;
                 var names = new List<string>();
-                foreach (var o in due)
+                foreach (var o in adjacentFaces)
                 {
                     var f = o as IFace2;
                     string u;
@@ -2745,7 +2745,7 @@ namespace Oce.Solid.Agent.Core
         {
             try
             {
-                var quote = new List<Dictionary<string, object>>();
+                var dimensionEntries = new List<Dictionary<string, object>>();
                 int other = 0;
                 object display = f.GetFirstDisplayDimension();
                 while (display != null)
@@ -2754,14 +2754,14 @@ namespace Oce.Solid.Agent.Core
                     var d = dd?.GetDimension2(0);
                     if (d != null)
                     {
-                        if (quote.Count < 4)
+                        if (dimensionEntries.Count < 4)
                         {
                             string itemName = null;
                             try { itemName = d.FullName; } catch { }
                             if (string.IsNullOrEmpty(itemName)) { try { itemName = d.Name; } catch { } }
                             if (!string.IsNullOrEmpty(itemName))
                             {
-                                quote.Add(Dimension(d, itemName));
+                                dimensionEntries.Add(Dimension(d, itemName));
                             }
                         }
                         else other++;
@@ -2770,7 +2770,7 @@ namespace Oce.Solid.Agent.Core
                     try { next = f.GetNextDisplayDimension(display); } catch { }
                     display = next;
                 }
-                if (quote.Count > 0) entry["dimensions"] = quote;
+                if (dimensionEntries.Count > 0) entry["dimensions"] = dimensionEntries;
                 if (other > 0) entry["other_dimensions"] = other;
             }
             catch { }
@@ -2909,27 +2909,27 @@ namespace Oce.Solid.Agent.Core
         /// 29.5.1.1 (SOLIDWORKS 2021), not remembered: the wrong signature here
         /// would have given an InvalidCastException at the first edge read.
         /// </summary>
-        private static bool Ends(IEdge edge, out double[] start, out double[] fine)
+        private static bool Ends(IEdge edge, out double[] start, out double[] end)
         {
             start = null;
-            fine = null;
+            end = null;
             ICurveParamData data;
             try { data = ApiHelpers.EdgeParameters(edge); }
             catch { return false; }
-            return EndsOf(data, out start, out fine);
+            return EndsOf(data, out start, out end);
         }
 
         /// <summary>The ends from curve parameters already read (library 0.179.2).</summary>
-        private static bool EndsOf(ICurveParamData data, out double[] start, out double[] fine)
+        private static bool EndsOf(ICurveParamData data, out double[] start, out double[] end)
         {
             start = null;
-            fine = null;
+            end = null;
             try
             {
                 if (data == null) return false;
                 start = data.StartPoint as double[];
-                fine = data.EndPoint as double[];
-                return start != null && fine != null && start.Length >= 3 && fine.Length >= 3;
+                end = data.EndPoint as double[];
+                return start != null && end != null && start.Length >= 3 && end.Length >= 3;
             }
             catch { return false; }
         }
@@ -3083,12 +3083,12 @@ namespace Oce.Solid.Agent.Core
             // «zero long» (entry Z-C8).
             try
             {
-                var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curva);
-                reading.Curve = curva;
+                var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curve);
+                reading.Curve = curve;
                 reading.Parameters = parameters;
-                if (curva != null && parameters != null)
+                if (curve != null && parameters != null)
                 {
-                    double real = curva.GetLength3(parameters.UMinValue, parameters.UMaxValue);
+                    double real = curve.GetLength3(parameters.UMinValue, parameters.UMaxValue);
                     if (real > 0)
                     {
                         reading.LengthMm = Units.Mm(real);
@@ -3382,8 +3382,8 @@ namespace Oce.Solid.Agent.Core
         /// face looks. On 10 September 2026, at the first run inside SolidWorks, the
         /// 200x120x20 test plate came out like this:
         ///
-        ///     F1  verso=dietro  area=24000  normale=[0,0,-1]
-        ///     F2  verso=dietro  area=24000  normale=[0,0,-1]
+        ///     F1  facing=back  area=24000  normal=[0,0,-1]
+        ///     F2  facing=back  area=24000  normal=[0,0,-1]
         ///
         /// Two opposite faces, the same normal, and no «front» face in the
         /// whole document. Fifteen checks died there. And it was not a defect of

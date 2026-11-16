@@ -1,0 +1,22 @@
+{
+  "name": "apply_material_takes_the_library_it_is_told",
+  "family": "document_properties",
+  "red_before": "0.199.0",
+  "why": "The twin of limit_apply_material_wrong_library, and without it the other proves nothing: the same material, the same library argument written right. The answer names the library the material came from.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "create_material",
+      "arguments": { "name": "PLA", "class": "Plastic", "density_kg_m3": 1240, "elastic_modulus_mpa": 3600, "yield_strength_mpa": 60,
+                     "source": "NatureWorks Ingeo Biopolymer 4043D Technical Data Sheet, NW4043DFILA_051815V1",
+                     "replace": true },
+      "expect": [ { "what": "measurements.library", "equal_to": "OCE custom materials" } ] },
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "front", "length_mm": 100, "width_mm": 50, "thickness_mm": 10, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 50000 } ] },
+    { "operation": "apply_material",
+      "arguments": { "material": "PLA", "library": "OCE custom materials" },
+      "expect": [
+        { "what": "state.material", "includes": ["PLA"] },
+        { "what": "measurements.library", "includes": ["OCE custom materials"] } ] }
+  ]
+}

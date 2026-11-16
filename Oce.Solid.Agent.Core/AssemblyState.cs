@@ -994,7 +994,7 @@ namespace Oce.Solid.Agent.Core
         /// ── AND `exploded_view` ALONE IS NOT ENOUGH ───────────────────────────
         ///
         /// Measured on 17/9/2026, four probes: `CreateExplodedView()` answers
-        /// `True`, `IsExploded` becomes `si'`, and **nothing moves** — the step
+        /// `True`, `IsExploded` becomes `True`, and **nothing moves** — the step
         /// that is born is called «Catena1» and has distance 0 mm. An exploded view in which
         /// no component moves is an exploded view that is of no use, and
         /// `exploded_view: true` alone would make it look done.

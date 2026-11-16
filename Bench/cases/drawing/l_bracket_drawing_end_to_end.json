@@ -1,0 +1,474 @@
+{
+  "name": "l_bracket_drawing_end_to_end",
+  "family": "drawing",
+  "red_before": "0.199.0",
+  "why": "0.131.0, items 1 to 5 of the drawing branch. THE PROOF SESSION OF 12/10/2026 REPEATED FROM THE BEGINNING: a sheet-metal L bracket (base flange 120 x 70 x 60, thickness 8, bend radius 8), two Ø11 holes made by the hole wizard, a slot, a chamfer 1 x 45 along the whole outline, drawn on an A3 sheet with the three standard views and the isometric one. On that sheet `drawing_dimension` failed on every view with «the chamfer dimension was not created» (every edge of the front view touches the chamfer feature, the first oblique edge it tried was an ARC, and the miters where two chamfer strips meet are not chamfers in profile), the 120, 70, 8 and R8 were nowhere (they are not dimensions of the model: the profile of the base flange is not dimensioned and the thickness and the bend radius belong to the sheet metal feature), the hole table said (14, 29) and (74, 29) for holes at 30 and 90 from the wall and answered positions_checked: true, the callout said «2× 2 x Ø11», and after all_dimensions the sheet had the Ø11 twice, the 90 and the 30 on the same dimension line and dash-dot lines outside the views.",
+  "defect_caught": "A drawing_dimension that gives nothing on a view whose every edge is shortened by a chamfer or a bend; a chamfer dimension «-1 mm, 135°» on a miter; an overall size, a thickness or a bend radius that is not on the sheet; the same extent dimensioned again in the next view; a hole position measured from the tangent line where the bend begins instead of from the outline; a count written twice in a callout; a hole table that says it checked the positions when its origin is not the corner of the part; an import that leaves a diameter next to the callout that says it, two dimensions on one line, and sketch segments outside the views.",
+  "start": {
+    "new_part": true
+  },
+  "steps": [
+    {
+      "operation": "base_flange",
+      "arguments": {
+        "plane": "front",
+        "points": [
+          [
+            120,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            70
+          ]
+        ],
+        "thickness_mm": 8,
+        "radius_mm": 8,
+        "depth_mm": 60
+      },
+      "expect": [
+        {
+          "what": "measurements.flat_pattern_length_mm",
+          "equal_to": 176.85,
+          "tolerance": 0.01,
+          "tolerance_why": "two decimals, like the answer: (120 - 16) + (70 - 16) + pi/2 x (8 + 4) = 176.85 by hand",
+          "why": "the sheet metal part of the session: the same flat length"
+        }
+      ]
+    },
+    {
+      "operation": "hole_wizard",
+      "arguments": {
+        "face_uid": "@face(normal=up,area~=6240)",
+        "variant": "clearance",
+        "size": "M10",
+        "through_all": true,
+        "positions": [
+          {
+            "x_mm": 90,
+            "y_mm": 30,
+            "anchor": {
+              "x": {
+                "edge_uid": "@edge(axis=Z,x~=120,y~=8)",
+                "distance_mm": 30
+              },
+              "y": {
+                "centered_between": [
+                  "@edge(axis=X,y~=8,z~=0)",
+                  "@edge(axis=X,y~=8,z~=60)"
+                ]
+              }
+            }
+          },
+          {
+            "x_mm": 30,
+            "y_mm": 30,
+            "anchor": {
+              "x": {
+                "edge_uid": "@edge(axis=Z,x~=120,y~=8)",
+                "distance_mm": 90
+              },
+              "y": {
+                "centered_between": [
+                  "@edge(axis=X,y~=8,z~=0)",
+                  "@edge(axis=X,y~=8,z~=60)"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "expect": [
+        {
+          "what": "measurements.holes",
+          "equal_to": 2,
+          "why": "two M10 clearance holes (Ø11), 30 and 90 from the free end, centred on the width of 60"
+        },
+        {
+          "what": "measurements.diameter_machined_mm",
+          "equal_to": 11,
+          "why": "M10 clearance medium: 11"
+        }
+      ]
+    },
+    {
+      "operation": "slot",
+      "arguments": {
+        "face_uid": "@face(normal=right,area~=3240)",
+        "x_mm": 35,
+        "y_mm": 30,
+        "length_mm": 30,
+        "width_mm": 11,
+        "angle_deg": 90,
+        "through_all": true
+      },
+      "_the_angle": "90, VERTICAL, as in the session (where it was written 0) and as on the sheet this case was seen green on: the drawing branch was written on the library of 0.130.2, where the angle of a slot on a face looking along X was taken from the first axis of the face (Y), so 0 was vertical. Since 0.131.0 (branch fix-part-131) the angle is as the face is seen, and vertical is 90: left at 0 after the merge, the case would have drawn a HORIZONTAL slot, a part that is not the one of the session.",
+      "expect": [
+        {
+          "what": "measurements.direction_in_model",
+          "equal_to": "along Y",
+          "why": "the long axis of the slot runs up the short flange, as in the session"
+        },
+        {
+          "what": "measurements.area_mm2",
+          "equal_to": 304.03,
+          "tolerance": 0.01,
+          "tolerance_why": "two decimals, like the answer",
+          "why": "the slot 11 x 30: 19 x 11 + pi x 5.5^2"
+        }
+      ]
+    },
+    {
+      "operation": "chamfer_edges",
+      "arguments": {
+        "edges_uid": [
+          "@edge(axis=X,y~=0,z~=0)",
+          "@edge(axis=X,y~=8,z~=0)",
+          "@edge(axis=X,y~=0,z~=60)",
+          "@edge(axis=X,y~=8,z~=60)",
+          "@edge(axis=Z,x~=120,y~=0)",
+          "@edge(axis=Z,x~=120,y~=8)",
+          "@edge(axis=Z,x~=0,y~=70)",
+          "@edge(axis=Z,x~=8,y~=70)"
+        ],
+        "leg_mm": 1,
+        "angle_deg": 45
+      },
+      "_the_edges": "The edges of the session: the outer line and the inner line of the long flange on each of the two flat faces (the tangent chain follows them along the two bends and up the short flange), and the four long edges (60) of the two free ends. All eight are long, so they are among the first 30 edges the state lists. The short edges of the free ends (8 mm) are NOT chamfered.",
+      "expect": [
+        {
+          "what": "measurements.selected_edges",
+          "equal_to": 8,
+          "why": "the 8 edges named, as in the session"
+        },
+        {
+          "what": "measurements.material_change_mm3",
+          "equal_to": -471.03,
+          "tolerance": 0.05,
+          "tolerance_why": "the volume is read in cubic metres and rounded to the hundredth of a cubic millimetre",
+          "why": "the chain follows the bends and every edge of the outline is chamfered: the same material removed as in the session"
+        }
+      ]
+    },
+    {
+      "operation": "save_document",
+      "arguments": {
+        "path": "{WORK}\\l_bracket_drawing_end_to_end.sldprt"
+      },
+      "expect": [
+        {
+          "what": "measurements.warnings",
+          "equal_to": 0,
+          "why": "a view attaches to the FILE of the part"
+        }
+      ]
+    },
+    {
+      "operation": "create_drawing",
+      "arguments": {
+        "paper_size": "A3"
+      },
+      "expect": [
+        {
+          "what": "state.kind",
+          "equal_to": "drawing",
+          "why": "from here the drawing is measured"
+        }
+      ]
+    },
+    {
+      "operation": "standard_views",
+      "arguments": {
+        "model": "{WORK}\\l_bracket_drawing_end_to_end.sldprt"
+      },
+      "expect": [
+        {
+          "what": "measurements.views_created",
+          "equal_to": 3,
+          "why": "front V1, top V2, side V3"
+        }
+      ]
+    },
+    {
+      "operation": "model_view",
+      "arguments": {
+        "model": "{WORK}\\l_bracket_drawing_end_to_end.sldprt",
+        "view": "isometric",
+        "x_mm": 325,
+        "y_mm": 124
+      },
+      "expect": [
+        {
+          "what": "measurements.views_after",
+          "equal_to": 4,
+          "why": "the isometric is V4"
+        }
+      ]
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V1"
+      },
+      "expect": [
+        {
+          "what": "measurements.dimensions_mm",
+          "includes": [
+            "120",
+            "70",
+            "8"
+          ],
+          "why": "ITEM 1: THE SAME CALL THAT FAILED ON THE SESSION GIVES THE OVERALL SIZE, THE THICKNESS AND THE BEND RADIUS"
+        },
+        {
+          "what": "measurements.dimensions_placed",
+          "equal_to": 4,
+          "why": "the 120, the 70, the thickness 8 and the inner radius R8 of the bend (the outer R16 is the inner plus the thickness and is not dimensioned again)"
+        },
+        {
+          "what": "measurements.overall_dimensions[0].mm",
+          "equal_to": 120,
+          "tolerance": 0.001,
+          "tolerance_why": "re-read from SOLIDWORKS in metres and rounded to the thousandth of a millimetre",
+          "why": "the width between the two extreme edges of the outline: no edge of the view is 120 long (the longest is 103)"
+        },
+        {
+          "what": "measurements.overall_dimensions[1].mm",
+          "equal_to": 70,
+          "tolerance": 0.001,
+          "tolerance_why": "as above",
+          "why": "the height"
+        },
+        {
+          "what": "measurements.overall_dimensions[2].kind",
+          "equal_to": "thickness",
+          "why": "the thickness, read from the sheet metal feature of the part"
+        },
+        {
+          "what": "measurements.overall_dimensions[3].kind",
+          "equal_to": "bend radius",
+          "why": "the bend"
+        },
+        {
+          "what": "measurements.overall_dimensions[3].mm",
+          "equal_to": 8,
+          "tolerance": 0.001,
+          "tolerance_why": "as above",
+          "why": "the INNER radius, not the 16 of the outer face"
+        },
+        {
+          "what": "measurements.dimensions_mm",
+          "does_not_include": [
+            "-1",
+            "1.414",
+            "103",
+            "104"
+          ],
+          "why": "NEITHER a chamfer dimension on a miter NOR the length of an edge shortened by the chamfer: the 103 and the 104 are not the part"
+        }
+      ]
+    },
+    {
+      "operation": "drawing_dimension",
+      "arguments": {
+        "view": "V2"
+      },
+      "expect": [
+        {
+          "what": "measurements.holes[0].how_many",
+          "equal_to": 2,
+          "why": "one callout for the two equal holes"
+        },
+        {
+          "what": "measurements.holes[0].prefix_read",
+          "includes": [
+            "2 x"
+          ],
+          "why": "the count of the callout, read back"
+        },
+        {
+          "what": "measurements.holes[0].prefix_read",
+          "does_not_include": [
+            "2× 2"
+          ],
+          "why": "THE COUNT IS NOT WRITTEN TWICE: the callout of a hole wizard hole with two positions is born with its own «2 x», and the bridge wrote another «2×» in front of it («2× 2 x Ø11»)"
+        },
+        {
+          "what": "measurements.dimensions_mm",
+          "includes": [
+            "30",
+            "90"
+          ],
+          "why": "ITEM 3: the positions of the holes, 30 and 90, measured from the OUTLINE of the part (the outer wall of the vertical flange), and the 30 across the width. Before they were measured from the tangent line where the bend begins: 14 and 74"
+        },
+        {
+          "what": "measurements.dimensions_mm",
+          "does_not_include": [
+            "14",
+            "74"
+          ],
+          "why": "NOT the distances from the tangent line of the bend"
+        },
+        {
+          "what": "measurements.overall_dimensions[0].mm",
+          "equal_to": 60,
+          "tolerance": 0.001,
+          "tolerance_why": "as above",
+          "why": "the 60 of the width of the part: the top view is where it is seen first"
+        },
+        {
+          "what": "measurements.dimensions_placed",
+          "equal_to": 5,
+          "why": "the callout, the two positions along the length, the one across the width and the overall 60; the 120 of the front view is not put again"
+        },
+        {
+          "what": "measurements.already_dimensioned_elsewhere",
+          "includes": [
+            "overall width 120"
+          ],
+          "why": "the 120 of the front view is not put again"
+        }
+      ]
+    },
+    {
+      "operation": "model_dimensions",
+      "arguments": {},
+      "expect": [
+        {
+          "what": "measurements.dimensions_inserted",
+          "equal_to": 4,
+          "why": "five dimensions of the model arrive (the depth 60, the slot R5.5 and 19, the chamfer 1 and 45°: the slot of this case has no anchor, so no 35) and one of them is taken away again: the 60 is the overall height of the top view that drawing_dimension has just put"
+        },
+        {
+          "what": "measurements.imported_dimensions_removed[0].mm",
+          "equal_to": 60,
+          "tolerance": 0.001,
+          "tolerance_why": "the value is read in metres and rounded to the thousandth of a millimetre",
+          "why": "ITEM 3: the same element is not dimensioned twice: the model's own 60 is the one that goes, and the answer says which and why"
+        },
+        {
+          "what": "measurements.imported_dimensions_removed[0].why",
+          "includes": [
+            "already says"
+          ],
+          "why": "the reason is in the answer"
+        },
+        {
+          "what": "measurements.part_dimensions_not_in_drawing",
+          "includes": [
+            "D3@Base"
+          ],
+          "why": "ITEM 2: the answer says what the part has and the drawing has not (the base flange has a D3 that reads 0, and the hole wizard dimensions that this call does not bring), instead of «done» with a count"
+        },
+        {
+          "what": "measurements.sheet_metal_note",
+          "includes": [
+            "thickness",
+            "bend radius"
+          ],
+          "why": "ITEM 2: the part is sheet metal and its 120, 70, 8 and R8 are not dimensions of the model, and the answer says why and where to get them"
+        }
+      ]
+    },
+    {
+      "operation": "model_dimensions",
+      "arguments": {
+        "all_dimensions": true
+      },
+      "expect": [
+        {
+          "what": "measurements.how",
+          "does_not_include": [
+            "AllTypes"
+          ],
+          "why": "ITEM 5: the route that brings every type of annotation is not the one that was used: it leaves two dash-dot centre lines in every view that shows the hole (the masks carry the hole wizard bits)"
+        },
+        {
+          "what": "measurements.dimensions_inserted",
+          "equal_to": 0,
+          "why": "ITEM 3: the 30 and the 90 of the hole wizard arrive and are taken away again: the top view already says 30 and 90 horizontally (measured from the outline) and 30 vertically, and an element is dimensioned once"
+        },
+        {
+          "what": "measurements.imported_dimensions_removed[0].why",
+          "includes": [
+            "already says"
+          ],
+          "why": "each dimension that was taken away says which one of the drawing already says it"
+        }
+      ]
+    },
+    {
+      "operation": "hole_table",
+      "arguments": {
+        "view": "V2",
+        "origin": "bottom_left",
+        "x_mm": 15,
+        "y_mm": 45
+      },
+      "expect": [
+        {
+          "what": "measurements.positions_checked",
+          "equal_to": false,
+          "why": "ITEM 4: THE ORIGIN IS NOT THE CORNER OF THE PART (the corner is rounded off by the chamfer: no vertex is exactly there), and the answer does not say «checked»"
+        },
+        {
+          "what": "measurements.origin_gap_to_part_corner_mm",
+          "equal_to": 1,
+          "tolerance": 0.01,
+          "tolerance_why": "the vertex nearest to the corner is the one of the chamfer, 1 mm away",
+          "why": "the origin it used and how far it is from the corner of the part"
+        },
+        {
+          "what": "measurements.entries[0].from_part_corner_mm",
+          "equal_to": [
+            30,
+            30
+          ],
+          "tolerance": 0.01,
+          "tolerance_why": "millimetres rounded to the hundredth",
+          "why": "the first hole from the corner of the part: 30 from the wall and 30 from the side. The table itself says (29, 30) from its origin"
+        },
+        {
+          "what": "measurements.entries[1].from_part_corner_mm",
+          "equal_to": [
+            90,
+            30
+          ],
+          "tolerance": 0.01,
+          "tolerance_why": "as above",
+          "why": "the second hole: 90 and 30"
+        }
+      ]
+    },
+    {
+      "operation": "delete_annotation",
+      "arguments": {
+        "table": "T1"
+      },
+      "expect": [
+        {
+          "what": "measurements.tables_after",
+          "equal_to": 0,
+          "why": "the table is taken away again, counted: the holes keep their callout and positions on the view (a hole is dimensioned once)"
+        }
+      ]
+    },
+    {
+      "operation": "export_pdf",
+      "arguments": {
+        "path": "{WORK}\\l_bracket_drawing_end_to_end.pdf"
+      },
+      "expect": [
+        {
+          "what": "measurements.how_many_dimension_numbers_missing",
+          "equal_to": 0,
+          "why": "every dimension of the sheet arrives in the PDF"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "name": "blind_slot_right_face",
   "family": "slot",
-  "why": "The blind slot on the «right» face. EVERY FACE, NOT JUST ONE: the direction of the arcs is a constant in the plane of the SKETCH, while the points are built in the system of the MODEL, and the transformation between the two does not preserve handedness -- for two opposite faces the Y axis comes out inverted. If the direction is wrong on this face, the slot comes out 40 long instead of 51 with the ends bitten off: area 344.97 instead of 535.03, and the volume says so at once.",
+  "why": "The blind slot on the «right» face. EVERY FACE, NOT JUST ONE: the direction of the arcs is a constant in the plane of the SKETCH, while the points are built in the system of the MODEL, and the transformation between the two does not preserve handedness -- for two opposite faces the Y axis comes out inverted. If the direction is wrong on this face, the slot comes out 40 long instead of 51 with the ends bitten off: area 344.97 instead of 535.03, and the volume says so at once. THE ANGLE IS 90 SINCE BRIDGE 0.171.0 (the rule of 0.131.0, ported): the angle is as the face is seen (0 horizontal, 90 vertical), and on a face seen in the left or right view the vertical is Y; up to 0.170.15 it was relative to the first axis of the face and this slot, which runs along Y, was written with 0.",
   "_why_the_offset": "y = 10 and not 0, and it is a measured thing: on a plate extruded from z = 0 to z = 20, the origin of the sketch of the SIDE faces falls on the EDGE of the face, not at its centre. A slot at (0,0) comes out half outside and removes 1337.6 mm3 instead of 2675.2 -- and the operation notices it by itself, which is how it was discovered. The old C# check did not see it because it built the plate astride the mid-plane, where the origin falls at the centre by construction.",
   "start": { "new_part": true },
   "steps": [
@@ -9,7 +9,7 @@
       "arguments": { "plane": "front", "length_mm": 200, "width_mm": 120, "thickness_mm": 20, "centered": true },
       "expect": [ { "what": "volume_mm3", "equal_to": 480000 } ] },
     { "operation": "slot",
-      "arguments": { "face_uid": "@face(normal=right)", "x_mm": 0, "y_mm": 10, "length_mm": 51, "width_mm": 11, "angle_deg": 0, "through_all": false, "depth_mm": 5 },
+      "arguments": { "face_uid": "@face(normal=right)", "x_mm": 0, "y_mm": 10, "length_mm": 51, "width_mm": 11, "angle_deg": 90, "through_all": false, "depth_mm": 5 },
       "expect": [
         { "what": "measurements.area_mm2", "equal_to": 535.03, "tolerance": 0.01,
           "tolerance_why": "(51-11)*11 + pi*5.5^2 = 535.0332: the operation rounds to the hundredth" },

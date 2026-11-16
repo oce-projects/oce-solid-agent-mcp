@@ -53,6 +53,7 @@ and writes `Bench/report/YYYYMMDD_hhmm.md` and `.json` plus `last.json`.
 | **1** | failed tests — the `.md` lists them with expected and measured values |
 | **2** | bench error: the build failed, SOLIDWORKS cannot be attached to, a group that does not exist, or a case that **could not be measured** |
 | **3** | the desk was not clean: documents that are not the bench's were already open in SOLIDWORKS (entry K12). The run does not start at all |
+| | *Documents of someone else that must stay open* (a part of the vault the owner is looking at): `OCE_BENCH_SPARE_FOLDERS=D:\Vault` (folders separated by `;`) makes the bench leave alone, and not count, every open document whose path is under one of them. It says so at the start (`desk: N document(s) of someone else left alone`) and never closes them, `--close-leftovers` included. Unset, nothing is spared: the old behaviour |
 | **4** | SOLIDWORKS went away mid-run (entry K17, see below). The remaining checks are skipped, not red, and the run is not valid |
 
 The 2 **is not a red test** and must not be counted with one: a red test is a
@@ -304,6 +305,25 @@ after an ordinary reading, the identifier after the last face and a crooked filt
 refused. A part with more faces than one reading lists (500) is cut there too: a
 selector that finds ONE face on a cut list is refused (the same face may be beyond the
 cut), not taken; `n=` still works, the listing keeps the largest first.
+
+**The part-side defects of the drawing test of 12/10/2026 (0.131.0, ported in bridge 0.171.0).**
+The group `--group part-fixes-131` (`PartFixes131.cs`) walks them through the bridge with a real
+document in front and reads every document **by COM**, never from the answer alone.
+The two cases of 0.131.0 on `undo` (the whole plan, three cuts) are not here: the main line
+has its own undo, and the undo of 0.131.0 was not ported. `set_property` with a drawing in front
+writes where the title block reads (the part of the views for a `$PRPSHEET` field), and
+a name no field reads is written on the drawing with the answer saying nothing shows it;
+the angle of a slot is as the face is seen (0 horizontal, 90 vertical) on a face in the
+front view and on faces in the right and top views, read from the axes of the two end
+arcs; `save_document` refuses a path with no separator after the drive letter and leaves
+the document untouched (and a good path still saves); the first base flange of a new part;
+`apply_material` names every candidate of an ambiguous name. The bridge under test is
+`bin\oce-solid-agent-mcp.exe`, or the file in the environment variable `OCE_BRIDGE`:
+**pointing it at the bridge of the release before is how the group is seen red**. When SOLIDWORKS
+is shared and somebody else's documents are open, `Oce.Solid.Agent.Bench.exe --group part-fixes-131
+--keep-open-documents` starts anyway and closes nothing that it did not open (the desk check
+of a full run still wants an empty desk); `OCE_PF131_ONLY=property,slot,save,flange,material`
+runs only some of the cases, because the whole group is half an hour of SOLIDWORKS.
 
 Everything that prevents **measuring** is a bench error (exit 2), not a red
 test: a field that is not in the state or in the measures (with a message that
@@ -619,7 +639,7 @@ there but is not in the list is not read, and one in the list that is not there
 is a bench error.
 
 ```
-cases/features/ 39   the shell, and which side it removes from;
+cases/features/ 41   the shell, and which side it removes from;
                        the symmetric plate that grows on both sides
                        with edit_extrusion (revision of 27/9, Z-C20);
                        the dimension that pushes the slot out of the material,
@@ -695,10 +715,16 @@ cases/export/     15   STL, STEP and IGES: the file read back byte by byte,
                        directory counted (Z-C21.10, N59);
                        AP242 through SOLIDWORKS MBD, refused
                        without its licence or with a .step path (Z-C21.13)
-cases/document_properties/   13   the two drawers, and the code that goes into the BOM; the
+cases/document_properties/   19   the two drawers, and the code that goes into the BOM; the
                        material reaches every configuration (Z-C21, M10);
-                       one property written in both drawers by «scope» (R8)
-cases/text/        6   engraving, and the lettering that comes out of the face
+                       one property written in both drawers by «scope» (R8); a material that no
+                       library has is created with its source and weighed, a name that exists or a
+                       source that is missing is refused, the library argument of apply_material is
+                       a choice and an ambiguous name lists each candidate with its library (0.131.0,
+                       ported in 0.171.0)
+cases/text/       11   engraving, and the lettering that comes out of the face; the face of the same plan
+                       (face_ref), the number cut through a plate and centred, the letters
+                       with a hole inside that cannot be cut through (0.131.0, ported in 0.171.0)
 cases/frames/        1   the welded profiles, read from the standard library ({PROFILES})
 cases/assemblies/     28   inserting is not mating; one constraint is not enough;
                        the width mate puts the tab in the middle (round 21);
@@ -737,7 +763,14 @@ cases/assemblies/     28   inserting is not mating; one constraint is not enough
                        asked, measured on the faces (briefs R12, R21); a face
                        is named by a point, curved ones too, and a pin goes
                        concentric on a shaft (brief R12)
-cases/drawing/      70   the first case that gets to the DRAWING (entry GT0);
+cases/drawing/      74   the first case that gets to the DRAWING (entry GT0);
+                       a hole table taken away and counted (0.131.0, item 6 of the drawing
+                       branch, as «table» of delete_annotation), the view that would leave the
+                       sheet put back; the L bracket drawn end to end: a sheet-metal part with a
+                       chamfer along the whole outline, its 120, 70, 8 and R8, the holes positioned
+                       from the outline, the hole table that says how far its origin is from the
+                       corner (0.131.0, items 1 to 5); the import with all_dimensions that leaves no
+                       stray line outside the views (0.131.0, item 5); all ported in 0.171.0;
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);

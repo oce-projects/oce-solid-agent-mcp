@@ -68,8 +68,10 @@ namespace Oce.Solid.Agent.ContractTests
         /// (`sketch_details_reads_the_rectangle`).
         /// **40 (28/10/2026, round 21 of report 8cd843, point 1)**: `set_view_scale`
         /// (`view_scale_is_set_and_followed`).
+        /// **41 (16/11/2026, bridge 0.171.0, the port of 0.131.0)**: `create_material`
+        /// (`create_pla_and_weigh_a_plate`).
         /// </summary>
-        private const int Floor = 40;
+        private const int Floor = 41;
 
         /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };

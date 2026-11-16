@@ -86,11 +86,47 @@ namespace Oce.Solid.Agent.Core
     /// Hence the argument is not exposed, and 0 is passed. Until Z-C21.9 this
     /// note said the call ignores the argument altogether, which the page
     /// does not support.
+    ///
+    /// ── 0.131.0: THE FACE OF THE SAME PLAN, THROUGH, CENTRED ──────────────
+    ///
+    /// The live case of 12/10/2026 was «a 150x150x5 plate with the number 35 cut
+    /// through, centred»: three things this operation could not do.
+    ///
+    ///   * `face_ref` {step, kind}: the face is named before it exists, with the
+    ///     same argument and the same resolution (SwOperations.ResolveFace,
+    ///     References.Face) as hole_wizard. The plate and its text are ONE plan.
+    ///   * `through_all`: FeatureCut4 with swEndCondThroughAll (SwOperations.Cut, the
+    ///     call every through cut makes). The same check first (the letters inside the
+    ///     face, refused with the overflow measured), and after it one more: a letter
+    ///     with a hole inside (0 6 8 9 A B D O P Q R) leaves its inside as a body of its own
+    ///     once the cut goes through, so the cut is taken away (RemoveCut) and refused,
+    ///     saying so. `depth_mm` of the answer is read from the walls the cut made
+    ///     (IFeature~GetFaces.html, the true box of each).
+    ///   * `centered`: x_mm/y_mm become the CENTRE of the lettering (default: the centre
+    ///     of the face). The width of a text is not in the string, so it is drawn at the
+    ///     centre asked for, its box is read, and ISketchText::SetCoordinates moves it
+    ///     (ISketchText~SetCoordinates.html); the box is read AGAIN and a text that is not
+    ///     within 0.05 mm of the centre is refused. Probe: Checks\TextThrough.
+    ///
+    /// ALSO FIXED HERE: `width_written_mm`, `height_written_mm` and the sizes in the
+    /// overflow message were read on X and Y whatever the face. They are right only
+    /// for a face whose normal is Z; on the top face of a plate (normal Y) the height
+    /// came out as the thickness of the sketch, zero. They are read on the two axes of the
+    /// face now.
     /// </summary>
     public partial class SwOperations
     {
         /// <summary>How far the lettering is tolerated to overhang, in mm.</summary>
         private const double ToleratedSpill = 0.01;
+
+        /// <summary>
+        /// How far from the requested centre the lettering may end up after it
+        /// was moved there, in mm. Above it the text is not where it was asked to
+        /// be and the step is refused: a centring that is 2 mm off is a defect that
+        /// gives no error, and the box is read twice (before and after the move),
+        /// so the comparison costs nothing.
+        /// </summary>
+        private const double CentringToleranceMm = 0.05;
 
         private Outcome EngraveText(
             IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
@@ -99,22 +135,40 @@ namespace Oce.Solid.Agent.Core
             if (string.IsNullOrEmpty(text))
                 return Failed("The «text» to engrave is missing.");
 
+            bool through = Bool(a, "through_all", false);
+            bool embossed = Bool(a, "raised", false);
+            bool centered = Bool(a, "centered", false);
+
+            // ARGUMENTS THAT CONTRADICT EACH OTHER ARE REFUSED, not obeyed in part: a
+            // «depth_mm: 0.5» next to «through_all» would be IGNORED in silence, and the
+            // person who wrote it would believe a half millimetre mark had been made.
+            if (through && embossed)
+                return Failed(
+                    "«raised» and «through_all» cannot go together: a text cannot be " +
+                    "embossed and cut through the part at the same time. Leave «raised» out to cut " +
+                    "it through, or leave «through_all» out to emboss it.");
+            if (through && HasReference(a, "depth_mm"))
+                return Failed(
+                    "«through_all» cuts the whole thickness, so «depth_mm» would be ignored. " +
+                    "Leave «depth_mm» out for a text cut through, or leave «through_all» out " +
+                    "to engrave to that depth.");
+
             var face = ResolveFace(docState, a, Str(a, "face_uid", ""), out string reason);
             if (face == null) return Failed(reason);
 
             double[] axes = FaceAxes(face, out double offsetM, out string error);
             if (axes == null) return Failed(error);
+            int axisU = (int)axes[0], axisV = (int)axes[1];
 
             double height = Num(a, "height_mm", 5);
             if (height <= 0)
                 return Failed("A text of zero or negative height is not a text.");
             double depth = Num(a, "depth_mm", 0.5);
-            if (depth <= 0)
+            if (!through && depth <= 0)
                 return Failed(
                     "A marking of zero depth leaves no mark. If you only wanted " +
                     "an annotation and not a feature, this is not the operation.");
 
-            bool embossed = Bool(a, "raised", false);
             double xMm = Num(a, "x_mm", 0);
             double yMm = Num(a, "y_mm", 0);
             string font = Str(a, "font", null);
@@ -137,6 +191,18 @@ namespace Oce.Solid.Agent.Core
                     "cannot check that the text stays inside it. Nothing was changed.");
             double faceArea = 0;
             try { faceArea = face.GetArea() * 1e6; } catch { }
+
+            // CENTRED: «x_mm»/«y_mm» are where the CENTRE of the lettering must end up, and
+            // the centre of the face when they are not given. The text is first drawn
+            // there and then moved by what the measure of its box says.
+            double targetX = xMm, targetY = yMm;
+            if (centered)
+            {
+                if (!HasReference(a, "x_mm")) targetX = (faceBox[axisU] + faceBox[3 + axisU]) / 2;
+                if (!HasReference(a, "y_mm")) targetY = (faceBox[axisV] + faceBox[3 + axisV]) / 2;
+                xMm = targetX;
+                yMm = targetY;
+            }
 
             // The names of the tree before the sketch: the sketch engraved below
             // is the one born since (scheme S7, SwOperations.JustCreatedSketch),
@@ -167,8 +233,8 @@ namespace Oce.Solid.Agent.Core
                     0,
                     0,   // FlipDirection
                     0,   // HorizontalMirror
-                    100, // WidthFactor, in centesimi
-                    100  // SpaceBetweenChars, in centesimi
+                    100, // WidthFactor, in hundredths
+                    100  // SpaceBetweenChars, in hundredths
                 ) as ISketchText;
                 if (written == null)
                     throw new InvalidOperationException(
@@ -200,6 +266,41 @@ namespace Oce.Solid.Agent.Core
                             : trueHeight.ToString("0.###", CultureInfo.InvariantCulture) + " mm"));
 
                 textBox = CurvesBox(written, out contours);
+
+                // ── CENTRING: MEASURE, MOVE, MEASURE AGAIN ──────────────────────
+                //
+                // The width of a text is not in the string: only the box of the letters SOLIDWORKS
+                // drew says where its centre is. ISketchText::SetCoordinates moves the text
+                // (guide: ISketchText~SetCoordinates.html, «Sets the position of this sketch
+                // text»; the point is given in SKETCH coordinates, hence PointInSketch as for
+                // the insertion). The box is READ AGAIN afterwards and compared with the centre
+                // asked for: a move that did not happen, or that happened by a different
+                // amount, is a refusal and not a centred text that is not centred.
+                if (centered && textBox != null)
+                {
+                    double dx = targetX - (textBox[axisU] + textBox[3 + axisU]) / 2;
+                    double dy = targetY - (textBox[axisV] + textBox[3 + axisV]) / 2;
+                    if (Math.Abs(dx) > 1e-6 || Math.Abs(dy) > 1e-6)
+                    {
+                        var shifted = PointInSketch(model, axes, offsetM, xMm + dx, yMm + dy, out error);
+                        if (shifted == null) throw new InvalidOperationException(error);
+                        if (!written.SetCoordinates(shifted[0], shifted[1], shifted[2]))
+                            throw new InvalidOperationException(
+                                "SOLIDWORKS refused to move the text to centre it.");
+                        textBox = CurvesBox(written, out contours);
+                        if (textBox == null)
+                            throw new InvalidOperationException(
+                                "I moved the text to centre it and then I could not read where it is.");
+                        double offU = (textBox[axisU] + textBox[3 + axisU]) / 2 - targetX;
+                        double offV = (textBox[axisV] + textBox[3 + axisV]) / 2 - targetY;
+                        if (Math.Abs(offU) > CentringToleranceMm || Math.Abs(offV) > CentringToleranceMm)
+                            throw new InvalidOperationException(string.Format(
+                                CultureInfo.InvariantCulture,
+                                "I moved the text to centre it and it is still off by {0:0.###} x {1:0.###} mm " +
+                                "from the centre asked for: I do not engrave a text that is not where you said.",
+                                offU, offV));
+                    }
+                }
             }
             catch (Exception ex) { error = ex.Message; written = null; }
             finally
@@ -221,18 +322,28 @@ namespace Oce.Solid.Agent.Core
                     "read). Without that, I cannot tell you whether it fits on the face, and " +
                     "a lettering cut in half gives no error." + WithoutSketch(model));
 
+            // THE WIDTH AND THE HEIGHT OF THE LETTERING are read on the two axes of the
+            // FACE, not on X and Y: up to 0.130.2 they were textBox[3]-textBox[0] and
+            // textBox[4]-textBox[1], right only on a face whose normal is Z. On the top
+            // face of a plate (normal Y) the «height» was the thickness of the sketch, zero.
+            double textWidth = textBox[3 + axisU] - textBox[axisU];
+            double textHeight = textBox[3 + axisV] - textBox[axisV];
+
             string location = SpillsOutside(textBox, faceBox, axes);
             if (location != null)
                 return Failed(string.Format(
                     CultureInfo.InvariantCulture,
-                    "«{0}» {1:0.###} mm tall occupies {2:0.##} x {3:0.##} mm and {4} I do not engrave it: " +
+                    "«{0}» {1:0.###} mm tall occupies {2:0.##} x {3:0.##} mm and {4} I do not {6} it: " +
                     "the part that sticks out would disappear without anything giving an error, and " +
-                    "a truncated lettering would remain in the part. Move the anchor, lower " +
-                    "«height_mm», or shorten the text.{5}",
+                    "a truncated lettering would remain in the part. {7}{5}",
                     text, height,
-                    textBox[3] - textBox[0],
-                    textBox[4] - textBox[1],
-                    location, WithoutSketch(model)));
+                    textWidth,
+                    textHeight,
+                    location, WithoutSketch(model),
+                    through ? "cut" : "engrave",
+                    centered
+                        ? "Lower «height_mm» or shorten the text: centred, moving the anchor will not help."
+                        : "Move the anchor, lower «height_mm», or shorten the text."));
 
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
                 return Failed(selError + WithoutSketch(model));
@@ -242,20 +353,35 @@ namespace Oce.Solid.Agent.Core
             {
                 feature = embossed
                     ? Extrude(model, depth, merge: true)
-                    : Cut(model, throughAll: false, depthMm: depth);
+                    : Cut(model, throughAll: through, depthMm: depth);
             }
             catch (Exception ex)
             {
                 return Failed(
-                    (embossed ? "The embossing" : "The engraving") + " did not succeed: " +
-                    ex.Message + WithoutSketch(model));
+                    (embossed ? "The embossing" : through ? "The cut" : "The engraving") +
+                    " did not succeed: " + ex.Message + WithoutSketch(model));
             }
 
             if (feature == null)
                 return Failed(
-                    (embossed ? "The embossing" : "The engraving") + " was not created, and " +
+                    (embossed ? "The embossing" : through ? "The cut" : "The engraving") +
+                    " was not created, and " +
                     "SOLIDWORKS does not say why. With a text that is entirely outside the " +
                     "face it answers like this." + WithoutSketch(model));
+
+            // THE CENTRE WHERE THE LETTERING REALLY IS, in the coordinates of the face's two
+            // axes (the same numbers as «x_mm» and «y_mm»), read from the box measured
+            // BEFORE the cut: after it the sketch is consumed.
+            var centre = new object[]
+            {
+                Round((textBox[axisU] + textBox[3 + axisU]) / 2),
+                Round((textBox[axisV] + textBox[3 + axisV]) / 2),
+            };
+
+            // HOW DEEP A CUT THROUGH WENT. «Through» has no depth to ask for, and the
+            // thickness of the part is not the depth of THIS cut when there is a step under
+            // the text: the walls the cut made say it. Null if they cannot be read.
+            double? cutDepth = through ? DepthOfTheWalls(feature, (int)axes[2]) : (double?)depth;
 
             // ── and now we count ────────────────────────────────────────
             double? after = VolumeMm3(model);
@@ -265,11 +391,13 @@ namespace Oce.Solid.Agent.Core
                 {
                     ["text"] = text,
                     ["height_mm"] = height,
-                    ["depth_mm"] = depth,
+                    ["depth_mm"] = NumberOrNull(cutDepth, 3),
                     ["raised"] = embossed,
+                    ["through_all"] = through,
                     ["contours"] = contours,
-                    ["width_written_mm"] = Round(textBox[3] - textBox[0]),
-                    ["height_written_mm"] = Round(textBox[4] - textBox[1]),
+                    ["width_written_mm"] = Round(textWidth),
+                    ["height_written_mm"] = Round(textHeight),
+                    ["centre_mm"] = centre,
                     [embossed ? "material_added_mm3" : "material_removed_mm3"] = null,
                     ["bodies"] = NumberOrNull(bodiesAfter),
                     ["volume_not_reread"] = NoteVolumeNotReread,
@@ -286,31 +414,59 @@ namespace Oce.Solid.Agent.Core
                         : "Usually it means that the engraving went outward.") +
                     " Withdraw it — " + Sentences.HowToWithdrawIt + ".");
 
+            // A TEXT CUT THROUGH THAT LEAVES PIECES BEHIND. A letter with a hole inside (0 6 8 9
+            // A B D O P Q R) has an inside that touches nothing once the cut goes through: it
+            // falls out as a body of its own. This is not a surprise to be reported after the
+            // fact, it is the one certain consequence of the request, so the cut is TAKEN AWAY
+            // (RemoveCut reads the tree and the volume again) and the refusal says why.
+            if (through && bodiesAfter > bodiesBefore)
+                return Failed(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "«{0}» cut right through the part would leave {1} loose piece{2}: it has letters " +
+                    "with a hole inside (as 0, 6, 8, 9, A, B, D, O, P, Q, R do), and the inside of such a " +
+                    "letter is attached to nothing once the cut goes through, so it falls out as a body of " +
+                    "its own. A text cut through must be made of letters without a hole: use another text, " +
+                    "or leave «through_all» out to engrave it to a depth instead.{3}",
+                    text, bodiesAfter - bodiesBefore, bodiesAfter - bodiesBefore == 1 ? "" : "s",
+                    RemoveCut(model, feature, volumeBefore)));
+
             if (bodiesAfter != bodiesBefore)
                 return Failed(
                     "The bodies went from " + bodiesBefore + " to " + bodiesAfter +
                     ": a marking must not split or detach anything. Withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
-            double lettersArea = moved / depth;
+            // The area is the volume over the depth that really was cut (0.5 by default,
+            // the thickness read from the walls for a cut through). If the depth cannot be read the area is
+            // NOT guessed from the box of the part: it is null, and the answer says so.
+            double depthCut = cutDepth.GetValueOrDefault();
+            double? lettersArea = depthCut > 0 ? moved / depthCut : (double?)null;
+            double area = lettersArea.GetValueOrDefault();
             var measurements = new Dictionary<string, object>
             {
                 ["text"] = text,
                 ["height_mm"] = height,
-                ["depth_mm"] = depth,
+                ["depth_mm"] = NumberOrNull(cutDepth, 3),
                 ["raised"] = embossed,
+                ["through_all"] = through,
                 ["contours"] = contours,
-                ["width_written_mm"] = Round(textBox[3] - textBox[0]),
-                ["height_written_mm"] = Round(textBox[4] - textBox[1]),
+                ["width_written_mm"] = Round(textWidth),
+                ["height_written_mm"] = Round(textHeight),
+                ["centre_mm"] = centre,
                 [embossed ? "material_added_mm3" : "material_removed_mm3"] = Round(moved),
                 // THE AREA OF THE LETTERS, which is the volume divided by the depth.
                 // It cannot be predicted from the string -- it depends on the font -- but
                 // it goes with the SQUARE of the height, and that ratio is the only thing
                 // that two different markings have in common.
-                ["area_letters_mm2"] = Round(lettersArea),
-                ["area_over_height_squared"] = Round(lettersArea / (height * height), 4),
+                ["area_letters_mm2"] = lettersArea.HasValue ? (object)Round(area) : null,
+                ["area_over_height_squared"] =
+                    lettersArea.HasValue ? (object)Round(area / (height * height), 4) : null,
                 ["bodies"] = bodiesAfter,
             };
+            if (!cutDepth.HasValue)
+                measurements["depth_not_read"] =
+                    "I could not read how deep the cut went from the walls it made, so the area of the " +
+                    "letters is null: the volume above is what was removed.";
             if (!string.IsNullOrWhiteSpace(font)) measurements["font"] = font;
 
             // WHAT I DID NOT LOOK AT, said at every call and not once in the
@@ -325,7 +481,12 @@ namespace Oce.Solid.Agent.Core
             measurements["what_it_does_not_check"] = string.Format(
                 CultureInfo.InvariantCulture,
                 "I checked that the lettering stays inside the BOX of the face{0} And I do not " +
-                "look at whether the lettering ends up over another feature.",
+                "look at whether the lettering ends up over another feature." +
+                (through
+                    ? " The text was cut through EVERYTHING behind the face, along its normal: on a hollow " +
+                      "part, or with more material behind the face, that is more than the one plate " +
+                      "you may have in mind."
+                    : ""),
                 fullFace
                     ? string.Format(CultureInfo.InvariantCulture,
                         ", and this face fills it entirely " +
@@ -338,9 +499,9 @@ namespace Oce.Solid.Agent.Core
                         "without my noticing. Look at the material removed.",
                         faceArea, boxArea));
 
-            _log("[agent] «" + text + "» " + (embossed ? "embossed " : "engraved ") +
-                 depth + " mm: " + Round(moved) + " mm3, lettering " +
-                 Round(textBox[3] - textBox[0]) + " mm wide");
+            _log("[agent] «" + text + "» " + (embossed ? "embossed " : through ? "cut through " : "engraved ") +
+                 (through ? "" : depth + " mm: ") + Round(moved) + " mm3, lettering " +
+                 Round(textWidth) + " mm wide");
 
             return Succeeded(feature, measurements, FaceNormal(face));
         }
@@ -381,12 +542,12 @@ namespace Oce.Solid.Agent.Core
                 Widen(p[3], p[4], p[5], ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
                 try
                 {
-                    var curva = border.GetCurve() as ICurve;
-                    if (curva == null) continue;
+                    var edgeCurve = border.GetCurve() as ICurve;
+                    if (edgeCurve == null) continue;
                     for (int i = 1; i < 6; i++)
                     {
                         double t = p[6] + (p[7] - p[6]) * i / 6.0;
-                        var point = curva.Evaluate(t) as double[];
+                        var point = edgeCurve.Evaluate(t) as double[];
                         if (point != null && point.Length >= 3)
                             Widen(point[0], point[1], point[2],
                                     ref minX, ref minY, ref minZ, ref maxX, ref maxY, ref maxZ);
@@ -410,6 +571,37 @@ namespace Oce.Solid.Agent.Core
             if (x < minX) minX = x; if (x > maxX) maxX = x;
             if (y < minY) minY = y; if (y > maxY) maxY = y;
             if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+        }
+
+        /// <summary>
+        /// How deep a cut went, in mm, read from the faces the cut made: the extent of the
+        /// union of their TRUE boxes along the axis of the face's normal. Null if no face
+        /// could be measured (a depth guessed from the box of the part would be a number
+        /// without a source).
+        ///
+        /// IFeature~GetFaces.html gives the faces of the feature, which for a cut are the
+        /// walls of the letters; <see cref="ApiHelpers.TrueBoundingBox(IFace2)"/> measures
+        /// each one (IFace2~CreateSheetBody.html + GetExtremePoint, S6). Probe
+        /// Checks\TextThrough measured it equal to the thickness of the plate.
+        /// </summary>
+        private static double? DepthOfTheWalls(IFeature cut, int axis)
+        {
+            object[] faces;
+            try { faces = cut.GetFaces() as object[]; }
+            catch { return null; }
+            if (faces == null) return null;
+            double low = double.MaxValue, high = double.MinValue;
+            foreach (var o in faces)
+            {
+                double[] box;
+                try { box = ApiHelpers.TrueBoundingBox(o as IFace2); }
+                catch { continue; }
+                if (box == null || box.Length < 6) continue;
+                low = Math.Min(low, box[axis]);
+                high = Math.Max(high, box[3 + axis]);
+            }
+            if (high <= low) return null;
+            return Units.Mm(high - low);
         }
 
         /// <summary>The box of a face, in mm and in model coordinates.</summary>

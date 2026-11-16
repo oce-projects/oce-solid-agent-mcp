@@ -446,10 +446,10 @@ namespace Oce.Solid.Agent.Core
         private static bool TheyTouch(double[][] a, double[][] b, double margin)
         {
             // Separating axes (SAT) on the sides of the two rectangles.
-            foreach (var poli in new[] { a, b })
+            foreach (var polygon in new[] { a, b })
                 for (int i = 0; i < 4; i++)
                 {
-                    var p = poli[i]; var q = poli[(i + 1) % 4];
+                    var p = polygon[i]; var q = polygon[(i + 1) % 4];
                     double nx = -(q[1] - p[1]), ny = q[0] - p[0];
                     double l = Math.Sqrt(nx * nx + ny * ny);
                     if (l < 1e-12) continue;

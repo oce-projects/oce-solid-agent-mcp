@@ -28,7 +28,7 @@
 # -SwRedist and SW_REDIST are still read, afterwards: whoever already has them in their
 # profile must not notice anything.
 
-param([string]$SwInstallPath, [string]$SwRedist)
+param([string]$SwInstallPath, [string]$SwRedist, [string[]]$Only)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -132,9 +132,26 @@ $tools = @(
     # Two plans whose undo entry closed empty (scenarios t9b and t14): equations
     # written by IEquationMgr, and a component moved by Transform2, by
     # SetTransformAndSolve2 or by IDragOperator.
-    @{ name = 'UndoGaps'; sw = $true; lib = $false }
+    @{ name = 'UndoGaps'; sw = $true; lib = $false },
+    # The L bracket drawing of 12/10/2026 (drawing branch of 0.131.0): the edges a view shows
+    # and how the bridge classifies them, the annotations, the dimensions of the part.
+    @{ name = 'Draw131'; sw = $true; lib = $true },
+    # The six defects of the drawing test of 12/10/2026, part side (undo, set_property with a drawing
+    # active, slot angle, save_document path, first base flange, apply_material candidates): it drives
+    # the bridge like a client does (Shared\McpClient.cs is compiled in) and reads the documents by COM.
+    @{ name = 'Part131'; sw = $true; lib = $false; extra = @('System.Web.Extensions.dll'); more = @('Shared\McpClient.cs') },
+    # engrave_text cut THROUGH and CENTRED (bridge 0.131.0): does SetCoordinates move the text, is the
+    # through cut the area of the blind one times the thickness, what do the letters with a hole inside do.
+    @{ name = 'TextThrough'; sw = $true; lib = $false },
+    # Custom materials (bridge 0.131.0): which folders SOLIDWORKS reads material databases from, whether a database file
+    # written while it runs is listed and usable at once, whether a rewritten one is seen, what a deleted one leaves.
+    @{ name = 'CustomMaterial'; sw = $true; lib = $false },
+    # The save that failed after a linked property (the integrator, 13/10/2026): trials on copies of a saved
+    # sheet-metal part, each followed by Save3 and SaveAs with their error masks, a watchdog on every call.
+    @{ name = 'SaveHang'; sw = $true; lib = $false }
 )
 
+if ($Only) { $tools = @($tools | Where-Object { $Only -contains $_.name }) }
 foreach ($a in $tools) {
     $folder = Join-Path $PSScriptRoot $a.name
     $bin = Join-Path $folder 'bin'
@@ -207,7 +224,10 @@ foreach ($a in $tools) {
     if ($a.extra) { foreach ($e in $a.extra) { $refObj += ('-reference:' + $e) } }
 
     $output = Join-Path $bin ($a.name + '.exe')
-    & $csc -nologo -langversion:7.3 -target:exe "-out:$output" @refObj $source
+    # `more`: other source files compiled into the probe (a file of Shared\, relative to the repository).
+    $moreSources = @()
+    if ($a.more) { foreach ($m in $a.more) { $moreSources += (Join-Path $root $m) } }
+    & $csc -nologo -langversion:7.3 -target:exe "-out:$output" @refObj $source @moreSources
     if ($LASTEXITCODE -ne 0) { throw ($a.name + ' does not compile') }
     Write-Host ('  ' + $a.name + '.exe')
 }

@@ -1,0 +1,29 @@
+{
+  "name": "lettering_size_is_read_on_the_axes_of_the_face",
+  "family": "text",
+  "red_before": "0.199.0",
+  "why": "THE WIDTH AND THE HEIGHT OF A LETTERING, ON A FACE THAT IS NOT NORMAL TO Z. engrave_text read them as the box of the outlines on X and on Y whatever the face: right on a face whose normal is Z (all the earlier cases are on the front plane), and on the top face of a plate, whose lettering lies in X and Z, the «height» was the extent along Y, that is nothing. The twin of code_engraved_in_the_center on the top plane: the same block, the same «PROVA», the same anchor, the same numbers.",
+  "defect_caught": "On a face with normal Y or X the answer said height_written_mm 0 (and, on a face with normal X, a width of 0): the number that tells whoever reads that a lettering is 10 mm tall was wrong, and the overflow message printed the same wrong sizes. Found writing the cut-through case of 0.131.0 on the top face of a plate.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 100, "width_mm": 100,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 200000 } ] },
+    { "operation": "engrave_text",
+      "arguments": { "face_uid": "@face(normal=up)", "text": "PROVA",
+                     "x_mm": -25, "y_mm": -5,
+                     "height_mm": 10, "depth_mm": 2 },
+      "expect": [
+        { "what": "measurements.contours", "equal_to": 56 },
+        { "what": "measurements.width_written_mm", "equal_to": 47.05, "tolerance": 0.1,
+          "tolerance_why": "the width comes from the drawing of the glyphs of the font, as in the twin" },
+        { "what": "measurements.height_written_mm", "equal_to": 10.51, "tolerance": 0.1,
+          "tolerance_why": "as in the twin: this is the number that was 0 on this face",
+          "why": "10.51 is the height of the lettering on the face; on the top face it used to come out 0" },
+        { "what": "measurements.material_removed_mm3", "equal_to": 230.7, "tolerance": 0.5,
+          "tolerance_why": "the volume of an engraving is the sum of 56 curved outlines" },
+        { "what": "volume_mm3", "equal_to": 199769.3, "tolerance": 0.5,
+          "tolerance_why": "the same number as the twin" } ] }
+  ]
+}

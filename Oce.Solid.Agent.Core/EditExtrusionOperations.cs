@@ -59,7 +59,7 @@ namespace Oce.Solid.Agent.Core
         /// refused access stops here, before anything is written, and nothing
         /// is released because nothing was accessed.
         /// </summary>
-        private static bool WriteExtrusion(IModelDoc2 model, IFeature f, int fine, double depthM, out string refusedBy)
+        private static bool WriteExtrusion(IModelDoc2 model, IFeature f, int endCondition, double depthM, out string refusedBy)
         {
             refusedBy = null;
             var data = f.GetDefinition() as IExtrudeFeatureData2;
@@ -71,10 +71,10 @@ namespace Oce.Solid.Agent.Core
             bool done = false;
             try
             {
-                data.SetEndCondition(true, fine);
+                data.SetEndCondition(true, endCondition);
                 // THE MID-PLANE HAS ITS DEPTH TOO (review of 27/9/2026):
                 // without it, the restore put the condition back and left the new measure.
-                if (fine == (int)swEndConditions_e.swEndCondBlind || fine == (int)swEndConditions_e.swEndCondMidPlane)
+                if (endCondition == (int)swEndConditions_e.swEndCondBlind || endCondition == (int)swEndConditions_e.swEndCondMidPlane)
                     data.SetDepth(true, depthM);
                 // S11: ModifyDefinition always with GetErrorCode2 (ApiHelpers).
                 // The verdict on errors stays with the caller, which rebuilds

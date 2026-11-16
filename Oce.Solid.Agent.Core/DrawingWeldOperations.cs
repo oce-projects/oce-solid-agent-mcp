@@ -213,17 +213,17 @@ namespace Oce.Solid.Agent.Core
                 {
                     var e = o as IEdge;
                     var its = e?.GetBody() as IBody2;
-                    var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
-                    if (its == null || curva == null || p == null) continue;
+                    var p = ApiHelpers.EdgeParameters(e, out ICurve curve);
+                    if (its == null || curve == null || p == null) continue;
                     double u0 = p.UMinValue, u1 = p.UMaxValue;
                     var points = new List<double[]>();
                     foreach (double t in new[] { u0, (u0 + u1) / 2, u1 })
                     {
-                        var v = curva.Evaluate2(t, 0) as double[];
+                        var v = curve.Evaluate2(t, 0) as double[];
                         if (v != null) points.Add(new[] { v[0], v[1], v[2] });
                     }
                     if (points.Count < 3) continue;
-                    double l = curva.GetLength3(u0, u1) * 1000.0;
+                    double l = curve.GetLength3(u0, u1) * 1000.0;
                     if (l <= lengthMm) continue;
                     foreach (var oc in bodies)
                     {

@@ -1,0 +1,17 @@
+{
+  "name": "limit_create_material_without_a_source",
+  "family": "document_properties",
+  "red_before": "0.199.0",
+  "why": "A DENSITY NOBODY CAN TRACE IS A FALSE WEIGHT WAITING TO HAPPEN. The material has a name and a density but no source: it is refused, and the refusal says what a source is. The numbers of a material are the one thing in a part that is never measured again, so the place they came from is written with them.",
+  "defect_caught": "Without the requirement a model fills the gap from memory (a density \"about 1250\" is how a part gets 1 per cent of false mass for good). The twin writes the same material with its source and succeeds.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "create_material",
+      "arguments": { "name": "PLA", "class": "Plastic", "density_kg_m3": 1240 },
+      "must_fail": {
+        "message_includes": ["«source» is missing", "datasheet"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "create_pla_and_weigh_a_plate" } }
+  ]
+}

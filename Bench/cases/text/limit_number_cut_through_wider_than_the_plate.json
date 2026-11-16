@@ -1,0 +1,22 @@
+{
+  "name": "limit_number_cut_through_wider_than_the_plate",
+  "family": "text",
+  "red_before": "0.199.0",
+  "why": "A TEXT THAT STICKS OUT OF THE PLATE IS REFUSED BEFORE IT IS CUT, ALSO WHEN IT IS CUT THROUGH. The number is asked centred at x = 70 on a 150 mm plate (the edge is at 75): it cannot be there. A through cut makes the loss worse than an engraving: the part of the letters that is outside the plate would vanish and the number on the plate would be cut in half, without an error. The refusal says by how much it overflows, measured from the outlines SOLIDWORKS drew.",
+  "defect_caught": "The overflow check existed for the blind engraving; the through mode uses the same box and the same words, and says «cut» instead of «engrave». A centred text refuses the advice «move the anchor»: moving it is not the remedy, the height or the text is.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 150, "width_mm": 150,
+                     "thickness_mm": 5, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 112500 } ] },
+    { "operation": "engrave_text",
+      "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "text": "35",
+                     "x_mm": 70, "height_mm": 20, "through_all": true, "centered": true },
+      "must_fail": {
+        "message_includes": ["sticks out by 9.3", "past the top X edge", "I do not cut it", "centred, moving the anchor will not help"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "number_cut_through_a_plate_and_centred" } }
+  ]
+}

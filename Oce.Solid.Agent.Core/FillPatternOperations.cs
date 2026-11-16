@@ -189,17 +189,17 @@ namespace Oce.Solid.Agent.Core
                 // copies inside the boundary: an edge that leaves the face (the
                 // thickness of the plate) has no direction to follow in there.
                 // If the direction cannot be read, no refusal is invented.
-                var versore = UnitDirectionVector(direction);
-                if (versore != null)
+                var unitVector = UnitDirectionVector(direction);
+                if (unitVector != null)
                 {
-                    double seno = Math.Abs(versore[0] * normal[0] + versore[1] * normal[1] + versore[2] * normal[2]);
-                    if (seno > FillOffPlane)
+                    double sineOfAngle = Math.Abs(unitVector[0] * normal[0] + unitVector[1] * normal[1] + unitVector[2] * normal[2]);
+                    if (sineOfAngle > FillOffPlane)
                         return Failed(string.Format(CultureInfo.InvariantCulture,
                             "The direction {0} is not in the plane of the boundary face: it sticks out by " +
                             "{1:0.#} degrees. The fill places the copies inside the face, and a " +
                             "direction that sticks out has no way to follow. Give an edge that runs " +
                             "along the face, for example one of its straight borders.",
-                            statedDirection, Math.Asin(Math.Min(1.0, seno)) * 180.0 / Math.PI));
+                            statedDirection, Math.Asin(Math.Min(1.0, sineOfAngle)) * 180.0 / Math.PI));
                 }
                 model.ClearSelection2(true);
 
@@ -376,8 +376,8 @@ namespace Oce.Solid.Agent.Core
                 var edge = direction as IEdge;
                 if (edge != null)
                 {
-                    var curva = edge.IGetCurve();
-                    var p = curva != null && curva.IsLine() ? curva.LineParams as double[] : null;
+                    var edgeCurve = edge.IGetCurve();
+                    var p = edgeCurve != null && edgeCurve.IsLine() ? edgeCurve.LineParams as double[] : null;
                     if (p != null && p.Length >= 6) v = new[] { p[3], p[4], p[5] };
                 }
                 else

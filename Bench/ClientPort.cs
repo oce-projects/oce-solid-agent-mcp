@@ -883,6 +883,10 @@ namespace Oce.Solid.Agent.Bench
         {
             try
             {
+                // THE ENVIRONMENT FIRST, like the node scripts of this folder: pointing OCE_BRIDGE at the
+                // bridge of an earlier release is how a case written for a fix is seen RED before it.
+                var chosen = System.Environment.GetEnvironmentVariable("OCE_BRIDGE");
+                if (!string.IsNullOrWhiteSpace(chosen)) return File.Exists(chosen) ? chosen : null;
                 var bin = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
                 var root = Directory.GetParent(Directory.GetParent(bin).FullName).FullName;
                 var p = Path.Combine(root, "bin", "oce-solid-agent-mcp.exe");

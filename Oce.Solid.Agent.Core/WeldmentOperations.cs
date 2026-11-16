@@ -1631,17 +1631,17 @@ namespace Oce.Solid.Agent.Core
             // the corner between two bars. SOLIDWORKS on wrong faces returns null
             // with no why, and a null with no why is exactly what
             // kept this entry stalled for three days.
-            var normali = new double[2][];
+            var normalVectors = new double[2][];
             for (int i = 0; i < 2; i++)
             {
-                normali[i] = FaceNormal(faces[i]);
-                if (normali[i] == null || normali[i].Length < 3)
+                normalVectors[i] = FaceNormal(faces[i]);
+                if (normalVectors[i] == null || normalVectors[i].Length < 3)
                     return Failed(
                         "The face «" + uid[i] + "» is not planar: the gusset rests on two PLANAR " +
                         "faces, one per bar (on a round tube there is no plane to put it on). " +
                         "Point to a planar face of the bar.");
             }
-            double[] n1 = normali[0], n2 = normali[1];
+            double[] n1 = normalVectors[0], n2 = normalVectors[1];
             double cosine = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
             if (Math.Abs(cosine) > 0.999)
                 return Failed(
@@ -1652,7 +1652,7 @@ namespace Oce.Solid.Agent.Core
             double cx = n1[1] * n2[2] - n1[2] * n2[1];
             double cy = n1[2] * n2[0] - n1[0] * n2[2];
             double cz = n1[0] * n2[1] - n1[1] * n2[0];
-            double seno = Math.Sqrt(cx * cx + cy * cy + cz * cz);
+            double sineOfAngle = Math.Sqrt(cx * cx + cy * cy + cz * cz);
 
             // One direction that touches is enough; «they do not touch» only if both
             // have answered (entry Z-C8, like the bead).
@@ -1736,7 +1736,7 @@ namespace Oce.Solid.Agent.Core
             // excluded before the call now. Shorter sides stay a suggestion, said
             // as one. The selection is cleared in the finally above on every
             // exit of the call, the refusals inside it included.
-            string alternativa =
+            string alternative =
                 " Shorter sides may fit where these did not" +
                 (polygon ? ", and so may the «triangular» profile" : "") + ": that is a " +
                 "suggestion, not a measured cause. If you only need to document the weld between these " +
@@ -1756,7 +1756,7 @@ namespace Oce.Solid.Agent.Core
                           "at an angle and touch for " +
                           contact.ToString("0.##", CultureInfo.InvariantCulture) + " mm, so the cause is " +
                           "not one I know.") +
-                    alternativa + queue);
+                    alternative + queue);
             }
 
             try { model.EditRebuild3(); } catch { }
@@ -1768,7 +1768,7 @@ namespace Oce.Solid.Agent.Core
             if (featureAfter >= 0 && featureAfter <= featureBefore)
                 return Failed(
                     "SOLIDWORKS answered with a feature «" + GussetName(feature) + "» that is not in the tree: " +
-                    "I do not tell you that the gusset is in place." + alternativa);
+                    "I do not tell you that the gusset is in place." + alternative);
 
             // 2. it is a gusset: the TYPE measured by the probe («Gusset», like
             //    «Fillet», «APattern» and «Rib» in the other three of this entry), and
@@ -1779,7 +1779,7 @@ namespace Oce.Solid.Agent.Core
                     "A feature «" + GussetName(feature) + "» of type «" + createdType +
                     "» was created, not a gusset («" + GussetTypeValue + "», measured): I do not confirm something " +
                     "different from what you asked for." +
-                    RemoveGusset(model, feature, volumeBefore, featureBefore) + alternativa);
+                    RemoveGusset(model, feature, volumeBefore, featureBefore) + alternative);
             IGussetFeatureData data = null;
             try { data = feature.GetDefinition() as IGussetFeatureData; } catch { }
             if (data == null)
@@ -1806,8 +1806,8 @@ namespace Oce.Solid.Agent.Core
                     RemoveGusset(model, feature, volumeBefore, featureBefore));
 
             // 5. the material added, against the hand calculation.
-            double triangleArea = side1 * side2 / 2.0 * seno;
-            bool rightAngle = seno > 0.9995;
+            double triangleArea = side1 * side2 / 2.0 * sineOfAngle;
+            bool rightAngle = sineOfAngle > 0.9995;
             var expectedValues = new List<double>();
             if (!polygon) expectedValues.Add(triangleArea * thickness);
             else if (rightAngle)
@@ -2568,8 +2568,8 @@ namespace Oce.Solid.Agent.Core
                 try
                 {
                     var edge = o as IEdge;
-                    var parameters = ApiHelpers.EdgeParameters(edge, out ICurve curva);
-                    if (curva == null || parameters == null) continue;
+                    var parameters = ApiHelpers.EdgeParameters(edge, out ICurve edgeCurve);
+                    if (edgeCurve == null || parameters == null) continue;
                     // THE RANGE THAT LANDS ON THE EDGE, not UMinValue..UMaxValue as read
                     // (D9 defect 2, 6/10/2026): on an edge whose curve runs the other way
                     // the parameters are negative, and evaluating the curve there landed 32 mm
@@ -2577,17 +2577,17 @@ namespace Oce.Solid.Agent.Core
                     // the foot at the start did. An edge whose range cannot be matched to its
                     // ends is not guessed at: it counts as one that could not be read.
                     double u0, u1;
-                    if (!ApiHelpers.EdgeRangeOnCurve(parameters, curva, out u0, out u1)) { mute++; continue; }
-                    bool sta = true;
+                    if (!ApiHelpers.EdgeRangeOnCurve(parameters, edgeCurve, out u0, out u1)) { mute++; continue; }
+                    bool touches = true;
                     foreach (double t in new[] { u0, (u0 + u1) / 2, u1 })
                     {
-                        var p = curva.Evaluate2(t, 0) as double[];
+                        var p = edgeCurve.Evaluate2(t, 0) as double[];
                         var q = other.GetClosestPointOn(p[0], p[1], p[2]) as double[];
-                        if (q == null) { sta = false; break; }
+                        if (q == null) { touches = false; break; }
                         double dx = p[0] - q[0], dy = p[1] - q[1], dz = p[2] - q[2];
-                        if (Math.Sqrt(dx * dx + dy * dy + dz * dz) > 1e-6) { sta = false; break; }
+                        if (Math.Sqrt(dx * dx + dy * dy + dz * dz) > 1e-6) { touches = false; break; }
                     }
-                    if (sta) total += curva.GetLength3(u0, u1) * 1000.0;
+                    if (touches) total += edgeCurve.GetLength3(u0, u1) * 1000.0;
                 }
                 catch { mute++; }
             }
@@ -2595,7 +2595,7 @@ namespace Oce.Solid.Agent.Core
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // Sostegno
+        // Support
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>

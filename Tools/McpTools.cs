@@ -2416,10 +2416,42 @@ namespace Oce.Solid.Agent.Tools
         /// (brief R4). Asked to the workstation's archives, the same that the
         /// step will search.
         /// </summary>
-        private string MaterialProblemOf(string operation, Dictionary<string, object> arguments)
+        private string MaterialProblemOf(string operation, Dictionary<string, object> arguments,
+                                         HashSet<string> madeInThePlan = null)
         {
             if (!string.Equals(operation, "apply_material", StringComparison.Ordinal)) return null;
+            if (MadeEarlierInThePlan(Text(arguments, "material"), Text(arguments, "library"), madeInThePlan)) return null;
             return _session.MaterialProblem(Text(arguments, "material"), Text(arguments, "library"));
+        }
+
+        /// <summary>
+        /// A MATERIAL THAT AN EARLIER STEP OF THE SAME PLAN CREATES (0.171.0, with «create_material»).
+        /// The check before the plan looks for the material in the libraries of the workstation, and
+        /// before the plan runs the material is not there yet: [create_material PLA, apply_material PLA]
+        /// was refused before its first step. The name is let through when an earlier «create_material»
+        /// step writes it, and the library asked (if any) can be the bridge's own: the step itself still
+        /// looks for it when its turn comes. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool MadeEarlierInThePlan(string material, string library, HashSet<string> madeInThePlan)
+        {
+            if (madeInThePlan == null || madeInThePlan.Count == 0 || string.IsNullOrWhiteSpace(material)) return false;
+            if (!string.IsNullOrWhiteSpace(library) &&
+                Oce.Solid.Agent.Core.SwOperations.BridgeMaterialLibrary.IndexOf(library.Trim(), StringComparison.OrdinalIgnoreCase) < 0)
+                return false;
+            string asked = material.Trim();
+            foreach (string made in madeInThePlan)
+                if (string.Equals(made, asked, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        /// <summary>The name a «create_material» step writes, added to <paramref name="madeInThePlan"/>.</summary>
+        internal static void NoteMaterialMade(string operation, Dictionary<string, object> arguments,
+                                              HashSet<string> madeInThePlan)
+        {
+            if (madeInThePlan == null || !string.Equals(operation, "create_material", StringComparison.Ordinal)) return;
+            string name = Text(arguments, "name");
+            // UnionWith, not Add: the contract on obsolete names reads «Add» on a receiver it cannot type.
+            if (!string.IsNullOrWhiteSpace(name)) madeInThePlan.UnionWith(new[] { name.Trim() });
         }
 
         private static string StateSummary(Dictionary<string, object> docState)
@@ -2582,6 +2614,9 @@ namespace Oce.Solid.Agent.Tools
             // for a bridge that was working. A progress for something that is
             // already over tells nobody anything.
 
+            // The materials an earlier «create_material» step of the plan writes.
+            var materialsMade = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             for (int i = 0; i < steps.Length; i++)
             {
                 var planStep = steps[i] as Dictionary<string, object>;
@@ -2638,10 +2673,12 @@ namespace Oce.Solid.Agent.Tools
                 if (property != null)
                     trouble.AddRange(UnknownArgumentsOfStep(location, itemName, data, property));
 
-                // The material, when SOLIDWORKS is there to say (brief R4).
-                var materialTrouble = MaterialProblemOf(itemName, data);
+                // The material, when SOLIDWORKS is there to say (brief R4), unless
+                // an earlier step of the plan creates it.
+                var materialTrouble = MaterialProblemOf(itemName, data, materialsMade);
                 if (materialTrouble != null)
                     trouble.Add(location + " («" + itemName + "»): " + materialTrouble);
+                NoteMaterialMade(itemName, data, materialsMade);
 
                 // The references to a previous step: `{step: N, kind: ...}`.
                 foreach (var pair in data)
@@ -3128,6 +3165,8 @@ namespace Oce.Solid.Agent.Tools
             // N18: the kind of the document the plan starts on.
             string startKind = Convert.ToString(before.TryGetValue("kind", out var kindAtStart) ? kindAtStart : null) ?? "";
             bool anotherDocumentAhead = false;
+            // The materials an earlier «create_material» step of the plan writes.
+            var materialsMade = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in steps)
             {
@@ -3265,7 +3304,8 @@ namespace Oce.Solid.Agent.Tools
 
                 // THE MATERIAL IS FOUND BEFORE THE FIRST STEP, not at its own
                 // (brief R4): see MaterialProblem.
-                var crookedMaterial = MaterialProblemOf(itemName, itsItems);
+                var crookedMaterial = MaterialProblemOf(itemName, itsItems, materialsMade);
+                NoteMaterialMade(itemName, itsItems, materialsMade);
                 if (crookedMaterial != null)
                 {
                     outcomes.Add(new Dictionary<string, object>

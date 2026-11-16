@@ -82,7 +82,7 @@ namespace Oce.Solid.Agent.Bench
                 for (int k = 1; k <= 40; k++)
                 {
                     string request = Path.Combine(folder, "step_" + k + ".json");
-                    string fine = Path.Combine(folder, "fine.json");
+                    string endFile = Path.Combine(folder, "fine.json");
 
                     // The plan is awaited. Half an hour: a model run with
                     // reasoning on has already taken nine on its own, and whoever
@@ -91,7 +91,7 @@ namespace Oce.Solid.Agent.Bench
                     // while one looks at the defect forces starting the
                     // part over from scratch.
                     var expiry = DateTime.UtcNow.AddMinutes(30);
-                    while (!File.Exists(request) && !File.Exists(fine))
+                    while (!File.Exists(request) && !File.Exists(endFile))
                     {
                         if (DateTime.UtcNow > expiry)
                         {
@@ -100,7 +100,7 @@ namespace Oce.Solid.Agent.Bench
                         }
                         Thread.Sleep(500);
                     }
-                    if (File.Exists(fine)) { Console.WriteLine("  end of request"); return 0; }
+                    if (File.Exists(endFile)) { Console.WriteLine("  end of request"); return 0; }
 
                     // The file may still be being written when we see it.
                     Thread.Sleep(300);

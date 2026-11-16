@@ -111,7 +111,7 @@ namespace Oce.Solid.Agent.Core
         /// <summary>
         /// How many millimetres one length unit of the document is worth, or NaN if it
         /// is not known. The value of an equation (`IEquationMgr.get_Value`) is in the
-        /// units of the DOCUMENT: the «0.2» of «"gioco" = 0.2mm» (82zs) in a
+        /// units of the DOCUMENT: the «0.2» of «"clearance" = 0.2mm» (82zs) in a
         /// document in millimetres. In one in inches the same 12mm would read back
         /// 0.472, and the comparison with the 12 asked for refused a right variable.
         /// </summary>
@@ -133,7 +133,7 @@ namespace Oce.Solid.Agent.Core
         /// as IEquationMgr.get_Value answers in a document set to that unit, or
         /// NaN when that is not known (Z-C21.13, finding L17-7). Kept apart from
         /// the document, with no interop in the signature, so that the contract
-        /// group of Z-C21.13 in Prove can call it without SOLIDWORKS.
+        /// group of Z-C21.13 in Tests can call it without SOLIDWORKS.
         ///
         /// THE FACTORS ARE MEASURED, not taken from the name of the unit. The
         /// probe probe_feet_inches (rerun on 29/9/2026, SOLIDWORKS 2021 SP5.1): a

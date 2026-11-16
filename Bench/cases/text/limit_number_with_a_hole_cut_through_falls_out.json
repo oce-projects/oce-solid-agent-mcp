@@ -1,0 +1,22 @@
+{
+  "name": "limit_number_with_a_hole_cut_through_falls_out",
+  "family": "text",
+  "red_before": "0.199.0",
+  "why": "THE LETTERS WITH A HOLE INSIDE CANNOT BE CUT THROUGH. «08»: the inside of the 0 and the two insides of the 8 are attached to nothing once the cut goes through the whole plate, so they fall out as bodies of their own and the part is no longer one. A stencil font is the only way to write them; here the operation refuses, takes the cut away, and says which letters do it. The plate stays as it was, with no extra feature.",
+  "defect_caught": "The blind engraving already refused a marking that splits the part, but left the cut in place («Withdraw it»). A cut through splits the part for certain, so the cut is removed by the operation itself (RemoveCut reads the tree and the volume again) and the refusal names the letters and the way out.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 150, "width_mm": 150,
+                     "thickness_mm": 5, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 112500 } ] },
+    { "operation": "engrave_text",
+      "arguments": { "face_ref": { "step": 1, "kind": "top_face" }, "text": "08",
+                     "height_mm": 20, "through_all": true, "centered": true },
+      "must_fail": {
+        "message_includes": ["loose piece", "a hole inside", "0, 6, 8, 9, A, B, D, O, P, Q, R", "leave «through_all» out"],
+        "volume_unchanged": true,
+        "no_extra_feature": true,
+        "twin": "number_cut_through_a_plate_and_centred" } }
+  ]
+}
