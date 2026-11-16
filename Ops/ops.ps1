@@ -2,8 +2,14 @@
 #  ops.ps1 - one entry point for the operations of this repository
 # =============================================================================
 #
-#  Version 1.0.1
+#  Version 1.0.2
 #  Changelog:
+#    1.0.2 (16/11/2026) a value that starts with "-" reaches the command whole:
+#          "bench-run -Extra "-Group part-fixes-131,cases -Case x"" stopped with
+#          "no bench in part-fixes-131,cases". The splatted call handed the value
+#          to powershell.exe without quotes, so it arrived as four arguments; the
+#          command line is now built with the quoting rules of Windows
+#          (Invoke-OpsPowerShell in lib\Common.ps1).
 #    1.0.1 (08/11/2026) a command with exactly ONE argument works: "repo-map -Check"
 #          reached the command as "- C h e c k" and failed with an invalid "name"
 #          argument. An if expression unrolls a one-element array into a plain
@@ -40,5 +46,9 @@ if ($Command -in 'help', '-h', '--help', '/?') {
 }
 $script = Join-Path $commands ($Command + '.ps1')
 if (-not (Test-Path -LiteralPath $script)) { Write-Output "unknown command: $Command (Ops\ops.ps1 help)"; exit 2 }
-& powershell -NoProfile -ExecutionPolicy Bypass -File $script @Rest
-exit $LASTEXITCODE
+# NOT "& powershell ... -File $script @Rest": Windows PowerShell 5.1 hands an
+# element that starts with "-" to the program without quotes, so
+# -Extra "-Group a,b -Case c" became five arguments (see Join-OpsArguments in
+# lib\Common.ps1). The command gets the arguments exactly as this script got them.
+. (Join-Path $PSScriptRoot 'lib\Common.ps1')
+exit (Invoke-OpsPowerShell (@('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script) + $Rest))

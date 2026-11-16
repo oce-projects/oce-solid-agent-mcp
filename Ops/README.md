@@ -1,6 +1,6 @@
 # Operations manual
 
-Version 1.0.0 (08/11/2026). Changes to this manual and to the scripts of `Ops/` are
+Version 1.1.0 (16/11/2026). Changes to this manual and to the scripts of `Ops/` are
 listed at the end, and every script carries its own version and changelog in its header.
 
 This page is for an agent that works on this repository **without a person watching**
@@ -91,6 +91,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Ops\commands\<command>.ps1 [
 ```
 
 `Ops\ops.ps1 help` lists them. A list argument is ONE string: `-Folders "a,b"`, `-Variants "x|y"`.
+A value may start with `-` and hold blanks, commas and quotes: `-Extra "-Group a,b -Case c"`
+reaches the command whole through both ways. The one exception is a value that is exactly the
+name of a parameter of the command (`-Extra "-DryRun"` for `bench-run`): `powershell.exe -File`
+reads it as that parameter; call the command script directly with `-Extra:-DryRun`
+[value-starting-with-a-dash].
 
 | command | what it does | changes the machine? | exit codes |
 |---|---|---|---|
@@ -203,6 +208,7 @@ Useful arguments of `bench-run` (they go to `Bench/bench.ps1` through `-Extra`):
 | the same run 4 times, SOLIDWORKS fresh each time | `bench-run -Detach -Repeat 4 -RestartSolidWorks -ContinueIfRed` |
 | an A/B of a variable | `bench-run -Detach -Repeat 4 -Variants "NAME=1|NAME=0" -RestartSolidWorks -ContinueIfRed` |
 | templates copied locally (a share that hiccups) | `bench-run -Detach -LocalCopies` |
+| check the arguments before a run, no bench | `bench-run -Detach -DryRun -Extra "..."`: prints the hidden command line and runs it in the foreground, which prints the `bench.ps1` line it would start |
 
 `Bench/bench.ps1` exit codes: 0 all green; 1 failed checks; 2 bench error (build failed,
 SOLIDWORKS not attachable, a case that could not be measured); 3 documents open that are not
@@ -312,6 +318,10 @@ After adding, moving or removing a folder: describe it in `Ops/repo-map.folders.
 
 ## Changes
 
+- 1.1.0 (16/11/2026): a value that starts with `-` reaches the command whole.
+  `ops.ps1` 1.0.2 and the relaunch of `bench-run -Detach` (`bench-run.ps1` 1.1.0) build their
+  command lines with `Join-OpsArguments` (`Ops/lib/Common.ps1` 1.1.0); `bench-run -Detach -DryRun`
+  tests the relaunch in the foreground. Known error [value-starting-with-a-dash].
 - 1.0.0 (08/11/2026): first version of the manual and of the toolkit: 15 commands in
   `Ops/commands`, the shared helpers in `Ops/lib/Common.ps1`, the configuration example, the
   known errors, the repository map and its generator.

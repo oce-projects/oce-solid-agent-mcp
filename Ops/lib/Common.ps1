@@ -2,8 +2,13 @@
 #  Common.ps1 - shared helpers of the operations toolkit (Ops\)
 # =============================================================================
 #
-#  Version 1.0.0
+#  Version 1.1.0
 #  Changelog:
+#    1.1.0 (16/11/2026) ConvertTo-OpsArgument, Join-OpsArguments and
+#                       Invoke-OpsPowerShell: a command line built with the
+#                       quoting rules of Windows, for ops.ps1 and for the
+#                       relaunch of bench-run -Detach (a value that starts
+#                       with "-" was split into pieces).
 #    1.0.0 (08/11/2026) first version: configuration loader, exit helper,
 #                       timestamped output, MSBuild lookup, path test with a
 #                       timeout, typed SOLIDWORKS interop, window enumeration.
@@ -120,6 +125,47 @@ function Get-OpsHead { (Invoke-OpsGit @('rev-parse', '--short=7', 'HEAD')) }
 function Get-OpsVersion {
     $f = Join-Path $script:RepoRoot 'VERSION.txt'
     if (Test-Path -LiteralPath $f) { (Get-Content -LiteralPath $f -TotalCount 1).Trim() } else { '' }
+}
+
+# ONE argument written for a Windows command line, so that the program started
+# reads it back as exactly one argument with exactly this text. The rules are
+# the ones of CommandLineToArgvW, which powershell.exe and every .NET program
+# follow: quotes around a value that is empty or holds a blank or a quote, a
+# quote inside written \", and the backslashes just before a quote or before
+# the closing quote doubled.
+#
+# Why a command line is never left to "& powershell ... @list" or "$list": Windows
+# PowerShell 5.1 hands a program an element that starts with "-" as it is, with
+# no quotes even when it holds blanks, and never escapes a quote inside an
+# element. Measured 16/11/2026 (ops.ps1 1.0.1): the elements "-Extra" and
+# "-Group a,b -Case c" reached bench-run.ps1 as the command line
+# "-Extra -Group a,b -Case c": -Extra got "-Group", the first positional
+# parameter (-Root) got "a,b", and the run stopped with "no bench in a,b".
+function ConvertTo-OpsArgument([string]$Value) {
+    if ($Value.Length -gt 0 -and $Value -notmatch '[\s"]') { return $Value }
+    $v = $Value -replace '(\\*)"', '$1$1\"'
+    $v = $v -replace '(\\+)$', '$1$1'
+    '"' + $v + '"'
+}
+
+# A whole command line from a list of arguments, each one through ConvertTo-OpsArgument.
+function Join-OpsArguments([string[]]$Arguments) {
+    (@($Arguments) | ForEach-Object { ConvertTo-OpsArgument $_ }) -join ' '
+}
+
+# Runs Windows PowerShell (the one running this script) with the arguments given,
+# in the same console or pipe, and returns its exit code. It waits for THAT
+# process only. Start-Process -Wait waits for the processes it starts as well:
+# measured 16/11/2026, 9.2 s against 0.6 s for a child that leaves an 8 s
+# process behind, and "bench-run -Detach" leaves one behind for an hour.
+function Invoke-OpsPowerShell([string[]]$Arguments) {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = Join-Path $PSHOME 'powershell.exe'
+    $psi.Arguments = Join-OpsArguments $Arguments
+    $psi.UseShellExecute = $false
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $p.WaitForExit()
+    $p.ExitCode
 }
 
 # The same places Bench\bench.ps1 looks in. The one in C:\Windows\Microsoft.NET

@@ -1,7 +1,14 @@
 # bench-run.ps1 - runs Bench\bench.ps1 detached, with a watchdog and a state file an agent can read.
 #
-# Version 1.0.0
+# Version 1.1.0
 # Changelog:
+#   1.1.0 (16/11/2026) the relaunch of -Detach passes every value as one argument "-Name:value",
+#         quoted with the rules of Windows (Join-OpsArguments, lib\Common.ps1). Measured before
+#         the fix: -Root "C:\repo\" (trailing backslash) reached the hidden process as
+#         'C:\repo" -Extra -Group' and stopped it with "no bench"; -Extra:-DryRun reached it
+#         as -Extra -DryRun and failed with a missing argument. -Detach -DryRun now prints the
+#         command line it would start and runs it in the foreground (it carries -DryRun): the
+#         relaunch is tested without a bench.
 #   1.0.0 (08/11/2026) ported from the maintainer's detached bench script 1.8.0 (03/11/2026), in
 #         English, with the machine values moved to the local configuration, -Detach to start itself
 #         hidden, a JSON result next to the state file, and -RestartSolidWorks that closes the test
@@ -36,6 +43,10 @@
 #       [-Out <file>] [-Extra "<bench.ps1 arguments>"] [-Profiles <folder>] [-StallMinutes 25]
 #       [-Repeat N] [-Variants "<v1>|<v2>"] [-RestartSolidWorks] [-ContinueIfRed]
 #       [-LocalCopies] [-Share <folder>] [-CopyRoot <folder>] [-CopyFolders "a|b"] [-DryRun]
+#   -DryRun prints what it would run; with -Detach it also prints the hidden command line and
+#   runs that line in the foreground. A value that is exactly the name of a parameter of THIS
+#   script needs the form -Extra:-DryRun (powershell.exe -File reads a lone "-DryRun" as the
+#   switch, and -Extra is left without a value); -Extra "-SkipCompilation" is fine.
 #
 # State file <Out>.state, one line per event, in this order:
 #   start ... / copy ... / profiles ... / round i of N pid P ... / stalled ... / end round i ... exit N /
@@ -79,17 +90,31 @@ $bench = Join-Path $Root 'Bench\bench.ps1'
 if (-not (Test-Path -LiteralPath $bench)) { Stop-Ops 2 "no bench in $Root" }
 $state = "$Out.state"
 
-if ($Detach -and -not $DryRun) {
+if ($Detach) {
+    # The same parameters again, without -Detach. A value goes as ONE argument "-Name:value":
+    # after a separate "-Extra", a value that is itself a parameter name ("-DryRun") is read
+    # as a parameter and -Extra has no value (measured 16/11/2026), and a value written by
+    # hand between quotes broke on a trailing backslash ("-Root "C:\repo\"" swallowed the
+    # rest of the line). Join-OpsArguments (lib\Common.ps1) quotes with the rules of Windows.
     $argList = New-Object System.Collections.Generic.List[string]
-    $argList.Add('-NoProfile'); $argList.Add('-ExecutionPolicy'); $argList.Add('Bypass'); $argList.Add('-File'); $argList.Add('"' + $PSCommandPath + '"')
+    foreach ($a in @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath)) { $argList.Add($a) }
     foreach ($k in $PSBoundParameters.Keys) {
         if ($k -eq 'Detach') { continue }
         $v = $PSBoundParameters[$k]
         if ($v -is [System.Management.Automation.SwitchParameter]) { if ($v.IsPresent) { $argList.Add('-' + $k) } }
-        else { $argList.Add('-' + $k); $argList.Add('"' + ("$v" -replace '"', '\"') + '"') }
+        else { $argList.Add('-' + $k + ':' + "$v") }
     }
-    if (-not $PSBoundParameters.ContainsKey('Out')) { $argList.Add('-Out'); $argList.Add('"' + $Out + '"') }
-    $p = Start-Process powershell -ArgumentList ($argList -join ' ') -WindowStyle Hidden -PassThru
+    if (-not $PSBoundParameters.ContainsKey('Out')) { $argList.Add('-Out:' + $Out) }
+    $line = Join-OpsArguments $argList
+    $exe = Join-Path $PSHOME 'powershell.exe'
+    if ($DryRun) {
+        # The test of the relaunch without a bench: the same program and command line, in
+        # the foreground; it carries -DryRun, so it only prints what it would run.
+        Write-Ops "would start hidden: $exe $line"
+        Write-Ops 'dry run: the same command line runs now in the foreground'
+        exit (Invoke-OpsPowerShell $argList)
+    }
+    $p = Start-Process $exe -ArgumentList $line -WindowStyle Hidden -PassThru
     Write-Output "started: pid $($p.Id)"
     Write-Output "output: $Out"
     Write-Output "state:  $state"

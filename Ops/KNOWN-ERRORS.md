@@ -1,6 +1,6 @@
 # Known errors
 
-Version 1.0.0 (08/11/2026). Every entry here cost at least one run. Each says the symptom,
+Version 1.1.0 (16/11/2026: [value-starting-with-a-dash]). Every entry here cost at least one run. Each says the symptom,
 the cause, how to recognise it in a minute, and the remedy. Look here before guessing a
 cause; add an entry when a new one is paid for. The names in brackets in
 [README.md](README.md) are the headings below.
@@ -64,6 +64,29 @@ Dates are when the cause was measured. "Not tested" marks what is still a hypoth
 - **Cause:** `OCE_NO_ATTACH=1` left in the shell by a previous contracts run (27/10/2026).
 - **Remedy:** the commands of `Ops/` set variables in their own process only; `preflight` warns
   when the shell has it; `bench-run` removes it before the bench. An answer in a few ms is the sign.
+
+### value-starting-with-a-dash
+
+- **Symptom:** `ops.ps1 bench-run -Detach -Extra "-Group part-fixes-131,cases -Case x"` stops
+  at once with `STOP (exit 2): no bench in part-fixes-131,cases`; the same arguments given to
+  `Ops\commands\bench-run.ps1` directly work (16/11/2026).
+- **Cause:** `ops.ps1` 1.0.1 started the command with `& powershell ... -File $script @Rest`.
+  Windows PowerShell 5.1 hands an element that starts with `-` to a program as it is, without
+  quotes even when it holds blanks. Measured: the child's command line was
+  `-Extra -Group part-fixes-131,cases -Case x`, so `-Extra` got `-Group` and `-Root` (the first
+  positional parameter) got `part-fixes-131,cases`; `-Case` and `x` went unbound. The relaunch
+  of `bench-run -Detach` quoted by hand and broke on a value ending with a backslash
+  (`-Root "C:\repo\"`) and on a value that is a parameter name (`-Extra:-DryRun`).
+- **Recognise:** `bench-run -Detach -DryRun` (1.1.0 and later) prints the hidden command line
+  and runs it in the foreground: the "would run" line must show the whole `-Extra`.
+- **Remedy:** fixed in `ops.ps1` 1.0.2 and `bench-run.ps1` 1.1.0: every command line is built
+  with `Join-OpsArguments` (`Ops/lib/Common.ps1`), which quotes with the rules of Windows. Never
+  build a command line for a program by splatting or by quoting by hand.
+- **Limit that stays:** a value that is exactly the name of a parameter of the command
+  (`-Extra "-DryRun"` for `bench-run`) is read as that parameter by `powershell.exe -File`
+  itself. Directly, write `-Extra:-DryRun`; through `ops.ps1` it cannot be passed, because the
+  first `powershell.exe` splits `-Extra:-DryRun` into two arguments before `ops.ps1` runs. No
+  argument of `Bench/bench.ps1` has the name of a parameter of `bench-run` (16/11/2026).
 
 ### partial-report
 

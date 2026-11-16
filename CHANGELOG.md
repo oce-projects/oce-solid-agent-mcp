@@ -32,6 +32,79 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.171.4 — 17 November 2026 · library 0.199.2 (unchanged) · a value that starts with «-» reaches the Ops command whole
+
+**Version number.** Written on 16 November as 0.171.2 on a branch from `main` at 0.171.0, then
+rebased on 0.171.3 / library 0.199.2 (`67851ee`, the line of `port-0131-fix` that becomes
+`main`, under a full bench when this was rebased): 0.171.2 and 0.171.3 were taken, and no two
+builds may carry the same number.
+
+**The defect (16/11/2026).** `Ops\ops.ps1 bench-run -Detach -Extra "-Group part-fixes-131,cases
+-Case l_bracket_drawing_end_to_end"` stopped at once with «STOP (exit 2): no bench in
+part-fixes-131,cases»; `Ops\commands\bench-run.ps1` with the same arguments worked.
+
+**The cause, measured** (dry runs, no SOLIDWORKS). `ops.ps1` received the value whole, as one
+argument. It started the command with `& powershell ... -File $script @Rest`, and Windows
+PowerShell 5.1 hands an element that starts with `-` to a program as it is, without quotes even
+when it holds blanks: the command line of the child was
+`-Extra -Group part-fixes-131,cases -Case l_bracket`. `-Extra` got «-Group», `-Root` (the first
+positional parameter) got «part-fixes-131,cases», and «-Case» and the case name went unbound.
+A value without a leading `-` («x y,z») was quoted and arrived whole, which is why the defect
+showed only with bench arguments. The hypothesis written beside the defect («`-File` reads an
+argument that starts with `-` as a parameter name») was wrong for this case: given as ONE
+argument, `bench-run.ps1 -Extra "-Group a,b -Case c"` binds the whole value to `-Extra`.
+
+The relaunch of `bench-run -Detach` (a hidden process with the same parameters) quoted every
+value by hand. Measured on it, before the fix: a value starting with `-` arrived whole, and so
+did one with quotes inside; `-Root "C:\repo\"` (a trailing backslash) escaped the closing quote
+and the hidden process stopped with «no bench in ...\repo" -Extra -Group»; `-Extra:-DryRun`
+arrived as `-Extra -DryRun` and failed with «missing argument for the parameter 'Extra'».
+
+**The fix.**
+
+- `Ops/lib/Common.ps1` 1.1.0: `ConvertTo-OpsArgument` and `Join-OpsArguments` write a command
+  line with the rules of `CommandLineToArgvW` (quotes around an empty value or one with a blank
+  or a quote, `\"` for a quote inside, the backslashes before a quote or before the closing
+  quote doubled); `Invoke-OpsPowerShell` starts Windows PowerShell with it in the same console
+  or pipe and waits for that process only. Not `Start-Process -Wait`: it waits for the processes
+  the child starts too (measured: 9.2 s against 0.6 s for a child that leaves an 8 s process
+  behind), and `bench-run -Detach` leaves one for an hour.
+- `Ops/ops.ps1` 1.0.2: the command gets the arguments exactly as `ops.ps1` got them.
+- `Ops/commands/bench-run.ps1` 1.1.0: the relaunch passes every value as one argument
+  `-Name:value` through `Join-OpsArguments`, and starts the same `powershell.exe` the dry run
+  uses. `-Detach -DryRun` now prints the hidden command line and runs it in the foreground (it
+  carries `-DryRun`), so the relaunch is tested without a bench; before, `-DryRun` skipped it.
+- `Ops/README.md` 1.1.0 and `Ops/KNOWN-ERRORS.md` 1.1.0: the rule for values and the known
+  error [value-starting-with-a-dash].
+
+**Proof** (Windows PowerShell 5.1, dry runs only; SOLIDWORKS was busy with a full bench):
+
+| Call | Before | After |
+|---|---|---|
+| `ops.ps1 bench-run -DryRun -Extra "-Group part-fixes-131,cases -Case l_bracket_drawing_end_to_end"` | STOP exit 2, «no bench in part-fixes-131,cases» | «would run ...\Bench\bench.ps1 -Group part-fixes-131,cases -Case l_bracket_drawing_end_to_end», exit 0 |
+| the same with `-Detach` | STOP exit 2 | hidden line printed, then the same «would run», exit 0 |
+| `ops.ps1 bench-run -Detach -DryRun -Extra '-Case "a b" -Group x'` | STOP exit 2, «no bench in a b» | «would run ... -Case "a b" -Group x», exit 0 |
+| `ops.ps1 bench-run -Detach -DryRun -Root "<repo>\" -Extra "-Group ..."` | `-Out` became «part-fixes-131,cases» | the whole `-Extra`, the configured output, exit 0 |
+| `ops.ps1 bench-run -DryRun -Extra "x y,z"` (no leading dash) | whole, exit 0 | whole, exit 0 |
+| `ops.ps1 repo-map -Check` (one argument, the fix of 1.0.1) | exit 0 | exit 0 |
+
+The same two calls from a Windows PowerShell host (`& powershell -File Ops\ops.ps1 ...`) give
+the same lines. A round trip of 18 values through `Join-OpsArguments` and a child that reads its
+arguments back (empty, blanks, a tab, quotes, `C:\dir\`, `\\server\share\`, `a\"b`, `\\"`,
+commas, semicolons, pipes, apostrophes): 18 read back, 0 different.
+
+**Limit that stays.** A value that is exactly the name of a parameter of the command
+(`-Extra "-DryRun"` for `bench-run`) is read as that parameter by `powershell.exe -File` itself;
+directly, `-Extra:-DryRun` works; through `ops.ps1` it cannot be passed, because the first
+`powershell.exe` splits `-Extra:-DryRun` into «-Extra» and «-DryRun» before `ops.ps1` runs
+(measured). No argument of `Bench/bench.ps1` has the name of a parameter of `bench-run`.
+
+**Checked and not changed.** `Ops/commands/bench-run.ps1` line `-File "$bench" $roundExtra`
+splits `-Extra` on purpose (it is a piece of command line for `bench.ps1`, and the dry runs show
+it whole); `guard-401.ps1 -Detach` passes two integers and a log path; `deploy.ps1` splats
+`-Exe` and a path that does not start with `-`. None of them carries a value that starts with
+`-`.
+
 ## 0.171.3 — 17 November 2026 · library 0.199.2 · a null is not «0 are left»
 
 **What happened.** The push of 0.171.2 to GitHub, on 17 November 2026, was stopped by the pre-push
