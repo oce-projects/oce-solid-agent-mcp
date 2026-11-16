@@ -182,10 +182,21 @@ namespace Oce.Solid.Agent.Core
                 try { model.EditRebuild3(); } catch { }
                 ISketch again = view.GetSketch() as ISketch;
                 object[] left = again == null ? null : again.GetSketchSegments() as object[];
-                int countAfter = left == null ? 0 : left.Length;
-                if (countAfter != countBefore - fresh.Count)
+                int expected = countBefore - fresh.Count;
+                // NO ARRAY IS NOT «0 ARE LEFT» (bridge 0.171.3). SOLIDWORKS gives null for a sketch it cannot
+                // read, and probably for a sketch with no segment, as GetMates does for zero mates (not measured
+                // for GetSketchSegments). Up to 0.171.2 a null became the count 0, and the problem said
+                // «0 are left» for a view whose sketch was not read again. A null agrees only with an expected
+                // zero; any other expectation is told as not read.
+                if (left == null)
+                {
+                    if (expected != 0)
+                        problems.Add("the view «" + name + "» had " + countBefore + " sketch segments and " + fresh.Count +
+                                     " were to go: its sketch could not be read again, how many are left is not known");
+                }
+                else if (left.Length != expected)
                     problems.Add("the view «" + name + "» had " + countBefore + " sketch segments and " + fresh.Count + " were to go: " +
-                                 countAfter + " are left");
+                                 left.Length + " are left");
             }
         }
     }

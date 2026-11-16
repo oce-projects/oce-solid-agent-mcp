@@ -1116,6 +1116,9 @@ namespace Oce.Solid.Agent.Core
                             s.CenterModel = new[] { cp[0], cp[1], cp[2] };
                             s.CenterSheet = OnSheet(s.CenterModel, mu, tr);
                             var arcAxis = ((IMathVector)((IMathVector)mu.CreateVector(new[] { cp[3], cp[4], cp[5] })).MultiplyTransform(tr)).ArrayData as double[];
+                            // ZERO-E-ZERO: the length is a guard, never an answer: 0 makes the test below
+                            // false, so an axis that cannot be read leaves ArcFaceOn false, «not seen face on»,
+                            // the same as before the axis was read (bridge 0.171.3, pre-push of 17/11/2026).
                             double arcAxisLength = arcAxis == null ? 0 : Math.Sqrt(arcAxis[0] * arcAxis[0] + arcAxis[1] * arcAxis[1] + arcAxis[2] * arcAxis[2]);
                             s.ArcFaceOn = arcAxisLength > 1e-12 && Math.Abs(arcAxis[2]) / arcAxisLength >= 0.99;
                         }

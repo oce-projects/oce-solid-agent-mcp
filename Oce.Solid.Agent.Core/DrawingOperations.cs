@@ -1562,7 +1562,12 @@ namespace Oce.Solid.Agent.Core
                    "and «overwrite» is false: I saved nothing. Give another «path», or «overwrite»: true to replace it.";
         }
 
-        /// <summary>The type of a document (swDocumentTypes_e), 0 when it cannot be read.</summary>
+        /// <summary>
+        /// The type of a document (swDocumentTypes_e), 0 when it cannot be read.
+        /// ZERO-E-ZERO: 0 is not a count, it is swDocNONE, the enum's own value for «no type». Its only
+        /// caller, SavePathProblem, then takes the «default» branch and skips the check of the extension:
+        /// an unknown type states nothing about the file name (bridge 0.171.3, pre-push of 17/11/2026).
+        /// </summary>
         private static int DocumentTypeOf(IModelDoc2 model)
         {
             try { return model.GetType(); } catch { return 0; }

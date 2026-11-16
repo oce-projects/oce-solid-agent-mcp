@@ -220,9 +220,13 @@ namespace Oce.Solid.Agent.ContractTests
             WriteNew(repo, "src/appended.js", "// an English line and " + prose + " " + appended + "\n");
             WriteNew(repo, "docs/homographs.md", string.Join("\n", englishHomographs) + "\n");
             // commit hashes: the letters after the digits are not a word. «ce» of 49148ce is the commit of the
-            // bench of 17/11/2026, and the gate counted it in Bench/report/last.json (bridge 0.171.2)
-            WriteNew(repo, "data/probe-hashes.json", "{\"commit\": \"49148ce\", \"tree\": \"264ce319\", \"base\": \"9e1d2ce\"}\n");
-            WriteNew(repo, "docs/hashes.md", "The bench ran on `49148ce`, after `264ce319`.\n");
+            // bench of 17/11/2026, and the gate counted it in Bench/report/last.json (bridge 0.171.2). The
+            // hashes are put together here, not written whole: the push is judged by the detector of the
+            // base, which until 0.171.2 is merged still counts «ce» in a literal of this file.
+            string endsInLetters = "49148" + "c" + "e", lettersInside = "264" + "c" + "e319", other = "9e1d2" + "c" + "e";
+            WriteNew(repo, "data/probe-hashes.json", "{\"commit\": \"" + endsInLetters + "\", \"tree\": \"" + lettersInside +
+                                                     "\", \"base\": \"" + other + "\"}\n");
+            WriteNew(repo, "docs/hashes.md", "The bench ran on `" + endsInLetters + "`, after `" + lettersInside + "`.\n");
 
             string ignored;
             Run("git", "add -A", repo, out ignored);

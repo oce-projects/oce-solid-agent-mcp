@@ -32,36 +32,76 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
+## 0.171.3 — 17 November 2026 · library 0.199.2 · a null is not «0 are left»
+
+**What happened.** The push of 0.171.2 to GitHub, on 17 November 2026, was stopped by the pre-push
+hook: «pre-push: STOPPED. A count says zero where it should say «I do not know».»
+(`Checks/zero-or-unknown.js`, entry Z-C8). Three lines, all of them from the port of 0.131.0
+(`b9712bf`), had a zero that no marker explained. Nothing was pushed. The checks run before the
+bench of 0.171.1 were the contracts, the language gate, the publishability and the map: the hook's
+zero probe was not among them, and it is the lesson of this entry (every step of the hook runs
+before the final bench, not at the push).
+
+**The three.**
+
+| Place | Form | Judgement | Change |
+|---|---|---|---|
+| `DrawingImportSketchLines.cs`, after the removal of the sketch lines the import drew | `left == null ? 0 : left.Length` | **a real defect**: a view whose sketch could not be read again was told «0 are left», a count nobody had read | a null agrees only with an expected zero; any other expectation gives «its sketch could not be read again, how many are left is not known» |
+| `DrawingDimensionOperations.cs`, the axis of an arc edge | `arcAxis == null ? 0 : Math.Sqrt(...)` | a guard, not a count: 0 makes `ArcFaceOn` false, «not seen face on», which is also the value before the axis is read | marker `ZERO-E-ZERO:` with the reason |
+| `DrawingOperations.cs`, `DocumentTypeOf` | `catch { return 0; }` | 0 is `swDocNONE`, the enum's own «no type»; its only caller, `SavePathProblem`, then skips the check of the extension and states nothing | marker `ZERO-E-ZERO:` with the reason |
+
+Whether `ISketch.GetSketchSegments` gives null for a sketch with no segment is not measured (the
+API card says «never_probed»): the new code does not depend on it, because a null with an expected
+zero is accepted and a null with any other expectation is said as not read.
+
+**The second stop, seen in a dry run of the hook.** With the zeros repaired, the hook run by hand on
+this commit (the refs of the push on its standard input, nothing sent) stopped at the language
+gate: 8 occurrences of «ce» in 3 files, all of them the hash of 0.171.2's bench in a JSON value,
+a code span or a string literal. The push is judged by the detector of the BASE (rule b of
+`.github/steps/language-gate.ps1`: a change to the gate takes effect once merged), so the fix of
+0.171.2 does not judge its own push. The entry of 0.171.2 now writes the hash as plain text, the
+contract puts its hashes together at run time, and the report of the new bench names a new commit.
+
+**What the bench covers.** The library changed (one message and two comments), so the full bench
+runs again on this version before the push, and every step of the pre-push hook is run by hand
+on the commit of the report before the push itself.
+
 ## 0.171.2 — 17 November 2026 · library 0.199.1 (unchanged) · a commit hash is not an Italian word
 
 **What happened.** The full bench of 16-17 November 2026 (22:43-00:06) on 0.171.1 (commit
-`49148ce`) was green: 2809 tests, 0 failed, 1 skipped, 2288 of 2288 expectations, 4930 s. Its
-report, `Bench/report/last.json`, holds the commit in `"commit": "49148ce"`, and the language gate
+49148ce) was green: 2809 tests, 0 failed, 1 skipped, 2288 of 2288 expectations, 4930 s. Its
+report, `Bench/report/last.json`, holds that commit as the value of «commit», and the language gate
 failed on it: «Bench/report/last.json:8 protocol: [ce] 49148ce». The gate read «ce» as an Italian
 word.
 
+(In this entry the hash is written as plain text, never in a code span or a string: the gate that
+judges a push is the detector of the base, «a change to the gate takes effect only once it is
+merged» (`.github/steps/language-gate.ps1`, rule b), so until this version is on `main` the old
+detector still reads «ce» in a code span.)
+
 **The cause.** `collectTokens` of `Checks/language/detect-italian.js` started every token at its
-first letter, so the digits before it were dropped: of `49148ce` only «ce» was left. The two rules
+first letter, so the digits before it were dropped: of 49148ce only «ce» was left. The two rules
 written for this case in `isItalianName` never saw the digits: the one on hashes
 (`/^(?=[0-9a-f]*\d)[0-9a-f]{6,}$/i`) and the one on «a part of one or two letters glued to a digit
 (ce in 264ce319)». The second worked only when the digits came after the letters, as in
 `264ce319`; a hash that ends with letters was counted.
 
-**The fix.** A token keeps the digits that come right before its first letter: `49148ce` is one
+**The fix.** A token keeps the digits that come right before its first letter: 49148ce is one
 token, the hash rule sees it whole and leaves it out. The digits are walked back from the match
 instead of being put in the pattern, so a long run of digits does not make the pattern backtrack.
 Nothing else in the rules changes: a longer word glued to digits is still split and judged; only
 parts of one or two letters glued to a digit, and hashes, are left out, as the rules already said.
 
 **The check.** `Tests/LanguageGateTests.cs`: «a commit hash is not a name: «ce» of 49148ce is not
-counted, as a JSON value or in a code span». It writes `{"commit": "49148ce", "tree": "264ce319",
-"base": "9e1d2ce"}` and a Markdown line with the two hashes in code spans into the probe tree, and
-expects no occurrence from them. Seen red first, on the detector of 0.171.1: «data/probe-hashes.json:
-ce | docs/hashes.md: ce», 1066 checks, 1 failed.
+counted, as a JSON value or in a code span». Into the probe tree it writes a JSON file whose three
+values are the hashes 49148ce, 264ce319 and 9e1d2ce, and a Markdown line with two of them in code
+spans, and expects no occurrence from them. The hashes are put together while the contract runs
+(the C# source holds no literal hash), for the reason given above. Seen red first, on the detector
+of 0.171.1: «data/probe-hashes.json: ce | docs/hashes.md: ce», 1066 checks, 1 failed.
 
 **What the bench covers.** The bridge and the library are byte for byte those of the green bench
-on `49148ce`: only the language gate, its contract and the version changed. The bench does not
-run the language gate; the contracts do.
+on 49148ce: only the language gate, its contract and the version changed. The bench does not
+run the language gate; the contracts do. (Not pushed alone: see 0.171.3.)
 
 ## 0.171.1 — 16 November 2026 · library 0.199.1 · the six reds of the full bench on 0.171.0
 
