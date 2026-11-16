@@ -5,8 +5,8 @@
 
 ## Project information
 
-![Bridge version](https://img.shields.io/badge/bridge-0.130.3-blue)
-![Library version](https://img.shields.io/badge/library-0.153.2-blue)
+![Bridge version](https://img.shields.io/badge/bridge-0.170.15-blue)
+![Library version](https://img.shields.io/badge/library-0.198.12-blue)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey)
 ![SOLIDWORKS 2021 SP5.1](https://img.shields.io/badge/SOLIDWORKS-2021%20SP5.1-red)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)
@@ -25,7 +25,7 @@
 *An independent project, not affiliated with Dassault Systèmes.*
 
 An MCP server for the **SOLIDWORKS® software**: it lets any model — local or
-remote — build a part, an assembly or a drawing through 99 operations, each one
+remote — build a part, an assembly or a drawing through 111 operations, each one
 measured inside the software, and above all **look at what came out**. Every
 operation reads the document again after it runs and reports what SOLIDWORKS
 software really did; a step that could not be verified is reported as such, never
@@ -150,7 +150,7 @@ read it (`inspect_part`). Only then ask for a change: the identifiers a plan nee
 
 ## The tools
 
-Nine tools, not one per operation: exposing a tool for each of the 99 operations
+Nine tools, not one per operation: exposing a tool for each of the 111 operations
 would cost tens of thousands of characters of schemas in every request
 and would make it easy to skip the first step. The operations sit behind `build`
 and `measure`, and are discovered on demand.
@@ -160,12 +160,13 @@ and `measure`, and are discovered on demand.
 | `inspect_part` | the state of the open document: bounding box, volume, bodies, features with their dimensions, faces and edges with their identifier, and a one-line `shape` that sums the part up. With `views` it also returns a **picture** of the part; with `section` a **cutaway**; with `faces` it lists the faces you ask for instead of the 60 largest |
 | `list_operations` | the short list by family: a name and one line each |
 | `describe_operation` | the complete schema of one operation |
-| `build` | runs a sequence of operations and **reports what came out**: the measurements of every step and the state afterwards. With `dry_run: true` it validates the plan with SOLIDWORKS software closed and says what it could not check |
+| `build` | runs a sequence of operations and **reports what came out**: the measurements of every step and the state afterwards. With `dry_run: true` it validates the plan with SOLIDWORKS software closed and says what it could not check. A step can carry `expect`, the measurements it must come out with (`{"removed_mm3": 36}`): one that does not hold stops the plan there |
 | `measure` | the same operations, but **only the ones that read** (family `checks`). It declares itself read-only, so the client does not ask for confirmation for a measurement |
 | `undo` | withdraws the last plan, all of it — but only if the part is still as `build` left it |
 | `document` | creates an empty part or assembly, opens a file from disk, lists the open documents, brings one to the front, closes one — and **refuses to close** a document with unsaved changes. It always says whether a file is open **read-only** |
 | `api_search` | searches the whole SOLIDWORKS API by a piece of a name and answers with the **real signatures** read from the interop on this machine, with SOLIDWORKS software closed. Read only |
 | `api_signature` | the card of one API member: every overload, the `out` parameters, the numbered family, and what the project's own measurements (`Tools/api_knowledge.json`) say about it. Read only |
+| `mesh` | reads an STL file (binary or ASCII): `measure` gives the bounding box, the area, whether it is closed and then the volume; `section` cuts it square to an axis into closed contours ready for `extrude_profile`. Never touches SOLIDWORKS. Read only |
 
 Why some of this is built the way it is:
 
@@ -204,12 +205,12 @@ Why some of this is built the way it is:
 
 ## The operations
 
-`Tools/catalog.json` lists 99 operations in 12 families. It is an exported copy,
+`Tools/catalog.json` lists 111 operations in 12 families. It is an exported copy,
 written by the bridge itself (see [Tools/update.md](Tools/update.md)), and holds only
 the operations **measured inside the SOLIDWORKS software**: an operation that exists
 in the library but could not be shown to create what it promises stays out of the
 file, so a client cannot call it. The bench prints both numbers in its header
-("runnable: 99 operations (in catalog: 99)").
+("runnable: 111 operations (in catalog: 111)").
 
 Each operation carries its limits and its refusals in the description the model
 reads. The same operations are the ones the OpenPDM add-in runs, so what is tested
@@ -227,6 +228,7 @@ here is what the add-in does.
 | `assemblies` | insert, mate, mirror, fix and replace components | an assembly |
 | `drawing` | sheets, views, dimensions, notes, balloons, tables, symbols, PDF | a drawing (`create_drawing` starts from a part or an assembly) |
 | `exports` | STL, STEP, IGES | a part or an assembly (`export_stl` and `export_iges` want a part) |
+| `documents` | saving the open document to disk | a part, an assembly or a drawing |
 | `identity` | custom properties and configurations | a part or an assembly (`set_property` takes any document) |
 | `checks` | measurements and checks without touching the part: mass, bounding box, distances, interference, title block, dependencies | mostly a part; `interference_check` wants an assembly, `title_block` a drawing |
 
@@ -246,6 +248,13 @@ None is required. They exist to move files and to restrict what the bridge may d
 | `OCE_QUESTION_REGISTRY` | where the bridge writes **what it was asked for and was not there**: one JSON line per question, only the name and the nearby names, never the arguments. A `.jsonl` file; if the variable is missing it is written next to the executable (the uninstall removes it); **set to an empty string it means "record nothing"**. If it cannot be written, the bridge stays quiet and goes on |
 | `SW_INSTALL_PATH` | where the SOLIDWORKS software is installed: the **root**, the one that ends with `\SOLIDWORKS`. It holds both for building and for running — `api\redist` is derived from it |
 | `SW_REDIST` | the old name, still read. It wanted the `api\redist` subfolder and not the root; if both are set, `SW_INSTALL_PATH` wins |
+| `OCE_LOG` | where the bridge writes **its own log**: one JSON line per tool call (start and end, milliseconds, the time of each phase, whether the answer is an error, how many characters it has; for `build` the names of the operations, never the values of the arguments) and every line it writes on stderr. A folder; if the variable is missing, `%LOCALAPPDATA%\Oce.Solid.Agent\logs`, one file per day (`bridge-yyyy-MM-dd.jsonl`). Set to `off`, `0`, `false` or an empty string it writes nothing. The log carries local paths: it stays on the machine. If it cannot be written, the bridge stays quiet and goes on |
+| `OCE_API_SEQUENCE` | set to `0`, `false` or `off`, the bridge **does not** tell SOLIDWORKS software that a sequence of API calls is coming (`ISldWorks.CommandInProgress`). By default it sets it for the length of every call, and only when it was off: if another program left it on, the bridge leaves it alone and a plan is refused as before. The switch exists to measure the two ways one against the other |
+| `OCE_KEEP_LAST_READING` | set to `1`, `true` or `on`, the bridge **keeps the last reading of the part alive** between calls (its faces, its edges and the curves of its edges), so that the next reading of an unchanged part may find the geometry SOLIDWORKS software already evaluated. Off by default: after every call the bridge releases every object it read, and SOLIDWORKS software throws that geometry away. The kept reading is let go before every `document` call. The switch exists to measure the time saved against the memory held |
+| `OCE_FINALIZER_GATE` | set to `0`, `false` or `off`, the bridge **lets the objects it read be released at any moment**, also while a call is running, as before 0.160.2. On by default: while a call runs, the .NET finalizer thread is held, and what the call dropped is released after the answer, while SOLIDWORKS software is idle. It guards against a release in the middle of a call, which made a probe outside the repository fall (2 runs in 7); it does **not** cure the falls of the bridge in a cycle of drawings (measured on 30/10/2026: 3 falls in 3 runs with it, 3 in 3 without). The bench holds it in the same way for every step of a case (while `OCE_BENCH_RELEASE` is on). The switch exists to measure the two ways |
+| `OCE_DRAWING_STYLE` | the path of a JSON file with the **numbers of the dimension style** of `drawing_dimension` with `between`: `first_row_mm` (10, from the lines the view draws), `pitch_mm` (6.7, between rows), `text_outside_mm` (11, from the extension line to a text set outside), `arrow_room_mm` (2), `detail_label_gap_mm` (6.2, under the lowest dimension of a detail), `side_by_edges` (true), `pack` (true: dimensions that do not overlap share a row), `tie_horizontal` (`above`), `tie_vertical` (`right`), `tie_balance` (false: when true, a dimension whose edges reach both sides as near goes on the side with fewer dimensions of its direction), `text_both_ends` (true: a text outside may go beyond the lower end when the higher one is taken), `char_mm` (1.8) and `comma_mm` (1.0, the widths of a character and of a comma for the choice inside or outside, for a text 3.5 mm high). The defaults were measured on four drawings of the owner (31/10/2026, his own dimensions alone on 02/11/2026); a key left out keeps its default, an unknown key or a number out of range refuses the call before anything is placed. Read at every call. Unset: the built-in numbers |
+| `OCE_UI_FREEZE` | set to `1`, `true` or `on`, the bridge **turns off the feature tree, its window and the graphics of the view** of the plan's document while a plan runs (and of the new document when a step makes one), and puts back only what it turned off, then updates the tree and redraws the view. `graphics` turns off only the graphics of the view, `tree` only the tree and its window. Off by default. Measured on 30/10/2026 on a cycle of 15 drawings, runs alternated: with the graphics of the view on, 17 falls of SOLIDWORKS in 19 runs; with them off (`1` or `graphics`), 0 in 12. The falls come from a defect of SOLIDWORKS 2021 SP5 with a **sketch picture in the sheet format** (a logo in the title block): a workshop whose title block holds one can set `graphics` |
+| `OCE_DRAG_GUARD` | set to `off`, the bridge **does not watch for a drag that nobody releases** while a call runs, as before library 0.198.7. On by default: every 0,5 s during a call the threads that own a window of SOLIDWORKS software are looked at, and a window that has held the mouse for 3 s with no button down and no menu or move loop open gets Escape once (a drag of the view started by a simulated click: 3 hung runs in 8 on 02/11/2026); the answer says so in `drag_released_with_escape`. A drag of the owner's holds a button and is never touched. The switch exists to measure the two ways: 12 runs alternated on 02/11/2026, the same times with it and without, Escape posted 0 times |
 | `OCE_WRITE_ROOT` | the only folder the bridge may write into. If it is set, everything else on the disk is out |
 | `OCE_READ_ONLY_FOLDERS` | folders the bridge must not write, separated by `;` — for example `D:\CAD;D:\LIBRARIES`. They add to the system ones, they do not replace them. The bridge never writes under Windows, System32, Program Files, Program Files (x86) or ProgramData either, with or without this variable |
 | `OCE_WELDMENT_PROFILES` | the folder of the weldment profiles (`.sldlfp`) that `weldment_profiles` reads. No default: the installer writes it into the client entry's `env`, from `--weldment-profiles <folder>`, or from the folder SOLIDWORKS software is set to (Tools > Options > File Locations > Weldment Profiles), or from the one it installs (`<SOLIDWORKS>\lang\<language>\weldment profiles`) |
@@ -370,7 +379,7 @@ the CI would believe it.
   starts one.
 - **Only measured operations are exposed.** There is no generic "call any API method"
   tool yet: `api_search` and `api_signature` read the API, but the changes go through
-  the 99 operations.
+  the 111 operations.
 - **Identifiers are positional** and valid for one reading; plans must name faces from
   a fresh `inspect_part`.
 - **Writes are fenced** by `OCE_WRITE_ROOT` and `OCE_READ_ONLY_FOLDERS`, and a
@@ -388,7 +397,7 @@ the CI would believe it.
 
 ## Languages of SOLIDWORKS software
 
-**The project is in English**: the nine tools and their sub-actions, the 99
+**The project is in English**: the ten tools and their sub-actions, the 111
 operations and their families, every argument and the value of every argument whose
 schema lists one, the selectors (`@face(normal=front)`), the fields of every answer,
 the keys of `Tools/catalog.json`, the MCP resources (`catalog://operations`,

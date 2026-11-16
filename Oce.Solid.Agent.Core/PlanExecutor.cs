@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -153,6 +154,54 @@ namespace Oce.Solid.Agent.Core
             _onSwThread = onThreadSw;
         }
 
+        /// <summary>
+        /// WHETHER A STEP NAMES AN EDGE (report 8cd843 N2, 27/10/2026), so that
+        /// the reading made for it may leave the edges out. Conservative: any key
+        /// or text that contains «edge» (any case), or that is an edge identifier
+        /// («E» and digits), anywhere in the arguments, nested objects and lists
+        /// included. Pure, so that a contract calls it by reflection.
+        ///
+        /// «_signatures» IS NOT LOOKED INTO: the bridge attaches to every step
+        /// the signatures of everything the last reading listed, edges
+        /// included, so that a uid the step cites can be found again. Read as
+        /// a mention, it made every step look like one that names an edge, and
+        /// the first measure of 0.146.0 (scenario t17) read the edges eight
+        /// times per plan as before. An edge the step cites is in its own
+        /// arguments, and that is seen.
+        /// </summary>
+        public static bool MentionsEdges(object value)
+        {
+            if (value == null) return false;
+            var text = value as string;
+            if (text != null) return EdgeWord(text);
+            var map = value as System.Collections.IDictionary;
+            if (map != null)
+            {
+                foreach (object key in map.Keys)
+                    if (!string.Equals(key as string, "_signatures", StringComparison.Ordinal) &&
+                        (EdgeWord(Convert.ToString(key, System.Globalization.CultureInfo.InvariantCulture)) ||
+                         MentionsEdges(map[key])))
+                        return true;
+                return false;
+            }
+            var list = value as System.Collections.IEnumerable;
+            if (list != null)
+                foreach (object item in list)
+                    if (MentionsEdges(item)) return true;
+            return false;
+        }
+
+        private static bool EdgeWord(string word)
+        {
+            if (string.IsNullOrEmpty(word)) return false;
+            if (word.IndexOf("edge", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            var trimmed = word.Trim();
+            if (trimmed.Length < 2 || (trimmed[0] != 'E' && trimmed[0] != 'e')) return false;
+            for (int i = 1; i < trimmed.Length; i++)
+                if (!char.IsDigit(trimmed[i])) return false;
+            return true;
+        }
+
         public class Result
         {
             public bool Completed;
@@ -193,6 +242,22 @@ namespace Oce.Solid.Agent.Core
             public bool? UndoEntryOnPlanDocument;
 
             /// <summary>
+            /// The times the plan's document was brought back to the front
+            /// (brief R1): step, which document was in front, when, and
+            /// whether it came back. Empty when no window changed.
+            /// </summary>
+            public List<Dictionary<string, object>> Reactivations =
+                new List<Dictionary<string, object>>();
+
+            /// <summary>Adds one entry to <see cref="Reactivations"/>.</summary>
+            internal void WriteDownReactivation(Dictionary<string, object> entry)
+            {
+                // AddRange and not Add: «Add» is also a SOLIDWORKS member, and the
+                // scanner of obsolete calls cannot type a field's receiver.
+                Reactivations.AddRange(new[] { entry });
+            }
+
+            /// <summary>
             /// Z-C21.14: true when the plan stopped before opening its undo
             /// recording and before any step: the preliminary checks refused,
             /// or the document was not the one the caller named. Nothing was
@@ -209,7 +274,6 @@ namespace Oce.Solid.Agent.Core
             CancellationToken undo = default(CancellationToken))
         {
             var result = new Result();
-            var planClock = System.Diagnostics.Stopwatch.StartNew();
 
             // If the plan does not say which document it applies to, the active
             // one now is taken — but ONCE only, and from here on that is the one.
@@ -276,8 +340,8 @@ namespace Oce.Solid.Agent.Core
                 if (!string.Equals(here, expectedPath, StringComparison.OrdinalIgnoreCase))
                 {
                     result.Error =
-                        "The plan was for «" + expectedPath + "», but «" +
-                        here + "» is in front. I touched nothing.";
+                        "The plan was for «" + ReadableIdentity(expectedPath) + "», but «" +
+                        ReadableIdentity(here) + "» is in front. I touched nothing.";
                     result.StoppedBeforeWriting = true;
                     return result;
                 }
@@ -329,9 +393,14 @@ namespace Oce.Solid.Agent.Core
             // NewDocument below), never retargeted in silence.
             IModelDoc2 undoRecordedOn = null;
             bool planDocumentReopened = false;
+            // THE TREE AND THE GRAPHICS OFF FOR THE PLAN, when OCE_UI_FREEZE asks for it
+            // (library 0.180.0, see UiFreeze): on the document held, and moved with it
+            // when a step changes document; put back in the finally below.
+            UiFreeze freeze = null;
             await _onSwThread(() =>
             {
                 undoRecordedOn = StartUndoRecording(expectedDocument);
+                freeze = PhaseClock.Time("plan.ui_freeze", () => UiFreeze.Begin(expectedDocument));
                 return null;
             });
 
@@ -354,11 +423,19 @@ namespace Oce.Solid.Agent.Core
                     // The state of the document the plan works on (M19), not
                     // of whatever window is in front: a changed window is
                     // caught right before the step writes, below.
+                    // THE TIME OF THIS STEP, phase by phase (brief R2): each
+                    // phase is the total before the step subtracted from the
+                    // total after it, so the answer can say where one step went.
                     var stepClock = System.Diagnostics.Stopwatch.StartNew();
-                    long stateForSourceMs = 0, readingMs = 0, operationMs = 0, rebuildMs = 0;
-                    var docState = (Dictionary<string, object>)await _onSwThread(() =>
-                        DocumentState.Read(expectedDocument)?.Data);
-                    stateForSourceMs = stepClock.ElapsedMilliseconds;
+                    var phasesBefore = StepPhases.ToDictionary(x => x, PhaseClock.Milliseconds);
+
+                    // A SOURCE THAT DOES NOT LOOK AT THE STATE IS NOT GIVEN ONE
+                    // (brief R2): reading it cost a full reading per step.
+                    var docState = _source is IPlanSourceWithoutState
+                        ? null
+                        : (Dictionary<string, object>)await _onSwThread(() =>
+                            PhaseClock.Time("plan.state_read_source",
+                                () => DocumentState.Read(expectedDocument)?.Data));
 
                     var next = await _source.NextAsync(docState);
 
@@ -376,6 +453,14 @@ namespace Oce.Solid.Agent.Core
                     }
                     if (next.Done)
                     {
+                        // THE PLAN ENDS ON ITS OWN DOCUMENT when a window came
+                        // to the front after the last step (R1): what the bridge
+                        // reads afterwards is then the plan's document.
+                        await _onSwThread(() =>
+                        {
+                            BringBackIfMoved(expectedDocument, "end", result);
+                            return null;
+                        });
                         result.Completed = true;
                         break;
                     }
@@ -395,34 +480,49 @@ namespace Oce.Solid.Agent.Core
                         break;
                     }
 
+                    bool expectMissed = false;
                     var outcome = (SwOperations.Outcome)await _onSwThread(() =>
                     {
-                        var model = _sw.IActiveDoc2;
+                        // ANOTHER WINDOW IN FRONT: brought back, when allowed (R1).
+                        var model = BringBackIfMoved(expectedDocument, planStep.Order, result);
 
                         // THE CHECK THAT WAS MISSING, AND THIS IS WHERE IT GOES.
                         // The state sent to the server was read BEFORE the
                         // network call; this is the document that is written
                         // to AFTER. Between the two there is the whole HTTP round trip.
+                        // «I touched nothing» only when no step ran yet (report
+                        // 8cd843 N12, 27/10/2026): stopped at step 3, the two
+                        // cuts before it were in the part.
                         if (!SameObject(model, expectedDocument))
                         {
-                            // The cause of R1 (usage report of 24/10/2026) is not known yet. The time
-                            // since the plan started is what is compared with the 20-second poll of an add-in.
-                            _log("[agent] the window in front changed during the plan: step " + planStep.Order + " (" + planStep.Operation + "), expected «" + expectedPath + "», in front «" + Identity(model) + "», " + planClock.ElapsedMilliseconds + " ms after the plan started");
                             return new SwOperations.Outcome
                             {
                                 Succeeded = false,
                                 Error =
                                     "The active document changed while I was running: " +
-                                    "the plan was for «" + expectedPath + "», " +
-                                    "now «" + Identity(model) + "» is " +
-                                    "in front. I touched nothing.",
+                                    "the plan was for «" + ReadableIdentity(expectedPath) + "», " +
+                                    "now «" + ReadableIdentity(Identity(model)) + "» is " +
+                                    "in front. " + (result.ExecutedSteps == 0
+                                        ? "I touched nothing."
+                                        : "I did not run this step; the " + result.ExecutedSteps +
+                                          " step(s) before it are done and stay on «" +
+                                          ReadableIdentity(expectedPath) + "»."),
                             };
                         }
 
-                        var readingClock = System.Diagnostics.Stopwatch.StartNew();
-                        var reading = DocumentState.Read(model);
-                        readingMs = readingClock.ElapsedMilliseconds;
-                        var operations = new SwOperations(_sw, _log);
+                        // THE STEP IS READ ONLY IF ITS OPERATION LOOKS AT THE
+                        // READING (brief R2): forty operations never receive it.
+                        // AND WITHOUT THE EDGES WHEN THE STEP NAMES NONE (report
+                        // 8cd843 N2, 27/10/2026): six cuts on a part of 43 edges
+                        // spent 5.6 s of 13.2 s in these readings, and the edges
+                        // were 563 ms of every one. They serve only to find an
+                        // edge the step names.
+                        var reading = !SwOperations.UsesState(planStep.Operation)
+                            ? DocumentState.WithoutReading(model)
+                            : MentionsEdges(planStep.Arguments)
+                                ? PhaseClock.Time("plan.state_read_step", () => DocumentState.Read(model))
+                                : PhaseClock.Time("plan.state_read_step", () => DocumentState.ReadWithoutEdges(model, null));
+                        var operations = new SwOperations(_sw, _log) { MayBringDocumentBack = ReactivateWindow };
 
                         // Entry Z-C4: it announces what it is about to do. The
                         // `finally` is mandatory -- without it, a step that
@@ -433,18 +533,13 @@ namespace Oce.Solid.Agent.Core
                         // `SwOperations.Outcome` with the full name: `Outcome` is a
                         // nested class, and without the prefix the compiler
                         // does not find it.
-                        var operationClock = System.Diagnostics.Stopwatch.StartNew();
                         SwOperations.Outcome e;
                         try
                         {
-                            e = operations.Run(
-                                model, planStep.Operation, planStep.Arguments, reading, stepsDone);
+                            e = PhaseClock.Time("plan.operation", () => operations.Run(
+                                model, planStep.Operation, planStep.Arguments, reading, stepsDone));
                         }
-                        finally
-                        {
-                            _leash.Finished();
-                            operationMs = operationClock.ElapsedMilliseconds;
-                        }
+                        finally { _leash.Finished(); }
                         if (e.Succeeded)
                         {
                             // What this step created stays at the
@@ -463,10 +558,15 @@ namespace Oce.Solid.Agent.Core
 
                             // A rebuild after every step: that way an error is
                             // seen at once and not at the end, when it is no
-                            // longer known which step caused it.
-                            var rebuildClock = System.Diagnostics.Stopwatch.StartNew();
-                            try { model.EditRebuild3(); } catch { }
-                            rebuildMs = rebuildClock.ElapsedMilliseconds;
+                            // longer known which step caused it. On an assembly
+                            // EditRebuild3 empties the undo (brief R23): see
+                            // SwOperations.RebuildKeepingUndo. After a save, what the save
+                            // leaves is read once the rebuild is over (report 8cd843 N34):
+                            // SwOperations.AfterStep, the same call the bench makes.
+                            PhaseClock.Time("plan.rebuild", () =>
+                            {
+                                try { SwOperations.AfterStep(model, planStep.Operation, e.Measurements); } catch { }
+                            });
 
                             // IF THE STEP DECLARED THAT IT CHANGED
                             // DOCUMENT, we follow it. Only if it declares it:
@@ -491,13 +591,45 @@ namespace Oce.Solid.Agent.Core
                                 }
                                 expectedDocument = e.NewDocument;
                                 result.FinalDocument = expectedDocument;
+                                if (freeze != null) PhaseClock.Time("plan.ui_thaw", () => { freeze.Dispose(); return true; });
+                                freeze = PhaseClock.Time("plan.ui_freeze", () => UiFreeze.Begin(expectedDocument));
                                 _log("[agent] from here on the plan works on «" +
                                      Identity(expectedDocument) + "», with its own undo entry");
+                            }
+
+                            // WHAT THE PLAN SAID THIS STEP MUST MEASURE (brief R16).
+                            // After the bookkeeping above, so that a step that moved
+                            // the plan to a new document leaves it right even when
+                            // its numbers do not hold. A miss stops the plan here;
+                            // what the step made stays, and «undo» withdraws the plan.
+                            if (planStep.Expect != null)
+                            {
+                                var measuredForExpect = WithVolumeIfAsked(planStep.Expect, e.Measurements, expectedDocument);
+                                var misses = StepExpectations.Misses(planStep.Expect, measuredForExpect);
+                                // A CHECK THAT HOLDS IS SAID TOO (report 8cd843 N8):
+                                // six expectations kept and the word «expect»
+                                // nowhere in the answer read as no check made.
+                                if (misses.Count == 0)
+                                {
+                                    if (e.Measurements == null) e.Measurements = new Dictionary<string, object>();
+                                    e.Measurements["expect_verdict"] = StepExpectations.Held(planStep.Expect, measuredForExpect);
+                                }
+                                if (misses.Count > 0)
+                                {
+                                    expectMissed = true;
+                                    e.Succeeded = false;
+                                    e.Error = "The step ran, but it did not measure what «expect» asked: " +
+                                              string.Join("; ", misses) + ". The plan stops here, and what this " +
+                                              "step made is still in the document: «undo» withdraws the plan, or " +
+                                              "fix the step and send the plan again.";
+                                    _log("[agent] " + e.Error);
+                                }
                             }
                         }
                         return e;
                     });
 
+                    var stepTiming = StepTiming(phasesBefore, stepClock);
                     await _source.OutcomeAsync(
                         planStep.Order,
                         outcome.Succeeded,
@@ -506,13 +638,17 @@ namespace Oce.Solid.Agent.Core
                             {
                                 ["feature"] = outcome.CreatedFeature,
                                 ["measurements"] = outcome.Measurements,
+                                ["timing_ms"] = stepTiming,
                             }
-                            : null,
+                            : new Dictionary<string, object>
+                            {
+                                ["timing_ms"] = stepTiming,
+                                // The numbers of a step that ran and missed its
+                                // «expect» stay in the answer (report 8cd843, #36:
+                                // «measured true» in the text, measurements null).
+                                ["measurements"] = expectMissed ? outcome.Measurements : null,
+                            },
                         outcome.Error);
-
-                    // R2: measure before optimising. Every step reads the state twice and rebuilds;
-                    // these timings show which of those costs the time.
-                    _log("[agent] step timing: step " + planStep.Order + " (" + planStep.Operation + ") " + stepClock.ElapsedMilliseconds + " ms in all: state for the source " + stateForSourceMs + " ms, state for the step " + readingMs + " ms, operation " + operationMs + " ms, rebuild " + rebuildMs + " ms");
 
                     if (!outcome.Succeeded)
                     {
@@ -531,6 +667,10 @@ namespace Oce.Solid.Agent.Core
             {
                 await _onSwThread(() =>
                 {
+                    // The tree and the graphics first: what follows reads nothing
+                    // from them, and the user gets them back whatever happened.
+                    if (freeze != null) PhaseClock.Time("plan.ui_thaw", () => { freeze.Dispose(); return true; });
+
                     // The error window goes back to how it was: it is
                     // a setting of whoever is working, not ours. It is put back
                     // only if it could be read — writing an invented
@@ -565,6 +705,35 @@ namespace Oce.Solid.Agent.Core
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Brief R16, seen on SOLIDWORKS on 26/10/2026 (scenarios t11 and t12): a
+        /// step whose operation measures no volume (extrude_profile) answered
+        /// «volume_mm3: this step does not measure it» to its «expect», and only
+        /// after it had run. The volume of the part is the same for every
+        /// operation, so it is read here, once, when the expectation asks for it
+        /// and the step did not give it. Read from the part, never assumed: when
+        /// it cannot be read the measurements go on as they were, and the miss
+        /// says so.
+        /// </summary>
+        internal static Dictionary<string, object> WithVolumeIfAsked(
+            Dictionary<string, object> expect, Dictionary<string, object> measurements, IModelDoc2 document)
+        {
+            if (expect == null || document == null) return measurements;
+            if (!expect.ContainsKey("volume_mm3") && !expect.ContainsKey("volume_after_mm3")) return measurements;
+            object given;
+            if (measurements != null &&
+                ((measurements.TryGetValue("volume_after_mm3", out given) && given != null) ||
+                 (measurements.TryGetValue("volume_mm3", out given) && given != null)))
+                return measurements;
+            double? volume = SwOperations.VolumeMm3(document);
+            if (volume == null) return measurements;
+            var withVolume = measurements == null
+                ? new Dictionary<string, object>()
+                : new Dictionary<string, object>(measurements);
+            withVolume["volume_after_mm3"] = Math.Round((double)volume, 2);
+            return withVolume;
         }
 
         /// <summary>
@@ -677,6 +846,18 @@ namespace Oce.Solid.Agent.Core
             }
         }
 
+        /// <summary>
+        /// The identity as a person reads it (report 8cd843 N13, 27/10/2026):
+        /// «title:» marks a document never saved for the comparisons above, and
+        /// it reached the error of a stopped plan as «title:Parte354».
+        /// </summary>
+        internal static string ReadableIdentity(string identity)
+        {
+            return identity != null && identity.StartsWith("title:", StringComparison.Ordinal)
+                ? identity.Substring("title:".Length)
+                : identity;
+        }
+
         private static string Identity(IModelDoc2 model)
         {
             if (model == null) return "";
@@ -738,7 +919,108 @@ namespace Oce.Solid.Agent.Core
             new Shared.Leash(120000);
 
         private static System.Threading.Thread _guardian;
+
+        /// <summary>
+        /// Where the guardian's report goes; stderr when nobody set it. The
+        /// bridge sets it so the report also lands in its own log (brief
+        /// R24): the client keeps stderr only while connecting, and a hung
+        /// call reported there was read by nobody. It is called from the
+        /// guardian's thread, so it must not write on the JSON-RPC channel.
+        /// </summary>
+        public static Action<string> GuardianReport;
+
+        /// <summary>
+        /// True when the caller itself set ISldWorks.CommandInProgress for the
+        /// length of this call (the bridge does, brief R2): then a true value is
+        /// not «another program driving SOLIDWORKS», and the preliminary check
+        /// does not refuse on it.
+        /// </summary>
+        public bool CommandInProgressIsOurs { get; set; }
+
+        /// <summary>
+        /// WHEN ANOTHER WINDOW COMES TO THE FRONT, THE PLAN'S DOCUMENT IS BROUGHT
+        /// BACK (brief R1) instead of stopping, at most
+        /// <see cref="MaxReactivations"/> times per plan.
+        ///
+        /// On 24/10/2026 three plans out of sixteen stopped because a person
+        /// was working in the same SOLIDWORKS session: they clicked another window
+        /// or saved, and the add-in of the PDM answered the save (journal of
+        /// SOLIDWORKS and log of the add-in, same second). The plan's document
+        /// is held by reference (it does not depend on the window), so it can
+        /// be brought back; what was in front is written down, never hidden.
+        /// Off by default: the add-in's assistant keeps stopping.
+        /// </summary>
+        public bool ReactivateWindow { get; set; }
+
+        /// <summary>See <see cref="ReactivateWindow"/>: past this, the plan stops as before.</summary>
+        public int MaxReactivations { get; set; } = 3;
+
+        /// <summary>
+        /// Brings <paramref name="document"/> back to the front if another window
+        /// is there and <see cref="ReactivateWindow"/> allows it; writes it down in
+        /// <paramref name="result"/>. Returns the document in front afterwards.
+        /// The front is read here once per step (Z-C5 counts the reads of the
+        /// active document in this file); after the activation it is asked by
+        /// comparison, not taken as the document to work on.
+        /// </summary>
+        private IModelDoc2 BringBackIfMoved(IModelDoc2 document, object step, Result result)
+        {
+            IModelDoc2 inFront = _sw.IActiveDoc2;
+            if (SameObject(inFront, document) || !ReactivateWindow ||
+                result.Reactivations.Count >= MaxReactivations)
+                return inFront;
+            var wasInFront = Identity(inFront);
+            int activationErrors;
+            string problem;
+            bool asked = DocumentByPath.ActivateAndReadBack(_sw, document, out activationErrors, out problem);
+            bool back = DocumentByPath.IsFrontDocument(_sw, document);
+            // ActivateDoc3 is asked not to rebuild: when it says the plan's
+            // document needs it, it is rebuilt before the step reads it.
+            string rebuilt = back ? DocumentByPath.RebuildIfActivationAsked(document, activationErrors) : null;
+            var entry = new Dictionary<string, object>
+            {
+                ["step"] = step,
+                ["was_in_front"] = wasInFront,
+                ["at"] = DateTime.Now.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                ["brought_back"] = back,
+            };
+            if (!asked && problem != null) entry["problem"] = problem;
+            if (rebuilt != null) entry["rebuilt_on_activation"] = rebuilt;
+            result.WriteDownReactivation(entry);
+            _log("[agent] «" + wasInFront + "» had come to the front; the plan's document was brought back" +
+                 (back ? "" : " — and it did NOT come back"));
+            return back ? document : inFront;
+        }
         private static readonly object _guardianKey = new object();
+
+        /// <summary>
+        /// The phases of one step that its outcome reports in `timing_ms`
+        /// (brief R2). The names are the ones of <see cref="PhaseClock"/>.
+        /// </summary>
+        private static readonly string[] StepPhases =
+        {
+            "plan.state_read_source", "plan.state_read_step", "plan.operation", "plan.rebuild",
+        };
+
+        /// <summary>
+        /// The time of one step: each phase as the difference of its total
+        /// before and after the step, and the whole step from its own clock.
+        /// Null when no call is collecting (the bench, the probes), so the
+        /// outcomes there stay as they were.
+        /// </summary>
+        private static Dictionary<string, object> StepTiming(
+            Dictionary<string, double> phasesBefore, System.Diagnostics.Stopwatch stepClock)
+        {
+            if (!PhaseClock.Collecting) return null;
+            var timing = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (var phase in StepPhases)
+            {
+                double spent = PhaseClock.Milliseconds(phase) - phasesBefore[phase];
+                if (spent > 0) timing[phase.Substring("plan.".Length)] = PhaseClock.Round(spent);
+            }
+            timing["total"] = PhaseClock.Round(stepClock.Elapsed.TotalMilliseconds);
+            return timing;
+        }
 
         private static void TurnOnGuardian()
         {
@@ -759,7 +1041,12 @@ namespace Oce.Solid.Agent.Core
                         // read any more.
                         if (report == said) continue;
                         said = report;
-                        try { Console.Error.WriteLine("[bridge] " + report); }
+                        try
+                        {
+                            var sink = GuardianReport;
+                            if (sink != null) sink("[bridge] " + report);
+                            else Console.Error.WriteLine("[bridge] " + report);
+                        }
                         catch { }
                     }
                 });
@@ -839,7 +1126,7 @@ namespace Oce.Solid.Agent.Core
 
             try
             {
-                if (_sw.CommandInProgress)
+                if (!CommandInProgressIsOurs && _sw.CommandInProgress)
                     return "SOLIDWORKS says a sequence of API calls is in progress " +
                            "(ISldWorks.CommandInProgress is true): another program driving " +
                            "SOLIDWORKS set it and has not cleared it. Let that program finish, " +

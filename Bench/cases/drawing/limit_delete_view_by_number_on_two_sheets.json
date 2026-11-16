@@ -1,0 +1,57 @@
+{
+  "name": "limit_delete_view_by_number_on_two_sheets",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N57 (round 15, 28/10/2026). With the second sheet active, inspect_part gave V1 to the isometric view of that sheet, while on the first sheet V1 is the front view: the same number names two views. A plan that takes away «V1» after new_sheet takes away a view of the other sheet.",
+
+  "_what_changes_compared_to_the_twin": "The view is asked by number, as in the twin, but the drawing has two sheets: the twin has one, and there V2 is not ambiguous.",
+
+  "defect_caught": "That a view is taken away by its number on a drawing of two sheets. The message must say that the number counts the views of the active sheet, name the view it would have taken, and say nothing was touched.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "the plate of the drawing cases" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_delete_view_by_number_on_two_sheets.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the active document is the drawing" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_delete_view_by_number_on_two_sheets.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the views of the first sheet: V1 there is the front view" } ] },
+
+    { "operation": "new_sheet",
+      "arguments": { "name": "Second", "paper_size": "A3" },
+      "expect": [
+        { "what": "measurements.sheets_after", "equal_to": 2,
+          "why": "the second sheet, active from here on" } ] },
+
+    { "operation": "model_view",
+      "arguments": { "model": "{WORK}\\limit_delete_view_by_number_on_two_sheets.sldprt",
+                     "view": "isometric", "x_mm": 210, "y_mm": 160 },
+      "expect": [
+        { "what": "state.views_total", "equal_to": 1,
+          "why": "the state lists the views of the active sheet: here V1 is this isometric view" } ] },
+
+    { "operation": "delete_view",
+      "arguments": { "view": "V1" },
+      "must_fail": {
+        "message_includes": ["numbers the views of the active sheet", "2 sheets", "give its name", "I touched nothing"],
+        "twin": "view_is_deleted"
+      } }
+  ]
+}

@@ -152,6 +152,9 @@ namespace Oce.Solid.Agent.ContractTests
                 Tuple.Create("RY stays turned 5 degrees", Transform(TurnedAbout(1, 5), 100, 10, 100), 4, false),
                 Tuple.Create("RZ half way back (2.5 degrees)", Transform(TurnedAbout(2, 2.5), 100, 10, 100), 5, false),
                 Tuple.Create("RX back within 0.009 degree", Transform(TurnedAbout(0, 0.009), 100, 10, 100), 3, true),
+                // Report 8cd843 N3 (27/10/2026, scenario t18b): the normal put back,
+                // 0.218 degrees left about Y, the normal of the face, a free direction.
+                Tuple.Create("N3: RZ put back, turned 0.218 degrees about Y", Transform(TurnedAbout(1, 0.218), 100, 10, 100), 5, true),
             };
         }
 
@@ -203,7 +206,8 @@ namespace Oce.Solid.Agent.ContractTests
                 Change(Mates, "no reading after the mate", "beforeA.Status == ReadingMeasured ? ReadBlockedDirections(",
                        "beforeA.Status == ReadingMeasured ? NotRead("),
                 Change(Mates, "no reading before the mate", "var beforeB = ReadBlockedDirections(", "var beforeB = NotRead("),
-                Change(Mates, "a face not found again after the test", "ComponentAxes(testedB)", "axesFromBefore"),
+                Change(Mates, "a face not found again after the test", "PickFace(testedB", "PickFace(compB"),
+                Change(Mates, "a width face not found again after the test", "faceA2 = PickFace(testedA", "faceA2 = PickFace(compA"),
                 Change(Mates, "no verdict", "string verdict = MateVerdict(", "string verdict = MateVerdictOld("));
 
             Checked(sources, "limit mates",
@@ -263,12 +267,14 @@ namespace Oce.Solid.Agent.ContractTests
             Checked(sources, "moved direction only",
                 "the rule judges only the moved direction: the displacement along the axis, the angle of the turn, 0.01 mm and 0.01 degree",
                 RuleProblems,
-                "MovementOf: |to[9 + direction] - from[9 + direction]| * 1000 for a translation, AngleBetweenDeg for a turn, no " +
-                "DistanceMm; DirectionBlocked on MovementOf with BackWithinMm and BackWithinDeg; 5 mm, 5 degrees, 0.01, 0.01",
+                "MovementOf: |to[9 + direction] - from[9 + direction]| * 1000 for a translation, TurnAboutAxisDeg for a turn (report " +
+                "8cd843 N3), no DistanceMm, no AngleBetweenDeg; DirectionBlocked on MovementOf with BackWithinMm and BackWithinDeg; " +
+                "5 mm, 5 degrees, 0.01, 0.01",
                 Change(Mates, "the whole displacement for a translation",
                        "if (direction < 3) return Math.Abs(to[9 + direction] - from[9 + direction]) * 1000.0;",
                        "if (direction < 3) return DistanceMm(from, to);"),
-                Change(Mates, "the whole transform for a turn", "return AngleBetweenDeg(from, to);", "return AngleBetweenDeg(from, to) + DistanceMm(from, to);"),
+                Change(Mates, "the whole transform for a turn", "return TurnAboutAxisDeg(from, to, direction - 3);", "return TurnAboutAxisDeg(from, to, direction - 3) + DistanceMm(from, to);"),
+                Change(Mates, "the whole turn for a turn (report 8cd843 N3)", "return TurnAboutAxisDeg(from, to, direction - 3);", "return AngleBetweenDeg(from, to);"),
                 Change(Mates, "a looser threshold", "BackWithinMm = 0.01", "BackWithinMm = 0.5"),
                 Change(Mates, "a smaller move", "TestMoveMm = 5.0", "TestMoveMm = 0.5"));
 
@@ -295,9 +301,22 @@ namespace Oce.Solid.Agent.ContractTests
             if (readsBefore < 2) problems.Add(readsBefore + " " + TestMember + " before AddMate5, expected 2 (one per component)");
             if (readsAfter < 2) problems.Add(readsAfter + " " + TestMember + " after AddMate5, expected 2 (one per component)");
             int lastRead = before.LastIndexOf(TestMember + "(", StringComparison.Ordinal);
-            int facesAgain = lastRead < 0 ? 0 : Count(before.Substring(lastRead), "ComponentAxes(tested");
-            if (facesAgain < 2)
-                problems.Add(facesAgain + " faces found again on the tested components between the test and AddMate5, expected 2: " +
+            // PickFace since brief R12 (26/10/2026): it finds the face by direction
+            // (FaceNormalOf with ComponentAxes) or by a point (FaceAtPoint), on the
+            // component it is handed.
+            // Face by face since round 21, point 7 (28/10/2026): a width mate picks two
+            // faces more, so a count of PickFace(tested could stay at 2 with face B
+            // taken on the component before the test.
+            string fromTest = lastRead < 0 ? "" : before.Substring(lastRead);
+            var stale = new List<string>();
+            if (!Regex.IsMatch(fromTest, @"\bfaceA\s*=\s*PickFace\(testedA\b")) stale.Add("faceA");
+            if (!Regex.IsMatch(fromTest, @"\bfaceB\s*=\s*PickFace\(testedB\b")) stale.Add("faceB");
+            if (Regex.IsMatch(body, @"\bfaceA2\s*=\s*PickFace\(") &&
+                !Regex.IsMatch(fromTest, @"\bfaceA2\s*=\s*PickFace\(testedA\b")) stale.Add("faceA2");
+            if (Regex.IsMatch(body, @"\bfaceB2\s*=\s*PickFace\(") &&
+                !Regex.IsMatch(fromTest, @"\bfaceB2\s*=\s*PickFace\(testedB\b")) stale.Add("faceB2");
+            if (stale.Count > 0)
+                problems.Add(string.Join(", ", stale) + " not found again on the tested components between the test and AddMate5: " +
                              "the rebuilds of the test can leave the first faces stale");
             if (!Regex.IsMatch(after, @"\bverdict\s*=\s*" + VerdictMember + @"\("))
                 problems.Add("the verdict is not taken from " + VerdictMember + " after the mate");
@@ -428,8 +447,10 @@ namespace Oce.Solid.Agent.ContractTests
             {
                 if (!Regex.IsMatch(movement, @"if\s*\(\s*direction\s*<\s*3\s*\)\s*return\s+Math\.Abs\(\s*to\[\s*9\s*\+\s*direction\s*\]\s*-\s*from\[\s*9\s*\+\s*direction\s*\]\s*\)\s*\*\s*1000(\.0)?\s*;"))
                     problems.Add("a translation is not judged by the displacement along its own axis");
-                if (!Regex.IsMatch(movement, @"return\s+AngleBetweenDeg\(\s*from\s*,\s*to\s*\)\s*;"))
-                    problems.Add("a turn is not judged by the angle between the rotation parts alone");
+                if (!Regex.IsMatch(movement, @"return\s+TurnAboutAxisDeg\(\s*from\s*,\s*to\s*,\s*direction\s*-\s*3\s*\)\s*;"))
+                    problems.Add("a turn is not judged by the turn about its own axis (TurnAboutAxisDeg)");
+                if (movement.Contains("AngleBetweenDeg("))
+                    problems.Add(MovementMember + " judges a turn by the whole angle, a drift about a free axis included (report 8cd843 N3)");
                 if (movement.Contains("DistanceMm(")) problems.Add(MovementMember + " uses the whole displacement");
             }
             var rule = MemberBody(code, RuleMember);
@@ -659,6 +680,61 @@ namespace Oce.Solid.Agent.ContractTests
             Verdicts(sw);
             RemovalNotes(sw);
             StandardMates(sw);
+            Placements(sw);
+        }
+
+        // ── the placement of place_component and the side of a distance mate (briefs R12, R21) ──
+        private static void Placements(Type sw)
+        {
+            const string label = "place_component and the side of a distance mate (briefs R12, R21): turns about the assembly's axes, the axes in words, the signed gap along the normal of face A";
+            try
+            {
+                var wrong = new List<string>();
+                // 180 degrees about x with the origin at y 20: the cover turned over.
+                var over = (double[])Call(sw, "PlacedTransform", Start(), new[] { 0.0, 20, 0 }, new List<double[]> { new[] { 0.0, 180 } });
+                var overRows = new double[] { 1, 0, 0, 0, -1, 0, 0, 0, -1 };
+                for (int i = 0; i < 9; i++)
+                    if (over == null || over[i] != overRows[i]) { wrong.Add("180 about x: row value " + i + " is " + (over == null ? "null" : over[i].ToString()) + ", expected " + overRows[i]); break; }
+                if (over != null && (!Near(over[9], 0, 1e-12) || !Near(over[10], 0.020, 1e-12) || !Near(over[11], 0, 1e-12) || over[12] != 1.0))
+                    wrong.Add("the origin is not [0, 20, 0] mm or the scale was lost");
+                if ((string)Call(sw, "AxesValue", over) != "+X -Y -Z") wrong.Add("180 about x reads " + Call(sw, "AxesValue", over));
+                // 90 about z takes x to y (the catalogue says so), then 90 about x.
+                var z90 = (double[])Call(sw, "TurnedRows", NotTurned, 2, 90.0);
+                if (z90 == null || z90[1] != 1 || z90[3] != -1 || z90[8] != 1) wrong.Add("90 about z does not take x to y");
+                var two = (double[])Call(sw, "PlacedTransform", Start(), null, new List<double[]> { new[] { 2.0, 90 }, new[] { 0.0, 90 } });
+                if ((string)Call(sw, "AxesValue", two) != "+Z -X -Y") wrong.Add("z 90 then x 90 reads " + Call(sw, "AxesValue", two));
+                if (two != null && (!Near(two[9], 0.1, 1e-12) || !Near(two[10], 0.01, 1e-12))) wrong.Add("a rotation alone moved the origin");
+                var still = (double[])Call(sw, "PlacedTransform", Transform(TurnedAbout(2, 90), 1, 2, 3), new[] { 4.0, 5, 6 }, null);
+                if (still == null || (string)Call(sw, "AxesValue", still) != (string)Call(sw, "AxesValue", Transform(TurnedAbout(2, 90), 1, 2, 3)))
+                    wrong.Add("an origin alone changed the rotation");
+                if ((string)Call(sw, "AxesValue", Start()) != "+X +Y +Z") wrong.Add("a block not turned is not «+X +Y +Z»");
+                if (Call(sw, "AxesValue", Transform(TurnedAbout(2, 30), 0, 0, 0)) is string) wrong.Add("a turn of 30 degrees reads as axes on the assembly's");
+                if (Call(sw, "PlacedTransform", new double[11], null, null) != null) wrong.Add("11 numbers give a placement");
+                // The side: face A up at y 5 (block not turned), face B at the cover's origin.
+                var a = Transform(NotTurned, 0, 0, 0);
+                var pointA = new[] { 0.0, 0.005, 0 };
+                var up = new[] { 0.0, 1, 0 };
+                double gap = (double)Call(sw, "SignedGapMm", a, pointA, up, Transform(overRows, 0, 15, 0), new[] { 0.0, 0, 0 });
+                if (!Near(gap, 10, 1e-9)) wrong.Add("cover 10 mm above: gap " + gap);
+                gap = (double)Call(sw, "SignedGapMm", a, pointA, up, Transform(overRows, 0, -5, 0), new[] { 0.0, 0, 0 });
+                if (!Near(gap, -10, 1e-9)) wrong.Add("cover 10 mm below: gap " + gap);
+                // Face A on a base turned over: its normal of the part (+y) looks down in the assembly.
+                gap = (double)Call(sw, "SignedGapMm", Transform(overRows, 0, 0, 0), pointA, up, Transform(NotTurned, 0, -15, 0), new[] { 0.0, 0, 0 });
+                if (!Near(gap, 10, 1e-9)) wrong.Add("below a base turned over: gap " + gap + " (the normal was not turned into the assembly)");
+                if (!double.IsNaN((double)Call(sw, "SignedGapMm", a, pointA, new[] { 0.0, 0, 0 }, a, pointA))) wrong.Add("a normal with no length gives a gap");
+                // A face named by a point: the point of the assembly carried into the part
+                // and back is the same point, on a component turned and moved.
+                var turnedMoved = Transform((double[])Call(sw, "TurnedRows", TurnedAbout(2, 90), 0, 30.0), 40, 20, -7);
+                var inPart = (double[])Call(sw, "AssemblyToPart", turnedMoved, new[] { 0.045, 0.020, 0.003 });
+                var back = (double[])Call(sw, "PartToAssembly", turnedMoved, inPart, true);
+                if (back == null || !Near(back[0], 0.045, 1e-12) || !Near(back[1], 0.020, 1e-12) || !Near(back[2], 0.003, 1e-12))
+                    wrong.Add("a point carried into the part and back moved");
+                var pinPoint = (double[])Call(sw, "AssemblyToPart", Transform(NotTurned, 40, 10, 0), new[] { 0.045, 0.020, 0 });
+                if (pinPoint == null || !Near(pinPoint[0], 0.005, 1e-12) || !Near(pinPoint[1], 0.010, 1e-12) || !Near(pinPoint[2], 0, 1e-12))
+                    wrong.Add("the pin's side point is not [5, 10, 0] mm in the part");
+                Check(label, wrong.Count == 0, wrong.Count == 0 ? "turned over, two turns in order, origin and rotation apart, the axes in words, three gaps and a null normal" : string.Join("; ", wrong));
+            }
+            catch (Exception ex) { Check(label, false, ex.GetType().Name + ": " + ex.Message); }
         }
 
         // ── which mates allow a «redundant» verdict (review of Z-C14) ─────────

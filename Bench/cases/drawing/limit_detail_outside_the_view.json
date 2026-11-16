@@ -37,7 +37,7 @@
           "why": "and not the one on «there is nothing to detail» either: the view is there, and it is the circle that is wrong" } ] },
 
     { "operation": "detail_view",
-      "arguments": { "label": "B", "scale": 2, "radius_mm": 9999 },
+      "arguments": { "label": "B", "scale": 2, "radius_mm": 9999, "x_mm": 55 },
       "must_fail": {
         "message_includes": ["does not fit inside the view", "9999"],
         "twin": "detail_enlarges"

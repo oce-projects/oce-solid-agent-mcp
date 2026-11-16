@@ -604,6 +604,37 @@ namespace Oce.Solid.Agent.Core
         // the file goes through the same FILE_SCHEMA check as the other two;
         // that branch is not measured here, for want of the licence.
 
+        /// <summary>
+        /// What an exchange export refuses on an ASSEMBLY, or null. Public and
+        /// pure: the bridge asks it before the first step of a plan (report
+        /// 8cd843 N18, 27/10/2026: [save_document, export_step with
+        /// reopen_and_compare] on an assembly saved the copy, then refused step 2).
+        /// ExportExchange keeps the same two texts in its own Failed, where the
+        /// count of refusals with a way forward reads them; a contract check
+        /// (Zc2189WeldAssemblyContract) compares the two copies.
+        ///
+        /// «reopen_and_compare» on an assembly: reading back the STEP of an
+        /// assembly opens the window «New Document» and the call does not return
+        /// (measured). THE ASSEMBLY IGES IS NOT (adversarial review of
+        /// 27/9/2026): it does not have the check of the solids that the STEP
+        /// has, and it depends on a global preference
+        /// (swIGESComponentsIntoOneFile) that is not set — with that one off
+        /// SOLIDWORKS writes one file per component, and the one in «path» may
+        /// not contain the whole assembly. Until it is measured, it refuses.
+        /// </summary>
+        public static string AssemblyExchangeRefusal(string operation, bool reopenAndCompare)
+        {
+            if (operation == "export_iges")
+                return "I do not write the IGES of an assembly: I cannot verify that the whole assembly is inside " +
+                       "(with certain settings SOLIDWORKS writes one file per component). To send the assembly use " +
+                       "«export_step», which carries it whole and I check it; for a single part, open it and ask me for the IGES there.";
+            if (operation == "export_step" && reopenAndCompare)
+                return "On an assembly I do not do «reopen_and_compare»: reading back the STEP of an assembly opens " +
+                       "the window «New Document» and the call does not return (measured). The check I do is the count " +
+                       "of the solids in the file against those of the parts: remove it and ask me again.";
+            return null;
+        }
+
         private Outcome ExportExchange(
             IModelDoc2 model, Dictionary<string, object> a, string operation,
             DocumentState docState)
@@ -617,6 +648,10 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "This document is neither a part nor an assembly: STEP and IGES are exported from a part " +
                     "or from an assembly. Open the one to send for me.");
+            // The two texts below are the ones AssemblyExchangeRefusal gives the
+            // plan's pre-check, written here again so that the count of refusals
+            // with a way forward (RefusalsTests) still reads them in a Failed;
+            // Zc2189WeldAssemblyContract turns red if the two copies part.
             if (assemblyDoc != null && Bool(a, "reopen_and_compare", false))
                 return Failed(
                     "On an assembly I do not do «reopen_and_compare»: reading back the STEP of an assembly opens " +
@@ -880,6 +915,12 @@ namespace Oce.Solid.Agent.Core
                     int expectedValues = ExpectedSolidsInAssembly(assemblyDoc, hiddenLeftOut);
                     int inFile = SolidsInStep(location);
                     measurements["solids_expected"] = expectedValues >= 0 ? (object)expectedValues : null;
+                    // ON WHICH BASIS (report 8cd843 N19, 27/10/2026): 7 next to an
+                    // assembly of 8 instances read as an error; a part used twice
+                    // is written once (ExpectedSolidsInAssembly). Under 100
+                    // characters, so the summary keeps it.
+                    measurements["solids_expected_basis"] =
+                        "bodies of each distinct part and configuration, once, as STEP writes them";
                     measurements["solids_in_file"] = inFile >= 0 ? (object)inFile : null;
                     // Z-C21.11: hidden components are not written (measured), and the
                     // export resolved lightweight components (measured): both are said.

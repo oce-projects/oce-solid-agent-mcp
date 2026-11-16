@@ -1,7 +1,10 @@
 # contracts.ps1 - build, contract suite and language gate of this repository, with a short summary.
 #
-# Version 1.0.0
+# Version 1.0.1
 # Changelog:
+#   1.0.1 (16/11/2026) the language gate step works in a linked worktree: there git gives the
+#         index as an absolute path, and prefixing the root made "path not found" (seen on
+#         the merge of 16/11/2026; the gate still ran, on the tracked files only).
 #   1.0.0 (08/11/2026) ported from the maintainer's verification script 1.2.0 (26/10/2026):
 #         - OCE_NO_ATTACH=1 for the contracts unless -Attach: the protocol checks start the bridge,
 #           and with SOLIDWORKS open it would attach to the session a bench or a person is using;
@@ -78,8 +81,11 @@ if ($Pattern) { Select-String -Path (Join-Path $out 'contracts.txt') -Pattern $P
 
 # Language gate on a temporary copy of the index, so that new files are judged too.
 $index = Invoke-OpsGit @('rev-parse', '--git-path', 'index')
+# In the main working tree git answers a relative path (.git/index); in a linked worktree an
+# absolute one (<repository>/.git/worktrees/<name>/index), which Join-Path must not prefix.
+if (-not [System.IO.Path]::IsPathRooted($index)) { $index = Join-Path $root $index }
 $tmpIndex = Join-Path $env:TEMP ('oce-ops-index-' + (Get-OpsStamp))
-Copy-Item -LiteralPath (Join-Path $root $index) $tmpIndex
+Copy-Item -LiteralPath $index $tmpIndex
 $env:GIT_INDEX_FILE = $tmpIndex
 try {
     $new = @(Invoke-OpsGit @('ls-files', '--others', '--exclude-standard') | Where-Object { $_ })

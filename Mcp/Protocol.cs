@@ -41,13 +41,25 @@ namespace Oce.Solid.Agent.Mcp
             return Json.DeserializeObject(text) as Dictionary<string, object>;
         }
 
-        /// <summary>Writes a message on stdout. One line, nothing else.</summary>
+        /// <summary>
+        /// Writes a message on stdout. One line, nothing else.
+        ///
+        /// UNDER A LOCK (brief R13): the heartbeat of a long step writes from a
+        /// timer thread while the executor writes its lines from its own, and two
+        /// messages written at once would interleave into a line that is not JSON,
+        /// which breaks the client. The serializer is shared, so it is inside too.
+        /// </summary>
         public static void Send(TextWriter output, object message)
         {
-            output.Write(InJson(message));
-            output.Write("\n");
-            output.Flush();
+            lock (WriteKey)
+            {
+                output.Write(InJson(message));
+                output.Write("\n");
+                output.Flush();
+            }
         }
+
+        private static readonly object WriteKey = new object();
 
         /// <summary>
         /// WHERE WHAT THE BRIDGE TELLS ENDS UP (entry W2.8).
@@ -123,6 +135,9 @@ namespace Oce.Solid.Agent.Mcp
         {
             Console.Error.WriteLine(text);
             Console.Error.Flush();
+            // ALSO IN THE BRIDGE'S OWN LOG (brief R24): the client keeps stderr
+            // only while it connects.
+            Bridge.CallLog.Note(text);
             SendAsNotification(text, "info");
         }
 

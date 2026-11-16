@@ -1,0 +1,55 @@
+{
+  "name": "annotation_is_taken_away",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N24, round 7 (27/10/2026). Three wrong dimensions put on a copy of the clip drawing could not be taken away: «undo» had no plan to withdraw (a plan on a drawing records no undo entry it can take back) and proposed delete_feature, which does not touch an annotation. They stayed on the drawing. «delete_annotation» takes one away by the name the plan that placed it gave.",
+
+  "defect_caught": "An operation that answers «removed» while the dimension is still on the sheet, or that takes away another one. The case asks for the count before and after (two, then one) and for the name of what went: RD1, the first dimension placed. «removed» alone would be the answer of whoever did the thing, not the measure of the thing.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the plate of drawing_dimensions_itself: its front view gives two dimensions, 120 and 10" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\annotation_is_taken_away.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the path of the part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the bench follows the new document (entry GT0)" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\annotation_is_taken_away.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the dimensions sit on the edges of a view" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "edges": [0, 1, 2, 3] },
+      "expect": [
+        { "what": "measurements.dimensions_placed", "equal_to": 2,
+          "why": "two dimensions to start from (120 and 10, the repeated ones discarded as in drawing_dimensions_itself): with one only, «one fewer» could not be told from «none left»" } ] },
+
+    { "operation": "delete_annotation",
+      "arguments": { "name": "RD1" },
+      "expect": [
+        { "what": "measurements.removed", "equal_to": true,
+          "why": "said only after the sheet is walked again and nothing answers to the name" },
+        { "what": "measurements.kind", "equal_to": "dimension",
+          "why": "RD1 is a dimension, not a note" },
+        { "what": "measurements.name", "includes": ["RD1@"],
+          "why": "WHICH ONE WENT: the full name of the dimension that answered to «RD1», as drawing_dimension gives it" },
+        { "what": "measurements.dimensions_before", "equal_to": 2,
+          "why": "the two dimensions placed in the step before" },
+        { "what": "measurements.dimensions_after", "equal_to": 1,
+          "why": "THE MEASURE OF THE THING: one fewer, counted on the sheet, not the answer of DeleteSelection2. Zero would mean that both went" } ] }
+  ]
+}

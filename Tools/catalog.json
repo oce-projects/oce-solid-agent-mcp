@@ -6,9 +6,10 @@
   "references": "planes and axes to build on",
   "assemblies": "putting together parts that already exist. Inserting is NOT mating: always look at «resting»",
   "physical_properties": "what the part IS, not its shape",
-  "drawing": "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF",
+  "drawing": "putting the part on a drawing and handing it over: sheets, views, dimensions, PDF (the part is saved first, with «save_document» of the family «documents»)",
   "checks": "saying how it turned out, without touching it",
   "exports": "getting the part out of SOLIDWORKS: STL for 3D printing, STEP and IGES for whoever has to machine it",
+  "documents": "the open document as a file: saving a part, an assembly or a drawing",
   "identity": "what the part says about itself: drawing number, revision, customer, and its variants",
   "sheet_metal": "bent sheet metal and its flat pattern as DXF for cutting",
   "dimensions": "dimensions and tolerances put on the PART (DimXpert), not on a drawing"
@@ -52,7 +53,7 @@
    "name": "extrude_profile",
    "family": "extrusions",
    "summary": "Any shape, given by contours, extruded: the general way to make the first body.",
-   "details": "Extrudes ANY SHAPE, given as a list of vertices. It is the operation for everything that is not a rectangle or a circle: shaped brackets, angle brackets, gussets, angles, and HOLLOW profiles — tubes, pipes, C sections — which are made with TWO contours, an outer one and an inner one.\n\nThe first contour is the outer edge; the ones after it are voids inside it. Each contour closes by itself: the last vertex joins the first, do not repeat it.\n\nIf the shape you need has a name (a gear, a tubular section), see whether a dedicated operation exists: it is easier for whoever confirms to check, because it shows the dimensions instead of a list of points.\n\nThe result says whether the sketch is locked: true only when every segment of the sketch got its FIXED relation, counted again after the rebuild. It also carries «fixed_relations» (how many were added) and, when the sketch is not locked, «sketch_lock_note» with the reason.\n\nOn a part that already has a body, the new shape merges with the bodies it touches (merge and automatic body selection are on, as the guide describes them); it cannot merge with a body it does not touch, and the document state counts the bodies afterwards.",
+   "details": "Extrudes ANY SHAPE, given as a list of vertices. It is the operation for everything that is not a rectangle or a circle: shaped brackets, angle brackets, gussets, angles, and HOLLOW profiles — tubes, pipes, C sections — which are made with TWO contours, an outer one and an inner one.\n\nThe first contour is the outer edge; the ones after it are voids inside it. Each contour closes by itself: the last vertex joins the first, do not repeat it.\n\nIf the shape you need has a name (a gear, a tubular section), see whether a dedicated operation exists: it is easier for whoever confirms to check, because it shows the dimensions instead of a list of points.\n\nThe result says whether the sketch is locked: true only when every segment of the sketch got its FIXED relation, counted again after the rebuild. It also carries «fixed_relations» (how many were added) and, when the sketch is not locked, «sketch_lock_note» with the reason.\n\nWITH «dimensions»: «driven» the sketch is not locked: every vertex gets a horizontal and a vertical dimension from the origin, and a circle the two of its centre and the one of its size, so that a variable can move them («link_dimension» with the names). «vertex_dimensions» lists, for each vertex, «x» and «y»: the name of the dimension (for example «D3@Sketch1»), or «on_axis» when the vertex sits on the axis and a relation keeps it there: that coordinate cannot be driven, no variable moves it off the axis, and «warning_dimensions» says so. A dimension is a distance: a vertex at x = -30 has a dimension of 30 and «x_side» «negative»; driving it keeps the vertex on its side, and no value carries it across the axis. «sketch_fully_defined» says whether SOLIDWORKS reads the sketch as fully defined. Straight contours and circles only, at most 100 vertices.\n\nOn a part that already has a body, the new shape merges with the bodies it touches (merge and automatic body selection are on, as the guide describes them); it cannot merge with a body it does not touch, and the document state counts the bodies afterwards.",
    "schema": {
     "type": "object",
     "properties": {
@@ -63,7 +64,7 @@
        "top",
        "right"
       ],
-      "description": "construction plane: front, top or right"
+      "description": "construction plane: front, top or right. WHERE THE CONTOUR'S AXES GO (brief R7): «sketch_axes» in the answer names, for the plane used, the model axis each contour axis runs along and the direction of the extrusion."
      },
      "contours": {
       "type": "array",
@@ -79,6 +80,14 @@
      "symmetric": {
       "type": "boolean",
       "description": "extrusion half on one side and half on the other of the plane (default: no)"
+     },
+     "dimensions": {
+      "type": "string",
+      "enum": [
+       "fixed",
+       "driven"
+      ],
+      "description": "«fixed» (default): the sketch locked where it is with FIXED relations. «driven» (brief R5): a dimension from the origin to every vertex, named in «vertex_dimensions», so that «link_dimension» can tie a width or a position to a variable. Straight contours and circles only, at most 100 vertices."
      }
     },
     "required": [
@@ -86,9 +95,56 @@
      "thickness_mm"
     ]
    },
-   "precondition": "document_without_body",
+   "precondition": "an open part (empty, or with bodies to add to)",
    "document": "part",
    "example": null
+  },
+  {
+   "name": "extrude_regions",
+   "family": "extrusions",
+   "summary": "Several regions of one plane extruded to different heights in one step: a height map.",
+   "details": "Extrudes SEVERAL REGIONS of one plane, each to its own height, in one step: a stepped plate, the floor of a channel at three depths, a height map. It does what several «extrude_profile» on the same plane would do, with one reading and one confirmation for all of them.\n\nEach region has its «contours» (the same form as «extrude_profile»: the first is the outer edge, the ones after it are voids inside it) and its «height_mm». Every region is checked before the first is drawn; then each one becomes a sketch and an extrusion, merged with the bodies it touches. Regions that overlap merge: the volume counts the overlap once, at the greater height.\n\nThe answer lists, for each region, the feature, the height and «depth_dimension»: the name of the dimension of its height, read from the feature (for example «D1@Boss-Extrude2», in the language of the installation), ready for «link_dimension» or «parameters». If a region fails after others were drawn, the step stops and says which ones are in the part: one «undo» withdraws the whole step.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "plane": {
+      "type": "string",
+      "enum": [
+       "front",
+       "top",
+       "right"
+      ],
+      "description": "construction plane of every region: front, top or right; «sketch_axes» in the answer names the model axis each contour axis runs along and the direction of the extrusion."
+     },
+     "regions": {
+      "type": "array",
+      "description": "the regions, in the order they are drawn. Each one: «contours» as in «extrude_profile» (polylines of [x_mm, y_mm] or circles), and «height_mm», how far that region is extruded.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "contours": {
+         "type": "array",
+         "description": "the first contour is the outer edge, the following ones the voids inside it: a polyline (list of [x_mm, y_mm], the last vertex joins the first by itself) or a circle ({\"circle\": [x, y], \"diameter_mm\": d})"
+        },
+        "height_mm": {
+         "type": "number",
+         "description": "how far this region is extruded, in mm, above zero"
+        }
+       },
+       "required": [
+        "contours",
+        "height_mm"
+       ]
+      }
+     }
+    },
+    "required": [
+     "regions"
+    ]
+   },
+   "precondition": "an open part (empty, or with bodies to add to)",
+   "document": "part",
+   "example": "{\"plane\":\"top\",\"regions\":[{\"contours\":[[[0,0],[50,0],[50,40],[0,40]]],\"height_mm\":10},{\"contours\":[[[50,0],[100,0],[100,40],[50,40]]],\"height_mm\":20},{\"contours\":[[[20,10],[40,10],[40,30],[20,30]]],\"height_mm\":30}]}"
   },
   {
    "name": "extrude_rectangle",
@@ -413,11 +469,11 @@
      },
      "through_all": {
       "type": "boolean",
-      "description": "default: yes"
+      "description": "default: yes, unless «depth_mm» is given: then the cut stops at that depth"
      },
      "depth_mm": {
       "type": "number",
-      "description": "only if not through"
+      "description": "the depth of a blind cut, in mm; given alone it makes the cut blind, and with «through_all» true it is not used"
      }
     },
     "required": [
@@ -678,11 +734,11 @@
      },
      "through_all": {
       "type": "boolean",
-      "description": "default: yes"
+      "description": "default: yes, unless «depth_mm» is given: then the cut stops at that depth"
      },
      "depth_mm": {
       "type": "number",
-      "description": "required if not through"
+      "description": "the depth of a blind hole, in mm; given alone it makes the hole blind, and with «through_all» true it is not used"
      }
     },
     "required": [
@@ -876,6 +932,48 @@
    "example": null
   },
   {
+   "name": "parameters",
+   "family": "features",
+   "summary": "Global variables and dimension links together, in one step: one evaluation, one rebuild.",
+   "details": "Writes several global variables and several dimension links in one step: what «global_variable» and «link_dimension» do one at a time, with one evaluation and one rebuild for all of them. The variables are written first, so a link can use a variable of the same step.\n\nEverything is checked before anything is written (the names of the variables, the dimensions that must exist); after the rebuild every value is read back: a variable given in mm must read the same, a linked dimension must equal its equation. I give you each variable, each link with the value before and after, and the volume before and after.\n\nI REFUSE IF a name is not made of letters, digits and «_», if a dimension is not there (I tell you which ones there are) or if SOLIDWORKS does not accept an equation (a reserved name, a variable that does not exist). If one value does not read back, or the part breaks, I put EVERY equation of the step back as it was and tell you whether the part is back.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "variables": {
+      "type": "object",
+      "description": "name: value. A number is a length in millimetres («wall»: 12); a text is a SOLIDWORKS expression with the names between double quotes («double»: «2 * \"wall\" + 1mm»). Names: letters, digits and «_», starting with a letter."
+     },
+     "links": {
+      "type": "object",
+      "description": "dimension: expression. The name of the dimension copied from the document state («D1@Boss-Extrude1», in the language of the installation); the expression with the names between double quotes («\"wall\"», «2 * \"wall\" + 1mm»)."
+     }
+    },
+    "required": []
+   },
+   "precondition": "an open part (with the dimensions that «links» names)",
+   "document": "part",
+   "example": "{\"variables\":{\"wall\":12,\"double_wall\":\"2 * \\\"wall\\\"\"}}"
+  },
+  {
+   "name": "sketch_details",
+   "family": "features",
+   "summary": "Reads what the sketches of a part are made of: segments, relations, dimensions, and whether each one is fully defined. It changes nothing.",
+   "details": "Reads the sketches of the part, to learn how a part drawn by hand is made: the state gives a sketch only as one feature among the others. For each sketch («sketch_names», the ones absorbed by an extrusion too): «status» (fully defined, under defined, over defined, no solution ...), «segments» and «segments_by_kind» (line, arc, spline ...), «construction_segments», «relations» and «relations_by_kind» (coincident, horizontal, fixed ...), and «dimensions», each with its name and its value in mm or in degrees. It only reads: nothing in the part changes.\n\nI REFUSE IF THE SKETCH ASKED («sketch») IS NOT IN THE PART, and say which sketches there are.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "sketch": {
+      "type": "string",
+      "description": "the name of one sketch, as the tree gives it («Schizzo1», «Sketch1», in the language of the installation). Leave it out to read them all."
+     }
+    },
+    "required": []
+   },
+   "precondition": "an open part",
+   "document": "part",
+   "example": "{}"
+  },
+  {
    "name": "set_dimension",
    "family": "features",
    "summary": "Changes a dimension of a feature that already exists, without redoing anything.",
@@ -978,7 +1076,7 @@
    "name": "delete_feature",
    "family": "features",
    "summary": "DELETES a feature from the tree. It cannot be undone with another operation.",
-   "details": "Removes a feature from the tree for good. The sketch it had absorbed goes away with it, so nothing orphaned is left in the tree.\n\nIT CANNOT BE UNDONE with another operation: the only way back is the «undo» tool, and only if you have done nothing else afterwards. If you only want to see the part without that feature, use «suppress_feature», which can be turned back on.\n\nI REFUSE IF ANYTHING DEPENDS ON IT, and I tell you what. Deleting a feature that others depend on would make them all disappear, and SOLIDWORKS does it without asking: if it is really that one you want to remove, first remove what sits on top of it.\n\nTHE NAME OF THE FEATURE IS IN THE DOCUMENT STATE, inside «feature». Copy it as it is.\n\nAFTERWARDS THE IDENTIFIERS ARE NO LONGER VALID: read the part again before the next step.",
+   "details": "Removes a feature from the tree for good. The sketch it had absorbed goes away with it, so nothing orphaned is left in the tree.\n\nIT CANNOT BE UNDONE with another operation: the only way back is the «undo» tool, and only if you have done nothing else afterwards. The bridge asks the person for a confirmation first when the client can ask (MCP «elicitation»); when it cannot, the plan runs and the answer says in «confirmation» that nobody was asked. If you only want to see the part without that feature, use «suppress_feature», which can be turned back on.\n\nI REFUSE IF ANYTHING DEPENDS ON IT, and I tell you what. Deleting a feature that others depend on would make them all disappear, and SOLIDWORKS does it without asking: if it is really that one you want to remove, first remove what sits on top of it.\n\nTHE NAME OF THE FEATURE IS IN THE DOCUMENT STATE, inside «feature». Copy it as it is.\n\nAFTERWARDS THE IDENTIFIERS ARE NO LONGER VALID: read the part again before the next step.",
    "schema": {
     "type": "object",
     "properties": {
@@ -1585,11 +1683,11 @@
      },
      "through_all": {
       "type": "boolean",
-      "description": "default: yes"
+      "description": "default: yes, unless «depth_mm» is given: then the cut stops at that depth"
      },
      "depth_mm": {
       "type": "number",
-      "description": "only if not through"
+      "description": "the depth of a blind cut, in mm; given alone it makes the cut blind, and with «through_all» true it is not used"
      }
     },
     "required": [
@@ -2246,7 +2344,7 @@
    "name": "export_pdf",
    "family": "drawing",
    "summary": "The PDF of ALL the sheets, with the pages counted.",
-   "details": "Writes the PDF of the drawing.\n\nALL the sheets, not only the one you are looking at: the standard export takes the current sheet, and a three-sheet drawing reaches the shop as a single page without any error. After writing the file the pages are COUNTED and compared with the sheets: if they do not match, I tell you.\n\nI REFUSE IF SOLIDWORKS does not accept the request for every sheet (IExportPdfData.SetSheets answers false), before writing anything; and when the pages of the written file cannot be counted, saying where the file is: without that count, the check this operation exists for did not run.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the drawing needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.\n\nWith «search» the PDF is READ BACK: tell me the texts that must be there (the drawing number, the part name) and I tell you which are there («found») and which are not («not_found»). The text in the PDF is written as glyph indices, and a search in the bytes does not find it: here it is decoded.",
+   "details": "Writes the PDF of the drawing.\n\nALL the sheets, not only the one you are looking at: the standard export takes the current sheet, and a three-sheet drawing reaches the shop as a single page without any error. After writing the file the pages are COUNTED and compared with the sheets: if they do not match, I tell you.\n\nI REFUSE IF SOLIDWORKS does not accept the request for every sheet (IExportPdfData.SetSheets answers false), before writing anything; and when the pages of the written file cannot be counted, saying where the file is: without that count, the check this operation exists for did not run.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the drawing needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.\n\nWith «search» the PDF is READ BACK: tell me the texts that must be there (the drawing number, the part name) and I tell you which are there («found») and which are not («not_found»). The text in the PDF is written as glyph indices, and a search in the bytes does not find it: here it is decoded. A text found only across a line break, as a value wrapped in its box and printed over two lines, is in «found_on_several_lines», not in «not_found», with «on_several_lines_note»: look at the box, a wrapped value can run out of it.\n\nWhen writing the PDF marks a saved drawing as changed (measured on a drawing of two sheets), the answer says «marked_unsaved» true: put «save_document» after «export_pdf», or «document close» refuses the drawing.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2364,7 +2462,7 @@
    "name": "drawing_dimension",
    "family": "drawing",
    "summary": "Puts dimensions on the edges of a view, and READS BACK how much they measure.",
-   "details": "Puts reference dimensions on the edges of a drawing view, and for each one tells you **how many millimetres it measures**, read back from SOLIDWORKS after placing it.\n\nTHIS IS THE OPERATION THAT DIMENSIONS. «model_dimensions» does something else: it IMPORTS the dimensions the part already has, and on this installation it brings in none (measured on eight different drawing templates). If you need a dimensioned drawing, use this one.\n\nTHE EDGES HAVE A NUMBER, and I give it to you: the view exposes its list, and without «edges» I dimension the first «count». Ask me for an edge that does not exist and I answer how many the view has, instead of dimensioning another one.\n\nI TELL YOU HOW MANY WERE BORN, not that I called the API: the dimensions are counted before and after, one by one. If none is born I tell you, and I tell you which edges I tried.\n\nWHERE THEY END UP: outside the view — the horizontal ones below, the vertical ones at the side, inside the sheet frame — from the smallest to the largest.\n\nOVERLAPS ARE CHECKED AND REPORTED, not avoided: the true rectangle of every dimension text, read back from SOLIDWORKS, against the other texts of the whole drawing and against the lines of the part in this view. «overlapping_texts» lists each overlap, and the answer also gives their count and how many texts were read; null, not 0, means the texts could not be read, or the walk over the dimensions of the drawing broke off before the end, so overlaps are unknown. Dimension lines, extension lines and the title block are not checked. The dimensions are correct; a well laid out drawing is still a trade.\n\nI DIMENSION HOLES AND CHAMFERS BY MYSELF, in every view that shows them, even if you do not ask: holes with the HOLE CALLOUT («4× Ø8 THRU», with the word for «through» that SOLIDWORKS writes in the language of the installation, one callout per diameter AND depth: two through Ø8 and two blind Ø8 get two callouts, never one «4×») and the position from the two reference edges, the left one and the bottom one; chamfers with the CHAMFER DIMENSION («5 x 45°»), not with their edges — the hypotenuse and the segments shortened by the chamfer are not dimensioned. A blind hole carries the depth («Ø8 ↧5»); if the callout is not born, I write it myself from the geometry.\n\nTHE «4×» IS READ BACK: after writing the count in front of the callout I read its prefix again (holes[].prefix_read). If the count did not stick, the holes are listed in edges_not_dimensioned and the count must be written by hand; «how_many» is the number of holes, not the text.\n\nA CIRCLE IS NOT ALWAYS A HOLE: the outline of a round part seen from the front has a diameter dimension (outer_diameters).\n\nA ROUND PART SEEN FROM THE SIDE (shaft, bushing, pin) I dimension like this: the LENGTHS between faces, in parallel from the face of one end (round_lengths_mm), and the DIAMETERS from the two generatrices of each cylinder, with the Ø (round_diameters_mm), each one read back. SOLIDWORKS does not always expose the generatrices of a cylinder: those diameters I tell you in round_diameters_not_reached, and they must be dimensioned by hand (an internal hole is dimensioned from the view in which it is a circle).\n\nONLY ONE DIMENSION PER FEATURE ON THE WHOLE DRAWING: if the same extent of the part is already dimensioned in another view, here I skip it and tell you (UNI ISO 129-1). So dimension the views one at a time, and do not expect in each view the measurements another one already has.\n\nON EVERY SHEET: «already dimensioned» is read from the views of all the sheets, only from views of the same part and configuration, and a dimension hidden by hand does not count (one on a hidden layer, or of a suppressed feature, still does: I cannot see those). The answer says what was read: already_dimensioned_read_from («every sheet», or «current sheet only» when the drawing did not hand over its sheets), hidden_dimensions_not_counted, views_of_other_models_not_counted.\n\nA DIMENSION BORN WITHOUT ITS OBJECT (the count of dimensions went up, the call returned nothing) stays: it is listed with its values null and named in edges_not_dimensioned, since its value was not read back. For a hole it does not trigger the fallback diameter dimension, which would be a second annotation on the same hole. The same holds in the turned view: a length or a diameter born without its object is not in round_lengths_mm or round_diameters_mm (they list what was read back), is not dimensioned again in another view and is not reported as not reached; one born between two silhouette edges without a face cannot be matched to a cylinder, so no further pair is tried, and its line in edges_not_dimensioned says so.\n\nI REFUSE IF THE EDGE ASKED FOR DOES NOT EXIST in the view, and I tell you how many it shows. An index that is not there is the easiest mistake to make when dimensioning blind. And I refuse a view where nothing is left to dimension because everything is already dimensioned elsewhere: zero dimensions are not an answer of «done».",
+   "details": "Puts reference dimensions on the edges of a drawing view, and for each one tells you **how many millimetres it measures**, read back from SOLIDWORKS after placing it.\n\nTHIS IS THE OPERATION THAT DIMENSIONS. «model_dimensions» does something else: it IMPORTS the dimensions the part already has, and on this installation it brings in none (measured on eight different drawing templates). If you need a dimensioned drawing, use this one.\n\nTHE EDGES HAVE A NUMBER, and I give it to you: the view exposes its list, and without «edges» I dimension the first «count». Ask me for an edge that does not exist and I answer how many the view has, instead of dimensioning another one.\n\nI TELL YOU HOW MANY WERE BORN, not that I called the API: the dimensions are counted before and after, one by one. If none is born I tell you, and I tell you which edges I tried.\n\nWHERE THEY END UP: outside the view — the horizontal ones below, the vertical ones at the side, inside the sheet frame — from the smallest to the largest. «horizontal_side» puts the horizontal ones above, «vertical_side» the vertical ones on the left; «row» puts every dimension of the call at the same distance «offset_mm», a chain instead of a staircase (the total goes in a second call with a larger «offset_mm»). They hold for «edges» and «between»; holes, chamfers and the overall size keep their own places.\n\nWITH «between» THEY GO WHERE THE OWNER PUTS THEM (measured on his drawings, 31/10/2026): the first row 10 mm from the lines the view draws (not from its outline), 6.7 mm from one row to the next; each dimension on the side of the part its edges reach (horizontal ones above and vertical ones on the right when both sides are as near), unless «horizontal_side» or «vertical_side» names it; dimensions that do not overlap share a row, the short ones with the text outside nearest the part, and a chain (dimensions that follow one another end to end) stays on one row. The dimensions ALREADY IN THE VIEW count: a new one lines up with their rows and keeps its text off theirs, so a second call on the same view (another «decimals», «suffix» or «parentheses») does not write over the first. A text that does not fit between the extension lines with 2 mm for each arrow (its width counted 1.8 mm a character and 1 mm a comma, not the box SOLIDWORKS draws around it) goes 11 mm beyond the higher end, or beyond the lower one when the higher is taken or lies over another dimension of that side, with the arrows outside. On a detail, its label goes 6.2 mm under its lowest dimension, those of earlier calls included. Each row says «side», «row», «row_mm» and «text»; «dimensions_already_in_the_view» says how many were seen; «style» says the numbers used and where they come from: a JSON file named by the environment variable OCE_DRAWING_STYLE changes them (keys first_row_mm, pitch_mm, text_outside_mm, arrow_room_mm, detail_label_gap_mm, side_by_edges, pack, tie_horizontal, tie_vertical, tie_balance, text_both_ends, char_mm, comma_mm), and a file that cannot be used is refused before anything is placed.\n\nTHE DISTANCE BETWEEN TWO EDGES: «between» takes pairs of edge numbers, [[3, 7], [7, 12]], and dimensions the distance of each pair: two straight edges, both vertical on the sheet (a horizontal distance) or both horizontal (a vertical one). It is the dimension of a position (a rib 21 mm from the end), of a width between two faces, of an overall height when the side edges are cut by a chamfer. Each value is read back and must be the distance of the two edges on the sheet divided by the scale, or I take it away and say why. «between» goes in a call of its own (not with «edges» or «overall») and puts no holes or chamfers. It works on a view of an assembly too.\n\nONE DIMENSION PER EXTENT, CHAINS INCLUDED: a pair whose distance the drawing already gives is refused before anything is placed, in «already_given_refused» with the dimensions that give it: the same extent in any view of any sheet (a dimension on one edge, or between two), or a chain that it would close (175 next to 19 + 145 + 11). The other pairs are placed; when every pair is refused the call is refused. «repeat»: true places them anyway, «parentheses»: true writes them as reference dimensions, the way a closing dimension is shown. The automatic route leaves out an edge that would close a chain the same way («closing_a_chain»). Compared on a view of a part square to the model's axes; on a view of an assembly, or a turned one, «not_compared» says why.\n\nTEXT ON THE DIMENSION: «prefix» and «suffix» write a text before and after the value («2,5 CHANNEL»), «parentheses» shows it as a reference dimension «(35)». They go on every dimension the call places from «edges», «between» or «overall», not on hole callouts and chamfers; each is read back, and what did not stick is in «decorations_not_kept».\n\nHOLES AND CHAMFERS IN ANOTHER VIEW: «holes»: false and «chamfers»: false leave them out of this call, so they go on a later view (the chamfer on its detail): «automatic_left_out» says what was left out.\n\nOVERLAPS ARE CHECKED AND REPORTED, not avoided: the true rectangle of every dimension text, read back from SOLIDWORKS, against the other texts of the whole drawing, the lines of the part in this view, every note of the sheet and of its views (the label of a detail or a section is a note of its view) and the title block when the format declares it; «overlaps_checked_against» says what was compared. «overlapping_texts» lists each overlap, and the answer also gives their count and how many texts were read; null, not 0, means the texts could not be read, or the walk over the dimensions of the drawing broke off before the end, so overlaps are unknown. Dimension lines and extension lines are not checked. The dimensions are correct; a well laid out drawing is still a trade.\n\nI DIMENSION HOLES AND CHAMFERS BY MYSELF, in every view that shows them, even if you do not ask: holes with the HOLE CALLOUT («4× Ø8 THRU», with the word for «through» that SOLIDWORKS writes in the language of the installation, one callout per diameter AND depth: two through Ø8 and two blind Ø8 get two callouts, never one «4×») and the position from the two reference edges, the left one and the bottom one; chamfers with the CHAMFER DIMENSION («5 x 45°»), not with their edges — the hypotenuse and the segments shortened by the chamfer are not dimensioned. A chamfer the profile draws (a short oblique edge between two perpendicular ones, no chamfer feature) is one too («chamfers_drawn_by_the_profile»). A chamfer counts as dimensioned only by a chamfer dimension, not by a distance that touches its face. A blind hole carries the depth («Ø8 ↧5»); if the callout is not born, I write it myself from the geometry.\n\nTHE «4×» IS READ BACK: after writing the count in front of the callout I read its prefix again (holes[].prefix_read). If the count did not stick, the holes are listed in edges_not_dimensioned and the count must be written by hand; «how_many» is the number of holes, not the text.\n\nA CIRCLE IS NOT ALWAYS A HOLE: the outline of a round part seen from the front has a diameter dimension (outer_diameters).\n\nA ROUND PART SEEN FROM THE SIDE (shaft, bushing, pin) I dimension like this: the LENGTHS between faces, in parallel from the face of one end (round_lengths_mm), and the DIAMETERS from the two generatrices of each cylinder, with the Ø (round_diameters_mm), each one read back. SOLIDWORKS does not always expose the generatrices of a cylinder: those diameters I tell you in round_diameters_not_reached, and they must be dimensioned by hand (an internal hole is dimensioned from the view in which it is a circle).\n\nONLY ONE DIMENSION PER FEATURE ON THE WHOLE DRAWING: if the same extent of the part is already dimensioned in another view, here I skip it and tell you (UNI ISO 129-1). So dimension the views one at a time, and do not expect in each view the measurements another one already has.\n\nON EVERY SHEET: «already dimensioned» is read from the views of all the sheets, only from views of the same part and configuration, and a dimension hidden by hand does not count (one on a hidden layer, or of a suppressed feature, still does: I cannot see those). The answer says what was read: already_dimensioned_read_from («every sheet», or «current sheet only» when the drawing did not hand over its sheets), hidden_dimensions_not_counted, views_of_other_models_not_counted.\n\nA DIMENSION BORN WITHOUT ITS OBJECT (the count of dimensions went up, the call returned nothing) stays: it is listed with its values null and named in edges_not_dimensioned, since its value was not read back. For a hole it does not trigger the fallback diameter dimension, which would be a second annotation on the same hole. The same holds in the turned view: a length or a diameter born without its object is not in round_lengths_mm or round_diameters_mm (they list what was read back), is not dimensioned again in another view and is not reported as not reached; one born between two silhouette edges without a face cannot be matched to a cylinder, so no further pair is tried, and its line in edges_not_dimensioned says so.\n\nA VIEW OF AN ASSEMBLY has its own route. Its edges are the edges of the components, each brought onto the sheet with its component's placement. Without «edges» I put the OVERALL length and height («overall»): between the two outermost straight edges across each direction, only when nothing the view shows sticks out beyond them, only on a front, top or side view, and with the value read back equal to their distance on the sheet divided by the scale (otherwise I take the dimension away and say why). An overall already dimensioned in another view of the same assembly is not repeated. With «edges» I dimension those. No hole callouts, chamfer dimensions or diameters on an assembly: they go on the drawing of each part. «count» is not used there, and the answer says so («warning_count_not_used»). To choose the edges, read them with «inspect_part» and «view_edges». An overall that ends on a component with no mate and not fixed is a size of where that component rests, not of where it is mounted: the answer names it («warning_free_components»), and «components» limits the overall size to the components you list.\n\nA DIMENSION THAT MEASURES NOTHING IS TAKEN AWAY: a length of zero or less, or a chamfer dimension with an angle outside 0..90 degrees, is removed and listed in edges_not_dimensioned with what it read. So is a chamfer dimension whose legs are not those of its chamfer feature (the chamfer seen askew, as «0,4 x 15,23°» on a 0.4 x 45°): I try every edge that meets it as the leg (the shorter leg first: 0,5 x 60°, not 0,866 x 30°) and the text on the side the corner was taken from and then on the side of the centre, then the other edges of that chamfer in the view, and if none shows it in its true size I say so; each row of «chamfers» says «as_the_feature», «matches_the_feature», the leg used and how many tries.\n\nTHE CHAMFER DIMENSION ON EDGES YOU CHOOSE: «chamfer»: [5, [7, 12]] puts it on the oblique edge 5 (on a leg I choose) and on 7 resting on 12, in a call of its own, with the same checks; a chamfer already dimensioned in the drawing is refused unless «repeat» is true.\n\nI REFUSE IF THE EDGE ASKED FOR DOES NOT EXIST in the view, and I tell you how many it shows. An index that is not there is the easiest mistake to make when dimensioning blind. And I refuse a view where nothing is left to dimension because everything is already dimensioned elsewhere: zero dimensions are not an answer of «done».\n\nTHE NUMBER ON THE SHEET IS THE VALUE: a dimension whose sheet prints another number (a template with one decimal printed 0.75 as «0,8») gets the decimals its value needs, at most 3; its row says «printed_before» and «decimals». «decimals» (0 to 8) fixes them for every dimension of the call instead, and a dimension that then prints another number than its value is listed in «rounded_on_the_sheet».",
    "schema": {
     "type": "object",
     "properties": {
@@ -2377,19 +2475,119 @@
       "items": {
        "type": "integer"
       },
-      "description": "the numbers of the edges to dimension, from the list the view exposes (the first is 0). Empty = the first «count»."
+      "description": "the numbers of the edges to dimension, from the list the view exposes (the first is 0). Empty = the first «count». To choose them, «inspect_part» with «view_edges» lists each edge with these numbers: its kind, its mm in the model, how it faces and where it sits on the sheet."
      },
      "count": {
       "type": "integer",
-      "description": "how many dimensions to put when you do not say which edges. Default 4."
+      "description": "how many dimensions to put when you do not say which edges. Default 4. Not used on a view of an assembly."
+     },
+     "overall": {
+      "type": "string",
+      "enum": [
+       "both",
+       "horizontal",
+       "vertical",
+       "none"
+      ],
+      "description": "ON A VIEW OF AN ASSEMBLY: the overall size, «both» (length and height), «horizontal», «vertical» or «none». Default «both» without «edges», «none» with «edges». ON A VIEW OF A PART, asked without «edges»: the overall size alone, between the outermost straight edges and read back (left out, the view of a part gets its contours, holes and chamfers as before); with «edges» I refuse: two calls. It is compared with the overall dimensions of the other views only: ask it first."
+     },
+     "components": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "ON A VIEW OF AN ASSEMBLY: the names of the components the overall size is measured on («26P000007-1», as «inspect_part» and «view_edges» give them); the others are left out of it. Left out = every component the view shows. A name the assembly does not have is refused before the view is read, with the names it has; a component of the assembly this view does not show (behind another) is said in «components_not_in_view», and the step is refused only when the view shows none of them."
      },
      "offset_mm": {
       "type": "number",
-      "description": "how far below the extent of the view to put the first dimension. Default 12."
+      "description": "how far below the extent of the view to put the first dimension. Default 12 from the outline; with «between», 10 from the lines the view draws (the style)."
      },
      "pitch_mm": {
       "type": "number",
-      "description": "the distance between one dimension and the next. Default 10."
+      "description": "the distance between one dimension and the next. Default 10; with «between», 6.7 between rows (the style)."
+     },
+     "decimals": {
+      "type": "integer",
+      "description": "the decimals every dimension of the call prints, 0 to 8. Left out, each dimension gets the ones its value needs (0.75 two, 120 none)."
+     },
+     "between": {
+      "type": "array",
+      "items": {
+       "type": "array",
+       "items": {
+        "type": "integer"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "description": "pairs of edge numbers, [[3, 7], [7, 12]]: the distance between the two edges of each pair, both vertical or both horizontal on the sheet. A call of its own, at most 40 pairs. The numbers are the ones «inspect_part» with «view_edges» lists."
+     },
+     "chamfer": {
+      "type": "array",
+      "items": {
+       "oneOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "array",
+         "items": {
+          "type": "integer"
+         },
+         "minItems": 1,
+         "maxItems": 2
+        }
+       ]
+      },
+      "description": "the chamfer dimension on edges you choose: the oblique edge of each chamfer, alone (the leg chosen by me) or with its leg, [5, [7, 12]]. A call of its own. The numbers are the ones «inspect_part» with «view_edges» lists."
+     },
+     "row": {
+      "type": "boolean",
+      "description": "true: every dimension of the call at the same distance «offset_mm», side by side, a chain. Default false, one «pitch_mm» further for each; with «between», the ones that do not overlap share a row."
+     },
+     "horizontal_side": {
+      "type": "string",
+      "enum": [
+       "below",
+       "above"
+      ],
+      "description": "where the horizontal dimensions go. Default below; with «between», the side their edges reach, above when both are as near."
+     },
+     "vertical_side": {
+      "type": "string",
+      "enum": [
+       "right",
+       "left"
+      ],
+      "description": "where the vertical dimensions go. Default right, on the left when the frame of the sheet ends; with «between», the side their edges reach, right when both are as near; named, it is kept."
+     },
+     "prefix": {
+      "type": "string",
+      "description": "a text before the value of each dimension placed, one line, at most 60 characters."
+     },
+     "suffix": {
+      "type": "string",
+      "description": "a text after the value («CHANNEL» gives «2,5 CHANNEL»), one line, at most 60 characters."
+     },
+     "below": {
+      "type": "string",
+      "description": "a text under the dimension line, under the value («CHANNEL» under «3,4»), one line, at most 60 characters; read back in «below_read»."
+     },
+     "parentheses": {
+      "type": "boolean",
+      "description": "true: each dimension placed shown in parentheses, «(35)», a reference dimension (a position the mates decide, on an assembly). With «between» it also places an extent the drawing already gives. Default false."
+     },
+     "repeat": {
+      "type": "boolean",
+      "description": "true: place an extent the drawing already gives, in another view or through a chain the dimension would close. Default false: each extent once on the whole drawing (UNI ISO 129-1)."
+     },
+     "holes": {
+      "type": "boolean",
+      "description": "false: the holes of the view are not dimensioned in this call. Default true."
+     },
+     "chamfers": {
+      "type": "boolean",
+      "description": "false: the chamfers of the view are not dimensioned in this call, to put them on another view (a detail). Default true."
      }
     },
     "required": []
@@ -2539,7 +2737,7 @@
    "name": "drawing_bom",
    "family": "drawing",
    "summary": "The BOM of an assembly on the drawing, compared with the components of the assembly.",
-   "details": "Puts on the drawing the BOM of the assembly behind a view: item number, component, quantity. By default the first level; «parts_only» or «indented» for the others.\n\nI COMPARE IT: the assembly knows by itself which components it has and how many; the items and the sum of the quantities must match. If they do not match I remove it and tell you.\n\nThen I measure it and put it in a free spot of the sheet, outside the views and the title block.\n\nI REFUSE IF there is no assembly behind the view (for a weldment there is «drawing_cut_list») or if there is no room on the sheet.\n\nThe count on the assembly side follows how each sub-assembly shows its children in the BOM (ChildComponentDisplayInBOM): in a top-level table a sub-assembly that promotes its children is replaced by them; in a parts-only table a sub-assembly that hides its children is one item. The indented table is compared with the rows of the assembly tree, as SOLIDWORKS writes them (measured): siblings with the same file and configuration make one row with their count; under a sub-assembly row stand the children of ONE instance, one level deeper (a sub-assembly used 3 times with 2 B inside: its row says 3, the B row under it says 2); a sub-assembly that hides its children is one row with nothing under it, and one that promotes them has no row and its children stand at its level. «counted_as» in the answer says how the expected items were counted.\n\nA LIGHTWEIGHT SUB-ASSEMBLY REFUSES: how it shows its children in a BOM is in its document, which is not loaded; resolve it and ask again. A component is suppressed by its load state (GetSuppression2: IsSuppressed answers true on a lightweight component, measured), and a sub-assembly is recognised by its file extension, so a lightweight one is not taken for a part. A component whose load state cannot be read refuses the step.\n\nIN WHICH CONFIGURATION: the table is made for the configuration the view shows, and the assembly is read in that same one. When the assembly has another configuration active, I activate the view's for the reading and put the active one back, reading it again: the answer gives the view's configuration and «assembly_active_configuration», the active one after the reading. If the view's configuration cannot be activated, or the active one cannot be put back, I refuse before inserting the table and say where the assembly stayed. The exclusion from the BOM is read in the configuration of the assembly that holds each component.",
+   "details": "Puts on the drawing the BOM of the assembly behind a view: item number, component, quantity. By default the first level; «parts_only» or «indented» for the others.\n\nI COMPARE IT: the assembly knows by itself which components it has and how many; the items and the sum of the quantities must match. If they do not match I remove it and tell you.\n\nThen I measure it and put it in a free spot of the sheet, outside the views and the title block.\n\nI REFUSE IF there is no assembly behind the view (for a weldment there is «drawing_cut_list») or if there is no room on the sheet.\n\nThe count on the assembly side follows how each sub-assembly shows its children in the BOM (ChildComponentDisplayInBOM): in a top-level table a sub-assembly that promotes its children is replaced by them; in a parts-only table a sub-assembly that hides its children is one item. The indented table is compared with the rows of the assembly tree, as SOLIDWORKS writes them (measured): siblings with the same file and configuration make one row with their count; under a sub-assembly row stand the children of ONE instance, one level deeper (a sub-assembly used 3 times with 2 B inside: its row says 3, the B row under it says 2); a sub-assembly that hides its children is one row with nothing under it, and one that promotes them has no row and its children stand at its level. «counted_as» in the answer says how the expected items were counted.\n\nA LIGHTWEIGHT SUB-ASSEMBLY REFUSES: how it shows its children in a BOM is in its document, which is not loaded; resolve it and ask again. A component is suppressed by its load state (GetSuppression2: IsSuppressed answers true on a lightweight component, measured), and a sub-assembly is recognised by its file extension, so a lightweight one is not taken for a part. A component whose load state cannot be read refuses the step.\n\nIN WHICH CONFIGURATION: the table is made for the configuration the view shows, and the assembly is read in that same one. When the assembly has another configuration active, I activate the view's for the reading and put the active one back, reading it again: the answer gives the view's configuration and «assembly_active_configuration», the active one after the reading. If the view's configuration cannot be activated, or the active one cannot be put back, I refuse before inserting the table and say where the assembly stayed. The exclusion from the BOM is read in the configuration of the assembly that holds each component.\n\nOVER THE TITLE BLOCK: «over_title_block»: true rests the table on the title block, its columns widened or narrowed by one factor to the width of the title block, and read again («bounding_box_table_mm», «title_block_mm», «width_note» when SOLIDWORKS did not take every width). «rows_on_more_lines» counts the rows whose text went on two lines or more; «warning_covers» names a view the table touches there. The title block is the one the format declares, or the one its lines draw in the bottom-right corner of the frame («title_block_from» says which); a format with neither keeps the free place, and «warning_over_title_block» says so.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2559,6 +2757,10 @@
      "template": {
       "type": "string",
       "description": "the table template. Empty = the first one in the folder of the BOM templates."
+     },
+     "over_title_block": {
+      "type": "boolean",
+      "description": "true: the table on the title block, at its width. Default false, a free place."
      }
     },
     "required": []
@@ -2571,7 +2773,7 @@
    "name": "balloons",
    "family": "drawing",
    "summary": "Ballooning: the balloons with the BOM item numbers on the components of a view, counted.",
-   "details": "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item number (AutoBalloon5). It counts them on the view before and after, and tells you the numbers written. Then it compares the items of the BOM with the balloons of the WHOLE drawing and tells you which items are left without one (that component is not seen in this view: balloon another view). If every item already has its balloon elsewhere, it adds none and answers «nothing to add in this view».\n\nI REFUSE IF there is no BOM on the drawing yet (ballooning carries its item number: put it first with «drawing_bom») or if there is no assembly behind the view.\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 runs. balloons_returned is the number of notes AutoBalloon5 returned (null when it returned no array), and balloons_count_note appears when it disagrees with the count in the view.",
+   "details": "Does the BALLOONING: puts the balloons on the components of the assembly in a view, with the BOM item number (AutoBalloon5). It counts them on the view before and after, and tells you the numbers written. Then it compares the items of the BOM with the balloons of the WHOLE drawing and tells you which items are left without one (that component is not seen in this view: balloon another view). If every item already has its balloon elsewhere, it adds none and answers «nothing to add in this view».\n\nTHE BALLOONS RENUMBER THE BOM: they are numbered in the order they go around the view, and the items of the table follow (measured). So the «rows_read» of «drawing_bom» may no longer hold: I read the table again after the balloons and give you «bom_rows_after», the rows as the table prints them now, and «bom_renumbered».\n\nTHE ORDER IS YOURS TO CHOOSE («order»): «around_the_view» (the default) numbers them as above; «bill_of_materials» keeps the numbers the table already has, and the table is not renumbered. Around the view, two balloons whose arrows end in the same place are put in order by AutoBalloon5, not by me: the same plan on the same assembly swapped two such numbers between two runs (measured). I list them in «numbers_decided_by_a_tie» with «numbers_note»; the order of the bill of materials gives the same numbers every time.\n\nARROWS THAT END IN THE SAME PLACE ARE MOVED: when the arrow of a balloon ends within 5 mm of another arrow (measured: three arrows in the mouth of one part, 0.7 to 2.3 mm apart), I put a new balloon with the same number on the point of a visible line of its own part farthest from the other arrows, where the old balloon was, and take the old one away only then. «arrows_moved» lists each move; «arrows_note» names the ones I could not separate.\n\nI REFUSE IF there is no BOM on the drawing yet (ballooning carries its item number: put it first with «drawing_bom») or if there is no assembly behind the view.\n\nIf the view cannot be selected, the step is refused before AutoBalloon5 runs. balloons_returned is the number of notes AutoBalloon5 returned (null when it returned no array), and balloons_count_note appears when it disagrees with the count in the view.\n\nTHE BALLOONS AGAIN IN ANOTHER VIEW: AutoBalloon5 puts no balloon on a part that has one in another view. «again»: true puts one balloon on each part this view shows that has none IN THIS VIEW (the isometric, a section, a detail), one per part and configuration, with the number of the bill of materials: the arrow on a visible line of the part (checked to be that part before the balloon is made), the balloon out of the view on that side. «placed» gives each one, «not_placed» the parts I could not reach and why. «layout» and «order» are not used there.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2588,6 +2790,18 @@
        "below"
       ],
       "description": "how to arrange the balloons around the view. Default square."
+     },
+     "order": {
+      "type": "string",
+      "enum": [
+       "around_the_view",
+       "bill_of_materials"
+      ],
+      "description": "the order of the numbers: around_the_view (default) numbers the balloons as they go around the view and renumbers the bill of materials; bill_of_materials keeps the numbers the bill of materials has, the same every run."
+     },
+     "again": {
+      "type": "boolean",
+      "description": "true: a balloon on each part of this view that has none in this view, even when another view has it. Default false."
      }
     },
     "required": []
@@ -2770,10 +2984,99 @@
    "example": "{\"text\":\"TOLLERANZE NON INDICATE ISO 2768-mK\",\"x_mm\":20,\"y_mm\":250}"
   },
   {
+   "name": "delete_annotation",
+   "family": "drawing",
+   "summary": "Takes away a dimension or a note of the drawing, by its name or by the text of the note.",
+   "details": "Takes away ONE dimension or ONE note from the current sheet of the drawing.\n\nWHY IT EXISTS: «undo» does not withdraw a plan on a drawing (SOLIDWORKS records no undo entry for it that I can take back), and «delete_feature» does not touch an annotation. This is the way to take away a dimension that is wrong or one too many.\n\nBY NAME: the name «drawing_dimension» gives in «dimensions[].name» (for example «RD1@Drawing View1@Part.Drawing»; «RD1» alone is enough when only one dimension is called so), or the «name» «note» gives. BY TEXT: the exact text of a note.\n\nIf nothing answers, or more than one annotation answers, I refuse and touch nothing, and I list the ones that answer. Only the CURRENT sheet: for another one, activate it first with «activate_sheet».\n\nI SAY «removed» ONLY WHEN IT IS GONE: after the deletion the sheet is walked again and nothing may answer to the name or the text any more; the count before and after is in the answer.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "the name of the dimension or of the note, as the plan that placed it gave it. Write this or «text»."
+     },
+     "text": {
+      "type": "string",
+      "description": "the exact text of a note. Write this or «name»."
+     }
+    },
+    "required": []
+   },
+   "precondition": "an open drawing with the annotation on its current sheet",
+   "document": "drawing",
+   "example": "{\"name\":\"RD1\"}"
+  },
+  {
+   "name": "move_view",
+   "family": "drawing",
+   "summary": "Moves a view of the drawing, by a shift or to a place, and reads back where it went.",
+   "details": "Moves ONE view of the current sheet: by «dx_mm» and «dy_mm», or with its centre to «x_mm» and «y_mm», in millimetres of sheet from its bottom-left corner. The centre is the middle of the view as the sheet shows it (for a detail, «position_mm» of «inspect_part» is somewhere else: use «centre_on_the_sheet_mm»).\n\nALIGNED VIEWS: a view aligned to its parent (a projected view, a section) moves only along the line that joins them, and the views aligned to the one you move go with it (measured: the front view took the top view, the side view and the section with it). I read the move back from the view: if SOLIDWORKS did only part of it, I put the view back and refuse, naming the parent view to move instead. «views_moved_with_it» lists the ones that went along. With «unalign» true a view aligned to its parent is first taken off that line (a section put away from its view), so it moves both ways; «alignment_removed» says so, and if the move is refused it goes back to its place and to its default alignment.\n\nI REFUSE IF THE VIEW, OR ONE THAT MOVED WITH IT, LANDS ON another view, a table, a note or the title block, or leaves the frame: then I put it back where it was. Its labels go with it by the same shift (a label moved apart first too): when the view alone lands free and only its labels do not, it moves, and «labels_out_of_place» says where they went, for «move_annotation».",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "view": {
+      "type": "string",
+      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them for the ACTIVE sheet (on another sheet the same number is another view)."
+     },
+     "dx_mm": {
+      "type": "number",
+      "description": "how far to move it, positive to the right, in sheet millimetres."
+     },
+     "dy_mm": {
+      "type": "number",
+      "description": "how far to move it, positive upward, in sheet millimetres."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "where its centre goes, from the left edge of the sheet. Instead of dx_mm and dy_mm."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "where its centre goes, from the bottom edge of the sheet. Instead of dx_mm and dy_mm."
+     },
+     "unalign": {
+      "type": "boolean",
+      "description": "true: a view aligned to its parent view is first taken off that line, so it moves both ways. Default false: it moves only along the line."
+     }
+    },
+    "required": [
+     "view"
+    ]
+   },
+   "precondition": "an open drawing with the view on its current sheet",
+   "document": "drawing",
+   "example": "{\"view\":\"V1\",\"dx_mm\":10,\"dy_mm\":0}"
+  },
+  {
+   "name": "delete_view",
+   "family": "drawing",
+   "summary": "Takes away a view of the drawing, and reads back which views went.",
+   "details": "Takes away ONE view of the current sheet, with what is in it: its dimensions, notes and balloons. A bill of materials stays: it is on the sheet, not in the view (measured).\n\nSECTIONS AND DETAILS MADE FROM IT GO WITH IT (measured: taking away the front view took its section and its two details). So I refuse a view that has them, and name them, unless «with_derived» is true. Views projected from it stay where they are, without a parent («without_parent_now»). A detail taken away takes its circle off the view it enlarged.\n\n«removed» lists the views that are gone, read again from the sheet after the deletion; a «warning» says if SOLIDWORKS took more, or fewer, than expected; «sheet» is the sheet it was on.\n\nI REFUSE IF THE DRAWING HAS MORE SHEETS AND «view» IS A NUMBER (V1, V2 ...): the number counts the views of the active sheet only, and on another sheet the same number is another view (report 8cd843 N57). Give the name of the view, as «inspect_part» lists it.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "view": {
+      "type": "string",
+      "description": "the view, by name or V1, V2 ... as the state of the drawing lists them for the ACTIVE sheet (on another sheet the same number is another view)."
+     },
+     "with_derived": {
+      "type": "boolean",
+      "description": "true: take away also the sections and details made from it. Default false (refused if there are)."
+     }
+    },
+    "required": [
+     "view"
+    ]
+   },
+   "precondition": "an open drawing with the view on its current sheet",
+   "document": "drawing",
+   "example": "{\"view\":\"V2\"}"
+  },
+  {
    "name": "section_view",
    "family": "drawing",
    "summary": "Creates a section view on a drawing, and checks that the cut met material.",
-   "details": "Cuts a view of the drawing and puts the section beside it. It is the first thing that is missing for a real shop drawing: a part with an internal cavity, without a section, cannot be read — the hidden lines say there is a void, not what shape it has.\n\nI DRAW THE CUTTING LINE MYSELF, from side to side of the view: a line that only grazes it gives an empty section without saying anything. By default I cut in the middle; with «offset_mm» you move the cut, in **sheet** millimetres — not of the model, because on the sheet the view is scaled.\n\nI TELL YOU IF IT WAS BORN by counting the views before and after, not because the API answered with an object: it can answer without having done anything. The view I then read (hatch, letter) is the one the call returned; the last view of the sheet only when it returned none, and view_read_from says which. When the section is not born, or the cutting line cannot be selected, the line I drew is removed from the sheet, said removed only after the sheet sketch is counted again.\n\nI REFUSE IF THERE IS NO HATCHING. A section without hatching is a cutting line that fell outside the material: on the sheet there remains a view that looks good and shows nothing, and no error would say so. I prefer to fail and tell you where I cut.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to another section or to a detail I refuse and tell you the ones used — two «A-A» look like the same cut. The letter the view really has I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the section that was needed. I can tell you that the cut met material, not that it passes through the cavity you wanted to show.",
+   "details": "Cuts a view of the drawing and puts the section beside it. It is the first thing that is missing for a real shop drawing: a part with an internal cavity, without a section, cannot be read — the hidden lines say there is a void, not what shape it has.\n\nI DRAW THE CUTTING LINE MYSELF, from side to side of the view: a line that only grazes it gives an empty section without saying anything. By default I cut in the middle; with «offset_mm» you move the cut, in **sheet** millimetres — not of the model, because on the sheet the view is scaled. I draw the line in the sketch of the view itself, converted to its coordinates («cut_line_in_the_view_sketch_mm»): on the sketch of the sheet it went to another view (measured). A view that cannot be activated, or that is turned, I refuse. The line is drawn with no snapping, and read back: a line that SOLIDWORKS moved onto the geometry around it is refused and removed.\n\nTHE SECTION GOES WHERE NOTHING ELSE IS: beside the view when that place, with its label, touches no other view, table, note or the title block; otherwise I slide it along the line that aligns it to its view (it cannot leave that line) to the nearest free place («placed» says which). With no free place on that line I refuse and remove it: make room with «move_view» or «delete_view».\n\nI TELL YOU IF IT WAS BORN by counting the views before and after, not because the API answered with an object: it can answer without having done anything. The view I then read (hatch, letter) is the one the call returned; the last view of the sheet only when it returned none, and view_read_from says which. When the section is not born, or the cutting line cannot be selected, the line I drew is removed, said removed only after the sketch of the view is counted again. After the section I go back to the sheet, so that a note in the same plan goes on the sheet.\n\nI REFUSE IF THE SECTION COMES FROM ANOTHER VIEW: I read back the view it was made from («base_view») and it must be the one asked.\n\nI REFUSE IF THERE IS NO HATCHING. A section without hatching is a cutting line that fell outside the material: on the sheet there remains a view that looks good and shows nothing, and no error would say so. I prefer to fail and tell you where I cut.\n\nTHE SCALE: the section takes the scale of its view; «scale» («2:1») gives it its own, set before it is placed and read back («scale»); if the view does not read it, I remove the section and the cutting line and say why.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to another section or to a detail I refuse and tell you the ones used — two «A-A» look like the same cut. The letter the view really has I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the section that was needed. I can tell you that the cut met material, not that it passes through the cavity you wanted to show.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2800,6 +3103,10 @@
      "depth_mm": {
       "type": "number",
       "description": "depth of the cut for a partial section. Default 0, which cuts all the way through."
+     },
+     "scale": {
+      "type": "string",
+      "description": "the scale of the section, «2:1» or «1:2». Left out, the scale of the view it cuts."
      }
     },
     "required": []
@@ -2812,7 +3119,7 @@
    "name": "detail_view",
    "family": "drawing",
    "summary": "Creates an enlarged detail view on a drawing, and checks that the circle became a detail.",
-   "details": "Enlarges a piece of a view. It is the other half of what a shop drawing lacks: the section shows what is inside, the detail shows what is too small to read at the scale of the drawing — a groove, a chamfer, a fillet with its dimension.\n\nI DRAW THE CIRCLE MYSELF, inside the view. By default at the centre with a radius of a quarter of the shorter side; with «x_mm» and «y_mm» you move it and with «radius_mm» you change it, in **sheet** millimetres — not of the model, because on the sheet the view is scaled.\n\nI REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle outside enlarges empty space, and the enlarged empty space is still a view that looks good.\n\nAND I TELL YOU IF THE CIRCLE BECAME A DETAIL, counting the detail circles on the source view before and after. If it does not go up I refuse, and remove both the new view and the circle, each said removed only after a reread: left there, they would be a hand-drawn circle next to a view tied to nothing, and no error would say so. The view I read is the one the call returned (view_read_from); when the detail is not born, the circle I drew is removed.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to a section or to another detail I refuse and tell you the ones used. The real letter I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the detail that was needed: a circle moved by ten millimetres enlarges a piece of smooth plane, and is just as valid.",
+   "details": "Enlarges a piece of a view. It is the other half of what a shop drawing lacks: the section shows what is inside, the detail shows what is too small to read at the scale of the drawing — a groove, a chamfer, a fillet with its dimension.\n\nI DRAW THE CIRCLE MYSELF, inside the view. By default at the centre with a radius of a quarter of the shorter side; with «x_mm» and «y_mm» you move it and with «radius_mm» you change it, in **sheet** millimetres — not of the model, because on the sheet the view is scaled. I draw the circle in the sketch of the view itself, converted to its coordinates («circle_in_the_view_sketch_mm»): with the sheet coordinates the details came out empty (measured). A view that cannot be activated, or that is turned, I refuse. The circle is drawn with no snapping and read back: a circle that SOLIDWORKS moved onto an edge or onto the radius of another circle (measured: 1.1 mm off, and a radius of 3 mm become 5.1) is refused and removed.\n\nI REFUSE IF THE CIRCLE GOES BEYOND THE VIEW: a circle outside enlarges empty space, and the enlarged empty space is still a view that looks good.\n\nI REFUSE IF THE CIRCLE LIES IN THE MARGIN OF THE VIEW, before drawing anything: «outline_mm» keeps a margin around the drawing (5.8 mm on each side, measured), and a circle in it, out of what the view draws and meeting none of its lines, enlarged nothing. The refusal says where the drawing is, from the centre of the outline as «x_mm» and «y_mm»; «drawn_mm» in the state is the box of the lines a view shows, and the answer gives it as «drawing_of_the_view_mm».\n\nI REFUSE IF THE SCALE ASKED («scale») IS NOT LARGER THAN THE SCALE OF THE VIEW: a detail at 2:1 of a view at 5:1 shrinks the piece instead of enlarging it (measured). The message gives the scale of the view and one twice as large.\n\nAND I TELL YOU IF THE CIRCLE BECAME A DETAIL, counting the detail circles on the source view before and after. If it does not go up I refuse, and remove both the new view and the circle, each said removed only after a reread: left there, they would be a hand-drawn circle next to a view tied to nothing, and no error would say so. The view I read is the one the call returned (view_read_from); when the detail is not born, the circle I drew is removed.\n\nAND I TELL YOU IF THE DETAIL SHOWS THE VIEW ASKED: it must be made from that view («base_view») and show at least one edge («visible_edges»). A detail with no edge enlarges empty space: I refuse and remove it with its circle.\n\nTHE DETAIL GOES WHERE NOTHING ELSE IS: beside the view when that place touches nothing, otherwise in the first free place of the sheet, outside the other views, the tables, the notes and the title block («placed» says where). With no free place I refuse, and remove the view and the circle.\n\nTHE LETTER IS ONE PER DRAWING: if «label» already belongs to a section or to another detail I refuse and tell you the ones used. The real letter I read back to you («label_reread»).\n\nWHAT I CANNOT KNOW is whether that is the detail that was needed: a circle moved by ten millimetres enlarges another edge, and is just as valid.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2839,19 +3146,34 @@
      "label": {
       "type": "string",
       "description": "the letter of the detail. Default «B», because «A» is usually taken by the section."
+     },
+     "circle_style": {
+      "type": "string",
+      "enum": [
+       "with_leader",
+       "standard",
+       "no_leader",
+       "connected",
+       "broken"
+      ],
+      "description": "how the circle carries its letter: «with_leader» (default) puts the letter at the end of a short line from the circle; «standard» beside the circle; «no_leader», «connected» (a line to the detail view), «broken». Read back in «circle_style»."
+     },
+     "lock_position": {
+      "type": "boolean",
+      "description": "true (default): the detail does not move when its view changes size, read back in «position_locked»."
      }
     },
     "required": []
    },
    "precondition": "an open drawing with at least one model view",
    "document": "drawing",
-   "example": "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8}"
+   "example": "{\"label\":\"B\",\"scale\":2,\"radius_mm\":8,\"x_mm\":55}"
   },
   {
    "name": "title_block",
    "family": "checks",
    "summary": "Says which properties the title block ASKS FOR and which it SHOWS. Touches nothing.",
-   "details": "Reads the TITLE BLOCK of the active sheet and tells you two different things: **which custom properties it asks for** and **which ones it is showing**.\n\nWHY THEY ARE TWO THINGS. A title block does not contain text: it contains links, written `$PRP:\"Descrizione\"`. Filling it means writing those properties with «set_property».\n\n**THE NAME MUST BE COPIED TO THE LETTER.** If you write it with a capital letter or a space different from the ones the title block references, **nothing visible happens**: SOLIDWORKS writes the property, the title block does not show it, and the PDF comes out with an empty box. No error, anywhere. That is why I give you the exact names instead of leaving you to guess them.\n\nIf a property is asked for and not shown I tell you: either it is not written yet, or it is written with another spelling.\n\nBeware of `$PRPSHEET`: it takes the property from the PART in view, not from the drawing. They are two different drawers, and mixing them up means writing on the wrong document.\n\nIf the title block has no linked note I tell you, instead of letting you fill in properties that would not appear: that text is drawn inside the sheet format, not fed.",
+   "details": "Reads the TITLE BLOCK of the active sheet and tells you two different things: **which custom properties it asks for** and **which ones it is showing**.\n\nWHY THEY ARE TWO THINGS. A title block does not contain text: it contains links, written `$PRP:\"Descrizione\"`. Filling it means writing those properties with «set_property».\n\n**THE NAME MUST BE COPIED TO THE LETTER.** If you write it with a capital letter or a space different from the ones the title block references, **nothing visible happens**: SOLIDWORKS writes the property, the title block does not show it, and the PDF comes out with an empty box. No error, anywhere. That is why I give you the exact names instead of leaving you to guess them.\n\nIf a property is asked for and not shown I tell you: either it is not written yet, or it is written with another spelling.\n\nBeware of `$PRPSHEET`: it takes the property from the PART in view, not from the drawing. They are two different drawers, and mixing them up means writing on the wrong document.\n\nIf the title block has no linked note I tell you, instead of letting you fill in properties that would not appear: that text is drawn inside the sheet format, not fed.\n\nOnly the notes of the sheet FORMAT are the title block: a note put on the sheet, as a general note, is left out and counted («notes_on_the_sheet_left_out»).\n\nTHE OTHER SHEETS ARE NOT ACTIVATED, and not left unsaid either («other_sheets»): for each one I read its own title block, from the view that carries its format, and the models of its views, and look on them for the names it asks with `$PRPSHEET`. A sheet that shows another part takes them from that part: if they are not there, or have no value, and this sheet does not show them empty too, I say it in «other_sheets_warning» and in the verdict; those empty on this sheet too are only counted, they are already in «requested_but_empty». When I cannot reach its title block I use the names of this one and say so; activating the sheet and calling me again reads it whole.\n\nWHAT A BOX SHOWS IS WHAT THE DRAWING CALCULATED LAST. After «set_property» on the model in view a box can still show the old value, and a PDF written then may print the old value or the new one: every field that is one `$PRPSHEET` link is compared with the value the model has now, and the ones that differ are in «requested_shown_with_an_old_value» with «model_has», said in the verdict too. Close the drawing and open it again before trusting those boxes and before writing the PDF.",
    "schema": {
     "type": "object",
     "properties": {},
@@ -2864,8 +3186,8 @@
   {
    "name": "interference_check",
    "family": "checks",
-   "summary": "Says whether the components of the assembly interpenetrate, and by how much volume. Touches nothing.",
-   "details": "Looks for the INTERFERENCES between the components of the open assembly: the places where two parts occupy the same space.\n\nWHY IT MATTERS. Two interpenetrating parts open, rebuild, export and print: **there is no error anywhere**, and in the workshop they do not fit. It is the defect you find out about when the part is made.\n\nI TELL YOU THE VOLUME, not only how many there are. Two interferences can be two tenths of a cubic millimeter — two faces grazing each other — or thousands, that is half a lid inside the base. **The count alone does not tell a problem from a detail.**\n\nFACES THAT TOUCH, by default, do NOT count as an interference: otherwise every well assembled assembly would come out broken, because a lid resting on the base shares a face with it. But a shaft in a hole of the same diameter shares the cylindrical surface, and there is exactly the problem: that part does not go in. If that is what interests you, ask me with «touching_counts», and I always tell you which of the two I used.\n\nTHE COUNT AND THE LIST MUST AGREE. «how_many» is the count SOLIDWORKS gives; «interferences_read» is how many interferences its list actually held. When the two differ, «volume_total_mm3» is left out (a sum over part of the list would be smaller than the truth) and «what_is_not_known» says what was missing; a count of zero with interferences in the list is refused instead of answered «none».\n\nPOSSIBLE interferences (IsPossibleInterference) are counted apart: certain_interferences and possible_interferences, and the verdict counts only the certain ones in its alarm (both null when a flag could not be read). The count of components looked at excludes suppressed components (suppressed_components). The two settings echoed in the answer (touching faces, and interferences inside multibody parts) are the values SOLIDWORKS reads back; if one reads back different from the request, the check is refused.\n\nIt changes nothing: it can also be asked for through «measure».",
+   "summary": "Says whether the components of the assembly interpenetrate, and by how much volume. Changes nothing in the assembly (SOLIDWORKS may mark it unsaved).",
+   "details": "Looks for the INTERFERENCES between the components of the open assembly: the places where two parts occupy the same space.\n\nWHY IT MATTERS. Two interpenetrating parts open, rebuild, export and print: **there is no error anywhere**, and in the workshop they do not fit. It is the defect you find out about when the part is made.\n\nI TELL YOU THE VOLUME, not only how many there are. Two interferences can be two tenths of a cubic millimeter — two faces grazing each other — or thousands, that is half a lid inside the base. **The count alone does not tell a problem from a detail.**\n\nFACES THAT TOUCH, by default, do NOT count as an interference: otherwise every well assembled assembly would come out broken, because a lid resting on the base shares a face with it. But a shaft in a hole of the same diameter shares the cylindrical surface, and there is exactly the problem: that part does not go in. If that is what interests you, ask me with «touching_counts», and I always tell you which of the two I used.\n\nTHE COUNT AND THE LIST MUST AGREE. «how_many» is the count SOLIDWORKS gives; «interferences_read» is how many interferences its list actually held. When the two differ, «volume_total_mm3» is left out (a sum over part of the list would be smaller than the truth) and «what_is_not_known» says what was missing; a count of zero with interferences in the list is refused instead of answered «none».\n\nPOSSIBLE interferences (IsPossibleInterference) are counted apart: certain_interferences and possible_interferences, and the verdict counts only the certain ones in its alarm (both null when a flag could not be read). The count of components looked at excludes suppressed components (suppressed_components). The two settings echoed in the answer (touching faces, and interferences inside multibody parts) are the values SOLIDWORKS reads back; if one reads back different from the request, the check is refused.\n\nWHICH PAIR AND WHERE. Each item of «interferences» names its components («components») and its box in the space of the assembly («box_from_mm», «box_to_mm»). With «touching_counts», faces that touch come as CONTACTS: «contact» true, volume 0, counted in «how_many» and in «contacts», never in «volume_total_mm3» nor in the alarm.\n\nSAVED BEFORE, UNSAVED AFTER. SOLIDWORKS marks the assembly as changed when its interference detection closes: when that happens the answer says «marked_unsaved» true with a warning, and the assembly asks to be saved although nothing in it changed.\n\nIt changes nothing in the assembly: it can also be asked for through «measure».",
    "schema": {
     "type": "object",
     "properties": {
@@ -2930,7 +3252,7 @@
    "name": "new_sheet",
    "family": "drawing",
    "summary": "Adds a sheet to the drawing, with the same projection angle as the first.",
-   "details": "Adds a SHEET to the open drawing and activates it.\n\nI DO NOT ASK YOU FOR THE PROJECTION ANGLE, and it is not a simplification: I read it from the current sheet and pass it on unchanged. If sheet 2 were born in a different angle from sheet 1, the same drawing would have two sheets mirrored differently -- **neither of them gives an error**, and whoever cuts the part from sheet 2 cuts it flipped.\n\nAnd I read it back from the new sheet after creating it: passing it is not having it. If it does not match I stop.\n\nSize and scale too, if you do not say, are those of the current sheet: two sheets at different scales can be wanted, but not through distraction.\n\nThe name, if you do not say, is the next free one in the series SOLIDWORKS started («Sheet2», «Sheet3»... with the word of the installation). A name already used I refuse: two sheets with the same name and you no longer know which one you are looking at.",
+   "details": "Adds a SHEET to the open drawing and activates it.\n\nI DO NOT ASK YOU FOR THE PROJECTION ANGLE, and it is not a simplification: I read it from the current sheet and pass it on unchanged. If sheet 2 were born in a different angle from sheet 1, the same drawing would have two sheets mirrored differently -- **neither of them gives an error**, and whoever cuts the part from sheet 2 cuts it flipped.\n\nAnd I read it back from the new sheet after creating it: passing it is not having it. If it does not match I stop.\n\nSize and scale too, if you do not say, are those of the current sheet: two sheets at different scales can be wanted, but not through distraction.\n\nTHE FORMAT (frame and title block) IS THAT OF THE CURRENT SHEET, and I read it back from the new sheet («format»): a sheet with no frame and no title block goes to the workshop with no code, scale or sheet number. If you give «paper_size» the new sheet has no format, because the format of the current sheet is drawn for its own size. If the format file of the current sheet cannot be found I refuse before creating anything.\n\nThe name, if you do not say, is the next free one in the series SOLIDWORKS started («Sheet2», «Sheet3»... with the word of the installation). A name already used I refuse: two sheets with the same name and you no longer know which one you are looking at.",
    "schema": {
     "type": "object",
     "properties": {
@@ -2940,7 +3262,7 @@
      },
      "paper_size": {
       "type": "string",
-      "description": "A0, A1, A2, A3, A4, A4V. Empty = the one of the current sheet."
+      "description": "A0, A1, A2, A3, A4, A4V. Empty = the one of the current sheet, with its format. Given = a sheet with no format."
      },
      "scale_numerator": {
       "type": "number",
@@ -2980,15 +3302,19 @@
   },
   {
    "name": "save_document",
-   "family": "drawing",
+   "family": "documents",
    "summary": "Saves the open document.",
-   "details": "Saves the active document to disk — part or drawing.\n\nIt also serves as the FIRST STEP of a drawing: a view attaches to the path of the part, so a part never saved cannot be put on a drawing.\n\nThe file written is read back: path and size are in the measurements.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the model needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.",
+   "details": "Saves the active document to disk — part, assembly or drawing.\n\nIt also serves as the FIRST STEP of a drawing: a view attaches to the path of the part, so a part never saved cannot be put on a drawing.\n\nThe file written is read back: path and size are in the measurements.\n\nThe answer carries save_warnings (the swFileSaveWarning_e names, or «none») and save_warnings_note when the model needed a rebuild, had rebuild errors, or had views needing an update. A failed save gives the error and warning names next to the raw codes.\n\nA «path» where ANOTHER file already exists replaces it, and the answer says so: «replaced_another_file» (always there, false when nothing was replaced) and «replaced_file» with its size and date. With «overwrite»: false I refuse instead and save nothing.",
    "schema": {
     "type": "object",
     "properties": {
      "path": {
       "type": "string",
       "description": "where to save. If you do not say, it is saved where it already was; a never-saved document without a path is an error."
+     },
+     "overwrite": {
+      "type": "boolean",
+      "description": "false: refuse when «path» names another file that already exists. Default true (it is replaced, and the answer says so)."
      }
     },
     "required": []
@@ -3001,7 +3327,7 @@
    "name": "model_view",
    "family": "drawing",
    "summary": "A named view: isometric, front, top...",
-   "details": "Adds to the sheet a NAMED VIEW of the part, at the point you say.\n\nThe most useful is the ISOMETRIC one: on its own it makes whoever looks at the drawing understand the part, and the three standard views on their own often do not.\n\nx_mm and y_mm are the position ON THE SHEET, with the origin at the bottom left: on an A3 (420x297) the top right corner is around 320, 220.",
+   "details": "Adds to the sheet a NAMED VIEW of the part, at the point you say.\n\nThe most useful is the ISOMETRIC one: on its own it makes whoever looks at the drawing understand the part, and the three standard views on their own often do not.\n\nx_mm and y_mm are the position ON THE SHEET, with the origin at the bottom left: on an A3 (420x297) the top right corner is around 320, 220.\n\nTHE SCALE: «scale» («1:2», «2:1») is set on the view and read back after the rebuild; left out, SOLIDWORKS chooses it. The answer says «scale» (decimal) and «scale_ratio», read from the view.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3031,6 +3357,10 @@
      "model": {
       "type": "string",
       "description": "the path of the part. If you do not say, the first open part is used."
+     },
+     "scale": {
+      "type": "string",
+      "description": "the scale, «1:2» or «2:1» (a decimal with a point, «1:2.5»). Left out, SOLIDWORKS chooses it."
      }
     },
     "required": []
@@ -3043,18 +3373,114 @@
    "name": "standard_views",
    "family": "drawing",
    "summary": "The three standard views, in first-angle projection.",
-   "details": "Puts on the sheet the THREE STANDARD VIEWS of the part, in FIRST-angle projection — the one used in Europe.\n\nThird-angle projection does not exist in this catalogue, on purpose: it is a twin call that never fails and produces a drawing with right and left swapped. No measurement notices, and the part is cut mirrored.\n\nThe views are counted before and after: if none is born the operation fails, instead of leaving you an empty drawing that looks successful.\n\nCENTRE MARKS ON HOLES. After the views are made the drawing is rebuilt, and the answer gives centre_marks_after_rebuild: the marks SOLIDWORKS put (null when a view cannot be counted). A view made by this call that shows holes end-on and has no centre mark at all gets them from the bridge, through the same walk as the centre-mark check: one mark per hole, each counted on the sheet. centre_marks_added_by_bridge says how many; a view where SOLIDWORKS put some marks, and a view that was on the sheet before, are left as they are. When that happens the answer also gives holes_in_views_without_centre_marks and auto_centre_marks_option (the document option that inserts them, null when it cannot be read). A hole the bridge could not mark is counted in holes_left_without_centre_mark, with centre_marks_note saying what to do.",
+   "details": "Puts on the sheet the THREE STANDARD VIEWS of the part, in FIRST-angle projection — the one used in Europe.\n\nThird-angle projection does not exist in this catalogue, on purpose: it is a twin call that never fails and produces a drawing with right and left swapped. No measurement notices, and the part is cut mirrored.\n\nThe views are counted before and after: if none is born the operation fails, instead of leaving you an empty drawing that looks successful.\n\nCENTRE MARKS ON HOLES. After the views are made the drawing is rebuilt, and the answer gives centre_marks_after_rebuild: the marks SOLIDWORKS put (null when a view cannot be counted). A view made by this call that shows holes end-on and has no centre mark at all gets them from the bridge, through the same walk as the centre-mark check: one mark per hole, each counted on the sheet. centre_marks_added_by_bridge says how many; a view where SOLIDWORKS put some marks, and a view that was on the sheet before, are left as they are. When that happens the answer also gives holes_in_views_without_centre_marks and auto_centre_marks_option (the document option that inserts them, null when it cannot be read). A hole the bridge could not mark is counted in holes_left_without_centre_mark, with centre_marks_note saying what to do.\n\nTHE SCALE: «scale» («1:2», «2:1») is set on the views this call makes that do not follow a parent, and the projected views follow it; every new view is read back after the rebuild, and one that does not read it makes the step fail. Left out, SOLIDWORKS chooses it (a part 175 mm long came out at 1:2 on an A3 with the sheet at 1:1). The answer always says «view_scales»: the scale of every view of the sheet, and whether it follows its parent or the sheet; «sheet_scale», and «scale_note» when a view of this call has another scale than the sheet (the title block prints the sheet's).",
    "schema": {
     "type": "object",
     "properties": {
      "model": {
       "type": "string",
       "description": "the path of the part to put in view. If you do not say, the first open part is used. You find it in «documents_open» in the state."
+     },
+     "scale": {
+      "type": "string",
+      "description": "the scale, «1:2» or «2:1» (a decimal with a point, «1:2.5»). Left out, SOLIDWORKS chooses it."
      }
     },
     "required": []
    },
    "precondition": "an open drawing and the part open beside it",
+   "document": "drawing",
+   "example": null
+  },
+  {
+   "name": "set_view_scale",
+   "family": "drawing",
+   "summary": "Changes the scale of a view already on the sheet, and reads it back.",
+   "details": "Changes the scale of a view of the active sheet («view»: its name, or «V1» as the state writes it) to «scale» («1:2», «2:1»). The views that follow it (the projected views of «standard_views») change with it after the rebuild. The scale is read back from the view, not taken from the call: «scale_before», «scale_after», and «view_scales», the scale of every view of the sheet. A view that followed the scale of its parent has its own after this (said in «parent_note»), and a view that now goes beyond the sheet is said in «outside_the_sheet». «sheet_scale» is the scale of the sheet, and «scale_note» says when the view does not have it: the title block prints the sheet's.\n\nI REFUSE IF the scale cannot be read, if the view is not on the active sheet (I say which ones there are), or if it already has that scale.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "view": {
+      "type": "string",
+      "description": "the view: its name, or «V1», «V2» ... as the state writes it."
+     },
+     "scale": {
+      "type": "string",
+      "description": "the new scale, «1:2» or «2:1» (a decimal with a point, «1:2.5»)."
+     }
+    },
+    "required": [
+     "view",
+     "scale"
+    ]
+   },
+   "precondition": "an open drawing with at least one view",
+   "document": "drawing",
+   "example": "{\"view\":\"V1\",\"scale\":\"1:2\"}"
+  },
+  {
+   "name": "read_drawing",
+   "family": "drawing",
+   "summary": "Reads a finished drawing sheet by sheet: views, dimensions, notes, balloons, tables. Touches nothing.",
+   "details": "Reads every sheet of the drawing without bringing any in front, to set one drawing against another. Per sheet: its name, scale, size, the title block the format declares, its own notes and tables. Per view: name, kind, scale, model, configuration, outline; every dimension with «kind» (linear, diameter, angular, chamfer ...), «direction» (horizontal or vertical for a distance, from the edges it rests on; null when it cannot be told), its value («mm», or «deg» for an angle), «text_shown» (what the sheet prints), «prefix», «suffix», «below» (the text under the dimension line), «parentheses», «arrows», «position_mm» and «attached_to»; every note with its text; every BOM balloon with its number and part; every table with its rows, the header first. «sheet» reads one sheet only.\n\nNOT READ: the lines, the hatching, centre marks and the symbols of finish, datum and tolerance; the notes inside the title block are counted («notes_in_title_block»), not listed.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "sheet": {
+      "type": "string",
+      "description": "the name of one sheet to read. Left out, every sheet."
+     }
+    },
+    "required": []
+   },
+   "precondition": "an open drawing",
+   "document": "drawing",
+   "example": null
+  },
+  {
+   "name": "move_annotation",
+   "family": "drawing",
+   "summary": "Moves a dimension or a note of the drawing, and reads back where it went.",
+   "details": "Moves one dimension or one note of the current sheet, found as «delete_annotation» finds it: «name» (the name drawing_dimension gives, «RD1@Drawing View1@...», or the name of a note) or «text» (the exact text of a note). Where: «x_mm» and «y_mm», the place on the sheet from its lower left corner, or a shift «dx_mm», «dy_mm» from where it is. The dimension keeps its name, its value and its decimals; it is not taken away and placed again.\n\nREAD BACK: «moved» is said only when the annotation reads the place asked («position_before_mm», «position_after_mm»). For a dimension «arrows» («inside», «outside») sets the side of its arrows, read back in «arrows», and the texts of its view are compared again («overlapping_texts»).\n\nI REFUSE IF no annotation or more than one answers (I name them), if the place is outside the sheet, and if both a place and a shift are given.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "the name of the dimension or of the note, as the plan that placed it gave it."
+     },
+     "text": {
+      "type": "string",
+      "description": "the exact text of a note, in place of «name»."
+     },
+     "x_mm": {
+      "type": "number",
+      "description": "where it goes on the sheet, from the left edge, in mm. With «y_mm»."
+     },
+     "y_mm": {
+      "type": "number",
+      "description": "where it goes on the sheet, from the bottom edge, in mm. With «x_mm»."
+     },
+     "dx_mm": {
+      "type": "number",
+      "description": "a shift to the right (negative: left), in mm of sheet."
+     },
+     "dy_mm": {
+      "type": "number",
+      "description": "a shift upward (negative: down), in mm of sheet."
+     },
+     "arrows": {
+      "type": "string",
+      "enum": [
+       "inside",
+       "outside"
+      ],
+      "description": "for a dimension: the side of its arrows."
+     }
+    },
+    "required": []
+   },
+   "precondition": "an open drawing with the dimension or the note on its current sheet",
    "document": "drawing",
    "example": null
   },
@@ -3525,7 +3951,7 @@
    "name": "mate",
    "family": "assemblies",
    "summary": "Constrains two components to each other, taking one face from each. It is the difference between an assembly and a tidy heap.",
-   "details": "Puts a mate between two components of the open assembly.\n\nFACES ARE NAMED BY DIRECTION, not by identifier: «the lower face of C2 on the upper face of C1». The components are the ones «inspect_part» lists as C1, C2, ... and those identifiers are STABLE (unlike the identifiers of the faces of a part, which are renumbered at every reading).\n\nTHE DIRECTIONS ARE THE ASSEMBLY'S: the faces come from the component's bodies in the part's own coordinates, and each normal is turned with the component's placement in the assembly (Transform2) before it is compared, so on a turned or mirrored component «up» is the face that looks up in the assembly. If no flat face looks that way I say so instead of taking one at random; if the placement of the component cannot be read, I refuse without touching anything.\n\nAmong several faces that look the same way I take THE LARGEST: on a cover or a plate that is the one you want.\n\nWHAT THE MATE BLOCKS IS MEASURED (Z-C14). SOLIDWORKS gives no remaining degrees of freedom from here, so before the mate and after it each non-fixed component of the pair is moved 5 mm along X, Y and Z and turned 5 degrees about X, Y and Z of the assembly, one move at a time with a rebuild after each: a direction the mates put back is blocked, one where the component stays is free. The answer gives, per component in the order of the two ids, blocked_directions_before and blocked_directions_after (TX, TY, TZ, RX, RY, RZ), degrees_removed and direction_test; a fixed component is not moved (fully blocked by definition), and neither is one inside a sub-assembly (unknown). After the test each component is set back where it started, and so is any other component the rebuilds carried along; a slide the rebuild leaves is reported in residual_drift_mm and in the answer, not hidden.\n\nA REDUNDANT MATE IS REFUSED: when the mate blocks nothing that was not already blocked, on a pair where one component is fixed or already fully blocked, I take out the mate I have just made (the object AddMate5 returned, never a name) and refuse, saying which directions were already blocked. SOLIDWORKS itself reports nothing wrong on such a mate (AddMate5 answers NoError, GetWhatsWrongCount stays 0): this test is the only place it shows. When a position cannot be set or read, a move comes back only in part (neither blocked nor free), the assembly does not rebuild cleanly (a feature or mate in error makes every rebuild answer false), or neither component is fixed or fully blocked, I say so and keep the mate: a mate is never called redundant from a reading that could not be made.\n\nTHE COST: 13 rebuilds per non-fixed component for each reading (two per direction and one to put it back), and two readings per mate: 26 for the usual pair of a fixed and a free component, 52 when both move. On a large assembly this takes a while.\n\nI do not rely on the answer of the call: I count the mates of the two components before and after, and if they did not increase I tell you instead of declaring it done.\n\nIf one of the two faces cannot be selected, the step is refused and AddMate5 is not called.",
+   "details": "Puts a mate between two components of the open assembly.\n\nFACES ARE NAMED BY DIRECTION, not by identifier: «the lower face of C2 on the upper face of C1». The components are the ones «inspect_part» lists as C1, C2, ... and those identifiers are STABLE (unlike the identifiers of the faces of a part, which are renumbered at every reading).\n\nTHE DIRECTIONS ARE THE ASSEMBLY'S: the faces come from the component's bodies in the part's own coordinates, and each normal is turned with the component's placement in the assembly (Transform2) before it is compared, so on a turned or mirrored component «up» is the face that looks up in the assembly. If no flat face looks that way I say so instead of taking one at random; if the placement of the component cannot be read, I refuse without touching anything.\n\nAmong several faces that look the same way I take THE LARGEST: on a cover or a plate that is the one you want.\n\nWHEN THE LARGEST IS NOT THE ONE, OR THE FACE IS CURVED, name it by a point on it: {\"point_mm\": [x, y, z]} in mm of the assembly (the state gives «origin_mm» and «axes» of each component, so a point of the part file can be carried into the assembly). I take the face of that component within 0.05 mm of the point; a point no face reaches, or one on an edge between two faces, is refused with the distance read.\n\nWHAT THE MATE BLOCKS IS MEASURED (Z-C14). SOLIDWORKS gives no remaining degrees of freedom from here, so before the mate and after it each non-fixed component of the pair is moved 5 mm along X, Y and Z and turned 5 degrees about X, Y and Z of the assembly, one move at a time with a rebuild after each: a direction the mates put back is blocked, one where the component stays is free. The answer gives, per component in the order of the two ids, blocked_directions_before and blocked_directions_after (TX, TY, TZ, RX, RY, RZ), degrees_removed and direction_test; a fixed component is not moved (fully blocked by definition), and neither is one inside a sub-assembly (unknown). After the test each component is set back where it started, and so is any other component the rebuilds carried along; a slide the rebuild leaves is reported in residual_drift_mm and in the answer, not hidden.\n\nA REDUNDANT MATE IS REFUSED: when the mate blocks nothing that was not already blocked, on a pair where one component is fixed or already fully blocked, I take out the mate I have just made (the object AddMate5 returned, never a name) and refuse, saying which directions were already blocked. SOLIDWORKS itself reports nothing wrong on such a mate (AddMate5 answers NoError, GetWhatsWrongCount stays 0): this test is the only place it shows. When a position cannot be set or read, a move comes back only in part (neither blocked nor free), the assembly does not rebuild cleanly (a feature or mate in error makes every rebuild answer false), or neither component is fixed or fully blocked, I say so and keep the mate: a mate is never called redundant from a reading that could not be made.\n\nTHE COST: 13 rebuilds per non-fixed component for each reading (two per direction and one to put it back), and two readings per mate: 26 for the usual pair of a fixed and a free component, 52 when both move. On a large assembly this takes a while.\n\nI do not rely on the answer of the call: I count the mates of the two components before and after, and if they did not increase I tell you instead of declaring it done.\n\nWHERE THE COMPONENTS ENDED UP is in the answer: «placement_after» gives «origin_mm» and «axes» of both, read after the mate, and the verdict says them. A distance mate also gives «face_b_along_normal_a_mm», the signed distance of face B from face A along the normal of face A, measured on the faces: choose the side with «distance_side».\n\nIf one of the two faces cannot be selected, the step is refused and AddMate5 is not called.",
    "schema": {
     "type": "object",
     "properties": {
@@ -3534,24 +3960,36 @@
       "description": "the identifier of the first component, from «inspect_part»: «C1», «C2», ..."
      },
      "face_a": {
-      "type": "string",
-      "description": "which of its faces, by direction: up, down, right, left, front, back. Directions of the assembly: on a turned component, the face that looks that way after the rotation."
+      "description": "which of its faces: by direction, one of up, down, right, left, front, back (directions of the assembly: on a turned component, the face that looks that way after the rotation), or by a point on it, {\"point_mm\": [x, y, z]} in mm of the assembly, for any face, flat or curved."
      },
      "component_b": {
       "type": "string",
       "description": "the identifier of the second component."
      },
      "face_b": {
-      "type": "string",
-      "description": "which of its faces, by direction."
+      "description": "which of its faces: a direction or {\"point_mm\": [x, y, z]}, as «face_a»."
      },
      "variant": {
       "type": "string",
-      "description": "coincident (default), parallel, perpendicular or distance. I refuse concentric and tangent: they want a curved face, and here faces are chosen by direction, which holds only for flat ones."
+      "description": "coincident (default), parallel, perpendicular, distance, concentric, tangent or width. Concentric and tangent want a curved face, so at least one of the two faces must be named by a point: between two faces named by direction (always flat) I refuse them. WIDTH puts the tab of component_b in the middle of the width of component_a: give «face_a2» and «face_b2» too."
+     },
+     "face_a2": {
+      "description": "ONLY FOR «width»: the second face of the width on component_a, opposite «face_a» (left and right, front and back); a direction or {\"point_mm\": [x, y, z]}, as «face_a»."
+     },
+     "face_b2": {
+      "description": "ONLY FOR «width»: the second face of the tab on component_b, opposite «face_b»; a direction or {\"point_mm\": [x, y, z]}, as «face_b»."
      },
      "distance_mm": {
       "type": "number",
       "description": "only for «distance»: how far apart they are. Without it I refuse -- there is no reasonable default value."
+     },
+     "distance_side": {
+      "type": "string",
+      "enum": [
+       "along_normal_a",
+       "against_normal_a"
+      ],
+      "description": "only for «distance»: on which side of face A face B ends. along_normal_a (the default) is the side face A looks at: «down» of C1 at 11.7 mm puts C2 11.7 mm BELOW C1. against_normal_a is the other side. The side is measured after the mate and a mate on the wrong side is taken out."
      },
      "alignment": {
       "type": "string",
@@ -3651,6 +4089,83 @@
    "example": "{\"component\":\"C2\",\"grounded\":true}"
   },
   {
+   "name": "suppress_mate",
+   "family": "assemblies",
+   "summary": "Turns a mate of the assembly off, or back on, by its uid or name, and reads it back.",
+   "details": "Turns a mate off without losing it: the components it held stay where they are, but the directions it blocked are free. «reactivate»: true turns it back on. It is the road back from a wrong mate, and it can be walked back, so it asks no confirmation.\n\nTHE MATE IS NAMED from «mates_list» in the state of the assembly: its uid («M1» is the first mate of the tree, renumbered when one is deleted) or its name as SOLIDWORKS writes it («Distanza1» in an Italian session, «Distance1» in an English one). I read it back after the change.\n\nI REFUSE IF the mate is not there (I tell you which ones there are) or if it is already as you ask (nothing changes, and I say so).",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "mate": {
+      "type": "string",
+      "description": "the uid («M1», «M2», ...) or the name of the mate, from «mates_list»."
+     },
+     "reactivate": {
+      "type": "boolean",
+      "description": "true to turn a suppressed mate back on. Default false: suppress it."
+     }
+    },
+    "required": [
+     "mate"
+    ]
+   },
+   "precondition": "an open assembly with at least one mate",
+   "document": "assembly",
+   "example": "{\"mate\":\"M1\"}"
+  },
+  {
+   "name": "delete_mate",
+   "family": "assemblies",
+   "summary": "Deletes a mate of the assembly by its uid or name, and reads back that it is gone.",
+   "details": "Deletes a mate. It cannot be undone with another operation, only with «undo»: the bridge asks the person for a confirmation before running a plan that contains it, when the client can ask (MCP «elicitation»); when it cannot, the plan runs and the answer says in «confirmation» that nobody was asked. To turn a mate off and keep it, use «suppress_mate».\n\nTHE MATE IS NAMED from «mates_list» in the state of the assembly, by uid («M1») or by name, as in «suppress_mate». I read back that the name is gone and that there is one mate fewer.\n\nI REFUSE IF the mate is not there (I tell you which ones there are).",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "mate": {
+      "type": "string",
+      "description": "the uid («M1», «M2», ...) or the name of the mate, from «mates_list»."
+     }
+    },
+    "required": [
+     "mate"
+    ]
+   },
+   "precondition": "an open assembly with at least one mate",
+   "document": "assembly",
+   "example": "{\"mate\":\"M1\"}"
+  },
+  {
+   "name": "place_component",
+   "family": "assemblies",
+   "summary": "Puts a component where you say and turns it as you say, and reads the placement back.",
+   "details": "Sets the placement of one component of the open assembly: «origin_mm» is where its origin goes, in mm of the assembly (the same field the state answers for each component), and «rotation» turns its axes: one turn {axis, angle_deg} or a list of them, applied in order, about the axes X, Y, Z of the ASSEMBLY, starting from the part's own axes (so the same request gives the same placement wherever the component was). Right-hand rule: 90 degrees about z takes x to y. What you do not send stays as it is.\n\nIT IS READ BACK after a rebuild: the answer gives «origin_mm» and «axes» as read («+X -Y -Z» means the component's x points to +X of the assembly, its y to -Y, its z to -Z; three unit vectors when an axis is not on an axis of the assembly), «moved_mm» and «turned_deg» from where it was. The state lists «axes» for every component too.\n\nMATES WIN: a component its mates hold is moved back by the rebuild. Then I refuse, set it back where it was, and say how far the mates took it: place it before mating, or suppress the mate first.\n\nI REFUSE IF the component is fixed (free it with «fix_component» first), if it is inside a sub-assembly (its placement would move the whole sub-assembly), if you send neither «origin_mm» nor «rotation», or if one of them is not in the form above.",
+   "schema": {
+    "type": "object",
+    "properties": {
+     "component": {
+      "type": "string",
+      "description": "the identifier of the component, from the state: «C1», «C2», ..."
+     },
+     "origin_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "[x, y, z] in mm of the assembly: where the origin of the component goes. Without it the origin stays where it is."
+     },
+     "rotation": {
+      "description": "{\"axis\": \"x\" | \"y\" | \"z\", \"angle_deg\": number}, or a list of them applied in order, about the axes of the assembly, starting from the part's own axes. Without it the component keeps its orientation."
+     }
+    },
+    "required": [
+     "component"
+    ]
+   },
+   "precondition": "an open assembly with a component that is not fixed",
+   "document": "assembly",
+   "example": "{\"component\":\"C2\",\"origin_mm\":[0,11.7,0],\"rotation\":{\"axis\":\"x\",\"angle_deg\":180}}"
+  },
+  {
    "name": "replace_component",
    "family": "assemblies",
    "summary": "Changes the file of a component that is already mounted, and tells you whether the constraints survived SOUND or merely survived.",
@@ -3711,6 +4226,16 @@
      "configuration": {
       "type": "string",
       "description": "the configuration of the part to mount, by its whole name (the part in angle brackets included). A name the file does not have is refused before inserting; the component comes in with it, read back, or is taken out again. Empty: the file's last saved configuration."
+     },
+     "origin_mm": {
+      "type": "array",
+      "items": {
+       "type": "number"
+      },
+      "description": "[x, y, z] in mm of the assembly: where the part's ORIGIN goes, instead of x_mm, y_mm, z_mm (sending both is refused). Applied after the insertion and read back, as «place_component» does."
+     },
+     "rotation": {
+      "description": "{\"axis\": \"x\" | \"y\" | \"z\", \"angle_deg\": number}, or a list of them in order, about the axes of the assembly: how the part comes in turned. Read back with the origin; a placement that does not come back as asked takes the component out again."
      }
     },
     "required": [
@@ -4272,7 +4797,7 @@
    "name": "set_property",
    "family": "identity",
    "summary": "Writes a custom property -- drawing number, revision, customer -- on the document or on a configuration.",
-   "details": "Writes a custom property: it is what ends up in the title block of the drawing and in the PDM data card. «Numero disegno» (drawing number), «Revision», «Cliente» (customer), «Descrizione» (description).\n\nTHE DOCUMENT AND A CONFIGURATION ARE TWO SEPARATE DRAWERS. A property written on the document is NOT SEEN from a configuration, and the other way round: they are not inherited. If you say «configuration» I write it there and only there; if you do not say it I write it on the document and only on the document. I repeat it to you in the answer every time, because it is the error that gives no error: the drawing number is written on the document, read back from the configuration, it is not there, and nobody says why.\n\nIF IT ALREADY EXISTS, I REPLACE IT. I do not let you believe you changed a revision that stayed the one it was.\n\nAFTER WRITING I READ BACK. The command answers a code, not the value: if on reading back I do not find what I wrote I fail instead of confirming a data card that is not the one you think.\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is checked as the TEXT written, and resolved_value gives what SOLIDWORKS evaluates it to, when the two differ.",
+   "details": "Writes a custom property: it is what ends up in the title block of the drawing and in the PDM data card. «Numero disegno» (drawing number), «Revision», «Cliente» (customer), «Descrizione» (description).\n\nTHE DOCUMENT AND A CONFIGURATION ARE TWO SEPARATE DRAWERS. A property written on the document is NOT SEEN from a configuration, and the other way round: they are not inherited. If you say «configuration» I write it there and only there; if you do not say it I write it on the document and only on the document. I repeat it to you in the answer every time, because it is the error that gives no error: the drawing number is written on the document, read back from the configuration, it is not there, and nobody says why. «scope» says it outright: «file», «configuration» (the one you name, or the active one) or «both», which writes it in the two and reads it back from each.\n\nIF IT ALREADY EXISTS, I REPLACE IT. I do not let you believe you changed a revision that stayed the one it was.\n\nAFTER WRITING I READ BACK. The command answers a code, not the value: if on reading back I do not find what I wrote I fail instead of confirming a data card that is not the one you think.\n\nA value written as a formula (for example \"SW-Mass@part.SLDPRT\") is checked as the TEXT written, and resolved_value gives what SOLIDWORKS evaluates it to, when the two differ.",
    "schema": {
     "type": "object",
     "properties": {
@@ -4287,6 +4812,15 @@
      "configuration": {
       "type": "string",
       "description": "the name of the configuration to write it on. If you do not say it I write it on the DOCUMENT, and that is a different place. The names are in the document state, inside «configurations»."
+     },
+     "scope": {
+      "type": "string",
+      "enum": [
+       "file",
+       "configuration",
+       "both"
+      ],
+      "description": "where: «file» is the document, «configuration» the one named in «configuration» or else the active one, «both» the document and that configuration. Left out: «configuration» if you name one, «file» otherwise. «file» together with a configuration named is refused."
      }
     },
     "required": [

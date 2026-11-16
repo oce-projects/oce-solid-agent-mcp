@@ -32,7 +32,3476 @@ Criterion (reduced semver MAJOR.MINOR.PATCH):
 
 ---
 
-## 0.130.3 — 25 October 2026 · library 0.153.2
+## 0.170.15 — 16 November 2026 · library 0.198.12 (unchanged) · main and the night line become one branch
+
+**What happened.** `main` (0.130.3) and branch `night-2026-10-26-asm` (0.170.14) had grown
+apart from 0.130.2: 22 commits on one side, 54 on the other. They are merged here, with
+the two commits of `origin/main` (the solidworks-bridge skill at 0.1.2, byte-identical to
+the 0.1.2 already on `main`).
+
+**The code of the library, of the bridge and of the tests is the one of 0.170.14, line
+for line**: after the merge, no `.cs` or `.csproj` file differs from the tip of the night
+line. The last full bench ran on that code (3 November 2026: 2634 tests, 0 failed).
+
+**0.130.3 and the night line answered the same usage report.** On 25 October 2026 the
+autonomous agent DevAgentAi answered, on `main`, the usage report of 24 October 2026
+(briefs R1, R2, R3, R4, R6, R9: the 0.130.3 entry below). The night line answered the same
+report in 0.131 to 0.144 (briefs R1 to R22), measured on the bench. Where both changed the
+same lines, the night line's code is kept; the code of 0.130.3 that only did the same
+thing a second way is removed:
+
+- `Oce.Solid.Agent.Core/MaterialNameMatch.cs` and `Tests/MaterialNameMatchTests.cs`: the
+  material search is the night line's (a name under four letters matches only as a whole
+  word, and the name is resolved in validation and in `dry_run`, before the first step).
+  By reading of the code, not measured: "AISI304" still finds "AISI 304 Stainless Steel",
+  because a name of four letters or more is compared without spaces.
+- `Tests/UsageFeedbackContract.cs`: its twelve checks look for the text of 0.130.3 in the
+  sources, which the night line words differently. Run against the merged tree, six
+  failed for that reason only, and `MaterialNameMatch.cs` added three receivers of
+  undecided type.
+
+How each brief of 0.130.3 stands in this version:
+
+| brief | 0.130.3 | here |
+|---|---|---|
+| R1 window in front changed | log line with the step and the time since the plan started | the answer records each reactivation (`step`, `at`, `brought_back`); the log line names the window, not the step and the time |
+| R2 times of each step | in the log | in the answer, `timing_ms` of each step |
+| R3 refused before writing | `state_after` null | a plan refused in validation does not read the state; `response: summary` by default |
+| R4 short material names | whole words (`MaterialNameMatch`) | whole word under four letters, checked before the plan |
+| R6 assembly note | names the operations | the assembly state of 0.135.0 |
+| R9 `faces` on a part with no body | empty list with a note | empty list with a note |
+
+**From `main`, kept as they were:** `Ops/` (one entry point and 15 commands for an
+autonomous agent), `REPO-MAP.md`, the section of `AGENTS.md` for that agent, `.gitignore`
+(`Ops/ops.config.local.psd1`, `Ops/out/`, `.tickets/`), the skill `Skills/solidworks-bridge`
+0.2.2 and step 4 of the README ("Install the skill too"). The pre-push fix of `main` is the
+same change as 0.159.9 of this line: it merged without a conflict.
+
+**Fixed while merging.** `Ops/commands/contracts.ps1` 1.0.1: in a linked worktree git
+gives the index as an absolute path, and the language gate step prefixed the root to it.
+
+**Tests.** Contract suite on the merged tree, without SOLIDWORKS: 1031 checks, 2 failed,
+2 not runnable here. The two red ones say that the last bench run is older than the last
+change; they turn green with a bench on this version. Language gate held.
+
+## 0.170.14 — 3 November 2026 · library 0.198.12 · the local copy of a template outlives a cleaner of %TEMP% (branch `night-2026-10-26-asm`)
+
+- **Why.** The second full bench of 0.170.13 (begun at 12:34:33) ended with 0 failed tests and 26 bench
+  errors: from 1608.8 s on, every new assembly was null, 27 times «SOLIDWORKS did not produce the new
+  assembly to test on (it answered null)». The copy of the assembly template (`.asmdot`) was no longer in
+  `%TEMP%\bench-models`, the folder where `LocalModel` copies the templates of the share; the folder had
+  changed at 13:00:02. At 13:00:00 a scheduled cleaner of `%TEMP%` of this workstation had run. It deletes
+  what has not been modified for 3 days, and its log says 369 items deleted and 1 that failed. `File.Copy`
+  keeps the time of the original (9 September 2026 for the part template, `.prtdot`), so the fresh copies
+  looked abandoned. The part template stayed. The first full bench of 0.170.13 (11:24 to 12:32) did not
+  cross 13:00.
+- **What changed.** The copy takes the time of now (`File.SetLastWriteTime` after `File.Copy`). A copy that
+  is no longer there when `LocalModel` is asked for it again is copied again, and the bench says «the local
+  copy ... is gone: I copy the model again». The message of the fallback, «I use the local copy of», now
+  gives the time the copy was made, as it meant to, instead of the time of the original.
+- **The check.** `BenchLocalModelsContract`: `LocalModel` touches the copy after `File.Copy`, and looks
+  whether a cached copy still exists before handing it back. Two changed copies (no touch, a cache that
+  does not look) both turn it red.
+
+## 0.170.13 — 3 November 2026 · library 0.198.12 · the bench releases before it closes a document (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench of library 0.198.12 stopped with exit 5 («THE CALL DOES NOT COME BACK»). The
+  dump SOLIDWORKS wrote has its main thread in `ntdll!WerpWaitForCrashReporting`, reporting an access
+  violation in `slduiu.dll` at offset 0x94d513 inside a remote Release
+  (`combase!CRemoteUnknown::RemReleaseWorker`): a program outside SOLIDWORKS dropped its last reference
+  to an object, and the release read a null pointer. The same violation is in the Application log 86
+  times from 26 September to 3 November 2026. COM reports it in silence and SOLIDWORKS usually goes on;
+  this time the report did not end.
+- **Where it comes from, measured.** Bench runs of single groups, SOLIDWORKS restarted before each, on
+  3 November 2026. `client-port` alone: 0 violations in 3 runs. A bisection of the 15 groups before it
+  ended on `bare-views`: bare-views + client-port 2 of 2, numbers + client-port 0 of 2. `bare-views`
+  alone: 2 of 2, in the second the bench exited. bare-views + client-port with `OCE_BENCH_RELEASE=0`:
+  2 of 2, again at the exit; with the release on, the violation fell inside client-port, at its first
+  collection. A probe outside the repository then isolated the object: a box, one drawing view, the 8
+  co-edges of its 4 edges (`IEdge.GetCoEdges`, as `IsAVisibleHole` reads them for the center marks).
+  Released after the drawing and the part were closed: the violation in 3 scenes of 3, and the release
+  took 5065 to 5220 ms. Released before the close: 0 of 3, 21 to 26 ms. The 4 edges released after the
+  close: 0 of 2. The drawing dimensions and the drawing rounds read the co-edges of view edges too.
+- **Why the bridge is not touched.** The bridge collects after every call and, before a «document»
+  call, lets go what it still holds: a document is closed with nothing of it left in the bridge. The
+  bench did not. The groups written in C#, and the declared cases at their end, closed their documents
+  with the wrappers of the last operation still waiting for a collection, which came at the next step
+  or when the bench exited.
+- **What changed.** Every close of the bench goes through `CloseTitle`, which first collects the
+  garbage and waits for the finalizers (`ReleaseBeforeClosing`, phase «release before closing»), with
+  the finalizer gate open, and closes the gate again if it was held (`Shared.FinalizerGate.IsClosed`,
+  new). Twelve `_sw.CloseDoc` calls in BareViews, ClientPort, DimensionNumbers, Orphans, TestAssembly
+  and Program.cs now call `CloseTitle`, and so does `Close`. It does not depend on
+  `OCE_BENCH_RELEASE`: it keeps SOLIDWORKS standing, it does not imitate a timing of the bridge.
+- **The check.** `BenchReleasesBeforeClosingContract`: one `CloseDoc` in the sources of the bench, in
+  `CloseTitle`, after the release, and the release waits for the finalizers only with the gate open.
+  Five changed copies (a group that closes by itself, `Close` that closes by itself, `CloseTitle`
+  without the release or with the release after the close, the gate never opened) all turn it red.
+- **Measured after the change.** Same runs, same restarts: `bare-views` alone 0 violations in 2 runs
+  (7 tests, 0 failed), bare-views + client-port 0 in 2 (48 tests, 0 failed). The release before closing
+  cost 0.8 to 0.9 s in 3 closes, and 1.5 s in 12.
+
+## 0.170.12 — 3 November 2026 · library 0.198.12 · an unexpected null of a structural member says more, and why a sketch stays (branch `night-2026-10-26-asm`)
+
+- **Why.** The null of `InsertStructuralWeldment5` on a valid path is still open: 2 in 4 full benches
+  (0.198.8 and 0.198.9; none in 0.198.10 and 0.198.11), 1 in 9 replays of the bench prefix, 0 in 34
+  shorter runs. In both full benches with the null the answer ended with «The sketch I had drawn stayed
+  in the part»: `WithoutSketch` could not delete the sketch of the path, and in 0.198.9 the same happened
+  at the step before, in the same part. In the green benches that step removed its sketch. `WithoutSketch`
+  gives that sentence for about ten different reasons, and logged none of them.
+- **A hypothesis refuted.** A probe outside the repository drew the L of step 2 of
+  `a_member_not_born_says_what_it_read` the library's way, three rounds alternated. With the sketch closed
+  (the control) the member was born 3 times in 3: 2 bodies, 1322967.371 mm3, as the case wants. With the
+  sketch left open for editing it was born too, 3 times in 3, and the insertion closed the sketch. An open
+  sketch does not give the null. The probe passed an adversarial review first: its first version rebuilt
+  the part after a null, which the library does not do, and that could close the sketch and refute the
+  hypothesis for nothing.
+- **What changed.** After a null, `WhatTheNullLeft` also reads how long the call took (ms), whether a
+  sketch is open for editing (`ISketchManager.ActiveSketch`), which document is in front
+  (`ISldWorks.ActiveDoc`), how many documents SOLIDWORKS holds (`GetDocumentCount`), and the GDI and USER
+  objects, handles and private memory of its process (`GetProcessID`, `GetGuiResources` of user32). When
+  `WithoutSketch` leaves a sketch, the log says which check stopped it and whether a sketch is open for
+  editing (`LeftBehind`). No behaviour changes: readings and a log line only.
+- **The case.** `a_member_not_born_says_what_it_read`, step 1, expects four more pieces of the refusal:
+  «the call took», «open for editing», «document in front» and «SOLIDWORKS holds».
+
+## 0.170.11 — 3 November 2026 · library 0.198.11 · the texts the language gate refused (branch `night-2026-10-26-asm`)
+
+- **Why.** The pre-push hook stopped the push of 0.161.0-0.170.10: the language gate found 6 Italian
+  occurrences in 3 files, all written by 0.161.0-0.163.0. They were the name of a mode and of a variable
+  of an internal script, the name of the folder of a drawing run, and a word of a dimension text quoted
+  in the label of a check.
+- **What changed.** Only words: two comments of `DrawingDimensionStyle.cs`, two comments and the label of
+  a check in `Tests/RealRunContract.cs`, and a comment line of `Tests/data/real-run-1102.tsv` (the
+  contract skips the lines that start with `#`). No behaviour changes, and no exception added to the
+  gate.
+- **The bench.** The freshness contract reads the date of the commit, and a file of the library changed
+  after the full bench of 0.198.10 (2634 tests, 0 failed): the full bench runs again on 0.198.11.
+
+## 0.170.10 — 2 November 2026 · library 0.198.10 · a hole position dimension goes on the centre of the hole (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench on library 0.198.9 (21:36, 2.552 tests, 8 failed) had a new red:
+  `drawing_dimensions_holes_and_chamfer`, step 11, «does not say «105»: 8, 15, 101, 15, 65». 101 is 105
+  minus the 4 mm radius of the Ø8 hole. The same case alone, with SOLIDWORKS restarted before each run:
+  green 4 times out of 4 (21:53-21:58).
+- **The defect.** `HolePosition` selects the circle of the hole and the reference edge and calls
+  `AddHorizontalDimension2`/`AddVerticalDimension2`. Which point of the circle the dimension takes (the
+  centre, the nearest point or the furthest) is its arc end condition (guide page
+  `IDimension~SetArcEndCondition.html`), and the bridge never looked at it: SOLIDWORKS chose. The answer
+  already carried a «warning» when the value was off by more than 0.05 mm, and nothing acted on it.
+- **What changed.** `CentreTheArcEnds` (DrawingDimensionOperations.cs) reads both ends of the new
+  dimension with `IDimension.GetArcEndCondition`, and puts back on the centre, with `SetArcEndCondition`,
+  an end that is on the nearest or the furthest point. Both ends are read, so the order of the selection
+  is not assumed. It runs before the dimension is described, so the millimetres in the answer are the
+  corrected ones. Every hole position in the answer has `arc_ends`: what was read on each end and what
+  was moved.
+- **Seen on SOLIDWORKS.** A probe outside the repository, on the plate of the case, the library's way (Select4 on the circle, then on the left edge, `AddHorizontalDimension2`): born on the
+  centre, 105 mm, end 1 = 1 (centre), end 2 = 0 (not on an arc). End 1 set to the nearest point: 101 mm,
+  the value of the red; to the furthest: 109 mm; back to the centre: 105 mm. `SetArcEndCondition`
+  returned 0 every time, and the value changed at once, before `GraphicsRedraw2`: the library does not call
+  it (the guide asks it only to see the change, and the frozen count of that call stays). A second version
+  of the probe put end 1 on the nearest point again (101 mm) and called the library's own `CentreTheArcEnds` by
+  reflection: 105 mm, «end 1 was on the nearest point, put on the centre: it reads centre»; a second call
+  moved nothing. Alone the bench case is born on the centre and never runs that branch.
+- **The case.** `drawing_dimensions_holes_and_chamfer`, step 11, three new lines on `dimensions[2]`, the
+  105: its orientation, `arc_ends` with «on the centre», and without the words of a move that failed. On
+  library 0.198.9 (`-Library`, a copy of the old DLL, SHA-256 58480ecb…) the bench
+  stops on «missing field: measurements.dimensions[2].arc_ends»; on 0.198.10 the case is green twice, 50
+  tests each, with «end 1 on the centre; end 2 not on an arc».
+
+## 0.170.9 — 2 November 2026 · library 0.198.9 · a structural member that is not born says what was read (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench on library 0.198.8 (18:28-19:35, 2.624 tests) had one red case and its twin:
+  `a_frame_too_small_closes_the_profile_library`, step 2, the frame of 1000 x 800 mm in 80X80X5 tube.
+  `InsertStructuralWeldment5` returned null; the bridge log says the insertion opened the profile library
+  and left it modified, so the file on S: was read. The same case repeated alone 8 times right after, on
+  the same SOLIDWORKS session: 8 green. In the logs of the full benches since 28/10/2026 the message
+  appears only in this run. The SOLIDWORKS journal (`swxJRNL.swj`) shows the 3D sketch of that step and
+  no member group: SOLIDWORKS writes there only what is born. The drag guard is ruled out by time: it acts
+  after 3 s of a held mouse, and the two calls of the case took 0,7 s together.
+- **The defect.** The null branch answered only «Usually it is the path: segments that do not touch, or
+  that cross in a way the profile cannot turn», a guess, and read nothing. The red left nothing to look at.
+- **What changed.** `WhatTheNullLeft` (WeldmentOperations.cs) reads three things after the null, before
+  `WithoutSketch` may delete the sketch, and the refusal says each one that was read: the segments the
+  group holds against those drawn (`IStructuralMemberGroup.GetSegmentsCount`, guide page
+  `IStructuralMemberGroup~GetSegmentsCount.html`); the ends of the drawn segments that meet no end of
+  another within 0.01 mm, read back with `ISketchLine.GetStartPoint2`/`GetEndPoint2`, and the farthest of
+  them; whether the profile library is open. A reading that fails is left out, not written as zero. The
+  hint about the path stays after the readings.
+- **Seen on SOLIDWORKS.** New bench case `weldments/a_member_not_born_says_what_it_read`: two segments that
+  do not touch and are not parallel in one group (the refusal), and the same two joined in an L (the
+  twin). On library 0.198.8 (`-Library`, a copy of the old DLL): **red**, «it refused but does not say
+  «Read after the refusal»». On 0.198.9: **green**, the refusal reads «the group holds 2 of the 2
+  segments drawn; 4 ends of the drawn segments meet no end of another (the farthest is 583.095 mm from
+  the nearest); the profile library «TUBO STRUTTURALE QUADRO.SLDLFP» is open: SOLIDWORKS read it», and the
+  twin is 2 bars of 1322967.371 mm3. 583.095 mm is sqrt(500^2 + 300^2), computed before the run.
+- **Not found.** Why SOLIDWORKS returned null on the 1000 x 800 frame once in 9 runs of the case is not
+  known: the next time the refusal carries the three readings.
+
+## 0.170.8 — 2 November 2026 · library 0.198.8 · the drag guard seen firing, and the reds of 0.198.7 nobody had seen (branch `night-2026-10-26-asm`)
+
+- **Why.** The guard of 0.198.7 had never been seen firing. In an A/B on SOLIDWORKS (12 runs of
+  `chamfered_shaft_does_not_dimension_the_legs`, `OCE_DRAG_GUARD=off` and on alternated, 13:04 to 13:14)
+  it posted Escape 0 times, and the only proof that it was wired was a line of its source. It also looked
+  only at the thread of `Process.MainWindowHandle`, one window of the process: a capture held by another
+  window of SOLIDWORKS, or by a thread whose window is not the main one, was not seen.
+- **The guard (`StuckDragGuard`).** `WindowThreadsOf` lists, with `EnumWindows`, the threads that own a
+  top-level window of the processes named `ProcessName`, and every one of them is read with
+  `GetGUIThreadInfo`. `ProcessName` is `SLDWORKS` and can be set, so that the contracts point the guard at
+  their own process.
+- **The contract (`StuckDragGuardContract`, 2 checks).** A window on a thread of the contract process takes
+  the mouse (`SetCapture`, no button down) and lets it go on Escape, as `CRectTracker::Track` does. The
+  control first, guard off: the window still held the mouse after 5.052 ms, Escape 0, events 0. Then guard
+  on: the window let go after 3.608 ms, Escape received once, one event kept (second run: 5.090 ms and
+  3.592 ms). Where a thread cannot take the mouse at all, both checks are «not runnable here», with the
+  reading of `GetGUIThreadInfo` that proves it.
+- **The reds of 0.198.7 nobody had seen (the contracts had not run on it).** `check-catalog.ps1` read 0
+  `case` labels: it looked inside `public Outcome Run(`, and since 0.198.7 `Run` only watches the call and
+  the switch is in `RunWatched`; it now reads the method that holds `switch (operation)`, as
+  `Tests/Program.cs` does. `List<string>.Add` on the field `Events` is an undecided call for the scanner of
+  obsolete calls (a declared type with angle brackets): the count is raised with its reason in
+  `Tests/data/obsolete-undecided-frozen.tsv`. `OCE_DRAG_GUARD` was read and not in the README: it has its row.
+  The informational version, the badges and the installer said 0.198.7 and 0.170.7.
+- **Measured: the about 30 s of `drawing_dimension` come with the disconnected remote session, not with the
+  guard.** The slowest `drawing_dimension` of each run, on 64 runs of the case between 11:30 and 13:14, read
+  from the reports of the runs; the remote session of the owner was disconnected at 12:46:35:
+
+  | runs | before 12:46:35 | after 12:46:35 |
+  |---|---|---|
+  | under 20 s | 35 of 36 (1,5 to 17,4 s) | 1 of 28 (12,3 s) |
+  | 20 s or more | 1 of 36 (40,0 s) | 27 of 28 (29,8 to 36,1 s) |
+
+  The first run after the disconnection shows it in one run: a `drawing_dimension` of 1,9 s at 12:46:33,
+  the next one of 31,0 s at 12:47:12. With the guard off and on the times are the same (29,8 to 31,3 s
+  and 29,8 to 30,8 s, the first run off 12,3 s). That the disconnection is the cause is not tested: a run
+  with the session connected and disconnected alternated is needed.
+- **Contracts.** 1.029 checks, 4 failed, 2 not runnable here. The 4 reds are of the bench report:
+  `Bench/report/last.json` is the partial run written by the repeated runs of the case (29 tests on
+  0.198.7, 13:14), and a whole bench on 0.198.8 is needed. Not run: the bench.
+
+## 0.170.7 — 2 November 2026 · library 0.198.7 · a drag of the view that nobody releases, ended with Escape (branch `night-2026-10-26-asm`)
+
+- **Why.** `chamfered_shaft_does_not_dimension_the_legs` hung in 3 runs of 8 with library 0.198.6 and in 1
+  of 8 with 0.198.2, and two whole benches of bridge 0.170.6 were lost. The stacks of SOLIDWORKS of 11:59
+  and 12:07 both end in `CRectTracker::Track`: a simulated click (`ISilhouetteEdge.Select2`, through
+  `auModelDoc_c::s_selectByPick`, or a reading of the view through `uiViewBucket_c::getPolylines`) took the
+  drawing view and started a drag of it (`uiSelectionMan_c::startDragDrop`), and the main thread of
+  SOLIDWORKS held the mouse waiting for a button that nobody pressed (the capture read with
+  `GetGUIThreadInfo`, no button down). Escape posted to the window that held the mouse ended the drag
+  without moving anything: the bench went on within 8 s and the case was green.
+- **The guard (`StuckDragGuard`).** While a call of the bridge runs (`During`), a timer looks every 0,5 s
+  at SOLIDWORKS: a window that has held the mouse for 3 s, with no menu and no move or size loop open (the
+  flags of `GUITHREADINFO`) and no mouse button down (`GetAsyncKeyState`), gets Escape once, and the event
+  is kept. A drag of the owner's holds a button and is never touched; outside the calls nothing is looked at.
+- **Where.** `SwOperations.Run` runs the operation (`RunWatched`) inside `During`, and `DocumentState`
+  reads a listing (`ReadListingWatched`) inside it too. An answer whose call ended a drag says so in
+  `drag_released_with_escape`, and the log of the bridge has the sentence.
+- **The switch.** `OCE_DRAG_GUARD=off`: nothing is watched, to measure the two ways on the same build.
+- **Contracts.** The wiring in `Zc2204DrawingRound22Contract`: `During` in the operations and in the
+  state, and no Escape while a button is down.
+
+## 0.170.6 — 2 November 2026 · library 0.198.6 · the leader of a chamfer text judged by the lines it crosses, and the tables in the way of a balloon (branch `night-2026-10-26-asm`)
+
+- **Why (the two points left open by the night's report).** On 26P000011 view 2 the text of the profile
+  chamfer went 18 mm from the corner: the places tried were only along the outer side and at ±30°, 6 to
+  18 mm, and the dimensions of the view (2,1, 5,705, 0,747, 12,105) took that fan near the corner. And
+  `FreeTheBalloons` read the notes, the balloons, the other views and the title block of the sheet, not
+  its tables: a balloon could be moved onto the bill of materials.
+- **A first try that made the sheet worse (not kept).** The fan alone widened to ±90° put the text on the
+  arrow of 12,105 and its leader across 0,747 and 12,105, on SOLIDWORKS (drawing d14): a place free of
+  every text and line can still have a leader that crosses them.
+- **The chamfer text (`DrawingDimensionOperations`).** `ChamferTextCandidates` gives 49 places, 6 to 24 mm
+  every 3 mm, along the outer side and at 30°, 60° and 90° either side, each with the unit toward it;
+  the box of the text grows on the side of its own place (centred on an axis it is almost across).
+  A place is free with a margin of 0,5 mm from the other texts, the lines of the view and of the other
+  dimensions, the notes. Among the free places the leader decides: `LeaderCrossings` counts the lines of
+  the view, of the dimensions and the sides of the other texts crossed by the segment from the corner to
+  the nearest point of the box (`NearestOnBox`), the first 0,6 mm left out; the fewest crossings first,
+  then the nearest, then the order of the places. The answer says how many lines the leader crosses and
+  how many places of 49 were free.
+- **Measured on SOLIDWORKS (drawing d15, the steps of 26P000011).** View 2: 21 mm from the chamfer
+  (place 36 of 49), its leader across no line, 12 places of 49 free; view 1: 6 mm. The call took
+  10.245 ms against 17.867 ms of the first try (d14) on the same steps. A text nearer than 21 mm on view 2 needs the
+  vertical dimensions moved to the right of the part (the owner puts 12 of 19 there): a question of
+  style, left to the owner.
+- **The tables in the way of a balloon (`BalloonRepeatOperations.FreeTheBalloons`).** Every view of the
+  sheet, the sheet itself first, gives its tables (`GetTableAnnotations`) with the box `TableBoundingBox`
+  already gives the free places of `ReadSheet`; a balloon is not left over one, and the answer names it
+  («over the table «ElementoDettaglio393» (Foglio1)»).
+- **Measured on SOLIDWORKS, A/B on the same steps** (the steps 32-38 of 26M000002, then its main view 70
+  mm lower, the bill of materials over the title block, `balloons` with `layout: below`): with the
+  library before the change (d19) the 4 balloons of 4 stayed over the header of the table (centres at y
+  90,98 mm, the table from 53,5 to 93,86 mm); with 0.198.6 (d20) the 4 were moved, each «over the table»,
+  to y 100,87 mm, just above it (PDF and PNG looked at). The replay of the real steps 32-39 (d16) moved
+  7 balloons, for the frame, another balloon, a label and their own view, none for the table: there none
+  is born near it.
+- **New bench case `balloons_move_off_the_bill_of_materials`.** The base and cover of
+  `bom_over_the_title_block_and_balloons_again`, the table over the title block (its top read at y 79,21
+  mm), the side view taken off its line and centred at 315 / 100 mm, `balloons` with `layout: below`: the
+  balloons are born over the table and every one must be moved «over the table». Seen red before it was
+  trusted: with the tables taken out of `FreeTheBalloons` for one run (the file put back byte for byte,
+  same SHA-256) the step says «does not say «over the table»»; green on 0.198.6.
+- **A linking row out of date.** `Zc2204DrawingRound22Contract` still looked for the clash line of
+  0.198.5 in `MoveChamferText` (red in the contracts of 0.198.6); it reads the new one.
+- **Contracts.** `Zc2204DrawingRound22Contract` reads the 49 places (distance, direction, never past 90°,
+  one at 90°), `LeaderCrossings` (1 on its test segment) and `NearestOnBox` (4 mm, 0 mm); the linking
+  rows follow the new code, one more for the tables in `FreeTheBalloons`.
+
+## 0.170.5 — 2 November 2026 · library 0.198.5 · a display data that cannot be read is not «nothing there» (branch `night-2026-10-26-asm`)
+
+- **Why (`Checks/zero-or-unknown.js`, before the last full run of the bench).** Three points written for
+  the text of a chamfer dimension (0.197.6, 0.197.7) counted 0 lines or 0 texts when
+  `IDisplayDimension.GetDisplayData` gave nothing: `DimensionLines` would then call a text across the lines
+  of that dimension free.
+- **The fix.** `DimensionLines` gives null when the display data of one dimension cannot be read (the
+  answer then does not say «free of the lines of the other dimensions»); `TextBounds` gives null, as
+  its summary says; `TextCornersOf` gives an empty list, and `MoveChamferText` tries the next place
+  (a text it cannot read is never called free). Not measured on SOLIDWORKS: these are the paths of a
+  reading that fails.
+
+## 0.170.4 — 2 November 2026 · library 0.198.4 · the lines of the sheet format in one call (branch `night-2026-10-26-asm`)
+
+- **Why (the phases of 0.198.3 on five drawing cases of the bench).** `sheet.title_block` took 2,9 s in 4
+  calls, all of it in `sheet.format_lines`: about 0,7 s in every drawing call that looks for a free
+  place (`drawing_dimension`, `section_view`, `detail_view`, `move_view`, `drawing_bom`, `balloons`).
+  The owner's A3 declares no title block (`ISheet.TitleBlock` null), so since library 0.196.0 its 69
+  lines are read one segment at a time, eight COM calls a line from outside the process.
+- **Measured before the change** (a read-only probe from outside SOLIDWORKS, a new A3 drawing from the
+  default template and 26M000002): one segment at a time 1.708,4 to 4.854,0 ms; `ISketch.GetLines2(1)`
+  6,2 to 11,8 ms, the same 69 lines (0 mm apart both ways), the same title block 217..413 x 7..53,5 mm.
+  The order of the 12 doubles of a line (start at 6..8, end at 9..11) is the one of the guide, checked
+  on those 69 lines.
+- **The fix.** `FormatLines` asks `GetLines2` first (`LinesOfGetLines2`, pure); the segments stay as the
+  way back when the array is not whole records.
+- **Contracts.** `RealRunContract`: the measured first record and an odd array (red without
+  `LinesOfGetLines2`). `Zc2204DrawingRound22Contract`: the linkage row of the title block follows the
+  line timed in 0.198.3, and a new row holds the call of `GetLines2`.
+
+## 0.170.3 — 2 November 2026 · library 0.198.3 · the two old red cases of the bench, and the title block timed (branch `night-2026-10-26-asm`)
+
+- **Why (full run of the bench on 0.170.2, 2.600 tests, 2 failed, 4.050 s; then the two cases alone
+  with `OCE_BENCH_STATE_DUMP`).** Both cases were red in every run since they were written (30/10/2026),
+  and the bridge was right in both: the cases expected numbers they never had.
+  - `the_width_mate_centres_the_tab`: the bench inserts the base with its origin at [0, -5, 0] mm, so its
+    top face is at y 5 mm. The clip goes from [30, 38, 0] to [30, 5, 0] with the coincident mate and to
+    [0, 5, 0] with the width mate, 0 degrees of freedom left: centred, as asked. The case expected y 10.
+    Its `defect_caught` no longer claims the width and the tab swapped: centred, the two middles meet
+    either way (geometry, not measured).
+  - `between_edges_gives_the_height_past_a_chamfer`: the front view is at scale 1 (drawn 34,5 to 154,5 mm,
+    120 mm), not 1:2. With `x_mm` 27 the circle of radius 4 mm stayed inside the plate and the detail was
+    refused as empty. `x_mm` 57 puts it across the right end, 60 mm from the centre.
+- **The title block timed.** Between the full runs of 31/10 (0.160.3) and 02/11 (0.170.2) almost every
+  drawing call took about 1 s more, whatever it did (one `drawing_dimension` +1,1 s, one `section_view`
+  +1,0 s, one `move_view` +0,9 s), while SOLIDWORKS was faster everywhere else. `TitleBlockOfTheSheet`
+  is timed as `sheet.title_block`, the lines of the format as `sheet.format_lines`, in the library
+  phases the bench prints.
+- **Bench.** The two cases alone: 61 tests, 0 failed.
+
+## 0.170.2 — 2 November 2026 · library 0.198.2 · a balloon judged by its circle and its leader (branch `night-2026-10-26-asm`)
+
+- **Why (calls 32-39 of 26M000002 replayed with 0.170.1, then a read-only probe of the
+  balloons from outside SOLIDWORKS).**
+  `INote.GetExtent` of a balloon holds its leader down to the tip: the 1 of the section is 161,27 to
+  218 mm high for a circle of 9,96 mm. Judged by that box, balloons whose leader only went into their
+  view were «over their own view» and moved, and the 1 of the section went 25 mm below with its
+  leader across the label. `INote.GetBalloonInfo` gives the radius (4,98 mm) but its centre is not
+  updated after `IAnnotation.SetPosition2` (the 2 of the isometric still read its old place).
+- **The fix.** The circle comes from the leader (`BalloonCircleBox`: the first point of the leader is
+  on the circle, the centre one radius further from the tip; on the 4 of the isometric 402,96;
+  187,75 mm against 402,78; 187,41 mm of `GetBalloonInfo`). `BalloonBlocked` judges the circle
+  against the frame, the notes by their extent, the circles of the other balloons, the outlines of
+  the other views and the title block, the leaders of the other balloons across the circle, and the
+  balloon's own leader across a note or a circle (not across an outline: a leader goes into its
+  view). A balloon moved keeps its tip.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the circle of the 4 of the isometric and the leader
+  of the 1 across the label (red on 0.198.1: `BalloonCircleBox` is missing).
+
+## 0.170.1 — 2 November 2026 · library 0.198.1 · the nearest free place, and the labels that read empty (branch `night-2026-10-26-asm`)
+
+- **Why (calls 32-39 of 26M000002 replayed with 0.170.0, PDF looked at).** The 2 and the 4 of section
+  A-A and the three balloons of detail B came apart, and no balloon of the isometric crossed the frame
+  any more. Two faults were left. (1) The 1 of the section stayed on the label of the
+  section (its name and scale): that label reads « \r\n » through `INote.GetText` (its text is linked), and the
+  notes whose text reads empty were left out. (2) The balloons of the isometric pushed off the frame
+  went down to 50 mm away, with leaders across the part: only the places around the whole view were
+  tried, and the view runs up to the top of the sheet.
+- **The fix.** A note counts by its extent even when its text reads empty. A balloon not free is
+  tried first brought inside the frame, then on three rings around that place (`BalloonRing`, 1,25
+  to 3,75 balloon sizes, 36 places), and only then around the view (`BalloonCandidates`). The
+  balloons of `again` must also stay out of their own view; those of `AutoBalloon5` not (it puts
+  them inside the corners of the outline).
+- **Contracts.** `Zc2204DrawingRound22Contract`: the 36 places near a balloon (red on 0.198.0:
+  `BalloonRing` is missing); the two anchors of the wiring carry the new argument.
+
+## 0.170.0 — 2 November 2026 · library 0.198.0 · each balloon where it is free (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 7, seen on the PDF of 26M000002 made with 0.168.0).** `again` put every
+  balloon on the line from the centre of the view through its arrow, 10 mm past the outline, with no
+  look at what was there: in section A-A the 2 and the 4 at 202,78; 262,43 and 203,98; 262,42 mm, one
+  on the other, and the 1 at 202,78; 196,55 mm on the label «SCALA 2 : 1»; in detail B the 4 and
+  the 2 at 61,37; 67,76 and 61,30; 65,83 mm. `AutoBalloon5` put the 2 of the isometric across the
+  frame of the sheet.
+- **The fix.** `FreeTheBalloons`, after the arrows are spread, in `balloons` and in `again`: a
+  balloon born in the call that falls on something (`BalloonBlocked`: the frame, 12 mm from the
+  edge of the paper; the notes and balloons of the sheet and of its views; the outlines of the other
+  views; the title block; 0,5 mm of margin) is moved, keeping its arrow, to the first free place of
+  `BalloonCandidates` (39 places: the line of `BalloonOutside` turned by 15° up to 90° either side,
+  10, 18 and 26 mm past the outline). The balloons that were there before the call are not touched.
+  The answer lists each balloon moved, why, from where and to where
+  (`balloons_moved_to_a_free_place`).
+- **Contracts.** `Zc2204DrawingRound22Contract`: 39 places and four balloons judged with the
+  numbers of 26M000002 (red on 0.197.7: the methods are missing); wiring two lines more.
+
+## 0.169.7 — 2 November 2026 · library 0.197.7 · the text of a chamfer dimension off the notes (branch `night-2026-10-26-asm`)
+
+- **Why (looked at on the PDF of 26P000008 made with 0.169.6).** The text «0,4 x 45°» of detail A
+  came 2 mm above the label «DETTAGLIO A / SCALA 5 : 1»: the notes and the title block, which the
+  overlap report of `drawing_dimension` reads, were not compared when the place was chosen.
+- **The fix.** `MoveChamferText` also refuses a place whose text covers a note or the title block
+  (`WhatTheTextCovers`, the reading of the overlap report), and `text_place` says how many notes were
+  compared.
+- **Contracts.** `Zc2204DrawingRound22Contract`: wiring one line more.
+
+## 0.169.6 — 2 November 2026 · library 0.197.6 · the text of a chamfer dimension off the lines of the others (branch `night-2026-10-26-asm`)
+
+- **Why (looked at on the PDF of 26P000011 made with 0.169.5).** The text «0,5 x 59,53°» of view 2
+  came near its chamfer, free of the other texts and of the edges, but across the dimension lines of
+  «2,1» and «5,705»: those lines were not compared.
+- **The fix.** `DimensionLines`: the lines every other dimension draws, from
+  `IDisplayData.GetLineAtIndex3` (start and end at indices 4-5 and 7-8, the guide page), and
+  `MoveChamferText` keeps off them too; `text_place` says how many were compared and which place was
+  kept.
+- **Contracts.** `Zc2204DrawingRound22Contract`: wiring one line more.
+
+## 0.169.5 — 2 November 2026 · library 0.197.5 · the text of a chamfer dimension where it is free (branch `night-2026-10-26-asm`)
+
+- **Why (looked at on the PDF of 26P000011 made with 0.169.4).** In view 2 the text «0,5 x 59,53°»
+  lay over the part, its leader across the whole view. `AddChamferDim` does not put the text at the
+  point it is given: asked down left of the chamfer, it was read back 29 mm right and 19 mm above
+  (0.169.0 put the chamfer of edge 12 there too, 28 mm right and 19 mm above). So the side of the text
+  tried since 0.169.0 never reached the sheet. `move_annotation` on the same dimension moved it to
+  80,8, 82,6 mm and read it back there: `IAnnotation.SetPosition2` works on a chamfer dimension.
+- **The fix.** `MoveChamferText`: once the chamfer dimension measures its chamfer, its text is moved
+  from the middle of the chamfer towards the side it was asked on, at 6 to 18 mm every 3 mm and at
+  30° either side (`ChamferTextCandidates`, 15 places), with the corner of the text nearest the
+  chamfer on the place; the first place whose text touches no other dimension text and no edge of the
+  view is kept, otherwise the nearest, and `text_place` says which.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the 15 places in the chamfer rules (red on 0.197.4:
+  `ChamferTextCandidates` is missing); wiring one line more.
+
+## 0.169.4 — 2 November 2026 · library 0.197.4 · the key of a chamfer dimension, by its width (branch `night-2026-10-26-asm`)
+
+- **Why (measured on SOLIDWORKS with 0.169.3).** With the good leg found, 26P000008 detail A and
+  26P000011 view 1 read 0,4 x 45° at the first try; but in 26P000011 view 2 the four chamfers the
+  profile draws all went «already dimensioned». The chamfer dimension of view 1 rests on the leg 24,
+  which is 0,986 mm long like those chamfers, and 0.169.1 recorded the profile key of every edge of
+  a chamfer dimension.
+- **The fix.** A chamfer dimension already in the drawing records the profile key of the width it
+  reads (`ChamferWidthOf`, its linear value), not of the length of each edge it rests on.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the anchor of the wiring moved to the width.
+
+## 0.169.3 — 2 November 2026 · library 0.197.3 · the leg of a chamfer dimension, by the way it runs (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 1, measured on SOLIDWORKS with 0.169.2).** 26P000008 detail A and
+  26P000011 view 1 still read 135° after every try. Each leg was then asked by hand with `chamfer`
+  [[edge, leg]], on fresh copies:
+
+  | drawing | legs that read 0,4 x 45° | legs that read 135° |
+  |---|---|---|
+  | 26P000008 detail A, chamfer edge 1 | 0, 16 | 2, 6, 19 |
+  | 26P000011 view 1, chamfer edge 27 | 24 | 23, 26 |
+
+  Neither the side of the text nor the angle between the two rays from the shared end tells them
+  apart (leg 16 makes 134,9° with the chamfer and reads 45°, leg 19 makes 45,1° and reads 135°). The
+  way the edges run does, 8 of 8: SOLIDWORKS reads the angle between the two directions, start to
+  end as the view gives them, so a leg that runs the same way as the chamfer edge reads 180° minus
+  the angle. The good legs (0, 16, 24) lie on a chamfer face, and the automatic route left such
+  edges out.
+- **The fix.** `ChamferLegs` takes the edges on a chamfer face too, and sorts the legs: first those
+  that run against the chamfer edge (`ChamferLegRunsWith`), then those not on a chamfer face, then
+  the shorter leg. A chamfer dimension that reads over 90° on a leg running the same way says so in
+  its reason.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the eight legs probed in the chamfer rules (red on
+  0.197.2: `ChamferLegRunsWith` is missing); wiring two lines more.
+
+## 0.169.2 — 2 November 2026 · library 0.197.2 · the true size of a chamfer, judged on its profile (branch `night-2026-10-26-asm`)
+
+- **Why (measured on SOLIDWORKS with 0.169.1, the 30/10 sequences replayed).** The rule of 0.169.1
+  was wrong. On 26P000009 view 3 it refused the chamfer «Smusso1» because its edge 4 is 0,693 mm in
+  the model and 0,566 mm on the sheet; 0.169.0 had put a true 0,4 x 45° on that same edge (leg 0).
+  The edge is a mitre (0,4 x √3 = 0,693 mm) lying on the profile of the chamfer (0,4 x √2 = 0,566
+  mm): the view does show the chamfer in its true size, the edge picked is only another edge on the
+  same line. The 135° of 26P000008 detail A comes from the same kind of edge, so it is not a matter
+  of true size either.
+- **The fix.** `NotSeenInItsTrueSize` (was `NotParallelToTheSheet`): for a chamfer feature whose
+  definition is read, the line on the sheet over the scale is compared with the profile of the
+  chamfer, the hypotenuse of its legs (`ChamferProfileNotSeen`, 0,01 mm plus 1 %); a chamfer feature
+  not read is left to the values read back; only an edge without a feature (a chamfer the profile
+  draws, an edge named in `chamfer`) is compared with its own length in the model (`ChamferSlant`).
+- **Contracts.** `Zc2204DrawingRound22Contract`: four profiles more in the chamfer rules (26P000009
+  view 3 and 26P000008 detail A kept, 26P000011 view 1 refused, a 0,5 x 60° either way); the
+  anchors renamed.
+
+## 0.169.1 — 2 November 2026 · library 0.197.1 · chamfers in their true size (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 1, measured on SOLIDWORKS with 0.169.0).** (1) The 135° of 26P000008
+  detail A and the 164.77° of 26P000011 view 1 do not come from the side of the text: two tries on
+  the same edge gave the same angle. The edge is not parallel to the sheet: 0,693 mm in the model
+  against 0,567 mm on the sheet over the scale (26P000008), 0,576 against 0,415 and 0,61 against
+  0,566 (26P000011). No leg and no side could give a true chamfer dimension there. (2) In
+  26P000011 view 2 the two 0,5 x 59,53° chamfers drawn by the profile were dimensioned twice, and
+  the oblique line of 0,986 mm (edge 10) stayed: its legs were not each twice as long as it.
+- **The fixes.** (1) `ChamferSlant`: an edge whose length on the sheet over the scale is not its
+  length in the model (0,01 mm plus 1 %) is not tried; the automatic route says it in
+  `chamfers_failed` with the two lengths, `chamfer` refuses it («dimension it in a view that looks
+  along the chamfered edge»), and `MarkProfileChamfers` does not take it. (2) `ChamferProfileKey`:
+  the chamfers the profile draws are keyed by the length of their edge in the model (0,001 mm), so
+  those of the same length get one dimension; a chamfer dimension already in the drawing records the
+  key of its edges too. A profile chamfer now needs only to be shorter than the longer of the two
+  edges it joins.
+- **Contracts.** `Zc2204DrawingRound22Contract`: four slants and the profile key in the chamfer
+  rules (red on 0.197.0: `ChamferSlant` and `ChamferProfileKey` are missing); wiring five lines more
+  (64 lines, eight orders, 72 changed copies).
+
+## 0.169.0 — 2 November 2026 · library 0.197.0 · the chamfers of note 98 (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 1).** Four faults and a missing request. (1) On 26P000009, after the
+  `between` dimensions, the chamfer read «already dimensioned» with no chamfer dimension: any
+  dimension on an edge of the chamfer face recorded the chamfer. (2, 3) On 26P000008 detail A and
+  26P000011 view 1 the chamfer dimension read 135° and 164.77° and was taken away, with no other leg
+  tried: the bridge took the first edge meeting the chamfer and put the text on the side of the
+  centre of the view. (4) The 0,5 x 60° of 26P000011 view 2 belongs to an extrusion, not to a chamfer
+  feature: it went as an oblique line of 0,986 mm. (5) There was no way to ask the chamfer dimension
+  on two edges.
+- **The fixes.** (1) Only a chamfer dimension (`IDisplayDimension.Type2` = `swChamferDimension`)
+  records its chamfer, by feature and by the ends of its edge. (2, 3) `PlaceChamferDimension` tries
+  every straight edge that meets the chamfer as the leg, the shorter leg first (0,5 x 60°, not
+  0,866 x 30°), with the text first on the side the corner was taken from (`ChamferTextPlace`), then
+  on the side of the centre; a dimension with impossible values or not in true size is taken away
+  and the next try made, and the answer says the leg used and the tries. (4) `MarkProfileChamfers`:
+  a short oblique straight edge (10 mm at most in the model, under half of each leg) between two
+  edges perpendicular on the sheet, at 5° to 85°, is a chamfer, with its own key
+  (`chamfers_drawn_by_the_profile`). (5) `chamfer`: [5, [7, 12]] puts the chamfer dimension on the
+  oblique edge 5 (leg chosen) and on 7 resting on 12, in a call of its own; a chamfer already
+  dimensioned is refused unless `repeat`.
+- **Contracts.** `Zc2204DrawingRound22Contract`: the rules of `chamfer`, the key, the place of the
+  text (red on 0.196.1: the methods are missing); wiring seven lines more (59 lines, eight orders, 67
+  changed copies). `Zc2203DrawingRound21Contract`: the chamfer judged before it is kept, in its new
+  place. `RefusalsTests` floors 320 and 320 of 1081.
+
+## 0.168.1 — 2 November 2026 · library 0.196.1 · the overall horizontal dimension on a tie on the other side (branch `night-2026-10-26-asm`)
+
+- **Why (note 98).** The 193,6 of 26M000002 view 1 went above, the owner's is below. Its edges reach
+  both sides of the view as near, and a tie of the horizontal ones takes the side above (6 of 7 in
+  his drawings). Of his horizontal dimensions on a tie the two overall ones, from end to end of the
+  lines of the view, are below: the 193,6 and the 15,6 of 26P000009 view 2 (2 of 2); the partial ones
+  of the same views are above (35, 135, 11,6, 2).
+- **The fix.** With the side of the edges on and no `tie_balance`, a horizontal dimension from end to
+  end of the lines of the view (0.6 mm) on a tie takes the side the tie does not take. Vertical ones
+  keep the tie side: of his two overall vertical ones on a tie one is on each side. A side asked wins.
+- **Measured on his numbers.** The replay of the real run (`RealRunContract`): 14 of 51 texts within
+  5 mm of his (was 12), 9 within 2 mm (was 7), 12 of his 41 by hand (was 10); his side 28 of 39 and
+  the choice inside or outside 46 of 51 unchanged. His four drawings laid out again: 17 of 51 and 15
+  of 41, unchanged. Floors of the replay raised to 14 and 12.
+- **Contracts.** `DimensionStyleContract`: an overall horizontal dimension on a tie (the 193,6 and
+  the 15,6 below, 35, 135, 11,6 and 2 above, a side asked kept). Red on 0.196.0 («the 193,6 above;
+  the 15,6 above»).
+
+## 0.168.0 — 2 November 2026 · library 0.196.0 · the title block drawn by the lines of the format (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 8).** The bill of materials asked `over_title_block` on 26M000002 stayed
+  about 16 mm above the title block and to its left. The owner's A3 format declares no title block
+  (`ITitleBlock` null), so the bridge went to a free place 4 mm above an estimate of half the sheet
+  x 65 mm; the format draws its title block at 217..413 x 7..53.5 mm.
+- **The fix.** When the format declares none, the title block is read from the lines of its sketch
+  (`ISheet.GetTemplateSketch`): the frame is found from the long lines, and the title block is the
+  box of the lines inside it, joined to one another, that reach the bottom-right corner of the
+  frame (`TitleBlockFromLines`, pure). It serves the free places of views and tables, the bill of
+  materials over the title block (which rests on it at its width; what it touches is checked leaving
+  the title block and its notes out, `TouchesBeside`), `read_drawing` (`title_block_mm`, and
+  `title_block_from`) and the texts written over the title block. Without either, the estimate as
+  before, and it is said.
+- **Said in every answer.** When the bill of materials cannot rest on the title block, the reason is
+  `warning_over_title_block` (was `over_title_block_note`): a `summary` answer drops the long texts
+  that only explain, and the replay of the real run with 0.166.1 put the table in a free place with
+  nothing said.
+- **Measured.** A probe on a copy of 26P000007 (02/11/2026): 71 segments, 69 lines, the frame at
+  7..413 x 7..290 mm, the title block at 217..413 x 7..53.5 mm.
+- **Contracts.** `RealRunContract`: the 69 lines give 217 7 413 53.5 mm; the frame alone, the paper
+  alone and a box in another corner give none (red on 0.195.1: the method is missing).
+  `Zc2204DrawingRound22Contract` wiring: five lines more (52 lines, eight orders, 60 changed copies).
+  `Zc2203DrawingRound21Contract`: the anchor of the title block read by its new name.
+
+## 0.167.1 — 2 November 2026 · library 0.195.1 · the side turns at the frame of the sheet (branch `night-2026-10-26-asm`)
+
+- **Why.** 26P000007 made again with 0.167.0 (the run of 30 October 2026, steps b, c and f, on a
+  copy): with `offset_mm` 30 on view 2 the 1,8 and the 3,5 stayed on the left at x 6.5 mm, inside
+  the 12 mm of the frame. The layout turned a side only when its first row came within 5 mm of the
+  edge of the paper.
+- **The fix.** A side not asked turns when the text of its first row (the row distance from the
+  lines, plus half the height of the text) would lie over the frame, 12 mm as the free places of
+  the sheet (`FrameOfTheSheet`).
+- **Contracts.** `DimensionStyleContract`: the frame of the sheet (the 1,8 turned right at
+  x 241.5 mm with 30 mm, left at x 16.5 mm with 20 mm, left without the sheet). Red on 0.195.0
+  («30 mm out the 1,8 reads left at x 6.5 mm»). The replay of the real run unchanged: 12 of 51
+  within 5 mm.
+
+## 0.167.0 — 2 November 2026 · library 0.195.0 · the automatic dimensions in the owner's style (branch `night-2026-10-26-asm`)
+
+- **Why (note 98, defect 4).** The dimensions `drawing_dimension` places by itself (edges, overall)
+  went one row each, 10 mm further out every time, without the style file, without seeing the
+  dimensions already in the view, and left the sheet. 26P000007 on 30 October 2026: view 2 had nine
+  rows down to the 175 at y 8.4 mm, inside the 12 mm of the frame; detail A went up to y 315.84 mm
+  on a sheet 297 mm high, 4 of its 9 dimensions out.
+- **The fix.** The automatic route reads the style before anything is placed (refused with the
+  reason when the file cannot be used, `offset_mm` and `pitch_mm` winning when named), reads the
+  dimensions already in the view before its own are born, and after they are born lays the
+  horizontal and vertical ones out with `LayOutDimensions`, as `between` does: chains in one row,
+  the next row a pitch further, the side of the edges or the side asked, a text outside when it does
+  not fit, the side turned when the first row leaves the sheet. A detail's label goes under the
+  lowest text. The answer says the style, `dimensions_already_in_the_view` and `detail_label`; each
+  dimension its side, row, row distance and where it was read back. The holes, a round part and the
+  chamfers keep their own bands.
+- **One helper.** `ApplyPlace` moves a dimension where the layout says and sets its arrows; both
+  routes use it.
+- **Contracts.** `Zc2204DrawingRound22Contract` wiring: the style, the view read before the
+  dimensions are born (with its order), the layout, the move, the shared helper (47 lines, eight
+  orders). `RefusalsTests` floors 318 and 318 of 1077.
+
+## 0.166.2 — 2 November 2026 · library 0.194.2 · the warning of `labels_out_of_place` in plain English (branch `night-2026-10-26-asm`)
+
+- «the labels of «view» goes out of the frame» read wrong: now «with its labels, «view» goes out of
+  the frame ...: move the labels with «move_annotation»». Nothing else changes.
+
+## 0.166.1 — 2 November 2026 · library 0.194.1 · `move_view` moves a view that lands free when only its labels do not, and says where they went (branch `night-2026-10-26-asm`)
+
+- **Why.** The replay of 26M000002 with 0.166.0 refused step 038, which 0.164.0 had done: the plan
+  first moves the label of detail B to its final place under the view to come (112.56, 28.63) mm,
+  then moves the view by (-253.98, -39.82) mm, then puts the label back. The label goes with the
+  view by the same shift: with 0.164.0 it read (-141.42, -11.19) mm after the move, off the sheet,
+  and the plan's next step brought it back. Since 0.164.1 `move_view` judges the labels where they
+  land, so it saw them out of the frame and refused; before, it had read them where they were and
+  said nothing.
+- **The fix.** When the view alone lands free and only its own labels are in the way, the view
+  moves and `labels_out_of_place` says, for each, what they touch, the rectangle with them and the
+  one of the view alone, for `move_annotation`. A view that lands on something itself is refused
+  as before.
+- **Contracts.** `Zc2204DrawingRound22Contract` wiring: the line that says it (42 lines).
+- **On SOLIDWORKS** (26M000002 made again, calls 32 to 47 of the real run, with 0.166.1). Step 038
+  done, with its warning: the view alone at x 71.1..154 mm, y 29.2..81.9 mm, its label off the
+  sheet until the next step of the plan put it back. Step 039 (balloons again on the section and
+  the detail), which had failed in every run, done: section 4 balloons (26P000007 1, 26P000011 4,
+  26P000008 2, 26P000009 3), detail 3 (2, 1, 4), the numbers of the bill of materials. Only the two
+  refused moves of the real run are left (034, 036). Against the owner's drawing: 11 balloons of
+  his 11 (the run of 0.161.0 4), 4 + 4 + 3 where he has 5 + 3 + 3; the six dimensions as with 0.164.0.
+
+## 0.166.0 — 2 November 2026 · library 0.194.0 · `balloons` with `again` puts the balloons on a section and on a detail (branch `night-2026-10-26-asm`)
+
+- **Why** (note 98, defect 7). The owner repeats the balloons of 26M000002 on the section and on the
+  detail: 11 balloons on his drawing, 4 on the bridge's. In the real run `again` on section A-A
+  refused every part as «covered by another component», and the detail was not reached.
+- **What was measured** (copies of 26M000002, a diagnostic build writing to the log of the bridge).
+  On the section the edge was picked and `GetSelectedObjectsComponent4` gave no `IComponent2`: in a
+  drawing it gives «Component or Drawing component» (ISelectionMgr~GetSelectedObjectsComponent4.html),
+  and on a section neither that nor the owner of the entity says a component at all. The lines of
+  each part were placed with the component the view lists, the one inside «SectionAssembly»: those
+  of 26P000011 fell on a strip 0.8 mm high of a section 46 mm high, and on the detail outside the
+  view (x -85..-51 mm on a view at x 71..154 mm). With the placement of the owner of the edges, as
+  `view_edges` reads them (`ToSheetOf`), the extent of the lines of the four parts of the section is
+  the one `view_edges` gives, to 0.1 mm. On the detail the middle of a line inside its rectangle
+  fell outside its circle, where nothing can be picked.
+- **The fix.** `ComponentSegmentsOnSheet` places the lines with the owner of the first edge. The
+  lines are cut to the outline of the view (`ClippedToOutline`) and of the eight longest the middle,
+  the quarter and the three quarters are tried, at most 16 points (`PointsToTry`). The pick is read
+  as a component, as a drawing component (`IDrawingComponent.Component`) or through the entity
+  picked (`IEntity.GetComponent`) (`PickedComponent`); a part of a section, whose key has no
+  configuration, is the part of the model (`SameBomPart`). On a line that says no component the
+  balloon is made and kept only when its number is the one the balloons of the other views give the
+  part (`ExpectedNumber`); otherwise it is taken away and the next point tried.
+- **Contracts.** `Zc2204DrawingRound22Contract`: `BalloonPick` (6 pairs of keys, 4 lines cut, 2
+  numbers, 6 points in their order) and 5 lines of wiring more (BalloonSpreadOperations.cs among
+  the files read); the anchor of the check before the balloon follows its new line. 41 lines, seven
+  orders, 48 changed copies all red.
+- **On SOLIDWORKS** (a fresh copy of 26M000002 with the 4 balloons of the isometric view). Section
+  A-A: 3 balloons of 4 (3, 1, 2); on 26P000011 the balloon born read «1» instead of «4» on every
+  point and was taken away. Detail B: 3 of 3 (4, 1, 2). The drawing reads 10 balloons, where it read 4.
+
+## 0.165.0 — 2 November 2026 · library 0.193.0 · `move_view` takes `unalign`: a view aligned to its parent can be put off that line (branch `night-2026-10-26-asm`)
+
+- **Why** (note 98, defect 5). The owner puts section A-A of 26M000002 away from the line of view 1;
+  in the real run the move (26.22, -64.49) mm of the section was refused, rightly with the rules of
+  then: an aligned view moves only along the line that joins it to its parent, and `move_view` had
+  no way to take it off.
+- **What.** `unalign` true: a view aligned to its parent (`swViewAligned` or `swViewAlignBoth`,
+  `AlignedToItsParent`) is first taken off that line, `IView.RemoveAlignment` («Removes the
+  alignment from this drawing view», not the one of the views aligned to it), and read again; still
+  aligned, nothing moves. If the move is then refused (only part of it done, or it lands on
+  something), the view goes back to its place and to its default alignment
+  (`IView.UseDefaultAlignment`), and the refusal says whether the alignment came back. The answer
+  says `alignment_removed`. Default false: the rule of the aligned views stays, and its refusal now
+  names `unalign` too.
+- **Contracts.** `Zc2204DrawingRound22Contract`: `Unalign` (5 values of the alignment), 3 lines of
+  wiring and one order more (taken off the line before `IView.Position`); 36 lines, seven orders,
+  43 changed copies all red. Refusals that say what to do: 317 of 1076 (floors raised).
+- **On SOLIDWORKS** (a copy of 26M000002, section A-A, three moves in a row). With `unalign`, by
+  (26.22, -64.49) mm: refused, its labels would fall on the isometric view; put back, «Its alignment
+  to its parent view is back». Then without `unalign`, by (0, -64.49) mm: refused as an aligned
+  view, which shows the alignment had come back. Then with `unalign`, by (0, -64.49) mm: moved,
+  read back at y 142.06..187.94 mm, «not aligned», `alignment_removed` true. Contract suite 1021
+  checks, 6 failed, all six of the bench.
+
+## 0.164.1 — 2 November 2026 · library 0.192.1 · `move_view` judges a view with its labels where they land, not where they were (branch `night-2026-10-26-asm`)
+
+- **Why** (note 98, defect 6). Right after `IView.Position` the outline of a view has moved and the
+  extent of its labels still says the old place, as a probe had shown for a detail on 27/10/2026.
+  `move_view` read the view with its notes after the move, so the rectangle it judged spanned the
+  old place and the new one. On a copy of 26M000002 (02/11/2026, bridge 0.164.0) detail B, moved
+  100 mm up from y 29..82 mm, past view 2 (y 101..120 mm), into a free place, was refused: «falls
+  on a view, a table or a note (with its labels x 71.1..154 mm, y 20.6..181.9 mm)».
+- **The fix.** `WithNotesOfTheSheet` reads every view with its notes before the move; every view
+  that moved is judged on that rectangle moved as far as its outline moved (`LandedWithTheOutline`,
+  as a detail and a section already do); the rectangle read after the move only when one is
+  missing.
+- **Contracts.** `Zc2204DrawingRound22Contract` wiring: the read before the move and the landing
+  (2 lines), the read before `IView.Position` (an order); their changed copies red (33 lines, six
+  orders, 39 changed copies).
+- **On SOLIDWORKS** (fresh copies of 26M000002, detail B moved straight up). 100 mm: 0.164.1 judged
+  its labels at y 120.6..181.9 mm instead of 20.6..181.9 and still refused, rightly: the label
+  would come 0.8 mm over view 2, inside the 4 mm clearance. 110 mm: 0.164.0 refused (labels at
+  y 20.6..191.9 mm), 0.164.1 moved it (0, 110) mm, read back at y 139.18..191.86 mm with its label
+  at y 138.63 mm, under the outline. Contract suite 1020 checks, 6 failed, all six of the bench.
+
+## 0.164.0 — 2 November 2026 · library 0.192.0 · a free place on the edge of the clearance stays free; `drawing_dimension` writes a text under the dimension line (`below`); `read_drawing` says which way a distance measures (branch `night-2026-10-26-asm`)
+
+- **Why.** The real run of 02/11/2026 (bridge 0.161.0) was made again on SOLIDWORKS
+  with bridge 0.163.0 on fresh copies of the models, every call in its order (the replay tool of
+  the internal notes). On 26M000002 detail B was born, sent «above the title block» to x 325.1..408 mm,
+  y 69..121.7 mm, landed there to 0.1 mm and was removed as falling «on the title block»; in the
+  run of 0.161.0 the same step had kept it. The place lies on the edge of the 4 mm clearance
+  exactly (the title block ends at 65 mm), and the outline read back after the move can come out
+  a hair inside it: `FreeSheet.Touches` had a micrometre of tolerance for the frame and none for
+  the views, the tables, the notes and the title block. Every later step of that drawing failed
+  with it (the label moved by name, the edges of the detail).
+- **The fix.** `FreeSheet.Hair` (1 µm) for the frame and for every box. `RealRunContract`,
+  `DetailOnTheEdge`: the free place of an 83 x 52.7 mm detail over a title block ending at
+  65 mm is «above the title block» at 325/69 mm; a nanometre lower it is still free, half a
+  millimetre lower it falls on the title block. On library 0.191.0 it is red («a nanometre lower
+  it falls on the title block»).
+- **The text under the line** (note 98, defect 2: the owner writes a word under the 3,4, not
+  after it). `drawing_dimension` takes `below`, one line of at most 60 characters (`BelowProblem`),
+  written as the callout below of each dimension the call places and read back in `below_read`;
+  what did not stick goes to `decoration_note` (`BelowNote`), with the notes of `prefix`, `suffix`
+  and `parentheses` joined. The choice inside or outside of `between` counts the wider of the
+  value and that text. `read_drawing` says `below` for each dimension that has one.
+- **Which way a distance measures** (note 98, defect 3: a text moved into a corner could be read
+  either way). `read_drawing` says `direction` for each dimension: its kind when it is horizontal
+  or vertical; for a «linear» one, from the two edges it rests on, brought onto the sheet as
+  `view_edges` does (`DimensionDirection`: two vertical edges a horizontal distance, two
+  horizontal ones a vertical distance, null for oblique or mixed edges).
+- **Contracts.** `Zc2204DrawingRound22Contract`: `BelowAndDirection` (6 texts, 3 readings back,
+  7 directions) and 5 lines of wiring more; its anchor of the reset after a call and the one of
+  `RealRunContract` on the choice inside or outside follow the lines that now carry `below`.
+- **On SOLIDWORKS.** 26M000002 made again with 0.164.0, calls 32 to 47 of the run: detail B kept
+  «above the title block», its label moved by name, the five calls of dimensions all placed, the
+  PDF written and the drawing read; only the three refusals the run of 0.161.0 had too are left (a
+  move off the line of alignment, twice, and balloons on the section whose lines are covered).
+  The edges of the assembly had other numbers in every run, 92 of 92 in view 1, 67 of 67 in view 2,
+  27 of 27 in the detail: the first replay asked for 77-27 and got two edges not parallel, so the
+  replay tool matches them by component, kind and ends on the sheet within 0.15 mm (all matched).
+  The edges of the parts kept their numbers in all 11 views. `below` on a copy of 26P000008: a
+  2.5 mm distance of detail A with a word under the line, `below_read` gave it back, `read_drawing`
+  read it with `direction` vertical (two horizontal edges); the 22 linear dimensions of that
+  drawing all have a direction, 14 horizontal and 8 vertical.
+- **Checks.** Contract suite with `OCE_NO_ATTACH=1`: 1020 checks, 6 failed, all six of the bench
+  (its last run is on library 0.188.0); language gate: only the line of `Bench/report/last.json`
+  already there.
+
+## 0.163.0 — 2 November 2026 · library 0.191.0 · the layout of `between` sees the view: rows and texts already there, chains on one row, the choice inside or outside by the widths of the rules, the label of a detail under every dimension; replayed on the readings of the real run (branch `night-2026-10-26-asm`)
+
+- **Why.** The owner's four drawings of 26M000002 were made again on SOLIDWORKS with bridge
+  0.161.0 and no hand move (note 100): 10 of 52 texts within 5 mm of his, where the layout
+  checked on numbers alone promised 15. The other session listed the defects: (1) the layout saw
+  only its own call, and a second call on the same view (another `decimals`, `suffix` or
+  `parentheses` needs one) wrote over the first (`overlapping_texts`: the 17 over the 11,9 of
+  26P000011, five pairs on 26P000008); (2) the side wrong on 28 of 52; (3) the text 4.1 mm from
+  the outline where the owner has a median of 9.6 mm; (4) the text of small horizontal
+  dimensions out to the right where he writes it between the lines; (5) the label of detail A of
+  26P000008 not moved, its two dimensions coming from two calls; (6) a contract on numbers that
+  does not see what SOLIDWORKS does; (7) repeated dimensions (done in 0.162.0).
+- **What was measured first.** `stile_quote.py` 1.5.0 (internal notes), its mode of the rules, on his 41
+  dimensions alone (the 10 bridge 0.152.10 had placed on 28/10 left out by name and text): the
+  first row 10.0 mm from the lines of the view (median of 25), 6.96 mm between rows (median of
+  10), the side of the edges 18 times in 23, ties above 6 of 9 and right 4 of 8. So the 10 mm of
+  the style stand: the 9.6 mm from the outline (15.5 from the lines) of defect 3 counted the
+  bridge's dimensions at 17.94 mm, and the sides «below» of the first views of defect 2 are
+  dimensions of the bridge of 28/10 that he kept, with his own lined up on their row. The choice
+  inside or outside is his in 38 of 41 with the widths the rules were measured with (1.8 mm a
+  character, 1 mm a comma) and in 33 of 41 with the box SOLIDWORKS reads
+  (`GetTextInBoxWidthAtIndex`: 2.58 mm a digit plus 2.6 mm of margin, probe0089): that box is
+  what put the 11, the 9,5 and the 10,9 outside (defect 4).
+- **The rows see the view** (defect 1). `DimensionsInTheView` reads, before the new dimensions are
+  born, every dimension of the view not hidden by hand: a distance between two straight parallel
+  edges with its kind and its two extension lines (the edges brought onto the sheet by `ReadEdge`,
+  as `view_edges` does), any other with its text only; the text as the rectangle of its texts
+  centred on its position (`TextBounds`, `TextCorners` taken out of `DimensionTexts`).
+  `LayOutDimensions` takes them (`ExistingDimension` rows): the rows of a side are those the
+  dimensions already there use and those of the style between them, 0.6 of a pitch from them
+  (`RowsOfASide`: he lines new ones up on a row that is there), and each dimension takes the first
+  row where its extent overlaps no other of that row and its text comes no nearer than 0.5 mm to
+  any text, of either direction, old or new. The answer says `dimensions_already_in_the_view`,
+  `dimensions_in_the_view_not_read` and for each row `row_mm`.
+- **Chains on one row.** The dimensions with the text inside that follow one another end to end
+  go in one row together, the first where all fit (`ChainsOf`): 19 / 145 / 11, and on one line
+  even when a short one with its text outside takes the row nearer the part.
+- **The text outside** (defect 4). The choice uses `TextWidthForTheChoice` (the text shown,
+  `char_mm` 1.8 and `comma_mm` 1.0 for a text 3.5 mm high, scaled to its height); the box stays the
+  room the text takes. A text that does not fit goes beyond the higher end, or with
+  `text_both_ends` (true) beyond the lower one when the higher is taken or lies over another
+  dimension of its side not placed yet (the 5 of 26P000008 view 2, so the 11 next to it keeps the
+  first row). `text` says which end. Each row says `text_box_mm` and `text_width_for_the_choice_mm`.
+- **The label of a detail** (defect 5) goes under the lowest horizontal dimension under the view
+  among all of them, old and new (`LowestUnder`).
+- **Without the lines of a view** the layout measures from the extent of its edges inside its
+  outline (`ExtentOf`), not from the outline, which keeps 5.9 mm more: on 26M000002 detail B the
+  12 went that much further out than the owner's. A detail lists the edges outside its circle too
+  (down to x -243 mm there): hence inside the outline.
+- **Style.** New keys `tie_balance` (false: a tie goes to the side with fewer dimensions of its
+  direction), `text_both_ends`, `char_mm`, `comma_mm`; the other defaults stay (the replay below
+  gives the same count with `pitch_mm` 7). `tie_horizontal` «below» would give 14 of 51 within
+  5 mm instead of 12, but 25 of his sides instead of 28: the 2 more are the old bridge's rows, so
+  «above», his own choice, stays.
+- **Contracts.** `RealRunContract` (new) replays the readings of the real run without SOLIDWORKS:
+  `Tests/data/real-run-1102.tsv`, made by `stile_quote.py` 1.5.0 `reale` from the answers of
+  `drawing_dimension` (five calls of the run) and `view_edges` of the same views,
+  each of the 51 «between» matched to the owner's (same view, text and edges). First the rules of
+  0.161.0, copied in the contract, give back every place SOLIDWORKS read, 51 of 51 within 0.15 mm
+  with their choice inside or outside: the replay is the run. Then the library lays the same calls
+  out in the same order, each seeing what the earlier ones left: 0 texts over another (the run 6),
+  12 of 51 within 5 mm (the run 10), 10 of his 41, inside or outside as he 46 of 51 (the run 40),
+  his side 28 times (the run 28); those are the floors. The label of a detail in two calls; the
+  wiring on the sources, 7 lines and their order, 8 changed copies all red. `OCE_REPLAY_DUMP` names
+  a file that gets each dimension of the replay and the other styles. `DimensionStyleContract`: the
+  owner's drawings laid out on numbers now give 17 of 51 and 15 of his 41 (floors raised from 15
+  and 13), `LayOutDimensions` takes the dimensions already there.
+- **Checks.** Contract suite with `OCE_NO_ATTACH=1`: 1018 checks, 6 failed, all six of the bench
+  (its last run is on library 0.188.0, before these changes); language gate: only the line of
+  `Bench/report/last.json` already there.
+- **On SOLIDWORKS** (02/11/2026, the four drawings made again on fresh copies, every call of the
+  real run in its order; parts with 0.163.0, 26M000002 with 0.164.0, whose layout is the same):
+  12 of 52 texts within 5 mm of the owner's, where the run of 0.161.0 had 10 — the number the
+  replay of the contract gave without SOLIDWORKS. Texts over another as the bridge reports them:
+  0 (the run 21). By drawing, within 5 mm: 26P000008 5 of 21 (the run 2), 26P000009 3 of 12 (3),
+  26P000011 3 of 13 (3), 26M000002 1 of 6 (2) with its median from 16.3 to 8.0 mm: there the 35
+  goes a row further out, over the 193,6 that the owner writes under the view.
+
+## 0.162.0 — 2 November 2026 · library 0.190.0 · one dimension per extent on the whole drawing: `between` refuses an extent the drawing already gives, in another view or through a chain, and the automatic route sees a distance between two edges (branch `night-2026-10-26-asm`)
+
+- **Why.** The owner asked whether the bridge repeats dimensions: on a drawing a dimension is
+  not repeated in another view, it confuses the shop. Measured on his four drawings of
+  26M000002 (stile_quote.py 1.4.0 of the internal notes, from the edges each dimension rests
+  on): 7 dimensions too many in 51. On 26P000008 the 19 and the 11 in views 1 and 2, the 11
+  twice in view 2, the 1,5 of view 2 again in detail A, the 175 next to 19 + 145 + 11 and the
+  145 next to 1,5 + 134 + 9,5; on 26P000011 the 2,1 in views 2 and 3. The copies of 30/10 put
+  them all back with `between`, which did not look at the other views (it said so in
+  `not_compared_with_other_views`), and the automatic route recorded as already dimensioned
+  only a dimension on ONE edge, so it put back the extent of a `between` (note 98, defect 4: 6
+  on 26P000007). No route looked at chains.
+- **`between`.** Before anything is placed, each pair gets its tract: the axis of the model the
+  distance measures (the sheet axis across the two edges, `SheetAxes`) and the two planes along
+  it (`TractBetween`), the same key as an edge of that tract. A pair whose tract the drawing
+  already gives is refused: the same tract in any view of any sheet, or a chain of tracts on
+  that axis that joins its two planes (`ChainThrough`, breadth first, the fewest dimensions).
+  `already_given_refused` lists each pair with the dimensions that give it, by value, name and
+  view; the other pairs are placed, and when every pair is refused the call is refused, with
+  the way out. `repeat`: true, or `parentheses`: true (a reference dimension, the way a closing
+  dimension is written), places them anyway. Compared on a view of a part square to the
+  model's axes; on a view of an assembly (the tracts of two components are not in one frame)
+  or a turned view `not_compared` says why. `not_compared_with_other_views` is gone.
+- **What the drawing already has.** `KeysAlreadyDimensioned` records a dimension attached to two
+  parallel straight edges as its tract, read with the axes of its own view, and says for each
+  key which dimension gives it (`DescribeExisting`).
+- **The automatic route.** `repeat` turns off the check of another view, as for `between`. An
+  edge whose two planes the other dimensions already join is left out and listed in
+  `closing_a_chain` with the chain; the refusal of a view with nothing left counts them.
+- **Contracts.** `RepeatedDimensionsContract`: the tract of two parallel edges (3 tracts, 3
+  nulls), what already gives an extent (the same tract, a chain, a difference, nothing on
+  another axis or for a hole), the 13 dimensions along X of the owner's 26P000008 replayed in
+  the order of their names (5 refused and 8 kept on 9 planes, as the program counts), and the
+  wiring on the two sources, every line first red on a changed copy.
+- **Not measured on SOLIDWORKS.** The bench case `between_edges_gives_the_height_past_a_chamfer`
+  asks the same two pairs twice in V3, the second time with `parentheses`: it must still pass.
+
+## 0.161.0 — 31 October 2026 · library 0.189.0 · `drawing_dimension` with `between` lays its dimensions out in the owner's style, measured on his drawings; `OCE_DRAWING_STYLE` changes the numbers (branch `night-2026-10-26-asm`)
+
+- **Why.** On 30/10/2026 the drawings of 26P000008, 26P000009, 26P000011 and 26M000002 were
+  made again with bridge 0.160.3, and every dimension was then moved by hand to the place the
+  owner gives it: 87 `move_annotation` on 5 drawings. He asked for the bridge to put the
+  dimension there in the first place, with his rules inside the bridge and configurable, not
+  copied drawing by drawing.
+- **How the rules were read.** His four drawings (`read_drawing`: the text of each dimension,
+  its arrows, its place) against the edges of the same views (`inspect_part` with
+  `view_edges`), with a measuring program of the internal notes: 51 linear dimensions, 41 of
+  them placed by his hand. The other 10 were born from bridge 0.152.10 on 28/10 (their name and
+  text are in its answers) and are where it put them (12 mm from the outline, 17.94 mm from the
+  lines). Five of his own on 26P000008 sit on that row, lined up with the bridge's: until 02/11
+  the distance alone decided and they counted as the bridge's (36 by his hand). 7 of the 51
+  are one too many on their drawing: 5 dimension an extent already dimensioned (the 19 and the
+  11 of 26P000008 in its views 1 and 2, the 11 twice in view 2, the 1,5 of view 2 again in
+  detail A, the 2,1 of 26P000011 in views 2 and 3) and 2 close a chain (175 = 19 + 145 + 11,
+  145 = 1,5 + 134 + 9,5). They say where such a text goes, not that the dimension belongs
+  there. The side and text counts below were made on the 36.
+- **The rules** (sheet millimetres; `DrawingDimensionStyle.cs`):
+  - measured from the **lines the view draws**, not from `GetOutline`, which keeps about 5.9 mm
+    of margin around them;
+  - the first row **10 mm** from the lines (median of the first rows he placed; four at exactly
+    10.0), **6.7 mm** from one row to the next (median of ten steps, 4.0 to 12.0);
+  - each dimension on the **side of the part its edges reach** (his side in 20 of 24); when both
+    sides are as near (within 0.5 mm), horizontal ones **above** (6 of 7 of his) and vertical
+    ones on the **right** (4 against 4, the old default kept);
+  - dimensions that do not overlap **share a row** (two that only touch, as 19 / 145 / 11 on
+    26P000008, are a chain); the ones with the text outside come nearest the part, then from the
+    smaller to the larger;
+  - a text between the extension lines when it fits with **2 mm for each arrow** (with 2 mm the
+    choice inside or outside is his in 46 of 51, with the 3.5 mm used before in 42 of 51; text
+    widths estimated in that count, 1.8 mm a digit); otherwise **11 mm beyond the higher end**,
+    centre of the text from the extension line (his median 10.7; beyond the higher end in 13 of
+    18), with the arrows outside;
+  - on a detail, its **label 6.2 mm under its lowest dimension**, centred where it was (detail A
+    of 26P000008: his label at 205.92 mm, the automatic one at 213.96 mm, the dimension 1,5 at
+    212.13 mm). One case only: a hypothesis until more are measured.
+- **Measured without SOLIDWORKS** (the four drawings laid out again from their numbers, text
+  within 5 mm of his): with the layout of 0.160.4, 2 of his 41 and 2 of the 51; with these
+  rules **13 of his 41** (8 within 2 mm) and **15 of the 51**; 15 of his 41 when the side is the
+  one he chose (a call can name it). What misses most is the side: the edges alone do not say
+  which side he takes when both are as near.
+- **How it works.** Each distance is born out of the way as before; once all are born, the width
+  of every text is read from SOLIDWORKS and `LayOutDimensions` (pure) says where each goes;
+  the text is moved there (`SetPosition2`, read back) and its arrows set and read back. Each row
+  of `dimensions` says `side`, `row`, `text` and, when it did not stay, `layout_note`; the
+  answer says `style` (the numbers and where they come from) and `measured_from`. On a detail,
+  `detail_label` says whether the label moved (only the one note of the view is moved).
+- **Configurable.** `OCE_DRAWING_STYLE` names a JSON file read at every call, with any of
+  `first_row_mm`, `pitch_mm`, `text_outside_mm`, `arrow_room_mm`, `detail_label_gap_mm`,
+  `side_by_edges`, `pack`, `tie_horizontal`, `tie_vertical`. A key it does not take, a number out
+  of its range, a word it does not take or a file that cannot be read refuses the call before
+  anything is placed, and the refusal says the way out: correct the file, or remove the
+  variable to use the built-in style. `offset_mm`, `pitch_mm`, `horizontal_side`, `vertical_side` and `row` of a
+  call still win; with `row` all go in the first row, in the order asked.
+- **What does not change.** The route of `edges`, holes, chamfers and the overall size keep their
+  layout (12 mm from the outline, 10 mm of pitch, 3.5 mm for an arrow) until they are measured
+  in the same way. The order of `dimensions` is as before: the horizontal distances first.
+- **Contracts.** `DimensionStyleContract`: the four drawings laid out again from
+  `Tests/data/owner-dimension-layout.tsv` must reach at least 15 of 51 and 13 of his 41 within
+  5 mm (the same counts as the measuring program), while the numbers of the bridge before
+  (17.94 mm from the lines, 10 mm of pitch, 3.5 mm for an arrow, below and on the right) laid
+  out by the same function stay under it, 2 of 51, so the check can go red; the
+  side of the edges; the style file and
+  its refusals; the row and the stair; the label of a detail; the wiring on the sources, every
+  line first red on a changed copy. `Zc2204DrawingRound22Contract` looks for the arrows of a
+  distance where they are set now. Refusal floors 314 and 314 of 1074 (the refusal of the
+  style). The new code reads no value of an untyped receiver: the frozen count of undecided
+  calls does not move.
+- **Not measured on SOLIDWORKS:** SOLIDWORKS was in use by the owner. No bench run. The next
+  measure is the four drawings made again with no `move_annotation`, compared with his by the
+  comparing program of the internal notes; on 30/10, with the moves by hand, 52 of 55 dimensions
+  found, median distance from his place 0.0 mm.
+- **Gap left for later:** `read_drawing` does not read the circle of a detail on its parent view
+  nor the letter of that circle, so the distance of the letter from the circle cannot be
+  measured on his drawings yet.
+
+---
+
+## 0.160.4 — 31 October 2026 · library 0.188.0 · the obsolete-call scanner knows a class of the repository named with its namespace (branch `night-2026-10-26-asm`)
+
+- **The red.** The contracts after the full bench of 0.160.3: «undecided calls (receiver type
+  not in the source) do not grow» was red on `Bench/Program.cs|Close 0 -> 1`, the line
+  `Shared.FinalizerGate.Close(2000)` of 0.160.2. The receiver is a class of this repository;
+  the scanner took `FinalizerGate` as a member of something whose type it does not know.
+- **Now.** `ObsoleteCallScanner` keeps the namespaces declared in the scanned source. A
+  qualifier that is one of them, followed by a class declared in the source, decides the call:
+  it is not a SOLIDWORKS type. A qualifier that is a variable (`x.G.Close`) still decides
+  nothing. No count is raised in `obsolete-undecided-frozen.tsv`; the 694 undecided calls of
+  the other files are as before.
+- Contract check «a class of the repository named with its namespace decides the call» (2
+  snippets), seen red before the change (1000 checks, 5 failed) and green after; one more
+  snippet that must stay undecided.
+- **The full bench of 0.160.3** (commit e0fae9f, 31/10/2026 00:10-01:48, 5834 s): 2596 tests,
+  3 failed. They are the three cases already red in the run of 30/10/2026 05:48 on library
+  0.186.0, which is pushed: `between_edges_gives_the_height_past_a_chamfer` (step 10, the
+  detail shows no edge), `bom_over_the_title_block_and_balloons_again` (step 4, «above the
+  title block» instead of «over the title block»), `the_width_mate_centres_the_tab` (step 2,
+  origin [0, 5, 0] instead of [0, 10, 0]). A first run stopped at 1403 s on a structural member
+  that did not answer for 93 s (`InsertStructuralWeldment4` with the profile on the network
+  share; the journal of SOLIDWORKS records it as finished about three minutes later), with 484
+  checks green and none red before it. The library does not change in 0.160.4, so the run
+  stands for it. Its report is not committed: one failure line quotes the Italian name of a
+  drawing view, which the language gate refuses. The report committed before it was a partial
+  run (30/10/2026 06:03) that left these three cases out.
+
+---
+
+## 0.160.3 — 30 October 2026 · library 0.188.0 · `OCE_UI_FREEZE` can name one part (`graphics` or `tree`), to tell which one stops the falls of the drawing cycle (branch `night-2026-10-26-asm`)
+
+- **The measure that asks for it.** The cycle of 15 drawings (scenario t45: a plate, then 15
+  times activate the part, `inspect_part`, a `build` with create_drawing + new_sheet +
+  save_document, `document close`), every run on a freshly restarted SOLIDWORKS, runs
+  alternated: without `OCE_UI_FREEZE` it fell 11 times in 11 on 30/10/2026, always while
+  SOLIDWORKS painted a drawing view (`gfxSgSheetView_c::removeOleBitmapNode` →
+  `uoBillboardi_c::make`, or `mfc140u.dll` at offset `0x23dc91`); with `OCE_UI_FREEZE=1` it
+  reached 15 drawings 3 times in 3. `OCE_API_SEQUENCE=0` did not help (3 falls in 3). The same
+  calls made by a probe outside the repository, with the bridge's rebuilds, undo recording,
+  collections and readings imitated, did not fall in 16 runs alternated with the bridge.
+- **What changed.** `UiFreeze.PartsOf` (library 0.188.0): `1`, `true`, `on` still turn off all
+  three (the tree, its window, the graphics of the view); `graphics` turns off only
+  `IModelView.EnableGraphicsUpdate`, `tree` only `EnableFeatureTree` and
+  `EnableFeatureTreeWindow`. Unset or anything else: nothing, as before. The default does not
+  change. README: the variable has its row in the table.
+- **Measured with the change: it is the graphics.** The same cycle, runs alternated: `graphics`
+  0 falls in 4 runs, `tree` 4 in 4 (at drawing 5, 5, 8 and 5), nothing 3 in 3. Over the day,
+  with the graphics of the view left on the bridge fell 17 times in 19 runs; with them off
+  (`1` in 8 runs, `graphics` in 4) 0 times in 12. Two-sided Fisher exact test, p = 6.45 × 10⁻⁷.
+- **The cause, found the same evening: a sketch picture in the sheet format.** The drawing
+  template and the sheet format of the workshop carry the logo of the title block as a sketch
+  picture (`SketchBitmap`). SOLIDWORKS 2021 SP5 (29.5.1) falls when a drawing view takes off
+  the scene a sheet whose format holds one: the crash dumps of SOLIDWORKS stop in
+  `moSketchBitmap_c::getProfileFeature` → `CObject::IsKindOf`, under
+  `gfxSgDrawingView_c::removeSheet` → `removeOleBitmapNode`. A script outside the repository
+  that only makes a new drawing, adds a second sheet and closes it (no bridge, and the PDM
+  add-in is not needed) fell in 4 runs out of 4 with copies of the two files as they are (4
+  falls in 33 drawings), and in 0 runs out of 4 (80 drawings) with the same copies without the
+  picture. Through the bridge, with `OCE_LOCAL_COPIES` on the same copies: 4 in 4 against 0 in
+  4. Fisher, p = 0.0286 for each. Collections, the finalizer gate and `CommandInProgress`
+  change only how often it falls.
+- **The default still does not change**, by decision of the owner (30/10/2026): the workshop
+  replaces the picture with a logo drawn in lines inside a block. A workshop whose title block
+  holds a sketch picture can set `OCE_UI_FREEZE=graphics`. README and the summary of `UiFreeze`
+  carry the numbers.
+
+---
+
+## 0.160.2 — 30 October 2026 · library 0.187.0 · no SOLIDWORKS object is released while a call runs (`OCE_FINALIZER_GATE`); it does NOT cure the falls of the drawing cycle (branch `night-2026-10-26-asm`)
+
+- **The hypothesis.** The main thread of the bridge is in the MTA, so the wrappers of the
+  SOLIDWORKS objects are released by the .NET finalizer thread at any moment after a collection,
+  also while SOLIDWORKS is inside a call of the bridge. A probe outside the repository that drives
+  the same cycle of drawings fell twice in 7 runs while a thread collected every 50 ms during the
+  calls (round k2 at the 8th drawing, round a2 at the 10th), and never in 18 runs without it.
+- **What changed.** `Shared/FinalizerGate.cs`: before `Serve` the finalizer thread is held (a
+  keeper object whose finalizer waits); after the answer it is let go, and the collection of
+  0.152.6 runs. `OCE_FINALIZER_GATE` (`0`, `false` or `off`) leaves it open. The bench holds it in
+  the same way for every step of a case: `ReleaseAsTheBridge` opens it, collects and closes it
+  again, `RunSteps` opens it when the case ends, `TestAssembly` opens it before its own
+  collection. Three contract checks: with the gate open a dropped object is finalized within 2 s;
+  with it closed nothing is finalized in 1 s, and the object is finalized once it opens; the
+  wiring in `Program.cs` (6 changed copies, all red).
+- **Measured: it does not cure the falls.** The same cycle of 15 drawings, every run on a freshly
+  restarted SOLIDWORKS, the gate on and off alternated: on, 3 falls in 3 valid runs (at drawing
+  13, 12 and 10); off, 3 in 3 (at 8, 11 and 11). A fourth run with the gate on hung for 590 s
+  creating the first part from the template on the network share, which is not the gate. The two
+  crash signatures in the Windows log (`mfc140u.dll` at offset `0x23dc91`, and an unknown module
+  with BEX64) appear both with the gate on and with it off. The gate was held in every call but
+  two (the note «not held within 2000 ms»).
+- **Kept on**, by decision of the owner (30/10/2026): a release in the middle of a call is a real
+  risk (the probe), and the cause of the falls is looked for elsewhere. Over the day the bridge
+  fell in 20 runs out of 21 of this cycle, the probe in 2 out of 25. The journal of SOLIDWORKS
+  records the same API calls for both, `EditRebuild3` included (a probe series that repeats it
+  never fell): the difference is in what the bridge reads, which the journal does not record.
+- README: the «bridge» badge says 0.160.2.
+
+## 0.160.1 — 30 October 2026 · library 0.187.0 · the documents of the last plan are let go at the end of every call (branch `night-2026-10-26-asm`)
+
+- **The fall.** A cycle of 15 drawings (new drawing + second sheet + save, then close) driven
+  through the bridge on a fresh SOLIDWORKS: bridge 0.159.10 fell 4 times out of 4 (at drawing 5, 8,
+  10 and 14), always painting a drawing view (`uiBaseView_c::OnPaint`,
+  `uiDrawingView_c::getSheetRect`, from `uiStatusBar_c::OnChangeScaleStd`). The same cycle without
+  the bridge had run 25 times with no fall (28/10/2026); with `OCE_API_SEQUENCE=0` it still fell.
+  The collection after every call (0.152.6) had been proved with one round only.
+- **What the bridge kept.** `Session.LastPlanResult` holds the plan's document and the document it
+  ended on, and `LastTurnRefusedDocument` another one, until the NEXT plan. McpTools reads them in
+  the same call, right after the plan. After a plan that makes a drawing, the drawing stayed held
+  through its `close`: the collection could not release it, and SOLIDWORKS kept a closed drawing.
+- **Now.** `Session.ForgetLastPlan()` runs at the end of every `tools/call`, before the collection.
+  Closing a document also forgets the plan to withdraw when its document is the one closed
+  (`Session.IsOpen`, by COM identity): a closed document has no undo stack to press.
+
+## 0.160.0 — 30 October 2026 · library 0.187.0 · `OCE_KEEP_LAST_READING`: the last reading kept alive between calls, off by default, to measure (branch `night-2026-10-26-asm`)
+
+- **Why.** After every `tools/call` the bridge collects the garbage (0.152.6, against the falls
+  of SOLIDWORKS after 8-11 drawings), and a probe of 30/10/2026 measured that SOLIDWORKS then
+  throws away the geometry it evaluated: the next reading of the same welded frame cost about
+  2,100 ms instead of about 150 ms. Holding the last reading kept the faces fast, not the edges,
+  because the curves of the edges were not held.
+- **Library 0.187.0.** `DocumentState` keeps one `EdgeReading` per ranked edge (`_edgeReadings`),
+  with its `ICurve`. Nothing reads it after the state is built; the state is the same.
+- **Bridge.** With `OCE_KEEP_LAST_READING` set to `1`, `true` or `on`, `Session` keeps the last
+  `DocumentState` of `inspect_part` and of the plans (both reading paths: whole and filtered). A
+  new reading replaces the old one. Before every `document` call the kept reading is let go and
+  collected, so a document is never closed while the bridge holds its faces. Off by default:
+  without the variable nothing changes.
+- README: the variable in the table of the environment.
+
+## 0.159.10 — 30 October 2026 · library 0.186.1 · the history check of the user name, blind since it was written, sees again (branch `night-2026-10-26-asm`)
+
+- **The defect.** `Checks/check-publishability.ps1` looks for the user name in the history to
+  push with `git grep -P`, and the pattern carries `"signed_by": "` (the one place the name is
+  allowed). Windows PowerShell 5.1 drops the double quotes inside an argument it hands to a
+  program: git received a broken expression, answered «fatal: -e option ... unmatched» with exit
+  128, and `RunGit` throws stderr away, so the check printed «ok  no the user name» on every push
+  since the pattern was written (W3.1-bis.11). The check of the working tree (`Select-String`,
+  inside PowerShell) was never blind.
+- **Repaired twice**: the quotes go to git as `\x22`, the same character for PCRE with no quote
+  for PowerShell to drop; and an exit of `git grep` above 1 (it could not search) is now a
+  failure of the check («git grep could not search the history»), not «nothing found».
+- **Seen firing** on the 45 commits not yet pushed of this branch: «the user name ... in 186
+  places, 21 files» (it said «ok» on the same commits an hour before), and the S: share in 1
+  place. The working tree: 49 places, the same as before.
+- The names and the path in those commits are taken out by rewriting them before the push
+  (decision of the owner, 30/10/2026); this entry is written after it.
+
+## 0.159.9 — 30 October 2026 · library 0.186.1 · the pre-push hook no longer writes into the repository it guards (branch `night-2026-10-26-asm`)
+
+- **What happened.** The push of 0.159.8 from a linked worktree ran the pre-push hook, and
+  the hook ran the self-test of `Checks/expected-keys-test.js`. Git runs a hook with
+  `GIT_DIR` set, and the self-test builds four tiny repositories for the language gate with
+  `git init` and `git add -A`: with `GIT_DIR` inherited, both went to the repository being
+  pushed. The main repository got `core.bare = true` in its `config` (written at the second of
+  the hook; its own working tree then answered «fatal: this operation must be run in a work
+  tree»), and the index of the worktree held the three files of the last tiny repository
+  (`Checks/language/exceptions.json`, `Checks/language/lexicon.json`, `notes.md`) instead of
+  884. No commit and no ref moved. Both were repaired by hand (`core.bare false`, `git reset`).
+- **Reproduced before the repair of the code**, on a throw-away repository with a linked
+  worktree and `GIT_DIR` set as git sets it: `core.bare` false → true, index 1 file → 3; from the
+  main repository the index only.
+- **Two guards**, each enough alone (measured):
+  - `Checks/expected-keys-test.js` drops the variables of `git rev-parse --local-env-vars`
+    before anything else: the same probe leaves the throw-away repository as it was (`core.bare`
+    false, index 1 file), and the self-test still passes its 28 cases;
+  - `Checks/hooks/pre-push` drops the same variables at its top, so every check finds the
+    repository from the working tree, as when it is run by hand: with the old self-test (the
+    one of HEAD, without its guard) and the block taken from the hook, the probe leaves the
+    repository as it was; without the block, `core.bare` true and 3 files.
+- `token-stream.js` and `same-il.ps1` call git with `-C` on folders of their own too, only to
+  read: with `GIT_DIR` inherited they would have read the repository being pushed. The guard of
+  the hook covers them.
+
+## 0.159.8 — 30 October 2026 · library 0.186.1 · zero is not «I do not know» (branch `night-2026-10-26-asm`)
+
+The pre-push hook stopped the push of 0.159.7: `Checks/zero-or-unknown.js` found 12 points
+where a count could say zero for a reading that failed. Each one was read in its context.
+
+- **Repaired, the answer can now say «I do not know»**:
+  - `view_edges`: `edges_total` is null when the view gives no array of edges
+    (`GetVisibleEntities2`), not 0;
+  - `title_block`: `notes_on_the_sheet_left_out` is null when an annotation of the format
+    could not be read (`FormatNotes` returns -1), not the count of the ones read before it;
+  - removing a view: `tables_on_the_sheet_before` and `_after` are null when the sheet has no
+    first view to read, not 0.
+- **Repaired, same answer as before**: the pieces of the lines of a view are null when
+  `GetPolylines7` gives no array of records (balloon spreading, the box of a detail view; an
+  empty list before, which the callers already took as «cannot read»); `TextShown` returns null
+  at once when the display data is missing; `WidestText` gives -1 instead of 0 when the text
+  cannot be read (the callers take only a width above 0).
+- **True zeros, with the marker and the reason**: `NaturalCompare` (a comparison, two missing
+  names share the same place), `edges_tried` (no edge named, none tried), `OtherSheetWarning`
+  (a list left null holds no name), the tables of the sheet when `GetTableAnnotations` gives no
+  array (as every other reading of tables in the library takes it; not measured here).
+- The contract that reads the wiring of the title block (`Zc2195DrawingRound12Contract`) looks
+  for the new line of `notes_on_the_sheet_left_out`.
+- Not run against SOLIDWORKS: the paths changed are the ones of a reading that failed.
+  `zero-or-unknown.js`: 0 points left. Contract suite: 996 checks, 4 failed, all four about the
+  last bench run (a partial run, on library 0.186.0, older than this change, so not every
+  operation has a green case in it); the full bench was not run again.
+
+## 0.159.7 — 30 October 2026 · library 0.186.0 · the bench lets the objects go as the bridge does (branch `night-2026-10-26-asm`)
+
+- **Bench, every declared step starts as a call of the bridge starts**: the garbage is
+  collected (`GC.Collect`, `WaitForPendingFinalizers`, `GC.Collect`, the same three calls as
+  `ReleaseSolidWorksObjects` in the bridge) and the step reads the document again instead of
+  getting the object of the last reading. The bridge collects after every `tools/call` since
+  0.152.6 and keeps no reading between two calls (`Session.State` hands back the dictionary
+  only). Why: when the wrappers of faces, edges and curves are finalized, SOLIDWORKS throws away
+  the geometry it had evaluated for them. Measured on 30 October with a probe outside the
+  repository (RAG note 95), a welded frame read with no rebuild: about 150 ms with no collection
+  between two readings, about 2,100 ms after one (8 readings of 8). The bench measured warm
+  readings the bridge never makes, and turned cold only where the collector happened to run;
+  an A/B of the state reading gave a false +49.6 % for that reason. The collection is the phase
+  «release objects as the bridge» in the `TIME` lines; `OCE_BENCH_RELEASE` (`0`, `false` or
+  `off`) turns it off, to measure the two ways. Short bench of 17 cases, two runs: 164 tests per
+  run and none failed; the sum of the cases went from 213.1 s and 204.8 s to 357.6 s and
+  364.7 s, the cost the bridge pays and the bench did not see (on the welded frame with its
+  drawing, about 4.6 s per collection, and colder operations: `save_document` 0.8 s → 5.8 s).
+- **Six pattern cases name their edge by where it is** (`grid_3x2`, `three_holes_pitch_40`,
+  `skip_the_second_copy`, `limit_copy_that_never_existed`, `limit_grid_does_not_count_as_a_row`,
+  `limit_zero_is_not_a_copy`): `@edge(axis=X,length~=200,n=1)` became
+  `@edge(axis=X,length~=200,y~=60,z~=20)`, the edge they had always taken. The plate has four
+  edges of 200 mm along X; `n=1` took the first in the order of the ranking, and library 0.186.0
+  orders equal edges by the middle of their ends, so the first became another edge, with the
+  other direction, and the pattern went towards +X (centres [0, 25, 50, 75] instead of [-75, -50,
+  -25, 0]). Measured: red with library 0.186.0 with and without the collection, green with
+  library 0.185.0. The rule of entry E18 already says it: `n=` chooses by order, an edge is named
+  by where it is.
+
+## 0.159.6 — 30 October 2026 · library 0.186.0 · the same state in every run: sets in a fixed order (branch `night-2026-10-26-asm`)
+
+Found by the bench of 30 October (57 cases, two equal runs with library 0.185.0, states
+saved, RAG note 95): 288 state files of 291 identical between the runs, and the three that
+were not differed only in an order that SOLIDWORKS does not keep from run to run.
+
+- **Library 0.186.0, `DocumentState`, the body's feature**: `created_by` is the oldest feature
+  among the faces of the body (the smallest `IFace2.GetFeatureId`), no longer the feature of the
+  first face. On a combined body SOLIDWORKS lists first the faces of the input body that
+  survived the combine, and which one survives changes: merge_two_cubes gave the extrusion in one
+  run and the move/copy feature in the other. On a body made by one feature, or a bar with its
+  trims, it is the same feature as before.
+- **Ties in the rankings**: faces of equal area are ordered by body, then by feature number;
+  edges of equal length by body, then by the middle of their ends (from the array that
+  `ReadEdge` already holds). What is still equal keeps the order of SOLIDWORKS. The feature
+  number of every face is read once and the listing takes it from there.
+- **`between`**: the two faces of an edge are written lower number first.
+- **`documents_open`**: sorted by title, then path (the base and the lid of an assembly came in
+  the two orders).
+- The summary of `AreaOrZero` had ended up above `RankKey` in library 0.184.0; it is back on
+  its method.
+- Measured after the change: a short bench of 17 cases, three equal runs with SOLIDWORKS
+  restarted, 164 tests per run and none failed; the saved states identical in all three runs
+  (21,029 values of 21,029, 80 files of 80). The states of library 0.185.0 that differed between
+  its two runs, sorted by the new rules with a tool outside the repository, become identical
+  except `documents_open` (RAG note 95). Reading time, every reading cold as in the bridge, the
+  same as library 0.185.0 within -2.7 % to +2.8 % on four parts.
+
+## 0.159.5 — 30 October 2026 · library 0.185.0 · the length of a straight edge from its ends (branch `night-2026-10-26-asm`)
+
+- **Library 0.185.0, `DocumentState.ReadEdge`**: a straight edge (curve type `LINE_TYPE` from
+  the array of `GetCurveParams2`) takes its length from the distance between its ends, without
+  `ICurve.GetLength3`; the other curves keep `GetLength3`. Library 0.181.0 had kept
+  `GetLength3` on segments too because the chord, 3e-13 mm away, swapped edges of equal length
+  in the ranking; since library 0.184.0 the ranking sorts on the length rounded to the sixth
+  decimal. Probe outside the repository (RAG note 95), four parts, 317 edges: the length without
+  `GetLength3` equal to it to the sixth decimal on 317 of 317 (largest difference 3.4e-13 mm),
+  0 places of the ranking changed. Read right after a rebuild, the edges of a welded frame went
+  from 1,078.4 ms to 980.0 ms with segments and circles both taken without `GetLength3`; most of
+  that time is SOLIDWORKS evaluating each edge again after the rebuild, whatever call comes
+  first.
+
+## 0.159.4 — 30 October 2026 · library 0.184.0 · equal measures ranked in the order of SOLIDWORKS (branch `night-2026-10-26-asm`)
+
+Sixth of the six analyses the owner asked for on 29 October: the ties in the rankings.
+
+- **Library 0.184.0, `DocumentState.RankKey`**: faces are ranked by area in mm² and edges by
+  length in mm rounded to the sixth decimal. The rankings are stable sorts, so measures that
+  are equal by design now keep the order in which SOLIDWORKS lists faces and edges, the same in
+  every run, instead of the order of the last bits of a double. Why: in the bench A/B of
+  libraries 0.180.0 and 0.181.0 (RAG notes 94 and 95) eight arcs of radius 5 mm, 7.85 mm long,
+  came in another order once the length was computed through another call, and with the
+  ceiling of 30 listed edges other arcs entered the list (2 entries of 1,828). No call is
+  added.
+
+## 0.159.3 — 30 October 2026 · library 0.183.0 · the faces of the state with fewer calls (branch `night-2026-10-26-asm`)
+
+First of the six analyses the owner asked for on 29 October («all six, in order»): the faces, the
+slowest phase of the reading after library 0.181.0.
+
+- **Library 0.183.0, `DocumentState`**: the normal of a face is `IFace2.Normal` (one call; the
+  page says it is 0,0,0 for a face that is not planar) instead of `IGetSurface`, `IsPlane`,
+  `PlaneParams` and `FaceInSurfaceSense`; the surface is asked only for a face that is not
+  planar, for the cylinder. The feature number of a listed face is `IFace2.GetFeatureId`, and
+  the name is asked to the feature once per number; the first face of every number still asks
+  its feature, and the name is cached only if its `GetID` is that number. Probe outside the
+  repository (RAG note 95), four parts, 136 faces: the same 71 planar faces, the same normal to
+  4 decimals on 71 of 71 (none reversed), `GetFeatureId` equal to `GetID` on 126 of 126;
+  normals and features of the 72 faces of a welded frame from 82.6 ms to 44.0 ms (medians of 5).
+
+## 0.159.2 — 30 October 2026 · library 0.182.0 · one line of times per case in the bench journal (branch `night-2026-10-26-asm`)
+
+The owner asked to check the bench and improve it.
+
+- **Bench, `CasePhasesBegin` / `CasePhasesEnd`**: every declared case writes one line to
+  `Bench/in-progress.txt`: `TIME <case> <total> s | <phase> <s> x<times> | ... | inside them:
+  ... | outside the phases <s>`. A phase recorded while a `Timed` phase runs (the new document
+  inside the preparation) is listed «inside them» and not added again. Why: in the A/B of
+  libraries 0.180.0 and 0.181.0 (29 October, 42 cases, four runs) `cut_list_in_the_drawing`
+  took 45.1 s up to its first check instead of 12.5-14.3 s in one run out of eight (33.8 s in
+  another run of the freeze A/B), and about 27 of those seconds were in no phase that the
+  totals of the run could point at. The totals of the run do not change.
+
+## 0.159.1 — 29 October 2026 · library 0.182.0 · the bodies of the state in the order of their names (branch `night-2026-10-26-asm`)
+
+Fifth of the six analyses the owner asked for on 29 October («all six, in order»): the number of
+the bodies that changes between two identical runs.
+
+- **Library 0.182.0, `DocumentState`**: the solid bodies are sorted by name, in natural order
+  («[9]» before «[10]»; on equal names the order of `GetBodies2`), instead of being taken in
+  the order of `IPartDoc.GetBodies2`, whose page says it «May vary». Measured on the states
+  saved by the four runs of the freeze A/B (42 cases, compared by a script outside the
+  repository, RAG note 95):
+  of the 9 states with more than one body, 4 to 9 had the bodies in another order between two
+  runs, always with the same names and never a name twice; sorting by name makes all of them
+  equal. Since the rankings of faces and edges are stable sorts, equal faces and edges of
+  different bodies (four equal tubes) also kept the order of their bodies: their F and E
+  numbers now stay the same too. The name of each body is read once and used again for its
+  `name`. The operations do not change: they find a body by its signature, not by position.
+
+## 0.159.0 — 29 October 2026 · library 0.181.0 · the edges of the state asked with one array each (branch `night-2026-10-26-asm`)
+
+The owner asked, after the tree and the graphics, for fewer calls per edge, with the accuracy it
+costs measured.
+
+- **Library 0.181.0, `DocumentState.ReadEdge`**: every edge of the ranking is read with
+  `IEdge.GetCurve`, `IEdge.GetCurveParams2` (one array of doubles: ends, parameters, packed curve
+  type) and `ICurve.GetLength3` between the same parameters, instead of `GetCurve`,
+  `GetCurveParams3`, `UMinValue`, `UMaxValue` and `GetLength3`. The listed edges take their point
+  and their direction from the array; a circle asks only `CircleParams`. Probe
+  (outside the repository, RAG note 94; 317 edges of four parts): indices 0-7 identical to
+  `GetCurveParams3`, the curve type in the high half of PackDouble1, same lengths and same
+  ranking; the ranking of 192 edges from 925.4 ms to 79.1 ms (medians of 5). The chord was not
+  used even for straight edges: it moved 53 of 192 edges of equal length in the ranking.
+- **Contracts**: `IEdge.GetCurveParams2` in `DocumentState.cs` is OBSOLETE-MEASURED under
+  `fillet_rounds_the_four_corners`.
+
+## 0.158.0 — 29 October 2026 · library 0.180.0 · the tree and the graphics turned off while a plan runs, behind OCE_UI_FREEZE, and the bench writes the state of every step (branch `night-2026-10-26-asm`)
+
+The owner asked to try, first of the remaining ways to make the bridge faster, «the tree and the
+graphics off while a plan runs», and to measure how much accuracy it costs.
+
+- **Library 0.180.0, `UiFreeze`**: `IFeatureManager.EnableFeatureTree`,
+  `EnableFeatureTreeWindow` and `IModelView.EnableGraphicsUpdate` set to false on the plan's
+  document for the length of the plan, and on the new document when a step changes it;
+  only what was on is turned off, only that is put back, then the tree is updated
+  (`UpdateFeatureTree`) and the view redrawn (`IModelView.GraphicsRedraw`, not the obsolete
+  `IModelDoc2.GraphicsRedraw2`). Pages of the guide cited in
+  UiFreeze.cs. Phases `plan.ui_freeze` and `plan.ui_thaw`. **Off unless `OCE_UI_FREEZE` is
+  `1`, `true` or `on`**: the default is decided after the measurement.
+- **Bench**: the same freeze around the steps of a declared case (by reflection, phases
+  `ui freeze` and `ui thaw`; a library without UiFreeze runs as before), and
+  `OCE_BENCH_STATE_DUMP=<folder>` writes the state read before the first step and after
+  every step to `<case>__<step>.json`, so two runs can be compared field by field.
+
+## 0.157.4 — 29 October 2026 · library 0.179.4 · the bench prints the library's phases, and two slow operations get phases of their own (branch `night-2026-10-26-asm`)
+
+The ten slowest calls of run g22_6 are seven `mate` (14.6 to 18.6 s each), two
+`drawing_dimension` and one `hole_wizard`; `create_drawing` steps took 10.6 s on average even
+with the templates from the local copy. Before changing them, the time inside is measured:
+
+- **Library 0.179.4, `mate`**: a stopwatch around the two readings of the directions before
+  `AddMate5` and around the two after it, added to PhaseClock as `mate.direction_test` through the new `PhaseClock.Spent` (`Add` under a name the interop does not use: the contract on undecided calls counts every `Add`). Each
+  reading is up to thirteen rebuilds (MateOperations.cs, «COST»); the calls are left as the
+  Z-C14 contract reads them.
+- **Library 0.179.4, `create_drawing`**: `drawing.new_document` around `ISldWorks.NewDocument`
+  (the drawing template and the sheet format it names).
+- **Bench**: `PhaseClock.Begin` once at the start of the run, on the thread of the cases, and
+  the library's totals (`state.*`, `mate.direction_test`, `drawing.new_document`, ...) printed
+  after the bench's own phases and written to the log. A library without PhaseClock adds
+  nothing.
+
+## 0.157.3 — 29 October 2026 · library 0.179.3 · the tree of the state asks SOLIDWORKS less (branch `night-2026-10-26-asm`)
+
+Measured first. The library 0.179.2 against 0.179.1 (an A/B script outside the repository, four parts, two
+alternated rounds, CommandInProgress set as in the bridge): the full reading of the state
+went from 1,549.3 to 1,105.5 ms on a welded frame (−28.6 %) and from 450.0 to 209.7 ms on a
+plate with holes and a chamfer (−53.4 %), with the JSON of the state identical in 12
+comparisons out of 12. Then the same was done on the tree (`state.features`, 7.4 % of the time
+of the plans in the bridge log of 26-29 October):
+
+- **Library 0.179.3, `FeatureParameters`**: `IFeature.GetDefinition` only for the five types
+  it reads (`HoleWzd`, `Extrusion`, `Cut`, `Fillet`, `Chamfer`). It was asked of every
+  feature that counts — a shell, a rib, a structural member — and thrown away.
+  `ThreadDiameter` and `DefaultRadius` are read once instead of twice.
+- **Library 0.179.3, the walk of the tree**: `IFeature.Name` only for an axis and a feature
+  that counts; planes, folders and the other features never used it. The comment that said
+  the name was read for every feature is corrected.
+- **NOT the same state on weldments, and the A/B said it.** `GetDefinition` on a structural
+  member made SOLIDWORKS load the profile library part from the share
+  (the `.SLDLFP` of the square tube, in the profile folder on the network share) as an
+  open document, so `documents_open` counted 2 instead of 1; and the order of the bodies changed
+  between two openings of the same part with 0.179.2 (`weld_symbol_on_the_joint`: the tube body,
+  then the body of the trim feature, in the first round, the other way in the
+  second), while with 0.179.3 it was the same in both rounds. On the two parts without
+  structural members the JSON of the state stays identical. Whether this is the cause of the
+  unstable body numbers of the weldment cases is not proven (two rounds); the short bench runs
+  three weldment cases. Times: RAG note 93.
+
+## 0.157.2 — 29 October 2026 · library 0.179.2 · the state asks SOLIDWORKS less, and the bench says where its time goes (branch `night-2026-10-26-asm`)
+
+The owner asked to make drawing faster, starting from the slowest operations. Two measures
+set the target. The bridge log of 26-29 October (read by a script outside the repository, 37 plans, 52
+steps, 166.9 s) puts 99.0 s (59.3 %) in reading the state and 55.8 s (33.4 %) in the
+operations; inside the readings the edges are 53.8 s (32.2 % of the plans) and the faces
+29.8 s (17.9 %). The bench, for its part, could not say where its hours go: run g22_5
+(6,696 s) kept only the ten slowest calls, and it never set `CommandInProgress`, which the
+bridge sets on every call since 0.130.2 (10.58 times faster on 26 October).
+
+- **Library 0.179.2, `DocumentState`: the same values with fewer calls.** The listed edges
+  used to read their length again, the curve parameters again for the point and the curve
+  again for the direction, about fourteen calls each with six repeated. The ranking now
+  keeps one `EdgeReading` per edge (curve, parameters, length, from the same GetCurve and
+  GetCurveParams3 as before) and the listed edges and the edge filter use it. The listed
+  faces reuse the area read for the ranking (asked again only when it was zero, where the
+  second call tells «not read» from a reading), read IGetSurface once for the normal and
+  the cylinder, and GetFeature once for `from_feature` and `feature_id` (`FaceFeature`,
+  now without callers, is removed). Same calls on the same entities: same values, same
+  ranking, same identifiers. How much time it saves is NOT measured yet: a probe outside
+  the repository reads the same part with the library before and after.
+- **Bench: time by phase.** Every run now prints, after the slowest calls, the seconds and
+  the count of each phase: `call <operation>` (the operation alone), `read state`, `read
+  state again before the step`, `read state, every face`, `volume`, `after step`, `new
+  document`, `case: prepare the document`, `case: close the documents`. The table also goes
+  to the log.
+- **Bench: the sequence of API calls, as in the bridge.** The operation, the after-step,
+  the state readings and the volume run with `ISldWorks.CommandInProgress` set, with the
+  bridge's rule: set only if it was false, put back only what was set here, so nested
+  phases change nothing. `OCE_API_SEQUENCE` set to `0`, `false` or `off` turns it off, and
+  the first line of the log says which of the two the run measured.
+- **Bench: one reading of the state per step instead of two.** `Run` read the whole state
+  again just before every step, a few lines after the reading the declared cases had just
+  made. The declared cases now hand `Run` the object of that reading while nothing has
+  changed the document since; after `select_first` or `activate_before` (the state lists
+  the selection and the configurations of the open documents) they hand the dictionary
+  only, and `Run` reads again as before. The checks between the two readings only read
+  (volume, bodies, box, cylinders, centre of mass, last plane).
+
+## 0.157.1 — 29 October 2026 · library 0.179.1 · the templates the operations open, from a local copy when asked (branch `night-2026-10-26-asm`)
+
+The owner asked for a faster bench. The templates of this workstation live on a network share,
+and on 28 October a new sheet with its format on the share took 3-47 s, with a local copy of
+the same file 0.33-0.55 s (probes t55-t58). The bench already copied its own part template
+(`Bench/Program.cs`, `LocalModel`, 23 September); the templates the operations open were
+still read from the share.
+
+- **`OCE_LOCAL_COPIES`** = «folder on the share|local folder» (`Core/LocalCopies.cs`). A path
+  under the first folder is opened from the same place under the second, when the file is
+  there; otherwise the share is read as before. Unset, nothing changes. The preferences of
+  SOLIDWORKS are never written: a run that dies halfway must not leave the user's SOLIDWORKS
+  pointing at a copy.
+- Where: the template of `create_drawing`, the format passed to `NewSheet4` by `new_sheet`,
+  the folders where the bill of materials and the hole table look for their table template,
+  the part template of the section probe of the frames.
+- **What is reported does not change**: the template of a drawing, the format of a sheet
+  (`new_sheet`, `title_block`) and the table template go back to the path of the installation
+  (`LocalCopies.Original`). A drawing made from the local template still names the share in
+  its first sheet; without this a second sheet made from the local format would name the copy,
+  and `title_block` would call the two formats different.
+- The bench says in its first line when the variable is set. The launcher used on this
+  workstation (outside the repository) fills the local folder with robocopy at every start and
+  sets the variable for the bench process only.
+- Contract `LocalCopiesContract`: the copy is opened only when it exists, the share is reported,
+  a path outside the share and an empty or malformed variable change nothing. A share written
+  in capitals is compared ignoring case: the rest of the path keeps the capitals it came with.
+- Contract `Zc2200DrawingRound17Contract`: the two lines that name the format of a sheet by its
+  file now read it through `LocalCopies.Original`.
+
+Not measured yet: how much faster the bench is. The comparison is the run of the same four
+families with and without the variable.
+
+## 0.157.0 — 28 October 2026 · library 0.179.0 · twenty-second round of session 8cd843: the drawings of 26M000002 set against the owner's (branch `night-2026-10-26-asm`)
+
+Session 8cd843 drew 26P000007 with bridge 0.152.10 and set the five drawings of 26M000002
+against the ones the owner corrected by hand (his copies of 28 October, RAG note 90). Its list, points
+1 to 14; none of this is measured on SOLIDWORKS yet: two bench cases are written with it.
+
+- **The distance between two edges, MINOR** (point 1, and 16): `drawing_dimension` dimensioned
+  the length of ONE edge, so the position of the rib (21 mm from the ends), the width of the
+  channel (3.4) and the overall heights (7.05, 5.85, 3.35, 5) could not be placed, and the
+  vertical edges cut by the 0.4 chamfer would have printed 5.45 instead of 5.85. `between`
+  takes pairs of edge numbers; each pair must be two straight edges, both vertical or both
+  horizontal on the sheet (`BetweenProblem`), placed with the road of the overall size
+  (`AddDimension`, then Horizontal/Vertical2) and read back against their distance on the
+  sheet divided by the scale, or taken away. A call of its own (`DrawingBetweenDimensions.cs`),
+  on a part and on an assembly alike.
+- **The layout, MINOR** (points 2, 7, 14): `row` puts every dimension of the call at the same
+  `offset_mm`, a chain (one step per dimension was the only way); `horizontal_side`
+  above/below and `vertical_side` right/left; on a detail view the horizontal dimensions go
+  above by default (below sits its label, and a dimension went between the two). For
+  `edges` and `between`; `laid_out` says it.
+- **Text on the dimension and the parentheses, MINOR** (points 5, 6): `prefix`, `suffix`
+  («2,5 CHANNEL») and `parentheses` («(35)», a reference dimension) on every dimension the
+  call places from `edges`, `between` or `overall`, written after the decimals and read back
+  (`GetText`, `ShowParenthesis`); what did not stick is in `decorations_not_kept`.
+  `PrintedNumber` reads «(35)» as 35.
+- **The arrows where the text is, MINOR** (point 12, the owner's fixed rule): SOLIDWORKS put the
+  arrows outside every short dimension of 26P000007 with the text inside. Now the text stays
+  inside with the arrows inside when it fits with an arrow on each side (`ArrowsFor`, 3.5 mm
+  per arrow, a hypothesis), otherwise it is moved out beyond the higher end with the arrows
+  outside; `ArrowSide` is set and read back, each row says `arrows` and `text_moved_out`.
+- **Holes and chamfers in another view, MINOR** (point 11): `holes`: false and `chamfers`:
+  false leave them out of a call (the chamfer then goes on its detail); `automatic_left_out`.
+- **The scale of a section, MINOR** (point 4): `section_view` `scale` («2:1»), the section set
+  free of its view, given the ratio before it is placed and read back (`scale`); refused and
+  removed with its line when the view does not read it.
+- **The detail circle, MINOR** (point 13): `circle_style` (default `with_leader`, the letter at
+  the end of a short line, as the owner draws it; `standard` was the style until now) and
+  `lock_position` (default true, `IDetailCircle.PinPosition`), both read back.
+- **The balloons again, MINOR** (point 9): AutoBalloon5 puts no balloon on a part ballooned in
+  another view. `balloons` `again`: true puts one balloon per part and configuration that has
+  none in THIS view, one at a time (`SelectByID2` on a visible line, the selection checked to
+  be on that part, `InsertBOMBalloon2`), the balloon moved out of the view on that side
+  (`BalloonRepeatOperations.cs`).
+- **The bill of materials over the title block, MINOR** (point 10): `drawing_bom`
+  `over_title_block` rests the table on the title block the format declares, its columns
+  brought to its width by one factor and read again; `rows_on_more_lines`, `warning_covers`.
+- **move_annotation, new operation, MINOR** (point 8): a dimension or a note found as
+  `delete_annotation` finds it, moved to `x_mm`/`y_mm` or by `dx_mm`/`dy_mm`, read back; for a
+  dimension `arrows` and the overlaps of its view.
+- **read_drawing, new operation, MINOR** (point 20): a finished drawing read sheet by sheet,
+  nothing brought in front: per view its scale, model and outline, every dimension with kind,
+  value, printed text, prefix, suffix, parentheses, arrows and position, the notes, the BOM
+  balloons with their number and the tables row by row; the notes inside the declared title
+  block counted, not listed (`ReadDrawingOperations.cs`). 111 operations.
+- Already in 0.154-0.156, not in 0.152.10: the decimals (point 15), notes and detail labels in
+  `overlapping_texts` (point 3), `scale` on `standard_views` keeping the views projected (point 17).
+- Contract Zc2204 (12 groups: the pure rules and 26 lines, five orders, each rule red on a
+  changed copy). Bench cases `between_edges_gives_the_height_past_a_chamfer` and
+  `bom_over_the_title_block_and_balloons_again`. The new refusals name what to do. Floor of
+  the refusals 313.
+
+## 0.156.1 — 28 October 2026 · library 0.178.1 · twenty-first round of session 8cd843: the chamfer «0,4 x 15,23°» (branch `night-2026-10-26-asm`)
+
+- **The chamfer of 26P000011, PATCH**: the front view printed «0,4 x 15,23°» for its chamfer, and
+  that chamfer is 0.4 x 45° (its definition, read by the state in rounds 9 and 20: `leg1_mm` 0.4,
+  `angle_deg` 45). Not data of the model: the chamfer dimension measured the chamfer seen
+  askew, 0.415 mm x cos 15.23° = 0.4. The same 15.23° came out in N23 (round 7) and passed
+  `ChamferValuesProblem`, which only refuses the impossible (an angle outside 0..90, a leg of
+  zero). Now each edge of a chamfer carries the legs its definition allows (`ChamferPairsOf`,
+  read by type with `DocumentState.ChamferSizes`; `ChamferLegPairs`: two legs, or a leg with
+  the other at leg x tan or leg / tan of the angle), and a chamfer dimension whose two legs
+  are none of them (`ChamferNotTrueSize`, 0.01 mm plus 1 %) is taken away and the next edge of
+  the same chamfer in the view is tried; when none agrees, `edges_not_dimensioned` says why
+  and where to dimension it. Each row of `chamfers` says `as_the_feature` and
+  `matches_the_feature`. Not measured on SOLIDWORKS yet: bench case
+  `chamfer_dimension_matches_its_feature` (a 3 x 6, not at 45°, kept in its true size).
+- Contract Zc2203: check of the chamfer (5 definitions, 11 readings, the 15.23° of 26P000011
+  among them) and 3 lines more in the wiring, with the order «compared before it is kept».
+
+## 0.156.0 — 28 October 2026 · library 0.178.0 · twenty-first round of session 8cd843, point 5: a dimension over a label or the title block (branch `night-2026-10-26-asm`)
+
+- **Point 5, the overlaps with the labels and the title block, MINOR**: on the real drawings of
+  round 21 dimensions went over the label of a detail and over the title block, and
+  «overlapping_texts» said nothing: it compared each dimension text with the other texts and
+  with the lines of its own view, and the answer said «nor the title block». Now it is also
+  compared with every note of the sheet and of its views (`NoteBoxes`: `INote.GetExtent`, the
+  reading `ViewWithItsNotes` uses; the label of a detail is a note of its view, the boxes of
+  the title block are notes of the sheet) and with the title block the format declares
+  (`DeclaredTitleBlock`, `ITitleBlock.GetExtents` as `ReadSheet` reads it). A box inside the
+  declared title block is said once, as the title block (`WhatTheTextCovers`). The new field
+  `overlaps_checked_against` says what was compared: how many notes, or that their walk broke
+  off (then none is compared, N47), and whether the title block was read from the format
+  (`OverlapsCheckedAgainst`). Both routes of `drawing_dimension` (part and assembly). Not
+  measured on SOLIDWORKS yet: bench case `dimension_over_a_note_is_said` (two notes of 70
+  lines of 130 characters, from the top and from the bottom of the A3, so that the case does
+  not depend on which way a note grows from its text point).
+- Contract Zc2203: check «point 5» (4 extents, 4 notes named, 4 texts placed, 2 texts of what
+  was compared) and 5 lines more in the wiring.
+
+## 0.155.0 — 28 October 2026 · library 0.177.0 · twenty-first round of session 8cd843, point 7: the width mate (branch `night-2026-10-26-asm`)
+
+- **Point 7, the width mate, MINOR**: the owner's rule 2 for 26M000002 is «centre with width», and
+  he mated four components of it by hand that way: the bridge read the width mates (N63) and
+  could not make one. Now «mate» takes «variant» «width» with two faces on each component:
+  «face_a» and «face_a2», the width on component_a; «face_b» and «face_b2», the tab on
+  component_b. The tab goes in the middle (AddMate5 with `swMateWidth_Centered`). The marks
+  are in `SelectionMarks.cs`: 16 for the tab (IAssemblyDoc~AddMate5.html, Remarks), 1 for the
+  width (the example Create_Width_Mate_Example_CSharp.htm; AddMate5 names one mark only):
+  not measured yet. Refused before anything is touched: a width mate without its second faces,
+  the same face twice, second faces on another mate (`WidthFacesProblem`,
+  `WidthSameFaceProblem`). The second faces are found again after the test of the directions,
+  like the first ones, and the answer says `width_faces` and `tab_faces`.
+- The seen-red check of Zc14 «readings around the mate» now looks for each face found again
+  by name (faceA, faceB, and faceA2, faceB2 when the step picks them): with two faces more, a
+  count of `PickFace(tested` stayed at 2 with face B taken before the test. One more change
+  in its list: a width face not found again.
+- `prerequisite.js` takes «width» among the values of a mate (it follows KnownTypes).
+- Contract Zc2203: check «point 7» (4 variants, 6 sets of faces, 3 pairs) and 5 lines more in
+  the wiring, with the order «refused before a face is picked». Refusal floors 299 and 299 of
+  1045. Bench case `the_width_mate_centres_the_tab`.
+
+## 0.154.0 — 28 October 2026 · library 0.176.0 · twenty-first round of session 8cd843: the scale of a view, the number on the sheet (branch `night-2026-10-26-asm`)
+
+- **Twenty-first round (session 8cd843, bridge 0.152.10)**: the real drawings of 26P000007, 08,
+  09, 11 and 26M000002, in the blank drawings the owner made in OpenPDM, while he watched. Seven
+  points asked, in order of use; points 1 to 4 are here; the overlaps with the labels and the
+  title block and model_dimensions are still open; the width mate is in 0.155.0.
+- **Point 1, the scale of a view, MINOR**: `standard_views` put 26P000007 (175 mm) at 1:2 on an
+  A3 with the sheet at 1:1, the title block printed «1:1», and nothing could change it. Now
+  «scale» («1:2», «2:1») on `standard_views` (set on the new views that do not follow a parent,
+  the projected ones follow) and on `model_view`, read before anything is made; new operation
+  `set_view_scale` for a view already on the sheet. The recipe of the guide: `IView.ScaleRatio`
+  (numerator first), which turns `UseSheetScale` off by itself, then `EditRebuild3`; every view
+  is read back after the rebuild. The answers say `view_scales`, `sheet_scale`, and
+  `scale_note` when a view has another scale than the sheet (`DifferentScaleText`: the title
+  block prints the sheet's; the way out is `set_sheet`). Bench case
+  `view_scale_is_set_and_followed`.
+- **Point 4, the number on the sheet (P1)**: 0.75 mm printed «0,8», 1.835 «1,8», 3.535 «3,5»,
+  10.018 «10»: the template gives one decimal. Now every dimension `drawing_dimension` places
+  (contours, holes, chamfers, the round bar, the overall size of an assembly) is read back, and
+  when the sheet prints another number than the value its decimals are raised to the ones the
+  value needs, at most 3 (`ExactTextShown`, `IDisplayDimension.SetPrecision3`; the row says
+  `printed_before` and `decimals`). «decimals» (0 to 8) fixes them for the call; a dimension
+  that then prints another number is listed in `rounded_on_the_sheet`. The hole callouts are
+  left as they are (their first number is not the value). Bench case
+  `dimension_prints_its_value`.
+- **Point 2, the overall size of a part**: «overall» was read on the views of an assembly only.
+  On a view of a part, asked without «edges», it now takes the same route (`OverallOnAPart`,
+  `DimensionAssemblyView` with `ofAPart`): the outermost straight edges, the dimension read back
+  and compared with their distance on the sheet; the answer says `view_of` «part» and
+  `part_note`. With «edges» it is refused: two calls. Bench case `part_overall_size`.
+- **Point 3, the edges with their geometry**: they were there already, in «inspect_part» with
+  «view_edges» (each edge with the number «edges» takes, its kind, its mm, how it faces, where
+  it sits on the sheet), and the round chose blind for want of knowing it. Now the answer of
+  `drawing_dimension` says it in `edges_listed_by`, and so does the description of «edges».
+- Contract Zc2203 (5 checks: the scale read and written, the note on the sheet, the printed
+  number, the wiring with 18 lines and two orders); Zc2192 counts `ExactTextShown` as
+  «what the sheet prints» (N35).
+
+## 0.153.0 — 28 October 2026 · library 0.175.0 · twentieth round of session 8cd843: N62, N63, N64, N65 (branch `night-2026-10-26-asm`)
+
+- **Twentieth round on SOLIDWORKS (session 8cd843, bridge 0.152.10)**: the owner corrected the
+  assembly by hand and the round read it on copies: the parts unchanged, the mates from 15
+  distances to 10 (5 coincident, 4 width, 1 distance), the coupler lower and the two Solid
+  parts suppressed in a folder, interference 19.033 to 14.763 mm³. The drawing made again,
+  9 texts of 9; the wrapped search found the wrapped value. N61 not checked: the owner put the
+  title block aside. SOLIDWORKS did not fall.
+- **N62 (P3)**: the outline of a view keeps a margin around what it draws (5.8 mm on each side
+  on the PNG of round 20, 5.9 mm read back in scenario t62), and a circle of a detail in that
+  margin passed the check on the outline and enlarged nothing (0 visible edges). Now the lines
+  the view shows are read (`DrawnPieces`, the `PolylinePieces` of `GetPolylines7` measured in
+  round 14): a circle out of their box and meeting none of them is refused before anything is
+  drawn, saying where the view draws from the centre of the outline (`InTheMarginOnly`,
+  `DrawnBoxText`). A circle across an end of the part sticks out of that box and still
+  passes; a circle inside a face is still found empty after it is made. The answer of
+  `detail_view` says `drawing_of_the_view_mm` and `checked_on`; the state says `drawn_mm` of
+  each view.
+- **N64 (P2)**: `verdict_constraints` said «It is NOT assembled: 4 of 7 non-fixed components has
+  no mate» of an assembly SOLIDWORKS called fully defined: 26P000009-2 is placed by a local
+  pattern, 10, 12 and 13 are suppressed. A suppressed component and a pattern instance
+  (`IComponent2.IsPatternInstance`) with no mate of its own are left out of the count, said in
+  `components_suppressed_not_judged`, `components_placed_by_a_pattern`, `pattern_instance` and
+  in the verdict (`NotJudgedText`). Scenario t62 on the copy: «All 3 non-fixed components have
+  at least one mate», 3 suppressed and 1 placed by a pattern left out.
+- **N65 (request)**: the state did not say in which folder of the tree a component is. Now
+  `in_folders` (`ComponentFolders`, features «FtrFolder» and `IFeatureFolder.GetFeatures`);
+  the end of a folder, a folder feature too («Cartella1___EndTag___», scenario t62), is left
+  out. On the copy: 10, 12 and 13 in «ACCESSORI EXTRA».
+- **N63 (request), MINOR**: the owner corrected four parts by hand and the round could not see
+  what he changed in the sketches: the state gives a sketch as one «ProfileFeature» among the
+  features. New operation `sketch_details` (family features, part, it only reads): for each
+  sketch, the ones an extrusion absorbed too (`IFeatureManager.GetFeatures(true)`), `status`
+  (fully defined, under defined ...), `segments` and `segments_by_kind`,
+  `construction_segments`, `relations` and `relations_by_kind` (the names of
+  `swConstraintType_e` without the prefix), `dimensions` with name and value. A sketch asked
+  by a name it does not have is refused with the names there are. Bench case
+  `sketch_details_reads_the_rectangle`. And the state says how each mate is set: «alignment»
+  in the words `mate` takes (`IMate2.Alignment`; swMateAlign_e gives 1 two names, and
+  «opposite» is the one `mate` writes), «value» (`IMate2.DisplayDimension2(0)`, in mm or in
+  degrees, null for a mate with no dimension) and «entity_kinds» (`IMateEntity2.ReferenceType2`,
+  swSelectType_e). Bench case `the_state_reads_how_a_mate_is_set`; contract Zc2202 (13 values,
+  4 lines more).
+- Catalog of `detail_view` and `sketch_details`; bench cases `limit_detail_circle_in_the_margin`,
+  `sketch_details_reads_the_rectangle` and `the_state_reads_how_a_mate_is_set`; scenario t62;
+  contract Zc2202. N64 and N65 have no bench case: no operation of a plan suppresses a
+  component, makes a pattern of components or a folder.
+
+## 0.152.10 — 28 October 2026 · library 0.174.9 · nineteenth round of session 8cd843: N61 (branch `night-2026-10-26-asm`)
+
+- **Nineteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.9)**: the assembly as in
+  round 18 (15 mates, the two Solid parts free, interference 19.033 mm³); the drawing made
+  from nothing, 3 sheets, PDF 16 of 16 texts; the balloons around the view with the same
+  tie, in the order of the bill of materials the same numbers as round 18. `title_block`
+  with each sheet active in turn named the other two with `A3.slddrt` and the right models;
+  the drawing closed and opened again read the same. One drawing made, three opened from
+  disk, SOLIDWORKS did not fall.
+- **Observation**: `export_pdf` with `search` put in `not_found` a value of the title block
+  that the PDF printed, wrapped over two lines in its box. Measured on that PDF: `PdfText`
+  gives each printed line as a line of its own, the first ending in a space. Now a text
+  found only across a line break (joined by a space, or by nothing for a word cut in two)
+  is in `found_on_several_lines` with `on_several_lines_note`, which says to look at the
+  box (`PdfSearchVerdict`, `OnSeveralLinesNote`); every other character must match as asked.
+- **N61 (P3)**: after `set_property` on the model in view and its save, `title_block` read the
+  old value of the box until the drawing was opened again, while the PDF written in between
+  printed the new one: the answer and the PDF said two different things. In scenario t61 (a
+  new part, the drawing of the workshop, bridge 0.152.10) the PDF written in between printed
+  the OLD value too: a PDF written then may print either. The text of a note is the one the
+  drawing calculated last. Now every box that is one `$PRPSHEET` link and nothing else, the
+  format codes such as `<FONT size=8PTS>` aside (the boxes of the workshop have them, measured
+  in t61), is compared with the value the model has now, in each drawer
+  (`FirstViewModel`, `CurrentValues`, `ShowsAnOldValue`): the ones that differ from all are in
+  `requested_shown_with_an_old_value` with `model_has`, and `old_value_note`, said in the
+  verdict too (`OldValueNote`), tells to open the drawing again. The box is not refreshed:
+  what refreshes it, other than opening the drawing again, was not measured. The owner put the
+  title block aside for now (relayed by session 8cd843): this is the measurement only.
+- Catalogs of `export_pdf` and `title_block`; bench case `pdf_search_finds_a_wrapped_text`;
+  scenario t61 on copies for N61 (no operation of a plan brings the part forward once the
+  drawing is made); contract Zc2201.
+
+## 0.152.9 — 28 October 2026 · library 0.174.8 · seventeenth round of session 8cd843: N60 (branch `night-2026-10-26-asm`)
+
+- **Seventeenth round on SOLIDWORKS (session 8cd843, bridge 0.152.8)**: N58, N59 and the
+  observation held. A detail at 5 and at 2 from a view at 5:1 was refused; at 10 on an
+  edge it was born with 8 visible edges. With sheet 1 active `other_sheets_warning`
+  named sheet 3, the coupler, «Materiale» and «STATO»; written on the copy of the
+  coupler and saved, the warning went away and the PDF printed both. `active` true and
+  false on the three sheets. The assembly: the 15 certain mates were all there, the two
+  Solid parts left free (the owner's decision), interference 19.033 mm³; the drawing made
+  again, 3 sheets, PDF 16 of 16 texts. SOLIDWORKS did not fall.
+- **N60 (P3)**: the same plan on the same assembly, rounds 16 and 17, and the balloons
+  4 and 6 swapped components, the bill of materials with them. The two are the balloons
+  whose arrows ended 0.73 mm apart: around the view, which of them comes first is the
+  choice of AutoBalloon5, and the API has no call to set an item number (only
+  `IBomTableAnnotation.Sort`). Which order a drawing wants is the owner's decision, still
+  open, so the default stays around the view. `balloons` now takes `order`:
+  «around_the_view» (default) or «bill_of_materials», which keeps the numbers the table
+  has (`swBalloonItemNumbers_DoNotChangeItemNumbers`, `BalloonItemOrder`); the answer says
+  the `order`, and around the view it lists in `numbers_decided_by_a_tie` the balloons
+  whose arrows were crowded, with `numbers_note` (`NumbersByTieNote`).
+- **Observation**: `different_format` was true for three sheets of the same A3: the
+  formats were compared by the names of their instances («...foglio1», «...foglio2»).
+  Now by the file (`ISheet.GetTemplateName`, `SheetFormatFile`), said in
+  `sheet_format_file`.
+- Catalog of `balloons`; bench case `balloons_in_the_order_of_the_bom`; contract Zc2200.
+
+## 0.152.8 — 28 October 2026 · library 0.174.7 · sixteenth round of session 8cd843: N58, N59 (branch `night-2026-10-26-asm`)
+
+- **Sixteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.7)**: N57 held. With
+  each sheet active every view said its right `sheet` (8, 1 and 2 views); `delete_view`
+  «V1» with the third sheet active was refused naming «Vista del disegno10», and the
+  views stayed as they were; a detail on the third sheet was made and taken away by its
+  name; `move_view` by number moved the right view and back. `hatches_solids` is gone,
+  the section was born «slid -45 mm», the PDF has 3 pages. SOLIDWORKS did not fall.
+- **N58 (P3)**: `detail_view` took a detail at 2:1 from a view at 5:1, and on the sheet
+  it came out smaller than the view it was asked to enlarge (14.4 x 16.6 mm for a
+  circle of 10 mm). Now a scale not larger than the one of the view, read from
+  `IView.GetXform`, is refused before anything is drawn, with both scales and one twice
+  as large (`DetailNotLarger`). A view whose scale cannot be read is left to the refusal
+  that already covers it.
+- **N59 (P2)**: `title_block` read only the active sheet. The third sheet of round 16
+  showed the coupler alone, and its title block took two `$PRPSHEET` properties from
+  it: both empty in the PDF, while the answer, read on the first sheet, said «no empty
+  box». Now `other_sheets` lists every other sheet, read through `ISheet.GetViews`
+  without activating it: its format, the view named in its sheet properties, its views,
+  its own title block, read from the «view» that carries its format
+  (`IDrawingDoc.GetViews`, one list per sheet with the sheet first, matched by name
+  because the order is undetermined), and each model its views show with the value of
+  every name that title block asks with `$PRPSHEET`, or the names the model lacks or
+  gives no value to. The names empty there and not on the active sheet are said in
+  `other_sheets_warning` and at the end of the verdict («BUT ON THE OTHER SHEETS»); those
+  empty on both are only counted, being already in `requested_but_empty` (scenario t60 on
+  a copy of the drawing of round 16: the coupler lacked 22 names, 20 of them empty on the
+  first sheet too, and the first warning buried «Materiale» and «STATO» among them;
+  `NotEmptyHere`). A sheet whose format has no note asks for
+  nothing (a sheet made with `paper_size` has none, measured on the bench); a sheet whose
+  format cannot be reached is checked with the names of the active sheet, said so. The
+  notes of a format are read by one function for both (`FormatNotes`), and the mark of
+  the names from the part is one constant (`FromThePart`).
+- **Observation**: the sheets of the state carried `active` only when true; now the
+  others say `active` false.
+- Catalog of `detail_view` and `title_block`; bench cases
+  `limit_detail_not_larger_than_view` and `title_block_says_the_other_sheets` (two parts
+  from the assembly preparation, so that one sheet shows a property the other lacks);
+  contract Zc2199. Zc2195 follows the notes of a format into `FormatNotes`.
+
+## 0.152.7 — 28 October 2026 · library 0.174.6 · fifteenth round of session 8cd843: N57 (branch `night-2026-10-26-asm`)
+
+- **Fifteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.6)**: N52 to N56 held
+  on a drawing of two sheets made again from the start. The section was born «slid
+  -45 mm», between the front and the side view. `move_view` moved a free view and an
+  aligned one along its line, refused and put back two moves across it, and the front
+  view took its three aligned views with it and back. `delete_view` took away a detail
+  of trial and refused the front view. `overwrite` false refused, and the file stayed
+  as it was. The arrows 4 and 6 moved onto their own parts. SOLIDWORKS did not fall: one
+  drawing, one sheet, the longest step 4984 ms. The assembly was not mounted further:
+  the true positions and whether to mount the two loose parts are the owner's decisions.
+- **N57 (P3)**: with the second sheet active, `inspect_part` gave V1 to the isometric
+  view of that sheet, while on the first sheet V1 is the front view, and no view said
+  its sheet. The numbers count the views of the active sheet, and so does every
+  operation that takes a view. Now every view of the state says its `sheet`, and a
+  drawing of more sheets gets `note_views`, which says it. `move_view` and
+  `delete_view` say the `sheet` they acted on. `delete_view` refuses a view asked by
+  number on a drawing of more sheets, naming the view the number stands for: a view
+  moved by mistake can be seen and moved back, a view taken away cannot
+  (`UidOnManySheets`). A view really called «V1» is a name, and goes.
+- **Observation 2**: `hatches_solids` read 0 beside a PDF with the hatching. It is
+  `IView.GetSolidHatchCount`, the areas filled solid, zero on a section by its nature;
+  it is no longer in the answer of `section_view`, and stays in the comments and in
+  `Checks/SectionView`. `hatches` is the count that says the cut met material.
+- Observation 1 of the report (the name of a view depends on the history of the
+  drawing: a refused detail uses a number) is advice for whoever writes plans, not a
+  defect: the name to use is the one the answer of `model_view` gives.
+- Catalog of `move_view` and `delete_view`; bench case
+  `limit_delete_view_by_number_on_two_sheets`; contract Zc2198.
+
+## 0.152.6 — 27 October 2026 · library 0.174.5 · SOLIDWORKS no longer falls after some drawings made through the bridge (branch `night-2026-10-26-asm`)
+
+- **Found while checking 0.152.5**: SOLIDWORKS fell inside `new_sheet` in the bench
+  (case `two_sheets_and_the_same_projection_angle`, after about 50 drawings) and in a
+  scenario on a copy (after about 9), with `RPC_E_SERVERFAULT` and the same stack in
+  the journal: the window of a drawing being painted, `uiBaseView_c::OnPaint` and
+  `uiModelView_c::OnPrepareDC`. The code of `new_sheet` had not changed since 0.152.3,
+  and 12 sheets made one after another by a probe on a drawing opened from disk did not
+  fall (0.44 to 0.59 s each).
+- **Measured, the same cycle 15 times on a fresh SOLIDWORKS** (a drawing from a part,
+  a second sheet, save, close):
+
+  | driven by | cycles | fall | working set of SLDWORKS |
+  |---|---|---|---|
+  | bridge 0.152.5 | 7 | at the 8th | not logged |
+  | bridge 0.152.5 | 10 | at the 11th | 532 to 1094 MB |
+  | bridge with a collection after every call | 15 | none | 537 to 812 MB |
+  | a probe, without the bridge | 20 | none | 660 to 746 MB |
+
+  GDI objects (at most 2091) and USER objects (1722) stayed far from their limit of
+  10000 per process. The bridge never released a SOLIDWORKS object: each one it reads comes as a
+  runtime callable wrapper, and SOLIDWORKS keeps the object alive until the wrapper is
+  finalized, which the garbage collector of this small process seldom does. A drawing
+  closed through the bridge stayed in SOLIDWORKS.
+- Now the bridge collects and finalizes after every `tools/call`, after the answer is
+  sent (`ReleaseSolidWorksObjects`): the client does not wait for it; measured inside
+  the call it cost about 0.9 s.
+- The falls of rounds 13 and 14 (`create_drawing` at the 15th and 23rd drawing,
+  a drawing opened at the 16th) had another stack, also while a drawing window was
+  painted; whether they had the same cause is not tested.
+- Contract Zc2197: the release is wired after the answer.
+
+## 0.152.5 — 27 October 2026 · library 0.174.5 · fourteenth round of session 8cd843: N52 to N56 (branch `night-2026-10-26-asm`)
+
+- **Fourteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.4)**: N47 to N51
+  held. The details are full, the section has its hatching and its letter, the
+  numbers of the balloons follow the table. A new drawing of two sheets from the
+  start, a detail on empty space (refused, as it must) and the assembly checked.
+  Five new defects, and two observations.
+- **N52 (P3)**: the circle of a detail landed 1.09 mm lower than asked on the front
+  view of the report, and not on the view below. The report supposed the origin of
+  the view sketch was wrong. A probe on a copy of the drawing measured it otherwise:
+  `GetXform`, `ModelToViewTransform` and the `ModelToSketchTransform` of the view
+  sketch agree, the circle reads back at (0, 0) in the sketch, and the PDF (circles
+  fitted to the segments SOLIDWORKS draws) put it at (94.479, 228.386) mm with
+  radius 5.117 mm, asked (94.5, 229.49) mm with radius 5 mm. The sketch had snapped
+  it onto the geometry of the view around it. The same circle drawn with
+  `SketchManager.AddToDB` on landed at (94.480, 229.472) mm with radius 5.000 mm.
+  Now `detail_view` draws its circle and `section_view` its cutting line with
+  `AddToDB` on (put back as it was after), read them back from the sketch, and
+  refuse and take them away if they moved by more than 0.001 mm
+  (`LandedElsewhere`): the message says asked and read, in millimetres of the view
+  sketch. The reading was seen to work before it was trusted: the centre of a circle
+  is the `ISketchPoint` of `ISketchArc.GetCenterPoint2` (read as an array it is
+  always null, and the check would never refuse). Read that way, the probe gave the
+  snapped circle at (0, -2.175) mm with radius 10.234 mm in the sketch, that is
+  (94.5, 228.402) mm and 5.117 mm on the sheet, as the PDF; with `AddToDB` on,
+  exactly the numbers asked.
+- **N53 (P2)**: the section was born on top of the side view (outlines 214.997 to
+  256.701 mm and 220.648 to 262.352 mm in x on the same band in y). The probe read
+  that a section is aligned to its view (`GetAlignment` 2): a move across its line
+  does nothing (asked +30 mm in y, moved 0 mm), a move along it is exact (asked
+  +30 mm and −150 mm in x, moved +30 mm and −150 mm), and the outline does not
+  change after birth (three round trips, the same to 0.001 mm). Now `section_view`
+  slides the section along its line to the nearest place where it overlaps no view,
+  table, note or title block, inside the frame (`SectionInAFreePlace`,
+  `NearestFreeAlong`), says the place in `placed`, and is refused and taken away
+  when there is none.
+- **N54 (P3)**: there was no operation to move or take away a view. Two new
+  operations, so the catalog has 107. `move_view` moves a view by `dx_mm`/`dy_mm`
+  or to `x_mm`/`y_mm`, reads the move back from the outline, and puts back and
+  refuses a move done only in part (an aligned view moves only along its line); it
+  checks that each view moved (the ones aligned to it move with it) does not fall on
+  anything. `delete_view` takes a view away and reads the views back. Measured on the
+  probe: deleting a view takes its sections and its details with it, leaves its
+  projected views without a parent, and a detail takes its circle off the parent
+  view; so a view with sections or details is refused unless `with_derived` is true,
+  and a view that disappears without being asked is said in the answer.
+- **N55 (P3)**: `save_document` with `path` replaced another existing file without
+  saying it. Now the answer says `replaced_another_file`, the bytes and the date of
+  the file replaced; `overwrite` false refuses, and nothing is saved.
+- **N56 (P2)**: three balloons of the report ended within 0.725 mm and 1.549 mm of
+  each other, on the mouth of a coupler where three parts meet. A probe read the
+  arrow tip as the last point of the leader, in sheet coordinates.
+  `SetLeaderAttachmentPointAtIndex` read back the new point but the PDF still drew
+  the old one, so the arrow is not moved: the balloon is put again. `balloons` now
+  finds the balloons whose arrow ends within 5 mm of another arrow
+  (`CrowdedIndices`), takes the visible lines of the view, decides which part owns
+  each piece by its geometry (the visible edges of the part, tessellated and carried
+  onto the sheet by the transform of the component and of the view), picks the point
+  of the part farthest from the other arrows, inserts a new balloon on the edge there
+  without changing item numbers, checks its number, takes the old one away and puts
+  the new one where the old one stood. On the copy: the three tips went to 28.092 mm,
+  8.93 mm and 8.883 mm from the nearest arrow, the numbers did not change, and the
+  PDF made a picture shows each arrow on its own part. The answer says
+  `arrows_moved` and the numbers read again; finding the owners took 7.26 s for three
+  parts.
+- **Observation 2**: the `position_mm` of a detail is not where the detail is seen
+  (150 mm away on the report). `inspect_part` with the drawing now gives each view
+  `outline_mm` and `centre_on_the_sheet_mm`, read from its outline.
+- `ReadSheet` can leave out a list of views (the ones moved together). Catalog of
+  `section_view`, `detail_view`, `balloons`, `save_document`, `move_view`,
+  `delete_view`; six bench cases (`view_is_moved`, `view_is_deleted`,
+  `save_says_what_it_replaced` and their refused twins); contract Zc2197.
+
+## 0.152.4 — 27 October 2026 · library 0.174.4 · thirteenth round of session 8cd843: N47 to N51 (branch `night-2026-10-26-asm`)
+
+- **Thirteenth round on SOLIDWORKS (session 8cd843, bridge 0.152.3)**: N44, N45 and
+  N46 held, N43 held for the positions (three details with three different centres,
+  their labels inside the frame). Real work on copies: the assembly checked and a
+  new drawing of two sheets from the start. Looked at as a picture, the PDF said
+  more than its texts: five new defects.
+- **N47 (P1)**: the three details were empty in the PDF. The circle went in the
+  sketch of the view since 0.174.2 (N41), but with sheet coordinates, while that
+  sketch has its origin at the centre of the view and measures the model. A probe on
+  a copy of the drawing of the report read `IView.GetXform` of the view below as
+  [94.5 mm, 110.69 mm, 0.5]: the circle wanted on the sheet at (134.5, 110.69) mm,
+  radius 10 mm, drawn at the sheet coordinates gave a detail with 0 visible edges;
+  drawn at (80, 0) mm, radius 20 mm, one with 11. Now `detail_view` converts the
+  centre and the radius, (sheet - centre) / scale (`SheetToViewSketch`), and says
+  them in `circle_in_the_view_sketch_mm`. A view that cannot be activated is refused
+  (no more the sheet sketch, which hands the circle to another view), and so is a
+  turned view (only views at 0 degrees were measured). One more detail circle on the
+  view was not a proof: the detail must be made from the view asked (`base_view`,
+  read with `GetBaseView`) and show at least one edge (`visible_edges`), otherwise
+  it is refused and removed with its circle. The first bench run caught the bench
+  case itself: `detail_enlarges` asked for a detail at the centre of the front view
+  of a plate (120 x 20 mm at scale 1), where a circle of radius 8 mm stays inside
+  the face; measured (scenario t40), 0 visible edges there, 1 with `x_mm` 55 at the
+  right end of the plate, 2 at a corner of the top view, and the PDF made a picture
+  shows the edges in the two details. The case now passes `x_mm` 55 and expects 1
+  visible edge (its twin `limit_detail_outside_the_view` too, still one argument
+  apart), and the new limit case `limit_detail_on_empty_space` keeps the centre and
+  expects the refusal.
+- **N48 (P1)**: the cutting line of A-A, wanted across the view above, was at the
+  left end of the view below, and «the hatching is there» held for that view. The
+  line was drawn on the sheet sketch, which gave it to the other view (measured on a
+  copy: base the view below, 1 face hatch). Now `section_view` activates the view
+  and draws the line in its sketch, converted as the circle (measured: base the view
+  asked, 2 face hatches), with `cut_line_in_the_view_sketch_mm`; `cut_line_mm` stays
+  in sheet millimetres. A section made from another view is refused (`base_view`),
+  and the line of every refusal is removed from the sketch of the view.
+- **N49 (P2)**: `new_sheet` made a sheet with no format, so no frame and no title
+  block (swDwgTemplateNone). Now the format file of the current sheet
+  (`ISheet.GetTemplateName`) is passed with swDwgTemplateCustom, and read back from
+  the new sheet (`format`); a format that did not come is refused, a format file
+  that cannot be found is refused before anything is created, and a `paper_size`
+  given keeps the sheet without a format (the format is drawn for its own size).
+  Measured on a copy: the second sheet of round 13 read "" (none), the new sheet
+  read the .slddrt of the first, with the 67 fields of the title block.
+- **N50 (P2)**: the printed bill of materials was not `rows_read`. Measured on a
+  copy: the table read the same right after it was born, after a rebuild, after a
+  save and a reopening; it was `AutoBalloon5` that renumbered it, with `ItemOrder`
+  coming as 4 (order sequentially): 26P000007 to 26P000013 as items 1 to 7 before
+  the balloons, 26P000010, 11, 9, 8, 7, 13, 12 after, the order printed in round 13;
+  with «do not change item numbers» the table kept its order. The order is now set
+  explicitly and kept as every drawing had it (which order a drawing wants is not
+  decided here), and `balloons` reads the table again: `bom_renumbered`,
+  `bom_rows_after` and a note that the `rows_read` of `drawing_bom` no longer hold.
+- **N51 (P3)**: a note in the same plan after `section_view` went into the section
+  view; the view activated for the line stayed active. Now the sheet is in edit
+  again right after the section is created.
+- **Observation**: «in the first free place (147/144 mm)» now says that the numbers
+  are the bottom-left corner in millimetres of sheet.
+- **A detail view just born is not yet the view** (found by scenario t39, the
+  drawing of round 13 made again with this version): detail B, now full of
+  geometry, was sent «above the title block» and refused there, «falls on the title
+  block». The refusal now carries the rectangles asked, before and after, and they
+  said it: the outline read 56.1 x 31.2 mm at birth and 100.3 x 50.5 mm after the
+  move. A probe on a copy read the same 56.1 x 31.2 mm at birth, after Position set
+  to its own value and after a move of 1 mm, and 100.3 x 50.5 mm after the move back
+  (on a second run already after the move of 1 mm), the size the PDF shows with the
+  end part of the assembly whole in it; Position then read 78.4 mm away from the
+  value read at birth, and on the first run the view had jumped by as much;
+  EditRebuild3 and ForceRebuild3 changed nothing after. Now `detail_view` settles the
+  view right after it is born (`SettleDetailView`: a move of 1 mm and back, until a
+  round trip leaves its outline where and as big as it was, within 0.1 mm, at most
+  three times) and only then judges and moves it. Scenario t39 again: B «above the
+  title block», C «bottom left», D beside its view, all inside the frame with their
+  labels, nothing on top of anything (the PDF made a picture), the 8 texts found.
+- **SOLIDWORKS fell twice on `create_drawing`** during this work (the first bench run
+  and a scenario), with the same stack in the journal both times: the window of the
+  new drawing being painted, `moSketchBitmap_c::getProfileFeature` and
+  `uoBillboardi_c::make`, after 23 and 15 new drawings in the session. The operation
+  did not change; the cause is not tested (a hypothesis: the picture of the format
+  painted on a new drawing). SOLIDWORKS was restarted and the step done again.
+- `RemoveSheetSketchSegment` and `SheetSketchSegmentCount` are gone: nothing draws on
+  the sheet sketch any more. Catalog of `detail_view`, `section_view`, `new_sheet`,
+  `balloons`; contracts Zc2189 (M41) and Zc2194 (N41) follow the new road; contract
+  Zc2196.
+
+## 0.152.3 — 27 October 2026 · library 0.174.3 · twelfth round of session 8cd843: N43 to N46 (branch `night-2026-10-26-asm`)
+
+- **Twelfth round on SOLIDWORKS (session 8cd843, bridge 0.152.2, 47 calls)**: N39,
+  N40, N41 and N42 held. With M15 suppressed, C8 read `mates` 2, `mates_suppressed`
+  1 and the note, `place_component` moved it 6.5 mm, and with M15 back it went back
+  by itself; a section and a refused detail in one plan stopped with notes that
+  agree, and the undo refused with the reason; three details out of three on views
+  of an assembly, the circle in the sketch of the view; views counted 4 to 5 to 8,
+  as `inspect_part`. Real work on copies: the assembly checked (15 active mates, 0
+  degrees of freedom left on the mated components, only the two parts that decision
+  6 leaves out are loose, 6 interferences of 19.033 mm³), a drawing of two sheets
+  with a section, three details, the table, the balloons, a general note and the
+  PDF of 2 pages with the 9 texts found. The time of `drawing_dimension` goes to the
+  edges on the sheet (10.2 to 10.7 s a view, 95.5 % of the refusal of V3). Four
+  new defects.
+- **N43 (P2)**: `detail_view` put every detail of a view at the same place, beside
+  it: two details of V1 had the same centre, the detail of V2 the centre of the
+  section A-A, and no operation moves a view. Now the detail stays beside the view
+  only when that place touches nothing; otherwise it goes to the first free place of
+  the sheet, outside the other views, the tables, the notes and the title block, as
+  the flat pattern view and the tables do (`placed` says where), and it is judged
+  again where it landed. With no free place it is refused and removed with its
+  circle. The place counts the label too: it is a note of the detail view, under
+  its outline (a probe on a copy read the outline of detail B at 209.6 to 249.5 mm
+  and its label at 191 to 207.2 mm), and the first try, looked at on the PDF, put a
+  detail at the bottom left with its label below the frame. For the same reason
+  the free place no longer counts the notes of the view being moved as obstacles.
+  Where the detail landed is its rectangle with the label moved as far as the
+  outline moved: right after `Position` the extent of the label still said the old
+  place, and after a redraw it had moved by the same (-150, -150) mm as the outline,
+  to 0.1 mm (probe on a copy). Read back, the label was judged where it had been
+  (second try refused); read after a redraw, an obsolete call, 0.1 mm of rounding put
+  a detail placed at the frame out of it (third try refused).
+- **N44 (P2)**: the report blamed `title_block` for a drawing left «to be saved».
+  Measured on a copy of the drawing (scenario t35s, the flag read after every step):
+  `title_block` left it saved twice; `export_pdf` of the two sheets turned it from
+  saved to «to be saved». The plan of the report ended with `save_document` and then
+  `export_pdf`. Now `export_pdf` reads the save flag before and after the PDF and,
+  when the PDF marked a saved drawing, says so (`marked_unsaved`, with the remedy:
+  `save_document` after `export_pdf`), as `interference_check` does (N16).
+- **N45 (P3)**: `title_block` read the general note put on the sheet as the first
+  field of the title block (67 then 68). The annotations of the sheet hold both.
+  `IAnnotation.OwnerType` tells them apart (IAnnotation~OwnerType.html); a probe on a
+  copy of the drawing (outside the repository) read the general note 1
+  (drawing sheet) and the 67 fields 2 (drawing template), and the save flag stayed
+  false through the reading. Now only the notes of the format are the title block,
+  and `notes_on_the_sheet_left_out` counts the others; a note whose owner cannot be
+  read is kept, as before. The note counts of `note` stay as they are: they check
+  that the note was born (one more), not what the title block holds.
+- **N46 (P3)**: `place_component` said `mates` 3 for a component with one of its 3
+  mates suppressed, beside the 2 of the state. Now it says the mates that hold and
+  `mates_suppressed`, as the state; `fix_component` too.
+- Observations of the report: the sentence on the degrees of freedom of an assembly
+  just opened said «after the first plan», and after `interference_check` it was
+  still 8 of 8 «unavailable»: it now says «until a plan has changed a mate»; the
+  refusal before a document was looked at said «any part» with a drawing in front:
+  it now says «any document», that the one looked at may have been closed, and that
+  it can be named in `document` (the refusal itself is decision N17); a sheet that
+  is not active says `not_read`, instead of reading as a sheet with no views (the
+  decision not to change sheet to read stays).
+- Catalog: `detail_view`, `export_pdf` and `title_block` say the new behaviour.
+- Contract Zc2195 (pure rules and wiring, every changed copy red); the floor of the
+  refusals that say what to do goes to 281 of 1012 (the detail with no free place).
+- Contracts: 944 checks, 2 failed (the bench run is partial, Z-C6). Language gate
+  held. Bench, the 10 cases of the operations changed (`detail_view`,
+  `title_block`, `export_pdf`, `place_component`, `fix_component`, drawings of two
+  sheets): 168 tests, 0 failed, expectations 130 of 130 (report
+  `20261027_1931`). A partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t36 on copies of the drawing and the assembly of round
+  12, bridge 0.152.2 against 0.152.3: `title_block` 68 notes with the general note
+  first, now 67 and `notes_on_the_sheet_left_out` 1; `export_pdf` after a save left
+  the drawing «to be saved» in both, and now says `marked_unsaved`; the second
+  sheet says `not_read`; `place_component` with M15 suppressed `mates` 3, now 2 and
+  `mates_suppressed` 1; two new details went on the side view and on the section,
+  as B, C and D, and now to the bottom left and to a free place at 77/144 mm, the
+  labels inside the frame, looked at on the PDF made a picture.
+
+## 0.152.2 — 27 October 2026 · library 0.174.2 · eleventh round of session 8cd843: N39 to N42 (branch `night-2026-10-26-asm`)
+
+- **Eleventh round on SOLIDWORKS (session 8cd843, bridge 0.152.1, 52 calls)**: N37
+  and N38 held (the refusal of N38 kept: «the argument of the standard holds»;
+  its cost, 11 s of edges read to say «already dimensioned», is left to the owner).
+  Real work on copies: mate suppressed and the undo that put it back, read again;
+  STEP AP214 with 7 solids of 7; a drawing of two sheets with the overall sizes,
+  a section A-A, the table and 7 balloons on the second sheet, two properties of
+  the title block shown, the PDF of 2 pages with the 8 texts searched; closed by
+  the bridge. Four new defects.
+- **N39 (P1)**: with one of its mates suppressed, a coupler read «constrained», 0
+  degrees of freedom and «mates» 3, and `place_component` moved it 6.5 mm.
+  `GetMates` lists a suppressed mate with the others. Now `mates` in the state
+  counts the mates that hold the component and `mates_suppressed` the others
+  (`ActiveMates`), the kinds skip the suppressed ones, and a component held only
+  by suppressed mates is loose for the overall size of a drawing too. The number
+  SOLIDWORKS gives for a component with a suppressed mate is left out with the
+  reason (`degrees_of_freedom_note`): its reading does not follow the
+  suppression. The sentence on what is not known says that on an assembly just
+  opened SOLIDWORKS may give no number until a plan ran (8 of 8 «unavailable»,
+  then 5 of 8 with a number). Case `a_wrong_mate_is_taken_out` reads both counts.
+- **N40 (P2)**: a plan on a drawing that put a section and stopped at a refused
+  detail said «refused and changed nothing I compare» beside «the 1 step(s) before
+  it are done and stay», and the undo after it said «as it was» while the section
+  stayed. SOLIDWORKS had kept an undo entry, which made the plan one to withdraw;
+  on a drawing the comparison sees nothing. Now a plan that did a step on a
+  drawing leaves no memory whatever SOLIDWORKS recorded, and says so; the remedy
+  says that a view has no operation that removes it yet.
+- **N41 (P2)**: `detail_view` on a view of an assembly was refused three times out
+  of three. Cause measured with a probe on copies of the drawing: drawn on the
+  sketch of the sheet, the circle went to another view (the one below), so the
+  view asked kept 0 detail circles and the bridge removed the detail; drawn after
+  `ActivateView`, the circle went in the sketch of the view asked, and the detail
+  had it as its base, at the centre and 40 mm to the right. Now the circle is
+  drawn in the sketch of the view (the sheet only when the view cannot be
+  activated), removed from that sketch by a refusal, and the sheet is put back
+  in edit after the step (`circle_drawn_in`).
+- **N42 (P3)**: `section_view` and `detail_view` counted the sheet among the
+  views, 5 where `inspect_part` said 4. Now they count the views of the model, as
+  `inspect_part` and `model_view`; the cases `section_cuts_the_part` and
+  `detail_enlarges` go from 4 and 5 to 3 and 4. Not done: `hatches` 1 and
+  `hatches_solids` 0 on a cut through two bodies, not tested.
+- Also from the report: a bill of materials with no room says it can go on
+  another sheet (`activate_sheet`), and `drawing_dimension` times its phases
+  (visible edges, edges on the sheet, dimensions already there, texts) for the
+  log.
+- Contract Zc2194 (pure rules and wiring, every changed copy red); Zc2189 follows
+  the circle removed from the sketch it is in, Zc2192 the timed call.
+- Contracts: 939 checks, 2 failed (the bench run is partial, Z-C6). Language gate
+  held. Bench, the families `assemblies` and `drawing`: 731 tests passed, 0
+  failed (report `20261027_1815`), then a call that did not come back
+  (`drawing_dimension` on V2 of `turned_bushing_is_not_a_hole`, idle SOLIDWORKS,
+  the share answering, no window open), 2 h 19 min into the SOLIDWORKS session;
+  the same case was green at 16:17. The second time in `drawing_dimension`: the
+  cause is not tested, a hypothesis. After a restart of SOLIDWORKS the cases not
+  yet tried: 83 tests, 0 failed, expectations 59 of 59 (report
+  `20261027_1827`). A partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t34 on copies of the drawing of round 10 and of the
+  assembly of round 11, bridge 0.152.1 against 0.152.2: with M15 suppressed, C8
+  read «mates» 3 and now reads 2, `mates_suppressed` 1 and the note, then 3 and 0
+  after the mate is back; `detail_view` on V1 of the assembly (x 40 mm, radius 10
+  mm) was refused («the detail circles are still 0») and is now done, circle in
+  the sketch of the view, circles 0 to 1; `section_view` said views 5 to 6 and
+  now 4 to 5, as `inspect_part`. N40: in both versions the undo after a section
+  refuses with the reason; the branch of a drawing plan with an undo entry
+  recorded was not reached (the detail that recorded one is now done), so it is
+  held by the contract only.
+
+## 0.152.1 — 27 October 2026 · library 0.174.1 · tenth round of session 8cd843: N37 and N38 (branch `night-2026-10-26-asm`)
+
+- **Tenth round on SOLIDWORKS (session 8cd843, bridge 0.152.0, 20 calls)**: N33,
+  N34 and N35 held, N36 in part. N33: a name the assembly does not have refused
+  in 30 ms (round 9: 6965 ms) with the 8 names; V2 with the list of V1 measured,
+  `components_not_in_view` «26P000007-1». N34: after a plan that saved and
+  exported the drawing, `document list` false, a second save rebuilt nothing
+  (0.7 ms), and `document close` closed the drawing. N35: «193,7», «17», «16,3»
+  printed and found in the PDF. Real work on copies, in the test position chosen
+  by the owner: the assembly mated (free only the two Solid couplers that decision 6
+  leaves out), 6 interferences for 19.033 mm³ as in round 9, and the drawing made
+  from the start (overall 193.7 × 17 × 16.258, a table of 7 rows matching the
+  assembly, 7 balloons, the general note read back the same, the PDF), closed by
+  the bridge with the assembly and its parts. Two new defects.
+- **N37 (P3)**: the note of the compact answer counted `warnings` 0 of
+  `save_document` (how many bits of the Warnings mask of the save are set) as a
+  warning: «the 1 warning(s) of the measures stay» over measures with none, «3»
+  where there were 2. Now a `warning…` key counts only when it holds a text or a
+  list with something in it (`SaysAWarning`).
+- **N38 (P3)**: a view of an assembly whose overall sizes were all dimensioned in
+  other views answered «No dimension was created», as if something had gone
+  wrong, lost the components measured and the ones the view hides, and wrote
+  «16.26» beside 16.258. It stays a refusal, as on a view of a part (the catalog
+  says it, and the case `the_second_sheet_does_not_repeat_the_dimensions` proves
+  it): zero dimensions are not an answer of «done». Now the refusal says that
+  nothing is left to dimension that is not already dimensioned (UNI ISO 129-1),
+  to leave the step out of the plan, the components measured and the ones not
+  in the view; the other refusals of a view of an assembly name the components
+  too; and an «already dimensioned» length has three decimals, as
+  `dimensions_mm`, on a view of an assembly and of a part.
+- Contract Zc2193 (pure rules and wiring, every changed copy red). Contract suite:
+  935 checks, 2 failed, both because the last bench run is partial; language gate
+  held.
+- Bench, the 17 cases that call `drawing_dimension`: 240 tests, 0 failed,
+  expectations 208 of 208, twins 6 of 6 (report `20261027_1617`). The first run
+  stopped at a call that did not come back (`drawing_dimension` on the side view
+  of `chamfered_shaft_does_not_dimension_the_legs`, idle SOLIDWORKS, no window
+  open), 5 h 48 min into the same SOLIDWORKS session; after a restart of
+  SOLIDWORKS the same cases ran green. A long session as the cause is not
+  tested, a hypothesis. A partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t32 on two copies of the drawing of round 10, bridge
+  0.152.0 against 0.152.1: on V3 «No dimension was created … 16.26» became «I
+  touched nothing: … nothing left to dimension that is not already dimensioned:
+  overall length 16.258 mm …», with the remedy, the 5 components measured and
+  «Not in this view: «26P000009-2»»; a plan of `export_pdf` and `save_document`
+  said «The 1 warning(s) of the measures stay» over `warnings` 0 alone, and now
+  says no warning.
+
+## 0.152.0 — 27 October 2026 · library 0.174.0 · ninth round of session 8cd843: N33 to N36 (branch `night-2026-10-26-asm`)
+
+- **Ninth round on SOLIDWORKS (session 8cd843, bridge 0.151.0, 53 calls)**: N29 to
+  N32 all held. Real work on a copy of the clip assembly: the two Split couplers
+  mated 6/6 in a test position chosen by the owner (not the final one), 6
+  interferences (the 4 clamps and the wanted press fit of the lower coupler), and
+  the workshop drawing measured on the channel, the clamps and the couplers with no
+  warning of loose components. Four new defects.
+- **N33 (P2)**: `components` refused a component of the assembly because one view
+  did not show it (one half of the channel lies under the other in the top view),
+  and only after reading the edges of the view, 7 to 10 s. Now the names are
+  checked on the components of the assembly before the view is read; a name of
+  the assembly that this view does not show goes in `components_not_in_view` and
+  the overall size is measured on the others; the step is refused only when the
+  view shows none of them. A refusal lists the names of the assembly, up to 20.
+- **N34 (P2)**: the drawing saved by `save_document` read «unsaved» right after,
+  and `document close` refused to close it. Cause measured with a probe on two
+  copies: on a drawing EditRebuild3 raises the save flag every time, with no view
+  out of date, and the plan rebuilt after every step, the save included. Now the
+  plan and the bench run one after-step, `SwOperations.AfterStep`: a drawing with
+  nothing unsaved is not rebuilt (`RebuildsAfterStep`), and after a save the flag
+  is read once the rebuild is over (`unsaved_changes`, and
+  `warning_unsaved_after_save` if it stays raised). Found on the way: the bench
+  did not run the plan executor and rebuilt on its own, so it could not see the
+  defect; now it calls the same method, and on an assembly it rebuilds the way
+  the plan does (`Extension.Rebuild`, before `EditRebuild3`). The case
+  `saved_drawing_stays_saved` was red first, without the rule: 26 tests, 1
+  failed, step 5 (the drawing saved) `unsaved_changes` True where False was
+  expected; the part saved at step 2 read False (report `20261027_1355`).
+- **N35 (P3)**: `drawing_dimension` answered 16.258 where the sheet printed
+  «16,3». Now every dimension carries `text_shown`, the numbers its texts print
+  (the reading `export_pdf` already made to look for them in the PDF), and the
+  answer `dimensions_shown` beside `dimensions_mm`.
+- **N36 (P3)**: «none is a warning» read as no warning beside two warnings in the
+  measures. Now the note of the compact answer counts the warnings the measures
+  keep: «none of them is a warning; the 2 warning(s) of the measures stay, above».
+- Contract Zc2192 (pure rules and wiring, every changed copy red); Zc2191 follows
+  the check of `components` onto the assembly. Found on the way: two Italian
+  strings in the test data of Zc2191 since 0.151.0 (the heading of a general note,
+  reported by the session of 0.151.1), now English; the floor of the refusals that say what
+  to do goes to 280 of 1011 (the early refusal of N33 says it). Contract suite:
+  931 checks, 2 failed, both because the last bench run is partial (not every
+  operation has a green case in it); language gate held.
+- Bench, the families assemblies, drawing, dimensions and export (the after-step
+  runs after every step; a part is rebuilt as before): 966 tests, 0 failed,
+  expectations 846 of 846, twins 50 of 50, 82 min (report `20261027_1526`). A
+  partial run: the full one is still owed before a push.
+- On SOLIDWORKS, scenario t31 on two fresh copies of the drawing of the report,
+  bridge 0.151.0 against 0.152.0: a name the assembly does not have refused in
+  7 ms instead of 8338 ms, with the names of the assembly; `text_shown` «32,3»
+  beside 32.25 mm; the note «the 2 warning(s) of the measures stay, above»; after
+  the save `unsaved_changes` false, `document list` false, and `document close`
+  closed the drawing (0.151.0: true, and the close refused). With the component
+  that V2 hides, the step was no longer refused for it, but because both overall
+  sizes were already dimensioned in another view of that drawing: the measure on
+  the components V2 shows is not yet seen on SOLIDWORKS.
+
+## 0.151.1 — 27 October 2026 · library 0.173.0 (unchanged) · a dead argument taken out of 21 bench steps (branch `night-2026-10-26-asm`)
+
+- **What was wrong.** 21 steps of 11 bench cases sent «plane» to
+  `structural_member` together with «segments». The schema of
+  `structural_member` (`Tools/catalog.json`, built from `Catalog/Operations.cs`)
+  declares `configuration`, `corner_treatment`, `gap_mm`, `profile_path`,
+  `rotation_deg` and `segments`, and no «plane».
+- **Read from the code, not assumed.** In `WeldmentOperations.cs` «plane» is read
+  in two places only, the frame with centre distances and the frame with overall
+  dimensions, and both run only when `RequestedFrame` returns a frame. It returns
+  one only for a nested «frame» or for «length_mm» together with «width_mm» (the
+  form of `rectangular_frame`); the dispatcher in `SwOperations.cs` sends
+  `structural_member` and `rectangular_frame` to the same executor, and nothing
+  else on that path reads «plane». A script read the 11 files before the change:
+  21 steps with «plane», all 21 with «segments» and none with «frame»,
+  «length_mm» or «width_mm». There the argument was read by nobody.
+- **Why it is worth taking out.** Since 0.151.0 a real `build` from the bridge
+  refuses an argument its operation does not declare (`UnknownArgumentsOfStep`).
+  The bench calls the library and does not go through that check, so these steps
+  stayed green; but a case is also an example of how a step is written, and the
+  same step sent through the bridge is refused.
+- **The change.** The pair `"plane": "top",` taken out of the 21 steps, nothing
+  else: no operation, no file of the library, no expectation. The steps are in
+  `drawing/weld_symbol_on_the_joint` (2), `frames/profiles_are_read_first` (1),
+  and in `weldments/`: `cap_closes_the_pipe` (1),
+  `cut_list_counts_the_gussets_and_the_caps` (2), `cut_shortens_the_bar` (3),
+  `cut_without_gap_does_not_inherit` (3), `gusset_polygon_is_not_degenerate` (2),
+  `gusset_sits_in_the_corner` (2), `the_end_cap_skips_a_drilled_wall` (1),
+  `the_trim_refuses_an_unknown_end_condition` (2),
+  `weld_bead_goes_between_touching_faces` (2). Checked by script after the
+  change: every file is valid JSON with CRLF line ends, as before, and no
+  `structural_member` step of the 11 carries «plane».
+- **Checks.** Contract suite: 925 checks, 4 red, all four about the freshness of
+  the last bench run (partial, older than the last commit and than the cases
+  changed here, so not every operation has a green case in it); only a full run
+  closes them. Bench, the 11 cases alone (`-Case`, `-SkipCompilation`): 140 tests,
+  0 failed, expectations 100 of 100, 2011 s (report `20261027_1340`). A partial
+  run: the full one is still owed before a push.
+
+## 0.151.0 — 27 October 2026 · library 0.173.0 · eighth round of session 8cd843: N29 to N32 (branch `night-2026-10-26-asm`)
+
+- **Eighth round on SOLIDWORKS (session 8cd843, bridge 0.150.1, 30 calls)**: N23 to
+  N28 all held, and the note after a dimension stays on the sheet. The workshop
+  drawing of a copy of the clip assembly was finished: bill of materials, 7
+  balloons, a general note, the overall length 175 and the clip section 15.6 x
+  12.8 named by edge after `view_edges`, all found in the PDF. Four new defects.
+- **N29 (P2)**: a note of four lines sent with «\n» came back with «\r\n»:
+  `text_matches` false, the step succeeded, and the compact answer said «none is
+  a warning» and left the text read back out. Now the comparison makes the line
+  ends one (`SameNoteText`), and a text that still differs is
+  `warning_text_differs` with both texts. The case
+  `note_on_two_lines_reads_back_the_same` was red on 0.150.1 first
+  (`text_matches False (expected True)`).
+- **N30 (P2)**: the overall height of the clip assembly (31.55 on the front view,
+  59.646 on the top view) ended on couplers with no mate, resting where they were
+  inserted, and the answer gave it as good. Now an overall dimension that ends on
+  a top-level component that is not fixed and has no mate (the rule of
+  `components_still_free`) carries `free_components`, and the answer
+  `warning_free_components` with the remedy; the new argument `components` limits
+  the overall size to the components listed (a name the view does not show is
+  refused with the names it shows).
+- **N31 (P3)**: `count` on a view of an assembly was set aside under
+  `count_ignored`, and the compact answer drops a long text whose key names no
+  warning: «count» 3 gave two dimensions in silence. Now `warning_count_not_used`.
+- **N32 (P3)**: `delete_annotation` added the notes of the sheet and of the views
+  (67 + 7 + 1 = 75), the sum `note` refuses. Now `notes_sheet_*` and
+  `notes_views_*` apart, `attached_to`, and `notes_down_by`. The case
+  `note_is_taken_away_by_its_text` was red on 0.150.1 first (the fields were
+  missing).
+- **Found while writing the replay of round 8**: `delete_annotation` looked for a
+  note by its exact text, so a note of several lines (read back with «\r\n»)
+  answered to nobody. Now the same comparison as `note`; the case
+  `note_on_two_lines_reads_back_the_same` takes it away by its text (removed,
+  `notes_down_by` 1).
+- **Found in the replay of round 8 (scenario t28, old bridge against new)**: an
+  argument the operation does not declare was refused only by the dry run; a real
+  `build` ran without it. `components` sent to 0.150.1, which did not know it, put
+  the overall height 31.55 on every component, the very thing it asked to avoid.
+  Now a real `build` refuses it too, before anything is asked or touched, with the
+  same lines as the dry run (`UnknownArgumentsOfStep`, near names included).
+  Measured before turning it on: 265 plan steps of session 8cd843 (args to args8),
+  none with an argument its schema does not declare; the bench calls the library,
+  not the bridge, and is not touched by it.
+- **Measured on SOLIDWORKS, scenario t28 on a copy of the clip drawing, bridge
+  0.150.1 then 0.151.0**: «count» 3 on V1 gave 175 and 31.55 both times, now with
+  `warning_free_components` naming 26P000010-1 and `warning_count_not_used` in the
+  compact answer; `components` of the four mounted parts gave the vertical 15.6
+  (15.598 from the probe's boxes), and an unknown name is refused with the eight
+  names the view shows; a note of two lines `text_matches` false then true, and
+  taken away by its text (refused before), the sheet 68 -> 67 and the views 7 -> 7.
+- **Checks**: contract Zc2191 (pure rules `SameNoteText`, `NoteTextWarning`,
+  `NotesDownBy`, `OverallComponents`, `OverallFreeWarning`, `CountNotUsedWarning`,
+  `UnknownArgumentsOfStep`; `Warns` of the compact answer keeps the three new keys
+  and drops the old one; 14 lines of wiring, 2 old lines kept out, the unknown
+  arguments refused before the confirmation, each with its changed copy). Refusal
+  floors 279 of 1010. Bench README: drawing cases 46 -> 48.
+
+## 0.150.1 — 27 October 2026 · library 0.172.1 · what the replay of the round 7 fixes found (branch `night-2026-10-26-asm`)
+
+- **The replay**: the 16 calls of round 7 that showed N23 to N28, run on SOLIDWORKS
+  twice on fresh copies, with the shared bridge 0.149.0 and with 0.150.0
+  (scenarios t26o and t26n). Before and after: N23 two chamfer dimensions of 0.4
+  and -0.4 mm, then the overall size 175 x 31.55 mm (the same as `GetBox` of the
+  eight components in the probe: 87.5 x 15.775 mm of sheet at 1:2); N24 undo with
+  no reason and `delete_annotation` unknown, then the reason with its remedy and a
+  dimension (2 -> 1) and a note (75 -> 74) taken away; N25 the « Kg» field marked
+  `only_fixed_text`; N26 the part still not marked modified after `set_property`,
+  then `unsaved_changes_after_write` false, marked, and `document list` saying
+  unsaved; N28 no `property`, then `property` (empty) on the assembly.
+- **N27 sat in the wrong place.** In report 8cd843 (call 009) `create_drawing`
+  answered a default name and it was `standard_views` that renamed the drawing
+  after the assembly, taking the title of the saved drawing already open; the
+  replay gave a default name to `create_drawing` alone too. A warning in
+  `create_drawing` only never fires on the case it was written for. Now
+  `TellTitle` writes `document_title` and `warning_same_title` in `create_drawing`
+  and in the three operations that put a model view on the sheet:
+  `standard_views`, `model_view`, `flat_pattern_view`.
+- **A note asked on the sheet went into a view.** After `drawing_dimension` the view
+  it dimensioned stayed active, and `note` at 20, 250 mm landed inside it: notes of
+  the views 7 -> 8, of the sheet 67 -> 67, and the answer and the log said «on the
+  sheet». The new case `note_after_a_dimension_stays_on_the_sheet` was run first
+  on 0.150.0 and was red (`notes_views_after 1 (expected 0)`). Now `note` calls
+  `IDrawingDoc.EditSheet` before `InsertNote` (the guide, Remarks: «Subsequently
+  created geometry resides on this drawing sheet.»), says `attached_to` (sheet,
+  view or both, read from the two counters), and `warning_in_view` with the name,
+  the counts and `delete_annotation` when it is not the sheet.
+- **Checks**: contract Zc2190 gets the pure rules `NoteAttachedTo` and
+  `NoteInViewWarning`, six more lines of wiring, `TellTitle` counted in 2 places
+  of `DrawingOperations.cs`, and `EditSheet` before `InsertNote`, each with its
+  changed copy that must turn red. Bench README: drawing cases 45 -> 46.
+
+## 0.150.0 — 27 October 2026 · library 0.172.0 · seventh round of session 8cd843: N23 to N28 (branch `night-2026-10-26-asm`)
+
+- **Seventh round on SOLIDWORKS (session 8cd843, bridge 0.149.0, 36 calls)**: a
+  drawing of the assembly on a copy. Six new defects: one P1, two P2, three P3.
+  The empty «Descrizione» column of the bill of materials is not one of them: the
+  property to read is «Denominazione», and the template is changed by its owner.
+- **N23 (P1)**: `drawing_dimension {view: V1, count: 3}` on the front view of the
+  assembly placed 1.725, 15.23° and 159.25° and called them placed. Cause,
+  measured with a read-only probe on a copy of the drawing: on a view of an
+  ASSEMBLY `GetVisibleEntities2` hands over the edges of the components, and
+  `GetCurveParams3` gives their ends in the coordinates of the PART. Projected
+  with the view transform alone, every edge of a component placed away from the
+  origin lands elsewhere on the sheet (26P000010-1, moved by [-60, 0, 50]: box
+  60.25..68.75 mm, raw projection 90.25..98.75 mm). Composed with
+  `IComponent2.Transform2` first, the extent of each of the 8 components equals
+  its `GetBox`. Fixed in the three projections that read edges of a view
+  (`ReadEdge`, `CircleOnSheet`, the segments of the text overlap) through
+  `ToSheetOf`. A view of an assembly now takes its own path
+  (`DimensionAssemblyView`): the overall size along the axes of the sheet,
+  between the outermost straight edges, checked against what the view shows
+  (`OverallEdgesProblem`), not repeated between views (`OverallKey`), and the
+  value read back compared with the expected one; or the edges named by their
+  index. The new argument `overall` (`both`, `horizontal`, `vertical`, `none`)
+  says which. A chamfer dimension read back with an angle outside (0°, 90°) or a
+  leg of zero or less is taken away and listed in `failed`
+  (`ChamferValuesProblem`), and so is any dimension read back at zero or less.
+  `inspect_part` takes `view_edges` (`{view, component, limit}`): the edges of a
+  drawing view with their kind, length, component and position on the sheet, so
+  a plan can name them.
+- **The same cause elsewhere**: `center_marks` judged and placed the holes of an
+  assembly view with `ModelToViewTransform` alone, and the datums, surface
+  finishes and tolerance frames picked the side of the view among edges
+  projected the same way. Both now go through `ToSheetOf`. The hole table and
+  the flat pattern view read `ModelToViewTransform` alone too, but they refuse a
+  view that does not show a part, so an assembly never reaches them.
+- **N24 (P2)**: `undo` after a dimension on the drawing answered that no plan
+  had built anything and proposed `delete_feature`, which does not take a
+  dimension away. After a plan that worked on a drawing, the undo now says why
+  it keeps no plan (`DrawingPlanMemoryReason`: SOLIDWORKS records no undo entry
+  for it) and proposes the new operation `delete_annotation` (family drawing):
+  it takes away one dimension by its name (`RD1@Drawing View1@...`, or what
+  comes before an «@») or one note by its name or exact text, on the current
+  sheet, and says «removed» only when nothing answers to the name any more.
+  `note` now gives the `name` of the note it placed. 105 operations.
+- **N25 (P3)**: the title block counted as shown the weight field, two sheet
+  property links followed by «Kg», showing « Kg». A field that shows only
+  the fixed text around its links (`ShowsOnlyFixedText`) is counted as empty and
+  marked `only_fixed_text`.
+- **N26 (P3)**: after `set_property` the document kept `unsaved_changes` false.
+  The flag is read after the write; when SOLIDWORKS did not raise it, the bridge
+  calls `SetSaveFlag` and reads it again (`unsaved_changes_after_write`,
+  `unsaved_changes`, `warning_unsaved`).
+- **N27 (P3)**: `create_drawing` made a drawing with the title of one already
+  open, without a word. It now answers `document_title` and, when another open
+  document has it, `warning_same_title` with the remedy (`save_document` in the
+  same plan).
+- **N28 (P3)**: `inspect_part` of an assembly gave no `property` key. It now
+  always does (empty when the assembly has none), with
+  `configuration_properties` when there are some.
+- Contract `Zc2190DrawingRound7Contract`: the pure rules above by reflection,
+  and the wiring on the sources, each line first turned red on a changed copy.
+
+## 0.149.0 — 27 October 2026 · library 0.171.0 · sixth round of session 8cd843: N17 to N22 (branch `night-2026-10-26-asm`)
+
+- **Sixth round on SOLIDWORKS (session 8cd843, bridge 0.148.1, 25 calls)**: held
+  N16 (`marked_unsaved` on the first check of a saved copy, nothing on the
+  second). Real work on copies: STEP of the assembly, a drawing with three views,
+  an isometric view, the bill of materials, balloons, the saved drawing and its
+  PDF, 7 steps in one plan. Six new defects, all P2.
+- **N17**: a plan sent before any `inspect_part` was refused after 10.9 s, because
+  the bridge first read the whole assembly in front (`session.state_read` 10728
+  ms). The refusal now comes before the reading, when the plan names no
+  document; the text is the same (`NotLookedAtYet`).
+- **N18**: `export_step` with `reopen_and_compare` on an assembly was refused only
+  when its step came, after `save_document` in the step before it had run. The
+  pre-check of the plan now gives the refusal of the operation before any step
+  (`SwOperations.AssemblyExchangeRefusal`, also for the IGES of an assembly),
+  while the plan is still on the assembly it started on (a `create_drawing`
+  before the step moves it elsewhere, and the check is left to the operation).
+  `ExportExchange` keeps the two texts in its own `Failed`: moved into the
+  helper, the count of refusals with a way forward stopped reading them (264
+  of 995 against the floor of 266 of 997), so the two copies stay and a check
+  turns red if they part.
+- **N19**: the STEP of an assembly answered `solids_expected` 7 next to 8
+  components, and nothing said why. The count is right (one part placed twice is
+  written once); `solids_expected_basis` now says what it counts.
+- **N20**: the bill of materials came with the column «Descrizione» empty on all
+  7 rows and nothing said it. `warning_empty_columns` names the columns empty on
+  every row (`EmptyColumnsWarning`).
+- **N21**: the headers of the bill of materials read «<FONT size=3.5>Num. parte».
+  The FONT codes of a note are taken out of every cell read from a table
+  (`WithoutFormatCodes`, shared by the bill of materials and the cut list);
+  nothing else is touched.
+- **N22**: `export_pdf` answered `set_sheets_answer` false next to a right PDF. A
+  false now comes with `set_sheets_note` (under 100 characters, so the summary
+  keeps it): false is seen on complete PDFs too, the check is the page count.
+- **Checks**: `Zc2114UndoHonestyContract` (N17 and N18 in the plan tool, 3 changed
+  copies), `Zc2189WeldAssemblyContract` (N18 to N22 by reflection, the two
+  copies of the N18 refusals compared, and on the sources with 5 changed
+  copies), each turning red.
+
+## 0.148.1 — 27 October 2026 · library 0.170.1 · fifth round of session 8cd843, N16 (branch `night-2026-10-26-asm`)
+
+- **Fifth round on SOLIDWORKS (session 8cd843, bridge 0.148.0, 9 calls)**: held
+  N13 («Parte356» without «title:»), N14 (pairs and boxes) and N15 (`contacts`
+  1, total 14.763 mm³ with and without `touching_counts`); no new defect. From
+  the boxes the session measured the squeeze of the clips on the channel: 0.05 mm
+  per side, the same as its own script.
+- **N16**: the session saw the saved copy of the assembly marked unsaved after a
+  scenario of this side. Isolated on SOLIDWORKS, on copies saved just before:
+  `activate`, `inspect_part` and `measure` of `mass_properties` leave the save
+  flag false; `measure` of `interference_check` sets it. A read-only probe of the
+  interference manager read `GetSaveFlag` after every phase: false after the
+  three settings, the count, the list and the bodies, true right after
+  `IInterferenceDetectionMgr.Done`. Done is still called (it stops the
+  detection) and no call clears the flag, so the answer now says it:
+  `marked_unsaved` true and `warning_marked_unsaved`, when the flag went from
+  false to true across the check. The descriptions of `interference_check` and
+  of the tool `measure` say it too.
+- **Check** (`Zc2189WeldAssemblyContract`): the save flag read before and after
+  Done, and the mark said, with a changed copy that turns red.
+
+## 0.148.0 — 27 October 2026 · library 0.170.0 · fourth round of session 8cd843: N13, N14, N15 (branch `night-2026-10-26-asm`)
+
+- **Fourth round on SOLIDWORKS (session 8cd843, bridge 0.147.0, 20 calls, the
+  whole assembly mounted on copies and saved)**: held N7 (the family
+  `documents`), N11 (`undo_possible` false and `note_undo`, then the undo
+  refuses) and N12 (`steps_done` 2 of 6, `note_stopped`, then activate and undo
+  2603.7 to 2610 mm³).
+- **N15 (P1)**: with `touching_counts` a fifth interference read 368475 mm³ on
+  parts of a few thousand. Measured with a probe on a copy of the assembly: the
+  faces that touch come as a SHEET body (`IBody2.GetType` 1, one face, box
+  175 × 0 × 3.825 mm) with `IInterference.Volume` 0, and `GetMassProperties` on
+  a sheet answered 3.68475e-4 at index 3. A sheet is now a CONTACT: `contact`
+  true, volume 0, counted in `how_many` and in a new `contacts`, never in
+  `volume_total_mm3` nor in the alarm; the verdict says them apart («No part
+  goes into another» when they are all there is). On the four solid ones
+  `IInterference.Volume` and `GetMassProperties` index 3 agreed to the last
+  digit.
+- **N14**: four equal interferences of 3.691 mm³ did not say which clip touched
+  which half. Each item of `interferences` now names its `components`
+  (`IInterference.Components`) and its box in the space of the assembly
+  (`box_from_mm`, `box_to_mm`, from `IBody2.GetBodyBox`).
+- **N13**: the error of a stopped plan wrote «title:Parte354», the key the
+  executor compares by. Its messages now print the name (`ReadableIdentity`).
+- **Checks**: `Zc2189WeldAssemblyContract` (the contact sentence by reflection,
+  the source order sheet before volume, pair and box, with changed copies that
+  turn red); the bench case `touching_is_not_interpenetrating` expects
+  `contacts` 1 and `volume_total_mm3` 0.
+
+## 0.147.0 — 27 October 2026 · library 0.169.0 · third round of session 8cd843: N7, N11, N12 (branch `night-2026-10-26-asm`)
+
+- **Third round on SOLIDWORKS (session 8cd843, bridge 0.146.3, 29 calls)**:
+  held N10 (the first undo after a refused plan and its `note_refused_plan` say
+  the same thing, the second withdraws the good plan) and N4 (after a plan with
+  `parameters` the undo no longer says «not yet run any that built something»).
+  `on_window_change=stop` stopped at step 3 after two cuts (2610 to 2603.7 mm³).
+- **N7**: `save_document` saved an assembly well but sat in the family
+  `drawing`. It is now in a family of its own, `documents` («the open document as
+  a file»); the line of `drawing` says that a part is saved first with it.
+  Checked in `CatalogTests`.
+- **N11**: a plan with an extrusion and `parameters` answered
+  `undo_entry_recorded` true, and the undo after it refused (rightly: no equation
+  is in an undo entry). A plan whose memory is dropped although it changed
+  something now says so in its own answer: `undo_possible` false and
+  `note_undo` with the reason.
+- **N12**: the stop for a window that came to the front said «I touched
+  nothing» at step 3, after two cuts. The step now says «I did not run this step;
+  the 2 step(s) before it are done», and a plan that stops after some steps
+  answers `steps_done`, `steps_in_plan` and `note_stopped` (what stays, and
+  whether «undo» withdraws it).
+- **Contract** (`Zc2114UndoHonestyContract`): the after-plan check asks for
+  `note_undo` and `note_stopped`, the executor check for the guard on the steps
+  already run, each with a changed copy that must turn red.
+
+## 0.146.3 — 27 October 2026 · library 0.168.2 · second round of session 8cd843, N10 corrected (branch `night-2026-10-26-asm`)
+
+- **Second round on SOLIDWORKS (session 8cd843, bridge 0.146.2, 24 calls, the
+  assembly mounted again on copies)**: held N1 (`confirmation` on delete_mate and
+  on delete_feature), N2 (the readings before the steps of six blind cuts
+  1716.7 ms against 5633 ms of the first round, the plan 7954 ms against
+  13216 ms), N3 (the plan of six distance mates: TY, RX, RZ blocked on the
+  fourth component, every mate «removes»), N5, N6, N8 (`expect_verdict` when
+  held, `measurements` when missed), N9 (three progress notes per assembly undo)
+  and R1 (a window brought in front during six cuts: `reactivations` with
+  `brought_back` true, six cuts of six). Not tried: N4, N7,
+  `on_window_change=stop`.
+- **N10**: the undo of a refused plan answered `note` «The plan was withdrawn
+  whole and the assembly went back to how it was» next to `note_refused_plan`
+  «this undo took away only its undo entry», and nothing had changed (mates 9 and
+  9). The note now depends on whether the plan was refused: «The plan was refused
+  and had changed nothing: this undo took away its undo entry».
+- **Contract** (`Zc2114UndoHonestyContract`): the note of a successful undo must
+  depend on `memory.Refused`, with a changed copy that drops the condition.
+
+## 0.146.2 — 27 October 2026 · library 0.168.2 · N2 measured, N3 reproduced and corrected (branch `night-2026-10-26-asm`)
+
+- **N2 measured on SOLIDWORKS (scenario t17, 0.146.1 against 0.145.0, two runs
+  each)**: the readings before the steps of a plan of six blind cuts went from
+  2794.3 / 2782.0 ms to 1209.4 / 1204.4 ms (mean -56.7 %), the whole plan from
+  9834 / 10011 ms to 8333 / 7835 ms (mean -18.5 %). A missed «expect» now keeps
+  the numbers of the step (`measurements` with `removed_mm3` 3.14 next to
+  «expected 99»).
+- **N3 reproduced**: scenario t18b replays the calls of session 8cd843 (insertions,
+  mates, undo, suppression, deletion, then the plan of six distance mates) and gave
+  the same verdicts: on the fourth mate «after the move RZ and the rebuild it
+  neither came back nor stayed where it was moved (0.218 degrees of 5)», on the
+  fifth «RX ... 0.219 degrees», mate verdict «unknown» on both.
+- **The cause**: the test judged a turn by the whole angle between the two
+  rotations. A distance mate between two «up» faces puts the normal of the face
+  back, and whatever turn is left is about that normal, a free direction (RY):
+  0.218 degrees is θ²/2 of 5 degrees (0.08727² / 2 = 0.003808 rad). The rule now
+  judges a turn by the turn about its own axis (`MateOperations.TurnAboutAxisDeg`:
+  the rotation vector of Q = R'^T R, its component on the axis), as it judges a
+  translation by the displacement along its own axis.
+- **Contract** (`Zc14MateDirectionsContract`): a row «N3: RZ put back, turned
+  0.218 degrees about Y» that must read blocked; the source check asks for
+  TurnAboutAxisDeg and refuses AngleBetweenDeg in MovementOf, with a changed copy
+  that puts the whole angle back. The rows of the probe (S3 slides, RY that stays
+  turned, RZ half way) read as before.
+
+## 0.146.1 — 27 October 2026 · library 0.168.1 · N2 measured: the reading without edges never happened (branch `night-2026-10-26-asm`)
+
+- **Measured on SOLIDWORKS (scenario t17, 27/10/2026 07:03-07:06)**: six blind
+  cuts on one face, then an undo, six more, a missed «expect», an undo, with the
+  shared bridge 0.145.0 and with 0.146.0, twice each, alternated. Same times
+  (six cuts 9834 / 10011 ms on 0.145.0, 9804 / 10541 ms on 0.146.0), and
+  `state.edges` read 8 times per plan in both (2164.8 ms against 2143.1 ms).
+- **The cause**: the bridge attaches `_signatures` to every step, the
+  signatures of everything the last reading listed, edges included, so that a
+  uid the step cites can be found again. `MentionsEdges` looked into it and found
+  an «E» identifier in every step. It no longer looks into `_signatures`: an
+  edge the step cites is in its own arguments.
+- **Contract**: one more row of `MentionsEdges` (a face with the signatures the
+  bridge attaches: no mention), the row that would have caught it.
+- **Seen in the same measure**: `expect_verdict` in the answer («held:
+  removed_mm3 3.14 (expected 3.1416 ±0.01)», N8 works); the gear of 17 teeth
+  (scenario t16) still takes 15.3 s in `spur_gear` on library 0.168.0, so reading
+  the sketch points once (0.167.1) was not where its time goes.
+
+## 0.146.0 — 27 October 2026 · library 0.168.0 · the report of session 8cd843 on the reassembly of 26M000002 (branch `night-2026-10-26-asm`)
+
+The session that wrote the brief of 25/10 reassembled its assembly on copies with
+bridge 0.145.0 (70 calls; the report is in the private notes of the project): R3, R4, R5,
+R8, R10/R11, R12/R21, R13, R15, R16, R17, R18, R19, R23, R24, §5.1, §5.2 and the
+blind cut verified; mate 30.3 s → 2.2 s, save 134 s → 2.4 s. What it found:
+
+- **N1 — `delete_mate` ran without a confirmation and the answer did not say so.**
+  With a client that does not declare «elicitation» the plan runs as before (W2.5);
+  the answer now carries `confirmation` («Nobody was asked to confirm delete_mate:
+  ... tell the person what this plan deleted»). The descriptions of `delete_mate`
+  and `delete_feature` say both cases.
+- **N2 — the reading before every step read the edges too.** Six cuts on a part of
+  43 edges: `plan.state_read_step` 5632.7 ms of 13215.5 ms, the edges about 563 ms
+  of every reading. A step that names no edge (`PlanExecutor.MentionsEdges`:
+  «edge» in any key or text, or an «E» identifier, anywhere in the arguments) is
+  now read with `DocumentState.ReadWithoutEdges`: the faces as before, no edge
+  listed. The time saved is NOT measured yet.
+- **N4 — the opening of the refusal of `undo` after `parameters`**: already
+  corrected in 0.145.1.
+- **N5 — a refused plan that left an undo entry became the memory and hid the plan
+  before it.** A `place_component` refused because the mates moved the component
+  (set back, nothing visible changed) closed its entry with something in it: the
+  next `undo` took away that empty entry, said «withdrawn», and the plan before
+  could no longer be withdrawn. The refused plan still becomes the memory (its
+  entry is on top), but it keeps the plan before it: the answer of the refused plan
+  says so in `note_undo_entry`, the `undo` that takes its entry away says so in
+  `note_refused_plan`, and a second `undo` withdraws the plan before, with all the
+  usual checks.
+- **N6 — the log said «going ahead» for a plan then refused as a resend**, and the
+  refusal of a resend spoke of «a SECOND hole» on a mate. The log line is written
+  right before the plan runs; the refusal says «the same work a SECOND time (a
+  second hole, a second mate)».
+- **N7 — `save_document` said «part or drawing»**: it saves assemblies too, and the
+  description now says why it sits among the drawing operations.
+- **N8 — a kept `expect` was invisible, and a missed one lost its numbers.** A step
+  whose expectations hold carries `expect_verdict` («held: removed_mm3 7.07
+  (expected 7.07 ±0.01)», `StepExpectations.Held`); a step that missed keeps its
+  `measurements` in the outcome (they were null next to «measured true»).
+- **N9 — `undo` sent no progress** (8.6 s in silence): three notifications now,
+  reading, pressing, reading back.
+- **Contract checks**: `R16StepExpectationsContract` (Held, seven rows of
+  MentionsEdges, the executor uses both), `ConfirmationTests` (the field, and the
+  log line after the refusal of a resend and before the plan runs).
+- **Not in this version: N3** (the test of the directions of a component read
+  «unknown» after a mate equal to one read blocked): it needs the assembly on
+  SOLIDWORKS to be reproduced.
+
+## 0.145.3 — 27 October 2026 · library 0.167.1 · the bench says whether a call that does not come back is slow or hung (branch `night-2026-10-26-asm`)
+
+- **Why.** The full bench of 27/10 stopped at 94 s on «spur_gear» after almost
+  four hours; alone, right after, the same call took 19.8 s. The run said which
+  call it was and nothing else: not whether SOLIDWORKS was still working on it,
+  not whether a window had opened, not how long the other calls had lasted.
+- **When the leash stops a run** (`Bench/Program.cs`, guardian), it now reads the
+  processor time of SLDWORKS twice five seconds apart (busy: the call is slow;
+  idle: it waits for a window, a lock, the network), says whether SOLIDWORKS
+  responds and lists its visible windows by class and title (a modal shows up
+  there), and writes the ten slowest calls of the run with the time of day.
+- **Every operation and every new part is timed**; a whole run writes the ten
+  slowest calls before the summary.
+- **`--leash-ms <n>`** (at least 1000) sets the leash of one run, to see the
+  guardian fire on the real bench with one small `--group`; the default stays
+  90 s. `Bench/README.md` no longer says that entry K18 is not done.
+- **Contract checks** (`Tests/LeashTests.cs`): the guardian reads the state of
+  SOLIDWORKS and the slowest calls, every operation and NewDocument are timed,
+  and `--leash-ms` exists.
+
+## 0.145.2 — 27 October 2026 · library 0.167.1 · the number of operations in the refusal of an unknown tool (branch `night-2026-10-26-asm`)
+
+- **The refusal of a tool that does not exist said «The sixty drawing
+  OPERATIONS are not tools»** with 104 operations in the catalog. Seen while
+  driving the bridge from a script (a call with a wrong tool name, 27/10/2026).
+  The number now comes from the catalog (`Catalog.HowMany`), and is left out when
+  the catalog did not load.
+- **Contract check** (`Tests/ProtocolTests.cs`): the refusal names the number of
+  operations that the «total» of `list_operations` gives.
+
+## 0.145.1 — 27 October 2026 · library 0.167.1 · what the first full bench after the brief found (branch `night-2026-10-26-asm`)
+
+- **The first full bench since 9/10/2026** (commit bdc70c6, library 0.167.0,
+  13827 s, SOLIDWORKS restarted before it): 1881 checks passed, 2 red, and the run
+  stopped as INVALID at `the_seventeen_tooth_gear_can_be_made`: «spur_gear» had
+  not answered after 94 s (threshold 90). Alone on the same SOLIDWORKS, right
+  after, the same wheel took 19.8 s, was right (8808.6 mm3, 170 segments) and one
+  undo withdrew it: the stop came from a SOLIDWORKS session that had made 340 parts
+  in four hours, not from the bridge.
+- **Red 1, a check older than brief R18.** `document: after a document change
+  «build» insists on looking first` sent an extrusion right after `document`
+  «create» and asked the refusal «not looked at any part yet». Since 0.139.0 a plan
+  that cites no identifier runs without a reading, so the extrusion ran. The check
+  now sends a plan that cites «F1» and asks the refusal that names it and
+  «inspect_part», with the part still empty.
+- **Red 2, a case that numbered the components by insertion.**
+  `a_face_is_named_by_a_point` called them «shaft» and «pin» and expected C1 to be
+  the shaft; the state numbers components by NAME, so C1 was the pin and [10, 0, 0]
+  fell 26.926 mm from it (its origin at [40, 10, 0]: radially 30 - 5 = 25, and 10
+  below its bottom). The shaft is called «axle» now.
+- **The opening of the refusal of `undo`** said «here I have not yet run any that
+  built something» also when the last plan had built and the memory was dropped
+  with a reason (t14: the equations); it now says that no memory of the last plan
+  is kept, for the reason that follows.
+- **The consumed string of the document check is bound again**
+  (`Checks/language/consumed-strings.json`, `bench-client-not-looked-yet`): it
+  pointed at the old literal of `Bench/ClientPort.cs` and the contracts said so; it
+  now points at «inspect_part» on line 261, produced by `Tools/McpTools.cs`. 39
+  entries, 0 broken.
+- **Library 0.167.1: the points of a sketch are read once.** `VerticesNotDrawn`
+  compared every vertex of a profile with every point of the sketch by reading
+  `ISketchPoint.X` and `.Y` again each time: two calls out of process per
+  comparison, tens of thousands for a wheel of 17 teeth. It now reads the points
+  into a list once and compares numbers. Whether this was the slowness of
+  «spur_gear» was NOT measured: it is the next measure on SOLIDWORKS (scenario t16).
+
+## 0.145.0 — 27 October 2026 · library 0.167.0 · undo after «parameters» and «place_component» (scenarios t9b, t14; probe `Checks\UndoGaps`; branch `night-2026-10-26-asm`)
+
+- **Seen on SOLIDWORKS (t14, t9b, 27/10/2026).** After `parameters` (two
+  variables) the plan answered `"undo_entry_recorded": false`, and `undo`
+  withdrew the extrusion of the plan BEFORE it (96000 -> 0 mm3) while the
+  equations stayed, and answered that «the plan was withdrawn whole». After
+  `place_component` the plan answered false too, and `undo` refused.
+- **Measured (`Checks\UndoGaps`, new probe, two runs on 27/10/2026).**
+  - Equations written by `IEquationMgr.Add3` and `EvaluateAll` inside the
+    recording: `FinishRecordingUndoObject` false with `EditRebuild3`,
+    `ForceRebuild3(false)` or no rebuild; one undo took away the feature before
+    them (features 19 -> 18) and the two equations stayed.
+  - A component moved by setting `IComponent2.Transform2`, or by
+    `SetTransformAndSolve2`: false, and one undo took away the component inserted
+    before it.
+  - The same move by `IDragOperator` (absolute transform, `AddComponent`,
+    `BeginDrag`, `Drag`, `EndDrag`): true, and one undo put the component back
+    (x 200 -> 90 mm); with `TransformType` 2 and a turn of 180 degrees about X as
+    well: true, and the undo put back the place and the axes.
+- **`place_component` drags the component** (`DragTo`) instead of setting
+  `Transform2`. The direction test of `mate` still sets `Transform2` and puts it
+  back: the mate itself is recorded, and its undo held on t9b.
+- **The memory of `undo` sees the equations.** The snapshot carries the equations
+  of the document; `WhatDiffers` names a change of them; `MemoryAfterPlan` has a
+  rule 3b: a plan that changed the equations is not remembered, whatever else it
+  did, and the reason says that SOLIDWORKS records no equation in an undo entry and
+  that a variable goes back with `parameters` and the value it had.
+  `parameters` answers `equation_before` for a variable it rewrote.
+- **R10 measured, nothing to fix (t13).** `cylindrical_cut` and `rectangular_cut`
+  keep `AddToDB` true, and one undo withdrew a block with two holes (116732.7 -> 0
+  mm3) and a block with two pockets (114000 -> 0 mm3); two revolves (81681.4 -> 0
+  mm3) with the recipe of 0.143.0.
+- **A depth given alone makes the cut blind (scenario t15).** A `cylindrical_cut`
+  with `depth_mm` 5 and no `through_all` drilled through the 20 mm block (1570.8
+  mm3 removed): `through_all` defaulted to true and the depth was dropped without a
+  word. `cylindrical_cut`, `slot` and `hole_wizard` now default `through_all` to
+  false when `depth_mm` is given (`SwOperations.ThroughAllAsked`); `through_all`
+  true written beside a depth still wins, as the catalog said and as the pair case
+  `limit_pocket_that_covers_everything` sends. The catalog says it. Bench case
+  `a_depth_alone_makes_the_hole_blind` (features: 38). Not yet run on the bench.
+- **Identifiers of an older reading (brief R18, second half), measured (t15).**
+  Block 100 x 60 x 20, read once: F1 the top face (6000 mm2, y = 20), F2 the
+  bottom one, of the same area. A blind hole on F1, then a second plan citing F1 of
+  that same reading: after the first hole the top face is the smaller (5921.46
+  mm2), so by position F1 would be the bottom face; the second hole went into the
+  top face all the same (both bottoms at y = 15 mm, 120000 -> 119607.3 -> 119214.6
+  mm3). With the answer «summary» the signatures of the last reading stay, and the
+  face is found again by its persistent reference. No change to the code.
+- **Contracts.** Zc2114: three situations of the memory with equations, and
+  `WhatDiffers` sees an equation added and one rewritten (9 pairs).
+- **The reason of the equations** says that a variable or a link the plan
+  created stays, since no operation removes an equation yet.
+
+## 0.144.0 — 27 October 2026 · library 0.166.0 · «extrude_regions»: several heights of one plane in one step (brief §5.2; branch `night-2026-10-26-asm`)
+
+- **Seen on 24/10/2026.** Each half of a channel took six `extrude_profile`, one
+  per height, and every step paid its own reading, confirmation and rebuild
+  (brief R2).
+- **`extrude_regions`, new operation.** It takes `plane` and `regions`, each
+  region with its `contours` (the form of `extrude_profile`) and its `height_mm`.
+  Every region is checked before the first is drawn (`SwOperations.Regions`,
+  static, without SOLIDWORKS); then each one is drawn by the executor of
+  `extrude_profile`, one sketch and one extrusion, merged with the bodies it
+  touches. The answer lists, for each region, the feature, the height and
+  `depth_dimension`, the name of the dimension of its height read from the
+  feature (the dimension whose value is the height asked, named as the driven
+  vertices name theirs), ready for `link_dimension` or `parameters`. A region that
+  fails after others were drawn stops the step and names the ones in the part.
+- **Bench case `three_heights_in_one_step`.** Two plates side by side at 10 and
+  20 mm and a square at 30 mm on the first: 68000 mm3, one body; the second
+  height moved to 25 mm by the name the answer gave: 78000 mm3; a height of zero
+  refused with nothing drawn. Not yet run on the bench.
+- **Checks.** Examples 35 (floor 34); refusals with a way forward 266 of 997
+  (the failure of a region after others names them and says to undo the step);
+  the written decision for the required field `extrude_regions.regions`; README
+  104 operations; the bench README counts 12 extrusion cases.
+
+## 0.143.0 — 27 October 2026 · library 0.165.0 · «parameters» in one step, an empty assembly reads empty, revolve keeps its undo (briefs §5.1, R11, R23; branch `night-2026-10-26-asm`)
+
+- **`parameters`, new operation (brief §5.1).** On 24/10/2026 a part took five
+  `global_variable` and six `link_dimension`, eleven steps, each with its own
+  evaluation and rebuild. `parameters` takes `variables` (name: mm or an
+  expression) and `links` (dimension: expression) and writes them in one step:
+  every name, value and dimension is checked before anything is written; the
+  variables are written first, so that a link can use a variable of the same step;
+  one `EvaluateAll` and one rebuild; every value is read back. If a value does not
+  read back as asked, every equation written is put back as it was and the refusal
+  says so. Bench case `variables_and_links_in_one_step` (96000 -> 115200 -> 144000
+  mm3, and a refusal that touches nothing). Not yet run on the bench.
+- **An empty assembly read «did not answer» (scenario t9b, 27/10/2026).**
+  `GetComponents(false)` answers null on an assembly with no component; the state
+  of the assembly wrote «the assembly did not answer the list of components», and
+  the undo that had just emptied the assembly said it could not read it.
+  `AssemblyState` now asks `GetComponentCount(false)` when the list is null: 0 is
+  an empty list (`components_top_level` 0), anything else is still a reading that
+  failed.
+- **The resent-plan guard was blind on an assembly (scenario t9b).** Its summary
+  held volume, bodies, features and title, which read the same on every assembly:
+  a plan inserted, withdrawn with `undo` and sent again was refused as «already
+  run». On an assembly the summary now carries the components and mates as the undo
+  snapshot reads them.
+- **`revolve` closed an empty undo entry (scenario t13, 27/10/2026).** Two
+  revolves answered `"undo_entry_recorded": false` and the undo pressed after them
+  took nothing away. `revolve` now draws its profile with the recipe of
+  `extrude_profile` (brief R11): no `AddToDB`, automatic relations and inference off
+  while drawing and put back after, `ISketch.MergePoints`, a vertex drawn elsewhere
+  refused (`VerticesNotDrawn`), and the sketch locked while it is still open
+  (`LockOpenSketch`). `LockSketch`, whose last caller was `revolve`, is gone. Not
+  yet measured on SOLIDWORKS with the new code.
+- **A plan that built while its undo entry closed empty is not remembered.** The
+  memory of `undo` (rule 4) remembered a plan as soon as it built; when its own
+  entry closed empty (`FinishRecordingUndoObject` false) one undo does not withdraw
+  it and could take away something older. Now: no memory, and the reason says why.
+- **Bench.** `Expectations.Resolve` resolves keys that start with «@» or carry
+  «{», so that `links` can name a dimension with a bench selector.
+- **Checks.** Refusals with a way forward 265 of 996 (floor and share raised from
+  259 of 978); examples 34 (floor 33); README 103 operations; the frozen undecided
+  call `SwOperations.cs|AddRelation` is gone with `LockSketch`; the mutation «the
+  sketch to lock found with no names» is gone with it; `Checks/AssemblyUndo/` is in
+  the snapshot register of the language gate.
+
+## 0.142.0 — 27 October 2026 · library 0.164.0 · undo withdraws a plan on an assembly (brief R23; branch `night-2026-10-26-asm`)
+
+- **Seen on SOLIDWORKS (t9, 26/10/2026).** On an assembly every plan answered
+  `"undo_entry_recorded": false`, and `undo` answered that it had no plan to
+  withdraw. Two causes, both measured.
+- **The rebuild emptied the undo.** `Checks\AssemblyUndo` (new probe) inserts two
+  components and makes a coincident mate inside one recording, a rebuild after each
+  step, then presses undo; on SOLIDWORKS, 26/10/2026:
+  - `EditRebuild3`, `ForceRebuild3(false)` or `ForceRebuild3(true)`:
+    `FinishRecordingUndoObject` answered false and two undos took nothing away, not
+    even the native entries;
+  - `IModelDocExtension.Rebuild` (`swRebuildAll`, `swUpdateMates`,
+    `swUpdateDirtyOnly`) or no rebuild: it answered true and one undo emptied the
+    assembly;
+  - in every way the mate moved the component (B from x = 90 to x = −20 mm).
+
+  `SwOperations.RebuildKeepingUndo` rebuilds an assembly with
+  `IModelDocExtension.Rebuild(swRebuildAll)` and a part or a drawing with
+  `EditRebuild3` as before. The plan executor and the assembly operations
+  (insert, mate, mate state, mirror, fix, replace) go through it, and so do the
+  direction test of `mate`, the read-back of `place_component`, the rebuild after
+  an activation that asks for one (`DocumentByPath.RebuildIfActivationAsked`, which
+  the plan executor uses when it brings the plan's document back to the front) and
+  the same rebuild of `document` «activate». `RebuildKeepingUndo` is public, so
+  that the bridge can call it.
+- **The memory of `undo` was blind on an assembly.** The state of an assembly
+  writes neither a volume nor features, so both read 0 before and after every plan
+  (ZERO-E-ZERO): a plan was never «built», and with the first cause fixed `undo`
+  would have pressed without seeing a component moved by hand after the plan. The
+  snapshot of `undo` now reads, on an assembly, the components (which ones, file,
+  configuration, state, fixed, visible, transparent, origin within 0.0015 mm, axes
+  within 0.00015) and the mates (which ones, kind, suppressed, the components they
+  hold, by name, so that renumbered uids do not read as a change). It is used in
+  the three places that compare: whether the plan built, whether the assembly
+  changed since the plan (refusal before pressing), and whether the press brought
+  it back as before the plan (and what a press took away). Without the two lists
+  `undo` stops, as it does without a volume, and never redoes blindly.
+- **The answers on an assembly** speak of components and mates
+  (`AnswerAfterWrongPressOnAssembly`, `RefusalChangedSinceThePlanOnAssemblyText`),
+  and the remedy names `delete_mate`, `suppress_mate` and `place_component`: no
+  operation of the catalog takes a component away, so a component a plan inserted
+  goes only by hand. A successful undo answers `components_before/after` and
+  `mates_before/after` instead of the volume.
+- **Contract `Zc2114UndoHonestyContract`:** 13 pairs of assembly readings
+  (moved, turned, added with uids renumbered, taken away, mate added or suppressed,
+  an unreadable origin or list), the answers and the refusal on an assembly, and
+  the two guards of `undo` and the check of `hasBuilt` seen red on changed copies.
+- **Brief R5, the rest.** `extrude_profile` with `dimensions` «driven» gives a vertex
+  on an axis of the sketch no dimension (SOLIDWORKS makes none from the origin: a
+  relation holds it, probe `Checks\DrivenSketch`), so that coordinate cannot be driven.
+  `vertex_dimensions` said «on_axis»; now `warning_dimensions` also says how many
+  coordinates sit on an axis, that no variable can move them off it, and to draw the
+  vertex off the axis to drive it. The description of the operation says the same.
+- **Not measured yet:** the undo of an assembly plan through the bridge (scenario
+  t9b); a component whose origin the state cannot read makes `undo` refuse on
+  that assembly (a refusal, the lesser error); the rebuild of a drawing stays
+  `EditRebuild3`, and the undo of a plan on a drawing was never measured.
+
+## 0.141.2 — 26 October 2026 · library 0.163.2 · save_document names the open document that holds the file (branch `night-2026-10-26-asm`)
+
+- **Seen on SOLIDWORKS.** t10 and t11 run twice in the same session: the second run
+  saved a new part onto `M26U10C.SLDPRT` and `M26S11.SLDPRT`, which the first run had
+  left open, and the answer was only «The document was not saved (code 1:
+  swGenericSaveError).».
+- **`save_document`**, after a refused save onto a file that is not the document's own,
+  asks SOLIDWORKS whether another open document holds that path
+  (`ISldWorks.GetOpenDocumentByName`) and, if so, names it and says what to do: close
+  it with «document» «close» and save again, or give another «path». It is looked at
+  only after the refusal, so it never stops a save that would go through.
+## 0.141.1 — 26 October 2026 · library 0.163.1 · a profile is drawn with snapping off (brief R11; branch `night-2026-10-26-asm`)
+
+- **What 0.141.0 broke, on SOLIDWORKS.** The t11 case of R16 and R18 with the right
+  `expect` (a star of 20 vertices on the top plane) was refused: «6 vertex(es) of the profile are not where they were asked, the first at
+  (11.76; 16.18) mm». With `AddToDB` off, sketch inference (snapping) puts a vertex on
+  a point nearby, and its distance is in pixels, so it follows the zoom: the probe's
+  L of 6 vertices never showed it. The check of 0.141.0 (`VerticesNotDrawn`) caught it
+  instead of giving another shape.
+- **Measured.** `Checks\UndoSplit` takes two more flags: `star` (the star of t11 as the
+  first profile) and `merge` (`ISketch.MergePoints(1e-7)` after drawing), and prints
+  the vertices that are not where they were asked. On SOLIDWORKS, 26/10/2026:
+  - `open+nodb+norel+star` (the way of 0.141.0): 20 points, 6 vertices moved, volume
+    26243.214 mm³ instead of 26720.964;
+  - `open+nodb+noinf+star`: 40 points for 20 vertices, every vertex where asked;
+  - `open+nodb+noinf+merge+star`: `MergePoints` 40 → 20 points, every vertex where
+    asked, volume 26720.964 mm³, one undo took the whole plan away;
+  - `open+nodb+noinf+merge` and `none+nodb+noinf+merge` on the L: 12 → 6 points,
+    volume 10000 mm³, the whole plan undone.
+- **`extrude_profile`** turns sketch inference off too while the lines are drawn (and
+  sets it back), then joins the ends with `ISketch.MergePoints(1e-7)`. Every vertex is
+  still read back; the refusal now says «it was drawn on a point nearby».
+- **Not changed:** `revolve`, `cylindrical_cut` and `rectangular_cut` still set
+  `AddToDB` (brief R10); whether their undo holds is not measured yet.
+## 0.141.0 — 26 October 2026 · library 0.163.0 · one undo withdraws a profile again (brief R11; branch `night-2026-10-26-asm`)
+
+- **The cause, measured.** `Checks\UndoSplit` now takes a lock (`none`, `after`,
+  `open`) and flags joined by `+` (`nodb` leaves `AddToDB` alone, `noinf` turns sketch
+  inference off, `norel` turns the automatic relations off), and prints the points and
+  relations of each sketch. On SOLIDWORKS, 26/10/2026, two profiles in one recorded
+  entry, then one undo:
+  - `AddToDB` true, any lock: the first extrusion stayed. The API help says why: with
+    it «It is not possible to undo the creation of some types of sketch entities»
+    (`ISketchManager~AddToDB.html`);
+  - lock `after` (EditSketch and a rebuild after the extrusion):
+    `FinishRecordingUndoObject` answered false and the undo took nothing away;
+  - `nodb`: the whole plan went, but one automatic relation per line;
+  - `nodb+noinf`: the whole plan went, but 12 points for 6 vertices (the ends of the
+    lines not joined);
+  - `nodb+norel`, lock `none` or `open`: 6 points for 6 vertices, 0 relations, the
+    whole plan went.
+- **`extrude_profile` follows the last way.** No `AddToDB`; the automatic relations
+  are off while the lines are drawn and set back after; the FIXED relations go on
+  while the sketch is still open (`LockOpenSketch`, a typed `SketchSegment[]`), not
+  after the extrusion. Snapping stays on, so every vertex of the straight strokes is
+  read back (`VerticesNotDrawn`, a ten-thousandth of a mm): one that is not where it
+  was asked fails the step, because a vertex drawn wrong gives no error, it gives
+  another shape.
+- **Not changed:** `cylindrical_cut` and `rectangular_cut` still set `AddToDB` (brief
+  R10); whether their undo holds is not measured yet.
+
+## 0.140.2 — 26 October 2026 · library 0.162.1 · the volume an «expect» asks for is read from the part (brief R16; branch `night-2026-10-26-asm`)
+
+- **First run of this branch on SOLIDWORKS** (26/10/2026, bridge 0.140.1, scenarios
+  t9 to t12 and the probes `DrivenSketch` and `UndoSplit`). What held: placing and
+  mating components, the side of a distance mate, a face named by a point (R12, R21);
+  the `edges` filter (R17); the `scope` of properties (R8); a wrong `expect` stops the
+  plan (R16); a profile driven by its vertices, linked to a global variable, gives the
+  volumes computed beforehand, 16,500 and 17,000 mm³ (R5). What did not: the three
+  points below, and two more still open, R11 (one undo of a profile plus a chamfer
+  takes away only the chamfer, in the three lock modes of the probe: locking the
+  sketch is not the cause) and R23 (on an assembly `FinishRecordingUndoObject`
+  answers false after every plan, and the memory of a plan is never made there).
+- **R16: `expect` `volume_mm3` on a step that measures no volume.** `extrude_profile`
+  answered «this step does not measure it», and only after the step had run, so the
+  plan stopped with the body made. The volume of the part is the same for every
+  operation: `PlanExecutor.WithVolumeIfAsked` reads it once, from the part, when the
+  expectation asks for `volume_mm3` or `volume_after_mm3` and the step did not give
+  it. When it cannot be read, the miss says so as before. `SwOperations.VolumeMm3`
+  is now internal.
+- **R5, seen on the probe.** A vertex with a zero coordinate gets no dimension from
+  the origin: it gets a vertical or horizontal relation with it, so that coordinate
+  cannot be driven later. 10 dimensions out of 12 on the L profile of the probe.
+  Not changed yet.
+
+## 0.140.1 — 26 October 2026 · library 0.162.0 · ten calls at once, and the probe of the split undo (briefs R14 and R11; branch `night-2026-10-26-asm`)
+
+- **R14, ten calls at once.** On 25/10/2026 six `api_search` sent together got one
+  «Connection closed», and the same call alone answered. `R14ParallelCallsContract`
+  writes ten `tools/call` on the stdin of the bridge without waiting (six
+  `api_search`, two `list_operations`, two `describe_operation`) and wants ten
+  answers, one per id, every line on stdout whole JSON, and the bridge alive after.
+  Green on this branch. The bridge is started with `OCE_NO_ATTACH=1`: the check must
+  not touch a SOLIDWORKS session that is open. The crash of 25/10 itself (an
+  SEHException in `ApiCatalog.Search`, the executable started from a network drive)
+  is not reproduced by it.
+- **R11, a probe: `Checks\UndoSplit`, not run yet.** On 25/10/2026 one undo of a plan
+  of 11 steps took away seven features of eight. The probe makes the same two
+  extrusions inside one undo recording three ways — no lock, the lock of the library
+  (editing the sketch again after the extrusion), the FIXED relations added while
+  the sketch is still open with the typed array — and presses ONE undo after each: it
+  says whether the lock splits the entry (hypothesis H1) and whether the lock can move
+  into the open sketch. Each way works on a new part closed without saving.
+
+Contract suite: 886 checks, 4 failed — the 4 of the bench, not run on this branch yet.
+
+## 0.140.0 — 26 October 2026 · library 0.162.0 · a profile driven by its vertices: «dimensions» of extrude_profile (brief R5; branch `night-2026-10-26-asm`)
+
+On 24/10/2026 every `extrude_profile` came back with `sketch_locked` true and
+twelve FIXED relations: the only dimension a variable could drive was the depth.
+The width of a rib, the position of a slot, the inside of a clamp could not be tied
+to a name.
+
+- **`extrude_profile` takes `dimensions`**: `fixed` (the default, unchanged: the
+  sketch locked where it is) or `driven`. Driven, every vertex gets a horizontal and
+  a vertical dimension from the origin, put while the sketch is still open (as
+  `cylindrical_cut` puts its own), and the sketch is not locked: its dimensions hold
+  it. A circle gets the two dimensions of its centre and the one of its size
+  (`diameter` or `radius`, whichever SOLIDWORKS made).
+- **`vertex_dimensions`** lists, for each vertex, `x` and `y`: the name of the
+  dimension for an equation (`D3@Sketch1`, ready for `link_dimension`), or `on_axis`
+  when the vertex sits on the axis and a relation keeps it there (a dimension of zero
+  has no side). A dimension is a distance: a vertex at x = -30 has a dimension of 30
+  and `x_side` `negative`; driving it keeps the vertex on its side.
+- **Every dimension is read back** against the coordinate it was asked for; one that
+  measures from another point (a sketch whose origin is not the origin of the
+  contours) is said under `x_problem` / `y_problem` instead of named, and
+  `warning_dimensions` counts what could not be dimensioned. `sketch_fully_defined`
+  is read on the sketch before it is closed.
+- Straight contours and circles only (a curve has no vertex to hold it), at most 100
+  vertices (provisional: the probe gives the time). Refused before anything is drawn,
+  with what to pass.
+- `swInputDimValOnCreate` is switched off around the dimensions and put back.
+
+**Not measured yet**, and written as such in the code: how the sketch origin is
+selected from outside the process (first the point of the sketch of the origin
+feature, then the sketch point at 0,0,0 by position) and whether the horizontal and
+vertical dimension calls give a sketch point against it. The probe
+`Checks\DrivenSketch` (0.139.0) measures both; the bench case
+`extrusions/a_profile_is_driven_by_its_vertices` (new) is the judge: an L with three
+vertices on the negative side and two on the Y axis, ten dimensions and two
+relations, three vertices moved by `set_dimension` against the volumes of the
+shoelace formula (15000, 15750, 16500, 18500 mm³, computed by script).
+
+**Tests.** `R5DrivenProfileContract`: the rule (fixed and driven taken, another word,
+a curve and one vertex too many refused naming «fixed»), the limit said in the
+catalogue equal to the one in the code, and the five places of the source (the
+dimensions before the sketch is closed, a driven sketch not locked, the value box
+switched off, the argument in the catalogue). Contract suite: 885 checks, 4 failed —
+the 4 of the bench, not run on this branch yet. **Not tried on SOLIDWORKS yet.**
+
+## 0.139.0 — 26 October 2026 · library 0.161.0 · a plan that cites nothing of the part needs no reading (brief R18, first half; branch `night-2026-10-26-asm`)
+
+On 24/10/2026 a session called `document` and `inspect_part` 19 times for 16
+plans. After every `document` the bridge forgot which document was in front,
+although it had just put it there and written its title in the answer; and after
+a change made by hand it stopped every plan, also one that cites no face.
+
+- **`document` keeps the document it put in front.** After `create`, `open` and
+  `activate`, when the card says the document is in front, `build` takes it as the
+  document looked at. A plan that cites **no identifier** (a sketch on a plane, an
+  extrusion, a property) runs on it without `inspect_part`; `next_step` says so.
+- **A plan that cites an identifier is still sent to `inspect_part`**, with the
+  identifier named in the refusal: identifiers are born from a reading and hold for
+  it. Cited means any text under a key ending in `_uid` or `_uids`, or a text with
+  the shape of an identifier the state hands out (one of C, E, F, M, S, V and a
+  number: `F3`, `C2`, `M1`) under a key that names what identifiers name
+  (component, mate, face, edge, body, sketch, feature, axis, plane, view, vertex,
+  entity, reference, target, and their plurals, compared word by word: `material`
+  is not `mate`); under any other key it is a value (`S235` in `value_text` is a
+  steel). `*_ref` cites a step of the plan and is not an
+  identifier; the keys of a size or a thread are skipped (`M6` there is a screw).
+- **A change by hand stops only a plan that cites an identifier** (entry X2). A plan
+  that cites none runs on the part as it is now, and the answer carries
+  `warning_part_changed` with what changed.
+- A plan refused further down does not turn a document that was not read into one
+  that was.
+
+Not done: stable identifiers from the persistent reference (the second half of R18).
+
+**A probe for brief R5, not run yet.** `Checks\DrivenSketch` (built by
+`Checks\build-checks.ps1`) measures what the driven dimensions of `extrude_profile`
+need before the library writes them: how the sketch origin is selected from outside
+the process in any language (by position, or through the sketch of the origin
+feature), whether `AddHorizontalDimension2` / `AddVerticalDimension2` give the
+coordinates of a sketch point against it, and what a driven value does afterwards
+(a vertex on the negative side, two vertices moved together, a dimension of zero),
+against the volume the shoelace formula gives. Each run works on a new part and
+closes it without saving.
+
+**Tests.** `R18DocumentWithoutReadingContract`: twelve plans read for the identifier
+they cite (a rectangle on top, a property, a fillet by step reference, an M6 hole by
+size, an edge, a feature, a mate, a face in the second step, an empty uid, a steel
+named C45 — «material» is not «mate» —, faces in a list, a face given as plane),
+and the six places of the source that use the rule. Contract suite: 882 checks, 4
+failed — the 4 of the bench, not run on this branch yet. **Not tried on SOLIDWORKS
+yet.**
+
+## 0.138.0 — 26 October 2026 · library 0.161.0 · which edges the state lists: «edges» of inspect_part (brief R17; branch `night-2026-10-26-asm`)
+
+On 25/10, on 26P000007, the edges to fillet were picked by hand among the thirty
+longest the state lists (E3, E5, E13, E16, E17, E20, E29, E30), reading lengths
+and points one by one; an edge shorter than the thirtieth had no identifier at
+all. The faces had a filter since W3.1-bis.12; the edges had none.
+
+- **`inspect_part` takes `edges`**, the twin of `faces`: `along` (x, y or z: a
+  straight edge along that axis), `curved` (true or false), `length_min_mm` /
+  `length_max_mm`, `near_mm` + `within_mm` (the distance to the EDGE, from
+  `IEdge.GetClosestPointOn`), `face` (a face identifier: the edges that bound it),
+  `body`, `limit` (default 30, at most 500). Every condition must hold. The two
+  filters can be given together. The state then says `edges_total`,
+  `edges_matched`, `edges_not_listed` and echoes `edges_filter`.
+- **The identifier of an edge is its rank among ALL the edges** of the part,
+  longest first, whatever is listed: the default reading lists E1..E30 as
+  before, a filtered one lists the matching edges with the same numbers.
+- **A plan can cite E45.** The state keeps the whole ranking, and
+  `TryGetSignature` builds the signature of an edge it did not list the first
+  time a plan cites it; the two places of the library that resolve an edge ask it
+  (they read only the dictionary of the listed ones before). The check of the
+  identifiers before a plan accepts an edge up to `edges_total`, as it accepts a
+  face up to `faces_total`. Whether it is the edge the plan meant is still the
+  business of the signature it carries (length and point).
+- Each property of an edge is asked only when a condition needs it, cheapest
+  first: a curve, the adjacent faces or the closest point are COM calls, not paid
+  for an edge already out by its body or length. A filter that cannot be applied
+  is refused (13 forms: an unknown key, an axis that is not x, y or z, `along` with
+  `curved` true, an empty range, `within_mm` without a point, a face that is not
+  an identifier...); a face beyond the part or a body that does not exist is
+  refused with what the part has.
+
+The rules are in `Oce.Solid.Agent.Core/EdgeFilter.cs`, pure.
+
+**Tests.** `R17EdgesFilterContract`: a full filter read, `x` read as X, an empty
+filter as the ordinary reading, 13 refusals, `RankOf` in its canonical spelling;
+eight filters on eight edges known by construction, with the count of the curve,
+face and distance reads (asked only of the edges still in); the wiring in five
+places. Contract suite: 880 checks, 4 failed — the 4 of the bench. **Not tried on
+SOLIDWORKS yet.**
+
+## 0.137.0 — 26 October 2026 · library 0.160.0 · `mesh`: an STL file measured and cut into contours (brief R15; branch `night-2026-10-26-asm`)
+
+On 24-25/10 the parts of 26M000002 were drawn from the customer's STL files, and
+every number taken from them came from three Python programs written for the
+occasion. **A tenth tool, `mesh`**, reads an STL file (binary or ASCII) and never
+touches SOLIDWORKS:
+
+- **`measure`**: bounding box, size, area, triangles and vertices, whether the mesh
+  is **closed** (every edge shared by exactly two triangles) and, only then, the
+  **volume** (signed tetrahedra; an open mesh gets `null` and the count of its
+  open edges, not a number with no meaning). With `axis` and `levels` (1 to 50),
+  the area of N sections evenly spaced along the axis.
+- **`section`**: the plane square to `axis` at `at_mm` cuts the mesh into closed
+  contours, simplified by `simplify_mm` (Douglas-Peucker, default 0.05 mm), sorted
+  by area, each with its depth (outer edge, void, island) and orientation (outer
+  counter-clockwise, voids clockwise). **`profiles` are ready for
+  `extrude_profile`**: `plane` and `contours`, outer edge first, in the sketch
+  coordinates of that plane as R7 measured them (front x = X, y = Y; right
+  x = −Z, y = Y; top x = X, y = −Z). More than 3,000 vertices is refused with a
+  larger `simplify_mm` to pass.
+- An STL has no units: its numbers are taken as mm, times `scale` (25.4 for
+  inches). A binary file is told by its size (84 + 50 × the count it declares),
+  so one whose header begins with «solid» is still read as binary.
+
+**Measured on the files of 24/10** (through the bridge, `OCE_NO_ATTACH=1`):
+`9mmAmmoBox_100ct_V3.stl`, 35,176 triangles, closed, 113.751 × 113.750 × 34.627 mm,
+**68,905.399 mm³** in 1,117 ms with five sections; at z = 10 one outer edge
+(12,014.136 mm²) and 100 voids of 102.515 mm², section 1,762.597 mm², 1,517
+vertices simplified to 646, one profile, in 1,030 ms. The lid: 11,956 triangles,
+**23,728.340 mm³**, at z = 2 23 contours in 9 profiles (islands inside voids).
+An independent script (`struct` on the same bytes) gives the same two volumes to
+the thousandth.
+
+The rules are in `Oce.Solid.Agent.Core/StlMesh.cs`, pure (no interop type).
+`tools/list` gives ten tools now; the README lists `mesh`.
+
+**Tests.** `R15MeshContract`: a box 10 × 20 × 30 (6,000 mm³, 2,200 mm², closed,
+outward), a square tube 20/10 × 30 (9,000 mm³), a 64-sided cylinder (the polygon
+area × 20), a box without one triangle (3 open edges, no volume); sections of the
+box on front, right and top inside the measured axes, exactly at its top, outside
+it; the tube as an outer edge and its void in one profile (300 mm²); the cylinder
+from 128 crossings to fewer than 64 vertices at 0.5 mm; the same box as binary,
+as binary with a «solid» header, as ASCII and in inches; junk refused; and the
+tool through the real bridge on a file written by the test. Contract suite: 877
+checks, 4 failed — the 4 of the bench, which has not run on this branch yet. The
+frozen undecided calls get `StlMesh.cs|Add 4`: List<T>.Add on the mesh's own
+lists, which the scanner cannot type (it reads a declared type only without
+angle brackets).
+
+## 0.136.0 — 26 October 2026 · library 0.159.0 · where a property goes, said; the near name of an unknown argument (brief R8; branch `night-2026-10-26-asm`)
+
+On 25/10 «set_property» wrote the drawing number on the document and answered
+that from the configuration «Default<A macchina>» it was NOT visible: two
+drawers, and one step could fill only one of them.
+
+- **`scope`**: `file` (the document), `configuration` (the one named in
+  `configuration`, or else **the active one**) or `both`. Left out it is
+  `configuration` when a configuration is named and `file` otherwise, as before.
+  **`both` writes the property in the document and in the configuration and
+  reads it back from each**; one that does not come back as written fails the
+  step and says whether the document already had it. `file` together with a
+  configuration named is refused («choose one, or pass «scope» «both»»), and so
+  is a word that is not one of the three. The answer carries `scope`.
+- **`value` is not taken for `value_text`.** The repository keeps one name per
+  argument (no alias). Instead, **an unknown argument now names the near ones**
+  in the refusal: ««value» is not an argument of this operation, and would be
+  IGNORED. Did you mean «value_text»?». Near is: one that begins with it and an
+  underscore (`radius` → `radius_mm`), one it begins with and an underscore, or
+  one at most two letters away when both have four letters or more (a typo).
+  It holds for every operation, not only this one.
+
+Every new refusal says what to pass instead: the floor of the refusals with a
+way forward goes from 251 of 970 to **257 of 976** (26.3%).
+
+**Tests.** `R8PropertyScopeContract`: 7 combinations of `scope` taken and 4
+refused, the refusal of `file` with a configuration naming `both`; 6 near names
+(`value`, `radius`, a typo, a longer name, a far one, `x`). Bench: new case
+`document_properties/a_property_is_written_in_both_drawers` (both drawers from
+one step, the active configuration when none is named, the contradiction
+refused). Contract suite: 873 checks, 4 failed — the 4 of the bench, which has
+not run on this branch yet. **Not tried on SOLIDWORKS yet.**
+
+## 0.135.0 — 26 October 2026 · library 0.158.0 · the assembly state says what is true, and a long step beats (briefs R6, R13; branch `night-2026-10-26-asm`)
+
+**The assembly state (R6).** On 25/10 the state of 26M000002 said that inserting
+and mating components were not operations yet and that the positions of the
+components were not in the state — both false since «insert_component», «mate»
+and «origin_mm» — and that SOLIDWORKS answers «unavailable» on every component,
+while C2 had `degrees_of_freedom_remaining: 2` beside it.
+
+- `what_cannot_be_done_yet` is gone. **`what_can_be_done`** lists the operations
+  that run on an assembly, **taken from the catalog** (`Operations.NamesFor
+  ("assembly")`: the 9 of the assemblies, the 6 for a part or an assembly, the 3
+  for any document), and says where each component is and how it is turned
+  («origin_mm», «axes»). The next operation cannot leave it behind.
+- `what_is_not_known_about_constraints` **names the components** whose degrees
+  of freedom SOLIDWORKS did not give, each with its state («C1 (root
+  component)»), and says «any of the N components» only when none was read.
+  What «constrained» means, and that one coincident mate leaves three of the six
+  directions free, is unchanged (the bench reads those words).
+
+**A long step beats (R13).** One notification per step said «running step 3 of
+6» and then nothing until the step was over: on 24/10 a step of 1,069 s was
+silent for eighteen minutes. Now, while a step runs, **every 10 s** a
+notification says how long it has been on it and the last line the executor
+wrote: «running step 3 of 6: apply_material, still running after 40s (last:
+…)». Its `progress` grows inside the step (k.5, k.67, k.75 …) and never
+reaches the next step, as the specification demands. It is sent only when the
+client asked for progress (a `progressToken`), and **stopped before the answer**:
+at the next step, at the outcome, and by the session when the executor returns
+or throws — a beat after the answer is the defect R13 found in the dry run. The
+beat holds a lock while it sends, so nothing goes out once the stop returns.
+`Protocol.Send` now writes under a lock too: the beat comes from a timer thread
+while the executor writes from its own, and two messages at once would make a
+line that is not JSON.
+
+**Tests.** `R6AssemblyStateTextContract`: the old sentences are absent from
+`AssemblyState.cs` and the new one is built from the catalog; `NamesFor
+("assembly")` gives the 18 names the exported catalog says, and `NamesFor
+("part")` holds `extrude_profile` and not `mate`; 5 sentences of the two
+builders. `ProgressTests.TheHeartbeat` drives the beat by hand: 1.5, 1.67, 1.75,
+then 2 for the next step; nothing after the stop or from the timer of an old
+step; no timer without a token; the message carries the time and the last
+line. Contract suite: 871 checks, 4 failed — the 4 of the bench, which has not
+run on this branch yet. **The timer itself (10 s) is not driven by the suite,
+and none of this is tried on SOLIDWORKS yet.**
+
+## 0.134.0 — 26 October 2026 · library 0.157.0 · what a step must measure, written in the plan (brief R16; branch `night-2026-10-26-asm`)
+
+On 24-25/10 every check of a plan was made by hand afterwards: the window of
+the clamp had to remove 36 mm³ (3 × 6 × 2), and the only way to know was to
+read the outcome and do the sum. The plan said what to do, never what the step
+had to come out as.
+
+**A step of `build` can carry `expect`, next to `arguments`.** Its keys are the
+step's own measurements, by the name the outcome answers them
+(`removed_mm3`, `diameter_mm`, `walls_drilled`, `bounding_box_mm`, `kind`...);
+`volume_mm3` is the volume after the step (`volume_after_mm3`). A value is a
+number, a text, true/false or a list of numbers, or
+`{"equal_to": value, "tolerance": number}`.
+
+- A plain number holds within **0.01**, the rounding of the measures that come
+  rounded to 0.01; a list is compared element by element; texts and true/false
+  must be equal.
+- After the step the executor compares each key. **One that does not hold makes
+  the step fail and the plan stop there**, with the numbers side by side:
+  «The step ran, but it did not measure what «expect» asked: removed_mm3:
+  expected 36 ±0.01, measured 35.2». The step is not withdrawn: `undo` is
+  still the way back, as for any failed step.
+- **A key the step does not measure is a miss, not a pass**: an expectation
+  nobody checked would read as kept. The sentence lists what the step does
+  measure.
+- A form that cannot be checked (not an object, empty, an object without
+  `equal_to`, a negative tolerance, a key other than `equal_to`/`tolerance`, a
+  list of texts) is **refused before anything runs**, and `dry_run` lists it with
+  the other troubles of the plan.
+
+The rules are in `Oce.Solid.Agent.Core/StepExpectations.cs`, pure (no interop
+type); `PlanStep.Expect` carries them from the tool to the executor.
+
+**Tests.** `R16StepExpectationsContract`: 12 rows of `Misses` against one set of
+measurements (plain number, explicit tolerance, lists, texts, true,
+`volume_mm3`, a key not measured, two keys with one off) and the two sentences
+(the numbers side by side, the names the step measures); 6 good forms taken and
+9 bad ones refused. Contract suite: 867 checks, 4 failed — the 4 of the bench,
+which has not run on this branch yet. **Not tried on SOLIDWORKS yet.**
+
+## 0.133.0 — 26 October 2026 · library 0.156.0 · placing and turning components, the side of a distance mate, a face named by a point (briefs R12, R21; branch `night-2026-10-26-asm`)
+
+The assembly of 25/10 could not be put together: «insert_component» places the
+centre of the box with no rotation, nothing moved or turned a component
+afterwards, a mate took its faces by direction only (the largest one that looks
+that way), and a distance mate put the upper half underneath with no way to ask
+for the other side. 102 operations (101 before).
+
+**`place_component` (new).** Sets where the origin of a component goes
+(`origin_mm`, the same field the state answers) and how it is turned
+(`rotation`: one turn `{axis, angle_deg}` or a list, about the axes of the
+assembly, from the part's own axes). It writes `IComponent2.Transform2` with the
+layout the direction test of Z-C14 already measured (rotation by rows, row i =
+axis i of the component; translation in [9..11]), rebuilds and reads it back. A
+component its mates hold comes back elsewhere: the step is refused, the component
+set back, and the answer says how far the mates took it. A fixed component is
+refused with the road (`fix_component`), and so is one inside a sub-assembly.
+
+**`insert_component`** takes `origin_mm` and `rotation` too (refused together
+with `x_mm`/`y_mm`/`z_mm`, which place the box centre); the placement is applied
+after the insertion and read back, or the component is taken out again. Its
+answer and the state list `axes` for each component (`+X -Y -Z` when every axis
+lies on an axis of the assembly, three unit vectors otherwise).
+
+**`mate`.**
+- `distance_side`: `along_normal_a` (the default, what SOLIDWORKS does with
+  `Flip` false) or `against_normal_a` (`Flip` true). The side is MEASURED after
+  the mate, on the two faces (signed distance of face B from face A along the
+  normal of face A, both turned into the assembly): a mate on the other side is
+  taken out and refused. The answer gives `face_b_along_normal_a_mm`.
+- `placement_after`: `origin_mm` and `axes` of both components, also in the
+  verdict.
+- A face can be named by a point, `{"point_mm": [x, y, z]}` in mm of the
+  assembly: the face of the component within 0.05 mm of it, flat or curved. A
+  point no face reaches, or one on an edge, is refused with the distance read.
+  So concentric and tangent are back when at least one face is named by a point.
+
+**Tests.** The pure rules (turns, axes in words, signed gap, a point carried into
+the part and back) are checked without CAD in the Z-C14 group. Two bench cases:
+`a_part_is_turned_over_and_placed`, `a_face_is_named_by_a_point`. Refusals that
+say what to do: 251 of 970.
+
+---
+
+## 0.132.0 — 26 October 2026 · library 0.155.0 · the brief of 25 October (branch `night-2026-10-26`)
+
+On 24 and 25 October a client drew a part and an assembly through the bridge for
+hours, and wrote down 23 problems with their evidence (brief of 25/10/2026). This
+version takes the first of them, in the order of the brief, **after measuring
+them**: every number below comes from a run on SOLIDWORKS 2021 SP5.1, with the
+script and the output kept beside it, not from an estimate.
+
+**The measure that drove it (scenario T1).** The plan of 21 steps of 24/10 (six
+extrusions, a chamfer, five variables, six links, material, a property, a save),
+replayed on a new part each time:
+
+| | 0.130.2 | readings cut | + API sequence | 0.132.0 |
+|---|---|---|---|---|
+| time of the plan | 1,243.8 s | 672.7 s | 63.6 s | **55.9 s** |
+| characters of the answer | 21,663 | 9,831 | 9,782 | **5,103** |
+
+A plan refused in validation answers **377 characters** (10,804 on 24/10; the
+brief asked under 600). The brief asked the answer of that plan under 3,000
+characters: **not reached**, 5,103. What is left is the measures of each step
+and the summary of the state; going lower means leaving out measures, which the
+brief itself wants kept. To be decided.
+
+**Speed (briefs R2 and R24).**
+
+- `ISldWorks.CommandInProgress` is set for the length of a call when it was
+  off, and put back after (`Session.BeginApiSequence`): on the plan above,
+  **x10.6** (672.7 s to 63.6 s). On by default; `OCE_API_SEQUENCE=0` turns it off.
+- A plan held in memory no longer reads the state to know its source
+  (`IPlanSourceWithoutState`), and 42 operations that do not need the state of
+  the document no longer read it before their step
+  (`SwOperations.OperationsWithoutState`). A contract keeps that list equal to
+  the switch of `Run`.
+- `PhaseClock` times every phase of a call. In `full` each step has its
+  `timing_ms`; the answer always has `timing_ms` for the whole plan, with the
+  slowest step.
+- **Log of the bridge** (`Bridge/CallLog.cs`): one JSON line per tool call, with
+  the times of each phase and the notes that went to stderr, in
+  `%LOCALAPPDATA%\Oce.Solid.Agent\logs` (`OCE_LOG` moves it). Unhandled
+  exceptions go there too (brief R14), and the bridge warns when its exe runs
+  from a network disk. The log holds local paths: it is not for publishing.
+
+**Another window comes to the front during a plan (brief R1).**
+
+- The plan's document is brought back to the front, before the next step and at
+  the end (`on_window_change`: `reactivate`, the default, or `stop`). The answer
+  lists the `reactivations`, and says when SOLIDWORKS asked for a rebuild on
+  activation.
+- **The cause of a part that could not be saved any more.** Measured with probes:
+  `IEquationMgr.Add3` of a NEW equation on a document that is not in front leaves
+  it unsavable — every `SaveAs` after it answers `swGenericSaveError` and writes
+  a file of 0 bytes, even after a rebuild and a reactivation. `set_Equation`,
+  `Delete`, properties and rebuilds behind are harmless. The remedy that worked:
+  rewrite each equation in place (`set_Equation` with its own text) with the
+  document in front. `global_variable` and `link_dimension` now bring the part
+  to the front before adding (in `stop` mode they refuse instead), and if
+  another window came in front during the call they apply the remedy and say so
+  in `warning_window`.
+
+**Saving with forward slashes (the part of 13 October).** Measured on copies:
+a `SaveAs` with `/` in the path onto a new file leaves the document unable to
+save on its own file afterwards, and on its own file `SaveAs` compares the path
+as text. Every path argument (`path`, `profile_path`, `template`, `model`) now
+goes through `Path.GetFullPath` before any operation; `save_document` onto the
+document's own file uses the very string SOLIDWORKS holds; `insert_component`
+normalizes its path. A document already damaged that way still refuses its own
+name: `save_document` now names the two measured causes and says to save under a
+new name, which worked in both (the old name stays refused).
+
+**Holes and pockets (brief R10).** `cylindrical_cut` and `rectangular_cut` draw
+their sketch without snapping (`AddToDB`, `DisplayWhenAdded` off) and read the
+circle or the rectangle back: a centre SOLIDWORKS moved (tolerance 1e-7 m) is a
+refusal with a remedy, not a «succeeded». `diameter_mm` is the measured one,
+beside `diameter_requested_mm` and `centre_offset_mm`. A through hole that
+drilled no wall fails.
+
+**Sketch axes (brief R7).** An extrusion says where the axes of its sketch go in
+the model (`sketch_axes`: `x`, `y`, `extrusion`), read from the inverse of
+`ModelToSketchTransform`; measured on front, right and top.
+
+**Mates (brief R22).** The state of an assembly lists its mates (`mates_list`:
+`uid` M1, M2..., name, kind, suppressed, components; at most 60). Two new
+operations: **`suppress_mate`** (and `reactivate`) on every configuration, read
+back; **`delete_mate`**, which asks for confirmation like `delete_feature` and
+reads back that the mate is gone. Bench case `a_wrong_mate_is_taken_out`. A
+refused confirmation quotes what the client answered. 99 operations become 101.
+
+**Short answers (brief R3).** `response`: `summary` (default) or `full`.
+`summary` gives the outcomes with their measures and warnings, `state_summary`
+(volume, box, mass, features added and removed) and `timing_ms`; the whole
+`state_after` only in `full`, and a plan refused in validation does not read the
+state at all. Of a successful step, `summary` leaves out: `error` when null, the
+times of the step, volumes before and after when equal, texts over 100
+characters that are not warnings, a `value_before_*` equal to its
+`value_after_*`, and a measure with the same name and value as an argument the
+caller sent. `note_outcomes` counts what was left out. The sentence
+`link_dimension` writes after every link is now `meaning`, not `verdict`.
+
+**Smaller ones.** Materials (R4): a name under four letters matches only as a
+whole word, the refusal of a name that matches several materials no longer says
+«steel», and the name is resolved in validation and in `dry_run`, before anything
+runs. On 24/10 «PLA» was found wrong only at its step, after 1,069 s, and the
+`dry_run` before had said yes; now the `dry_run` refuses it in 74 ms. A `dry_run` sends no progress notifications
+(R13: they arrived after the answer, and the client counted eight dropped
+connections). `faces` on a part without a body is an empty list with a note
+(R9). The precondition of `extrude_profile` says an empty part is fine (R20).
+
+**Tests.** 864 checks, 4 failed: the four that compare the bench with the code
+(the last run is of 9/10 on library 0.153.1, and the new case has no green run
+yet). Refusals that say what to do: 241 of 952. Language gate held. **The bench
+has not run on this version yet.**
+
+**Still open from the brief.** P0: R12 (transforms of components, placing and
+rotating, a mate on an explicit face), R21 (the side of a distance mate, and the
+origin in the verdict), R19. P1: R11, R23, R5, R16. P2: R6, R8, R15, R17, R18,
+and a heartbeat for long plans (R13).
+
+---
+
+## 0.130.3 — 25 October 2026 · library 0.153.2 (on `main`, by DevAgentAi; merged in 0.170.15)
 
 Documentation, version numbers and README badges. The code of the four parts before
 this one (material matching, plan log, build state, faces beyond the largest sixty,

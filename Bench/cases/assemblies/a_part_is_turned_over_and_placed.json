@@ -1,0 +1,84 @@
+{
+  "name": "a_part_is_turned_over_and_placed",
+  "family": "assemblies",
+  "why": "BRIEFS R12 AND R21 (25/10/2026). An assembly of two halves could not be put together: «insert_component» places the centre of the box with no rotation, no operation moved or turned a component afterwards, and a distance mate «down» on «down» put the upper half underneath, with no way to ask for the other side and a verdict that did not say where the component went. «place_component» sets the origin and the axes of a component (read back after a rebuild), the state lists «axes» for every component, and «mate» takes «distance_side», measures the side on the two faces and answers «placement_after». Geometry: the base is 120x80x10, its box centred on the origin, so its upper face is at y 5. The cover is 120x80x4 from y 0 to y 4 in its part; turned 180 degrees about x with its origin at y 20, its face that looks up is at y 20 and the one that looks down at y 16.",
+  "defect_caught": "A rotation written into the wrong numbers of Transform2 (rows taken for columns: the axes read back are not «+X -Y -Z»); an origin that is the box centre and not the origin; a placement the mates undid that is called done; a fixed component that is moved; «distance_side» that does not reach Flip, or a side measured on the wrong face, or with the normal of the part file instead of the assembly's.",
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
+        ] },
+      { "name": "cover",
+        "position_mm": [0, 30, 0],
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
+        ] }
+    ]
+  },
+  "steps": [
+    { "operation": "place_component",
+      "arguments": { "component": "C2", "origin_mm": [0, 20, 0], "rotation": { "axis": "x", "angle_deg": 180 } },
+      "expect": [
+        { "what": "measurements.origin_mm", "equal_to": [0, 20, 0], "tolerance": 0.001,
+          "tolerance_why": "read back from Transform2, rounded to 0.001 mm" },
+        { "what": "measurements.axes", "equal_to": "+X -Y -Z",
+          "why": "180 degrees about x keeps x and turns y and z over: the rows of the rotation are the component's axes" },
+        { "what": "measurements.turned_deg", "equal_to": 180, "tolerance": 0.01,
+          "tolerance_why": "the angle of the relative rotation, rounded to 0.001" },
+        { "what": "state.components[1].axes", "equal_to": "+X -Y -Z", "why": "R12: the state says how a component is turned" },
+        { "what": "state.components[1].origin_mm", "equal_to": [0, 20, 0], "tolerance": 0.001,
+          "tolerance_why": "the same placement, read by the state from GetTotalTransform" },
+        { "what": "state.components[0].axes", "equal_to": "+X +Y +Z", "why": "the base was not turned" } ] },
+    { "operation": "place_component",
+      "arguments": { "component": "C1", "origin_mm": [0, 20, 0] },
+      "must_fail": {
+        "message_includes": ["is fixed", "fix_component"],
+        "twin": "a_part_is_turned_over_and_placed" } },
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "up",
+        "variant": "distance", "distance_mm": 10, "alignment": "aligned"
+      },
+      "expect": [
+        { "what": "measurements.distance_side", "equal_to": "along_normal_a", "why": "the default, what SOLIDWORKS does with Flip false" },
+        { "what": "measurements.face_b_along_normal_a_mm", "equal_to": 10, "tolerance": 0.01,
+          "tolerance_why": "measured on the two faces: the upper face of the cover 10 mm above the upper face of the base" },
+        { "what": "measurements.placement_after[1].origin_mm", "equal_to": [0, 15, 0], "tolerance": 0.01,
+          "tolerance_why": "the face of the cover that looks up is at its origin: y 5 + 10" },
+        { "what": "measurements.placement_after[1].axes", "equal_to": "+X -Y -Z", "why": "the mate did not turn it back" } ] },
+    { "operation": "place_component",
+      "arguments": { "component": "C2", "origin_mm": [0, 40, 0] },
+      "must_fail": {
+        "message_includes": ["its mates moved it", "suppress_mate"],
+        "twin": "a_part_is_turned_over_and_placed" } },
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincident", "alignment": "opposite", "distance_side": "against_normal_a"
+      },
+      "must_fail": {
+        "message_includes": ["only for a «distance» mate"],
+        "twin": "a_part_is_turned_over_and_placed" } },
+    { "operation": "delete_mate",
+      "arguments": { "mate": "M1" },
+      "expect": [
+        { "what": "measurements.mates_after", "equal_to": 0 } ] },
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "up",
+        "variant": "distance", "distance_mm": 10, "alignment": "aligned", "distance_side": "against_normal_a"
+      },
+      "expect": [
+        { "what": "measurements.distance_side", "equal_to": "against_normal_a" },
+        { "what": "measurements.face_b_along_normal_a_mm", "equal_to": -10, "tolerance": 0.01,
+          "tolerance_why": "the other side: the upper face of the cover 10 mm below the upper face of the base" },
+        { "what": "measurements.placement_after[1].origin_mm", "equal_to": [0, -5, 0], "tolerance": 0.01,
+          "tolerance_why": "y 5 - 10" } ] }
+  ]
+}

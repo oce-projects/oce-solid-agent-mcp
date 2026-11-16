@@ -1,0 +1,47 @@
+{
+  "name": "note_on_two_lines_reads_back_the_same",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N29, round 8 (27/10/2026). A general note of four lines, sent with «\\n» between them, came back from SOLIDWORKS with «\\r\\n»: «text_matches» false, the step succeeded, and the compact answer said «none is a warning» and left out the text read back. A false «different» for the line ends, and a real difference would have passed the same way, in silence.",
+
+  "defect_caught": "A note whose text read back is called different only because SOLIDWORKS ends its lines with «\\r\\n». The case sends two lines and asks that the comparison says they match: the line ends are not the text.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the plate of note_ends_up_on_the_sheet" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\note_on_two_lines_reads_back_the_same.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the path of the part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the bench follows the new document (entry GT0)" } ] },
+
+    { "operation": "note",
+      "arguments": { "text": "BREAK ALL SHARP EDGES\nDEBURR ALL HOLES", "x_mm": 20, "y_mm": 250 },
+      "expect": [
+        { "what": "measurements.notes_placed", "equal_to": 1,
+          "why": "one note, of two lines" },
+        { "what": "measurements.text_matches", "equal_to": true,
+          "why": "THE MEASURE OF THE THING: the two lines read back are the two lines sent, whatever ends them. On bridge 0.150.1 this was false" },
+        { "what": "measurements.text_reread", "includes": ["SHARP", "DEBURR"],
+          "why": "both lines are in the text SOLIDWORKS reads back, not only the first" } ] },
+
+    { "operation": "delete_annotation",
+      "arguments": { "text": "BREAK ALL SHARP EDGES\nDEBURR ALL HOLES" },
+      "expect": [
+        { "what": "measurements.removed", "equal_to": true,
+          "why": "THE SAME TEXT FINDS IT: the note is looked for with the line ends left aside, as «note» compares it. Found while writing the replay of round 8: an exact comparison would answer that no note of the sheet has this text" },
+        { "what": "measurements.notes_down_by", "equal_to": 1,
+          "why": "one note fewer, counted on the sheet and in the views" } ] }
+  ]
+}

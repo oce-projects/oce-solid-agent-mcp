@@ -186,6 +186,96 @@ namespace Oce.Solid.Agent.Tools
                                     },
                                 },
                             },
+                            ["edges"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "object",
+                                ["description"] =
+                                    "WHICH EDGES to list, instead of the " + DocumentState.MaxEdges + " longest (brief R17). " +
+                                    "Every condition you give must hold. Each edge keeps its identifier among ALL " +
+                                    "the edges of the part (E1 is the longest, E45 the forty-fifth), so a plan can cite " +
+                                    "E45 even though the plain state lists E1..E" + DocumentState.MaxEdges + ". The state " +
+                                    "then says «edges_total», «edges_matched» and «edges_not_listed». " +
+                                    "Only the edges are filtered; «faces» filters the faces, and the two can be given together.",
+                                ["properties"] = new Dictionary<string, object>
+                                {
+                                    ["along"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["enum"] = new object[] { "x", "y", "z" },
+                                        ["description"] = "a straight edge along that axis of the model (a diagonal matches none).",
+                                    },
+                                    ["curved"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "boolean",
+                                        ["description"] = "true: only curved edges (arcs, circles); false: only straight ones.",
+                                    },
+                                    ["length_min_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "shortest length, in mm (included).",
+                                    },
+                                    ["length_max_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "longest length, in mm (included).",
+                                    },
+                                    ["near_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "array",
+                                        ["items"] = new Dictionary<string, object> { ["type"] = "number" },
+                                        ["description"] = "[x, y, z] in mm: the edges whose closest point to it is within «within_mm».",
+                                    },
+                                    ["within_mm"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "number",
+                                        ["description"] = "how close «near_mm» must be, in mm. Default " +
+                                            Oce.Solid.Agent.Core.EdgeFilter.DefaultWithinMm.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".",
+                                    },
+                                    ["face"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "a face identifier (F3) of the same reading: the edges that bound that face.",
+                                    },
+                                    ["body"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "only the edges of one body: its identifier (C3) or its exact name.",
+                                    },
+                                    ["limit"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "integer",
+                                        ["description"] = "how many edges to list at most, from 1 to " +
+                                            Oce.Solid.Agent.Core.EdgeFilter.MaxLimit + ". Default " + DocumentState.MaxEdges + ".",
+                                    },
+                                },
+                            },
+                            ["view_edges"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "object",
+                                ["description"] =
+                                    "ON A DRAWING: the edges of one view, with the numbers «edges» of drawing_dimension " +
+                                    "takes — what each is (line, circle, curve), its mm in the model, how it sits on the " +
+                                    "sheet, its component on an assembly — and the extent of the view.",
+                                ["properties"] = new Dictionary<string, object>
+                                {
+                                    ["view"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "the view: V1, V2... as the state of the drawing writes it, or its name. Empty = the first.",
+                                    },
+                                    ["component"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "string",
+                                        ["description"] = "only the edges of one component of an assembly (26P000011-1).",
+                                    },
+                                    ["limit"] = new Dictionary<string, object>
+                                    {
+                                        ["type"] = "integer",
+                                        ["description"] = "how many edges to list at most, from 1 to " +
+                                            Oce.Solid.Agent.Core.SwOperations.MaxViewEdges + ". Default " + ViewEdgesDefaultLimit + ".",
+                                    },
+                                },
+                            },
                             ["views"] = new Dictionary<string, object>
                             {
                                 ["type"] = "array",
@@ -247,7 +337,7 @@ namespace Oce.Solid.Agent.Tools
                                 ["description"] =
                                     "only one family: extrusions, features, weldments, " +
                                     "references, assemblies, physical_properties, drawing, " +
-                                    "checks, exports, identity, sheet_metal, dimensions",
+                                    "checks, exports, documents, identity, sheet_metal, dimensions",
                             },
                         },
                         new string[0]),
@@ -292,14 +382,22 @@ namespace Oce.Solid.Agent.Tools
                     "{step: 1, kind: \"top_face\"}): it is the only way, " +
                     "because that face has no identifier yet.\n\n" +
                     "The plan runs on the document you looked at; if another window " +
-                    "came to the front in between, it stops before writing. " +
+                    "comes to the front while it runs, the plan's document is brought " +
+                    "back (see «on_window_change»). " +
+                    "THE ANSWER IS SHORT BY DEFAULT: the outcomes with their measures " +
+                    "and warnings, «state_summary» (volume, box, mass, the features added " +
+                    "and removed) and «timing_ms» for the whole plan. Of a step that " +
+                    "succeeded it leaves out long explanations that are not warnings, " +
+                    "and measures that came back equal to the argument of the same name " +
+                    "(«note_outcomes» counts them). The identifiers of faces and edges are NOT in it: read " +
+                    "them with «inspect_part» before a plan that cites them, or send " +
+                    "«response»: «full» to get the whole «state_after». " +
                     "«volume_after_mm3» is the plan's document; «state_after» is the " +
                     "document in front, and when that is another one the answer says " +
                     "so in «document_in_front» and «note_document_in_front» (after " +
                     "a drawing step it is the new drawing, and the next plan works " +
                     "on it). «undo_entry_recorded» says whether the plan left its " +
-                    "own undo entry, the one an undo takes away. When the plan wrote nothing " +
-                    "(refused before its first write), «state_after» is null and «note_state» says so.",
+                    "own undo entry, the one an undo takes away.",
                     Object(
                         new Dictionary<string, object>
                         {
@@ -322,6 +420,17 @@ namespace Oce.Solid.Agent.Tools
                                             ["description"] =
                                                 "the arguments, as in «describe_operation»",
                                         },
+                                        ["expect"] = new Dictionary<string, object>
+                                        {
+                                            ["type"] = "object",
+                                            ["description"] =
+                                                "optional: what this step must measure, by the names of its " +
+                                                "measurements, e.g. {\"removed_mm3\": 36} or {\"diameter_mm\": " +
+                                                "{\"equal_to\": 0.992, \"tolerance\": 0.001}} («volume_mm3» is the " +
+                                                "volume after the step; a plain number has a tolerance of 0.01). " +
+                                                "One that does not hold, or that the step does not measure, makes " +
+                                                "the step fail and the plan stop there, with the numbers side by side.",
+                                        },
                                     },
                                     new[] { "operation" }),
                             },
@@ -336,6 +445,30 @@ namespace Oce.Solid.Agent.Tools
                                     "Naming it means «I know which part " +
                                     "I am touching», and a name that does not match " +
                                     "is refused.",
+                            },
+                            ["response"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new[] { "summary", "full" },
+                                ["description"] =
+                                    "«summary» (the default): outcomes, measures, warnings, " +
+                                    "«state_summary» and the time of the whole plan. «full»: also " +
+                                    "the explanations and the time of each step, and the " +
+                                    "whole «state_after», with the identifiers of faces " +
+                                    "and edges (tens of thousands of characters on a real part).",
+                            },
+                            ["on_window_change"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new[] { "reactivate", "stop" },
+                                ["description"] =
+                                    "What to do when another window comes to the front " +
+                                    "while the plan runs (someone working in the same " +
+                                    "SOLIDWORKS session). «reactivate» (the default): the " +
+                                    "plan's document is brought back to the front, at most " +
+                                    "3 times, and «reactivations» in the answer says when " +
+                                    "and which window was there. «stop»: the plan stops " +
+                                    "before the next step and touches nothing more.",
                             },
                             ["dry_run"] = new Dictionary<string, object>
                             {
@@ -380,7 +513,10 @@ namespace Oce.Solid.Agent.Tools
                     "of the «checks» family — the ones that only read.\n\n" +
                     "If you only need to know how the part is made, use this one: " +
                     "your client knows it changes nothing and does not ask " +
-                    "you for confirmation.\n\n" +
+                    "you for confirmation. One exception in the flags, not in the " +
+                    "geometry: «interference_check» can leave a saved assembly marked " +
+                    "unsaved (SOLIDWORKS does it when its detection closes), and its " +
+                    "answer then says «marked_unsaved».\n\n" +
                     "An operation that touches the part is REFUSED here, and " +
                     "the answer says which tool does it. The plan does not " +
                     "start: it does not measure half the part and then stop.",
@@ -606,6 +742,67 @@ namespace Oce.Solid.Agent.Tools
                         },
                         new[] { "name" }),
                     readOnlyMode: true, destructive: false, idempotent: true),
+
+                // AN STL FILE, MEASURED OR CUT (brief R15). On 24-25/10/2026
+                // every number taken from the customer's STL files came from
+                // three Python programs written for the occasion.
+                Tool(
+                    "mesh",
+                    "Reads an STL file (binary or ASCII) and MEASURES it or CUTS it. Never touches " +
+                    "SOLIDWORKS; works with it closed.\n\n" +
+                    "«measure»: bounding box, size, area, whether the mesh is closed (every edge " +
+                    "shared by two triangles) and, only when it is, the volume; with «axis» and " +
+                    "«levels», the area of N sections evenly spaced along the axis.\n\n" +
+                    "«section»: the plane square to «axis» at «at_mm» cuts the mesh into closed " +
+                    "contours, simplified by «simplify_mm», sorted by area, each with its depth " +
+                    "(outer edge, void, island). «profiles» are ready for «extrude_profile»: «plane» " +
+                    "and «contours» in the sketch coordinates of that plane (front: x = X, y = Y; " +
+                    "right: x = -Z, y = Y; top: x = X, y = -Z, as measured), outer edge first. " +
+                    "«extrude_profile» draws on the plane through the origin, not at «at_mm».\n\n" +
+                    "An STL has no units: its numbers are taken as mm, times «scale».",
+                    Object(
+                        new Dictionary<string, object>
+                        {
+                            ["path"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["description"] = "the full path of the .stl file",
+                            },
+                            ["action"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new object[] { "measure", "section" },
+                                ["description"] = "«measure» (default) or «section»",
+                            },
+                            ["axis"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new object[] { "x", "y", "z" },
+                                ["description"] = "the axis the section plane is square to (section, and levels of measure)",
+                            },
+                            ["at_mm"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "number",
+                                ["description"] = "where along «axis» to cut, in mm (section)",
+                            },
+                            ["simplify_mm"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "number",
+                                ["description"] = "how far a vertex left out may be from the contour kept, default 0.05 mm (section)",
+                            },
+                            ["levels"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "how many sections «measure» gives along «axis», 1 to 50",
+                            },
+                            ["scale"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "number",
+                                ["description"] = "mm per unit of the file, default 1 (25.4 for inches, 1000 for metres)",
+                            },
+                        },
+                        new[] { "path" }),
+                    readOnlyMode: true, destructive: false, idempotent: true),
             };
         }
 
@@ -681,6 +878,146 @@ namespace Oce.Solid.Agent.Tools
                 "api_signature");
         }
 
+        /// <summary>The most vertices a «mesh» section answers: more is refused with a bigger «simplify_mm».</summary>
+        internal const int MeshMostPoints = 3000;
+
+        /// <summary>
+        /// The «mesh» tool (brief R15): an STL file measured, or cut into contours
+        /// for «extrude_profile». It never touches SOLIDWORKS. See <see
+        /// cref="Oce.Solid.Agent.Core.StlMesh"/>.
+        /// </summary>
+        private Dictionary<string, object> MeshTool(Dictionary<string, object> arguments)
+        {
+            var path = TextOf(arguments, "path");
+            var action = TextOf(arguments, "action") ?? "measure";
+            if (action != "measure" && action != "section")
+                return Protocol.Content("«action» is «measure» or «section», not «" + action + "».", true);
+            double scale = 1;
+            var scaleText = TextOf(arguments, "scale");
+            if (scaleText != null && !double.TryParse(scaleText, NumberStyles.Float, CultureInfo.InvariantCulture, out scale))
+                return Protocol.Content("«scale» must be a number (25.4 for a file in inches, 1000 for metres).", true);
+            var axisText = (TextOf(arguments, "axis") ?? "").ToLowerInvariant();
+            int axis = axisText == "x" ? 0 : axisText == "y" ? 1 : axisText == "z" ? 2 : -1;
+            if (axisText.Length > 0 && axis < 0)
+                return Protocol.Content("«axis» is «x», «y» or «z», not «" + axisText + "».", true);
+
+            string problem;
+            var mesh = Oce.Solid.Agent.Core.StlMesh.Load(path, scale, out problem);
+            if (mesh == null) return Protocol.Content(problem, true);
+            var measured = mesh.Measure();
+            var min = (double[])measured["bounding_box_min_mm"];
+            var max = (double[])measured["bounding_box_max_mm"];
+
+            if (action == "measure")
+            {
+                var answer = new Dictionary<string, object> { ["path"] = path, ["scale"] = scale };
+                foreach (string key in measured.Keys) answer[key] = measured[key];
+                int levels = 0;
+                var levelsText = TextOf(arguments, "levels");
+                if (levelsText != null && (!int.TryParse(levelsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out levels) || levels < 1 || levels > 50))
+                    return Protocol.Content("«levels» is a whole number from 1 to 50: how many sections, evenly spaced along «axis».", true);
+                if (levels > 0)
+                {
+                    if (axis < 0) return Protocol.Content("«levels» needs «axis» («x», «y» or «z»): the sections are square to it.", true);
+                    var rows = new List<object>();
+                    double from = min[axis], span = max[axis] - min[axis];
+                    for (int i = 0; i < levels; i++)
+                    {
+                        double at = from + span * (i + 0.5) / levels;
+                        var cut = mesh.Section(axis, at, 0);
+                        rows.Add(new Dictionary<string, object>
+                        {
+                            ["at_mm"] = Math.Round(at, 3),
+                            ["area_mm2"] = Math.Round(Oce.Solid.Agent.Core.StlMesh.SectionArea(cut), 3),
+                            ["contours"] = cut.Loops.Count,
+                            ["open_chains"] = cut.OpenChains,
+                        });
+                    }
+                    answer["sections"] = rows;
+                    answer["sections_axis"] = axisText;
+                }
+                answer["units"] = "The numbers of the file are taken as mm, times «scale».";
+                return Protocol.ContentWithData(Protocol.InJson(answer), answer);
+            }
+
+            if (axis < 0) return Protocol.Content("A section needs «axis» («x», «y» or «z») and «at_mm»: the plane is square to the axis at that coordinate.", true);
+            double atMm;
+            var atText = TextOf(arguments, "at_mm");
+            if (atText == null || !double.TryParse(atText, NumberStyles.Float, CultureInfo.InvariantCulture, out atMm))
+                return Protocol.Content("«at_mm» is missing: give the coordinate along «" + axisText + "» where to cut, between " +
+                                        min[axis].ToString(CultureInfo.InvariantCulture) + " and " + max[axis].ToString(CultureInfo.InvariantCulture) + " for this file.", true);
+            double simplify = 0.05;
+            var simplifyText = TextOf(arguments, "simplify_mm");
+            if (simplifyText != null && (!double.TryParse(simplifyText, NumberStyles.Float, CultureInfo.InvariantCulture, out simplify) || simplify < 0))
+                return Protocol.Content("«simplify_mm» is a number of zero or more: how far a vertex left out may be from the contour kept.", true);
+
+            var section = mesh.Section(axis, atMm, simplify);
+            var plane = Oce.Solid.Agent.Core.StlMesh.PlaneFor(axis);
+            var result = new Dictionary<string, object>
+            {
+                ["path"] = path,
+                ["axis"] = axisText,
+                ["at_mm"] = atMm,
+                ["plane"] = plane,
+                ["mesh_from_mm"] = min[axis],
+                ["mesh_to_mm"] = max[axis],
+                ["closed_mesh"] = measured["closed"],
+                ["simplify_mm"] = simplify,
+                ["open_chains"] = section.OpenChains,
+            };
+            if (section.Loops.Count == 0)
+            {
+                result["contours_found"] = 0;
+                result["verdict"] = atMm < min[axis] || atMm > max[axis]
+                    ? "The plane at " + axisText + " = " + atMm.ToString(CultureInfo.InvariantCulture) + " does not cut the mesh: it spans " +
+                      min[axis].ToString(CultureInfo.InvariantCulture) + " to " + max[axis].ToString(CultureInfo.InvariantCulture) + " along " + axisText + "."
+                    : "No closed contour at " + axisText + " = " + atMm.ToString(CultureInfo.InvariantCulture) +
+                      (section.OpenChains > 0 ? ": " + section.OpenChains + " chains did not close (the mesh has a hole there)." :
+                       ": a plane exactly on a face of the mesh may not cut it; move it inside by a hair.");
+                return Protocol.ContentWithData(Protocol.InJson(result), result);
+            }
+            int pointsAfter = 0;
+            foreach (var loop in section.Loops) pointsAfter += loop.Points.Count;
+            if (pointsAfter > MeshMostPoints)
+                return Protocol.Content("The section has " + pointsAfter + " vertices after simplifying by " +
+                                        simplify.ToString(CultureInfo.InvariantCulture) + " mm, and I answer at most " + MeshMostPoints +
+                                        ": pass a larger «simplify_mm» (0.1 or 0.2 keeps a printed part within its tolerance).", true);
+            var loops = new List<object>();
+            foreach (var loop in section.Loops)
+                loops.Add(new Dictionary<string, object>
+                {
+                    ["depth"] = loop.Depth,
+                    ["kind"] = loop.Depth % 2 == 0 ? "outer edge" : "void",
+                    ["area_mm2"] = Math.Round(Math.Abs(loop.SignedArea), 3),
+                    ["perimeter_mm"] = Math.Round(loop.Perimeter, 3),
+                    ["points"] = loop.Points.Count,
+                });
+            var profiles = new List<object>();
+            foreach (var group in Oce.Solid.Agent.Core.StlMesh.Profiles(section))
+            {
+                var contours = new List<object>();
+                double area = 0;
+                foreach (var loop in group)
+                {
+                    var points = new List<object>();
+                    foreach (var p in loop.Points) points.Add(Oce.Solid.Agent.Core.StlMesh.Round(p, 3));
+                    contours.Add(points);
+                    area += loop == group[0] ? Math.Abs(loop.SignedArea) : -Math.Abs(loop.SignedArea);
+                }
+                profiles.Add(new Dictionary<string, object> { ["plane"] = plane, ["contours"] = contours, ["area_mm2"] = Math.Round(area, 3) });
+            }
+            result["contours_found"] = section.Loops.Count;
+            result["points_before"] = section.PointsBefore;
+            result["points_after"] = pointsAfter;
+            result["section_area_mm2"] = Math.Round(Oce.Solid.Agent.Core.StlMesh.SectionArea(section), 3);
+            result["loops"] = loops;
+            result["profiles"] = profiles;
+            result["note"] = "Each profile is the «plane» and «contours» of one «extrude_profile» (the outer edge first, then its voids), " +
+                             "in the sketch coordinates of that plane, rounded to 0.001 mm. «extrude_profile» draws on the plane through " +
+                             "the origin: this section is at " + axisText + " = " + atMm.ToString(CultureInfo.InvariantCulture) + ".";
+            return Protocol.ContentWithData(Protocol.InJson(result), result);
+        }
+
         /// <summary>
         /// The «document» tool (entries Z-B1, Z-B2, Z-B5, Z-B6).
         ///
@@ -734,6 +1071,16 @@ namespace Oce.Solid.Agent.Tools
                     _seen = null;
                     _signatureSeen = null;
                     _seenSignatures = null;
+                    // The plan to withdraw, when its document is the one closed (bridge 0.160.1): a
+                    // closed document has no undo stack to press, and holding it kept it alive in
+                    // SOLIDWORKS after the collection at the end of this call (see
+                    // Session.ForgetLastPlan).
+                    if (_lastPlan != null && _lastPlan.DocumentRef != null && !_session.IsOpen(_lastPlan.DocumentRef))
+                    {
+                        _lastPlan = null;
+                        _noMemoryBecause = "the document of the last plan was closed";
+                        _noMemoryOnDrawing = false;
+                    }
                     closed["next_step"] = closed["in_front_now"] == null
                         ? "There is no open document any more: use «create» or «open» to continue."
                         : "In front now is «" + Convert.ToString(closed["in_front_now"]) + "». " +
@@ -748,17 +1095,35 @@ namespace Oce.Solid.Agent.Tools
             if (card == null) return Protocol.Content(error, true);
 
             // THE DOCUMENT IN FRONT HAS CHANGED (or might have): what
-            // had been looked at and its signatures are thrown away TOGETHER. «build» at
-            // this point answers «I have not looked at any part yet», which
-            // is the truth.
+            // had been looked at and its signatures are thrown away TOGETHER.
             _seen = null;
             _signatureSeen = null;
             _seenSignatures = null;
+            _seenByDocument = null;
 
-            card["next_step"] =
-                "In front now is «" + Convert.ToString(card["document_title"]) + "». " +
-                "Before drawing, call «inspect_part»: what you looked at " +
-                "before is no longer valid.";
+            // WHICH DOCUMENT IS KNOWN, HOW IT IS MADE IS NOT (brief R18). The card
+            // says the document this call put in front; «build» takes it as the
+            // document looked at, for a plan that cites no identifier. A plan
+            // that cites one is still sent to «inspect_part».
+            object cardInFront;
+            bool putInFront = card.TryGetValue("in_front", out cardInFront) && cardInFront is bool && (bool)cardInFront;
+            if (putInFront)
+            {
+                _seen = new Dictionary<string, object>
+                {
+                    ["document_title"] = card.TryGetValue("document_title", out var cardTitle) ? cardTitle : "",
+                    ["path"] = card.TryGetValue("path", out var cardPath) ? cardPath ?? "" : "",
+                };
+                _seenByDocument = _seen;
+            }
+
+            card["next_step"] = putInFront
+                ? "In front now is «" + Convert.ToString(card["document_title"]) + "». A plan that cites no " +
+                  "identifier (a sketch on a plane, an extrusion, a property) can run now; before citing a face, an " +
+                  "edge or a component, call «inspect_part»: identifiers are born there."
+                : "In front now is «" + Convert.ToString(card["document_title"]) + "». " +
+                  "Before drawing, call «inspect_part»: what you looked at " +
+                  "before is no longer valid.";
             return Protocol.ContentWithData(Protocol.InJson(card), card);
         }
 
@@ -801,6 +1166,7 @@ namespace Oce.Solid.Agent.Tools
                 case "document": return Document(arguments);
                 case "api_search": return ApiSearch(arguments);
                 case "api_signature": return ApiSignature(arguments);
+                case "mesh": return MeshTool(arguments);
                 default:
                     // AND BEFORE ANSWERING, WE WRITE (entry Z-G7): this
                     // is the point that knew and kept quiet.
@@ -815,10 +1181,16 @@ namespace Oce.Solid.Agent.Tools
                     // are seven: they fit in one line, and cost less than one more
                     // run. It is the same rule as the refusals of the
                     // operations — the criterion, not the verdict.
+                    //
+                    // THE NUMBER OF OPERATIONS COMES FROM THE CATALOG (27/10/2026):
+                    // this sentence said «sixty» with 104 operations in the
+                    // catalog, seen by a client that asked a wrong name. A number
+                    // written in a message ages like the one in the README.
                     return Protocol.Content(
                         "I do not know the tool «" + itemName + "». The tools are " +
                         "these: " + string.Join(", ", ToolNames) + ". " +
-                        "The sixty drawing OPERATIONS are not tools: " +
+                        "The " + (_catalog.LoadingError == null ? _catalog.HowMany + " " : "") +
+                        "drawing OPERATIONS are not tools: " +
                         "they are asked of «build» (or of «measure», if they only read " +
                         "and change nothing) and are listed with «list_operations».", true);
             }
@@ -833,6 +1205,15 @@ namespace Oce.Solid.Agent.Tools
         /// A plan is born by looking at ONE document, and must be executed on THAT one.
         /// </summary>
         private Dictionary<string, object> _seen;
+
+        /// <summary>
+        /// The identity «document» put in `_seen` when it brought a document to
+        /// the front, without reading it (brief R18). While `_seen` is this very
+        /// object, the document is known and its content is not: a plan that
+        /// cites no identifier runs, one that cites one is sent to «inspect_part».
+        /// Any reading puts another object in `_seen`, and the difference ends.
+        /// </summary>
+        private Dictionary<string, object> _seenByDocument;
 
         /// <summary>
         /// HOW THE PART WAS MADE when «inspect_part» looked at it
@@ -937,15 +1318,56 @@ namespace Oce.Solid.Agent.Tools
                 facesWanted = FaceFilter.Parse(facesRaw, out facesProblem);
                 if (facesWanted == null) return Protocol.Content(facesProblem, true);
             }
+            // WHICH EDGES (brief R17), read before touching the document too.
+            Oce.Solid.Agent.Core.EdgeFilter edgesWanted = null;
+            var edgesRaw = Take(arguments, "edges");
+            if (edgesRaw != null)
+            {
+                string edgesProblem;
+                edgesWanted = Oce.Solid.Agent.Core.EdgeFilter.Parse(edgesRaw, out edgesProblem);
+                if (edgesWanted == null) return Protocol.Content(edgesProblem, true);
+            }
+            // THE EDGES OF A DRAWING VIEW (report 8cd843 N23), read before touching the document too.
+            var viewEdgesRaw = Take(arguments, "view_edges");
+            string viewEdgesView = null, viewEdgesComponent = null;
+            int viewEdgesLimit = ViewEdgesDefaultLimit;
+            if (viewEdgesRaw != null)
+            {
+                string viewEdgesProblem = ViewEdgesRequest(viewEdgesRaw, out viewEdgesView, out viewEdgesComponent, out viewEdgesLimit);
+                if (viewEdgesProblem != null) return Protocol.Content(viewEdgesProblem, true);
+            }
             var previousSeen = _seen;
             var previousLight = _signatureSeen;
             var previousSignatures = _seenSignatures;
 
             string error;
-            var docState = facesWanted == null
-                ? _session.State(out error)
-                : _session.StateWithFaces(facesWanted, out error);
+            var docState = edgesWanted != null
+                ? _session.StateWithFilters(facesWanted, edgesWanted, out error)
+                : facesWanted == null
+                    ? _session.State(out error)
+                    : _session.StateWithFaces(facesWanted, out error);
             if (docState == null) return Protocol.Content(error, true);
+            object edgesFilterProblem;
+            if (docState.TryGetValue("edges_filter_problem", out edgesFilterProblem))
+                return Protocol.Content(Convert.ToString(edgesFilterProblem), true);
+            // The same as for the faces: a filter that was not applied is said.
+            if (edgesWanted != null && !docState.ContainsKey("edges_filter"))
+            {
+                object edgeKind, edgeSolid;
+                docState.TryGetValue("kind", out edgeKind);
+                bool edgePart = string.Equals(Convert.ToString(edgeKind, System.Globalization.CultureInfo.InvariantCulture),
+                                              "part", StringComparison.Ordinal);
+                if (edgePart && docState.TryGetValue("solid_body", out edgeSolid) && edgeSolid is bool && !(bool)edgeSolid)
+                {
+                    docState["edges"] = new object[0];
+                    docState["edges_filter_note"] = "The part has no solid body yet: there is no edge to list.";
+                }
+                else
+                    return Protocol.Content(
+                        "«edges» was not applied: it filters the edges of the solid bodies of a part, and the document " +
+                        "in front (kind «" + Convert.ToString(edgeKind, System.Globalization.CultureInfo.InvariantCulture) +
+                        "») has none to rank. Ask again without «edges».", true);
+            }
             object facesFilterProblem;
             if (docState.TryGetValue("faces_filter_problem", out facesFilterProblem))
                 return Protocol.Content(Convert.ToString(facesFilterProblem), true);
@@ -956,21 +1378,23 @@ namespace Oce.Solid.Agent.Tools
             {
                 object kind;
                 docState.TryGetValue("kind", out kind);
-                // R9: an empty result instead of an error. A part with no solid body yet has no face to rank,
-                // so the filter is answered as empty; every other kind still refuses the filter. A part that
-                // lists «bodies» has solid bodies: a missing «faces_filter» there is not an empty part, so it
-                // is refused too and never answered with zero faces.
-                if (Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) != "part" ||
-                    docState.ContainsKey("bodies"))
-                    return Protocol.Content(
-                        "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
-                        "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
-                        "») has none to rank. Ask again without «faces».", true);
-
-                docState["faces_total"] = 0;
-                docState["faces_matched"] = 0;
-                docState["faces_filter"] = facesWanted.Describe();
-                docState["faces_note"] = "This part has no solid body yet: there is no face to filter, so none is listed.";
+                // A PART WITHOUT A BODY YET HAS NO FACES, and that is an answer,
+                // not an error (brief R9): on 24/10/2026 the first reading of a
+                // new part with «faces» failed and had to be asked again.
+                object solid;
+                bool part = string.Equals(Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture),
+                                          "part", StringComparison.Ordinal);
+                if (part && docState.TryGetValue("solid_body", out solid) && solid is bool && !(bool)solid)
+                {
+                    docState["faces"] = new object[0];
+                    docState["faces_filter_note"] =
+                        "The part has no solid body yet: there is no face to list.";
+                }
+                else
+                return Protocol.Content(
+                    "«faces» was not applied: it filters the faces of the solid bodies of a part, and the document " +
+                    "in front (kind «" + Convert.ToString(kind, System.Globalization.CultureInfo.InvariantCulture) +
+                    "») has none to rank. Ask again without «faces».", true);
             }
             _seen = StateIdentity(docState);
             _signatureSeen = LightSignature(docState);
@@ -994,6 +1418,17 @@ namespace Oce.Solid.Agent.Tools
                     if (!_seenSignatures.ContainsKey(keptUid)) _seenSignatures[keptUid] = previousSignatures[keptUid];
             }
             RemoveAnchors(docState);
+
+            // THE EDGES OF A DRAWING VIEW (report 8cd843 N23, round 7): added
+            // after the identity and the signatures were taken, so that a plan
+            // compares the same reading with or without them.
+            if (viewEdgesRaw != null)
+            {
+                string viewEdgesError;
+                var listing = _session.ViewEdges(viewEdgesView, viewEdgesComponent, viewEdgesLimit, out viewEdgesError);
+                if (listing == null) return Protocol.Content(viewEdgesError, true);
+                docState["view_edges"] = listing;
+            }
 
             var requestedItems = RequestedViews(arguments);
             var section = Take(arguments, "section") as Dictionary<string, object>;
@@ -1154,6 +1589,56 @@ namespace Oce.Solid.Agent.Tools
             text.Append(Protocol.InJson(docState));
 
             return Protocol.ContentWithImages(text.ToString(), images);
+        }
+
+        /// <summary>How many edges of a drawing view «view_edges» lists when «limit» is not given.</summary>
+        internal const int ViewEdgesDefaultLimit = 200;
+
+        /// <summary>
+        /// What «view_edges» asks for (report 8cd843 N23): the view alone
+        /// («V1»), or {view, component, limit}. Null when it can be taken,
+        /// otherwise the reason. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string ViewEdgesRequest(object raw, out string view, out string component, out int limit)
+        {
+            view = null;
+            component = null;
+            limit = ViewEdgesDefaultLimit;
+            var word = raw as string;
+            if (word != null)
+            {
+                view = word.Trim().Length == 0 ? null : word.Trim();
+                return null;
+            }
+            var map = raw as IDictionary<string, object>;
+            if (map == null)
+                return "«view_edges» is written as the view alone («V1») or as an object with some of: view, component, limit.";
+            foreach (var key in map.Keys)
+                if (key != "view" && key != "component" && key != "limit")
+                    return "«view_edges» has no «" + key + "». It takes: view, component, limit.";
+            object v;
+            if (map.TryGetValue("view", out v) && v != null)
+            {
+                if (!(v is string)) return "«view_edges.view» is written as the identifier of the view (V1) or its name.";
+                view = ((string)v).Trim().Length == 0 ? null : ((string)v).Trim();
+            }
+            if (map.TryGetValue("component", out v) && v != null)
+            {
+                if (!(v is string) || ((string)v).Trim().Length == 0)
+                    return "«view_edges.component» is written as the name of a component as the list gives it (26P000011-1).";
+                component = ((string)v).Trim();
+            }
+            if (map.TryGetValue("limit", out v) && v != null)
+            {
+                double d;
+                if (v is bool || v is string || !(v is IConvertible))
+                    return "«view_edges.limit» is written as a whole number from 1 to " + Oce.Solid.Agent.Core.SwOperations.MaxViewEdges + ".";
+                d = Convert.ToDouble(v, System.Globalization.CultureInfo.InvariantCulture);
+                if (d < 1 || d > Oce.Solid.Agent.Core.SwOperations.MaxViewEdges || Math.Abs(d - Math.Round(d)) > 1e-9)
+                    return "«view_edges.limit» is written as a whole number from 1 to " + Oce.Solid.Agent.Core.SwOperations.MaxViewEdges + ".";
+                limit = (int)Math.Round(d);
+            }
+            return null;
         }
 
         /// <summary>
@@ -1526,11 +2011,6 @@ namespace Oce.Solid.Agent.Tools
             " The plan was not run at all: the document is left " +
             "as it was. Fix this step and send the whole plan again.";
 
-        // R3: a refusal of form returned about 20,000 characters of state.
-        private const string StateNotRepeated =
-            "The plan wrote nothing, so the state of the document is not repeated here: it is as your last " +
-            "reading left it. Ask «inspect_part» if you need it again.";
-
         /// <summary>
         /// `measure` — `build` without the permission to touch.
         ///
@@ -1573,6 +2053,94 @@ namespace Oce.Solid.Agent.Tools
         }
 
         /// <summary>
+        /// The first identifier of the part a plan cites, or null (brief R18).
+        ///
+        /// TWO KINDS, read in every argument at any depth:
+        ///  * any text under a key that ends in «_uid» or «_uids»: those name
+        ///    what was already in the document (faces, edges, features);
+        ///  * a text that has the shape of an identifier the state hands out:
+        ///    one letter among C, E, F, M, S, V and a number («F3», «C2», «M1»),
+        ///    under a key that names what identifiers name («component_a»,
+        ///    «face_b», «mate», «plane»: see <see cref="IdentifierKeys"/>).
+        ///    Under any other key it is a value: «S235» in «value_text» is a steel.
+        /// The keys of a size or a thread («size», «thread_size») are skipped:
+        /// «M6» there is a screw, not a mate. «*_ref» cites a step of the plan,
+        /// not the part, and is not an identifier.
+        /// </summary>
+        internal static string FirstIdentifierCited(object[] steps)
+        {
+            if (steps == null) return null;
+            foreach (var step in steps)
+            {
+                var s = step as Dictionary<string, object>;
+                object arguments;
+                if (s == null || !s.TryGetValue("arguments", out arguments)) continue;
+                string found = IdentifierIn(arguments, null);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The words of a key under which a text shaped like «F3» is an
+        /// identifier. Under any other key it is a value: «S235» is a steel,
+        /// «C45» another. Compared WORD BY WORD («component_a» has «component»):
+        /// a substring would read «material» as «mate».
+        /// </summary>
+        private static readonly string[] IdentifierKeys =
+        {
+            "component", "components", "mate", "mates", "face", "faces", "edge", "edges", "body", "bodies",
+            "sketch", "sketches", "feature", "features", "axis", "axes", "plane", "planes", "view", "views",
+            "vertex", "vertices", "entity", "entities", "reference", "references", "target", "targets",
+        };
+
+        /// <summary>One of C, E, F, M, S, V and only digits after it: «F3», «C12».</summary>
+        private static bool HasIdentifierShape(string t)
+        {
+            if (t.Length < 2 || "CEFMSV".IndexOf(t[0]) < 0) return false;
+            for (int i = 1; i < t.Length; i++) if (t[i] < '0' || t[i] > '9') return false;
+            return true;
+        }
+
+        private static string IdentifierIn(object value, string key)
+        {
+            string text = value as string;
+            if (text != null)
+            {
+                string k = (key ?? "").ToLowerInvariant();
+                if (k.Contains("size") || k.Contains("thread")) return null;
+                string t = text.Trim();
+                if (t.Length == 0) return null;
+                if (k.EndsWith("_uid", StringComparison.Ordinal) || k.EndsWith("_uids", StringComparison.Ordinal)) return t;
+                if (!HasIdentifierShape(t)) return null;
+                foreach (string word in k.Split('_'))
+                    if (Array.IndexOf(IdentifierKeys, word) >= 0) return t;
+                return null;
+            }
+            var map = value as Dictionary<string, object>;
+            if (map != null)
+            {
+                foreach (string name in map.Keys)
+                {
+                    if (name.EndsWith("_ref", StringComparison.Ordinal)) continue;
+                    string found = IdentifierIn(map[name], name);
+                    if (found != null) return found;
+                }
+                return null;
+            }
+            var list = value as System.Collections.IEnumerable;
+            if (list != null)
+            {
+                foreach (var item in list)
+                {
+                    string found = IdentifierIn(item, key);
+                    if (found != null) return found;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// How the document stands, in a few measures: volume, bodies, how many
         /// features.
         ///
@@ -1587,6 +2155,273 @@ namespace Oce.Solid.Agent.Tools
         /// The three measures taken here change when the PART changes, and do not
         /// change when only the way it was looked at changes.
         /// </summary>
+        /// <summary>
+        /// THE STATE IN A FEW LINES (brief R3): what a plan changed, without the
+        /// lists of faces and edges. The fields are copied as the state names
+        /// them; the features added and removed are the difference of the two
+        /// lists of names, before and after.
+        /// </summary>
+        private static Dictionary<string, object> SummaryOfState(
+            Dictionary<string, object> before, Dictionary<string, object> after)
+        {
+            var summary = new Dictionary<string, object>();
+            foreach (var key in SummaryFields)
+            {
+                object v;
+                if (after.TryGetValue(key, out v) && v != null) summary[key] = v;
+            }
+            object list;
+            if (after.TryGetValue("faces", out list) && list is System.Collections.ICollection)
+                summary["faces_listed"] = ((System.Collections.ICollection)list).Count;
+            if (after.TryGetValue("bodies", out list) && list is System.Collections.ICollection)
+                summary["bodies"] = ((System.Collections.ICollection)list).Count;
+            var namesBefore = FeatureNamesInOrder(before) ?? new List<string>();
+            var namesAfter = FeatureNamesInOrder(after) ?? new List<string>();
+            var added = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+            var removed = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+            if (added.Count > 0) summary["features_added"] = added;
+            if (removed.Count > 0) summary["features_removed"] = removed;
+            return summary;
+        }
+
+        /// <summary>
+        /// THE TIME OF THE WHOLE PLAN BY PHASE (brief R2): the sum of each step's
+        /// «timing_ms», and the slowest step. Null when no step was timed, as in
+        /// a plan refused before it ran.
+        /// </summary>
+        private static Dictionary<string, object> PlanTiming(List<object> outcomes)
+        {
+            var totals = new Dictionary<string, double>();
+            int order = 0, slowestOrder = 0;
+            double slowest = -1;
+            string slowestOperation = null;
+            foreach (var o in outcomes)
+            {
+                order++;
+                var outcome = o as Dictionary<string, object>;
+                object t;
+                if (outcome == null || !outcome.TryGetValue("timing_ms", out t)) continue;
+                var timing = t as Dictionary<string, object>;
+                if (timing == null) continue;
+                foreach (string phase in timing.Keys)
+                {
+                    double ms;
+                    if (!TryNumber(timing[phase], out ms)) continue;
+                    double sum;
+                    totals.TryGetValue(phase, out sum);
+                    totals[phase] = sum + ms;
+                    if (phase == "total" && ms > slowest)
+                    {
+                        slowest = ms;
+                        slowestOrder = order;
+                        object op;
+                        outcome.TryGetValue("operation", out op);
+                        slowestOperation = Convert.ToString(op, CultureInfo.InvariantCulture);
+                    }
+                }
+            }
+            if (totals.Count == 0) return null;
+            var plan = new Dictionary<string, object>();
+            foreach (string phase in totals.Keys) plan[phase] = Math.Round(totals[phase]);
+            plan["slowest_step"] = slowestOrder + " " + slowestOperation + " " + Math.Round(slowest) + " ms";
+            return plan;
+        }
+
+        private static bool TryNumber(object v, out double d)
+        {
+            d = 0;
+            if (v == null || v is string || v is bool) return false;
+            try { d = Convert.ToDouble(v, CultureInfo.InvariantCulture); return true; }
+            catch (FormatException) { return false; }
+            catch (InvalidCastException) { return false; }
+        }
+
+        /// <summary>
+        /// THE OUTCOMES OF A «summary» ANSWER (brief R3). On 26/10/2026 a plan of
+        /// 21 steps answered 9,782 characters after the state had left: the
+        /// outcomes were 95% of them. Of a step that succeeded it drops what the
+        /// reader does not need to write the next plan:
+        ///   - «error», which is null;
+        ///   - «timing_ms», summed for the whole plan in the answer's
+        ///     «timing_ms»;
+        ///   - «volume_before_mm3» and «volume_after_mm3» when they are the
+        ///     same: the step did not change the volume, and the absence says it;
+        ///   - texts longer than <see cref="LongExplanation"/> characters that
+        ///     explain rather than warn. A key that names a warning, a problem,
+        ///     a verdict or an error always stays, whatever its length;
+        ///   - a measure with the SAME NAME and the SAME VALUE as an argument the
+        ///     caller sent in that step (26/10/2026: «value_text», «material»,
+        ///     «name», «value_mm» came back as they went). Only the same name: a
+        ///     measure that happens to equal another argument is a measure;
+        ///   - «value_before_*» when it equals its «value_after_*».
+        /// A step that failed keeps everything. Returns how many texts it left
+        /// out, and in <paramref name="echoes"/> how many echoes, so the answer
+        /// can say so.
+        /// </summary>
+        private static int CompactOutcomes(List<object> outcomes, object[] steps, out int echoes)
+        {
+            int leftOut = 0;
+            echoes = 0;
+            for (int i = 0; i < outcomes.Count; i++)
+            {
+                var outcome = outcomes[i] as Dictionary<string, object>;
+                if (outcome == null) continue;
+                object ok;
+                if (!outcome.TryGetValue("succeeded", out ok) || !(ok is bool) || !(bool)ok) continue;
+                object error;
+                if (outcome.TryGetValue("error", out error) && error == null) outcome.Remove("error");
+                outcome.Remove("timing_ms");
+                object m;
+                var measurements = outcome.TryGetValue("measurements", out m) ? m as Dictionary<string, object> : null;
+                if (measurements == null) continue;
+                object rawBefore, rawAfter;
+                double before, after;
+                if (measurements.TryGetValue("volume_before_mm3", out rawBefore) && TryNumber(rawBefore, out before) &&
+                    measurements.TryGetValue("volume_after_mm3", out rawAfter) && TryNumber(rawAfter, out after) &&
+                    Math.Abs(before - after) < VolumeUnchangedMm3)
+                {
+                    measurements.Remove("volume_before_mm3");
+                    measurements.Remove("volume_after_mm3");
+                }
+                foreach (var key in measurements.Keys.ToList())
+                {
+                    var text = measurements[key] as string;
+                    if (text == null || text.Length <= LongExplanation || Warns(key)) continue;
+                    measurements.Remove(key);
+                    leftOut++;
+                }
+                foreach (var key in measurements.Keys.ToList())
+                {
+                    if (!key.StartsWith("value_before_", StringComparison.Ordinal)) continue;
+                    object afterValue;
+                    if (measurements.TryGetValue("value_after_" + key.Substring("value_before_".Length), out afterValue) &&
+                        SameValue(measurements[key], afterValue))
+                        measurements.Remove(key);
+                }
+                // The step's arguments, only when the step is the one this outcome
+                // speaks of: outcomes and steps go in the same order, but a name
+                // that differs means the pairing cannot be trusted.
+                var step = steps != null && i < steps.Length ? steps[i] as Dictionary<string, object> : null;
+                object sentOperation, sentArguments;
+                var sent = step != null && step.TryGetValue("operation", out sentOperation) &&
+                           string.Equals(sentOperation as string, Text(outcome, "operation"), StringComparison.OrdinalIgnoreCase) &&
+                           step.TryGetValue("arguments", out sentArguments)
+                    ? sentArguments as Dictionary<string, object> : null;
+                if (sent == null) continue;
+                foreach (var key in measurements.Keys.ToList())
+                {
+                    object sentValue;
+                    if (Warns(key) || !sent.TryGetValue(key, out sentValue) || !SameValue(measurements[key], sentValue)) continue;
+                    measurements.Remove(key);
+                    echoes++;
+                }
+            }
+            return leftOut;
+        }
+
+        /// <summary>
+        /// How many measures of the outcomes are warnings (a key that starts with
+        /// «warning», holding a warning: see SaysAWarning). Counted after the
+        /// compaction: they are the ones the reader sees. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static int WarningsInOutcomes(List<object> outcomes)
+        {
+            int warnings = 0;
+            foreach (var o in outcomes)
+            {
+                var outcome = o as Dictionary<string, object>;
+                object m;
+                var measurements = outcome != null && outcome.TryGetValue("measurements", out m) ? m as Dictionary<string, object> : null;
+                if (measurements == null) continue;
+                foreach (string key in measurements.Keys)
+                    if (key.StartsWith("warning", StringComparison.OrdinalIgnoreCase) && SaysAWarning(measurements[key])) warnings++;
+            }
+            return warnings;
+        }
+
+        /// <summary>
+        /// Whether the value of a «warning…» key is a warning: a text, or a list with
+        /// something in it. «warnings» 0 of save_document (how many bits of the
+        /// Warnings mask of the save are set) is a number, and it was counted: the
+        /// note said «the 1 warning(s) of the measures stay» over measures with no
+        /// warning (report 8cd843 N37, round 10). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool SaysAWarning(object value)
+        {
+            string text = value as string;
+            if (text != null) return !string.IsNullOrWhiteSpace(text);
+            if (value is IEnumerable<object>)
+                foreach (object item in (IEnumerable<object>)value) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// The line that says what the compact answer left out, or null when nothing
+        /// was. «None is a warning» alone read as «no warning» next to two warnings
+        /// in the measures (report 8cd843 N36, round 9): the warnings the measures
+        /// keep are counted and pointed at. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NoteOutcomes(int explanationsLeftOut, int echoesLeftOut, int warningsKept)
+        {
+            if (explanationsLeftOut <= 0 && echoesLeftOut <= 0) return null;
+            string kept = warningsKept > 0
+                ? "; the " + warningsKept + " warning(s) of the measures stay, above"
+                : "";
+            return (explanationsLeftOut > 0
+                       ? explanationsLeftOut + " explanation(s) of successful steps left out (none of them is a warning" +
+                         kept + "). "
+                       : (warningsKept > 0 ? "The " + warningsKept + " warning(s) of the measures stay, above. " : "")) +
+                   (echoesLeftOut > 0
+                       ? echoesLeftOut + " measure(s) left out because they came back equal to the argument " +
+                         "of the same name you sent. "
+                       : "") +
+                   "Send «response»: «full» to have them, and the times of each step.";
+        }
+
+        /// <summary>Two scalar values that say the same: numbers within 1e-9, texts equal ignoring case and outer blanks.</summary>
+        private static bool SameValue(object one, object other)
+        {
+            double a, b;
+            if (TryNumber(one, out a) && TryNumber(other, out b)) return Math.Abs(a - b) < 1e-9;
+            var s = one as string;
+            var t = other as string;
+            if (s != null && t != null) return string.Equals(s.Trim(), t.Trim(), StringComparison.OrdinalIgnoreCase);
+            return false;
+        }
+
+        /// <summary>Longer than this, a text of a successful step is an explanation.</summary>
+        private const int LongExplanation = 100;
+
+        /// <summary>Two volumes closer than this are the same (they come rounded to 0.01).</summary>
+        private const double VolumeUnchangedMm3 = 0.005;
+
+        private static bool Warns(string key)
+        {
+            var k = key.ToLowerInvariant();
+            return k.Contains("warn") || k.Contains("problem") || k.Contains("verdict") ||
+                   k.Contains("error") || k.Contains("fail");
+        }
+
+        private static readonly string[] SummaryFields =
+        {
+            "path", "document_title", "kind", "solid_body", "volume_mm3", "mass_kg", "material",
+            "bounding_box_mm", "bounding_box_from_mm", "shape", "feature_total", "faces_total",
+            "edges_total", "features_in_error", "rebuild_needed", "equations_total",
+            "configuration", "property", "configuration_properties",
+        };
+
+        /// <summary>
+        /// The problem with the material of an `apply_material` step, or null
+        /// (brief R4). Asked to the workstation's archives, the same that the
+        /// step will search.
+        /// </summary>
+        private string MaterialProblemOf(string operation, Dictionary<string, object> arguments)
+        {
+            if (!string.Equals(operation, "apply_material", StringComparison.Ordinal)) return null;
+            return _session.MaterialProblem(Text(arguments, "material"), Text(arguments, "library"));
+        }
+
         private static string StateSummary(Dictionary<string, object> docState)
         {
             if (docState == null) return null;
@@ -1598,7 +2433,33 @@ namespace Oce.Solid.Agent.Tools
                     : "-";
             };
             return theField("volume_mm3") + "|" + theField("bodies") + "|" +
-                   theField("how_many_features") + "|" + theField("document_title");
+                   theField("how_many_features") + "|" + theField("document_title") +
+                   AssemblyFingerprint(docState);
+        }
+
+        /// <summary>
+        /// THE RESENT-PLAN GUARD WAS BLIND ON AN ASSEMBLY (scenario t9b,
+        /// 27/10/2026): volume, bodies and features read the same on every
+        /// assembly, so a plan inserted, withdrawn with «undo» and sent again was
+        /// refused as «already run, and the document is still exactly as I left
+        /// it». On an assembly the summary also carries its components (name,
+        /// file, state, fixed, origin, axes) and mates (name, kind, suppressed,
+        /// what they hold), as the undo snapshot reads them. Empty on a part.
+        /// </summary>
+        private static string AssemblyFingerprint(Dictionary<string, object> docState)
+        {
+            PartSnapshot s = PartSnapshot.Of(docState);
+            if (s == null || !s.Assembly) return "";
+            var words = new List<string>();
+            words.Add(s.ComponentsRead ? "components " + s.ComponentTotal : "components unread");
+            if (s.ComponentsRead)
+                foreach (ComponentLook c in s.Components)
+                    words.Add(c.Name + "/" + c.Path + "/" + c.State + "/" + c.Grounded + "/" +
+                              (c.Origin == null ? "?" : NumbersText(c.Origin)) + "/" + (c.AxesText ?? "?"));
+            words.Add(s.MatesRead ? "mates " + s.MateTotal : "mates unread");
+            if (s.MatesRead)
+                foreach (MateLook m in s.Mates) words.Add(m.Name + ": " + m.Look);
+            return "|" + string.Join("|", words);
         }
 
         private Dictionary<string, object> Measure(Dictionary<string, object> arguments)
@@ -1714,16 +2575,17 @@ namespace Oce.Solid.Agent.Tools
 
             var trouble = new List<string>();
 
-            // THE PROGRESS OF THE DRY RUN (entry W2.2). Nothing is executed
-            // here, so the total is the number of steps and that is all:
-            // there is no second half to wait for.
-            _wire.Total = steps.Length;
+            // NO PROGRESS FROM THE DRY RUN (brief R13). It answers in
+            // milliseconds, and on 24/10/2026 its notifications reached the
+            // client AFTER the answer: the client no longer knew the token and
+            // wrote «Connection error ... STDIO connection dropped» eight times
+            // for a bridge that was working. A progress for something that is
+            // already over tells nobody anything.
 
             for (int i = 0; i < steps.Length; i++)
             {
                 var planStep = steps[i] as Dictionary<string, object>;
                 string location = "step " + (i + 1);
-                _wire.Step(i + 1, "checking " + location + " of " + steps.Length);
                 if (planStep == null) { trouble.Add(location + ": is not an object"); continue; }
 
                 var itemName = Text(planStep, "operation");
@@ -1740,6 +2602,12 @@ namespace Oce.Solid.Agent.Tools
                                  : ""));
                     continue;
                 }
+
+                // The form of «expect» (brief R16); its numbers only after a run.
+                object rawExpect;
+                planStep.TryGetValue("expect", out rawExpect);
+                var expectProblem = Oce.Solid.Agent.Core.StepExpectations.FormProblem(rawExpect);
+                if (expectProblem != null) trouble.Add(location + " («" + itemName + "»): " + expectProblem);
 
                 var schema = _catalog.Schema(itemName);
                 var data = Take(planStep, "arguments") as Dictionary<string, object>
@@ -1768,16 +2636,12 @@ namespace Oce.Solid.Agent.Tools
                     }
 
                 if (property != null)
-                    foreach (var theField in data.Keys)
-                    {
-                        if (property.ContainsKey(theField)) continue;
-                        // AN UNKNOWN ARGUMENT IS NOT A DETAIL: it is
-                        // ignored in silence, and the part comes out different from
-                        // how it was asked for, without any error.
-                        trouble.Add(location + " («" + itemName + "»): «" + theField +
-                                 "» is not an argument of this operation, " +
-                                 "and would be IGNORED");
-                    }
+                    trouble.AddRange(UnknownArgumentsOfStep(location, itemName, data, property));
+
+                // The material, when SOLIDWORKS is there to say (brief R4).
+                var materialTrouble = MaterialProblemOf(itemName, data);
+                if (materialTrouble != null)
+                    trouble.Add(location + " («" + itemName + "»): " + materialTrouble);
 
                 // The references to a previous step: `{step: N, kind: ...}`.
                 foreach (var pair in data)
@@ -1828,6 +2692,19 @@ namespace Oce.Solid.Agent.Tools
             var requested = Take(arguments, "dry_run");
             bool test = false;
             if (requested != null) { try { test = Convert.ToBoolean(requested); } catch { } }
+            // A RULE FOR THE WINDOWS THAT IS NOT ONE OF THE TWO IS REFUSED, not
+            // read as the default (brief R1): «Stop» taken for «reactivate»
+            // would do the opposite of what was asked.
+            var windowRule = Text(arguments, "on_window_change");
+            if (windowRule != null && windowRule != "reactivate" && windowRule != "stop")
+                return Protocol.Content(
+                    "«on_window_change» is «" + windowRule + "»: it is «reactivate» or «stop». " +
+                    "Nothing was run.", true);
+            var answerShape = Text(arguments, "response");
+            if (answerShape != null && answerShape != "summary" && answerShape != "full")
+                return Protocol.Content(
+                    "«response» is «" + answerShape + "»: it is «summary» or «full». " +
+                    "Nothing was run.", true);
             if (test) return TestThePlan(arguments);
             return RunPlan(arguments, checkIfRepeated: true);
         }
@@ -1867,7 +2744,59 @@ namespace Oce.Solid.Agent.Tools
         /// stops reading what they confirm, and it is the same reason
         /// `measure` exists separate from `build`.
         /// </summary>
-        private static readonly string[] CannotBeUndone = { "delete_feature" };
+        private static readonly string[] CannotBeUndone = { "delete_feature", "delete_mate" };
+
+        /// <summary>
+        /// The arguments of one step its operation does not declare, one line each,
+        /// with the near names. AN UNKNOWN ARGUMENT IS NOT A DETAIL: it is ignored in
+        /// silence, and the part comes out different from how it was asked for,
+        /// without any error. The near name is said (brief R8: «value» for
+        /// «value_text»), not taken: one name per argument. «_signatures» is the
+        /// bridge's own, added to the steps after this check.
+        /// </summary>
+        internal static List<string> UnknownArgumentsOfStep(string location, string itemName,
+                                                            Dictionary<string, object> data,
+                                                            Dictionary<string, object> property)
+        {
+            var lines = new List<string>();
+            if (data == null || property == null) return lines;
+            foreach (var theField in data.Keys)
+            {
+                if (property.ContainsKey(theField) || theField == "_signatures") continue;
+                var near = NearArguments(theField, property.Keys);
+                lines.Add(location + " («" + itemName + "»): «" + theField +
+                          "» is not an argument of this operation, " +
+                          "and would be IGNORED" +
+                          (near.Count > 0 ? ". Did you mean «" + string.Join("», «", near) + "»?" : ""));
+            }
+            return lines;
+        }
+
+        /// <summary>
+        /// The unknown arguments of a whole plan, for a real run. Until bridge
+        /// 0.150.1 only the dry run refused them (found in the replay of round 8,
+        /// 27/10/2026: «components» sent to 0.150.1, which did not know it, put the
+        /// overall height on every component, the very thing it asked to avoid).
+        /// Measured before turning it on: 265 plan steps of session 8cd843 (args to
+        /// args8), none with an argument its schema does not declare.
+        /// </summary>
+        private List<string> UnknownArgumentsOfPlan(object[] steps)
+        {
+            var lines = new List<string>();
+            for (int i = 0; i < steps.Length; i++)
+            {
+                var planStep = steps[i] as Dictionary<string, object>;
+                if (planStep == null) continue;
+                var itemName = Text(planStep, "operation");
+                if (string.IsNullOrWhiteSpace(itemName) || !_catalog.Knows(itemName)) continue;
+                var schema = _catalog.Schema(itemName);
+                if (schema == null) continue;
+                lines.AddRange(UnknownArgumentsOfStep("step " + (i + 1), itemName,
+                                                      Take(planStep, "arguments") as Dictionary<string, object>,
+                                                      Take(schema, "properties") as Dictionary<string, object>));
+            }
+            return lines;
+        }
 
         private Dictionary<string, object> RunPlan(
             Dictionary<string, object> arguments, bool checkIfRepeated)
@@ -1877,6 +2806,17 @@ namespace Oce.Solid.Agent.Tools
                 return Protocol.Content(
                     "The plan is empty: «steps» must be a list of " +
                     "{operation, arguments}.", true);
+
+            // AN UNKNOWN ARGUMENT IS REFUSED BY A REAL RUN TOO, before anything is
+            // asked or touched: the same lines as the dry run.
+            var unknownArguments = UnknownArgumentsOfPlan(steps);
+            if (unknownArguments.Count > 0)
+            {
+                string said = string.Join("; ", unknownArguments);
+                return Protocol.Content(
+                    "Nothing was run: " + said + (said.EndsWith("?", StringComparison.Ordinal) ? " " : ". ") +
+                    "Correct the plan and send it again; «dry_run» checks a plan without touching the document.", true);
+            }
 
             // ── WE ASK BEFORE TOUCHING ANYTHING (entry W2.5) ──
             //
@@ -1890,6 +2830,12 @@ namespace Oce.Solid.Agent.Tools
             // but it cannot execute destructive operations: the gate is
             // before. Asking for confirmation there would be asking permission to
             // do something that will be refused anyway.
+            // THE OPERATIONS NOBODY WAS ASKED ABOUT (report 8cd843 N1, 27/10/2026):
+            // with a client that does not declare «elicitation» the plan runs, as
+            // before, and the answer now says so; the log line is written only
+            // when the plan really reaches SOLIDWORKS (N6: it was written before
+            // a plan then refused as a resend).
+            string notAsked = null;
             if (checkIfRepeated)
             {
                 var toConfirm = new List<string>();
@@ -1918,26 +2864,43 @@ namespace Oce.Solid.Agent.Tools
                     if (Oce.Solid.Agent.Mcp.Elicitation.ClientCanAsk)
                     {
                         if (!Oce.Solid.Agent.Mcp.Elicitation.Confirm(Console.Out, Console.In, question))
+                        {
+                            // WHAT THE CLIENT ANSWERED, quoted (brief R22).
+                            var answered = Oce.Solid.Agent.Mcp.Elicitation.LastAnswer;
+                            Protocol.Note("[bridge] confirmation not given; the client answered " + answered);
                             return Protocol.Content(
-                                "Stopped: the confirmation did not arrive, and I " +
-                                "touched nothing. " + question, true);
+                                "Stopped: I asked the client for a confirmation and it did not " +
+                                "say yes (it answered " + answered + "), so I touched nothing. " +
+                                "If nobody was asked anything, the client does not show this " +
+                                "question: ask the person yourself, in words, before trying again. " +
+                                question, true);
+                        }
                     }
                     else
                     {
                         // THE FALLBACK IS DECLARED (entry W2.5). Going on
                         // in silence would be the way a defence
-                        // disappears without anyone noticing.
-                        Protocol.Note(
-                            "[bridge] " + string.Join(", ", toConfirm) +
-                            ": I could not ask the user for confirmation — " +
-                            "this client does not declare «elicitation». I am going " +
-                            "ahead as before.");
+                        // disappears without anyone noticing: in the log when
+                        // the plan runs, and in the answer (report 8cd843 N1).
+                        notAsked = string.Join(", ", toConfirm);
                     }
                 }
             }
 
             if (!_session.Attached)
                 return Protocol.Content("The bridge is not attached to SolidWorks.", true);
+
+            // NOT LOOKED AT AND NOT NAMED: refused BEFORE reading the document
+            // (report 8cd843 N17, 27/10/2026). The refusal needs only the name
+            // of the window in front, and the whole reading of an assembly of 8
+            // components took 10.7 s to arrive at it. With no document open the
+            // reading below says so, as before.
+            if (_seen == null && string.IsNullOrWhiteSpace(Text(arguments, "document")))
+            {
+                var frontNow = _session.Identity(_session.ActiveDocument());
+                if (frontNow != null)
+                    return Protocol.Content(NotLookedAtYet(frontNow), true);
+            }
 
             // WITHOUT ANCHOR: this reading serves to know on WHICH document one is
             // working, how much volume there was and how many features were already in
@@ -1990,12 +2953,7 @@ namespace Oce.Solid.Agent.Tools
             if (!namedIt)
             {
                 if (_seen == null)
-                    return Protocol.Content(
-                        "I have not looked at any part yet, so I do not know which " +
-                        "document you want me to draw on: in front now is «" +
-                        ReadableName(now) + "». Call «inspect_part» first — " +
-                        "it is needed anyway, because the face identifiers " +
-                        "are born there.", true);
+                    return Protocol.Content(NotLookedAtYet(now), true);
 
                 if (!Bridge.Session.SameDocument(_seen, now))
                     return Protocol.Content(
@@ -2009,6 +2967,25 @@ namespace Oce.Solid.Agent.Tools
                         "what is there now, call again passing «document»: \"" +
                         ReadableName(now) + "\".", true);
             }
+
+            // ── PUT IN FRONT BY «document», NOT READ (brief R18) ──────────
+            //
+            // On 24/10/2026 a reading was asked before every plan: 19 calls of
+            // «document» and «inspect_part» for 16 plans, also before plans that
+            // cite nothing of the part (a sketch on «top», a property). The
+            // document is known — «document» put it in front — and a plan that
+            // cites no identifier needs nothing else. One that cites an
+            // identifier still needs the reading: identifiers are born there and
+            // hold for it.
+            string identifierCited = FirstIdentifierCited(steps);
+            bool seenWithoutReading = _seen != null && ReferenceEquals(_seen, _seenByDocument) &&
+                                      Bridge.Session.SameDocument(_seen, now);
+            if (seenWithoutReading && identifierCited != null)
+                return Protocol.Content(
+                    "Your plan cites «" + identifierCited + "», and I have not read «" + ReadableName(now) +
+                    "» since «document» brought it to the front. Identifiers are born from «inspect_part» and hold for " +
+                    "that reading: call «inspect_part» first and copy them from there. A plan that cites no " +
+                    "identifier runs without it.", true);
             // ── THE SAME DOCUMENT, WITH SOMETHING ELSE INSIDE (entry X2) ──
             //
             // The check above asks «is it the same document?». This one
@@ -2023,10 +3000,18 @@ namespace Oce.Solid.Agent.Tools
             bool theCheckedOne =
                 _seen != null && Bridge.Session.SameDocument(_seen, now);
 
+            // A PLAN THAT CITES NO IDENTIFIER (brief R18) is not stopped by a
+            // change: what the refusal protects is the meaning of «F1», and the
+            // plan has none. It runs on the part as it is now, and the answer
+            // says the part had changed.
+            string partChangedNote = null;
             if (theCheckedOne)
             {
                 var changed = WhatChanged(_signatureSeen, LightSignature(before));
-                if (changed != null)
+                if (changed != null && identifierCited == null)
+                    partChangedNote = "The part had changed since it was last read — " + changed + ". The plan cites no " +
+                                      "identifier, so it ran on the part as it is now.";
+                else if (changed != null)
                     return Protocol.Content(
                         "I am stopping: the part has changed since you looked at it — " +
                         changed + ".\n\n" +
@@ -2072,6 +3057,9 @@ namespace Oce.Solid.Agent.Tools
                 _signatureSeen = null;
             }
             _seen = now;
+            // Still not read (brief R18): a plan refused further down must not
+            // turn the document into one that was read.
+            if (seenWithoutReading) _seenByDocument = _seen;
 
             // ── THE SAME PLAN, TWICE (entry W2.7) ──────────────────────
             //
@@ -2102,8 +3090,8 @@ namespace Oce.Solid.Agent.Tools
                 return Protocol.Content(
                     "I have already run this plan, and the document is still " +
                     "exactly as I left it. I will not redo it: «build» " +
-                    "is not repeatable — running it again does not put the part back as it was, " +
-                    "it would make a SECOND hole.\n\n" +
+                    "is not repeatable — running it again does not put the document back as it was, " +
+                    "it would do the same work a SECOND time (a second hole, a second mate).\n\n" +
                     "If the earlier answer never reached you, call " +
                     "«inspect_part»: the current state is the result of " +
                     "that plan.\n\n" +
@@ -2137,6 +3125,10 @@ namespace Oce.Solid.Agent.Tools
             // and the specification demands that `progress` grow.
             _wire.Total = steps.Length * 2;
 
+            // N18: the kind of the document the plan starts on.
+            string startKind = Convert.ToString(before.TryGetValue("kind", out var kindAtStart) ? kindAtStart : null) ?? "";
+            bool anotherDocumentAhead = false;
+
             foreach (var p in steps)
             {
                 var planStep = p as Dictionary<string, object>;
@@ -2148,6 +3140,23 @@ namespace Oce.Solid.Agent.Tools
                                     steps.Length + ": " + itemName);
                 var itsItems = Take(planStep, "arguments") as Dictionary<string, object>
                            ?? new Dictionary<string, object>();
+
+                // WHAT THE STEP MUST MEASURE (brief R16): its form is checked
+                // here, before anything runs; the numbers after the step.
+                object rawExpect;
+                planStep.TryGetValue("expect", out rawExpect);
+                var expectProblem = Oce.Solid.Agent.Core.StepExpectations.FormProblem(rawExpect);
+                if (expectProblem != null)
+                {
+                    outcomes.Add(new Dictionary<string, object>
+                    {
+                        ["operation"] = itemName,
+                        ["succeeded"] = false,
+                        ["error"] = "Step " + order + ": " + expectProblem + NothingTouched,
+                    });
+                    everythingFine = false;
+                    break;
+                }
 
                 // THE NAME IS CHECKED BEFORE EXECUTING. The add-in, faced with
                 // a name it does not know but with some «contours» inside, falls back
@@ -2229,6 +3238,46 @@ namespace Oce.Solid.Agent.Tools
                     break;
                 }
 
+                // WHAT AN ASSEMBLY REFUSES, BEFORE THE FIRST STEP (report 8cd843
+                // N18, 27/10/2026): [save_document, export_step with
+                // reopen_and_compare] saved the copy, and only then step 2 was
+                // refused. The kind is the one of the document the plan starts
+                // on, so it holds until a step that brings another document
+                // (create_drawing).
+                if (startKind == "assembly" && !anotherDocumentAhead)
+                {
+                    object reopen;
+                    var crookedKind = Oce.Solid.Agent.Core.SwOperations.AssemblyExchangeRefusal(
+                        itemName, itsItems.TryGetValue("reopen_and_compare", out reopen) && reopen is bool r && r);
+                    if (crookedKind != null)
+                    {
+                        outcomes.Add(new Dictionary<string, object>
+                        {
+                            ["operation"] = itemName,
+                            ["succeeded"] = false,
+                            ["error"] = "Step " + order + ": " + crookedKind + NothingTouched,
+                        });
+                        everythingFine = false;
+                        break;
+                    }
+                }
+                if (itemName == "create_drawing") anotherDocumentAhead = true;
+
+                // THE MATERIAL IS FOUND BEFORE THE FIRST STEP, not at its own
+                // (brief R4): see MaterialProblem.
+                var crookedMaterial = MaterialProblemOf(itemName, itsItems);
+                if (crookedMaterial != null)
+                {
+                    outcomes.Add(new Dictionary<string, object>
+                    {
+                        ["operation"] = itemName,
+                        ["succeeded"] = false,
+                        ["error"] = crookedMaterial + NothingTouched,
+                    });
+                    everythingFine = false;
+                    break;
+                }
+
                 // DO THE IDENTIFIERS CITED REALLY EXIST?
                 //
                 // It is the other half of the anti-drift defence, and it catches a case
@@ -2269,6 +3318,7 @@ namespace Oce.Solid.Agent.Tools
                     Operation = itemName,
                     Arguments = itsItems,
                     Summary = itemName,
+                    Expect = rawExpect as Dictionary<string, object>,
                 });
             }
 
@@ -2279,6 +3329,21 @@ namespace Oce.Solid.Agent.Tools
             // What the executor said about its document and its undo entry
             // (Z-C21.14). Stays null when the plan never reached it: refused
             // above, before anything was written.
+            // A PLAN REFUSED BEFORE RUNNING IS ANSWERED WITHOUT A READING
+            // (brief R3). Nothing was touched, so the document is the one read in
+            // `before`: on 24/10/2026 such a refusal carried 10,804 characters
+            // of state and cost a second full reading (46 s on a part with a body).
+            if (!everythingFine)
+            {
+                var refused = new Dictionary<string, object>
+                {
+                    ["document"] = ReadableName(now),
+                    ["outcomes"] = outcomes,
+                    ["volume_before_mm3"] = Volume(before),
+                };
+                return Protocol.ContentWithData(Protocol.InJson(refused), refused, true);
+            }
+
             Oce.Solid.Agent.Core.PlanExecutor.Result planRun = null;
             bool executorThrew = false;
             object turnRefusedOn = null;
@@ -2290,6 +3355,16 @@ namespace Oce.Solid.Agent.Tools
                 // `before` and this call got the plan, and the memory mixed the
                 // numbers of two documents. It now stops before writing when
                 // the active document is not `now`.
+                // ANOTHER WINDOW IN FRONT IS BROUGHT BACK unless the caller
+                // said «stop» (brief R1).
+                _session.ReactivateWindowInPlans =
+                    !string.Equals(Text(arguments, "on_window_change"), "stop", StringComparison.Ordinal);
+                if (notAsked != null)
+                    Protocol.Note(
+                        "[bridge] " + notAsked +
+                        ": I could not ask the user for confirmation — " +
+                        "this client does not declare «elicitation». I am going " +
+                        "ahead as before.");
                 var done = _session.ExecutePlan(toDo, out var runError, _wire,
                                                   IdentityForTheExecutor(now));
                 planRun = _session.LastPlanResult;
@@ -2403,22 +3478,16 @@ namespace Oce.Solid.Agent.Tools
             // saying «someone touched the part by hand». It would be the
             // false positive that entry X2 listed among the risks, and it would be
             // annoying in just the right measure to teach people to ignore the warning.
-            // R3: a plan that wrote nothing changed nothing, so its state is not repeated.
-            // «planRun» is null when the executor never ran: a step was refused by the checks
-            // above (path, shape, identifiers) and nothing was written. A throw of the executor
-            // is said by «executorThrew», and then what it wrote is not known.
-            bool refusedBeforeWriting = !executorThrew && (planRun == null || planRun.StoppedBeforeWriting);
-
-            // R3: AND WHAT IS NOT SENT IS NOT ADOPTED. The answer below carries no «state_after»,
-            // so the caller still holds the last reading it received: identity and signatures
-            // stay as they were, and a reading the caller never saw does not become «seen».
-            if (refusedBeforeWriting && frontIsThePlans)
+            bool fullAnswer = string.Equals(Text(arguments, "response"), "full", StringComparison.Ordinal);
+            if (after != null && frontIsThePlans)
             {
-                // Nothing to adopt: see above.
-            }
-            else if (after != null && frontIsThePlans)
-            {
-                _seenSignatures = StateSignatures(after);
+                // THE SIGNATURES ARE THOSE OF THE READING THE CALLER SAW (brief
+                // R3). With «full» the caller sees `after` and writes the next plan
+                // on its identifiers. With «summary» it did not see them: the
+                // identifiers it may cite are those of its last «inspect_part»,
+                // so those signatures stay, and a face that moved is re-anchored
+                // or refused instead of being taken by its new number.
+                if (fullAnswer) _seenSignatures = StateSignatures(after);
                 _signatureSeen = LightSignature(after);
 
                 // ── AND ALSO WHO IT IS, NOT JUST HOW IT IS MADE ─────────────
@@ -2452,6 +3521,14 @@ namespace Oce.Solid.Agent.Tools
             }
             if (after != null) RemoveAnchors(after);
 
+            // WHERE THE PLAN'S TIME WENT, in one line (brief R2), and the
+            // outcomes without what only a reader of the whole answer needs
+            // (brief R3). Taken before the compaction, which drops the times of
+            // each step.
+            var planTiming = PlanTiming(outcomes);
+            int echoesLeftOut = 0;
+            int explanationsLeftOut = fullAnswer ? 0 : CompactOutcomes(outcomes, steps, out echoesLeftOut);
+
             var result = new Dictionary<string, object>
             {
                 // WE ALWAYS SAY WHAT WAS WORKED ON. Even when it is obvious:
@@ -2459,12 +3536,35 @@ namespace Oce.Solid.Agent.Tools
                 // was not.
                 ["document"] = ReadableName(now),
                 ["outcomes"] = outcomes,
-                ["state_after"] = refusedBeforeWriting ? null : after,
-                ["note_state"] = refusedBeforeWriting ? StateNotRepeated : (after == null ? stateError : null),
+                ["note_state"] = after == null
+                    ? stateError
+                    : fullAnswer
+                        ? null
+                        : "The identifiers of faces and edges are not in this answer: read them with " +
+                          "«inspect_part» before a plan that cites them, or send «response»: «full».",
                 ["volume_before_mm3"] = Volume(before),
                 // On the plan's document, like the line above (Z-C21.14).
                 ["volume_after_mm3"] = Volume(planStateAfter),
             };
+
+            // THE WHOLE STATE ONLY WHEN ASKED FOR (brief R3): on 24/10/2026 it was
+            // 95% of the characters of every answer of `build`.
+            if (fullAnswer) result["state_after"] = after;
+            else if (after != null)
+            {
+                var summary = SummaryOfState(before, after);
+                // The path is already in «document»: the same string twice.
+                object path;
+                if (summary.TryGetValue("path", out path) &&
+                    string.Equals(Convert.ToString(path, CultureInfo.InvariantCulture),
+                                  Convert.ToString(result["document"], CultureInfo.InvariantCulture),
+                                  StringComparison.OrdinalIgnoreCase))
+                    summary.Remove("path");
+                result["state_summary"] = summary;
+            }
+            if (planTiming != null) result["timing_ms"] = planTiming;
+            var outcomesNote = NoteOutcomes(explanationsLeftOut, echoesLeftOut, WarningsInOutcomes(outcomes));
+            if (outcomesNote != null) result["note_outcomes"] = outcomesNote;
 
             // WHICH DOCUMENT IS IN FRONT, when it is not the plan's (Z-C21.14),
             // and whether the next plan may work on it (review F5).
@@ -2474,10 +3574,6 @@ namespace Oce.Solid.Agent.Tools
                 result["note_document_in_front"] =
                     NoteDocumentInFront(ReadableName(planIdentity), ReadableName(frontIdentity), frontIsThePlans) +
                     (planStateAfter == null && planStateError != null ? " " + planStateError : "");
-                // R3: say why «state_after» is not attached when the plan wrote nothing.
-                if (refusedBeforeWriting)
-                    result["note_document_in_front"] = Convert.ToString(result["note_document_in_front"], CultureInfo.InvariantCulture) +
-                        " This plan wrote nothing, so «state_after» is not attached: call «inspect_part» on the document you want to work on.";
             }
 
             // WHETHER THE PLAN LEFT AN UNDO ENTRY (Z-C21.14): true, one entry
@@ -2487,6 +3583,24 @@ namespace Oce.Solid.Agent.Tools
             // undecided, probe M19 phase H4); null, not known.
             if (planRun != null)
                 result["undo_entry_recorded"] = planRun.UndoEntryOnPlanDocument;
+
+            // NOBODY WAS ASKED (report 8cd843 N1): said to the agent, who can
+            // still tell the person what went.
+            if (notAsked != null && planRun != null)
+                result["confirmation"] =
+                    "Nobody was asked to confirm " + notAsked + ": this client does not declare «elicitation» " +
+                    "(MCP), so I could not put the question to the person, and the plan ran as before. What it " +
+                    "deletes cannot be put back with any operation of the catalog: tell the person what this plan " +
+                    "deleted.";
+
+            // The part had changed and the plan cited no identifier (brief R18).
+            if (partChangedNote != null)
+                result["warning_part_changed"] = partChangedNote;
+
+            // WHEN ANOTHER WINDOW CAME TO THE FRONT and the plan's document was
+            // brought back (brief R1): said, never hidden.
+            if (planRun != null && planRun.Reactivations.Count > 0)
+                result["reactivations"] = planRun.Reactivations;
 
             // THE COUNT OF ERRORS IS GIVEN AS A DELTA, NOT AS A NUMBER.
             //
@@ -2509,7 +3623,9 @@ namespace Oce.Solid.Agent.Tools
                     errorsAfter > errorsBefore
                         ? "The part has " + errorsAfter + " features in error, and before it " +
                           "had " + errorsBefore + ": this plan broke " +
-                          (errorsAfter - errorsBefore) + ". Look at «state_after» to see which."
+                          (errorsAfter - errorsBefore) + (fullAnswer
+                              ? ". Look at «state_after» to see which."
+                              : ". Read «inspect_part» to see which.")
                         : errorsAfter < errorsBefore
                             ? "The features in error went from " + errorsBefore +
                               " to " + errorsAfter + ": this plan repaired " +
@@ -2585,12 +3701,15 @@ namespace Oce.Solid.Agent.Tools
             // A volume that was not read does not count as «changed» (entry
             // Z-C8): here we err on the side of NOT remembering, for the reason
             // written above — one undo too many erases a person's
-            // work.
+            // work. On an assembly volume and features read 0 on both sides
+            // (brief R23): there it built when a component or a mate was seen
+            // to change, never when one could not be read.
             bool hasBuilt =
                 planStateAfter != null &&
                 (featAfter != featBefore ||
                  (volBefore.HasValue && volAfter.HasValue &&
-                  Math.Abs(volAfter.Value - volBefore.Value) > VolumeDeviationMm3));
+                  Math.Abs(volAfter.Value - volBefore.Value) > VolumeDeviationMm3) ||
+                 AssemblyBuilt(snapshotBefore, snapshotAfter));
             bool visibleChange = SnapshotDiffers(snapshotBefore, snapshotAfter).Count > 0;
 
             var memoryBefore = _lastPlan;
@@ -2605,11 +3724,46 @@ namespace Oce.Solid.Agent.Tools
                 memoryBefore != null, memoryBefore != null && memoryBefore.CoveredBecause != null,
                 planRun != null, planRun != null && planRun.StoppedBeforeWriting, executorThrew,
                 turnRefusedOnMemoryDocument, planRun?.UndoEntryOnPlanDocument, sameDocument,
-                !checkIfRepeated, ReadableName(planIdentity), out memoryReason);
+                !checkIfRepeated, EquationsChanged(snapshotBefore, snapshotAfter), ReadableName(planIdentity),
+                out memoryReason);
+
+            // A PLAN ON A DRAWING (report 8cd843 N24, round 7). Volume, features and
+            // components do not exist on a drawing, and its plans record no undo
+            // entry («undo_entry_recorded» false): «hasBuilt» stayed false after
+            // three dimensions, the memory was kept as it was (none), and the undo
+            // that followed said «I have not yet run any that built something» —
+            // after four plans that had built — and offered delete_feature, which
+            // does not take away a dimension. Now such a plan leaves no memory and
+            // its reason, and the undo offers the remedy of a drawing.
+            string onDrawing = checkIfRepeated
+                ? DrawingPlanMemoryReason(
+                      Convert.ToString(planStateAfter != null && planStateAfter.ContainsKey("kind") ? planStateAfter["kind"] : null,
+                                       System.Globalization.CultureInfo.InvariantCulture),
+                      SucceededOperations(outcomes), ReadableName(planIdentity))
+                : null;
+            // NOT EVEN WHEN SOLIDWORKS KEPT AN ENTRY (report 8cd843 N40, round 11): a
+            // section view, then a detail view refused. The entry made the plan «new»,
+            // the comparison saw nothing (a drawing has none of it), and the answer
+            // said «refused and changed nothing I compare» beside «the 1 step(s)
+            // before it are done and stay»; the undo said «as it was», and the view
+            // stayed.
+            if (onDrawing != null && !hasBuilt &&
+                ((memoryBefore == null && memoryAction == MemoryKeep) || memoryAction == MemoryNew))
+            {
+                memoryAction = MemoryDrop;
+                memoryReason = onDrawing;
+            }
+            if (memoryAction == MemoryNew) _noMemoryOnDrawing = false;
+            else if (memoryAction == MemoryDrop) _noMemoryOnDrawing = onDrawing != null && memoryReason == onDrawing;
 
             switch (memoryAction)
             {
                 case MemoryNew:
+                    // A REFUSED PLAN THAT LEFT ONLY AN ENTRY (report 8cd843 N5).
+                    bool refusedWithEntry = planRun != null && !string.IsNullOrEmpty(planRun.Error) &&
+                                            !hasBuilt && !visibleChange;
+                    var previous = refusedWithEntry && memoryBefore != null && sameDocument &&
+                                   memoryBefore.CoveredBecause == null ? memoryBefore : null;
                     _lastPlan = new LastPlan
                     {
                         // The plan document as it is called NOW (Z-C21.14): a
@@ -2618,8 +3772,17 @@ namespace Oce.Solid.Agent.Tools
                         DocumentRef = planDocumentHeld,
                         Before = snapshotBefore,
                         After = snapshotAfter,
+                        Refused = refusedWithEntry,
+                        Previous = previous,
                     };
                     _noMemoryBecause = null;
+                    if (refusedWithEntry)
+                        result["note_undo_entry"] =
+                            "This plan was refused and changed nothing I compare, but SOLIDWORKS kept its undo entry " +
+                            "on top of the undo stack: the next «undo» takes away that entry (nothing visible " +
+                            "changes)" + (previous != null
+                                ? ", and the one after it withdraws the plan before."
+                                : "; I remember no plan before it on this document.");
                     break;
                 case MemoryCover:
                     memoryBefore.CoveredBecause = memoryReason;
@@ -2633,6 +3796,45 @@ namespace Oce.Solid.Agent.Tools
                     // Kept: the name follows a save of the same document.
                     if (memoryBefore != null && sameDocument) memoryBefore.Document = planIdentity;
                     break;
+            }
+
+            // «undo» WILL REFUSE THIS PLAN, said by the plan and not first by
+            // the undo (report 8cd843 N11, 27/10/2026): an extrusion with
+            // «parameters» answered «undo_entry_recorded» true, and the undo
+            // after it refused, rightly, for the equations.
+            bool somethingToWithdraw = checkIfRepeated && (hasBuilt || visibleChange);
+            bool drawingReason = onDrawing != null && memoryReason == onDrawing;
+            if (memoryAction == MemoryDrop && (somethingToWithdraw || drawingReason))
+            {
+                result["undo_possible"] = false;
+                result["note_undo"] =
+                    "«undo» will refuse to withdraw this plan" +
+                    (planRun != null && planRun.UndoEntryOnPlanDocument == true
+                        ? ", although SOLIDWORKS recorded its undo entry («undo_entry_recorded» true)"
+                        : "") +
+                    ". " + memoryReason + (drawingReason ? " " + DrawingNoMemoryRemedy : "");
+            }
+
+            // A PLAN STOPPED HALFWAY SAYS WHAT STAYS (report 8cd843 N12): the
+            // stop said «I touched nothing» of its own step, and the two cuts
+            // before it were in the part.
+            if (planRun != null && !string.IsNullOrEmpty(planRun.Error) && planRun.ExecutedSteps > 0 && steps != null)
+            {
+                string planName = ReadableName(planIdentity);
+                result["steps_done"] = planRun.ExecutedSteps;
+                result["steps_in_plan"] = steps.Length;
+                result["note_stopped"] =
+                    "The plan stopped at step " + (planRun.ExecutedSteps + 1) + " of " + steps.Length + ": the " +
+                    planRun.ExecutedSteps + " step(s) before it are done and stay on «" + planName + "», and the " +
+                    "«error» of the step that stopped says whether that step made anything. " +
+                    (memoryAction == MemoryNew
+                        ? anotherInFront && !frontIsThePlans
+                            ? "«undo» withdraws the whole plan once «" + planName + "» is in front again («document» " +
+                              "with «action»: «activate»)."
+                            : "«undo» withdraws the whole plan."
+                        : memoryAction == MemoryDrop
+                            ? "«undo» cannot withdraw them: " + (result.ContainsKey("note_undo") ? "see «note_undo»." : memoryReason)
+                            : "They changed nothing I compare, so «undo» has nothing of theirs to withdraw.");
             }
 
             // WE REMEMBER WHAT WAS DONE, and only if something was really done
@@ -2660,6 +3862,21 @@ namespace Oce.Solid.Agent.Tools
             // refusal.
             return Protocol.ContentWithData(
                 Protocol.InJson(result), result, !everythingFine);
+        }
+
+        /// <summary>
+        /// The refusal of a plan when no document was looked at yet, with the
+        /// name of the one in front (report 8cd843 N17: said before the reading).
+        /// </summary>
+        private static string NotLookedAtYet(Dictionary<string, object> front)
+        {
+            // «any document», not «any part» (report 8cd843 round 12, observation 2):
+            // it came after the assembly looked at was closed, with a drawing in front.
+            return "I have not looked at any document yet, or the one I looked at was closed, so I do not know which " +
+                   "document you want me to draw on: in front now is «" +
+                   ReadableName(front) + "». Call «inspect_part» first (or name it in «document») — " +
+                   "it is needed anyway, because the face identifiers " +
+                   "are born there.";
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -2695,6 +3912,19 @@ namespace Oce.Solid.Agent.Tools
             public PartSnapshot After;
 
             /// <summary>
+            /// REPORT 8cd843 N5 (27/10/2026): this plan was refused, changed
+            /// nothing that is compared, and still closed an undo entry with
+            /// something in it (a place_component that moved the component and
+            /// set it back). Its entry is on top, so it is the memory; the
+            /// plan it covers is kept in <see cref="Previous"/>, and the undo
+            /// that takes the empty entry away gives that plan back.
+            /// </summary>
+            public bool Refused;
+
+            /// <summary>The memory before a refused plan (see <see cref="Refused"/>), or null.</summary>
+            public LastPlan Previous;
+
+            /// <summary>
             /// Z-C21.14: why this plan is KNOWN not to be on top of the undo
             /// stack any more, in English, for the refusal; null while nothing
             /// says so. A covered memory is never pressed.
@@ -2717,6 +3947,16 @@ namespace Oce.Solid.Agent.Tools
         /// features beyond the list, the listed features as «name#id» in tree
         /// order, and how many features are beyond the list (review F16: those
         /// are compared only by count).
+        ///
+        /// ON AN ASSEMBLY (brief R23) the volume and the features say nothing:
+        /// the state writes neither, so both read 0 before and after every plan
+        /// (ZERO-E-ZERO, <see cref="NumberOf"/>), and up to bridge 0.141.2 an
+        /// undo there would have pressed without seeing a component moved by
+        /// hand after the plan. So an assembly is compared by what its plans
+        /// change: the components (which ones, their file, configuration,
+        /// state, fixed, visible, transparent, where the origin is and how they
+        /// are turned) and the mates (which ones, their kind, suppressed or not,
+        /// the components they hold), as the state lists them.
         /// </summary>
         private sealed class PartSnapshot
         {
@@ -2725,20 +3965,240 @@ namespace Oce.Solid.Agent.Tools
             public List<string> Names;
             public int Unlisted;
 
+            /// <summary>The reading is of an assembly (`kind` «assembly»).</summary>
+            public bool Assembly;
+
+            /// <summary>The state listed the components (`components`).</summary>
+            public bool ComponentsRead;
+
+            /// <summary>The state listed the mates (`mates_list`, `mates_total`).</summary>
+            public bool MatesRead;
+
+            /// <summary>Every component of the assembly, listed or not (`how_many_components`).</summary>
+            public int ComponentTotal;
+
+            /// <summary>Every mate of the assembly, listed or not (`mates_total`).</summary>
+            public int MateTotal;
+
+            /// <summary>The listed components, in the order of the state (by name).</summary>
+            public List<ComponentLook> Components;
+
+            /// <summary>The listed mates, in tree order.</summary>
+            public List<MateLook> Mates;
+
+            /// <summary>Both lists were read, so the assembly can be compared.</summary>
+            public bool AssemblyRead { get { return ComponentsRead && MatesRead; } }
+
+            /// <summary>
+            /// The equations of the document as the state lists them («equations»,
+            /// and «equations_total» when they are more), one text; empty when it has
+            /// none. SOLIDWORKS records no equation in an undo entry
+            /// (Checks\UndoGaps, 27/10/2026), so a plan that changes them is one an
+            /// undo cannot withdraw, and the snapshot must see it.
+            /// </summary>
+            public string Equations = "";
+
             public static PartSnapshot Of(Dictionary<string, object> docState)
             {
                 if (docState == null) return null;
                 int unlisted = 0;
                 if (docState.TryGetValue("feature_not_listed", out var u) && u != null)
                     try { unlisted = Convert.ToInt32(u, CultureInfo.InvariantCulture); } catch { }
-                return new PartSnapshot
+                var snapshot = new PartSnapshot
                 {
                     Volume = NumberOf(docState, "volume_mm3"),
                     Count = HowManyFeatures(docState),
                     Names = FeatureNamesInOrder(docState),
                     Unlisted = unlisted,
+                    Equations = EquationsText(docState),
                 };
+                string kind = Convert.ToString(docState.TryGetValue("kind", out var k) ? k : null) ?? "";
+                if (kind == "assembly") ReadAssembly(docState, snapshot);
+                return snapshot;
             }
+
+            /// <summary>The equations of a reading as one text (see <see cref="Equations"/>).</summary>
+            private static string EquationsText(Dictionary<string, object> docState)
+            {
+                if (!docState.TryGetValue("equations", out var raw) || !(raw is System.Collections.IEnumerable listed) || raw is string)
+                    return "";
+                var texts = new List<string>();
+                foreach (var v in listed)
+                {
+                    var entry = v as Dictionary<string, object>;
+                    texts.Add(entry == null ? Convert.ToString(v, CultureInfo.InvariantCulture) ?? "" : FieldText(entry, "equation"));
+                }
+                int total = WholeNumber(docState, "equations_total");
+                return string.Join(" | ", texts) + (total > texts.Count ? " (" + total + " in all)" : "");
+            }
+
+            /// <summary>
+            /// The assembly half of a snapshot, from the fields AssemblyState
+            /// writes. A mate names its components by uid («C2»), positional and
+            /// renumbered when a component comes or goes: here they become the
+            /// component names of the same reading, so that a component inserted
+            /// before them does not read as a changed mate.
+            /// </summary>
+            private static void ReadAssembly(Dictionary<string, object> docState, PartSnapshot s)
+            {
+                s.Assembly = true;
+                s.Unlisted = WholeNumber(docState, "components_not_listed") + WholeNumber(docState, "mates_not_listed");
+                var components = new List<ComponentLook>();
+                var mateLooks = new List<MateLook>();
+                s.Components = components;
+                s.Mates = mateLooks;
+                var nameOfUid = new Dictionary<string, string>(StringComparer.Ordinal);
+
+                if (docState.TryGetValue("components", out var cs) && cs is System.Collections.IEnumerable listed &&
+                    !(cs is string) && docState.ContainsKey("how_many_components"))
+                {
+                    s.ComponentsRead = true;
+                    s.ComponentTotal = WholeNumber(docState, "how_many_components");
+                    foreach (var v in listed)
+                    {
+                        var entry = v as Dictionary<string, object>;
+                        if (entry == null) continue;
+                        ComponentLook look = ComponentLook.Of(entry);
+                        components.Add(look);
+                        string uid = FieldText(entry, "uid");
+                        if (uid.Length > 0) nameOfUid[uid] = look.Name;
+                    }
+                }
+
+                if (docState.TryGetValue("mates_list", out var ms) && ms is System.Collections.IEnumerable mates &&
+                    !(ms is string) && docState.ContainsKey("mates_total"))
+                {
+                    s.MatesRead = true;
+                    s.MateTotal = WholeNumber(docState, "mates_total");
+                    foreach (var v in mates)
+                    {
+                        var entry = v as Dictionary<string, object>;
+                        if (entry == null) continue;
+                        var held = new List<string>();
+                        if (entry.TryGetValue("components", out var h) && h is System.Collections.IEnumerable items && !(h is string))
+                            foreach (var c in items)
+                            {
+                                string uid = Convert.ToString(c, CultureInfo.InvariantCulture) ?? "";
+                                held.Add(nameOfUid.TryGetValue(uid, out var name) ? name : uid);
+                            }
+                        object off = entry.TryGetValue("suppressed", out var o) ? o : null;
+                        string state = off is bool b ? (b ? "suppressed" : "active") : "suppressed or not unknown";
+                        mateLooks.Add(new MateLook
+                        {
+                            Name = FieldText(entry, "name"),
+                            Look = (FieldText(entry, "kind").Length > 0 ? FieldText(entry, "kind") : "kind unknown") + ", " +
+                                   state + ", holds «" + string.Join("», «", held) + "»",
+                        });
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// One component as an assembly snapshot compares it (brief R23). The
+        /// origin and the axes are null when the state could not read them, and
+        /// an unreadable place counts as a difference (Z-C8); the other fields
+        /// are compared as written, a missing one equal to a missing one.
+        /// </summary>
+        private sealed class ComponentLook
+        {
+            public string Name, Path, Configuration, State, Grounded, Visible, Transparent;
+            public double[] Origin;
+            public double[] Axes;
+            public string AxesText;
+
+            public static ComponentLook Of(Dictionary<string, object> entry)
+            {
+                var look = new ComponentLook
+                {
+                    Name = FieldText(entry, "name"),
+                    Path = FieldText(entry, "path"),
+                    Configuration = FieldText(entry, "configuration"),
+                    State = FieldText(entry, "state"),
+                    Grounded = FieldText(entry, "grounded"),
+                    Visible = FieldText(entry, "visible"),
+                    Transparent = FieldText(entry, "transparent"),
+                    Origin = Numbers(entry.TryGetValue("origin_mm", out var o) ? o : null, 3),
+                };
+                // «axes» is «+X -Y -Z» when every axis lies on an axis of the
+                // assembly, otherwise three rows of three (SwOperations.AxesValue).
+                object axes = entry.TryGetValue("axes", out var a) ? a : null;
+                if (axes is string words)
+                {
+                    look.AxesText = words;
+                    look.Axes = AlignedAxesNumbers(words);
+                }
+                else if (axes is System.Collections.IEnumerable rows)
+                {
+                    var all = new List<double>();
+                    foreach (var row in rows)
+                    {
+                        var three = Numbers(row, 3);
+                        if (three == null) { all = null; break; }
+                        all.AddRange(three);
+                    }
+                    if (all != null && all.Count == 9)
+                    {
+                        look.Axes = all.ToArray();
+                        look.AxesText = NumbersText(look.Axes);
+                    }
+                }
+                return look;
+            }
+
+            /// <summary>«+X -Y -Z» as the nine numbers of the three rows; null if it is not that form.</summary>
+            private static double[] AlignedAxesNumbers(string words)
+            {
+                var parts = words.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 3) return null;
+                var all = new double[9];
+                for (int i = 0; i < 3; i++)
+                {
+                    string p = parts[i];
+                    if (p.Length != 2 || (p[0] != '+' && p[0] != '-')) return null;
+                    int axis = "XYZ".IndexOf(p[1]);
+                    if (axis < 0) return null;
+                    all[i * 3 + axis] = p[0] == '+' ? 1.0 : -1.0;
+                }
+                return all;
+            }
+        }
+
+        /// <summary>
+        /// One mate as an assembly snapshot compares it (brief R23): its name,
+        /// and its kind, whether it is suppressed and the components it holds
+        /// (by name) in words.
+        /// </summary>
+        private sealed class MateLook
+        {
+            public string Name, Look;
+        }
+
+        /// <summary>A field of an entry as text, empty when it is missing or null.</summary>
+        private static string FieldText(Dictionary<string, object> entry, string key)
+        {
+            if (entry == null || !entry.TryGetValue(key, out var v) || v == null) return "";
+            return Convert.ToString(v, CultureInfo.InvariantCulture) ?? "";
+        }
+
+        /// <summary>A whole number of the state, 0 when it is missing or unreadable.</summary>
+        private static int WholeNumber(Dictionary<string, object> docState, string key)
+        {
+            if (docState == null || !docState.TryGetValue(key, out var v) || v == null) return 0;
+            try { return Convert.ToInt32(v, CultureInfo.InvariantCulture); } catch { return 0; }
+        }
+
+        /// <summary>A list of exactly <paramref name="count"/> numbers; null otherwise.</summary>
+        private static double[] Numbers(object value, int count)
+        {
+            if (value == null || value is string || !(value is System.Collections.IEnumerable items)) return null;
+            var all = new List<double>();
+            foreach (var x in items)
+            {
+                if (x == null) return null;
+                try { all.Add(Convert.ToDouble(x, CultureInfo.InvariantCulture)); } catch { return null; }
+            }
+            return all.Count == count ? all.ToArray() : null;
         }
 
         private LastPlan _lastPlan;
@@ -2748,6 +4208,54 @@ namespace Oce.Solid.Agent.Tools
         /// undo dropped it, in English, for the refusal; null otherwise.
         /// </summary>
         private string _noMemoryBecause;
+
+        /// <summary>
+        /// True when <see cref="_noMemoryBecause"/> is the reason of a plan on a
+        /// drawing (report 8cd843 N24): the undo then offers
+        /// <see cref="DrawingNoMemoryRemedy"/> instead of delete_feature.
+        /// </summary>
+        private bool _noMemoryOnDrawing;
+
+        /// <summary>
+        /// Why a plan on a drawing leaves no plan to withdraw, or null when it is
+        /// not one (report 8cd843 N24): the document the plan ended on is a
+        /// drawing and at least one step succeeded. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static string DrawingPlanMemoryReason(string kind, IList<string> succeeded, string name)
+        {
+            if (!string.Equals(kind, "drawing", StringComparison.Ordinal) || succeeded == null || succeeded.Count == 0)
+                return null;
+            // N40 (report 8cd843, round 11): a plan that put a section view and then
+            // stopped recorded an entry, and the undo pressed after it left the view.
+            return "The last «build» worked on the drawing «" + (name ?? "") + "» (" +
+                   string.Join(", ", succeeded.Distinct(StringComparer.Ordinal)) + "). On a drawing I keep no plan to " +
+                   "withdraw: SOLIDWORKS records no undo entry for a dimension or a note («undo_entry_recorded» false), " +
+                   "the undo pressed after a section view left the view on the sheet (measured), and what I compare " +
+                   "before pressing undo (the volume, the features, the components) is not on a drawing.";
+        }
+
+        /// <summary>The operations of the steps that succeeded, in order.</summary>
+        private static List<string> SucceededOperations(IEnumerable<object> outcomes)
+        {
+            var names = new List<string>();
+            foreach (var o in outcomes ?? new object[0])
+            {
+                var step = o as IDictionary<string, object>;
+                object ok, op;
+                if (step == null || !step.TryGetValue("succeeded", out ok) || !(ok is bool) || !(bool)ok) continue;
+                if (step.TryGetValue("operation", out op) && op != null)
+                    names.Add(Convert.ToString(op, System.Globalization.CultureInfo.InvariantCulture));
+            }
+            return names;
+        }
+
+        /// <summary>What to do when the undo has nothing to withdraw after a plan on a drawing (report 8cd843 N24).</summary>
+        internal const string DrawingNoMemoryRemedy =
+            "To take away a dimension or a note, send a plan with «delete_annotation» and its name as the plan that " +
+            "placed it gave it (a dimension: «RD1@Drawing View1@...»; a note: its «name»); the person at the SOLIDWORKS " +
+            "screen can also select it and delete it by hand. A view (a section, a detail, a model view) has no " +
+            "operation that removes it yet: only the person at the screen can delete it.";
 
         /// <summary>The four answers of <see cref="MemoryAfterPlan"/>.</summary>
         internal const string MemoryNew = "new", MemoryKeep = "keep", MemoryCover = "cover", MemoryDrop = "drop";
@@ -2770,7 +4278,13 @@ namespace Oce.Solid.Agent.Tools
         ///  2. the executor threw (review F9): what it wrote and recorded is
         ///     not known, drop;
         ///  3. the plan's document could not be read after it: drop;
-        ///  4. the plan built (volume or feature count changed): new;
+        ///  3b. the plan changed the equations of its document: drop, SOLIDWORKS
+        ///     records no equation in an undo entry (Checks\UndoGaps), so one undo
+        ///     would take away what came before them and leave them;
+        ///  4. the plan built (volume or feature count changed; on an assembly a
+        ///     component or a mate, brief R23): new, unless its own undo entry
+        ///     closed empty (answer false): then drop, an undo would not withdraw
+        ///     it (scenario t13);
         ///  5. a plan whose own undo entry closed with something in it
         ///     (FinishRecordingUndoObject answered true: a reorder, a rename, a
         ///     property): new, it is the last plan and its entry is on top
@@ -2792,7 +4306,7 @@ namespace Oce.Solid.Agent.Tools
             bool hasMemory, bool alreadyCovered,
             bool executorReached, bool stoppedBeforeWriting, bool executorThrew,
             bool turnRefusedOnMemoryDocument, bool? undoEntryOnPlanDocument, bool sameDocument,
-            bool measure, string planDocumentName, out string reason)
+            bool measure, bool equationsChanged, string planDocumentName, out string reason)
         {
             reason = null;
             string what = measure ? "The last «measure»" : "The last «build»";
@@ -2816,6 +4330,35 @@ namespace Oce.Solid.Agent.Tools
             {
                 reason = what + " ran, and then I could not read" + on + " again: what is on top of its undo stack " +
                          "is not known.";
+                return MemoryDrop;
+            }
+            // EQUATIONS ARE IN NO UNDO ENTRY (scenario t14 and Checks\UndoGaps,
+            // 27/10/2026): «parameters» wrote two variables, FinishRecordingUndoObject
+            // answered false, and the undo pressed after it took away the
+            // extrusion of the plan BEFORE it while the equations stayed. On the
+            // probe the same with EditRebuild3, ForceRebuild3 or no rebuild. A plan
+            // that changed them cannot be withdrawn by undo, whatever else it did.
+            if (equationsChanged && !measure)
+            {
+                reason = what + " changed the equations of" + on + " (global variables or dimension links), and " +
+                         "SOLIDWORKS records no equation in an undo entry (measured): one undo would leave them and take " +
+                         "away what came before them. To put a variable back, send «parameters» with the value it had " +
+                         "(the answer of the plan gives it in «equation_before»); a variable or a link the plan created " +
+                         "stays, and no operation removes an equation yet: the person at the SOLIDWORKS screen can delete " +
+                         "it (Tools > Equations).";
+                return MemoryDrop;
+            }
+            // A PLAN THAT BUILT WHILE ITS UNDO ENTRY CLOSED EMPTY (scenario t13,
+            // 27/10/2026: two revolves, FinishRecordingUndoObject false, and the
+            // undo pressed took nothing away and blamed «something done after
+            // the plan»). What it built is not in its entry, so one undo does not
+            // withdraw it and could take away something older: no memory, and the
+            // reason says what to do.
+            if (built && !measure && undoEntryOnPlanDocument == false)
+            {
+                reason = what + " built on" + on + ", but SOLIDWORKS answered that its undo entry closed with nothing " +
+                         "in it (FinishRecordingUndoObject false): one undo would not withdraw it, and could take away " +
+                         "something older.";
                 return MemoryDrop;
             }
             if (built) return MemoryNew;
@@ -2852,7 +4395,8 @@ namespace Oce.Solid.Agent.Tools
         private static string UnknownTop(string what, string on, bool? undoEntry)
         {
             return undoEntry == false
-                ? what + " changed something I can see on" + on + " (the feature names or their order) while " +
+                ? what + " changed something I can see on" + on + " (the feature names or their order, or on an " +
+                  "assembly its components or mates) while " +
                   "SOLIDWORKS answered that its undo entry closed with nothing in it: I cannot tell what is on top " +
                   "of the undo stack."
                 : what + " ran on" + on + ", and I do not know whether it left an undo entry on top of its undo stack.";
@@ -2957,6 +4501,14 @@ namespace Oce.Solid.Agent.Tools
         /// pressing. What changes none of these (a property, a configuration)
         /// still goes unseen.
         ///
+        /// On an assembly (brief R23) the volume and the features are 0 on
+        /// both sides, so the same three moments (before pressing, after
+        /// pressing, after a redo) compare the components and the mates
+        /// instead (<see cref="AssemblyDiffers"/>): a component moved, turned,
+        /// added, taken away, fixed or suppressed by hand after the plan, or a
+        /// mate changed, is seen before pressing; and without the two lists it
+        /// stops, as it does without a volume.
+        ///
         /// ── A WRONG PRESS CANNOT BE TAKEN BACK (Z-C21.14) ─────────────────
         ///
         /// Up to bridge 0.124.1 this summary said that the way out was to try,
@@ -2988,12 +4540,14 @@ namespace Oce.Solid.Agent.Tools
             if (memory == null)
                 return Protocol.Content(
                     "I have no plan to withdraw: «undo» reverses the last " +
-                    "«build» of this conversation, and here I have not yet " +
-                    "run any that built something.\n\n" +
+                    "«build» of this conversation, and " +
+                    (_noMemoryBecause != null
+                        ? "I keep no memory of the last one, for the reason below.\n\n"
+                        : "here I have not yet run any that built something.\n\n") +
                     "I do not press undo blindly: I would remove something I did not " +
                     "do myself, and I could not even say what." +
                     (_noMemoryBecause != null ? "\n\n" + _noMemoryBecause : "") +
-                    "\n\n" + NoMemoryRemedy, true);
+                    "\n\n" + (_noMemoryOnDrawing && _noMemoryBecause != null ? DrawingNoMemoryRemedy : NoMemoryRemedy), true);
 
             // ── SOMETHING IS KNOWN TO BE ON TOP: REFUSE BEFORE PRESSING ──
             // (Z-C21.14). No reading, no press: the memory says the remembered
@@ -3002,6 +4556,10 @@ namespace Oce.Solid.Agent.Tools
             if (memory.CoveredBecause != null)
                 return RefusalCovered(memory);
 
+            // PROGRESS, AS «build» GIVES IT (report 8cd843 N9): an undo of six
+            // cuts took 8.6 s with no notification at all.
+            _wire.Total = 3;
+            _wire.Step(1, "reading the document before the undo");
             var stateBefore = _session.StateWithoutAnchor(out var readError);
             if (stateBefore == null) return Protocol.Content(readError, true);
 
@@ -3033,6 +4591,17 @@ namespace Oce.Solid.Agent.Tools
                     "blindly could undo the work of whoever is in front of the screen: " +
                     "if you still want to go back, do it by hand.", true);
 
+            // ON AN ASSEMBLY THE VOLUME IS 0 ON BOTH SIDES (brief R23): what tells
+            // whether someone moved a component after the plan are the lists of
+            // components and mates, and without them we stop the same way.
+            if (after.Assembly && !(now.AssemblyRead && after.AssemblyRead))
+                return Protocol.Content(
+                    "I am stopping: I cannot read the components and the mates of the assembly" +
+                    (!after.AssemblyRead ? " as my plan left it" : " now") + ", and without them I cannot " +
+                    "tell you whether someone else moved, added or took away something after the plan. A step back " +
+                    "blindly could undo the work of whoever is in front of the screen: " +
+                    "if you still want to go back, do it by hand.", true);
+
             if (Math.Abs(now.Volume.Value - after.Volume.Value) > VolumeDeviationMm3 ||
                 now.Count != after.Count)
                 return Protocol.Content(
@@ -3054,10 +4623,12 @@ namespace Oce.Solid.Agent.Tools
                 return RefusalChangedSinceThePlan(memory, changedSince, NamesComparedOnlyInPart(after, now));
 
             // ── UNDO IS PRESSED ─────────────────────────────────────────────────
+            _wire.Step(2, "pressing undo");
             var undoError = _session.StepBack();
             if (undoError != null)
                 return Protocol.Content(undoError, true);
 
+            _wire.Step(3, "reading the document back");
             var stateAfter = _session.State(out var stateError);
             if (stateAfter == null)
                 return Protocol.Content(
@@ -3081,6 +4652,20 @@ namespace Oce.Solid.Agent.Tools
                     "I pressed undo, but then I cannot measure the volume of the part: " +
                     "I cannot tell you whether it came back as it was. I did nothing else. Look at the " +
                     "part before going on.", true);
+            }
+            // THE SAME ON AN ASSEMBLY (brief R23): without the lists of components
+            // and mates «it did not come back» cannot be told, and a redo would
+            // be blind.
+            if (before.Assembly && !(back.AssemblyRead && before.AssemblyRead))
+            {
+                _lastPlan = null;
+                _noMemoryBecause =
+                    "The last «undo» pressed undo and then could not read the components and the mates of the " +
+                    "assembly: what is on top of the undo stack now is not known.";
+                return Protocol.Content(
+                    "I pressed undo, but then I cannot read the components and the mates of the assembly: " +
+                    "I cannot tell you whether it came back as it was. I did nothing else. Look at the " +
+                    "assembly before going on.", true);
             }
             // BACK AS IT WAS BEFORE THE PLAN: volume, count, names and order
             // (review F1), not only the two numbers.
@@ -3114,13 +4699,19 @@ namespace Oce.Solid.Agent.Tools
                     readAgain = _session.State(out _);
                 }
                 var stillDifferent = readAgain == null
-                    ? new List<string> { "the part could not be read again" }
+                    ? new List<string> { "the " + (before.Assembly ? "assembly" : "part") + " could not be read again" }
                     : WhatDiffers(stateBefore, readAgain);
 
                 bool restored;
-                var answerText = AnswerAfterWrongPress(
-                    before.Volume.Value, before.Count, back.Volume.Value, back.Count, notAsBeforeThePlan,
-                    takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
+                string answerText;
+                if (before.Assembly)
+                    answerText = AnswerAfterWrongPressOnAssembly(
+                        before.ComponentTotal, before.MateTotal, back.ComponentTotal, back.MateTotal, notAsBeforeThePlan,
+                        takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
+                else
+                    answerText = AnswerAfterWrongPress(
+                        before.Volume.Value, before.Count, back.Volume.Value, back.Count, notAsBeforeThePlan,
+                        takenAway, redoTried, redoError, stillDifferent, namesPartial, out restored);
 
                 // THE MEMORY: restored, the foreign action is on top again and
                 // KNOWN to be (covered by an action that was not recorded: the
@@ -3175,8 +4766,11 @@ namespace Oce.Solid.Agent.Tools
             // A second «undo» must not undo what was there BEFORE the
             // plan: this bridge did not do that, and the undo stack
             // cannot tell the difference.
-            _lastPlan = null;
-            _noMemoryBecause =
+            // EXCEPT AFTER A REFUSED PLAN (report 8cd843 N5): what was taken
+            // away was its empty entry, and the plan before it, which this
+            // bridge did make, is on top again.
+            _lastPlan = memory.Refused ? memory.Previous : null;
+            _noMemoryBecause = _lastPlan != null ? null :
                 "The last «undo» already withdrew the plan; one more step back would take away what " +
                 "was there before it, which this bridge did not make.";
 
@@ -3194,30 +4788,58 @@ namespace Oce.Solid.Agent.Tools
             // reading: «withdrawn» is then what SOLIDWORKS did with the entry
             // on top, and the answer says it was not checked (Z-C21.14).
             bool checkedByReading = SnapshotDiffers(before, after).Count > 0;
+            string documentWord = before.Assembly ? "assembly" : "part";
             var outside = new Dictionary<string, object>
             {
                 ["undone"] = true,
                 ["document"] = ReadableName(identityNow),
-                ["volume_before_mm3"] = Math.Round(now.Volume.Value, 2),
-                ["volume_after_mm3"] = Math.Round(back.Volume.Value, 2),
-                ["features_before"] = now.Count,
-                ["features_after"] = back.Count,
-                ["checked_by_reading"] = checkedByReading,
-                ["note"] =
-                    "The plan was withdrawn whole and the part went " +
-                    "back to how it was. The identifiers in «state_after» are " +
-                    "the valid ones now: the earlier ones are no longer valid.",
-                ["state_after"] = stateAfter,
             };
+            // On an assembly the volume and the features are 0 on both sides
+            // (brief R23): the counts that say something are its own.
+            if (before.Assembly)
+            {
+                outside["components_before"] = now.ComponentTotal;
+                outside["components_after"] = back.ComponentTotal;
+                outside["mates_before"] = now.MateTotal;
+                outside["mates_after"] = back.MateTotal;
+            }
+            else
+            {
+                outside["volume_before_mm3"] = Math.Round(now.Volume.Value, 2);
+                outside["volume_after_mm3"] = Math.Round(back.Volume.Value, 2);
+                outside["features_before"] = now.Count;
+                outside["features_after"] = back.Count;
+            }
+            outside["checked_by_reading"] = checkedByReading;
+            // A REFUSED PLAN changed nothing, so nothing «went back» (report
+            // 8cd843 N10: «withdrawn whole» next to «took away only its undo
+            // entry», in the same answer).
+            outside["note"] = memory.Refused
+                ? "The plan was refused and had changed nothing: this undo took away its undo entry, and the " +
+                  documentWord + " is as it was before that plan. The identifiers in «state_after» are the " +
+                  "valid ones now: the earlier ones are no longer valid."
+                : "The plan was withdrawn whole and the " + documentWord + " went " +
+                  "back to how it was. The identifiers in «state_after» are " +
+                  "the valid ones now: the earlier ones are no longer valid.";
+            outside["state_after"] = stateAfter;
+            if (memory.Refused)
+                outside["note_refused_plan"] =
+                    "The plan I withdrew had been refused and had changed nothing I compare: this undo took away " +
+                    "only its undo entry. " + (memory.Previous != null
+                        ? "The plan before it is on top of the undo stack again, and I remember it: «undo» once " +
+                          "more withdraws it."
+                        : "I remember no plan before it on this document.");
             if (!checkedByReading)
                 outside["note_checked"] =
-                    "This plan changed nothing I compare (volume, feature count, feature names and order), so reading " +
-                    "the part cannot show that it is gone: SOLIDWORKS took away the entry on top, and the last entry I " +
-                    "know of on this document was this plan's (its «undo_entry_recorded» was true, and nothing I " +
-                    "compare changed since).";
+                    "This plan changed nothing I compare (" +
+                    (before.Assembly ? AssemblyScope(false) : "volume, feature count, feature names and order") +
+                    "), so reading the " + documentWord + " cannot show that it is gone: SOLIDWORKS took away the entry " +
+                    "on top, and the last entry I know of on this document was this plan's (its «undo_entry_recorded» " +
+                    "was true, and nothing I compare changed since).";
             else if (namesPartial)
-                outside["note_checked"] =
-                    "The part reads as before the plan by volume and feature count, and by " + NamesScope(true) + ".";
+                outside["note_checked"] = before.Assembly
+                    ? "The assembly reads as before the plan by " + AssemblyScope(true) + "."
+                    : "The part reads as before the plan by volume and feature count, and by " + NamesScope(true) + ".";
             return Protocol.Content(Protocol.InJson(outside));
         }
 
@@ -3281,7 +4903,9 @@ namespace Oce.Solid.Agent.Tools
                 ["refused_before_pressing"] = true,
                 ["document"] = ReadableName(memory.Document),
                 ["what_changed_since_the_plan"] = changed,
-                ["reason"] = RefusalChangedSinceThePlanText(changed, namesPartial),
+                ["reason"] = memory.After != null && memory.After.Assembly
+                    ? RefusalChangedSinceThePlanOnAssemblyText(changed, namesPartial)
+                    : RefusalChangedSinceThePlanText(changed, namesPartial),
             };
             return Protocol.ContentWithData(Protocol.InJson(outside), outside, true);
         }
@@ -3289,14 +4913,40 @@ namespace Oce.Solid.Agent.Tools
         /// <summary>The text of <see cref="RefusalChangedSinceThePlan"/>, pure.</summary>
         internal static string RefusalChangedSinceThePlanText(List<string> changed, bool namesPartial)
         {
-            return "I am not pressing undo, and nothing was touched. After my plan the part changed, and I did not " +
-                   "change it: " + string.Join("; ", changed ?? new List<string>()) + "." +
-                   (namesPartial ? " (I compared " + NamesScope(true) + ".)" : "") +
+            return ChangedSinceThePlanText("part", changed, namesPartial ? NamesScope(true) : null);
+        }
+
+        /// <summary>
+        /// <see cref="RefusalChangedSinceThePlanText"/> on an assembly (brief
+        /// R23): a component moved, turned, added or taken away, or a mate
+        /// changed, since the plan. Pure.
+        /// </summary>
+        internal static string RefusalChangedSinceThePlanOnAssemblyText(List<string> changed, bool listedOnly)
+        {
+            return ChangedSinceThePlanText("assembly", changed, listedOnly ? AssemblyScope(true) : null);
+        }
+
+        private static string ChangedSinceThePlanText(string documentWord, List<string> changed, string partialScope)
+        {
+            return "I am not pressing undo, and nothing was touched. After my plan the " + documentWord +
+                   " changed, and I did not change it: " + string.Join("; ", changed ?? new List<string>()) + "." +
+                   (partialScope != null ? " (I compared " + partialScope + ".)" : "") +
                    " One step back now would not withdraw my plan: it would take away the last thing done, which is " +
                    "someone else's (another session, another bridge process or the person at the screen), and " +
                    "SOLIDWORKS cannot redo an undo entry recorded through the API (measured on 1/10/2026).\n\n" +
-                   WithdrawInsteadRemedy;
+                   (documentWord == "assembly" ? WithdrawInsteadOnAssemblyRemedy : WithdrawInsteadRemedy);
         }
+
+        /// <summary>
+        /// <see cref="WithdrawInsteadRemedy"/> on an assembly (brief R23): the
+        /// catalog has no operation that takes a component away, so what a plan
+        /// inserted goes only by hand; mates and places do have one.
+        /// </summary>
+        internal const string WithdrawInsteadOnAssemblyRemedy =
+            "If the plan must go: take its mates away with a new plan («delete_mate» or «suppress_mate», by the names " +
+            "«inspect_part» gives in «mates_list») and put a component back with «place_component»; a component the plan " +
+            "inserted cannot be taken away by a plan, so ask the person at the SOLIDWORKS screen, who can see what each " +
+            "step removes, to undo by hand (Edit > Undo) or delete it.";
 
         /// <summary>
         /// WHAT IS VISIBLY DIFFERENT between two readings of the same part
@@ -3313,6 +4963,13 @@ namespace Oce.Solid.Agent.Tools
             Dictionary<string, object> before, Dictionary<string, object> after)
         {
             return SnapshotDiffers(PartSnapshot.Of(before), PartSnapshot.Of(after));
+        }
+
+        /// <summary>The equations differ between two snapshots that were both read.</summary>
+        private static bool EquationsChanged(PartSnapshot before, PartSnapshot after)
+        {
+            return before != null && after != null &&
+                   !string.Equals(before.Equations ?? "", after.Equations ?? "", StringComparison.Ordinal);
         }
 
         /// <summary><see cref="WhatDiffers"/> on two snapshots.</summary>
@@ -3347,7 +5004,166 @@ namespace Oce.Solid.Agent.Tools
             if (come.Count > 0) differences.Add("features that were not there: «" + string.Join("», «", come) + "»");
             if (gone.Count == 0 && come.Count == 0 && !namesBefore.SequenceEqual(namesAfter))
                 differences.Add("the order of the features changed");
+            if (EquationsChanged(before, after))
+                differences.Add("the equations changed: «" + (before.Equations.Length > 0 ? before.Equations : "none") +
+                                "» before, «" + (after.Equations.Length > 0 ? after.Equations : "none") + "» now");
+            if (before.Assembly || after.Assembly)
+                differences.AddRange(AssemblyDiffers(before, after, true));
             return differences;
+        }
+
+        /// <summary>
+        /// How far an origin may move, in mm, and still be the same place
+        /// (brief R23): half a step above the rounding of the state, which writes
+        /// `origin_mm` to three decimals, so that a last digit rounded the other
+        /// way does not read as a move and a move of two thousandths does.
+        /// </summary>
+        private const double OriginDeviationMm = 0.0015;
+
+        /// <summary>
+        /// How far a direction cosine of the axes may change and still be the
+        /// same turn (brief R23): half a step above the rounding of the state
+        /// (four decimals, SwOperations.AxesValue).
+        /// </summary>
+        private const double AxesDeviation = 0.00015;
+
+        /// <summary>
+        /// WHAT IS DIFFERENT between two readings of the same assembly (brief
+        /// R23): components and mates that came or went, a total that changed,
+        /// and for each component in both readings its file, configuration,
+        /// state, fixed, visible, transparent, origin and axes; for each mate in
+        /// both its kind, whether it is suppressed and what it holds. With
+        /// <paramref name="unreadableCounts"/> a list or a place that could not
+        /// be read is a difference, because sameness cannot be seen (Z-C8);
+        /// without it only what was seen to change is given, the way
+        /// `hasBuilt` wants it (a volume not read does not count as changed).
+        /// </summary>
+        private static List<string> AssemblyDiffers(PartSnapshot before, PartSnapshot after, bool unreadableCounts)
+        {
+            var differences = new List<string>();
+            if (before == null || after == null) return differences;
+            if (before.Assembly != after.Assembly)
+            {
+                if (unreadableCounts) differences.Add("one reading is of an assembly and the other is not");
+                return differences;
+            }
+
+            if (!before.ComponentsRead || !after.ComponentsRead)
+            {
+                if (unreadableCounts)
+                    differences.Add("the components cannot be read" + (!before.ComponentsRead ? " before" : "") +
+                                    (!after.ComponentsRead ? " after" : ""));
+            }
+            else
+            {
+                if (before.ComponentTotal != after.ComponentTotal)
+                    differences.Add("components " + before.ComponentTotal + " before, " + after.ComponentTotal + " now");
+                var namesBefore = new List<string>();
+                foreach (ComponentLook c in before.Components) namesBefore.Add(c.Name);
+                var namesAfter = new List<string>();
+                foreach (ComponentLook c in after.Components) namesAfter.Add(c.Name);
+                var gone = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+                var come = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+                if (gone.Count > 0) differences.Add("components no longer there: «" + string.Join("», «", gone) + "»");
+                if (come.Count > 0) differences.Add("components that were not there: «" + string.Join("», «", come) + "»");
+                foreach (ComponentLook was in before.Components)
+                {
+                    ComponentLook now = null;
+                    foreach (ComponentLook c in after.Components)
+                        if (c.Name == was.Name) { now = c; break; }
+                    if (now == null) continue;
+                    string who = "«" + was.Name + "» ";
+                    foreach (var line in new[]
+                             {
+                                 Changed(who + "file", was.Path, now.Path),
+                                 Changed(who + "configuration", was.Configuration, now.Configuration),
+                                 Changed(who + "state", was.State, now.State),
+                                 Changed(who + "fixed", was.Grounded, now.Grounded),
+                                 Changed(who + "visible", was.Visible, now.Visible),
+                                 Changed(who + "transparent", was.Transparent, now.Transparent),
+                             })
+                        if (line != null) differences.Add(line);
+                    if (was.Origin == null || now.Origin == null)
+                    {
+                        if (unreadableCounts)
+                            differences.Add(who + "origin cannot be read" + (was.Origin == null ? " before" : "") +
+                                            (now.Origin == null ? " after" : ""));
+                    }
+                    else if (!Near(was.Origin, now.Origin, OriginDeviationMm))
+                        differences.Add(who + "moved: origin " + NumbersText(was.Origin) + " mm before, " +
+                                        NumbersText(now.Origin) + " mm now");
+                    if (was.Axes == null || now.Axes == null)
+                    {
+                        if (unreadableCounts)
+                            differences.Add(who + "axes cannot be read" + (was.Axes == null ? " before" : "") +
+                                            (now.Axes == null ? " after" : ""));
+                    }
+                    else if (!Near(was.Axes, now.Axes, AxesDeviation))
+                        differences.Add(who + "turned: axes " + was.AxesText + " before, " + now.AxesText + " now");
+                }
+            }
+
+            if (!before.MatesRead || !after.MatesRead)
+            {
+                if (unreadableCounts)
+                    differences.Add("the mates cannot be read" + (!before.MatesRead ? " before" : "") +
+                                    (!after.MatesRead ? " after" : ""));
+            }
+            else
+            {
+                if (before.MateTotal != after.MateTotal)
+                    differences.Add("mates " + before.MateTotal + " before, " + after.MateTotal + " now");
+                var namesBefore = new List<string>();
+                foreach (MateLook m in before.Mates) namesBefore.Add(m.Name);
+                var namesAfter = new List<string>();
+                foreach (MateLook m in after.Mates) namesAfter.Add(m.Name);
+                var gone = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+                var come = namesAfter.Where(n => !namesBefore.Contains(n)).ToList();
+                if (gone.Count > 0) differences.Add("mates no longer there: «" + string.Join("», «", gone) + "»");
+                if (come.Count > 0) differences.Add("mates that were not there: «" + string.Join("», «", come) + "»");
+                foreach (MateLook was in before.Mates)
+                    foreach (MateLook now in after.Mates)
+                        if (now.Name == was.Name)
+                        {
+                            if (was.Look != now.Look)
+                                differences.Add("mate «" + was.Name + "»: " + was.Look + " before, " + now.Look + " now");
+                            break;
+                        }
+            }
+            return differences;
+        }
+
+        /// <summary>
+        /// The plan changed the assembly (brief R23): seen to change, not merely
+        /// unreadable, the same rule as the volume in `hasBuilt` (Z-C8).
+        /// </summary>
+        private static bool AssemblyBuilt(PartSnapshot before, PartSnapshot after)
+        {
+            return before != null && after != null && before.Assembly && after.Assembly &&
+                   AssemblyDiffers(before, after, false).Count > 0;
+        }
+
+        /// <summary>Numbers as «[0, 15, 0]», in the form of the answers.</summary>
+        private static string NumbersText(double[] numbers)
+        {
+            var words = new List<string>();
+            foreach (double n in numbers) words.Add(Number(n));
+            return "[" + string.Join(", ", words) + "]";
+        }
+
+        /// <summary>The line of a field that changed, null when it did not.</summary>
+        private static string Changed(string what, string was, string now)
+        {
+            if ((was ?? "") == (now ?? "")) return null;
+            return what + ": «" + (was ?? "") + "» before, «" + (now ?? "") + "» now";
+        }
+
+        private static bool Near(double[] a, double[] b, double tolerance)
+        {
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (Math.Abs(a[i] - b[i]) > tolerance) return false;
+            return true;
         }
 
         /// <summary>
@@ -3367,6 +5183,21 @@ namespace Oce.Solid.Agent.Tools
                 ? "the names and order of the last " + Oce.Solid.Agent.Core.DocumentState.MaxFeature +
                   " features, the ones the state lists (the older ones only by count)"
                 : "the feature names and order";
+        }
+
+        /// <summary>
+        /// What an assembly snapshot covers, for the answers (brief R23): the
+        /// state lists a bounded number of components and mates, and beyond
+        /// the list they are compared only by count.
+        /// </summary>
+        internal static string AssemblyScope(bool partial)
+        {
+            const string what = "the components (which ones, their file, configuration, state, fixed, visible, " +
+                                "transparent, origin and axes) and the mates (which ones, their kind, suppressed or not, " +
+                                "what they hold)";
+            return partial
+                ? what + " the state lists (the ones beyond the list only by count)"
+                : what;
         }
 
         /// <summary>
@@ -3399,40 +5230,72 @@ namespace Oce.Solid.Agent.Tools
             List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
             List<string> stillDifferent, bool namesPartial, out bool restored)
         {
+            return WrongPressText(
+                "part",
+                "the volume should be " + Number(expectedVolume) + " mm³ and the features " + expectedFeatures +
+                "; they are " + Number(volumeNow) + " mm³ and " + featuresNow,
+                "neither the volume, nor the feature count, nor " + NamesScope(namesPartial),
+                "volume, feature count and " + NamesScope(namesPartial),
+                notAsBeforeThePlan, takenAway, redoTried, redoError, stillDifferent, out restored);
+        }
+
+        /// <summary>
+        /// <see cref="AnswerAfterWrongPress"/> on an assembly (brief R23): the
+        /// counts are of components and mates, and what was compared is
+        /// <see cref="AssemblyScope"/>. Pure, so that a contract can call it.
+        /// </summary>
+        internal static string AnswerAfterWrongPressOnAssembly(
+            int expectedComponents, int expectedMates, int componentsNow, int matesNow,
+            List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
+            List<string> stillDifferent, bool listedOnly, out bool restored)
+        {
+            return WrongPressText(
+                "assembly",
+                "the components should be " + expectedComponents + " and the mates " + expectedMates +
+                "; they are " + componentsNow + " and " + matesNow,
+                "none of " + AssemblyScope(listedOnly),
+                AssemblyScope(listedOnly),
+                notAsBeforeThePlan, takenAway, redoTried, redoError, stillDifferent, out restored);
+        }
+
+        /// <summary>The text of both answers after a wrong press, for a part or an assembly.</summary>
+        private static string WrongPressText(
+            string documentWord, string counts, string changedNeither, string compared,
+            List<string> notAsBeforeThePlan, List<string> takenAway, bool redoTried, string redoError,
+            List<string> stillDifferent, out bool restored)
+        {
             notAsBeforeThePlan = notAsBeforeThePlan ?? new List<string>();
             takenAway = takenAway ?? new List<string>();
-            stillDifferent = stillDifferent ?? new List<string> { "the part could not be read again" };
+            stillDifferent = stillDifferent ?? new List<string> { "the " + documentWord + " could not be read again" };
             restored = redoTried && redoError == null && takenAway.Count > 0 && stillDifferent.Count == 0;
-            string scope = NamesScope(namesPartial);
+            string the = "the " + documentWord;
 
             string head =
-                "I pressed undo and the part did not go back to how it was before the plan (the volume should be " +
-                Number(expectedVolume) + " mm³ and the features " + expectedFeatures + "; they are " +
-                Number(volumeNow) + " mm³ and " + featuresNow +
+                "I pressed undo and " + the + " did not go back to how it was before the plan (" + counts +
                 (notAsBeforeThePlan.Count > 0 ? "; " + string.Join("; ", notAsBeforeThePlan) : "") +
                 "). So the entry on top of the undo stack was not my plan but something done after it that changed " +
-                "neither the volume, nor the feature count, nor " + scope + ", which I could not see before pressing.";
+                changedNeither + ", which I could not see before pressing.";
 
             if (!redoTried && takenAway.Count > 0)
                 return head + " It took away: " + string.Join("; ", takenAway) + ". I did not press redo, " +
-                       "so it is NOT back. Look at the part in SOLIDWORKS before going on.";
+                       "so it is NOT back. Look at " + the + " in SOLIDWORKS before going on.";
             if (!redoTried)
-                return head + " Reading the part again, the undo changed nothing I can see (volume, feature " +
-                       "count and " + scope + " are as before pressing), so I did not press redo: I could not check " +
-                       "what it would bring back. Look at the part in SOLIDWORKS before going on; Edit > Redo puts " +
+                return head + " Reading " + the + " again, the undo changed nothing I can see (" + compared +
+                       " are as before pressing), so I did not press redo: I could not check " +
+                       "what it would bring back. Look at " + the + " in SOLIDWORKS before going on; Edit > Redo puts " +
                        "back only an action that was not recorded through the API.";
 
             if (restored)
                 return head + " It took away: " + string.Join("; ", takenAway) + ". I pressed redo and read " +
-                       "the part again: volume, feature count and " + scope + " are as before pressing, so it came " +
+                       the + " again: " + compared + " are as before pressing, so it came " +
                        "back (only an action not recorded through the API can come back this way). The plan is " +
                        "still there.";
 
             return head + " It took away: " + string.Join("; ", takenAway) + ". I pressed redo" +
                    (redoError != null ? " and SOLIDWORKS refused: " + redoError : "") +
-                   ", and the part is NOT as it was before pressing: " + string.Join("; ", stillDifferent) +
+                   ", and " + the + " is NOT as it was before pressing: " + string.Join("; ", stillDifferent) +
                    ". SOLIDWORKS cannot redo an undo entry recorded through the API (measured on " +
-                   "1/10/2026), so what the undo took away is lost. Look at the part in SOLIDWORKS before " +
+                   "1/10/2026), so what the undo took away is lost. Look at " + the + " in SOLIDWORKS before " +
                    "going on, and make it again with «build» if you need it.";
         }
 
@@ -3546,6 +5409,8 @@ namespace Oce.Solid.Agent.Tools
                     // many there are (`faces_total`). Whether it is the face the plan
                     // meant is the business of the signature and of the executor.
                     if (IsFaceBeyondTheList(uid, docState)) continue;
+                    // And an edge beyond the thirty, by its rank (brief R17).
+                    if (IsEdgeBeyondTheList(uid, docState)) continue;
 
                     // WE SAY WHAT IS THERE, not just what is missing. On an empty
                     // document the list is empty, and that is precisely the case in
@@ -3617,6 +5482,20 @@ namespace Oce.Solid.Agent.Tools
             if (rank < 1 || docState == null) return false;
             object total;
             if (!docState.TryGetValue("faces_total", out total) || total == null) return false;
+            try { return rank <= Convert.ToInt32(total, System.Globalization.CultureInfo.InvariantCulture); }
+            catch (Exception) { return false; }
+        }
+
+        /// <summary>
+        /// Whether an identifier names an edge that exists but was not listed:
+        /// «E45» on a part whose state says `edges_total` 120 (brief R17).
+        /// </summary>
+        private static bool IsEdgeBeyondTheList(string uid, Dictionary<string, object> docState)
+        {
+            int rank = Oce.Solid.Agent.Core.EdgeFilter.RankOf(uid);
+            if (rank < 1 || docState == null) return false;
+            object total;
+            if (!docState.TryGetValue("edges_total", out total) || total == null) return false;
             try { return rank <= Convert.ToInt32(total, System.Globalization.CultureInfo.InvariantCulture); }
             catch (Exception) { return false; }
         }
@@ -3784,6 +5663,47 @@ namespace Oce.Solid.Agent.Tools
             try { return Convert.ToInt32(v); } catch { return 0; }
         }
 
+        /// <summary>
+        /// The arguments of the operation whose name is near an unknown one
+        /// (brief R8: «value» for «value_text»): one that begins with it and an
+        /// underscore, one it begins with and an underscore, or one at most two
+        /// letters away when both have four letters or more. Said in the refusal,
+        /// never taken in its place.
+        /// </summary>
+        internal static List<string> NearArguments(string given, IEnumerable<string> names)
+        {
+            var near = new List<string>();
+            if (string.IsNullOrEmpty(given) || names == null) return near;
+            foreach (string name in names)
+            {
+                if (string.IsNullOrEmpty(name) || name == given) continue;
+                bool close = name.StartsWith(given + "_", StringComparison.Ordinal) ||
+                             given.StartsWith(name + "_", StringComparison.Ordinal) ||
+                             (given.Length >= 4 && name.Length >= 4 && LettersApart(given, name) <= 2);
+                if (close) near.Add(name);
+            }
+            return near;
+        }
+
+        /// <summary>The edit distance of two names (insert, delete, change one letter).</summary>
+        private static int LettersApart(string a, string b)
+        {
+            var row = new int[b.Length + 1];
+            for (int j = 0; j <= b.Length; j++) row[j] = j;
+            for (int i = 1; i <= a.Length; i++)
+            {
+                int diagonal = row[0];
+                row[0] = i;
+                for (int j = 1; j <= b.Length; j++)
+                {
+                    int above = row[j];
+                    row[j] = Math.Min(Math.Min(row[j] + 1, row[j - 1] + 1), diagonal + (a[i - 1] == b[j - 1] ? 0 : 1));
+                    diagonal = above;
+                }
+            }
+            return row[b.Length];
+        }
+
         private static object Take(Dictionary<string, object> d, string key)
         {
             if (d == null) return null;
@@ -3876,7 +5796,7 @@ namespace Oce.Solid.Agent.Tools
         {
             "inspect_part", "list_operations", "describe_operation",
             "build", "measure", "undo", "document",
-            "api_search", "api_signature",
+            "api_search", "api_signature", "mesh",
         };
 
         private static string HumanTitle(string itemName)
@@ -3892,6 +5812,7 @@ namespace Oce.Solid.Agent.Tools
                 case "document": return "Open, create or pick the document";
                 case "api_search": return "Search the SOLIDWORKS API";
                 case "api_signature": return "Signature and knowledge of an API member";
+                case "mesh": return "Measure or cut an STL file";
                 default: return itemName;
             }
         }

@@ -271,8 +271,90 @@ namespace Oce.Solid.Agent.ContractTests
         /// **228, W3.1-bis.10b (6/10/2026): +1.** The mate refuses an alignment that is
         /// neither «aligned» nor «opposite» (it used to build an aligned mate in silence),
         /// and the refusal says what to write: 228 of 938.
+        /// **231, brief of 25/10/2026 (26/10/2026): +3.** A hole or a pocket that
+        /// SOLIDWORKS did not draw where it was asked, and a through hole that
+        /// drilled no wall, are refused (they used to answer «succeeded»), and each
+        /// refusal says what to try: 231 of 941. **240 the same day: +9.** suppress_mate
+        /// and delete_mate (brief R22) say in each refusal what to send or read
+        /// again: 240 of 952. **241: +1.** save_document, refused on its own file,
+        /// names the two causes measured that night and says to save under a new
+        /// name: 241 of 952. **249: +8.** place_component and the side of a distance
+        /// mate (briefs R12, R21) say what to send instead: 249 of 964. **250: +1.**
+        /// A face named by a point (R12) that is neither a direction nor a point says
+        /// both forms. **251: +1.** insert_component with «origin_mm» and the box
+        /// centre together says to send one of the two. **257: +6.** set_property with
+        /// «scope» (brief R8): every refusal of the scope and of the two drawers
+        /// says what to pass instead: 257 of 976. **258: +1.** extrude_profile
+        /// (brief R11) refuses a vertex that snapping drew elsewhere, and says to
+        /// undo the step, move the vertex and try again: 258 of 977. **259: +1.**
+        /// save_document names the open document that holds the file it was asked
+        /// to write onto, and says to close it or give another path: 259 of 978.
+        /// **265 (27/10/2026): +6.** `parameters` (brief §5.1) says, in each
+        /// refusal, that it touched nothing and what to send instead, and revolve
+        /// (brief R11) refuses a vertex that snapping drew elsewhere: 265 of 996.
+        /// **266 (same day): +1.** extrude_regions (brief §5.2) says which regions
+        /// are in the part when one fails after them, and to undo the step: 266 of 997.
+        /// **278 (same day, round 7 of report 8cd843): +12.** delete_annotation
+        /// (N24) says in each refusal that it touched nothing and what to write
+        /// instead; the dimensions of an assembly view (N23) say which edges and
+        /// what to ask for: 278 of 1009.
+        /// **279 (same day, round 8 of report 8cd843): +1.** «components» (N30)
+        /// names the components the view shows and says to write them as
+        /// view_edges gives them, or to leave the argument out: 279 of 1010.
+        /// **280 (same day, round 9 of report 8cd843): +1.** «components» is now
+        /// checked on the assembly before the view is read (N33), and that early
+        /// refusal says to write the names as inspect_part and view_edges give
+        /// them, or to leave the argument out: 280 of 1011.
+        /// **281 (same day, round 12 of report 8cd843): +1.** A detail with no free
+        /// place on the sheet (N43) is refused with the bigger sheet, the smaller
+        /// radius or scale, or room made first: 281 of 1012.
+        /// **285 (same day, round 13 of report 8cd843): +4.** A view that cannot
+        /// take the circle or the cutting line in its sketch (N47, N48: «try again»,
+        /// «use another view», «use a view that is not turned»), a detail or section
+        /// of another view or a detail with no edge («use «x_mm»...»), and a format
+        /// file of the current sheet that cannot be found (N49): 285 of 1016.
+        /// **287 (same day, round 14 of report 8cd843): +2.** Eight refusals more
+        /// (move_view and delete_view, N54; a save onto another file with
+        /// «overwrite» false, N55; a circle or a cutting line that snapped, N52; a
+        /// section with no free place along its line, N53), two of them read by the
+        /// detector as saying what to do: 287 of 1024.
+        /// **288 (28/10/2026, round 17 of report 8cd843): +1.** An «order» of the
+        /// balloons that is not one of the two (N60) is refused with «use one of the
+        /// two, or leave it out»: 288 of 1025.
+        /// **289 (28/10/2026, round 20 of report 8cd843): +1.** A circle of a detail in
+        /// the margin of a view, meeting none of its lines (N62), is refused with «move it
+        /// onto a line of that drawing with «x_mm», «y_mm» and «radius_mm»»: 289 of 1026.
+        /// **290 (28/10/2026, round 20 of report 8cd843): +1.** A sketch asked to
+        /// «sketch_details» that is not in the part (N63) is refused with «use one of
+        /// them, or leave «sketch» out»: 290 of 1028.
+        /// **296 (28/10/2026, round 21 of report 8cd843, point 1): +6.** The scale of a
+        /// view: a scale that cannot be read («give it as «1:2» or «2:1»», on
+        /// «set_view_scale», «standard_views» and «model_view»), a view that is not
+        /// there («use one of them»), a view already at that scale («give another
+        /// «scale»»), new views that cannot be told from the old ones («use
+        /// «set_view_scale»»).
+        /// **297 (28/10/2026, round 21, point 4): +1.** «decimals» of
+        /// «drawing_dimension» that is not a whole number from 0 to 8 («give a whole
+        /// number from 0 to 8, or leave «decimals» out»).
+        /// **298 (28/10/2026, round 21, point 2): +1.** «overall» and «edges» together on
+        /// a view of a part («two calls: one with «overall», one with «edges»»).
+        /// **299 (28/10/2026, round 21, point 7): +1.** A «width» mate without its
+        /// second faces, or with them on another mate («Give «face_a2» and «face_b2»»).
+        /// **314 (31/10/2026, 0.161.0): +1.** The style of dimensioning named by
+        /// «OCE_DRAWING_STYLE» that cannot be used («correct the file, or remove
+        /// OCE_DRAWING_STYLE to use the built-in one»).
+        /// **316 (02/11/2026, 0.162.0): +2.** «between» whose every pair dimensions an
+        /// extent the drawing already gives («pass «repeat»: true to place them anyway»),
+        /// and the view with nothing left that now names «repeat» for what another view or
+        /// a chain already gives.
+        /// **317 (02/11/2026, 0.165.0): +1.** «unalign» asked and the view still on the line of
+        /// its parent («give only the move along that line, or move its parent view instead»).
+        /// **318 (02/11/2026, 0.167.0): +1.** The automatic dimensions read the style file too
+        /// («Correct the file, or remove OCE_DRAWING_STYLE to use the built-in one»).
+        /// **320 (02/11/2026, 0.169.0): +2.** «chamfer» on chosen edges: in a call of its own, and
+        /// what each entry is when it cannot be used.
         /// </summary>
-        private const int Floor = 228;
+        private const int Floor = 320;
 
         /// <summary>
         /// THE SHARE OF REFUSALS THAT SAY WHAT TO DO may not go down: today's
@@ -286,8 +368,8 @@ namespace Oce.Solid.Agent.ContractTests
         /// promise was a sentence, not a check. This floor is the check. It is
         /// raised by hand, like the one above, when the share goes up.
         /// </summary>
-        private const int ShareFloorWithRemedy = 228;   // 6/10/2026, W3.1-bis.10b: 228 of 938 (W3.1-bis.8: 227 of 937 with the detector that skips statements)
-        private const int ShareFloorWithText = 938;
+        private const int ShareFloorWithRemedy = 320;   // 02/11/2026, 0.169.0 (the chamfer dimension on chosen edges): 320 of 1081; 02/11/2026, 0.167.0 (the automatic dimensions in the owner's style): 318 of 1077; 02/11/2026, 0.165.0 (move_view «unalign»): 317 of 1076; 02/11/2026, 0.162.0 (one dimension per extent on the whole drawing): 316 of 1075; 31/10/2026, 0.161.0 (the style of dimensioning of the owner): 314 of 1074; 28/10/2026, round 22 of report 8cd843 (the drawings of 26M000002 against the owner's): 313 of 1073; 28/10/2026, round 21 of report 8cd843 (the width mate): 299 of 1045; 28/10/2026, round 21 of report 8cd843 (the overall size of a part): 298 of 1040; 28/10/2026, round 21 of report 8cd843 (the decimals of a dimension): 297 of 1039; 28/10/2026, round 21 of report 8cd843 (the scale of a view): 296 of 1038; 28/10/2026, round 20 of report 8cd843 (N63): 290 of 1028; 28/10/2026, round 20 of report 8cd843 (N62): 289 of 1026; 28/10/2026, round 17 of report 8cd843 (N60): 288 of 1025; 27/10/2026, round 14 of report 8cd843 (N52-N55): 287 of 1024; round 13 (N47-N49): 285 of 1016; round 12 (N43): 281 of 1012; round 9 (N33): 280 of 1011; round 8 (N30): 279 of 1010; round 7 (N23, N24): 278 of 1009; extrude_regions: 266 of 997; parameters and revolve: 265 of 996; 26/10/2026 night, save_document: 259 of 978; brief R11: 258 of 977; briefs R8, R10, R12, R21, R22, and save_document: 257 of 976 (before R8: 251 of 970) (W3.1-bis.10b: 228 of 938; W3.1-bis.8: 227 of 937 with the detector that skips statements)
+        private const int ShareFloorWithText = 1081;
 
         /// <summary>
         /// The openings with which this code says no.

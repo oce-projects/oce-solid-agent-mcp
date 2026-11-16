@@ -119,7 +119,20 @@ $tools = @(
     @{ name = 'SolidWorksLanguage'; sw = $true; lib = $true; extra = @('System.Xml.Linq.dll', 'System.Xml.dll') }
     # Faces beyond the 60 largest (W3.1-bis.12): is the ranking by area stable between
     # two readings, how does it tie at the cut, what does a closest-point read cost.
-    @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false }
+    @{ name = 'FacesBeyondSixty'; sw = $true; lib = $false },
+    # Dimensions from the sketch origin to every vertex of a profile (brief R5): how
+    # the origin is selected, what the two dimension calls give, what a driven value does.
+    @{ name = 'DrivenSketch'; sw = $true; lib = $false },
+    # Does the lock of the sketch split the undo entry of a plan (brief R11, H1)? And
+    # can the FIXED relations go in while the sketch is still open?
+    @{ name = 'UndoSplit'; sw = $true; lib = $false },
+    # What does one undo take away in an assembly (brief R23): insert, insert, mate,
+    # inside the recording of the bridge and without it.
+    @{ name = 'AssemblyUndo'; sw = $true; lib = $false },
+    # Two plans whose undo entry closed empty (scenarios t9b and t14): equations
+    # written by IEquationMgr, and a component moved by Transform2, by
+    # SetTransformAndSolve2 or by IDragOperator.
+    @{ name = 'UndoGaps'; sw = $true; lib = $false }
 )
 
 foreach ($a in $tools) {

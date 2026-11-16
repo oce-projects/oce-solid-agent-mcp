@@ -312,12 +312,18 @@ namespace Oce.Solid.Agent.Core
                 // Only whole circles: on the arc of a fillet no mark is born from
                 // code (measured on 26/9/2026, 4 arcs of 4).
                 if (!whole) continue;
+                // On a view of an assembly the circle is in the coordinates of
+                // its component's part: its placement first, then the view
+                // (report 8cd843 N23, the same cause as drawing_dimension). Null
+                // when the placement cannot be composed: then it is not a hole
+                // this view can show, as with a view that gives no transform.
+                MathTransform edgeToSheet = ToSheetOf(e, toSheet, out _, out _);
                 // A REAL HOLE (review of 26/9/2026): the circle faces the reader
                 // (its axis, taken onto the sheet, is normal to the sheet) and is an
                 // INNER loop of a planar face. The rim of a disc or the end of a
                 // shaft is a whole circle but not a hole: they used to become
                 // "holes without a mark" and a right part was refused.
-                if (!IsAVisibleHole(e, c, mu, toSheet)) { marks.CirclesThatAreNotHoles++; continue; }
+                if (!IsAVisibleHole(e, c, mu, edgeToSheet)) { marks.CirclesThatAreNotHoles++; continue; }
                 marks.Holes++;
 
                 // The centre on the sheet, so that one hole never gets two marks.
@@ -325,8 +331,8 @@ namespace Oce.Solid.Agent.Core
                 try
                 {
                     var cp = c.CircleParams as double[];
-                    if (cp != null && mu != null && toSheet != null)
-                        centre = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { cp[0], cp[1], cp[2] })).MultiplyTransform(toSheet)).ArrayData as double[];
+                    if (cp != null && mu != null && edgeToSheet != null)
+                        centre = ((IMathPoint)((IMathPoint)mu.CreatePoint(new[] { cp[0], cp[1], cp[2] })).MultiplyTransform(edgeToSheet)).ArrayData as double[];
                 }
                 catch { }
                 if (centre != null && knownCentres.Exists(q => SameCenter(view, q, centre)))

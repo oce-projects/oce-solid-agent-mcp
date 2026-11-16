@@ -81,7 +81,32 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { }
-            return outside;
+
+            // BY TITLE, THEN BY PATH (library 0.186.0), not in the order SOLIDWORKS keeps
+            // them: on the bench of 30/10/2026 the base and the lid of the same assembly
+            // came in the two orders in two equal runs (RAG note 95). The list is a set;
+            // the order says nothing, and `active` says which one is being read.
+            var order = new List<int>();
+            for (int k = 0; k < outside.Count; k++) order.Add(k);
+            order.Sort((x, y) =>
+            {
+                int c = string.Compare(TextOf(outside[x], "document_title"), TextOf(outside[y], "document_title"),
+                    StringComparison.OrdinalIgnoreCase);
+                if (c == 0)
+                    c = string.Compare(TextOf(outside[x], "path"), TextOf(outside[y], "path"),
+                        StringComparison.OrdinalIgnoreCase);
+                return c != 0 ? c : x.CompareTo(y);
+            });
+            var sortedDocuments = new List<Dictionary<string, object>>();
+            foreach (var k in order) sortedDocuments.Add(outside[k]);
+            return sortedDocuments;
+        }
+
+        /// <summary>A text field of an entry of <see cref="OpenDocuments"/>, "" when absent.</summary>
+        private static string TextOf(Dictionary<string, object> entry, string key)
+        {
+            object value;
+            return entry.TryGetValue(key, out value) && value != null ? Convert.ToString(value) : "";
         }
 
         /// <summary>Sheets, views and counts of a drawing.</summary>
@@ -110,14 +135,17 @@ namespace Oce.Solid.Agent.Core
                             ["uid"] = "S" + (i + 1),
                             ["name"] = names[i],
                         };
-                        if (string.Equals(names[i], active, StringComparison.Ordinal))
-                            entry["active"] = true;
+                        // FALSE TOO, NOT LEFT OUT (report 8cd843 round 16, observation):
+                        // only the active sheet carried the field, and a field that
+                        // appears only when true cannot be read as false.
+                        bool isActive = string.Equals(names[i], active, StringComparison.Ordinal);
+                        entry["active"] = isActive;
 
                         // The properties of the sheet can be read only from the
                         // ACTIVE one without changing sheet, and changing sheet to
                         // read would be a read that modifies: what can be read is read
                         // and the rest is left unsaid.
-                        if (entry.ContainsKey("active"))
+                        if (isActive)
                         {
                             var p = SheetPropertyOf(drawing);
                             if (p != null)
@@ -139,6 +167,11 @@ namespace Oce.Solid.Agent.Core
                                     entry["projection_angle"] = p[4] != 0 ? "first" : "third";
                             }
                         }
+                        else
+                            // SAID, NOT LEFT BLANK (report 8cd843 round 12, observation 3):
+                            // a sheet of two with only its name read as a sheet with no
+                            // views; the views below are those of the active sheet.
+                            entry["not_read"] = NotActiveSheetNote(names[i]);
                         sheets.Add(entry);
                     }
                 }
@@ -257,12 +290,35 @@ namespace Oce.Solid.Agent.Core
                         var entry = new Dictionary<string, object>
                         {
                             ["uid"] = "V" + totalViews,
+                            // V1, V2 ... count the views of the ACTIVE sheet (report 8cd843 N57):
+                            // on another sheet the same uid is another view.
+                            ["sheet"] = active,
                         };
                         try { entry["name"] = v.Name; } catch { }
                         try { entry["kind"] = ViewTypeName(v.Type); } catch { }
 
                         var pos = ViewPosition(v);
                         if (pos != null) entry["position_mm"] = pos;
+                        // WHERE THE VIEW IS SEEN (report 8cd843 round 14, observation 2): the Position
+                        // of a detail is the centre of the whole model at the detail's scale, not of
+                        // what it shows (detail B: Position 201, 127 mm; on the PDF x 321..395 mm,
+                        // its outline 307.7..408 mm). The outline is the rectangle on the sheet.
+                        try
+                        {
+                            var o = v.GetOutline() as double[];
+                            if (o != null && o.Length >= 4)
+                            {
+                                entry["outline_mm"] = new object[] { Math.Round(o[0] * 1000, 1), Math.Round(o[1] * 1000, 1), Math.Round(o[2] * 1000, 1), Math.Round(o[3] * 1000, 1) };
+                                entry["centre_on_the_sheet_mm"] = new object[] { Math.Round((o[0] + o[2]) / 2 * 1000, 1), Math.Round((o[1] + o[3]) / 2 * 1000, 1) };
+                            }
+                        }
+                        catch { }
+                        // WHAT THE VIEW DRAWS (report 8cd843 N62, round 20): the outline keeps a margin
+                        // around the drawing, 5.8 mm on each side on the PNG of round 20, and a circle
+                        // aimed inside the outline fell in it. The box of the lines the view shows.
+                        var d = SwOperations.DrawnBox(v);
+                        if (d != null)
+                            entry["drawn_mm"] = new object[] { Math.Round(d[0] * 1000, 1), Math.Round(d[1] * 1000, 1), Math.Round(d[2] * 1000, 1), Math.Round(d[3] * 1000, 1) };
 
                         try
                         {
@@ -316,6 +372,10 @@ namespace Oce.Solid.Agent.Core
 
             if (views.Count > 0) data["views"] = views;
             data["views_total"] = totalViews;
+            if (sheets.Count > 1)
+                data["note_views"] = "V1, V2 ... number the views of the active sheet «" + active + "» only, and the views of the " +
+                                     "other sheets are not listed: after «new_sheet» or «activate_sheet» the same uid is another view. " +
+                                     "«delete_view» wants the name of the view on a drawing of more sheets.";
             data["dimensions_total"] = quoteTotali;
             data["center_marks_total"] = totalCenterMarks;
             data["dimensions_with_number_not_from_model_total"] = totalBogusNumbers;
@@ -586,6 +646,17 @@ namespace Oce.Solid.Agent.Core
                 return (p != null && p.Length >= 7) ? p : null;
             }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// What a sheet that is not active says instead of its views and its paper
+        /// (round 12 of 8cd843, observation 3). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NotActiveSheetNote(string sheetName)
+        {
+            return "Not read: only the active sheet is read, because changing sheet to read it would change the " +
+                   "drawing. «views» and «views_total» are those of the active sheet; «activate_sheet» with «" +
+                   (sheetName ?? "") + "», then «inspect_part», to read this one.";
         }
 
         /// <summary>«1:2» instead of «0.5»: it is how it is written on a drawing.</summary>

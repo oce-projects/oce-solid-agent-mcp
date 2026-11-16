@@ -1,0 +1,44 @@
+{
+  "name": "limit_detail_on_empty_space",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N47 (round 13, 27/10/2026). The three details of a real drawing came out as empty circles in the PDF: the circle had become a detail circle of the view, the detail view was born, its label and scale were right, and nothing was in it. A detail that shows no edge is a box with nothing in it that reaches the workshop.",
+
+  "_what_changes_compared_to_the_twin": "One argument: `x_mm`. The twin passes it as **55**, where the circle takes the right end of the plate (1 visible edge, measured); here it is left out, and the circle stays at the centre of the front view (120 x 20 mm at scale 1), inside the face, where the detail shows 0 visible edges (measured on 27/10/2026, scenario t40).",
+
+  "defect_caught": "That the check on the visible edges disappears, or goes back to counting only the detail circles of the view: those went from 0 to 1 on the empty details of round 13 too. The message must say that the detail shows no edge, and that the view and the circle were removed.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "same part as the twin up to the step that changes" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_detail_on_empty_space.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the part must be on disk before the view names it" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the refusal must be the one on the empty detail, not the one on «it is not a drawing»" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_detail_on_empty_space.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the view is there, and it is the place of the circle that is empty" } ] },
+
+    { "operation": "detail_view",
+      "arguments": { "label": "B", "scale": 2, "radius_mm": 8 },
+      "must_fail": {
+        "message_includes": ["shows no edge", "visible edges 0", "I removed the view", "I removed the circle"],
+        "twin": "detail_enlarges"
+      } }
+  ]
+}

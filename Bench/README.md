@@ -335,8 +335,14 @@ reproduced on demand (entry K17; on 23/9/2026 it cost an hour and a half of run
 and nine right cases painted red).
 
 What it does **not** cover: a SOLIDWORKS that hangs *inside* a call instead of
-answering `null`. There no answer comes back to be counted, and the run stays
-hung — that is entry K18, not done.
+answering `null`. There no answer comes back to be counted: that is the leash
+(entry K18), which stops the run with exit 5 when a call has not come back after
+90 s. Since 27/10/2026, before stopping, it reads the processor time of SLDWORKS
+twice five seconds apart (busy: the call is slow; idle: it waits for a window, a
+lock, the network), says whether SOLIDWORKS responds and which windows it has
+open, and writes the ten slowest calls of the run with the time of day; a whole
+run writes them before the summary too. To see it fire: `--leash-ms 1500` with
+one small `--group` (never on a full run: it stops it).
 
 ### What the run reads from the NETWORK, and what it does not (entry K19)
 
@@ -366,6 +372,13 @@ the cases and the binaries wherever the clone is, which may be on the network
 ```
 
 The one that was removed is the **most frequent**, not the only one.
+
+Since library 0.179.1 (29/10/2026) the templates the **operations** open can come
+from a local copy too: `OCE_LOCAL_COPIES` = «folder on the share|local folder».
+The template of `create_drawing`, the format of `new_sheet` and the folders of the
+table templates are opened from the local folder when the file is there, and the
+answers keep naming the share. The bench says it in its first line
+(«templates from the local copy ...»). Unset, the share is read as before.
 
 ### The pairs — `cases/pairs/`
 
@@ -606,7 +619,7 @@ there but is not in the list is not read, and one in the list that is not there
 is a bench error.
 
 ```
-cases/features/ 37   the shell, and which side it removes from;
+cases/features/ 39   the shell, and which side it removes from;
                        the symmetric plate that grows on both sides
                        with edit_extrusion (revision of 27/9, Z-C20);
                        the dimension that pushes the slot out of the material,
@@ -637,7 +650,8 @@ cases/features/ 37   the shell, and which side it removes from;
                        close for it, and the counterbore past the edge, both
                        refused with their twins (Z-C21.10, N50); the state
                        counts selected edges and faces of fillets and
-                       chamfers (Z-C21, C7-2, N14)
+                       chamfers (Z-C21, C7-2, N14); a depth given alone makes
+                       the hole blind, and «through_all» beside it still wins (t15)
 cases/pairs/       8   the refusals with their twin
 cases/slot/       18   every face, not just one; the dimensioned sketch that is
                        corrected with set_dimension, and the straight and oblique anchor
@@ -681,11 +695,14 @@ cases/export/     15   STL, STEP and IGES: the file read back byte by byte,
                        directory counted (Z-C21.10, N59);
                        AP242 through SOLIDWORKS MBD, refused
                        without its licence or with a .step path (Z-C21.13)
-cases/document_properties/   12   the two drawers, and the code that goes into the BOM; the
-                       material reaches every configuration (Z-C21, M10)
+cases/document_properties/   13   the two drawers, and the code that goes into the BOM; the
+                       material reaches every configuration (Z-C21, M10);
+                       one property written in both drawers by «scope» (R8)
 cases/text/        6   engraving, and the lettering that comes out of the face
 cases/frames/        1   the welded profiles, read from the standard library ({PROFILES})
-cases/assemblies/     23   inserting is not mating; one constraint is not enough;
+cases/assemblies/     28   inserting is not mating; one constraint is not enough;
+                       the width mate puts the tab in the middle (round 21);
+                       how a mate is set: alignment, value, entities (N63);
                        two equal bases and a STEP: one shape per part,
                        the mass per instance (Z-C20);
                        the rebuilt cover keeps the constraints and breaks them;
@@ -712,8 +729,15 @@ cases/assemblies/     23   inserting is not mating; one constraint is not enough
                        is refused as redundant and taken out, and a parallel
                        after it blocks RY only (Z-C14); the first component goes
                        into an empty assembly, where the count was read off a
-                       null array (D9 defect 3)
-cases/drawing/      43   the first case that gets to the DRAWING (entry GT0);
+                       null array (D9 defect 3); a wrong mate is taken out by its
+                       uid: listed in the state, suppressed, turned back on and
+                       deleted, each read back (brief R22); a part is turned
+                       over and placed, the state says its axes, the mates win
+                       over a placement, and a distance mate goes on the side
+                       asked, measured on the faces (briefs R12, R21); a face
+                       is named by a point, curved ones too, and a pin goes
+                       concentric on a shaft (brief R12)
+cases/drawing/      70   the first case that gets to the DRAWING (entry GT0);
                        a through Ø8 and a blind Ø8, two callouts; the boss
                        is not a hole; the chamfered shaft without the legs of the
                        chamfer (revision of 27/9, Z-C20);
@@ -726,7 +750,16 @@ cases/drawing/      43   the first case that gets to the DRAWING (entry GT0);
                        the counters are there even at zero (entry Z-E1);
                        the drawing is dimensioned, and the dimensions say 120 and 10 (entry K10);
                        the edge that does not exist (the twin of the refusal);
+                       a dimension taken away by its name, two then one
+                       (report 8cd843 N24), and the name nobody answers to (the twin);
                        the note ends up on the SHEET and not in a view (entry E2-bis);
+                       and it stays there after a view was dimensioned and left active
+                       (found in the replay of round 7);
+                       a note of two lines reads back the same, line ends aside
+                       (report 8cd843 N29); a note taken away by its text, counted
+                       on the sheet and in the views apart (N32);
+                       a drawing saved by the plan is not «to be saved» again,
+                       and neither is its part (N34);
                        the note outside the sheet (the twin of the refusal);
                        the section cuts the part, and has the HATCHING (entry GT4);
                        the cut outside the view (the twin of the refusal);
@@ -734,6 +767,8 @@ cases/drawing/      43   the first case that gets to the DRAWING (entry GT0);
                        detail -- not the hatching, which on a detail
                        is zero (entry GT4, the other half);
                        the circle bigger than the view (the twin);
+                       the detail on empty space, with no edge, refused
+                       (report 8cd843 N47, the twin);
                        the hole table says where the holes are, read back against the
                        part, and drawing_dimension leaves the holes to the table
                        (entry GT5); the table on the side view, refused;
@@ -766,8 +801,19 @@ cases/drawing/      43   the first case that gets to the DRAWING (entry GT0);
                        of the view, not the active one (Z-C21.4, L16-2, L16-3);
                        the indented BOM follows the tree (Z-C21.11, M23); four
                        standard views found by what they show, and named as
-                       the table of the SOLIDWORKS names names them (0.153.0)
-cases/weldments/   16   the BOM counts the bars, and the two numbers come from
+                       the table of the SOLIDWORKS names names them (0.153.0);
+                       a view moved along its line and read back from its
+                       outline, and moved off its line, refused; a view deleted,
+                       and one that has a section, refused unless asked
+                       (report 8cd843 N54); the save says the file it replaced,
+                       and with «overwrite» false it refuses (N55); a view asked
+                       by number on a drawing of two sheets is not taken away (N57);
+                       a detail not larger than its view is refused (N58); the
+                       title block says the other sheet whose model lacks a
+                       property it asks for (N59); the balloons in the order of
+                       the bill of materials do not renumber it (N60); a balloon
+                       born over the bill of materials is moved off it (note 101)
+cases/weldments/   17   the BOM counts the bars, and the two numbers come from
                        two different places; the trim really shortens the bar,
                        and refuses between bars that do not meet; the bead
                        goes between faces that touch at an angle; the cap closes
@@ -789,15 +835,23 @@ cases/weldments/   16   the BOM counts the bars, and the two numbers come from
                        cap leaves out a drilled wall (Z-C21.5, N7); the cut list
                        counts the gussets and the end caps, not only the bars,
                        and the gusset at the END of a bar is found like the one
-                       at its start (D9 defects 1 and 2)
-cases/extrusions/  10   the tube has the hole; the extruded slot is as long as
+                       at its start (D9 defects 1 and 2); a member SOLIDWORKS
+                       does not create says what was read after the refusal:
+                       the segments in the group, the free ends of the path,
+                       the profile library (library 0.198.9)
+cases/extrusions/  12   the tube has the hole; the extruded slot is as long as
                        the bounding box, ends included, and is a polygon; the
                        17-tooth wheel can be made, the 16 one refuses; the fin
                        grows from the face outwards (entry Z-C6); the round and
                        rectangular anchored boss, and the triangle refused
                        (entry E18); a plane name that is not one of the three is
                        refused, never the front plane (Z-C21.10, N33); the
-                       sketch of the L locked for real (Z-C21, M5)
+                       sketch of the L locked for real (Z-C21, M5); the L
+                       driven by its vertices, a vertex moved by its dimension
+                       and the one on the negative side kept there (brief R5);
+                       three heights of one plane in one step, the second moved
+                       by the name of its dimension, a height of zero refused
+                       with nothing drawn (brief §5.2)
 cases/sheet_metal/     13   the L unfolds as long as the hand calculation; dated
                        the other way round, the points become the outer faces; the
                        flat pattern without a file refused; the stretch shorter
@@ -810,7 +864,7 @@ cases/sheet_metal/     13   the L unfolds as long as the hand calculation; dated
                        unchanged) and the 180 bend refused (entry GP18); the
                        axis and the planes of a sheet are the ones the calls
                        made, not the flat pattern (Z-C21.5, S7)
-cases/dimensions/        7   the variable that does not override the chamfer, refused and
+cases/dimensions/        8   the variable that does not override the chamfer, refused and
                        put back as it was (Z-C20); the plate dimensions itself
                        with DimXpert, with the right
                        values; with two references it refuses (entry Z-H3); the
@@ -821,7 +875,9 @@ cases/dimensions/        7   the variable that does not override the chamfer, re
                        which follow the change (Z-F1); every part dimension
                        reader (set_dimension, dimension_tolerance, link_dimension)
                        with the fourth configuration active, the before and
-                       after of S1 in parts (Z-C21.13)
+                       after of S1 in parts (Z-C21.13); two variables and a
+                       link in one step, and a link to a missing dimension
+                       refused with nothing written (brief §5.1)
 cases/regression/ 19   a dimension upstream changes: who holds and who detaches (--regression)
 cases/reanchor/    3   the edge named with the uid read BEFORE two holes is
                        found again by signature (same length, same point) and the

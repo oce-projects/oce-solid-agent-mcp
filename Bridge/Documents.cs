@@ -443,13 +443,15 @@ namespace Oce.Solid.Agent.Bridge
             {
                 // IModelDoc2~EditRebuild3.html, Return Value: "True if only those
                 // features that need to be rebuilt are rebuilt in the active
-                // configuration in the model, false if not".
+                // configuration in the model, false if not". On an assembly
+                // EditRebuild3 emptied the undo (brief R23): RebuildKeepingUndo
+                // uses IModelDocExtension.Rebuild there.
                 try
                 {
-                    rebuiltOnActivation = doc.EditRebuild3();
-                    if (!rebuiltOnActivation) rebuildFault = "EditRebuild3 answered false";
+                    rebuiltOnActivation = Oce.Solid.Agent.Core.SwOperations.RebuildKeepingUndo(doc);
+                    if (!rebuiltOnActivation) rebuildFault = "the rebuild answered false";
                 }
-                catch (Exception ex) { rebuildFault = "EditRebuild3 threw: " + ex.Message; }
+                catch (Exception ex) { rebuildFault = "the rebuild threw: " + ex.Message; }
             }
 
             var card = Card(doc, front);

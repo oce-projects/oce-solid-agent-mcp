@@ -15,7 +15,7 @@
                     "tolerance_why": "the centre is read from CylinderParams" } ] },
     { "operation": "linear_pattern",
       "arguments": { "feature_uid": "@feature(kind=ICE,n=1)",
-                     "axis1_uid": "@edge(axis=X,length~=200,n=1)",
+                     "axis1_uid": "@edge(axis=X,length~=200,y~=60,z~=20)",
                      "pitch1_mm": 25, "instance_count1": 4 },
       "expect": [ { "what": "measurements.copies_done", "equal_to": 3 } ] },
     { "operation": "suppress_instance",

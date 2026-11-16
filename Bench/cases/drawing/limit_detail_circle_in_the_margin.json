@@ -1,0 +1,60 @@
+{
+  "name": "limit_detail_circle_in_the_margin",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N62 (round 20, 28/10/2026). The outline of a view keeps a margin around what it draws: 5.8 mm on each side on the PNG of round 20, 5.9 mm read back in scenario t62 (drawing 103 to 137 mm, outline 97.1 to 142.9 mm). A circle aimed inside the outline but in that margin passed the check «the circle fits» and then enlarged nothing: 0 visible edges (1016c).",
+
+  "defect_caught": "That a circle in the margin is drawn, made into a detail and only then found empty; and, the other way round, that a circle taking the end of the part, which sticks out of the box of the drawing as any circle on an edge does, is refused.",
+
+  "_why_these_numbers": "The front view of the plate is 120 x 20 mm at scale 1 (detail_enlarges): the drawing goes from x -60 to 60 mm from the centre of the outline, the outline to about 65.9. A circle of radius 2 at x 63 lies between 61 and 65: inside the outline, out of the drawing, 3 mm from its nearest line. The circle of detail_enlarges, radius 8 at x 55, goes from 47 to 63: out of the box of the drawing too, but across the end of the plate.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "the plate of detail_enlarges: the numbers above are read on its front view" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_detail_circle_in_the_margin.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "from here on the active document is the drawing" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_detail_circle_in_the_margin.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the front view the circles are put on" } ] },
+
+    { "operation": "detail_view",
+      "arguments": { "label": "B", "scale": 2, "radius_mm": 8, "x_mm": 55 },
+      "_why_first": "THE TWIN THAT PASSES, BEFORE THE REFUSAL: the circle of detail_enlarges sticks out of the box of the drawing, across the end of the plate. A check made on the box alone would refuse it.",
+      "expect": [
+        { "what": "measurements.visible_edges", "equal_to": 1,
+          "why": "the right end of the plate, as in detail_enlarges" },
+        { "what": "measurements.checked_on", "equal_to": "the outline of the view and the lines it draws",
+          "why": "the lines of the view were read, so the margin could be told from the drawing" },
+        { "what": "measurements.drawing_of_the_view_mm[0]", "equal_to": -60, "tolerance": 0.2,
+          "tolerance_why": "the left end of a plate 120 mm long at scale 1, from the centre of the outline, rounded to a tenth",
+          "why": "WHAT THE VIEW DRAWS, in the frame of «x_mm» and «y_mm»: the number a plan needs to aim a circle, which «outline_mm» does not give" },
+        { "what": "measurements.drawing_of_the_view_mm[2]", "equal_to": 60, "tolerance": 0.2,
+          "tolerance_why": "as above, the right end",
+          "why": "the other end: a box that only grew on one side would pass the line above" } ] },
+
+    { "operation": "detail_view",
+      "arguments": { "label": "C", "scale": 2, "radius_mm": 2, "x_mm": 63 },
+      "_why_refused": "THE FIX: refused before anything is drawn, saying where the drawing is. Until library 0.174.9 this circle passed the check on the outline, became a detail and was refused after as empty, «visible edges 0».",
+      "must_fail": {
+        "message_includes": ["meets no line of the view", "in the margin of the outline", "The view draws from x -60 to 60", "I touched nothing"],
+        "twin": "detail_enlarges"
+      } }
+  ]
+}

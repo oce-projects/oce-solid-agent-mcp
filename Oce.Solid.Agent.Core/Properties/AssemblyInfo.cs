@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // Oce.Solid.Agent.Core — the drawing operations for SOLIDWORKS, without the PDM.
@@ -530,19 +530,328 @@ using System.Runtime.InteropServices;
 //          which adds nothing on a bare view (probe of 8/10/2026), is gone. The call
 //          is never made on a view where a hole already has its mark: it doubles them.
 //          standard_views writes one journal line when it fires.
-// 0.153.2: usage report of 24 October 2026.
-//          Materials are matched by whole words (MaterialNameMatch): "PLA" no longer
-//          matches an unrelated plastic, and the ambiguity message says "material"
-//          instead of "steel". The plan log writes, for each step, the time of the
-//          state readings, of the operation and of the rebuild, and when the window
-//          in front changes during a plan it writes the step and the time since the
-//          start. The assembly note names the assembly operations (insert_component,
-//          mate, fix_component, replace_component, mirror_component, origin_mm).
-//          The state after a build is left out only when the plan wrote nothing, and
-//          inspect_part with "faces" on a part with no solid body answers empty with
-//          faces_note.
-[assembly: AssemblyVersion("0.153.2.0")]
-[assembly: AssemblyFileVersion("0.153.2.0")]
+// 0.155.0: brief of 25/10/2026, measured on 26/10/2026 (0.154.0 is the number of the
+//          branch release-0.131.0, not merged yet: this one is cut from main).
+//          PhaseClock times each phase of a call. PlanExecutor writes «timing_ms»
+//          for each step, skips the state reading for a source that does not use
+//          it (IPlanSourceWithoutState) and for the 40 operations that never cite
+//          an identifier (SwOperations.OperationsWithoutState), lets the bridge own
+//          CommandInProgress, and brings the plan's document back when another
+//          window comes to the front (ReactivateWindow, MaxReactivations). A
+//          plan of 21 steps went from 1,243.8 s to 63.6 s (same plan, a new part each time).
+//          cylindrical_cut and rectangular_cut always add the sketch entities to
+//          the database (SOLIDWORKS no longer snaps a centre), read the circle or
+//          the rectangle back before the cut and refuse one that moved; a through
+//          hole that drilled no wall fails. apply_material: a name shorter than
+//          four letters counts only as a whole word (PLA was matching
+//          «Plastiche»). extrude_profile tells the model axes of the sketch
+//          («sketch_axes») and accepts a part that has bodies already.
+// 0.156.0: briefs R12 and R21 (26/10/2026). place_component sets where a component
+//          goes and how it is turned (Transform2, read back after a rebuild; the
+//          mates win and the step is refused). The state lists «axes» for each
+//          component. mate takes «distance_side» (Flip of AddMate5), measures the
+//          side on the two faces and answers «placement_after».
+// 0.157.0: brief R16 (26/10/2026). A plan step can carry «expect», next to its
+//          arguments: the measurements it must come out with. One that does not
+//          hold, or that the step does not measure, makes the step fail
+//          (StepExpectations, PlanStep.Expect).
+// 0.158.0: brief R6 (26/10/2026). The assembly state builds «what_can_be_done»
+//          from the catalog (Operations.NamesFor) and names the components whose
+//          degrees of freedom SOLIDWORKS did not give, instead of «every one».
+// 0.159.0: brief R8 (26/10/2026). set_property takes «scope»: file,
+//          configuration (named or active) or both, each drawer read back.
+// 0.160.0: brief R15 (26/10/2026). StlMesh reads an STL file, measures it and
+//          cuts it into contours in the sketch coordinates of extrude_profile.
+// 0.161.0: brief R17 (26/10/2026). EdgeFilter and DocumentState.ReadFiltered:
+//          the edges a filter asks for, by rank among all the edges; an edge
+//          beyond the thirty listed is found by TryGetSignature.
+// 0.162.0: brief R5 (26/10/2026). extrude_profile «dimensions»: «driven» puts a
+//          dimension from the origin on every vertex (DriveProfile), «fixed» locks
+//          the sketch as before. Origin selection and the two dimension calls not
+//          measured yet: probe Checks\DrivenSketch, bench case
+//          a_profile_is_driven_by_its_vertices.
+// 0.162.1: brief R16 seen on SOLIDWORKS, an «expect» of volume on a step that
+//          measures none (extrude_profile) failed after the step had run; the
+//          plan executor now reads the volume of the part when it is asked for
+//          and the step did not give it (PlanExecutor.WithVolumeIfAsked).
+// 0.163.0: brief R11, extrude_profile draws without AddToDB (its entities could
+//          not be undone), with the automatic relations off while drawing, locks
+//          the sketch while it is open and reads every vertex back
+//          (LockOpenSketch, VerticesNotDrawn; probe Checks\UndoSplit).
+// 0.163.1: brief R11, extrude_profile draws with sketch inference off too and
+//          joins the ends with ISketch.MergePoints: with snapping on, 6 vertices
+//          of a star of 20 went onto points nearby (probe Checks\UndoSplit star).
+// 0.163.2: save_document names the open document that holds the file it was
+//          asked to write onto (GetOpenDocumentByName, after the refusal only).
+// 0.164.0: brief R23, the undo of a plan on an assembly holds again: the plan
+//          executor and the assembly operations rebuild an assembly with
+//          IModelDocExtension.Rebuild (SwOperations.RebuildKeepingUndo), because
+//          EditRebuild3 and ForceRebuild3 made FinishRecordingUndoObject answer
+//          false and no undo took anything away (probe Checks\AssemblyUndo).
+//          Brief R5: a driven profile says in «warning_dimensions» how many
+//          coordinates sit on an axis (held by a relation, not drivable).
+// 0.165.0: brief §5.1, «parameters» writes variables and links in one step
+//          (EquationOperations.Parameters). An empty assembly reads empty
+//          (GetComponentCount when GetComponents answers null). Revolve draws
+//          with the R11 recipe and locks the open sketch; LockSketch is gone.
+// 0.166.0: brief §5.2, «extrude_regions» extrudes several regions of one plane
+//          to their heights in one step and names the depth dimension of each.
+// 0.167.0: place_component moves the component with IDragOperator: setting
+//          Transform2 left the undo entry of the plan empty (Checks\UndoGaps).
+//          parameters answers equation_before for a variable it rewrote.
+// 0.167.1: VerticesNotDrawn reads the points of the sketch once instead of
+//          two COM calls per vertex and per point.
+// 0.168.0: report 8cd843: the reading before a step leaves the edges out when
+//          the step names none (DocumentState.ReadWithoutEdges,
+//          PlanExecutor.MentionsEdges); a kept «expect» is said
+//          (StepExpectations.Held, expect_verdict) and a missed one keeps the
+//          numbers of the step.
+// 0.168.1: MentionsEdges does not look into «_signatures», which carries the
+//          signatures of everything read (measured: scenario t17).
+// 0.168.2: the test of the directions judges a turn by the turn about its own
+//          axis (TurnAboutAxisDeg), not the whole angle (report 8cd843 N3).
+// 0.169.0: save_document in the family «documents» (report 8cd843 N7); the
+//          stop for a window that changed says the steps already done (N12).
+// 0.170.0: interference_check takes a sheet body as a contact, not a volume
+//          (report 8cd843 N15), and names the pair and the box of each (N14);
+//          the executor prints a document never saved by its name (N13).
+// 0.170.1: interference_check says when Done marked a saved assembly
+//          unsaved (N16, measured).
+// 0.171.0: the shared refusal of an assembly exchange (N18), the basis of
+//          the solid count (N19), the empty columns of a bill of materials
+//          (N20), cells without FONT codes (N21), the note of a false
+//          SetSheets (N22).
+// 0.172.0: views of an assembly dimensioned in assembly coordinates, with
+//          the overall size and the edge list (report 8cd843 N23),
+//          delete_annotation (N24), fixed text of a title block (N25),
+//          unsaved after set_property (N26), twin titles (N27), property of
+//          an assembly (N28).
+// 0.172.1: the twin title told by the views that rename a drawing (N27 was
+//          only in create_drawing), and a note made on the sheet even when a
+//          view was left active (found in the replay of round 7).
+// 0.173.0: round 8 of report 8cd843: a note read back without its line ends
+//          (N29), the loose components of an overall size named and
+//          «components» to leave them out (N30), «count» on an assembly under a
+//          warning key (N31), the note counts of delete_annotation apart (N32),
+//          and a note of several lines found by its text.
+// 0.174.0: round 9 of report 8cd843: «components» checked on the assembly
+//          before the view is read, and a component the view hides said, not
+//          refused (N33); the plan and the bench run one after-step, which does
+//          not rebuild a drawing with nothing unsaved and reads the save flag
+//          after a save (N34); every dimension says what the sheet prints (N35).
+// 0.174.1: round 10 of report 8cd843 (N38): a view of an assembly whose overall
+//          sizes are all dimensioned elsewhere is refused as on a view of a part,
+//          naming the components measured and the ones the view does not show;
+//          «already dimensioned» lengths with three decimals, as dimensions_mm.
+// 0.174.2: round 11 of report 8cd843: a suppressed mate does not count among
+//          the mates that hold a component, and its degrees of freedom are left
+//          out with the reason (N39); the circle of a detail goes in the sketch
+//          of the view, so a view of an assembly gets its detail (N41); section
+//          and detail count the views of the model only (N42); the phases of
+//          drawing_dimension are timed.
+// 0.174.3: round 12 of report 8cd843: a detail goes to a free place of the
+//          sheet, not on top of other views (N43); export_pdf says when it
+//          marks a saved drawing as changed (N44); title_block leaves the notes
+//          of the sheet out of the title block (N45); place_component and
+//          fix_component count the mates that hold (N46); a sheet that is not
+//          active says it was not read.
+// 0.174.4: round 13 of report 8cd843: the circle of a detail and the cutting
+//          line of a section go in the sketch of the view in its own
+//          coordinates, and a detail with no edge or a section of another view
+//          is refused (N47, N48); a new sheet takes the format of the current
+//          one (N49); the balloons say the bill of materials they renumbered
+//          (N50); after a section the sheet is in edit again (N51); a detail
+//          view is settled to its true outline before it is placed.
+// 0.174.5: round 14 of report 8cd843: the circle of a detail and the cutting
+//          line of a section are drawn with no snapping and read back (N52);
+//          a section slides along its line to a free place (N53);
+//          move_view and delete_view (N54); save_document says the file it
+//          replaced, and refuses with «overwrite» false (N55); balloons whose
+//          arrows end within 5 mm of another are put again on a visible line
+//          of their own part (N56); inspect_part gives the outline of a view.
+// 0.174.6: round 15 of report 8cd843: every view of the state says its sheet,
+//          and the state says that V1, V2 ... count the views of the active
+//          sheet; delete_view refuses a view asked by number on a drawing of
+//          more sheets (N57); move_view and delete_view say the sheet; the
+//          section no longer reports hatches_solids (observation 2).
+// 0.174.7: round 16 of report 8cd843: detail_view refuses a scale not
+//          larger than the one of its view (N58); title_block reads the
+//          models of the other sheets and says the names asked with
+//          $PRPSHEET that they lack, in the verdict too (N59); the sheets
+//          of the state say «active» false (observation).
+// 0.174.8: round 17 of report 8cd843: balloons takes «order», around the
+//          view or in the order of the bill of materials, and says the
+//          numbers a tie between crowded arrows decided (N60); title_block
+//          compares the formats of the sheets by their file (observation).
+// 0.174.9: round 19 of report 8cd843: export_pdf finds a searched text
+//          wrapped over two lines, and says it in found_on_several_lines
+//          with a note, not in not_found (observation); title_block says the
+//          boxes that show a value the model no longer has (N61).
+// 0.175.0: round 20 of report 8cd843: detail_view refuses a circle in the
+//          margin of the outline, saying where the view draws, and the state
+//          says drawn_mm (N62); the verdict on the mates leaves out the
+//          suppressed components and those a pattern places (N64); the state
+//          says the folders of a component (N65); new operation
+//          sketch_details reads what the sketches are made of (N63).
+// 0.176.0: round 21 of report 8cd843: «scale» on standard_views and
+//          model_view, new operation set_view_scale, the note when a view has
+//          another scale than the sheet (point 1); every dimension placed
+//          prints its value, «decimals» on drawing_dimension (point 4).
+// 0.177.0: round 21 of report 8cd843, point 7: «mate» makes a width mate
+//          («variant» width, «face_a2» and «face_b2», centred).
+// 0.178.0: round 21 of report 8cd843, point 5: the texts of the
+//          dimensions compared with the notes of the sheet and of its views
+//          and with the title block; «overlaps_checked_against».
+// 0.178.1: round 21 of report 8cd843: a chamfer dimension compared with
+//          the definition of its feature (26P000011, «0,4 x 15,23°»).
+// 0.179.0: round 22 of report 8cd843 (the drawings of 26M000002 set against the owner's):
+//          «between», «row», the sides, «prefix»/«suffix», «parentheses», «holes» and
+//          «chamfers» on drawing_dimension, the arrows where the text is, a detail
+//          dimensioned above; «scale» on section_view; «circle_style» and
+//          «lock_position» on detail_view; «again» on balloons; «over_title_block»
+//          on drawing_bom; new operations move_annotation and read_drawing.
+// 0.179.1: OCE_LOCAL_COPIES (LocalCopies.cs): the templates the operations open (drawing,
+//          sheet format, table templates, the part of the section probe) are opened
+//          from a local copy when the variable asks for it, and reported with the path
+//          of the installation. Unset, nothing changes. Asked by the owner to make the bench
+//          faster (29/10/2026).
+// 0.179.2: the state asks SOLIDWORKS less for the same values (DocumentState.cs): the
+//          listed edges reuse the curve, parameters and length read for the ranking
+//          (EdgeReading), the listed faces reuse the area of the ranking and read their
+//          surface and feature once. Same calls on the same entities: same values,
+//          same ranking, same identifiers. Asked by the owner to make drawing faster
+//          (29/10/2026): the edges were 32.2 % of the time of the plans in the bridge log.
+// 0.179.3: the tree of the state asks less (DocumentState.cs): GetDefinition only for the five
+//          types FeatureParameters reads (it was asked of every feature that counts and
+//          thrown away), the name of a feature only where it is used (axes and features
+//          that count), ThreadDiameter and DefaultRadius read once. NOT the same state on
+//          weldments: GetDefinition on a structural member loaded the profile .SLDLFP from the
+//          share as an open document and the order of the bodies changed between openings.
+// 0.179.4: PhaseClock phases inside two slow operations, to see where their time goes:
+//          «mate.direction_test» around the two readings of the directions before and
+//          after AddMate5 (MateOperations.cs), «drawing.new_document» around the
+//          NewDocument of create_drawing (DrawingOperations.cs); PhaseClock.Spent. Nothing else changes.
+// 0.180.0: UiFreeze (UiFreeze.cs): the FeatureManager tree, its window and the graphics of the
+//          view turned off while a plan runs (PlanExecutor, phases «plan.ui_freeze» and
+//          «plan.ui_thaw»), put back as they were, the tree updated and the view redrawn (IModelView.GraphicsRedraw).
+//          Only what was on is turned off. Off unless OCE_UI_FREEZE is 1, true or on: asked
+//          by the owner to measure it, speed and accuracy, before deciding (29/10/2026).
+// 0.181.0: the edges of the state read with IEdge.GetCurveParams2 (DocumentState.cs, ReadEdge):
+//          GetCurve, the array (ends, parameters, packed curve type) and GetLength3 between the
+//          same parameters, instead of GetCurve, GetCurveParams3, UMinValue, UMaxValue and
+//          GetLength3; the listed edges take point and direction from the array, a circle asks
+//          only CircleParams. Same lengths, same ranking (probe on 317 edges of four parts);
+//          the ranking of 192 edges from 925.4 ms to 79.1 ms. Obsolete call, measured.
+// 0.182.0: the bodies of the state in the natural order of their names (DocumentState.cs),
+//          not in the order of GetBodies2, which «May vary»: between two identical bench runs
+//          4 to 9 of the 9 states with more than one body had them in another order, same
+//          names. C1, C2 and the F/E numbers of equal faces and edges of different bodies are
+//          now the same in every run. The name is read once and used again.
+// 0.183.0: the listed faces of the state ask IFace2.Normal (one call) instead of IGetSurface,
+//          IsPlane, PlaneParams and FaceInSurfaceSense, and the surface only when the face is
+//          not planar; the feature number from IFace2.GetFeatureId, its name asked once per
+//          number (checked against GetID on the first face of each). Probe on 136 faces of four
+//          parts: same planar faces, same normals, same feature numbers.
+// 0.184.0: the rankings of faces and edges sort on the measure rounded to the sixth decimal
+//          (mm², mm): measures equal by design keep the order of SOLIDWORKS instead of the
+//          order of the last bits of a double, which changed when the length was computed
+//          through another call (eight equal arcs, A/B of 0.180.0 and 0.181.0).
+// 0.185.0: the length of a straight edge is the distance between its ends from the array of
+//          GetCurveParams2, without GetLength3; safe since the rounded key of 0.184.0. Probe on
+//          317 edges of four parts: equal to GetLength3 to the sixth decimal, ranking unchanged.
+// 0.186.0: the same state in every run. `created_by` is the oldest feature of the body's faces;
+//          ties ordered by body, then feature number (faces) or middle of the ends (edges);
+//          `between` lower number first; `documents_open` by title. Bench of 30/10/2026: 3
+//          state files of 291 differed between two equal runs, all by an order.
+// 0.186.1: zero is not «I do not know» (the pre-push hook stopped the push of 0.186.0 on 12
+//          points): `edges_total` of `view_edges`, `notes_on_the_sheet_left_out` of
+//          `title_block` and the tables of the sheet are null when they cannot be read; the
+//          pieces of a view without the array of its lines are null; the true zeros carry
+//          the marker with the reason.
+// 0.187.0: the reading holds the curves of its edges (one EdgeReading per ranked edge), so that
+//          whoever keeps the reading alive keeps them too; the bridge does it only with
+//          OCE_KEEP_LAST_READING=1 (bridge 0.160.0). Nothing else changes in the state.
+// 0.188.0: OCE_UI_FREEZE can name one part: `graphics` (only the graphics of the view) or `tree`
+//          (only the tree and its window); `1`, `true`, `on` still turn off all three. The cycle of
+//          15 drawings fell 11 times in 11 without the freeze and 0 in 3 with it (30/10/2026).
+// 0.189.0: «drawing_dimension» with «between» lays its dimensions out in the owner's style
+//          (DrawingDimensionStyle.cs, measured on four of his drawings): 10 mm from the lines of the
+//          view, 6.7 mm between rows, the side of the edges, rows shared, a text outside 11 mm beyond
+//          the higher end, 2 mm for an arrow, the label of a detail under its dimensions; a JSON
+//          file named by OCE_DRAWING_STYLE changes the numbers. Not measured on SOLIDWORKS yet.
+// 0.190.0: one dimension per extent on the whole drawing (the owner, 02/11/2026: no dimension
+//          repeated in another view). «drawing_dimension» with «between» refuses a pair whose
+//          extent the drawing already gives, by one dimension in any view or through a chain it
+//          would close (ChainThrough), and says which dimensions give it; «repeat» or «parentheses»
+//          place it anyway. The drawing records a distance between two edges too (TractBetween), so
+//          the automatic route no longer puts back the extent of a «between»; it also leaves out an
+//          edge that closes a chain («closing_a_chain»). Not measured on SOLIDWORKS yet.
+// 0.191.0: the layout of «between» sees the view (note 100, the real run of 0.161.0: 10 of 52
+//          texts at the owner's place). The dimensions already in the view are read first
+//          (DimensionsInTheView) and the new ones line up with their rows and keep off their texts;
+//          a chain stays on one row; the choice inside or outside counts 1.8 mm a character, not
+//          the box SOLIDWORKS reads; a text outside may go beyond the lower end; the label of a
+//          detail goes under every dimension of the view; without the lines of a view, the extent
+//          of its edges inside its outline. Replayed on the readings of the run (RealRunContract).
+// 0.192.0: a free place on the edge of the clearance stays free (FreeSheet.Hair, 1 micrometre for
+//          every box as for the frame: detail B of 26M000002 landed at the place asked, to 0.1 mm, and
+//          was removed as falling on the title block, replay of 02/11/2026); «below» writes a text
+//          under the dimension line (note 98, defect 2); read_drawing says «direction» and «below».
+// 0.192.1: move_view judges every view that moved with its labels where they land: the rectangle
+//          read before the move, moved as far as the outline (note 98, defect 6; detail B of a copy
+//          of 26M000002 moved 100 mm up into a free place was refused with its old label).
+// 0.193.0: move_view takes «unalign»: a view aligned to its parent is taken off that line
+//          (IView.RemoveAlignment) and moves both ways; a refused move gives back its place and its
+//          default alignment (IView.UseDefaultAlignment). Note 98, defect 5.
+// 0.194.0: «balloons» with «again» works on a section and a detail (note 98, defect 7): the lines of
+//          a component placed with the owner of its edges, cut to the view, three points a line; the
+//          pick read as a drawing component or through its entity, a section part without
+//          configuration taken as the model part; a balloon on a line that says no component kept
+//          only when its number is the one the other views give.
+// 0.194.1: move_view moves a view that lands free when only its own labels do not, and says where
+//          they went («labels_out_of_place»): a label moved apart first goes with the view (replay of
+//          02/11/2026, step 038, refused since 0.192.1 that reads the labels where they land).
+// 0.194.2: the sentence of «labels_out_of_place» reads «with its labels, «view» goes out of ...».
+// 0.195.0: the automatic dimensions of «drawing_dimension» go where «between» puts its own: the
+//          owner's style, the dimensions already in the view, the sheet, the label of a detail (note
+//          98, defect 4: until now one row each, 10 mm further out every time, off the sheet).
+// 0.195.1: the side of a direction turns when the text of its first row would lie over the 12 mm
+//          frame of the sheet, not 5 mm from the edge of the paper (26P000007 view 2, «offset_mm» 30).
+// 0.196.0: the title block drawn by the lines of a format that declares none (ISheet.GetTemplateSketch,
+//          TitleBlockFromLines): free places, «over_title_block» of the bill of materials, read_drawing,
+//          the texts over the title block (note 98, defect 8: estimated at half the sheet x 65 mm).
+// 0.196.1: a horizontal dimension from end to end of the lines of the view whose edges reach both
+//          sides as near goes on the side the tie does not take (the owner's 193,6 and 15,6 below).
+// 0.197.0: the chamfers (note 98, defect 1): only a chamfer dimension dimensions a chamfer; every leg
+//          and both sides of the text tried; a chamfer the profile draws recognised; «chamfer» on chosen edges.
+// 0.197.1: a chamfer is dimensioned only where its edge is parallel to the sheet; the chamfers the
+//          profile draws with the same length are one; a leg shorter than the chamfer is allowed.
+// 0.197.2: the true size of a chamfer judged on the profile of its feature, not on the edge picked.
+// 0.197.3: the legs of a chamfer dimension that run against the chamfer edge first (the others read 135°).
+// 0.197.4: a chamfer dimension in the drawing keeps the profile chamfers of its width, not of the length of its leg.
+// 0.197.5: the text of a chamfer dimension moved to a free place on the side of the corner.
+// 0.197.6: the text of a chamfer dimension kept off the lines of the other dimensions too.
+// 0.197.7: the text of a chamfer dimension kept off the notes and the title block too.
+// 0.198.0: the balloons a call makes moved to a free place (no balloon on another, on a label, across the frame).
+// 0.198.1: a balloon moved to the nearest free place first; a note counts by its extent even with an empty text.
+// 0.198.2: a balloon judged by its circle and its leader, not by the extent that holds the leader.
+// 0.198.3: the title block of a sheet timed as «sheet.title_block», its format lines as «sheet.format_lines».
+// 0.198.4: the lines of the sheet format in one call (ISketch.GetLines2), about 0,7 s less in every drawing call.
+// 0.198.5: the display data of a dimension that cannot be read is «I do not know», not «no lines» (ZERO-E-ZERO).
+// 0.198.6: the text of a chamfer dimension looks for the nearest free place within 90° of the outer side, not 30°.
+// 0.198.7: a drag of the view started by a simulated click is ended with Escape during a call (StuckDragGuard).
+// 0.198.8: the guard looks at every thread with a window of SOLIDWORKS, not the one of MainWindowHandle; the
+//          process it watches can be set (StuckDragGuard.ProcessName), so the contracts see it end a capture.
+// 0.198.9: a structural member that SOLIDWORKS does not create says what was read after the refusal: the
+//          segments in the group, the free ends of the path, whether the profile library is open.
+// 0.198.10: a hole position dimension is put on the centre of the hole when SOLIDWORKS put it on the nearest
+//          or furthest point (IDimension.SetArcEndCondition), and the answer says which ends were read and moved.
+// 0.198.11: words only, for the language gate: two comments of DrawingDimensionStyle.cs; no behaviour changes.
+// 0.198.12: after a null of InsertStructuralWeldment5 the answer also reads the time of the call, an open sketch,
+//          the document in front, the documents and window resources of SOLIDWORKS; WithoutSketch logs why it
+//          leaves a sketch. Readings and a log line only.
+[assembly: AssemblyVersion("0.198.12.0")]
+[assembly: AssemblyFileVersion("0.198.12.0")]
 // It had stayed at 0.61.0 while the assembly went to 0.66.0: a number that
 // nobody reads and that tells a falsehood to whoever opens the file properties. It
 // served no purpose and it was wrong, which is the worst combination.
@@ -557,4 +866,4 @@ using System.Runtime.InteropServices;
 // before the commit. *Between a comment that warns and a check that turns
 // red there is no difference of degree: the first is read when one has
 // already gone wrong, the second prevents going wrong.*
-[assembly: AssemblyInformationalVersion("0.153.2")]
+[assembly: AssemblyInformationalVersion("0.198.12")]

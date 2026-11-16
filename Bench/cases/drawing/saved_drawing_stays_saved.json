@@ -1,0 +1,45 @@
+{
+  "name": "saved_drawing_stays_saved",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N34, round 9 (27/10/2026). After «save_document» the drawing read «unsaved» at once, already before export_pdf, and «document close» refused to close it: «it has unsaved changes». A probe on two copies measured the cause: on a drawing EditRebuild3 raises the save flag every time, with no view out of date and the update stamp still, and the plan executor rebuilds after every step, the save included.",
+
+  "defect_caught": "A drawing saved by the plan that is «to be saved» again when the plan ends, so that nobody can close it without being asked to save what is already on disk. The case saves the drawing and asks the flag read after the step is over: false.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the plate of drawing_dimensions_itself" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\saved_drawing_stays_saved.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a view attaches to the path of the part" },
+        { "what": "measurements.unsaved_changes", "equal_to": false,
+          "why": "the same question on a part: the probe of N34 measured drawings only" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the bench follows the new document (entry GT0)" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\saved_drawing_stays_saved.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "a drawing with views, as the one of the report" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\saved_drawing_stays_saved.slddrw" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the drawing is written" },
+        { "what": "measurements.unsaved_changes", "equal_to": false,
+          "why": "THE MEASURE OF THE THING: the flag read after the step is over, rebuild included. On bridge 0.151.0 the rebuild after the save raised it again" } ] }
+  ]
+}

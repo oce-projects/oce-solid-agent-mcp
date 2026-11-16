@@ -12,8 +12,7 @@
   "start": { "new_part": true },
   "steps": [
     { "operation": "structural_member",
-      "arguments": { "plane": "top",
-                     "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
+      "arguments": { "profile_path": "{PROFILES}\\TUBO STRUTTURALE QUADRO.SLDLFP",
                      "configuration": "80X80X5",
                      "segments": [ { "start": [0, 0, 0], "end": [600, 0, 0] } ] },
       "expect": [

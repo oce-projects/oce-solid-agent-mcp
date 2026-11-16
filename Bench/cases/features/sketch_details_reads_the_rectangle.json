@@ -1,0 +1,37 @@
+{
+  "name": "sketch_details_reads_the_rectangle",
+  "family": "features",
+  "why": "REPORT 8CD843 N63 (round 20, 28/10/2026). The owner corrected four parts by hand, and the round could not see what he changed: the state gives a sketch as one «ProfileFeature» among the features. «sketch_details» reads what each sketch is made of: segments, relations, dimensions, and whether SOLIDWORKS calls it fully defined.",
+
+  "defect_caught": "A sketch absorbed by its extrusion that is not found; a rectangle read with a number of lines other than four; a reading that changes the part; and a sketch asked by a name it does not have answered as if it were there.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "the plate whose sketch is read: one rectangle, under the extrusion that absorbed it" } ] },
+
+    { "operation": "sketch_details",
+      "arguments": {},
+      "expect": [
+        { "what": "measurements.sketches_total", "equal_to": 1,
+          "why": "the one sketch of the plate, found under its extrusion: IFeatureManager.GetFeatures(true) gives the sub-features too" },
+        { "what": "measurements.sketches[0].segments_by_kind.line", "equal_to": 4,
+          "why": "THE RECTANGLE: four lines, counted by their kind (swSketchSegments_e), not by the number of sides asked" },
+        { "what": "measurements.sketches[0].construction_segments", "equal_to": 0,
+          "why": "a rectangle of four real lines: a construction line would be counted here, not among the sides" },
+        { "what": "measurements.sketches[0].status", "includes": ["defined"],
+          "why": "SOLIDWORKS names the status of the sketch («fully defined», «under defined», ...): which one this sketch has is read on the first run, not guessed here" },
+        { "what": "volume_mm3", "equal_to": 96000,
+          "why": "IT ONLY READS: the part is the one it was" } ] },
+
+    { "operation": "sketch_details",
+      "arguments": { "sketch": "NoSuchSketch" },
+      "must_fail": {
+        "message_includes": ["There is no sketch «NoSuchSketch»", "The sketches are:", "Use one of them"],
+        "twin": "sketch_details_reads_the_rectangle"
+      } }
+  ]
+}

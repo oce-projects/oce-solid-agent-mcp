@@ -1,0 +1,458 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+using SolidWorks.Interop.sldworks;
+using SolidWorks.Interop.swconst;
+
+namespace Oce.Solid.Agent.Core
+{
+    /// <summary>
+    /// MOVES OR TAKES AWAY A VIEW OF A DRAWING (report 8cd843 N54, round 14, 27/10/2026).
+    ///
+    /// The bridge could put views on a sheet and not move or take one away: a detail of
+    /// trial accepted in round 14 stayed on the drawing, and the only way to a clean drawing
+    /// was to make it again from the start; the section A-A born on the side view (N53)
+    /// could not be moved off it. delete_feature refused the view name, rightly: a view is
+    /// not a feature of a part.
+    ///
+    /// ── WHAT SOLIDWORKS DOES, MEASURED ON A COPY OF THE DRAWING OF ROUND 14 ──
+    ///
+    /// (a probe on a copy of the drawing of round 14, 27/10/2026)
+    ///
+    /// IView.Position (IView~Position.html, Remarks: «If it is aligned with another view,
+    /// it will only be allowed to move along the alignment vector. If it has child views
+    /// that are aligned with it, those views will also be moved along with this view»):
+    ///   - the front view asked (+10, +10) mm moved by that, and the top view, the side
+    ///     view and the section A-A, aligned to it, moved with it; the details did not;
+    ///   - the top view, aligned vertically, asked (+20, +20) mm moved (0, +20);
+    ///   - a detail, aligned to nothing, asked (-20, +10) mm moved by that.
+    /// So the move is read back from the outline: a move SOLIDWORKS did only in part is put
+    /// back and refused, with the alignment that stopped it.
+    ///
+    /// SelectByID2 «DRAWINGVIEW» + DeleteSelection2(swDelete_Absorbed), no window:
+    ///   - a detail went with its circle in the view it enlarges (circles 2 -> 1);
+    ///   - the front view went WITH its section and its two details, and the top and side
+    ///     views, projected from it, stayed without a parent view;
+    ///   - the isometric view of sheet 2 went with its 7 balloons, and the bill of
+    ///     materials stayed: it is on the sheet, not in the view.
+    /// So a view with sections or details made from it is refused unless «with_derived» is
+    /// true, and the views that went are read back, not assumed.
+    /// </summary>
+    public partial class SwOperations
+    {
+        private Outcome MoveView(IModelDoc2 model, Dictionary<string, object> a)
+        {
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed("The active document is not a drawing: «move_view» moves a view of a drawing.");
+            string reason;
+            var view = ViewAsked(drawing, Str(a, "view", null), "move", out reason);
+            if (view == null) return Failed(reason);
+            string viewName = view.GetName2();
+
+            double dx = Num(a, "dx_mm", double.NaN), dy = Num(a, "dy_mm", double.NaN);
+            double x = Num(a, "x_mm", double.NaN), y = Num(a, "y_mm", double.NaN);
+            string arguments = MoveArgumentsProblem(dx, dy, x, y);
+            if (arguments != null) return Failed(arguments);
+
+            double[] p = null, outline = OutlineOf(view);
+            try { p = view.Position as double[]; } catch { }
+            if (p == null || p.Length < 2 || outline == null)
+                return Failed("I cannot read where the view «" + viewName + "» is on the sheet (IView.Position, GetOutline): I moved nothing.");
+
+            // THE CENTRE IS THE ONE THE SHEET SHOWS, the middle of the outline: the Position of a
+            // detail is not where the detail is seen (report 8cd843 round 14, observation 2: detail B
+            // at Position 201, 127 mm and on the PDF at x 321..395 mm).
+            double cx = (outline[0] + outline[2]) / 2.0, cy = (outline[1] + outline[3]) / 2.0;
+            var want = MoveAsked(dx, dy, x, y, cx, cy);
+            var before = OutlinesOfTheSheet(drawing);
+            var withNotesBefore = WithNotesOfTheSheet(drawing);
+            int alignment = -1;
+            try { alignment = view.GetAlignment(); } catch { }
+
+            // OFF ITS LINE ON REQUEST (note 98, defect 5): the owner puts a section away from the line of
+            // its view (26M000002: section A-A 64.5 mm lower than the line of view 1). IView~RemoveAlignment
+            // .html: «Removes the alignment from this drawing view», not the one of the views aligned to it;
+            // a refused move gives back the default alignment (IView~UseDefaultAlignment.html) with the place.
+            bool unaligned = false;
+            if (Bool(a, "unalign", false) && AlignedToItsParent(alignment))
+            {
+                try { view.RemoveAlignment(); } catch { }
+                int now = -1;
+                try { now = view.GetAlignment(); } catch { }
+                if (AlignedToItsParent(now))
+                    return Failed("I asked SOLIDWORKS to take «" + viewName + "» off the line of its parent view (IView.RemoveAlignment) " +
+                                  "and it is still " + AlignmentName(now) + ": I moved nothing. Give only the move along that line, or move its parent view instead.");
+                unaligned = true;
+                alignment = now;
+            }
+            Func<string> back = () =>
+            {
+                string said = PutBack(view, p, outline);
+                if (!unaligned) return said;
+                try { view.UseDefaultAlignment(); } catch { }
+                int again = -1;
+                try { again = view.GetAlignment(); } catch { }
+                return said + (AlignedToItsParent(again)
+                    ? " Its alignment to its parent view is back."
+                    : " I could not give back its alignment to its parent view (now " + AlignmentName(again) + ").");
+            };
+
+            try { view.Position = new[] { p[0] + want[0], p[1] + want[1] }; }
+            catch (Exception ex) { return Failed("SOLIDWORKS did not take the new position of «" + viewName + "»: " + ex.Message + back()); }
+
+            var after = OutlinesOfTheSheet(drawing);
+            double[] outlineAfter = OutlineOf(view);
+            double gotX = outlineAfter == null ? double.NaN : outlineAfter[0] - outline[0];
+            double gotY = outlineAfter == null ? double.NaN : outlineAfter[1] - outline[1];
+            string partly = MoveNotDone(want[0], want[1], gotX, gotY, 0.0001);
+            if (partly != null)
+            {
+                return Failed("The view «" + viewName + "» " + partly + AlignmentWords(view, alignment) + back());
+            }
+
+            // EVERY VIEW THAT MOVED, the one asked and those aligned to it, is judged against what
+            // did not move: they keep their places among themselves.
+            List<string> moved = MovedViews(before, after);
+            if (!moved.Contains(viewName)) moved.Add(viewName);
+            var labelsOut = new List<string>();
+            foreach (string m in moved)
+            {
+                var mv = ViewByName(drawing, m);
+                // THE LABELS GO WITH THE OUTLINE (note 98, defect 6): right after Position the outline
+                // has moved and the extent of the labels still says the old place, so the rectangle
+                // read now spans both. On a copy of 26M000002 (02/11/2026) detail B moved 100 mm up,
+                // past view 2, into a free place, was refused with «its labels» at y 20.6..181.9 mm.
+                // The rectangle read before the move, moved as far as the outline moved, as a detail
+                // and a section do (LandedWithTheOutline).
+                double[] r0, o0, o1;
+                var r = withNotesBefore.TryGetValue(m, out r0) && before.TryGetValue(m, out o0) && after.TryGetValue(m, out o1)
+                    ? LandedWithTheOutline(r0, o0, o1)
+                    : null;
+                if (r == null && mv != null) r = ViewWithItsNotes(mv);
+                if (r == null) continue;
+                var sheet = ReadSheet(drawing, mv, null, moved);
+                string touches = sheet.Touches(r[0], r[1], r[2], r[3]);
+                if (touches == null) continue;
+                // ONLY ITS OWN LABELS IN THE WAY (replay of 02/11/2026, step 038): a label moved apart
+                // first (move_annotation) goes with the view by the same shift; the label of detail B
+                // read (-141.42, -11.19) mm after the view went (-253.98, -39.82) mm, and the plan then
+                // put it back. When the view alone lands free, it moves, and the answer says where its
+                // labels went, for move_annotation.
+                double[] alone;
+                if (after.TryGetValue(m, out alone) && alone != null && sheet.Touches(alone[0], alone[1], alone[2], alone[3]) == null)
+                {
+                    labelsOut.Add("with its labels, «" + m + "» " + touches + " (with them " + MmRect(r) + ", the view alone " + MmRect(alone) +
+                                  "): move the labels with «move_annotation»");
+                    continue;
+                }
+                return Failed("Moved so, the view «" + m + "»" + (m == viewName ? "" : " (it moves with «" + viewName + "», aligned to it)") +
+                              " " + touches + " (with its labels " + MmRect(r) + "). Move it somewhere else, or make room first" + back());
+            }
+
+            var measurements = new Dictionary<string, object>
+            {
+                ["view"] = viewName,
+                ["sheet"] = ActiveSheet(drawing),     // V1 counts the views of this sheet only (N57)
+                ["asked_mm"] =new object[] { Math.Round(want[0] * 1000, 2), Math.Round(want[1] * 1000, 2) },
+                ["moved_mm"] = new object[] { Math.Round(gotX * 1000, 2), Math.Round(gotY * 1000, 2) },
+                ["centre_before_mm"] = new object[] { Math.Round(cx * 1000, 2), Math.Round(cy * 1000, 2) },
+                ["centre_after_mm"] = new object[] { Math.Round((outlineAfter[0] + outlineAfter[2]) / 2.0 * 1000, 2), Math.Round((outlineAfter[1] + outlineAfter[3]) / 2.0 * 1000, 2) },
+                ["outline_after_mm"] = new object[] { Math.Round(outlineAfter[0] * 1000, 2), Math.Round(outlineAfter[1] * 1000, 2), Math.Round(outlineAfter[2] * 1000, 2), Math.Round(outlineAfter[3] * 1000, 2) },
+                ["views_moved_with_it"] = moved.Where(n => n != viewName).ToArray(),
+                ["how_many_moved_with_it"] = moved.Count(n => n != viewName),
+                ["alignment"] = AlignmentName(alignment),
+                ["alignment_removed"] = unaligned,
+            };
+            if (labelsOut.Count > 0) measurements["labels_out_of_place"] = labelsOut.ToArray();
+            _log("[agent] view «" + viewName + "» moved by " + Math.Round(gotX * 1000, 1) + ", " + Math.Round(gotY * 1000, 1) + " mm, with " + (moved.Count - 1) + " more");
+            return WithoutFeature(measurements);
+        }
+
+        private Outcome DeleteView(IModelDoc2 model, Dictionary<string, object> a)
+        {
+            var drawing = model as IDrawingDoc;
+            if (drawing == null)
+                return Failed("The active document is not a drawing: «delete_view» takes away a view of a drawing.");
+            string reason;
+            var view = ViewAsked(drawing, Str(a, "view", null), "take away", out reason);
+            if (view == null) return Failed(reason);
+            string viewName = view.GetName2();
+            bool withDerived = Bool(a, "with_derived", false);
+
+            // What depends on it: sections and details go with it, projected views stay without a
+            // parent (measured, see the class).
+            var derived = new List<string>();
+            var orphans = new List<string>();
+            var namesBefore = new List<string>();
+            int annotations = -1;
+            try { annotations = view.GetAnnotationCount(); } catch { }
+            for (var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView; v != null; v = v.GetNextView() as IView)
+            {
+                string n = null;
+                try { n = v.GetName2(); } catch { }
+                if (n == null) continue;
+                namesBefore.Add(n);
+                if (n == viewName) continue;
+                if (!string.Equals(BaseViewName(v), viewName, StringComparison.OrdinalIgnoreCase)) continue;
+                int type = -1;
+                try { type = v.Type; } catch { }
+                if (type == (int)swDrawingViewTypes_e.swDrawingSectionView || type == (int)swDrawingViewTypes_e.swDrawingDetailView) derived.Add(n);
+                else orphans.Add(n);
+            }
+            string held = DerivedViewsProblem(viewName, derived, withDerived);
+            if (held != null) return Failed(held);
+            int tablesBefore = SheetTables(drawing);
+
+            bool removed = RemoveNewView(model, viewName);
+            var namesAfter = ViewNames(drawing);
+            if (!removed || namesAfter.Contains(viewName))
+                return Failed("The view «" + viewName + "» is still on the sheet after DeleteSelection2: nothing was taken away. " +
+                              "Take it away by hand — " + Sentences.HowToWithdrawIt + ".");
+            var gone = namesBefore.Where(n => !namesAfter.Contains(n)).ToList();
+            var expected = new List<string> { viewName };
+            expected.AddRange(derived);
+            var unexpected = gone.Where(n => !expected.Contains(n)).ToList();
+            var stayed = expected.Where(n => !gone.Contains(n)).ToList();
+            int tablesAfter = SheetTables(drawing);
+
+            var measurements = new Dictionary<string, object>
+            {
+                ["view"] = viewName,
+                ["sheet"] = ActiveSheet(drawing),     // V1 counts the views of this sheet only (N57)
+                ["removed"] = gone.ToArray(),
+                ["how_many_removed"] = gone.Count,
+                ["views_before"] = namesBefore.Count,
+                ["views_after"] = namesAfter.Count,
+                ["annotations_of_the_view"] = annotations >= 0 ? (object)annotations : null,
+                ["without_parent_now"] = orphans.ToArray(),
+                ["tables_on_the_sheet_before"] = tablesBefore >= 0 ? (object)tablesBefore : null,
+                ["tables_on_the_sheet_after"] = tablesAfter >= 0 ? (object)tablesAfter : null,
+            };
+            if (orphans.Count > 0)
+                measurements["note"] = "The views " + string.Join(", ", orphans) + " were projected from «" + viewName +
+                                       "»: they stay where they are, now without a parent view (no longer aligned to it).";
+            if (unexpected.Count > 0 || stayed.Count > 0)
+                measurements["warning"] = (unexpected.Count > 0 ? "SOLIDWORKS also took away " + string.Join(", ", unexpected) + ". " : "") +
+                                          (stayed.Count > 0 ? "These views made from it are still there: " + string.Join(", ", stayed) + ". " : "") +
+                                          "Look at the sheet.";
+            _log("[agent] view «" + viewName + "» taken away with " + (gone.Count - 1) + " more");
+            return WithoutFeature(measurements);
+        }
+
+        /// <summary>The view named by «view» on the current sheet, null with the reason.</summary>
+        private IView ViewAsked(IDrawingDoc drawing, string wanted, string verb, out string reason)
+        {
+            reason = null;
+            var names = ViewNames(drawing);
+            if (names.Count == 0) { reason = "The current sheet has no views: there is nothing to " + verb + "."; return null; }
+            if (string.IsNullOrWhiteSpace(wanted))
+            {
+                reason = "Name the view to " + verb + " in «view»: its name, or V1, V2 … as the state of the drawing lists them. " +
+                         "On the current sheet there are: " + string.Join(", ", names) + ".";
+                return null;
+            }
+            var view = ResolveView(drawing, names, wanted, out reason);
+            if (reason != null) return null;
+            if (view == null) { reason = "I cannot take the view «" + wanted + "»."; return null; }
+            // A VIEW TAKEN AWAY BY ITS NUMBER, ON A DRAWING OF MORE SHEETS (report 8cd843 N57, round 15):
+            // V1 is the first view of the ACTIVE sheet, so after new_sheet or activate_sheet the same
+            // V1 is another view. Moving the wrong one can be seen and undone; taking it away cannot.
+            if (verb == "take away")
+            {
+                int sheets = 0;
+                try { sheets = drawing.GetSheetCount(); } catch { }
+                reason = UidOnManySheets(wanted, KnownViewName(names, wanted), view.GetName2(), ActiveSheet(drawing), sheets);
+                if (reason != null) return null;
+            }
+            return view;
+        }
+
+        /// <summary>The name of the active sheet, or null when it cannot be read.</summary>
+        private static string ActiveSheet(IDrawingDoc drawing)
+        {
+            try { return (drawing.GetCurrentSheet() as ISheet)?.GetName(); } catch { return null; }
+        }
+
+        /// <summary>
+        /// Why a view cannot be taken away by its number V1, V2 … (report 8cd843 N57), null when it
+        /// can: the number counts the views of the active sheet only, and with two sheets or more the
+        /// same number names another view on another sheet. A view really called «V1» is a name, not
+        /// a number. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string UidOnManySheets(string wanted, bool isRealName, string viewName, string sheet, int sheets)
+        {
+            if (sheets < 2 || isRealName || wanted == null) return null;
+            if (!Regex.IsMatch(wanted.Trim(), @"^[Vv]\d+$")) return null;
+            return "«" + wanted.Trim() + "» numbers the views of the active sheet «" + sheet + "» only, and this drawing has " +
+                   sheets + " sheets: on another sheet the same number is another view. To take a view away, give its name: " +
+                   "here «" + wanted.Trim() + "» is «" + viewName + "». I touched nothing.";
+        }
+
+        /// <summary>
+        /// Why the arguments of move_view do not say a move, null when they do: either a shift
+        /// (dx_mm, dy_mm) or a place for the centre (x_mm, y_mm), not both and not neither. NaN is
+        /// an argument not given. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string MoveArgumentsProblem(double dx, double dy, double x, double y)
+        {
+            bool shift = !double.IsNaN(dx) || !double.IsNaN(dy), place = !double.IsNaN(x) || !double.IsNaN(y);
+            if (shift && place)
+                return "Give either «dx_mm» and «dy_mm» (move the view by that much) or «x_mm» and «y_mm» (put its centre there), not both.";
+            if (!shift && !place)
+                return "Say where the view goes: «dx_mm» and «dy_mm» move it by that much, «x_mm» and «y_mm» put its centre there, " +
+                       "in millimetres of sheet from its bottom-left corner.";
+            return null;
+        }
+
+        /// <summary>
+        /// The shift asked, in metres {dx, dy}: the shift itself, or from the centre to the place
+        /// asked; an axis not given does not move. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static double[] MoveAsked(double dx, double dy, double x, double y, double centreX, double centreY)
+        {
+            if (!double.IsNaN(dx) || !double.IsNaN(dy))
+                return new[] { double.IsNaN(dx) ? 0 : dx / 1000.0, double.IsNaN(dy) ? 0 : dy / 1000.0 };
+            return new[] { double.IsNaN(x) ? 0 : x / 1000.0 - centreX, double.IsNaN(y) ? 0 : y / 1000.0 - centreY };
+        }
+
+        /// <summary>
+        /// Why the move read back is not the move asked (metres, within <paramref name="tolerance"/>),
+        /// null when it is. NaN read back is a move that could not be read. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static string MoveNotDone(double askedX, double askedY, double gotX, double gotY, double tolerance)
+        {
+            if (double.IsNaN(gotX) || double.IsNaN(gotY)) return "moved, but I cannot read where it went";
+            if (Math.Abs(askedX - gotX) <= tolerance && Math.Abs(askedY - gotY) <= tolerance) return null;
+            return string.Format(CultureInfo.InvariantCulture,
+                "moved by ({0:0.##}, {1:0.##}) mm instead of the ({2:0.##}, {3:0.##}) mm asked",
+                gotX * 1000, gotY * 1000, askedX * 1000, askedY * 1000);
+        }
+
+        /// <summary>
+        /// Why a view cannot be taken away as asked (N54), null when it can: sections and details
+        /// made from it go with it (measured), so they are named and «with_derived» is asked for.
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string DerivedViewsProblem(string viewName, List<string> derived, bool withDerived)
+        {
+            if (derived == null || derived.Count == 0 || withDerived) return null;
+            return "The view «" + viewName + "» has views made from it that SOLIDWORKS takes away together with it " +
+                   "(measured: taking away the front view took its section and its two details): " + string.Join(", ", derived) +
+                   ". Take them away first with «delete_view», or pass «with_derived»: true to take them all. I touched nothing.";
+        }
+
+        /// <summary>Puts a view back where it was and says whether it is there again.</summary>
+        private static string PutBack(IView view, double[] position, double[] outline)
+        {
+            try { view.Position = new[] { position[0], position[1] }; } catch { }
+            var o = OutlineOf(view);
+            return SameRectangle(o, outline, 0.0001)
+                ? ". I put it back where it was."
+                : ". I could not put it back where it was: look at the sheet (now " + MmRect(o) + ", before " + MmRect(outline) + ").";
+        }
+
+        /// <summary>Why a move stopped, from the alignment of the view (IView.GetAlignment).</summary>
+        private static string AlignmentWords(IView view, int alignment)
+        {
+            if (alignment != (int)swViewAlignment_e.swViewAligned && alignment != (int)swViewAlignment_e.swViewAlignBoth) return "";
+            string parent = BaseViewName(view);
+            return ": it is aligned to " + (parent != null ? "«" + parent + "»" : "its parent view") +
+                   ", and an aligned view moves only along the line that joins them (IView~Position.html). Give only the move " +
+                   "along that line, move «" + (parent ?? "its parent view") + "» instead, or add «unalign»: true to take it off that line";
+        }
+
+        /// <summary>Whether a view is aligned to its parent view (swViewAligned or swViewAlignBoth). Pure, so the contract suite reads it.</summary>
+        internal static bool AlignedToItsParent(int alignment)
+        {
+            return alignment == (int)swViewAlignment_e.swViewAligned || alignment == (int)swViewAlignment_e.swViewAlignBoth;
+        }
+
+        /// <summary>
+        /// The alignment of a view in words. IView~GetAlignment.html: «Alignment information as defined
+        /// in swViewAlignment_e»; read on the views of round 14: the front view 1 (views aligned to it),
+        /// the top view and the section 2 (aligned to their parent), a detail 0.
+        /// </summary>
+        private static string AlignmentName(int alignment)
+        {
+            switch (alignment)
+            {
+                case (int)swViewAlignment_e.swViewAlignNone: return "not aligned";
+                case (int)swViewAlignment_e.swViewAlignedChildren: return "not aligned, with views aligned to it (they move with it)";
+                case (int)swViewAlignment_e.swViewAligned: return "aligned to its parent view (it moves only along that line)";
+                case (int)swViewAlignment_e.swViewAlignBoth: return "aligned to its parent view, with views aligned to it";
+                default: return "not readable";
+            }
+        }
+
+        /// <summary>The outline of every view of the current sheet, by name.</summary>
+        private static Dictionary<string, double[]> OutlinesOfTheSheet(IDrawingDoc drawing)
+        {
+            var d = new Dictionary<string, double[]>();
+            try
+            {
+                for (var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView; v != null; v = v.GetNextView() as IView)
+                {
+                    string n = null;
+                    try { n = v.GetName2(); } catch { }
+                    var o = OutlineOf(v);
+                    if (n != null && o != null) d[n] = o;
+                }
+            }
+            catch { }
+            return d;
+        }
+
+        /// <summary>
+        /// Every view of the current sheet with its notes (ViewWithItsNotes), by name, read before a
+        /// move: after it the labels still say the old place (note 98, defect 6).
+        /// </summary>
+        private static Dictionary<string, double[]> WithNotesOfTheSheet(IDrawingDoc drawing)
+        {
+            var d = new Dictionary<string, double[]>();
+            try
+            {
+                for (var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView; v != null; v = v.GetNextView() as IView)
+                {
+                    string n = null;
+                    try { n = v.GetName2(); } catch { }
+                    var r = ViewWithItsNotes(v);
+                    if (n != null && r != null) d[n] = r;
+                }
+            }
+            catch { }
+            return d;
+        }
+
+        /// <summary>The names of the views whose outline changed between two readings (more than 0.1 mm).</summary>
+        private static List<string> MovedViews(Dictionary<string, double[]> before, Dictionary<string, double[]> after)
+        {
+            var l = new List<string>();
+            foreach (KeyValuePair<string, double[]> kv in after)
+            {
+                double[] b;
+                if (before.TryGetValue(kv.Key, out b) && !SameRectangle(b, kv.Value, 0.0001)) l.Add(kv.Key);
+            }
+            return l;
+        }
+
+        /// <summary>The tables of the sheet itself (a bill of materials is there, not in a view), -1 when unreadable.</summary>
+        private static int SheetTables(IDrawingDoc drawing)
+        {
+            try
+            {
+                var sheetView = drawing.GetFirstView() as IView;
+                if (sheetView == null) return -1;
+                var t = sheetView.GetTableAnnotations() as object[];
+                // ZERO-E-ZERO: no array from GetTableAnnotations is a sheet without tables,
+                // as every other reading of tables in the library takes it (BomOperations,
+                // ReadDrawingOperations); not measured here, a failure throws and gives -1.
+                return t == null ? 0 : t.Length;
+            }
+            catch { return -1; }
+        }
+    }
+}

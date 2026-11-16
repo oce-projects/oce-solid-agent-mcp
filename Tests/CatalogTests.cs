@@ -96,6 +96,14 @@ namespace Oce.Solid.Agent.ContractTests
             Check("every operation has name, family, summary, description, schema",
                   without.Count == 0, string.Join("; ", without.Take(4)));
 
+            // ── save_document SAVES AN ASSEMBLY TOO (report 8cd843 N7) ────
+            var save = operations.OfType<Dictionary<string, object>>()
+                .FirstOrDefault(v => v.ContainsKey("name") && Convert.ToString(v["name"]) == "save_document");
+            Check("save_document sits in the family «documents», not among the drawings (report 8cd843 N7)",
+                  save != null && save.ContainsKey("family") && Convert.ToString(save["family"]) == "documents",
+                  save == null ? "save_document is not in the catalog"
+                               : "family «" + Convert.ToString(save.ContainsKey("family") ? save["family"] : null) + "»");
+
             // ── THE DECLARED FAMILIES ARE THE USED ONES ───────────────────
             //
             // A family that is used and not declared is an operation that does not

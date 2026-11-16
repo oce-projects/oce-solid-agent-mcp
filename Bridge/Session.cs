@@ -290,6 +290,101 @@ namespace Oce.Solid.Agent.Bridge
         /// except empty, "0" and "false". A variable that is set to "0" and
         /// still switches something off would be the surprise this avoids.
         /// </summary>
+        /// <summary>
+        /// THE SEQUENCE OF API CALLS IS ANNOUNCED TO SOLIDWORKS (brief R2).
+        ///
+        /// The guide, ISldWorks~CommandInProgress.html: «Improves performance of
+        /// out-of-process applications by informing SOLIDWORKS that a sequence
+        /// of API calls will be made by the out-of-process application», and
+        /// «Set to True before calling the sequence of API calls, then set to
+        /// false after». The bridge is exactly that application, and up to
+        /// 0.130.2 it never set it: on 26/10/2026 reading the tree of an EMPTY
+        /// part (fifteen features) cost 0.6-1.3 s, tens of milliseconds per call.
+        ///
+        /// IT IS SET ONLY IF IT WAS FALSE. True at the start of a call means
+        /// another program driving SOLIDWORKS left it on: it is not ours to
+        /// clear, and the plan refuses as before (PreliminaryChecks). The
+        /// answer says whether it is ours, and only ours is put back.
+        ///
+        /// `OCE_API_SEQUENCE` set to `0`, `false` or `off` turns it off, so the
+        /// two ways can be measured one against the other.
+        /// </summary>
+        public bool BeginApiSequence()
+        {
+            ApiSequenceOurs = false;
+            if (!Attached || !ApiSequenceWanted()) return false;
+            try
+            {
+                var sw = _sw as ISldWorks;
+                if (sw == null || sw.CommandInProgress) return false;
+                sw.CommandInProgress = true;
+                ApiSequenceOurs = true;
+                return true;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>Puts back what <see cref="BeginApiSequence"/> set, and only that.</summary>
+        public void EndApiSequence(bool ours)
+        {
+            ApiSequenceOurs = false;
+            if (!ours) return;
+            try
+            {
+                var sw = _sw as ISldWorks;
+                if (sw != null) sw.CommandInProgress = false;
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Whether the next plan brings its document back to the front when
+        /// another window comes there (brief R1). The `build` tool sets it from
+        /// `on_window_change` before every plan; on by default.
+        /// </summary>
+        public bool ReactivateWindowInPlans { get; set; } = true;
+
+        /// <summary>
+        /// Why a material name would not resolve on this workstation, or null
+        /// (brief R4). Null also when the bridge is not attached: then nobody
+        /// can tell, and the step will say it when it runs.
+        /// </summary>
+        public string MaterialProblem(string requested, string archive)
+        {
+            if (!Attached) return null;
+            try
+            {
+                return Oce.Solid.Agent.Core.SolidWorksMaterials.ProblemWith(
+                    _sw as ISldWorks, requested, archive);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>True while the call in progress is the one that set CommandInProgress.</summary>
+        public bool ApiSequenceOurs { get; private set; }
+
+        /// <summary>What `OCE_API_SEQUENCE` means: on unless `0`, `false` or `off`.</summary>
+        internal static bool ApiSequenceWanted()
+        {
+            var v = System.Environment.GetEnvironmentVariable("OCE_API_SEQUENCE");
+            if (string.IsNullOrWhiteSpace(v)) return true;
+            v = v.Trim();
+            return !(v == "0" ||
+                     string.Equals(v, "false", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(v, "off", StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>What `OCE_KEEP_LAST_READING` means: off unless `1`, `true` or `on` (bridge 0.160.0).</summary>
+        internal static bool KeepLastReadingWanted()
+        {
+            var v = System.Environment.GetEnvironmentVariable("OCE_KEEP_LAST_READING");
+            if (string.IsNullOrWhiteSpace(v)) return false;
+            v = v.Trim();
+            return v == "1" ||
+                   string.Equals(v, "true", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(v, "on", StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static bool NoAttachRequested()
         {
             var v = System.Environment.GetEnvironmentVariable("OCE_NO_ATTACH");
@@ -589,7 +684,43 @@ namespace Oce.Solid.Agent.Bridge
         public Dictionary<string, object> StateWithFaces(
             Oce.Solid.Agent.Core.FaceFilter filter, out string error)
         {
-            return State(true, filter, out error);
+            return State(true, filter, null, out error);
+        }
+
+        /// <summary>
+        /// The state with a filter on the faces, on the edges, or both (brief
+        /// R17; see <see cref="Oce.Solid.Agent.Core.EdgeFilter"/>). Either may be null.
+        /// </summary>
+        public Dictionary<string, object> StateWithFilters(
+            Oce.Solid.Agent.Core.FaceFilter faces, Oce.Solid.Agent.Core.EdgeFilter edges, out string error)
+        {
+            return State(true, faces, edges, out error);
+        }
+
+        /// <summary>
+        /// The edges of one view of the drawing in front (report 8cd843 N23,
+        /// round 7), for «inspect_part» with «view_edges»: see
+        /// <see cref="Oce.Solid.Agent.Core.SwOperations.ViewEdgeList"/>. Reads
+        /// only. Null with the reason.
+        /// </summary>
+        public Dictionary<string, object> ViewEdges(string view, string component, int limit, out string error)
+        {
+            error = null;
+            var model = ActiveDocument() as IModelDoc2;
+            if (model == null)
+            {
+                error = "There is no open document in SolidWorks.";
+                return null;
+            }
+            try
+            {
+                return Oce.Solid.Agent.Core.SwOperations.ViewEdgeList(model, _sw as ISldWorks, view, component, limit, out error);
+            }
+            catch (Exception ex)
+            {
+                error = "I cannot read the edges of the view: " + ex.Message;
+                return null;
+            }
         }
 
         /// <summary>
@@ -616,7 +747,9 @@ namespace Oce.Solid.Agent.Bridge
             }
             try
             {
-                var docState = ReadState(model, false);
+                var docState = Oce.Solid.Agent.Core.PhaseClock.Time(
+                    "session.state_read", () => ReadState(model, false));
+                Keep(docState);
                 return docState?.Data;
             }
             catch (Exception ex)
@@ -690,13 +823,54 @@ namespace Oce.Solid.Agent.Bridge
         /// </summary>
         public object LastTurnRefusedDocument { get; private set; }
 
+        /// <summary>
+        /// LETS GO OF THE DOCUMENTS OF THE LAST PLAN at the end of every tools/call (bridge
+        /// 0.160.1, 30/10/2026). <see cref="LastPlanResult"/> holds the plan's document and the
+        /// document it ended on, and <see cref="LastTurnRefusedDocument"/> another one: McpTools reads
+        /// them right after <see cref="ExecutePlan(List{PlanStep}, out string, Mcp.Progress.Wire, string)"/>,
+        /// in the same call, and nobody after it. Kept until the next plan, they kept alive across
+        /// calls the drawing a «build» had just made: the drawing was then closed, the collection after
+        /// the call could not release it, and SOLIDWORKS kept a closed drawing alive. Measured on
+        /// 30/10/2026, cycle of 15 drawings (new drawing + second sheet + save, close) on a fresh
+        /// SOLIDWORKS: bridge 0.159.10 fell 4 times out of 4, always painting a drawing view
+        /// (uiBaseView_c::OnPaint, uiDrawingView_c::getSheetRect); the same cycle without the bridge
+        /// had run 25 times without falling (28/10/2026). RAG note 95, par. 12.
+        /// </summary>
+        public void ForgetLastPlan()
+        {
+            LastPlanResult = null;
+            LastPlanExecutorThrew = false;
+            LastTurnRefusedDocument = null;
+        }
+
+        /// <summary>True when <paramref name="document"/> is one of the documents open in SOLIDWORKS now (by COM identity).</summary>
+        public bool IsOpen(object document)
+        {
+            if (document == null) return false;
+            var sw = _sw as ISldWorks;
+            if (sw == null) return false;
+            try
+            {
+                // As FindOpen in Documents.cs walks them, with the same bound.
+                var doc = sw.GetFirstDocument() as IModelDoc2;
+                int guard = 0;
+                while (doc != null && guard++ < 500)
+                {
+                    if (SameComObject(doc, document)) return true;
+                    doc = doc.GetNext() as IModelDoc2;
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private Dictionary<string, object> State(bool withAnchor, out string error)
         {
-            return State(withAnchor, null, out error);
+            return State(withAnchor, null, null, out error);
         }
 
         private Dictionary<string, object> State(
-            bool withAnchor, Oce.Solid.Agent.Core.FaceFilter filter, out string error)
+            bool withAnchor, Oce.Solid.Agent.Core.FaceFilter filter, Oce.Solid.Agent.Core.EdgeFilter edges, out string error)
         {
             error = null;
             var doc = ActiveDocument();
@@ -707,9 +881,12 @@ namespace Oce.Solid.Agent.Bridge
             }
             try
             {
-                var docState = filter == null
-                    ? ReadState(doc, withAnchor)
-                    : DocumentState.ReadFaces(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter);
+                var docState = Oce.Solid.Agent.Core.PhaseClock.Time(
+                    withAnchor ? "session.state_read_anchor" : "session.state_read",
+                    () => filter == null && edges == null
+                        ? ReadState(doc, withAnchor)
+                        : DocumentState.ReadFiltered(doc as IModelDoc2, _sw as ISldWorks, withAnchor, filter, edges));
+                Keep(docState);
                 return docState?.Data;
             }
             catch (Exception ex)
@@ -717,6 +894,41 @@ namespace Oce.Solid.Agent.Bridge
                 error = "I cannot read the document: " + ex.Message;
                 return null;
             }
+        }
+
+        /// <summary>
+        /// THE LAST READING, KEPT ALIVE ACROSS CALLS (bridge 0.160.0, 30/10/2026), only with
+        /// OCE_KEEP_LAST_READING=1; off by default.
+        ///
+        /// After every tools/call the bridge collects the garbage (Program.cs,
+        /// ReleaseSolidWorksObjects, 0.152.6), so every COM object of the call is released, and a
+        /// probe of 30/10/2026 measured that SOLIDWORKS then throws away the geometry it evaluated:
+        /// the next reading of the same welded frame cost about 2,100 ms instead of about 150 ms
+        /// (RAG note 95). Holding the last DocumentState holds its faces, its edges and (library
+        /// 0.187.0) the curves of its edges, so the next reading of an unchanged part may find them
+        /// evaluated. Whether it does, and at what cost in the memory of SOLIDWORKS, is what the
+        /// switch is for: it is a test, not a decision.
+        ///
+        /// One reading at a time: a new one replaces the old one, which the collection after the
+        /// call releases. Forgotten before every «document» call (Program.cs), so that a document
+        /// is never closed while the bridge holds its faces: the collection that cured the falls
+        /// after 8-11 drawings stays whole.
+        /// </summary>
+        private DocumentState _keptReading;
+
+        private static readonly bool KeepLastReading = KeepLastReadingWanted();
+
+        private void Keep(DocumentState reading)
+        {
+            if (KeepLastReading && reading != null) _keptReading = reading;
+        }
+
+        /// <summary>Lets go of the kept reading. True when there was one (the caller then collects).</summary>
+        public bool ForgetKeptReading()
+        {
+            if (_keptReading == null) return false;
+            _keptReading = null;
+            return true;
         }
 
         /// <summary>
@@ -995,7 +1207,9 @@ namespace Oce.Solid.Agent.Bridge
             var executor = new PlanExecutor(
                 _sw as ISldWorks,
                 source,
-                line => Mcp.Protocol.Note("  " + line),
+                // The last line is also what the heartbeat of a long step says
+                // the step is doing (brief R13).
+                line => { source.LastLine = line; Mcp.Protocol.Note("  " + line); },
                 f => System.Threading.Tasks.Task.FromResult(f()))
             {
                 // The name that the user reads in the «Undo» menu of SOLIDWORKS.
@@ -1023,6 +1237,14 @@ namespace Oce.Solid.Agent.Bridge
                 // catalog with the allowed types — `Tests\Program.cs` →
                 // `EveryCatalogFamilyHasAnAllowedDocument`.
                 AlsoOnAssemblies = true,
+
+                // CommandInProgress set by THIS call is not someone else's
+                // (brief R2): see BeginApiSequence.
+                CommandInProgressIsOurs = ApiSequenceOurs,
+
+                // Another window in front is brought back, not a reason to
+                // stop, unless the caller asked to stop (brief R1).
+                ReactivateWindow = ReactivateWindowInPlans,
             };
 
             try
@@ -1056,6 +1278,12 @@ namespace Oce.Solid.Agent.Bridge
             {
                 error = NameTheTrueCause(ex.Message, source.Outcomes);
                 return source.Outcomes;
+            }
+            finally
+            {
+                // No beat after the answer (brief R13): the executor may have
+                // returned or thrown in the middle of a step.
+                source.StopHeartbeat();
             }
         }
 

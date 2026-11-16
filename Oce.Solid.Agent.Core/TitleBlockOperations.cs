@@ -58,6 +58,30 @@ namespace Oce.Solid.Agent.Core
         private static readonly Regex Connection =
             new Regex("\\$PRP(SHEET)?:\\s*[\"']([^\"']+)[\"']", RegexOptions.IgnoreCase);
 
+        /// <summary>
+        /// Does the note show only the fixed text written around its links (report
+        /// 8cd843 N25)? The text the note asks for, with every link taken out,
+        /// leaves its fixed pieces (« » and «Kg» of `$PRPSHEET:"Peso"
+        /// $PRPSHEET:"MASSA"Kg`); each piece is taken out of what the note shows,
+        /// once, and if nothing but blanks is left no link brought a value. An
+        /// empty show counts as only fixed text too. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static bool ShowsOnlyFixedText(string asks, string show)
+        {
+            if (string.IsNullOrWhiteSpace(show)) return true;
+            if (string.IsNullOrEmpty(asks)) return false;
+            string rest = show;
+            foreach (var piece in Connection.Replace(asks, "\u0001").Split('\u0001'))
+            {
+                var fixedText = piece.Trim();
+                if (fixedText.Length == 0) continue;
+                int at = rest.IndexOf(fixedText, StringComparison.Ordinal);
+                if (at >= 0) rest = rest.Remove(at, fixedText.Length);
+            }
+            return rest.Trim().Length == 0;
+        }
+
         private Outcome TitleBlock(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
@@ -71,7 +95,7 @@ namespace Oce.Solid.Agent.Core
             catch (Exception ex) { return Failed("I cannot read the sheet: " + ex.Message); }
             if (sheet == null) return Failed("The drawing has no active sheet.");
 
-            var note = TitleBlockNotes(drawing, sheet, out string fromWhere);
+            var note = TitleBlockNotes(drawing, sheet, out string fromWhere, out int notesOnTheSheet);
             if (note.Count == 0)
                 return Failed(
                     "I cannot find any note in the title block of this sheet" +
@@ -85,6 +109,11 @@ namespace Oce.Solid.Agent.Core
             var requestedItems = new List<string>();
             var empty = new List<string>();
             var shown = new List<string>();
+            // The fields that are one `$PRPSHEET` link and nothing else, compared with the
+            // model further down (N61).
+            var singleAsks = new List<string>();
+            var singleShows = new List<string>();
+            var singleNames = new List<string>();
             int connected = 0;
 
             foreach (var n in note)
@@ -102,7 +131,12 @@ namespace Oce.Solid.Agent.Core
                 // A LINKED FIELD THAT SHOWS NOTHING IS THE DEFECT.
                 // It is not «empty on purpose»: it is a link that did not
                 // find its property.
-                bool showNothing = string.IsNullOrWhiteSpace(show);
+                //
+                // AND THE FIXED TEXT AROUND THE LINKS IS NOT A VALUE (report 8cd843
+                // N25, round 7): `$PRPSHEET:"Peso" $PRPSHEET:"MASSA"Kg` showed « Kg»,
+                // and «Peso» and «MASSA» were counted as shown with both empty.
+                bool onlyFixed = names.Count > 0 && ShowsOnlyFixedText(asks, show);
+                bool showNothing = string.IsNullOrWhiteSpace(show) || onlyFixed;
                 if (names.Count > 0 && showNothing)
                     foreach (var x in names)
                         if (!empty.Contains(x, StringComparer.Ordinal)) empty.Add(x);
@@ -125,15 +159,29 @@ namespace Oce.Solid.Agent.Core
                     ["shows"] = show ?? "",
                 };
                 if (names.Count > 0) entry["property"] = names.ToArray();
+                if (onlyFixed && !string.IsNullOrWhiteSpace(show)) entry["only_fixed_text"] = true;
                 fields.Add(entry);
+                if (names.Count == 1 && names[0].EndsWith(FromThePart, StringComparison.Ordinal) && !showNothing)
+                {
+                    singleAsks.Add(asks);
+                    singleShows.Add(show);
+                    singleNames.Add(BareName(names[0]));
+                }
             }
 
             var measurements = new Dictionary<string, object>
             {
                 ["sheet"] = SheetName(sheet) ?? "",
                 ["sheet_format"] = TestText(() => sheet.GetSheetFormatName()),
+                // THE FILE, not the name (report 8cd843 round 17, observation): the name is
+                // the one of the instance, «...foglio1», «...foglio2», on three sheets of the
+                // same A3.
+                // Named as the installation names it, also when a local copy was opened (LocalCopies.cs).
+                ["sheet_format_file"] = SheetFormatFile(LocalCopies.Original(TestText(() => sheet.GetTemplateName()))),
                 ["notes_in_title_block"] = note.Count,
                 ["notes_linked"] = connected,
+                // The notes put on the sheet, left out of the title block (N45).
+                ["notes_on_the_sheet_left_out"] = notesOnTheSheet >= 0 ? (object)notesOnTheSheet : null,
                 ["searched_in"] = fromWhere,
                 ["fields"] = fields.ToArray(),
             };
@@ -224,9 +272,58 @@ namespace Oce.Solid.Agent.Core
                     "Writing them again changes nothing. Try rebuilding the drawing " +
                     "and reading again; if they stay empty, the link is broken.";
 
+            // ── A VALUE THE MODEL NO LONGER HAS (report 8cd843 N61, round 19) ──
+            //
+            // The text of a note is the one the drawing calculated last. After
+            // «set_property» on the model shown in the view, and its save, this operation
+            // still read the old value of the field until the drawing was opened again,
+            // while the PDF written in between printed the new one: the answer and the PDF
+            // said two different things. Each field that is one `$PRPSHEET` link and
+            // nothing else is compared with the value the model has now, in each drawer:
+            // different from all of them is an old value. ALWAYS, EVEN EMPTY, for the reason
+            // given above `requested_present_on_model_but_shown_empty`.
+            var oldValues = new List<object>();
+            string viewConfiguration;
+            var viewModel = FirstViewModel(drawing, out viewConfiguration);
+            if (viewModel != null)
+                for (int i = 0; i < singleAsks.Count; i++)
+                {
+                    List<string> current = CurrentValues(viewModel, viewConfiguration, singleNames[i]);
+                    if (ShowsAnOldValue(singleAsks[i], singleShows[i], current))
+                        oldValues.Add(new Dictionary<string, object>
+                        {
+                            ["property"] = singleNames[i],
+                            ["shows"] = singleShows[i],
+                            ["model_has"] = current.ToArray(),
+                        });
+                }
+            measurements["requested_shown_with_an_old_value"] = oldValues.ToArray();
+            string oldValueNote = OldValueNote(oldValues.Count);
+            if (oldValueNote != null) measurements["old_value_note"] = oldValueNote;
+
             string viewByProperty = TestText(() => sheet.CustomPropertyView);
             if (!string.IsNullOrWhiteSpace(viewByProperty))
                 measurements["sheet_properties_source_view"] = viewByProperty;
+
+            // ── THE OTHER SHEETS (report 8cd843 N59, round 16) ──────────
+            //
+            // Only the active sheet was read. The third sheet of round 16 showed another
+            // part, and its title block took two `$PRPSHEET` properties from that part:
+            // both empty in the PDF, and the answer said «no empty box». The other sheets are
+            // not activated (that would change the drawing): for each one its own title
+            // block is read from the «view» of its format, the models of its views are
+            // read, and the names it asks with `$PRPSHEET` are looked for on them. Only the
+            // names this sheet shows are warned about: those empty here too are already in
+            // «requested_but_empty» (scenario t60 on a copy of the drawing of round 16: 20 of
+            // the 22 names the coupler lacked were empty on the first sheet too, and they
+            // buried the two that were not). ALWAYS, EVEN EMPTY, for the reason given above
+            // `requested_present_on_model_but_shown_empty`.
+            var otherWarnings = new List<string>();
+            measurements["other_sheets"] = OtherSheets(
+                drawing, SheetName(sheet), measurements["sheet_format_file"] as string,
+                requestedItems, empty, otherWarnings).ToArray();
+            if (otherWarnings.Count > 0)
+                measurements["other_sheets_warning"] = string.Join(" ", otherWarnings);
 
             if (requestedItems.Count == 0)
                 measurements["verdict"] =
@@ -248,6 +345,14 @@ namespace Oce.Solid.Agent.Core
                     "spelling different from the one the title block references — and that " +
                     "case gives no error: the drawing comes out with the empty boxes. The " +
                     "names above are the right ones, copy them literally.";
+            // The verdict speaks for the active sheet only; said in it, not only in a field
+            // below, so that «no empty box» is not read as true of the whole drawing (N59).
+            if (otherWarnings.Count > 0)
+                measurements["verdict"] = measurements["verdict"] + " BUT ON THE OTHER SHEETS: " +
+                                          measurements["other_sheets_warning"];
+            // A box that shows a value is not a box that shows the right one (N61).
+            if (oldValueNote != null)
+                measurements["verdict"] = measurements["verdict"] + " AND " + oldValueNote;
 
             _log("[agent] " + measurements["verdict"]);
             return SucceededWithoutCreating(measurements);
@@ -260,9 +365,10 @@ namespace Oce.Solid.Agent.Core
         /// «view», the one that carries the format.
         /// </summary>
         private static List<INote> TitleBlockNotes(
-            IDrawingDoc drawing, ISheet sheet, out string fromWhere)
+            IDrawingDoc drawing, ISheet sheet, out string fromWhere, out int onTheSheet)
         {
             fromWhere = null;
+            onTheSheet = 0;
             var outside = new List<INote>();
 
             try
@@ -286,31 +392,91 @@ namespace Oce.Solid.Agent.Core
                 var sheetView = drawing.GetFirstView() as IView;
                 if (sheetView != null)
                 {
-                    var ann = sheetView.GetFirstAnnotation3() as IAnnotation;
-                    while (ann != null)
-                    {
-                        // WE DO NOT ASK THE TYPE, WE TRY THE CAST.
-                        //
-                        // `IAnnotation` has a `GetType()` that returns `Int32`, and in
-                        // C# that name collides with `object.GetType()`: the
-                        // compiler does not know which you mean. `GetSpecificAnnotation`
-                        // already returns the specific object, and a cast to `INote` that
-                        // fails gives `null` — which is the same information
-                        // without the collision.
-                        try
-                        {
-                            var note = ann.GetSpecificAnnotation() as INote;
-                            if (note != null) outside.Add(note);
-                        }
-                        catch { }
-                        ann = ann.GetNext3() as IAnnotation;
-                    }
+                    onTheSheet = FormatNotes(sheetView, outside);
                     if (outside.Count > 0) fromWhere = "among the notes of the sheet format";
                 }
             }
             catch { }
 
             if (fromWhere == null) fromWhere = "in the title block group and among the notes of the format";
+            return outside;
+        }
+
+        /// <summary>
+        /// The notes of the format carried by a sheet «view», added to «notes»; the
+        /// number of notes put on the sheet, left out, is returned, -1 when an annotation
+        /// could not be read. The view is the first one of the active sheet
+        /// (TitleBlockNotes) or the first one of the list of another sheet (SheetViews,
+        /// report 8cd843 N59).
+        /// </summary>
+        private static int FormatNotes(IView sheetView, List<INote> notes)
+        {
+            int onTheSheet = 0;
+            bool unread = false;
+            try
+            {
+                var ann = sheetView.GetFirstAnnotation3() as IAnnotation;
+                while (ann != null)
+                {
+                    // WE DO NOT ASK THE TYPE, WE TRY THE CAST.
+                    //
+                    // `IAnnotation` has a `GetType()` that returns `Int32`, and in
+                    // C# that name collides with `object.GetType()`: the
+                    // compiler does not know which you mean. `GetSpecificAnnotation`
+                    // already returns the specific object, and a cast to `INote` that
+                    // fails gives `null` — which is the same information
+                    // without the collision.
+                    try
+                    {
+                        var note = ann.GetSpecificAnnotation() as INote;
+                        // ONLY THE NOTES OF THE FORMAT (report 8cd843 N45, round 12):
+                        // the annotations of the sheet hold the notes put on the sheet
+                        // too, and the general note of the drawing was read as the first
+                        // field of the title block (67 -> 68). IAnnotation.OwnerType
+                        // (IAnnotation~OwnerType.html: «drawing view, drawing sheet,
+                        // drawing template») tells them apart; probe on a copy of the
+                        // drawing of the report (27/10/2026): the general note 1
+                        // (swAnnotationOwner_DrawingSheet), the 67 fields 2
+                        // (swAnnotationOwner_DrawingTemplate). A note whose owner
+                        // cannot be read is kept, as before.
+                        int owner = -1;
+                        try { owner = ann.OwnerType; } catch { }
+                        if (note != null && owner == (int)swAnnotationOwner_e.swAnnotationOwner_DrawingSheet) onTheSheet++;
+                        else if (note != null) notes.Add(note);
+                    }
+                    catch { unread = true; }
+                    ann = ann.GetNext3() as IAnnotation;
+                }
+            }
+            catch { unread = true; }
+            return unread ? -1 : onTheSheet;
+        }
+
+        /// <summary>
+        /// The «view» that carries the format of each sheet, by sheet name, read without
+        /// activating any sheet (report 8cd843 N59). IDrawingDoc~GetViews.html: «an array
+        /// of arrays with a length equal to the number of sheets», each «a list of views
+        /// with the first view in the list being the sheet itself», the order of the sheets
+        /// «undetermined» — so they are matched by name, not by position. Empty when the
+        /// list cannot be read.
+        /// </summary>
+        private static Dictionary<string, IView> SheetViews(IDrawingDoc drawing)
+        {
+            var outside = new Dictionary<string, IView>(StringComparer.Ordinal);
+            try
+            {
+                var all = drawing.GetViews() as object[];
+                foreach (var o in all ?? new object[0])
+                {
+                    var list = o as object[];
+                    var first = list != null && list.Length > 0 ? list[0] as IView : null;
+                    if (first == null) continue;
+                    string name = null;
+                    try { name = first.GetName2(); } catch { }
+                    if (!string.IsNullOrEmpty(name) && !outside.ContainsKey(name)) outside[name] = first;
+                }
+            }
+            catch { }
             return outside;
         }
 
@@ -402,6 +568,364 @@ namespace Oce.Solid.Agent.Core
             catch { return null; }
         }
 
+        /// <summary>
+        /// The sheets other than the active one (report 8cd843 N59, round 16), each with
+        /// the models of its views and, on each model, which names asked with `$PRPSHEET`
+        /// it gives no value to. Read without activating the sheet: its views through
+        /// ISheet.GetViews («Not active, this method returns only the drawing views»,
+        /// ISheet~GetViews.html), its own title block through SheetViews. A view whose
+        /// model is not loaded is named and not checked. When its title block cannot be
+        /// reached the names of the active sheet are used, and said so, with its format
+        /// when it is another one.
+        /// </summary>
+        private static List<Dictionary<string, object>> OtherSheets(
+            IDrawingDoc drawing, string activeSheet, string activeFormat,
+            List<string> requested, List<string> emptyHere, List<string> warnings)
+        {
+            var outside = new List<Dictionary<string, object>>();
+            string[] names = null;
+            try { names = drawing.GetSheetNames() as string[]; } catch { }
+            if (names == null) return outside;
+            var wanted = NamesFromThePart(requested);
+            var sheetViews = SheetViews(drawing);
+            var emptyBare = new List<string>();
+            foreach (var x in emptyHere ?? new List<string>()) emptyBare.Add(BareName(x));
+
+            foreach (var name in names)
+            {
+                if (string.Equals(name, activeSheet, StringComparison.Ordinal)) continue;
+                var entry = new Dictionary<string, object> { ["sheet"] = name };
+                outside.Add(entry);
+                ISheet other = null;
+                try { other = drawing.get_Sheet(name) as ISheet; } catch { }
+                if (other == null)
+                {
+                    entry["not_read"] = "I could not reach this sheet (IDrawingDoc.get_Sheet).";
+                    warnings.Add("Sheet «" + name + "»: I could not reach it, so I do not know what its title block shows.");
+                    continue;
+                }
+
+                entry["sheet_format"] = TestText(() => other.GetSheetFormatName());
+                string formatFile = SheetFormatFile(LocalCopies.Original(TestText(() => other.GetTemplateName())));
+                entry["sheet_format_file"] = formatFile;
+                string formatWarning = OtherFormatWarning(name, formatFile, activeFormat);
+                if (formatWarning != null) entry["different_format"] = true;
+
+                // ITS OWN TITLE BLOCK: the names it asks, not those of the active sheet.
+                // A sheet whose format has no linked note asks for nothing, and nothing of
+                // it can show empty (a sheet made with «paper_size» has no format notes:
+                // measured on the bench, 28/10/2026).
+                var askedHere = wanted;
+                IView itsSheetView;
+                if (sheetViews.TryGetValue(name, out itsSheetView))
+                {
+                    var itsNotes = new List<INote>();
+                    FormatNotes(itsSheetView, itsNotes);
+                    var itsRequested = new List<string>();
+                    foreach (var n in itsNotes)
+                    {
+                        string asks = null;
+                        try { asks = n.PropertyLinkedText; } catch { }
+                        foreach (var x in ConnectedNames(asks))
+                            if (!itsRequested.Contains(x, StringComparer.Ordinal)) itsRequested.Add(x);
+                    }
+                    askedHere = NamesFromThePart(itsRequested);
+                    entry["title_block_notes"] = itsNotes.Count;
+                    entry["asked_from_the_part"] = askedHere.ToArray();
+                    if (itsNotes.Count == 0)
+                        entry["no_title_block"] = "The format of this sheet has no note: nothing it shows can be empty.";
+                }
+                else
+                {
+                    entry["title_block_not_read"] = "I could not reach the format of this sheet (IDrawingDoc.GetViews): " +
+                        "the names looked for are those of the title block of the active sheet.";
+                    if (formatWarning != null) warnings.Add(formatWarning);
+                }
+                string chosen = TestText(() => other.CustomPropertyView);
+                if (!string.IsNullOrWhiteSpace(chosen)) entry["properties_source_view"] = chosen;
+
+                object[] views = null;
+                try { views = other.GetViews() as object[]; } catch { }
+                var models = new List<Dictionary<string, object>>();
+                var viewsOfModel = new List<List<string>>();
+                var missingOf = new List<List<string>>();
+                var blankOf = new List<List<string>>();
+                var viewNames = new List<string>();
+                foreach (var o in views ?? new object[0])
+                {
+                    var v = o as IView;
+                    if (v == null) continue;
+                    string viewName = null;
+                    try { viewName = v.GetName2(); } catch { }
+                    IModelDoc2 m = null;
+                    try { m = v.ReferencedDocument as IModelDoc2; } catch { }
+                    string path = null;
+                    try { path = m != null ? m.GetPathName() : v.GetReferencedModelName(); } catch { }
+                    // The sheet itself, or a view of nothing: no model to take properties from.
+                    if (string.IsNullOrWhiteSpace(path)) continue;
+                    if (viewName != null) viewNames.Add(viewName);
+                    string configuration = "";
+                    try { configuration = v.ReferencedConfiguration ?? ""; } catch { }
+
+                    int known = models.FindIndex(x =>
+                        string.Equals((string)x["path"], path, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals((string)x["configuration"], configuration, StringComparison.Ordinal));
+                    if (known >= 0) { if (viewName != null) viewsOfModel[known].Add(viewName); continue; }
+
+                    var model = new Dictionary<string, object> { ["path"] = path, ["configuration"] = configuration };
+                    var missing = new List<string>();
+                    var blank = new List<string>();
+                    if (m == null) model["not_checked"] = "the model is not loaded";
+                    else
+                    {
+                        model["values"] = PropertyValues(m, configuration, askedHere, missing, blank);
+                        model["asked_but_not_on_model"] = missing.ToArray();
+                        model["asked_but_blank_on_model"] = blank.ToArray();
+                    }
+                    models.Add(model);
+                    viewsOfModel.Add(viewName != null ? new List<string> { viewName } : new List<string>());
+                    missingOf.Add(missing);
+                    blankOf.Add(blank);
+                }
+
+                entry["views"] = viewNames.ToArray();
+                if (views == null) entry["not_read"] = "ISheet.GetViews gave no list: the models of this sheet are not known.";
+                // The view named in the sheet properties, when one is: the title block
+                // takes from its model, and only that one is warned about.
+                int source = string.IsNullOrWhiteSpace(chosen) ? -1 :
+                    viewsOfModel.FindIndex(l => l.Contains(chosen, StringComparer.OrdinalIgnoreCase));
+                for (int i = 0; i < models.Count; i++)
+                {
+                    models[i]["views"] = viewsOfModel[i].ToArray();
+                    if (source >= 0 && i != source) continue;
+                    var freshMissing = NotEmptyHere(missingOf[i], emptyBare);
+                    var freshBlank = NotEmptyHere(blankOf[i], emptyBare);
+                    models[i]["empty_there_shown_here"] = freshMissing.Concat(freshBlank).ToArray();
+                    int alsoHere = missingOf[i].Count + blankOf[i].Count - freshMissing.Count - freshBlank.Count;
+                    string w = OtherSheetWarning(name, (string)models[i]["path"], freshMissing, freshBlank,
+                                                 source < 0 && models.Count > 1, alsoHere);
+                    if (w != null) warnings.Add(w);
+                }
+                entry["models"] = models.ToArray();
+            }
+            return outside;
+        }
+
+        /// <summary>
+        /// The value a model gives to each name in «wanted», looked for in its document
+        /// properties and in those of «configuration» (the two drawers do not see each
+        /// other, see ViewModelProperty). Names on neither go to «missing», names present
+        /// with a blank resolved value to «blank». A value in either drawer counts as
+        /// given: which of the two wins when both are set was not measured.
+        /// </summary>
+        private static Dictionary<string, object> PropertyValues(
+            IModelDoc2 m, string configuration, List<string> wanted, List<string> missing, List<string> blank)
+        {
+            var values = new Dictionary<string, object>();
+            var drawers = new List<string> { "" };
+            if (!string.IsNullOrWhiteSpace(configuration)) drawers.Add(configuration);
+            foreach (var w in wanted)
+            {
+                bool present = false;
+                string given = null;
+                foreach (var d in drawers)
+                {
+                    try
+                    {
+                        var gp = m.Extension.get_CustomPropertyManager(d) as ICustomPropertyManager;
+                        var names = gp?.GetNames() as string[];
+                        var real = names?.FirstOrDefault(n => string.Equals(n, w, StringComparison.OrdinalIgnoreCase));
+                        if (real == null) continue;
+                        present = true;
+                        string raw, resolved;
+                        bool wasResolved, link;
+                        gp.Get6(real, false, out raw, out resolved, out wasResolved, out link);
+                        if (string.IsNullOrWhiteSpace(given) && !string.IsNullOrWhiteSpace(resolved)) given = resolved;
+                    }
+                    catch { }
+                }
+                if (!present) missing.Add(w);
+                else if (string.IsNullOrWhiteSpace(given)) blank.Add(w);
+                else values[w] = given;
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// The bare names the title block asks with `$PRPSHEET`, the ones that come from
+        /// the model in view: those marked by ConnectedNames. Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static List<string> NamesFromThePart(IEnumerable<string> requested)
+        {
+            var outside = new List<string>();
+            foreach (var r in requested ?? new string[0])
+                if (r != null && r.EndsWith(FromThePart, StringComparison.Ordinal))
+                {
+                    var bare = BareName(r);
+                    if (!outside.Contains(bare, StringComparer.Ordinal)) outside.Add(bare);
+                }
+            return outside;
+        }
+
+        /// <summary>
+        /// The names of «names» that are not among «emptyHere», compared without regard to
+        /// case as the properties are (see ViewModelProperty). Pure, so the contract suite
+        /// reads it.
+        /// </summary>
+        internal static List<string> NotEmptyHere(List<string> names, List<string> emptyHere)
+        {
+            var outside = new List<string>();
+            foreach (var n in names ?? new List<string>())
+                if (emptyHere == null || !emptyHere.Contains(n, StringComparer.OrdinalIgnoreCase)) outside.Add(n);
+            return outside;
+        }
+
+        /// <summary>
+        /// What is said of another sheet whose model gives no value to some of the names
+        /// the active sheet shows (N59), null when there are none. «alsoEmptyHere» counts
+        /// the names it lacks that are empty on the active sheet too. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static string OtherSheetWarning(
+            string sheetName, string modelPath, List<string> missing, List<string> blank, bool oneOfSeveral,
+            int alsoEmptyHere)
+        {
+            // ZERO-E-ZERO: the lists are built by the caller from names it read; a list
+            // left null holds no name, so there is nothing to say of it.
+            int m = missing == null ? 0 : missing.Count, b = blank == null ? 0 : blank.Count;
+            if (m + b == 0) return null;
+            var parts = new List<string>();
+            if (m > 0) parts.Add(string.Join(", ", missing) + (m == 1 ? " is" : " are") + " not on it");
+            if (b > 0) parts.Add(string.Join(", ", blank) + (b == 1 ? " is" : " are") + " there with no value");
+            string alsoHere = alsoEmptyHere <= 0 ? ""
+                : alsoEmptyHere == 1 ? " (one more it lacks is empty on this sheet too, see «requested_but_empty»)"
+                : " (" + alsoEmptyHere + " more it lacks are empty on this sheet too, see «requested_but_empty»)";
+            return "Sheet «" + sheetName + "» shows «" + modelPath + "»" +
+                   (oneOfSeveral ? " (one of the models of its views)" : "") + ": " + string.Join(", and ", parts) +
+                   ", and none of them is empty on this sheet" + alsoHere + ". With `$PRPSHEET` its title block " +
+                   "takes them from the model in its views, so it shows them empty. Write them on that model with " +
+                   "«set_property», or activate the sheet and call «title_block».";
+        }
+
+        /// <summary>
+        /// What is said of another sheet with a different format (N59): its title block
+        /// may ask for other names than those of the active sheet. Null when the formats
+        /// are the same or one cannot be read. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string OtherFormatWarning(string sheetName, string format, string activeFormat)
+        {
+            if (string.IsNullOrWhiteSpace(format) || string.IsNullOrWhiteSpace(activeFormat)) return null;
+            if (string.Equals(format.Trim(), activeFormat.Trim(), StringComparison.OrdinalIgnoreCase)) return null;
+            return "Sheet «" + sheetName + "» has the format «" + format + "», not «" + activeFormat +
+                   "» of the active sheet: its title block may ask for other names than those above. " +
+                   "Activate it and call «title_block» to read them.";
+        }
+
+        /// <summary>
+        /// The model of the first real view of the active sheet, the one `$PRPSHEET` takes
+        /// from, with the configuration the view shows (N61). Null when it cannot be reached.
+        /// </summary>
+        private static IModelDoc2 FirstViewModel(IDrawingDoc drawing, out string configuration)
+        {
+            configuration = null;
+            try
+            {
+                // The first «view» is the SHEET: the real views begin after.
+                var v = (drawing.GetFirstView() as IView)?.GetNextView() as IView;
+                while (v != null)
+                {
+                    IModelDoc2 m = null;
+                    try { m = v.ReferencedDocument as IModelDoc2; } catch { }
+                    if (m != null)
+                    {
+                        try { configuration = v.ReferencedConfiguration; } catch { }
+                        return m;
+                    }
+                    v = v.GetNextView() as IView;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// The values «name» has now on the model, resolved, one per drawer that gives it
+        /// one: the document, the configuration of the view, the active configuration
+        /// (N61). Which drawer wins when they differ was not measured, so all are kept.
+        /// </summary>
+        private static List<string> CurrentValues(IModelDoc2 m, string configuration, string name)
+        {
+            var values = new List<string>();
+            var drawers = new List<string> { "" };
+            if (!string.IsNullOrWhiteSpace(configuration)) drawers.Add(configuration);
+            try
+            {
+                IConfigurationManager g = m.ConfigurationManager as IConfigurationManager;
+                IConfiguration activeConfiguration = g == null ? null : g.ActiveConfiguration as IConfiguration;
+                string active = activeConfiguration == null ? null : activeConfiguration.Name;
+                if (!string.IsNullOrWhiteSpace(active) && !drawers.Contains(active, StringComparer.Ordinal)) drawers.Add(active);
+            }
+            catch { }
+            foreach (var d in drawers)
+            {
+                try
+                {
+                    var gp = m.Extension.get_CustomPropertyManager(d) as ICustomPropertyManager;
+                    var names = gp?.GetNames() as string[];
+                    var real = names?.FirstOrDefault(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+                    if (real == null) continue;
+                    string raw, resolved;
+                    bool wasResolved, link;
+                    gp.Get6(real, false, out raw, out resolved, out wasResolved, out link);
+                    if (!string.IsNullOrWhiteSpace(resolved) && !values.Contains(resolved, StringComparer.Ordinal)) values.Add(resolved);
+                }
+                catch { }
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// Whether a field shows a value the model no longer has (report 8cd843 N61): the
+        /// field asks one `$PRPSHEET` link and nothing else, shows a value, and the model
+        /// has values for it now, none equal to the one shown (spaces at the ends aside).
+        /// A field with fixed text around its link is never judged: what it shows is not
+        /// the value alone. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool ShowsAnOldValue(string asks, string shows, List<string> current)
+        {
+            if (string.IsNullOrWhiteSpace(asks) || string.IsNullOrWhiteSpace(shows)) return false;
+            if (current == null || current.Count == 0) return false;
+            var links = Connection.Matches(asks);
+            if (links.Count != 1 || !links[0].Groups[1].Success) return false;
+            // The format codes are not text: the box of the workshop asks
+            // «<FONT size=8PTS>$PRPSHEET:"..."» (scenario t61, 28/10/2026).
+            if (FormatCode.Replace(Connection.Replace(asks, ""), "").Trim().Length > 0) return false;
+            foreach (var c in current)
+                if (c != null && string.Equals(c.Trim(), shows.Trim(), StringComparison.Ordinal)) return false;
+            return true;
+        }
+
+        /// <summary>
+        /// What is said when fields show an old value (N61), null when none does. Pure, so
+        /// the contract suite reads it.
+        /// </summary>
+        internal static string OldValueNote(int fields)
+        {
+            if (fields <= 0) return null;
+            return (fields == 1 ? "1 field of the title block shows" : fields + " fields of the title block show") +
+                   " a value the model no longer has (see «requested_shown_with_an_old_value», «model_has»): " +
+                   "the text of a note is the one the drawing calculated last. A PDF written now may print the " +
+                   "old value or the new one (both measured). Close the drawing and open it again before trusting " +
+                   "the boxes, and before writing the PDF.";
+        }
+
+        /// <summary>A format code of a note, «&lt;FONT size=8PTS&gt;»: not text (N61).</summary>
+        private static readonly Regex FormatCode = new Regex("<[^<>]*>");
+
+        /// <summary>The mark ConnectedNames puts on a name asked with `$PRPSHEET`.</summary>
+        private const string FromThePart = "  (from the part, not from the drawing)";
+
         private static List<string> ConnectedNames(string text)
         {
             var outside = new List<string>();
@@ -412,7 +936,7 @@ namespace Oce.Solid.Agent.Core
                 // `$PRPSHEET` takes the property from the MODEL in view, not
                 // from the drawing: it is a different drawer, and confusing them makes
                 // people write on the wrong document.
-                if (m.Groups[1].Success) itemName = itemName + "  (from the part, not from the drawing)";
+                if (m.Groups[1].Success) itemName = itemName + FromThePart;
                 if (!outside.Contains(itemName, StringComparer.Ordinal)) outside.Add(itemName);
             }
             return outside;

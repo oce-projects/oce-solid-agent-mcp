@@ -124,7 +124,7 @@ namespace Oce.Solid.Agent.Core
             var table = bom as ITableAnnotation;
             if (bom == null || table == null)
                 return Failed("SOLIDWORKS did not create the bill of materials and did not say why (table template «" +
-                               (tableModel ?? "") + "»).");
+                               LocalCopies.Original(tableModel ?? "") + "»).");
 
             // ── THE ROWS, READ ──────────────────────────────────────────────
             int lines = 0, columns = 0;
@@ -191,6 +191,14 @@ namespace Oce.Solid.Agent.Core
             }
             measurements["match"] = true;
 
+            // ── A COLUMN EMPTY ON EVERY ROW IS SAID (report 8cd843 N20) ─────
+            //
+            // 27/10/2026: the description column read "" on 7 rows of 7 and nothing in the
+            // answer said it; the table was delivered with a blank column. The
+            // count matching says nothing of what the cells hold.
+            string emptyColumns = EmptyColumnsWarning(headers, readLines);
+            if (emptyColumns != null) measurements["warning_empty_columns"] = emptyColumns;
+
             // ── THE PLACE ───────────────────────────────────────────────────
             double w = 0, h = 0;
             try
@@ -201,6 +209,67 @@ namespace Oce.Solid.Agent.Core
             catch { }
             string tableName = null;
             try { tableName = (table.GetAnnotation() as IAnnotation)?.GetName(); } catch { }
+
+            // OVER THE TITLE BLOCK, AT ITS WIDTH (report 8cd843, round 22, point 10): the owner rests the
+            // bill of materials on the title block. The columns are widened or narrowed by one
+            // factor (ITableAnnotation~SetColumnWidth.html, swTableRowColChange_TableSizeCanChange)
+            // and the table read again. The title block declared by the format, or drawn by its
+            // lines (note 98, defect 8: the owner's A3 declares none); without either, the free place.
+            if (Bool(a, "over_title_block", false))
+            {
+                string blockFrom;
+                double[] block = TitleBlockOfTheDrawing(drawing, out blockFrom);
+                // A warning, not a note: a «summary» answer drops the long texts that only explain, and
+                // until 0.168.0 the table went to a free place with nothing said (replay of 02/11/2026).
+                if (block == null)
+                    measurements["warning_over_title_block"] = "The format of the sheet declares no title block " +
+                        "(ITitleBlock.GetExtents) and its lines draw none in the bottom-right corner of the frame: " +
+                        "the table went to a free place instead.";
+                else if (w > 0 && h > 0)
+                {
+                    double factor = ColumnFactor(w, block[2] - block[0]);
+                    try
+                    {
+                        for (int c = 0; c < table.ColumnCount; c++)
+                            table.SetColumnWidth(c, table.GetColumnWidth(c) * factor,
+                                                 (int)swTableRowColSizeChangeBehavior_e.swTableRowColChange_TableSizeCanChange);
+                    }
+                    catch { }
+                    double wide = 0, high = 0;
+                    var heights = new List<double>();
+                    try
+                    {
+                        for (int c = 0; c < table.ColumnCount; c++) wide += table.GetColumnWidth(c);
+                        for (int r = 0; r < table.RowCount; r++) { double rh = table.GetRowHeight(r); high += rh; heights.Add(rh); }
+                    }
+                    catch { }
+                    try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(block[0], block[3] + high, 0); } catch { }
+                    measurements["table_location"] = "over the title block";
+                    measurements["title_block_from"] = blockFrom;
+                    measurements["title_block_mm"] = new object[]
+                    {
+                        Math.Round(block[0] * 1000, 1), Math.Round(block[1] * 1000, 1),
+                        Math.Round(block[2] * 1000, 1), Math.Round(block[3] * 1000, 1),
+                    };
+                    measurements["bounding_box_table_mm"] = new object[] { Math.Round(wide * 1000, 1), Math.Round(high * 1000, 1) };
+                    if (Math.Abs(wide - (block[2] - block[0])) > 0.001)
+                        measurements["width_note"] = "The table is " + Math.Round(wide * 1000, 1).ToString(CultureInfo.InvariantCulture) +
+                            " mm wide and the title block " + Math.Round((block[2] - block[0]) * 1000, 1).ToString(CultureInfo.InvariantCulture) +
+                            " mm: SOLIDWORKS did not take every width.";
+                    // A ROW ON TWO LINES (the owner's drawing: long descriptions left their cell).
+                    int tall = TallerRows(heights);
+                    measurements["rows_on_more_lines"] = tall;
+                    var placedSheet = ReadSheet(drawing, null, tableName);
+                    // The title block it rests on, and its notes, are not in its way; the frame line of
+                    // the format is the edge of the title block, inside the 12 mm of the free places.
+                    string covers = placedSheet.TouchesBeside(block[0], block[3] + 0.0005, block[0] + wide, block[3] + high, block);
+                    if (covers != null)
+                        measurements["warning_covers"] = "Over the title block the table touches " + covers +
+                            ": move that view with «move_view».";
+                    measurements["inside_sheet"] = true;
+                    return SucceededWithoutCreating(measurements);
+                }
+            }
             var sheet = ReadSheet(drawing, null, tableName);
             string location = null;
             var down = w > 0 && h > 0 ? FreePlace(sheet, w, h, out location) : null;
@@ -209,13 +278,66 @@ namespace Oce.Solid.Agent.Core
                 bool removed = RemoveCutTable(model, table);
                 return Failed(string.Format(CultureInfo.InvariantCulture,
                     "On the sheet there is no free place for the bill of materials ({0:0} x {1:0} mm) outside the views and the title " +
-                    "block. Use a bigger sheet. {2}", w * 1000, h * 1000, removed ? "I removed it." : ""));
+                    "block. Use a bigger sheet, or another sheet of the drawing («activate_sheet», then this step again). {2}",
+                    w * 1000, h * 1000, removed ? "I removed it." : ""));
             }
             try { (table.GetAnnotation() as IAnnotation)?.SetPosition2(down[0], down[1] + h, 0); } catch { }
             measurements["bounding_box_table_mm"] = new object[] { Math.Round(w * 1000, 1), Math.Round(h * 1000, 1) };
             measurements["table_location"] = location;
             measurements["inside_sheet"] = true;
             return SucceededWithoutCreating(measurements);
+        }
+
+        /// <summary>
+        /// The factor that brings a table <paramref name="tableWidth"/> wide to
+        /// <paramref name="blockWidth"/> (round 22, point 10); 1 when either is not a width. Pure.
+        /// </summary>
+        internal static double ColumnFactor(double tableWidth, double blockWidth)
+        {
+            return tableWidth > 1e-6 && blockWidth > 1e-6 ? blockWidth / tableWidth : 1.0;
+        }
+
+        /// <summary>
+        /// How many rows are more than one and a half times the lowest row: a text on two
+        /// lines or more (round 22, point 10). Pure.
+        /// </summary>
+        internal static int TallerRows(IList<double> heights)
+        {
+            if (heights == null || heights.Count == 0) return 0;
+            double lowest = double.MaxValue;
+            foreach (double h in heights) if (h > 1e-6) lowest = Math.Min(lowest, h);
+            if (lowest == double.MaxValue) return 0;
+            int tall = 0;
+            foreach (double h in heights) if (h > lowest * 1.5) tall++;
+            return tall;
+        }
+
+        /// <summary>
+        /// The columns of a table that are empty on every row, in one sentence,
+        /// or null (report 8cd843 N20). `rows` holds one string[] per row, as
+        /// the bill of materials reads them. No interop type:
+        /// Oce.Solid.Agent.ContractTests calls it by reflection.
+        /// </summary>
+        internal static string EmptyColumnsWarning(List<string> headers, List<object> rows)
+        {
+            if (headers == null || rows == null || rows.Count == 0) return null;
+            var empty = new List<string>();
+            for (int c = 0; c < headers.Count; c++)
+            {
+                bool allEmpty = true;
+                foreach (var o in rows)
+                {
+                    var row = o as string[];
+                    if (row != null && c < row.Length && !string.IsNullOrWhiteSpace(row[c])) { allEmpty = false; break; }
+                }
+                string name = headers[c] == null ? "" : headers[c].Trim();
+                if (allEmpty) empty.Add(name.Length > 0 ? "«" + name + "»" : "column " + (c + 1));
+            }
+            if (empty.Count == 0) return null;
+            return (empty.Count == 1 ? "The column " + empty[0] + " is" : "The columns " + string.Join(", ", empty) + " are") +
+                   " empty on all " + rows.Count + " rows: the property " + (empty.Count == 1 ? "it reads" : "they read") +
+                   " is missing or empty in every part. Fill it in the parts, or use a table template that reads the " +
+                   "property they have.";
         }
 
         /// <summary>
@@ -687,6 +809,45 @@ namespace Oce.Solid.Agent.Core
         // ──────────────────────────────────────────────────────────────────
         // ballooning (the balloons with the item numbers)
         // ──────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// The ItemOrder of AutoBalloon5 for «order» (report 8cd843 N60, round 17), null
+        /// when it is not one of the two. «around_the_view» is
+        /// swBalloonItemNumbers_OrderSequentially: the balloons numbered as they go around
+        /// the view, and the bill of materials renumbered to match (N50, measured).
+        /// «bill_of_materials» is swBalloonItemNumbers_DoNotChangeItemNumbers: the numbers
+        /// the bill of materials already has (measured on a copy of the drawing of round
+        /// 13: items 7 to 13 kept). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static int? BalloonItemOrder(string order)
+        {
+            switch ((order ?? "").Trim().ToLowerInvariant())
+            {
+                case "around_the_view": return (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_OrderSequentially;
+                case "bill_of_materials": return (int)swBalloonItemNumbersOrder_e.swBalloonItemNumbers_DoNotChangeItemNumbers;
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// What is said of the numbers a tie decided (report 8cd843 N60), null when no arrow
+        /// was crowded. Rounds 16 and 17 ran the same plan on the same assembly: the two
+        /// balloons whose arrows ended 0.73 mm apart swapped numbers 4 and 6, and the bill of
+        /// materials with them; the other five kept theirs. Which of two balloons with the
+        /// same arrow comes first around the view is AutoBalloon5's choice, and the API has
+        /// no call to set an item number (only IBomTableAnnotation.Sort). Pure, so the
+        /// contract suite reads it.
+        /// </summary>
+        internal static string NumbersByTieNote(int crowded)
+        {
+            if (crowded <= 0) return null;
+            return (crowded == 1 ? "One balloon" : crowded + " balloons") + " had the arrow ending within " +
+                   Math.Round(CrowdedArrows * 1000, 1).ToString(CultureInfo.InvariantCulture) + " mm of another: " +
+                   "which of them comes first around the view was the choice of AutoBalloon5, and the same plan on the " +
+                   "same assembly swapped two such numbers between two runs (4 and 6, the bill of materials with them). " +
+                   "For numbers that repeat run to run, «order» «bill_of_materials» keeps the numbers the bill of " +
+                   "materials already has.";
+        }
+
         private Outcome Balloons(IModelDoc2 model, Dictionary<string, object> a)
         {
             var drawing = model as IDrawingDoc;
@@ -714,8 +875,25 @@ namespace Oce.Solid.Agent.Core
                 case "below": layout = (int)swBalloonLayoutType_e.swDetailingBalloonLayout_Bottom; break;
                 default: return Failed("«layout» is one of «square», «circle», «above», «below», not «" + arrangement + "».");
             }
+            // THE ORDER OF THE NUMBERS (report 8cd843 N60, round 17): around the view by
+            // default, as every drawing had it; the order of the bill of materials on request,
+            // the one that does not depend on where AutoBalloon5 puts each balloon.
+            string order = (Str(a, "order", "around_the_view") ?? "around_the_view").Trim().ToLowerInvariant();
+            int? itemOrder = BalloonItemOrder(order);
+            if (itemOrder == null)
+                return Failed("«order» is one of «around_the_view», «bill_of_materials», not «" + order + "»: " +
+                              "use one of the two, or leave it out for around_the_view.");
+
+            // THE BALLOONS AGAIN IN ANOTHER VIEW (report 8cd843, round 22, point 9): one at a
+            // time, BalloonRepeatOperations.cs; AutoBalloon5 skips a part ballooned elsewhere.
+            if (Bool(a, "again", false))
+                return BalloonsAgain(model, drawing, view);
 
             int before = ViewBalloons(view);
+            var balloonsBefore = BalloonKeys(view);
+            // The rows of the bill of materials before the balloons (N50): AutoBalloon5
+            // renumbers them, and the answer says so with the rows as they are after.
+            var rowsBefore = BomRowsOfDrawing(drawing);
             object born = null;
             try
             {
@@ -745,6 +923,19 @@ namespace Oce.Solid.Agent.Core
                 opt.Style = (int)swBalloonStyle_e.swBS_Circular;
                 opt.Size = (int)swBalloonFit_e.swBF_2Chars;
                 opt.UpperTextContent = (int)swBalloonTextContent_e.swBalloonTextItemNumber;
+                // THE BALLOONS NUMBER THE ITEMS IN THE ORDER THEY GO AROUND THE VIEW, AND
+                // THAT RENUMBERS THE BILL OF MATERIALS (report 8cd843 N50, round 13): the
+                // printed table was not the «rows_read» of «drawing_bom». Measured on a copy
+                // of the drawing of round 13 (27/10/2026): ItemOrder comes as 4,
+                // swBalloonItemNumbers_OrderSequentially (IAutoBalloonOptions~ItemOrder.html:
+                // «Item ordering as defined in swBalloonItemNumbersOrder_e»); the table read
+                // 26P000007 to 26P000013 as items 1 to 7 before the balloons and 26P000010,
+                // 11, 9, 8, 7, 13, 12 after, the order printed in round 13; with
+                // swBalloonItemNumbers_DoNotChangeItemNumbers it kept 7 to 13. The order is
+                // now set, not left to the default, and kept as every drawing had it (which
+                // order a drawing wants is not decided here); the answer gives the rows again.
+                // «order» chooses it since library 0.174.8 (N60, see BalloonItemOrder).
+                opt.ItemOrder = (int)itemOrder;
                 born = drawing.AutoBalloon5(opt);
             }
             catch (Exception ex) { model.ClearSelection2(true); return Failed("The balloons were not created: " + ex.Message); }
@@ -759,6 +950,7 @@ namespace Oce.Solid.Agent.Core
             var measurements = new Dictionary<string, object>
             {
                 ["view"] = view.GetName2(),
+                ["order"] = order,
                 ["balloons_before"] = NumberOrNull(before),
                 ["balloons_after"] = NumberOrNull(after),
                 ["balloons_placed"] = before >= 0 && after >= 0 ? (object)(after - before) : null,
@@ -766,6 +958,41 @@ namespace Oce.Solid.Agent.Core
                 ["components_visible"] = NumberOrNull(visible),
                 ["numbers"] = BalloonNumbers(view).ToArray(),
             };
+            // THE ARROWS THAT END IN THE SAME PLACE (report 8cd843 N56): see SpreadCrowdedBalloons.
+            if (after > before)
+            {
+                string spreadNote;
+                var moves = SpreadCrowdedBalloons(model, view, out spreadNote);
+                measurements["arrows_moved"] = moves.Cast<object>().ToArray();
+                if (spreadNote != null) measurements["arrows_note"] = spreadNote;
+                // EACH BALLOON WHERE IT IS FREE (note 98, defect 7): see FreeTheBalloons.
+                string freeNote;
+                measurements["balloons_moved_to_a_free_place"] = FreeTheBalloons(drawing, view, balloonsBefore, false, out freeNote).Cast<object>().ToArray();
+                if (freeNote != null) measurements["balloons_free_note"] = freeNote;
+                measurements["numbers"] = BalloonNumbers(view).ToArray();
+                // THE NUMBERS A TIE DECIDED (report 8cd843 N60): see NumbersByTieNote.
+                if (order == "around_the_view" && moves.Count > 0)
+                {
+                    var tied = new List<object>();
+                    foreach (var m in moves) tied.Add(m["number"] + " " + m["component"]);
+                    measurements["numbers_decided_by_a_tie"] = tied.ToArray();
+                    measurements["numbers_note"] = NumbersByTieNote(moves.Count);
+                }
+            }
+            // THE BILL OF MATERIALS AFTER THE BALLOONS (N50): renumbered or not, and its
+            // rows as they are now, the ones the print shows.
+            var rowsAfter = BomRowsOfDrawing(drawing);
+            if (rowsAfter != null)
+            {
+                bool renumbered = rowsBefore != null && !SameRows(rowsBefore, rowsAfter);
+                measurements["bom_renumbered"] = renumbered;
+                measurements["bom_rows_after"] = rowsAfter.Cast<object>().ToArray();
+                if (renumbered)
+                    measurements["bom_note"] =
+                        "The balloons numbered the items in the order they go around the view, and that renumbered the " +
+                        "bill of materials: the «rows_read» of «drawing_bom» no longer hold. Use «bom_rows_after», the " +
+                        "rows as the table prints them now.";
+            }
             string countNote = BalloonCountNote(returnedNotes, before, after);
             if (countNote != null) measurements["balloons_count_note"] = countNote;
             if (before < 0 || after < 0)
@@ -823,6 +1050,47 @@ namespace Oce.Solid.Agent.Core
             }
             catch { }
             return ballooned;
+        }
+
+        /// <summary>
+        /// The rows of the first bill of materials of the drawing, every cell, as
+        /// «drawing_bom» reads them in «rows_read»; null when there is none or it cannot
+        /// be read (N50).
+        /// </summary>
+        private static List<string[]> BomRowsOfDrawing(IDrawingDoc drawing)
+        {
+            try
+            {
+                for (var v = drawing.GetFirstView() as IView; v != null; v = v.GetNextView() as IView)
+                    foreach (var o in (v.GetTableAnnotations() as object[]) ?? new object[0])
+                    {
+                        if (!(o is IBomTableAnnotation)) continue;
+                        var t = o as ITableAnnotation;
+                        var rows = new List<string[]>();
+                        for (int r = 1; r < t.RowCount; r++)
+                        {
+                            var cells = new string[t.ColumnCount];
+                            for (int c = 0; c < cells.Length; c++) cells[c] = Cell(t, r, c);
+                            rows.Add(cells);
+                        }
+                        return rows;
+                    }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>Whether two readings of a table hold the same rows in the same order (N50). Pure, so the contract suite reads it.</summary>
+        internal static bool SameRows(List<string[]> a, List<string[]> b)
+        {
+            if (a == null || b == null || a.Count != b.Count) return false;
+            for (int r = 0; r < a.Count; r++)
+            {
+                if (a[r] == null || b[r] == null || a[r].Length != b[r].Length) return false;
+                for (int c = 0; c < a[r].Length; c++)
+                    if (!string.Equals(a[r][c], b[r][c], StringComparison.Ordinal)) return false;
+            }
+            return true;
         }
 
         /// <summary>The item numbers of the first bill of materials of the drawing; null if they cannot be read.</summary>

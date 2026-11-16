@@ -1,0 +1,38 @@
+{
+  "name": "limit_save_onto_another_file",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N55 (round 14, 27/10/2026). Whoever does not want to lose a file by mistake must be able to say so: with «overwrite» false a save onto another existing file is refused.",
+
+  "_what_changes_compared_to_the_twin": "One argument on the third save: «overwrite» false. The same two files as the twin: each case writes its first file again before the third save, so the file is there whichever ran first.",
+
+  "defect_caught": "That «overwrite» false is ignored and the file replaced all the same. The message must say the file exists, that nothing was saved, and how to replace it.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 60, "width_mm": 40,
+                     "thickness_mm": 10, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 24000,
+          "why": "same part as the twin" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\save_says_what_it_replaced_a.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the file the third save would replace" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\save_says_what_it_replaced_b.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the document's own file is now the second one" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\save_says_what_it_replaced_a.sldprt", "overwrite": false },
+      "must_fail": {
+        "message_includes": ["already exists", "I saved nothing", "overwrite"],
+        "twin": "save_says_what_it_replaced"
+      } }
+  ]
+}

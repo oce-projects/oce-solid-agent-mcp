@@ -346,8 +346,9 @@ namespace Oce.Solid.Agent.Core
             IModelDoc2 doc = null;
             try
             {
-                string model = sw.GetUserPreferenceStringValue(
-                    (int)swUserPreferenceStringValue_e.swDefaultTemplatePart);
+                // Its local copy when OCE_LOCAL_COPIES asks for it (LocalCopies.cs).
+                string model = LocalCopies.Of(sw.GetUserPreferenceStringValue(
+                    (int)swUserPreferenceStringValue_e.swDefaultTemplatePart));
                 if (string.IsNullOrWhiteSpace(model) || !File.Exists(model))
                 {
                     log("[section] there is no default part template.");

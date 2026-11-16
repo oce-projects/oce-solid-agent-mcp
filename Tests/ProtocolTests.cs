@@ -147,8 +147,9 @@ namespace Oce.Solid.Agent.ContractTests
                 // the only place that notices.
                 // NINE SINCE 0.112.0: api_search and api_signature (entry
                 // U1.1). Changed on purpose, like the seventh.
-                Check("tools/list gives exactly nine tools",
-                      tools != null && tools.Length == 9,
+                // TEN SINCE 0.137.0: mesh (brief R15), on purpose too.
+                Check("tools/list gives exactly ten tools",
+                      tools != null && tools.Length == 10,
                       tools == null ? "(nothing)" : tools.Length + " tools: " +
                           string.Join(", ", tools.Select(s => Convert.ToString(Inside(s, "name")))));
 
@@ -262,6 +263,19 @@ namespace Oce.Solid.Agent.ContractTests
                       missingItems.Count == 0
                           ? "all " + (tools == null ? 0 : tools.Length)
                           : "not named: " + string.Join(", ", missingItems));
+
+                // THE NUMBER OF OPERATIONS IN THE MESSAGE IS THE CATALOG'S.
+                // Until 27/10/2026 it said «The sixty drawing OPERATIONS» with
+                // 104 in the catalog: a client that asked a wrong name read
+                // it. It is compared with the «total» of «list_operations».
+                var listed = Obj(Ask(p, 8,
+                    "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":" +
+                    "{\"name\":\"list_operations\",\"arguments\":{}}}"));
+                var listedText = TextOf(Inside(listed, "result") as Dictionary<string, object>);
+                var total = System.Text.RegularExpressions.Regex.Match(listedText ?? "", "\"total\":(\\d+)");
+                Check("the message says how many operations the catalog has, as «list_operations» counts them",
+                      total.Success && unknownText.IndexOf("The " + total.Groups[1].Value + " drawing OPERATIONS", StringComparison.Ordinal) >= 0,
+                      (total.Success ? "total " + total.Groups[1].Value : "no total") + " | " + Short(unknownText));
 
                 // ── «measure» REFUSES WHAT TOUCHES THE PART ───────────────
                 //

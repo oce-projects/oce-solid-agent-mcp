@@ -31,7 +31,10 @@ namespace Oce.Solid.Agent.ContractTests
     ///  * by reflection on the built bridge, the pure decisions:
     ///    MemoryAfterPlan, WhatDiffers, AnswerAfterWrongPress,
     ///    RefusalCoveredText, RefusalChangedSinceThePlanText,
-    ///    NoteDocumentInFront and IdentityForTheExecutor;
+    ///    NoteDocumentInFront and IdentityForTheExecutor, and on an assembly
+    ///    (brief R23) WhatDiffers on components and mates,
+    ///    AnswerAfterWrongPressOnAssembly and
+    ///    RefusalChangedSinceThePlanOnAssemblyText;
     ///  * on the source, the rules of the plan, of `undo`, of the executor
     ///    and of the session, each seen red on changed copies of the real
     ///    source.
@@ -52,7 +55,7 @@ namespace Oce.Solid.Agent.ContractTests
             var bridge = BridgeOrNotHere("the pure decisions of `undo` (Z-C21.14)");
             if (bridge == null) return;
 
-            MethodInfo memory, differs, answer, refusal, changedText, note, identity;
+            MethodInfo memory, differs, answer, refusal, changedText, note, identity, answerOnAssembly, changedOnAssembly;
             Type type;
             try
             {
@@ -67,7 +70,11 @@ namespace Oce.Solid.Agent.ContractTests
                 changedText = type.GetMethod("RefusalChangedSinceThePlanText", any);
                 note = type.GetMethod("NoteDocumentInFront", any);
                 identity = type.GetMethod("IdentityForTheExecutor", any);
+                answerOnAssembly = type.GetMethod("AnswerAfterWrongPressOnAssembly", any);
+                changedOnAssembly = type.GetMethod("RefusalChangedSinceThePlanOnAssemblyText", any);
                 var missingMethods = new List<string>();
+                if (answerOnAssembly == null) missingMethods.Add("AnswerAfterWrongPressOnAssembly");
+                if (changedOnAssembly == null) missingMethods.Add("RefusalChangedSinceThePlanOnAssemblyText");
                 if (memory == null) missingMethods.Add("MemoryAfterPlan");
                 if (differs == null) missingMethods.Add("WhatDiffers");
                 if (answer == null) missingMethods.Add("AnswerAfterWrongPress");
@@ -88,6 +95,146 @@ namespace Oce.Solid.Agent.ContractTests
             Answers(answer);
             Refusals(refusal, changedText);
             NoteAndIdentity(note, identity);
+            AssemblyDifferences(differs);
+            AssemblyAnswers(answerOnAssembly, changedOnAssembly);
+        }
+
+        // ── the assembly (brief R23) ─────────────────────────────────────────
+        // On an assembly the state writes neither a volume nor features, so
+        // both read 0 before and after every plan: up to bridge 0.141.2 an
+        // undo there pressed without seeing a component moved by hand. These
+        // readings are shaped as AssemblyState writes them.
+
+        private static Dictionary<string, object> Component(string uid, string name, double y, string axes)
+        {
+            var c = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                ["uid"] = uid, ["name"] = name, ["path"] = "C:\\x\\" + name + ".SLDPRT", ["state"] = "resolved",
+                ["grounded"] = false, ["visible"] = true, ["transparent"] = false, ["axes"] = axes,
+            };
+            if (!double.IsNaN(y)) c["origin_mm"] = new object[] { 0.0, y, 0.0 };
+            return c;
+        }
+
+        private static Dictionary<string, object> Mate(string uid, string name, bool suppressed, params string[] held)
+        {
+            return new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                ["uid"] = uid, ["name"] = name, ["kind"] = "distance", ["suppressed"] = suppressed,
+                ["components"] = new List<string>(held),
+            };
+        }
+
+        private static Dictionary<string, object> AssemblyReading(object[] components, object[] mates)
+        {
+            var d = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                ["kind"] = "assembly", ["solid_body"] = false,
+            };
+            if (components != null) { d["components"] = components; d["how_many_components"] = components.Length; }
+            if (mates != null) { d["mates_list"] = mates; d["mates_total"] = mates.Length; }
+            return d;
+        }
+
+        private static void AssemblyDifferences(MethodInfo differs)
+        {
+            Func<Dictionary<string, object>, Dictionary<string, object>, List<string>> diff =
+                (a, b) => (List<string>)differs.Invoke(null, new object[] { a, b });
+            var a1 = Component("C1", "A-1", -5, "+X +Y +Z");
+            var b1 = Component("C2", "B-1", 15, "+X -Y -Z");
+            var m1 = Mate("M1", "Distance1", false, "C1", "C2");
+            var plan = AssemblyReading(new object[] { a1, b1 }, new object[] { m1 });
+            var missing = new List<string>();
+
+            if (diff(plan, AssemblyReading(new object[] { a1, b1 }, new object[] { m1 })).Count != 0)
+                missing.Add("two equal readings differ");
+            var moved = diff(plan, AssemblyReading(new object[] { a1, Component("C2", "B-1", 40, "+X -Y -Z") }, new object[] { m1 }));
+            if (moved.Count == 0 || moved.TrueForAll(s => s.IndexOf("moved", StringComparison.Ordinal) < 0))
+                missing.Add("a component moved by 25 mm is not seen as moved");
+            if (diff(plan, AssemblyReading(new object[] { a1, Component("C2", "B-1", 15.001, "+X -Y -Z") }, new object[] { m1 })).Count != 0)
+                missing.Add("a last digit of the rounded origin reads as a move");
+            if (diff(plan, AssemblyReading(new object[] { a1, Component("C2", "B-1", 15.002, "+X -Y -Z") }, new object[] { m1 })).Count == 0)
+                missing.Add("a move of two thousandths of a mm is not seen");
+            var turned = diff(plan, AssemblyReading(new object[] { a1, Component("C2", "B-1", 15, "+X +Y +Z") }, new object[] { m1 }));
+            if (turned.Count == 0 || turned.TrueForAll(s => s.IndexOf("turned", StringComparison.Ordinal) < 0))
+                missing.Add("a component turned over is not seen as turned");
+            // A component inserted before the others renumbers the uids: the mate
+            // still holds A-1 and B-1, and must not read as changed.
+            var added = diff(plan, AssemblyReading(
+                new object[] { Component("C1", "0-1", 0, "+X +Y +Z"), Component("C2", "A-1", -5, "+X +Y +Z"),
+                               Component("C3", "B-1", 15, "+X -Y -Z") },
+                new object[] { Mate("M1", "Distance1", false, "C2", "C3") }));
+            if (added.TrueForAll(s => s.IndexOf("that were not there: «0-1»", StringComparison.Ordinal) < 0))
+                missing.Add("a component added is not named");
+            if (added.Exists(s => s.StartsWith("mate «", StringComparison.Ordinal)))
+                missing.Add("renumbered uids read as a changed mate");
+            if (diff(plan, AssemblyReading(new object[] { a1 }, new object[0])).Count == 0)
+                missing.Add("a component and a mate taken away are not seen");
+            if (diff(plan, AssemblyReading(new object[] { a1, b1 }, new object[] { m1, Mate("M2", "Coincident1", false, "C1", "C2") })).Count == 0)
+                missing.Add("a mate added is not seen");
+            if (diff(plan, AssemblyReading(new object[] { a1, b1 }, new object[] { Mate("M1", "Distance1", true, "C1", "C2") })).Count == 0)
+                missing.Add("a mate suppressed is not seen");
+            if (diff(plan, AssemblyReading(new object[] { a1, Component("C2", "B-1", double.NaN, "+X -Y -Z") }, new object[] { m1 })).Count == 0)
+                missing.Add("an origin that cannot be read counts as the same place");
+            if (diff(plan, AssemblyReading(null, new object[] { m1 })).Count == 0)
+                missing.Add("components that cannot be read count as the same");
+            if (diff(plan, AssemblyReading(new object[] { a1, b1 }, null)).Count == 0)
+                missing.Add("mates that cannot be read count as the same");
+            Check("WhatDiffers on an assembly sees components and mates come, go, move, turn and change, and renumbered uids as nothing (R23)",
+                  missing.Count == 0, missing.Count == 0 ? "13 pairs of readings" : string.Join(" | ", missing));
+        }
+
+        private static void AssemblyAnswers(MethodInfo answer, MethodInfo changedText)
+        {
+            Func<List<string>, bool, string, List<string>, bool, Tuple<string, bool>> say = (taken, tried, error, still, onlyListed) =>
+            {
+                var args = new object[]
+                {
+                    2, 1, 2, 1, new List<string> { "«B-1» moved: origin [0, 15, 0] mm before, [0, 40, 0] mm now" },
+                    taken, tried, error, still, onlyListed, false,
+                };
+                var text = (string)answer.Invoke(null, args);
+                return Tuple.Create(text, (bool)args[10]);
+            };
+            var some = new List<string> { "«B-1» state: «resolved» before, «suppressed» now" };
+            var none = new List<string>();
+            var lies = new List<string>();
+            var back = say(some, true, null, none, false);
+            if (!back.Item2 || back.Item1.IndexOf("came back", StringComparison.Ordinal) < 0)
+                lies.Add("a redo that brought the assembly back as before pressing is not said restored");
+            var notBack = say(some, true, null, some, false);
+            if (notBack.Item2 || notBack.Item1.IndexOf("NOT as it was", StringComparison.Ordinal) < 0)
+                lies.Add("a redo after which the assembly still differs is said restored, or not said NOT");
+            var threw = say(some, true, "SOLIDWORKS threw: x", none, false);
+            if (threw.Item2 || threw.Item1.IndexOf("came back", StringComparison.Ordinal) >= 0)
+                lies.Add("a redo that threw is said restored");
+            var invisible = say(none, false, null, none, false);
+            if (invisible.Item2 || invisible.Item1.IndexOf("did not press redo", StringComparison.Ordinal) < 0)
+                lies.Add("a press that changed nothing visible is said restored, or the answer hides that no redo was pressed");
+            var beyondList = say(none, false, null, none, true);
+            if (beyondList.Item1.IndexOf("only by count", StringComparison.Ordinal) < 0)
+                lies.Add("beyond the listed components and mates the answer still claims they were all compared");
+            foreach (var t in new[] { back.Item1, notBack.Item1, invisible.Item1 })
+                if (t.IndexOf("volume", StringComparison.Ordinal) >= 0 || t.IndexOf("the part", StringComparison.Ordinal) >= 0)
+                {
+                    lies.Add("the answer on an assembly speaks of a volume or of the part");
+                    break;
+                }
+            if (back.Item1.IndexOf("«B-1» moved", StringComparison.Ordinal) < 0)
+                lies.Add("the answer does not say how the assembly differs from before the plan");
+
+            var changed = (string)changedText.Invoke(null, new object[] { new List<string> { "«B-1» moved" }, true });
+            if (changed.IndexOf("«B-1» moved", StringComparison.Ordinal) < 0 ||
+                changed.IndexOf("nothing was touched", StringComparison.Ordinal) < 0 ||
+                changed.IndexOf("assembly changed", StringComparison.Ordinal) < 0 ||
+                changed.IndexOf("only by count", StringComparison.Ordinal) < 0)
+                lies.Add("the refusal on an assembly changed since the plan does not say what changed or what it compared");
+            if (changed.IndexOf("delete_mate", StringComparison.Ordinal) < 0 ||
+                changed.IndexOf("Edit > Undo", StringComparison.Ordinal) < 0 ||
+                changed.IndexOf("delete_feature", StringComparison.Ordinal) >= 0)
+                lies.Add("the refusal on an assembly offers the remedy of a part, or none");
+            Check("on an assembly the answers after a wrong press and the refusal speak of components and mates, restored only from the comparison (R23)",
+                  lies.Count == 0, lies.Count == 0 ? "5 outcomes and 1 refusal, each told as it is" : string.Join(" | ", lies));
         }
 
         /// <summary>One situation for MemoryAfterPlan, with what it must answer.</summary>
@@ -97,7 +244,7 @@ namespace Oce.Solid.Agent.ContractTests
             public bool Built, Visible, Readable = true, HasMemory = true, Covered;
             public bool Reached = true, Stopped, Threw, TurnRefused;
             public bool? Undo;
-            public bool Same = true, Measure;
+            public bool Same = true, Measure, Equations;
             public string Expected;
             public bool ReasonExpected;
             public string ReasonMustSay;
@@ -116,6 +263,18 @@ namespace Oce.Solid.Agent.ContractTests
                 new Situation { Label = "a document not read after the plan", Readable = false, Undo = true, Expected = "drop",
                                 ReasonExpected = true },
                 new Situation { Label = "a plan that built", Built = true, Visible = true, Undo = true, Expected = "new" },
+                new Situation { Label = "a plan that changed the equations (t14, UndoGaps)", Visible = true, Undo = false,
+                                Equations = true, Expected = "drop", ReasonExpected = true, ReasonMustSay = "no equation in an undo entry" },
+                new Situation { Label = "a plan that built and changed the equations", Built = true, Visible = true, Undo = true,
+                                Equations = true, Expected = "drop", ReasonExpected = true, ReasonMustSay = "equation_before" },
+                new Situation { Label = "no memory, a plan that changed the equations", HasMemory = false, Visible = true,
+                                Undo = false, Equations = true, Expected = "drop", ReasonExpected = true,
+                                ReasonMustSay = "parameters" },
+                new Situation { Label = "a plan that built while its own entry closed empty (t13)", Built = true, Visible = true,
+                                Undo = false, Expected = "drop", ReasonExpected = true, ReasonMustSay = "closed with nothing" },
+                new Situation { Label = "no memory, a plan that built while its own entry closed empty", HasMemory = false,
+                                Built = true, Visible = true, Undo = false, Expected = "drop", ReasonExpected = true,
+                                ReasonMustSay = "closed with nothing" },
                 new Situation { Label = "a reorder with its own non-empty entry (F1)", Visible = true, Undo = true, Expected = "new" },
                 new Situation { Label = "an invisible plan with its own non-empty entry (F1)", Undo = true, Expected = "new" },
                 new Situation { Label = "a measure with a non-empty entry on the same document", Undo = true, Measure = true,
@@ -142,12 +301,12 @@ namespace Oce.Solid.Agent.ContractTests
                 var args = new object[]
                 {
                     s.Built, s.Visible, s.Readable, s.HasMemory, s.Covered, s.Reached, s.Stopped, s.Threw,
-                    s.TurnRefused, s.Undo, s.Same, s.Measure, "Part1", null,
+                    s.TurnRefused, s.Undo, s.Same, s.Measure, s.Equations, "Part1", null,
                 };
                 string action;
                 try { action = (string)memory.Invoke(null, args); }
                 catch (Exception ex) { wrong.Add(s.Label + ": threw " + (ex.InnerException ?? ex).Message); continue; }
-                var reason = (string)args[13];
+                var reason = (string)args[14];
                 if (action != s.Expected) { wrong.Add(s.Label + ": " + action + ", expected " + s.Expected); continue; }
                 if (s.ReasonExpected && string.IsNullOrEmpty(reason)) wrong.Add(s.Label + ": no reason");
                 if (!s.ReasonExpected && reason != null) wrong.Add(s.Label + ": a reason where none belongs");
@@ -182,8 +341,15 @@ namespace Oce.Solid.Agent.ContractTests
             var order = diff(reading(1000.0, ab), reading(1000.0, ba));
             if (order.Count == 0 || order.TrueForAll(s => s.IndexOf("order", StringComparison.Ordinal) < 0)) missing.Add("a reorder is not seen as one");
             if (diff(reading(1000.0, ab), reading(1000.0, renamed)).Count == 0) missing.Add("a rename is not seen");
-            Check("WhatDiffers sees volume, count, names and order, and an unreadable volume as a difference",
-                  missing.Count == 0, missing.Count == 0 ? "6 pairs of readings" : string.Join(" | ", missing));
+            var withEquation = reading(1000.0, ab);
+            withEquation["equations"] = new object[] { new Dictionary<string, object> { ["equation"] = "\"wall\" = 12mm" } };
+            var equationChanged = reading(1000.0, ab);
+            equationChanged["equations"] = new object[] { new Dictionary<string, object> { ["equation"] = "\"wall\" = 15mm" } };
+            if (diff(reading(1000.0, ab), withEquation).Count == 0) missing.Add("an equation added is not seen");
+            if (diff(withEquation, equationChanged).Count == 0) missing.Add("an equation rewritten is not seen");
+            if (diff(withEquation, withEquation).Count != 0) missing.Add("the same equations differ");
+            Check("WhatDiffers sees volume, count, names, order and equations, and an unreadable volume as a difference",
+                  missing.Count == 0, missing.Count == 0 ? "9 pairs of readings" : string.Join(" | ", missing));
         }
 
         private static void Answers(MethodInfo answer)
@@ -318,9 +484,30 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("the memory without its reference (F11)", "DocumentRef = planDocumentHeld,", "DocumentRef = null,"),
                 Change("the memory decided by hand", "= MemoryAfterPlan(", "= MemoryAfterPlanByHand("),
                 Change("the window of a refused plan taken for its document", " && !planRun.StoppedBeforeWriting;", ";"),
+                Change("an assembly never counted as built (R23)", "AssemblyBuilt(snapshotBefore, snapshotAfter)", "false"),
+                Change("N11: the refusal of undo said only by the undo", "if (memoryAction == MemoryDrop && (somethingToWithdraw || drawingReason))", "if (false)"),
+                Change("N12: a stopped plan silent about what stays", "result[\"note_stopped\"] =", "result[\"note_quiet\"] ="),
+                Change("N24: a plan on a drawing gives the undo no reason", "memoryReason = onDrawing;", "memoryReason = null;"),
+                Change("N24: the drawing remedy never chosen", "_noMemoryOnDrawing = onDrawing != null && memoryReason == onDrawing;", "_noMemoryOnDrawing = false;"),
             });
             Check("the after-plan check turns red on each changed copy", afterPlanRed.Count == 0,
-                  afterPlanRed.Count == 0 ? "14 changes, each one red" : string.Join(" | ", afterPlanRed));
+                  afterPlanRed.Count == 0 ? "19 changes, each one red" : string.Join(" | ", afterPlanRed));
+
+            var front = PlanFrontProblems(tools);
+            Check("before a plan: no part looked at is refused before the reading (N17), an exchange the assembly cannot have is refused before any step (N18)",
+                  front.Count == 0,
+                  front.Count == 0
+                      ? "NotLookedAtYet(frontNow) before StateWithoutAnchor; AssemblyExchangeRefusal in the pre-check of the steps, " +
+                        "only while the plan is still on the assembly"
+                      : string.Join(" | ", front));
+            var frontRed = SeenRed("before a plan", tools, PlanFrontProblems, new[]
+            {
+                Change("N17: the early refusal taken out", "return Protocol.Content(NotLookedAtYet(frontNow), true);", "frontNow = null;"),
+                Change("N18: the exchange refusal not asked in the pre-check", "SwOperations.AssemblyExchangeRefusal(", "SwOperations.AssemblyExchangeIgnored("),
+                Change("N18: a drawing ahead not noted", "if (itemName == \"create_drawing\") anotherDocumentAhead = true;", ""),
+            });
+            Check("the before-a-plan check turns red on each changed copy", frontRed.Count == 0,
+                  frontRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", frontRed));
 
             var undo = UndoProblems(tools);
             Check("`undo` refuses before pressing when covered or changed since the plan, judges the press by the part before the plan, redoes only after a visible change",
@@ -341,9 +528,17 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("withdrawn judged by two numbers only", "var notAsBeforeThePlan = SnapshotDiffers(before, back);",
                        "var notAsBeforeThePlan = new List<string>();"),
                 Change("the document compared by name (F11)", "? _session.IsInFront(memory.DocumentRef)", "? true"),
+                Change("an assembly pressed without its lists (R23)",
+                       "if (after.Assembly && !(now.AssemblyRead && after.AssemblyRead))", "if (false)"),
+                Change("an assembly judged without its lists after the press (R23)",
+                       "if (before.Assembly && !(back.AssemblyRead && before.AssemblyRead))", "if (false)"),
+                Change("a refused plan said withdrawn whole (report 8cd843 N10)",
+                       "outside[\"note\"] = memory.Refused", "outside[\"note\"] = false"),
+                Change("delete_feature offered after a plan on a drawing (report 8cd843 N24)",
+                       "(_noMemoryOnDrawing && _noMemoryBecause != null ? DrawingNoMemoryRemedy : NoMemoryRemedy)", "NoMemoryRemedy"),
             });
             Check("the `undo` check turns red on each changed copy", undoRed.Count == 0,
-                  undoRed.Count == 0 ? "7 changes, each one red" : string.Join(" | ", undoRed));
+                  undoRed.Count == 0 ? "11 changes, each one red" : string.Join(" | ", undoRed));
 
             var finish = ExecutorProblems(executor);
             Check("the executor hands on what FinishRecordingUndoObject answered for the plan's document",
@@ -357,9 +552,11 @@ namespace Oce.Solid.Agent.ContractTests
                 Change("the plan document not handed on", ".PlanDocument = planDocument;", ".FinalDocument = planDocument;"),
                 Change("a closing not noted", "FinishUndoRecording(undoRecordedOn));\n                    if (planDocumentReopened)",
                        "FinishUndoRecording(undoRecordedOn));\n                    FinishUndoRecording(undoRecordedOn);\n                    if (planDocumentReopened)"),
+                Change("N12: «I touched nothing» after steps that ran", "in front. \" + (result.ExecutedSteps == 0", "in front. \" + (true"),
+                Change("N13: the identity key in the message", "\"the plan was for «\" + ReadableIdentity(expectedPath)", "\"the plan was for «\" + expectedPath"),
             });
             Check("the executor check turns red on each changed copy", finishRed.Count == 0,
-                  finishRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", finishRed));
+                  finishRed.Count == 0 ? "5 changes, each one red" : string.Join(" | ", finishRed));
 
             var sess = SessionProblems(session);
             Check("the session hands the checked identity to the executor, says when it threw and when another bridge held the turn",
@@ -374,6 +571,32 @@ namespace Oce.Solid.Agent.ContractTests
             });
             Check("the session check turns red on each changed copy", sessRed.Count == 0,
                   sessRed.Count == 0 ? "3 changes, each one red" : string.Join(" | ", sessRed));
+        }
+
+        /// <summary>
+        /// Report 8cd843, round 6, in the plan tool; empty when nothing is wrong.
+        /// N17: a plan sent before any «inspect_part» is refused before the long
+        /// reading of the document, not after it. N18: an IGES of an assembly, or
+        /// a STEP with reopen_and_compare, is refused before the steps run, not
+        /// after the steps before it changed the assembly.
+        /// </summary>
+        internal static List<string> PlanFrontProblems(string source)
+        {
+            var problems = new List<string>();
+            var code = CodeOnly(source);
+            string plan = MemberBody(code, "private Dictionary<string, object> RunPlan(");
+            if (plan == null) { problems.Add("the body of the plan is not in the source"); return problems; }
+            int early = plan.IndexOf("if (_seen == null && string.IsNullOrWhiteSpace(Text(arguments, \"document\")))", StringComparison.Ordinal);
+            int earlyRefusal = early < 0 ? -1 : plan.IndexOf("return Protocol.Content(NotLookedAtYet(frontNow), true);", early, StringComparison.Ordinal);
+            int reading = plan.IndexOf("var before = _session.StateWithoutAnchor(", StringComparison.Ordinal);
+            if (earlyRefusal < 0 || reading < 0 || earlyRefusal > reading)
+                problems.Add("a plan with no part looked at is refused only after the reading of the document (report 8cd843 N17)");
+            int guard = plan.IndexOf("if (startKind == \"assembly\" && !anotherDocumentAhead)", StringComparison.Ordinal);
+            int exchange = guard < 0 ? -1 : plan.IndexOf("SwOperations.AssemblyExchangeRefusal(", guard, StringComparison.Ordinal);
+            int drawing = plan.IndexOf("if (itemName == \"create_drawing\") anotherDocumentAhead = true;", StringComparison.Ordinal);
+            if (exchange < 0 || drawing < 0 || drawing < exchange)
+                problems.Add("an IGES or a reopened STEP of an assembly is refused only after the steps before it ran (report 8cd843 N18)");
+            return problems;
         }
 
         /// <summary>What is wrong with the reading after a plan; empty when nothing.</summary>
@@ -414,6 +637,25 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add("the memory does not hold the plan's document by reference (F11)");
             if (plan.IndexOf("= MemoryAfterPlan(", StringComparison.Ordinal) < 0)
                 problems.Add("the memory is not decided by MemoryAfterPlan");
+            if (plan.IndexOf("AssemblyBuilt(snapshotBefore, snapshotAfter)", StringComparison.Ordinal) < 0)
+                problems.Add("a plan that changed the components or mates of an assembly is never counted as built (R23)");
+            // Report 8cd843 N11 and N12 (27/10/2026): «undo_entry_recorded» true
+            // and then an undo that refused; a stop that said «I touched nothing»
+            // after two cuts.
+            if (plan.IndexOf("if (memoryAction == MemoryDrop && (somethingToWithdraw || drawingReason))", StringComparison.Ordinal) < 0 ||
+                plan.IndexOf("result[\"note_undo\"] =", StringComparison.Ordinal) < 0)
+                problems.Add("a plan that «undo» will refuse does not say so in its own answer (report 8cd843 N11)");
+            // Report 8cd843 N24 (round 7): three dimensions on a drawing, then «undo»
+            // said «I have not yet run any that built something».
+            int drawingReason = plan.IndexOf("DrawingPlanMemoryReason(", StringComparison.Ordinal);
+            int drawingDrop = plan.IndexOf("memoryReason = onDrawing;", StringComparison.Ordinal);
+            int drawingSwitch = plan.IndexOf("switch (memoryAction)", StringComparison.Ordinal);
+            if (drawingReason < 0 || drawingDrop < drawingReason || drawingSwitch < drawingDrop ||
+                plan.IndexOf("_noMemoryOnDrawing = onDrawing != null && memoryReason == onDrawing;", StringComparison.Ordinal) < 0)
+                problems.Add("a plan on a drawing leaves the undo without its reason, or the reason is set after the memory is decided (report 8cd843 N24)");
+            if (plan.IndexOf("planRun.ExecutedSteps > 0", StringComparison.Ordinal) < 0 ||
+                plan.IndexOf("result[\"note_stopped\"] =", StringComparison.Ordinal) < 0)
+                problems.Add("a plan stopped halfway does not say which steps stay (report 8cd843 N12)");
             return problems;
         }
 
@@ -433,6 +675,8 @@ namespace Oce.Solid.Agent.ContractTests
 
             if (undo.IndexOf("? _session.IsInFront(memory.DocumentRef)", StringComparison.Ordinal) < 0)
                 problems.Add("the document is not compared by its reference (F11)");
+            if (undo.IndexOf("(_noMemoryOnDrawing && _noMemoryBecause != null ? DrawingNoMemoryRemedy : NoMemoryRemedy)", StringComparison.Ordinal) < 0)
+                problems.Add("after a plan on a drawing the undo offers delete_feature, which does not take away a dimension (report 8cd843 N24)");
 
             int changedSince = undo.IndexOf("var changedSince = SnapshotDiffers(after, now);", StringComparison.Ordinal);
             int changedRefusal = undo.IndexOf("return RefusalChangedSinceThePlan(", StringComparison.Ordinal);
@@ -443,6 +687,15 @@ namespace Oce.Solid.Agent.ContractTests
             int branch = undo.IndexOf("if (notAsBeforeThePlan.Count > 0)", StringComparison.Ordinal);
             if (judged < press || branch < judged)
                 problems.Add("«withdrawn» is not judged by the whole snapshot before the plan, after the press");
+
+            // R23: on an assembly the volume reads 0 on both sides, so the lists
+            // of components and mates take its place in both guards.
+            int assemblyBefore = undo.IndexOf("if (after.Assembly && !(now.AssemblyRead && after.AssemblyRead))", StringComparison.Ordinal);
+            if (assemblyBefore < 0 || assemblyBefore > press)
+                problems.Add("an assembly whose components and mates cannot be read is pressed (R23)");
+            int assemblyAfter = undo.IndexOf("if (before.Assembly && !(back.AssemblyRead && before.AssemblyRead))", StringComparison.Ordinal);
+            if (assemblyAfter < press || assemblyAfter > judged)
+                problems.Add("after the press an assembly whose lists cannot be read is judged, and maybe redone (R23)");
 
             int redos = Count(undo, "= _session.StepForward();");
             if (redos != 1) problems.Add(redos + " redo calls, expected 1");
@@ -461,6 +714,12 @@ namespace Oce.Solid.Agent.ContractTests
             if (undo.IndexOf("= AnswerAfterWrongPress(", StringComparison.Ordinal) < 0 ||
                 undo.IndexOf("= answerText,", StringComparison.Ordinal) < 0)
                 problems.Add("the answer after a wrong press does not come from AnswerAfterWrongPress");
+            // Report 8cd843 N10 (27/10/2026): the undo of a refused plan said
+            // «withdrawn whole ... went back» next to «took away only its undo entry».
+            int note = undo.IndexOf("outside[\"note\"] = memory.Refused", StringComparison.Ordinal);
+            int whole = undo.IndexOf("The plan was withdrawn whole", StringComparison.Ordinal);
+            if (note < 0 || whole < note)
+                problems.Add("the note of a successful undo does not depend on whether the plan was refused (report 8cd843 N10)");
             return problems;
         }
 
@@ -477,6 +736,15 @@ namespace Oce.Solid.Agent.ContractTests
                 problems.Add(finishes + " closings of the recording, " + noted + " of them noted: expected 2 and 2");
             if (code.IndexOf(".PlanDocument = planDocument;", StringComparison.Ordinal) < 0)
                 problems.Add("the plan's document is not handed on in the result");
+            // Report 8cd843 N12: «I touched nothing» only when no step ran yet.
+            int changed = code.IndexOf("\"The active document changed while I was running: \"", StringComparison.Ordinal);
+            int guard = changed < 0 ? -1 : code.IndexOf("result.ExecutedSteps == 0", changed, StringComparison.Ordinal);
+            if (changed < 0 || guard < 0 || guard - changed > 600)
+                problems.Add("the stop for a window that changed says «I touched nothing» after steps that ran (report 8cd843 N12)");
+            // Report 8cd843 N13: «title:Parte354» in that message, the key of the comparisons.
+            int readable = changed < 0 ? -1 : code.IndexOf("ReadableIdentity(expectedPath)", changed, StringComparison.Ordinal);
+            if (changed < 0 || readable < 0 || readable - changed > 300)
+                problems.Add("the stop for a window that changed prints the identity key («title:...»), not the name (report 8cd843 N13)");
             return problems;
         }
 

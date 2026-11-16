@@ -189,12 +189,12 @@ namespace Oce.Solid.Agent.Bench
                 // What the document cycle opened or created is closed
                 // here, whatever happened: the bench's desk must
                 // stay clean (entry K12), or the next run refuses to start.
-                try { if (!string.IsNullOrEmpty(newTitle)) _sw.CloseDoc(newTitle); } catch { }
+                try { if (!string.IsNullOrEmpty(newTitle)) CloseTitle(newTitle); } catch { }
                 try
                 {
                     if (!string.IsNullOrEmpty(saved))
                     {
-                        _sw.CloseDoc(Path.GetFileName(saved));
+                        CloseTitle(Path.GetFileName(saved));
                         if (File.Exists(saved))
                         {
                             File.SetAttributes(saved, FileAttributes.Normal);
@@ -245,16 +245,21 @@ namespace Oce.Solid.Agent.Bench
                   active != null && TestVolume(active) < 0.001,
                   active == null ? "(nothing in front)" : TestVolume(active).ToString("0.###") + " mm3");
 
-            // ── RED BY CONSTRUCTION: build right after, without looking ─
+            // ── RED BY CONSTRUCTION: an identifier right after, without looking ─
             //
-            // The document in front has changed by the bridge's own hand. What
-            // had been looked at no longer holds, and «build» must say so instead
-            // of writing into a part that the model has never seen.
+            // The document in front has changed by the bridge's own hand. The
+            // identifiers are born from «inspect_part» and none was read on this
+            // part, so a plan that cites one must be refused before it writes.
+            // Since brief R18 (bridge 0.139.0) a plan that cites NO identifier
+            // runs without a reading: the extrusion this check sent until
+            // 27/10/2026 now runs, as it should, and the check asked the old
+            // refusal (first full bench after R18).
             var immediately = ResponseText(Mcp.Ask(p, 8, Call(8, "build",
-                "{\"steps\":[{\"operation\":\"extrude_rectangle\",\"arguments\":" +
-                "{\"length_mm\":10,\"width_mm\":10,\"thickness_mm\":10}}]}")));
-            Check("document: after a document change «build» insists on looking first",
-                  immediately.IndexOf("not looked at any part yet", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                "{\"steps\":[{\"operation\":\"cylindrical_cut\",\"arguments\":" +
+                "{\"face_uid\":\"F1\",\"x_mm\":0,\"y_mm\":0,\"diameter_mm\":5}}]}")));
+            Check("document: after a document change a plan that cites an identifier is refused until a reading",
+                  immediately.IndexOf("inspect_part", StringComparison.Ordinal) >= 0 &&
+                  immediately.IndexOf("F1", StringComparison.Ordinal) >= 0 &&
                   (active == null || TestVolume(active) < 0.001),
                   Short(immediately));
 
@@ -289,7 +294,7 @@ namespace Oce.Solid.Agent.Bench
                               (toSave == null ? ", no document in hand" : "") + ")");
                 return;
             }
-            _sw.CloseDoc(toSave.GetTitle());
+            CloseTitle(toSave.GetTitle());
             newTitle = null;
 
             var open = Mcp.Obj(ResponseText(Mcp.Ask(p, 11, Call(11, "document",
@@ -311,7 +316,7 @@ namespace Oce.Solid.Agent.Bench
             // cheap red is the file's attribute: SOLIDWORKS opens it
             // all the same, read-only, WITHOUT asking anything — which is exactly
             // the silence that the entry wants to see spoken.
-            _sw.CloseDoc(Path.GetFileName(saved));
+            CloseTitle(Path.GetFileName(saved));
             File.SetAttributes(saved, FileAttributes.ReadOnly);
             var readOnlyMode = Mcp.Obj(ResponseText(Mcp.Ask(p, 12, Call(12, "document",
                 "{\"action\":\"open\",\"path\":\"" + saved.Replace("\\", "\\\\") + "\"}"))));
@@ -428,9 +433,9 @@ namespace Oce.Solid.Agent.Bench
             {
                 if (second != null) { try { Mcp.Close(second); second.Dispose(); } catch { } }
                 // The drawing first: it holds a reference to the part.
-                try { if (!string.IsNullOrEmpty(drawingTitle)) _sw.CloseDoc(drawingTitle); } catch { }
+                try { if (!string.IsNullOrEmpty(drawingTitle)) CloseTitle(drawingTitle); } catch { }
                 Close(partA);
-                try { if (!string.IsNullOrEmpty(savedB)) _sw.CloseDoc(savedB); else Close(partB); } catch { }
+                try { if (!string.IsNullOrEmpty(savedB)) CloseTitle(savedB); else Close(partB); } catch { }
                 RemoveQuietly(savedB);
                 Close(partC);
                 Close(partD);

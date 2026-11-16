@@ -113,6 +113,17 @@ namespace Oce.Solid.Agent.Core
                     "I cannot count the notes of the drawing before starting: without that number " +
                     "I could not tell you whether the note was created. I touched nothing.");
 
+            // ── ON THE SHEET, NOT IN THE VIEW THE PLAN BEFORE LEFT ACTIVE ──
+            //
+            // `InsertNote` writes into the ACTIVE view when there is one. After
+            // «drawing_dimension» the view it dimensioned stays active, and in the
+            // replay of round 7 (27/10/2026, t26n) the note asked at 20, 250 mm went
+            // inside it: notes of the views 7 -> 8, of the sheet 67 -> 67. The case
+            // note_after_a_dimension_stays_on_the_sheet saw it red on bridge 0.150.0.
+            // The guide, IDrawingDoc.EditSheet, Remarks: «Subsequently created
+            // geometry resides on this drawing sheet.»
+            try { drawing.EditSheet(); } catch { }
+
             object born = null;
             try
             {
@@ -168,9 +179,18 @@ namespace Oce.Solid.Agent.Core
             try { if (note != null) reread = note.GetText(); } catch { }
 
             double[] whereMm = WhereItEnded(note);
+            // ITS NAME, so that «delete_annotation» can take it away (report
+            // 8cd843 N24): until bridge 0.149.0 nothing gave it.
+            string noteName = null;
+            try { if (note != null) noteName = note.GetName(); } catch { }
+            // WHERE IT WENT, read from the two counters: until 0.150.0 the answer and
+            // the log said «on the sheet» whatever had happened.
+            string attachedTo = NoteAttachedTo(sheetBefore, sheetAfter, viewsBefore, viewsAfter);
 
             var outside = new Dictionary<string, object>
             {
+                ["name"] = noteName,
+                ["attached_to"] = attachedTo,
                 ["sheet"] = sheetName,
                 ["sheet_mm"] = new object[] { wideMm, topMm },
                 // TWO COUNTS, NEVER ADDED INTO ONE: see the docstring.
@@ -184,8 +204,9 @@ namespace Oce.Solid.Agent.Core
                 // as a right note until somebody compares it.
                 ["text_requested"] = text,
                 ["text_reread"] = reread,
-                ["text_matches"] = reread != null &&
-                                     string.Equals(reread.Trim(), text.Trim(), StringComparison.Ordinal),
+                // THE LINE ENDS ARE NOT THE TEXT (report 8cd843 N29): SOLIDWORKS
+                // gives a note of several lines back with «\r\n» where «\n» was sent.
+                ["text_matches"] = SameNoteText(text, reread),
                 ["where_mm"] = whereMm,
                 ["position_set"] = moved,
                 ["what_it_does_not_check"] =
@@ -196,9 +217,76 @@ namespace Oce.Solid.Agent.Core
                     "not look at whether it overlaps the drawing or the title block.",
             };
 
-            _log("[agent] note on the sheet «" + sheetName + "»: " +
-                 (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
+            if (attachedTo != "sheet")
+                outside["warning_in_view"] = NoteInViewWarning(noteName, sheetBefore, sheetAfter, viewsBefore, viewsAfter);
+            // A TEXT THAT DIFFERS IS A WARNING, with both texts in it (N29): until
+            // 0.150.1 «text_matches» false went out as an explanation, and the
+            // compact answer left the text read back out together with it.
+            string differs = NoteTextWarning(text, reread);
+            if (differs != null) outside["warning_text_differs"] = differs;
+
+            _log("[agent] note " + (attachedTo == "sheet" ? "on the sheet «" + sheetName + "»" : "inside a view of «" + sheetName + "»") +
+                 ": " + (reread ?? text) + (whereMm == null ? "" : " a " + whereMm[0] + "," + whereMm[1] + " mm"));
             return WithoutFeature(outside);
+        }
+
+        /// <summary>
+        /// Where a new note went, from the counts of the sheet and of the views before
+        /// and after: «sheet» when only the sheet went up, «view» when only the views
+        /// did, «both» otherwise. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NoteAttachedTo(int sheetBefore, int sheetAfter, int viewsBefore, int viewsAfter)
+        {
+            bool onSheet = sheetAfter > sheetBefore, inView = viewsAfter > viewsBefore;
+            if (onSheet && !inView) return "sheet";
+            if (inView && !onSheet) return "view";
+            return "both";
+        }
+
+        /// <summary>
+        /// The text of a note with its line ends made one: «\r\n» and «\r» become
+        /// «\n», and the blanks around the whole text go. Pure.
+        /// </summary>
+        internal static string NoteTextForComparison(string text)
+        {
+            if (text == null) return null;
+            return text.Replace("\r\n", "\n").Replace("\r", "\n").Trim();
+        }
+
+        /// <summary>
+        /// Does the note read back say what was asked? The line ends do not count
+        /// (report 8cd843 N29: «\n» sent, «\r\n» read back); every other character
+        /// does. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool SameNoteText(string asked, string reread)
+        {
+            if (asked == null || reread == null) return false;
+            return string.Equals(NoteTextForComparison(asked), NoteTextForComparison(reread), StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// The warning of a note whose text read back is not the one asked, with
+        /// both texts, or null when they match. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string NoteTextWarning(string asked, string reread)
+        {
+            if (SameNoteText(asked, reread)) return null;
+            if (reread == null)
+                return "I could not read the text of the note back: I cannot say that it says «" + asked + "». Look at it on " +
+                       "the sheet, or read the drawing with «inspect_part».";
+            return "SOLIDWORKS reads the note back as «" + reread + "», not as the «" + asked + "» you sent (line ends left " +
+                   "aside). Take it away with «delete_annotation» and send the text again, or correct it on the sheet.";
+        }
+
+        /// <summary>
+        /// What a note that did not land on the sheet must say. Pure, so the contract
+        /// suite reads it.
+        /// </summary>
+        internal static string NoteInViewWarning(string name, int sheetBefore, int sheetAfter, int viewsBefore, int viewsAfter)
+        {
+            return "The note «" + (name ?? "?") + "» went inside a view, not on the sheet (notes of the sheet " + sheetBefore +
+                   " -> " + sheetAfter + ", of the views " + viewsBefore + " -> " + viewsAfter + "): it moves with that view " +
+                   "and goes away with it. Take it away with «delete_annotation» and its name, and ask for it again.";
         }
 
         /// <summary>

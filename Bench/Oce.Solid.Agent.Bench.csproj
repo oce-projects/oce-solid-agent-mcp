@@ -61,6 +61,7 @@
     <Compile Include="..\Shared\SolidWorksSentinel.cs" />
     <Compile Include="..\Shared\PreparationFailed.cs" />
     <Compile Include="..\Shared\Leash.cs" />
+    <Compile Include="..\Shared\FinalizerGate.cs" />
     <!-- The table of the SOLIDWORKS names and the reading of the language: the same files as the library,
          compiled here too (no copy), so that the cases can say {SW:feature.cut_extrude}. -->
     <Compile Include="..\Oce.Solid.Agent.Core\Localization\SolidWorksNameTable.cs">

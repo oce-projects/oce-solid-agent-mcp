@@ -164,6 +164,8 @@ namespace Oce.Solid.Agent.Core
                                (removed ? "I removed the view." : "Remove the view: " + Sentences.HowToWithdrawIt + "."));
             }
             measurements["matches_with_part"] = true;
+            // The first model view renames a drawing without a file (N27).
+            TellTitle(model, measurements);
             return WithoutFeature(measurements);
         }
 

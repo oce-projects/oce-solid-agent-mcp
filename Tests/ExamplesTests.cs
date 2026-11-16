@@ -54,8 +54,22 @@ namespace Oce.Solid.Agent.ContractTests
         /// other three features of the guide (`fillet_face`,
         /// `fill_pattern`, `gusset`) are born without one: their green cases
         /// name the faces with the bench selectors.
+        /// **32** (26/10/2026, brief R22): `suppress_mate` and `delete_mate`
+        /// (`a_wrong_mate_is_taken_out`). **33** (same night, brief R12):
+        /// `place_component` (`a_part_is_turned_over_and_placed`).
+        /// **34** (27/10/2026, brief §5.1): `parameters`
+        /// (`variables_and_links_in_one_step`). **35** (same day, brief §5.2):
+        /// `extrude_regions` (`three_heights_in_one_step`). **36** (same day,
+        /// round 7 of report 8cd843, N24): `delete_annotation`
+        /// (`annotation_is_taken_away`). **38** (same day, round 14 of report
+        /// 8cd843, N54): `move_view` (`view_is_moved`) and `delete_view`
+        /// (`view_is_deleted`).
+        /// **39 (28/10/2026, round 20 of report 8cd843, N63)**: `sketch_details`
+        /// (`sketch_details_reads_the_rectangle`).
+        /// **40 (28/10/2026, round 21 of report 8cd843, point 1)**: `set_view_scale`
+        /// (`view_scale_is_set_and_followed`).
         /// </summary>
-        private const int Floor = 30;
+        private const int Floor = 40;
 
         /// <summary>What a client cannot copy.</summary>
         private static readonly string[] BenchOnly = { "@", "{WORK}", "{PROFILES}", "{DATA}", "{SOLIDWORKS}" };

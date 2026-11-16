@@ -1,0 +1,50 @@
+{
+  "name": "limit_delete_view_with_derived",
+  "family": "drawing",
+  "why": "REPORT 8CD843 N54 (round 14, 27/10/2026). Measured on a copy of the drawing of round 14: taking away the front view took its section and its two details with it, with no window and no word. Asked to remove one view, the drawing would lose three more.",
+
+  "_what_changes_compared_to_the_twin": "A detail is made from the front view first, and then the front view is the one asked to go, without «with_derived».",
+
+  "defect_caught": "That the views made from the one asked are not looked for, and go with it in silence. The message must name them, say how to take them all, and say nothing was touched.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80,
+                     "thickness_mm": 20, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 192000,
+          "why": "same part as the twin up to the step that changes" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\limit_delete_view_with_derived.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "the part must be on disk before the view names it" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [
+        { "what": "state.kind", "equal_to": "drawing",
+          "why": "the refusal must be the one on the derived views" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\limit_delete_view_with_derived.sldprt" },
+      "expect": [
+        { "what": "measurements.views_created", "equal_to": 3,
+          "why": "the front view is V1" } ] },
+
+    { "operation": "detail_view",
+      "arguments": { "label": "B", "scale": 2, "radius_mm": 8, "x_mm": 55 },
+      "expect": [
+        { "what": "measurements.views_after", "equal_to": 4,
+          "why": "the detail made from V1, as in detail_enlarges" } ] },
+
+    { "operation": "delete_view",
+      "arguments": { "view": "V1" },
+      "must_fail": {
+        "message_includes": ["has views made from it", "with_derived", "I touched nothing"],
+        "twin": "view_is_deleted"
+      } }
+  ]
+}

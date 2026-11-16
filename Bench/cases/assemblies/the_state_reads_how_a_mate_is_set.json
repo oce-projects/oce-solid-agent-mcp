@@ -1,0 +1,58 @@
+{
+  "name": "the_state_reads_how_a_mate_is_set",
+  "family": "assemblies",
+  "why": "REPORT 8CD843 N63 (round 20, 28/10/2026). The owner mated the assembly again by hand (15 distances became 5 coincident, 4 width and 1 distance) and the round could not read how: «mates_list» gave the kind, the components and nothing else. Now each mate says its «alignment» in the words «mate» takes, its «value» (the dimension of a distance or an angle) and «entity_kinds», the kind of entity on each component.",
+
+  "defect_caught": "An alignment read with the other name of the same number (swMateAlign_e gives swAlignSAME and swMateAlignANTI_ALIGNED the value 1); a distance mate read with no value or with the value in metres; an entity of a face mate read as something else.",
+
+  "assembly": {
+    "components": [
+      { "name": "base",
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 10, "centered": true } }
+        ] },
+      { "name": "cover",
+        "position_mm": [0, 40, 0],
+        "steps": [
+          { "operation": "extrude_rectangle",
+            "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80, "thickness_mm": 4, "centered": true } }
+        ] }
+    ]
+  },
+  "steps": [
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "up",
+        "component_b": "C2", "face_b": "down",
+        "variant": "coincident", "alignment": "opposite"
+      },
+      "expect": [
+        { "what": "measurements.mates_after", "equal_to": [1, 1],
+          "why": "the mate is there, counted on both components, as in «one_mate_is_not_enough»" },
+        { "what": "state.mates_list[0].kind", "equal_to": "coincident",
+          "why": "the kind, read as before" },
+        { "what": "state.mates_list[0].alignment", "equal_to": "opposite",
+          "why": "THE ALIGNMENT ASKED, READ BACK IN THE SAME WORD: «mate» writes «opposite» as swMateAlignANTI_ALIGNED (1), and IMate2.Alignment gives it back. swAlignSAME is 1 as well: a reading by that name would say the opposite of what was asked" },
+        { "what": "state.mates_list[0].entity_kinds", "equal_to": ["face", "face"],
+          "why": "two faces, one on each component: IMateEntity2.ReferenceType2 gives swSelFACES (2)" } ] },
+
+    { "operation": "mate",
+      "arguments": {
+        "component_a": "C1", "face_a": "right",
+        "component_b": "C2", "face_b": "right",
+        "variant": "distance", "distance_mm": 10, "alignment": "aligned"
+      },
+      "expect": [
+        { "what": "measurements.face_b_along_normal_a_mm", "equal_to": 10, "tolerance": 0.01,
+          "tolerance_why": "measured on the two faces: the right face of the cover 10 mm beyond the right face of the base" },
+        { "what": "state.mates_list[1].kind", "equal_to": "distance",
+          "why": "the second mate of the tree" },
+        { "what": "state.mates_list[1].alignment", "equal_to": "aligned",
+          "why": "the other word, on the other mate: «aligned» is swMateAlignALIGNED (0)" },
+        { "what": "state.mates_list[1].value.mm", "equal_to": 10, "tolerance": 0.001,
+          "tolerance_why": "THE VALUE OF THE MATE, IN MM: its first display dimension (IMate2.DisplayDimension2, index 0) read as every dimension of the state, 0.010 m written as 10 mm" },
+        { "what": "state.mates_list[0].alignment", "equal_to": "opposite",
+          "why": "the first mate is still read the same after the second" } ] }
+  ]
+}

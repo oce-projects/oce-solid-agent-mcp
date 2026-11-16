@@ -303,7 +303,7 @@ namespace Oce.Solid.Agent.Core
                 newOne = creation.Feature;
             }
             catch (Exception ex) { return Failed("The mirror did not succeed: " + ex.Message); }
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
             if (newOne == null)
                 return Failed("SOLIDWORKS did not create the mirror (CreateFeature answered null). If the file «" +
                                Path.GetFileNameWithoutExtension(originalFile) + suffix + "» already exists, change «suffix».");
@@ -443,7 +443,7 @@ namespace Oce.Solid.Agent.Core
                 if (f != null && f.Select2(false, 0))
                     deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                 model.ClearSelection2(true);
-                model.EditRebuild3();
+                RebuildKeepingUndo(model);
             }
             catch { }
             bool? stillInTree = deleted ? FeatureStillInTree(model, name) : (bool?)null;

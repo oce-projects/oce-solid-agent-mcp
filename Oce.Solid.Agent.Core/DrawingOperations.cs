@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using SolidWorks.Interop.sldworks;
@@ -71,6 +72,68 @@ namespace Oce.Solid.Agent.Core
         /// the agent worked on a single document and the state took it
         /// for granted.
         /// </summary>
+        /// <summary>
+        /// The path (or, without one, the title) of another open document with
+        /// the same title as <paramref name="document"/>, or null. Counted, not
+        /// compared by object: a title that appears twice among the open
+        /// documents is the case, whichever of the two the walk meets first.
+        /// </summary>
+        private string OtherDocumentWithTitle(IModelDoc2 document, string title)
+        {
+            if (string.IsNullOrEmpty(title)) return null;
+            int same = 0;
+            string other = null;
+            try
+            {
+                var d = _sw.GetFirstDocument() as IModelDoc2;
+                for (int guard = 0; d != null && guard < 200; guard++)
+                {
+                    string t = "", p = "";
+                    try { t = d.GetTitle() ?? ""; } catch { }
+                    if (string.Equals(t, title, StringComparison.Ordinal))
+                    {
+                        same++;
+                        try { p = d.GetPathName() ?? ""; } catch { }
+                        if (!ReferenceEquals(d, document) && (other == null || p.Length > 0)) other = p.Length > 0 ? p : t;
+                    }
+                    d = d.GetNext() as IModelDoc2;
+                }
+            }
+            catch { return null; }
+            return same >= 2 ? other ?? title : null;
+        }
+
+        /// <summary>
+        /// What a drawing with the title of another open document must be told
+        /// (report 8cd843 N27). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string SameTitleWarning(string title, string other)
+        {
+            return "The new drawing is called «" + title + "», like «" + other + "» already open: two windows with one " +
+                   "title, and «document activate» cannot bring the new one in front until it has a name of its own. " +
+                   "Save it in this plan with «save_document» and a path, before another window comes in front.";
+        }
+
+        /// <summary>
+        /// Writes the title of the drawing into <paramref name="measurements"/>, and the
+        /// warning of N27 when another open document has it too. Called by
+        /// «create_drawing» AND by every operation that puts a model view on the sheet:
+        /// a drawing without a file takes the name of the first model that lands on it.
+        /// In report 8cd843 N27 (call 009) «create_drawing» gave a default name and it
+        /// was «standard_views» that renamed the drawing after the assembly, the title
+        /// of the saved drawing already open; the replay t26n of 27/10/2026 gave a
+        /// default name to «create_drawing» alone. A warning only in «create_drawing»
+        /// never fires on the case it was written for.
+        /// </summary>
+        private void TellTitle(IModelDoc2 drawing, Dictionary<string, object> measurements)
+        {
+            string title = "";
+            try { title = drawing.GetTitle() ?? ""; } catch { }
+            measurements["document_title"] = title;
+            string twin = OtherDocumentWithTitle(drawing, title);
+            if (twin != null) measurements["warning_same_title"] = SameTitleWarning(title, twin);
+        }
+
         private Outcome CreateDrawing(IModelDoc2 model, Dictionary<string, object> a)
         {
             if (model == null)
@@ -98,7 +161,10 @@ namespace Oce.Solid.Agent.Core
                 try { template = _sw.GetUserPreferenceStringValue(DefaultDrawingTemplate); }
                 catch { template = null; }
             }
-            if (string.IsNullOrWhiteSpace(template) || !File.Exists(template))
+            // A local copy of the template is opened when OCE_LOCAL_COPIES asks for it
+            // (LocalCopies.cs); the answer keeps naming the template of the installation.
+            string opened = LocalCopies.Of(template);
+            if (string.IsNullOrWhiteSpace(template) || !File.Exists(opened))
                 return Failed(
                     "I cannot find the drawing template of this installation " +
                     (string.IsNullOrWhiteSpace(template)
@@ -111,7 +177,8 @@ namespace Oce.Solid.Agent.Core
             // doing it in two steps would mean a wasted sheet.
             int sheetFormat = SheetFormatCode(Str(a, "paper_size", "A3"));
             object newItem;
-            try { newItem = _sw.NewDocument(template, sheetFormat, 0, 0); }
+            // Timed (library 0.179.4): the drawing template and the sheet format it names.
+            try { newItem = PhaseClock.Time("drawing.new_document", () => _sw.NewDocument(opened, sheetFormat, 0, 0)); }
             catch (Exception ex) { return Failed("I cannot create the drawing: " + ex.Message); }
 
             var drawing = newItem as IModelDoc2;
@@ -146,6 +213,14 @@ namespace Oce.Solid.Agent.Core
                 ["sheets"] = NumberOrNull(CountSheets(drawing)),
                 ["documents_open"] = OpenDocuments().Count,
             };
+
+            // TWO WINDOWS, ONE TITLE (report 8cd843 N27, round 7): a second drawing
+            // of a copy of the clip assembly, not saved, had the title of the saved
+            // drawing of that copy, already open, and «document activate» refused
+            // it, rightly: by title it cannot tell the two apart. The refusal came
+            // three steps later; the drawing is told here, and again by the first
+            // model view, which renames it (see TellTitle).
+            TellTitle(drawing, measurements);
             _log("[agent] drawing created from " + template);
             var outcome = WithoutFeature(measurements);
             // FROM HERE ON WE WORK ON THE DRAWING, and it is stated.
@@ -274,6 +349,17 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "«" + modelPath + "» does not appear to be open. The " +
                     "views would be created empty without any error.");
+            // THE SCALE ASKED (report 8cd843, round 21, point 1): read before anything is made.
+            string scaleAsked = Str(a, "scale", null);
+            double[] scaleRatio = null;
+            if (!string.IsNullOrWhiteSpace(scaleAsked))
+            {
+                string scaleWhy;
+                scaleRatio = ParseScale(scaleAsked, out scaleWhy);
+                if (scaleRatio == null)
+                    return Failed("The scale «" + scaleAsked + "» cannot be used: " + scaleWhy +
+                                  ". Give it as «1:2» or «2:1», or leave «scale» out. I touched nothing.");
+            }
 
             int before = CountViews(drawing);
             if (before < 0)
@@ -296,6 +382,10 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             catch { viewsBefore = null; }
+            if (scaleRatio != null && viewsBefore == null)
+                return Failed("The names of the views already on the sheet cannot be read, so the new views " +
+                              "could not be told from them and given the scale «" + scaleAsked + "». " +
+                              "Leave «scale» out and use «set_view_scale» on each new view. I touched nothing.");
             bool ok;
             try { ok = drawing.Create1stAngleViews2(swPath); }
             catch (Exception ex) { return Failed("Views not created: " + ex.Message); }
@@ -313,6 +403,17 @@ namespace Oce.Solid.Agent.Core
                 return Failed(
                     "The call succeeded but the views are still " + before +
                     ": the drawing is empty. I do not call it successful.");
+
+            // The scale asked, on the views this call made, read back from each one.
+            List<string> scaleSetOn = null;
+            if (scaleRatio != null)
+            {
+                string scaleProblem = ScaleNewViews(model, drawing, viewsBefore, scaleRatio, out scaleSetOn);
+                if (scaleProblem != null)
+                    return Failed("The views were made, but at the scale " + ScaleText(scaleRatio) + " " + scaleProblem +
+                                  ". The views now read: " + ViewScalesText(ViewScales(drawing)) +
+                                  ". «undo» withdraws the plan, or «set_view_scale» changes a view.");
+            }
 
             // THE DRAWING IS REBUILT BEFORE ANSWERING (29/9/2026). The centre marks
             // SOLIDWORKS puts on holes when it creates a view (document option
@@ -435,7 +536,28 @@ namespace Oce.Solid.Agent.Core
                 // The marks SOLIDWORKS put, after the rebuild and before the bridge.
                 ["centre_marks_after_rebuild"] = centreMarks >= 0 ? (object)centreMarks : null,
                 ["centre_marks_added_by_bridge"] = addedByBridge,
+                // The scale of every view of the sheet, read back (round 21, point 1).
+                ["view_scales"] = ViewScales(drawing),
             };
+            if (scaleRatio != null)
+            {
+                measurements["scale"] = ScaleText(scaleRatio);
+                measurements["scale_set_on"] = scaleSetOn;
+            }
+            // The views of this call whose scale is not the sheet's (round 21): the title
+            // block prints the sheet's. All the views when the old ones could not be read.
+            ICollection<string> madeNow = null;
+            if (viewsBefore != null)
+            {
+                var fresh = new List<string>();
+                foreach (var viewName in ViewNames(drawing))
+                    if (!viewsBefore.Contains(viewName)) fresh.Add(viewName);
+                madeNow = fresh;
+            }
+            string sheetScale;
+            string sheetNote = SheetScaleNote(drawing, (List<Dictionary<string, object>>)measurements["view_scales"], madeNow, out sheetScale);
+            measurements["sheet_scale"] = sheetScale;
+            if (sheetNote != null) measurements["scale_note"] = sheetNote;
             if (holesInViewsWithoutMarks > 0)
             {
                 measurements["holes_in_views_without_centre_marks"] = holesInViewsWithoutMarks;
@@ -457,6 +579,8 @@ namespace Oce.Solid.Agent.Core
                               : "Turn on " + option + " and make the views again.")
                         : "Check " + option + ", which could not be read, and make the views again.");
             }
+            // The first model view renames a drawing without a file (N27).
+            TellTitle(model, measurements);
             return WithoutFeature(measurements);
         }
 
@@ -490,6 +614,18 @@ namespace Oce.Solid.Agent.Core
                     "I do not know the view «" + requested + "». I know nine: " +
                     "isometric, dimetric, trimetric, front, back, top, " +
                     "bottom, right, left.");
+
+            // THE SCALE ASKED (report 8cd843, round 21, point 1): read before anything is made.
+            string scaleAsked = Str(a, "scale", null);
+            double[] scaleRatio = null;
+            if (!string.IsNullOrWhiteSpace(scaleAsked))
+            {
+                string scaleWhy;
+                scaleRatio = ParseScale(scaleAsked, out scaleWhy);
+                if (scaleRatio == null)
+                    return Failed("The scale «" + scaleAsked + "» cannot be used: " + scaleWhy +
+                                  ". Give it as «1:2» or «2:1», or leave «scale» out. I touched nothing.");
+            }
 
             double x = Units.M(Num(a, "x_mm", 0));
             double y = Units.M(Num(a, "y_mm", 0));
@@ -568,10 +704,20 @@ namespace Oce.Solid.Agent.Core
                         ? "The part says it has these views: " + string.Join(", ", itsItems) + "."
                         : "The part does not declare any named view."));
 
+            if (scaleRatio != null)
+            {
+                string scaleProblem = ApplyViewScale(model, view, scaleRatio);
+                if (scaleProblem != null)
+                    return Failed("The view was made, but at the scale " + ScaleText(scaleRatio) + " " + scaleProblem +
+                                  ". «undo» withdraws the plan, or «set_view_scale» changes the view.");
+            }
+
             string itemName = "";
             double scale = 0;
+            double[] ratioRead = null;
             try { itemName = view.Name; } catch { }
             try { scale = view.ScaleDecimal; } catch { }
+            try { ratioRead = view.ScaleRatio as double[]; } catch { }
 
             var measurements = new Dictionary<string, object>
             {
@@ -582,8 +728,11 @@ namespace Oce.Solid.Agent.Core
                 ["names_rejected"] = refused.Count > 0 ? (object)string.Join(",", refused) : null,
                 ["name"] = itemName,
                 ["scale"] = scale > 0 ? (object)Math.Round(scale, 4) : null,
+                ["scale_ratio"] = ScaleText(ratioRead),
                 ["views_after"] = after,
             };
+            // The first model view renames a drawing without a file (N27).
+            TellTitle(model, measurements);
             return WithoutFeature(measurements);
         }
 
@@ -1035,6 +1184,12 @@ namespace Oce.Solid.Agent.Core
                 }
             }
 
+            // The save flag before the export (report 8cd843 N44, round 12): on a copy
+            // of the drawing of two sheets it was false before export_pdf and true
+            // after, and «document close» then refused the drawing (t35s, 27/10/2026).
+            bool unsavedBeforePdf = true;
+            try { unsavedBeforePdf = model.GetSaveFlag(); } catch { }
+
             int errors = 0, warnings = 0;
             bool ok;
             try
@@ -1068,6 +1223,17 @@ namespace Oce.Solid.Agent.Core
                 // L13-7: the Warnings of the save, decoded, also on a success.
                 ["save_warnings"] = SaveWarningsForAnswer(warnings),
             };
+            // WHAT A FALSE MEANS, in the answer (report 8cd843 N22, 27/10/2026:
+            // false next to a right PDF, with nothing to read). Under 100
+            // characters, so the summary keeps it.
+            if (!everySheetAsked) measurements["set_sheets_note"] = SetSheetsFalseNote(pages, sheets);
+            bool unsavedAfterPdf = false;
+            try { unsavedAfterPdf = model.GetSaveFlag(); } catch { }
+            if (MarkedUnsavedByThePdf(unsavedBeforePdf, unsavedAfterPdf))
+            {
+                measurements["marked_unsaved"] = true;
+                measurements["warning_marked_unsaved"] = PdfMarkedUnsavedWarning(sheets);
+            }
             string pdfWarningAdvice = SaveWarningsAdvice(warnings);
             if (pdfWarningAdvice != null) measurements["save_warnings_note"] = pdfWarningAdvice;
 
@@ -1084,10 +1250,21 @@ namespace Oce.Solid.Agent.Core
                 string text = "";
                 try { text = PdfText.Read(location); } catch { }
                 var foundItems = new List<object>();
+                var wrappedItems = new List<string>();
                 var missingItems = new List<object>();
                 foreach (var c in searched)
-                    (text.IndexOf(c, StringComparison.Ordinal) >= 0 ? foundItems : missingItems).Add(c);
+                {
+                    string where = PdfSearchVerdict(text, c);
+                    if (where == "found") foundItems.Add(c);
+                    else if (where == "on_several_lines") wrappedItems.Add(c);
+                    else missingItems.Add(c);
+                }
                 measurements["found"] = foundItems.ToArray();
+                // A value wrapped in its box is printed, over two lines: it is not
+                // «not_found» (report 8cd843, round 19), but it is worth a look.
+                measurements["found_on_several_lines"] = wrappedItems.ToArray();
+                string wrappedNote = OnSeveralLinesNote(wrappedItems);
+                if (wrappedNote != null) measurements["on_several_lines_note"] = wrappedNote;
                 measurements["not_found"] = missingItems.ToArray();
                 if (missingItems.Count > 0)
                     measurements["warning"] = "I do not find in the written PDF: «" + string.Join("», «", missingItems) +
@@ -1129,6 +1306,28 @@ namespace Oce.Solid.Agent.Core
             return WithoutFeature(measurements);
         }
 
+        /// <summary>
+        /// Whether the export raised the save flag of a drawing that had none (N44).
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool MarkedUnsavedByThePdf(bool unsavedBefore, bool unsavedAfter)
+        {
+            return !unsavedBefore && unsavedAfter;
+        }
+
+        /// <summary>
+        /// What export_pdf says when SOLIDWORKS marked the drawing as changed while
+        /// writing the PDF (N44), as interference_check says it (N16). Pure, so the
+        /// contract suite reads it.
+        /// </summary>
+        internal static string PdfMarkedUnsavedWarning(int sheets)
+        {
+            return "SOLIDWORKS marked the drawing as changed while it wrote the PDF of its " + sheets +
+                   (sheets == 1 ? " sheet" : " sheets") + " (measured: saved before, «to be saved» after): nothing in it " +
+                   "changed, and «document» «close» refuses it as unsaved. Put «save_document» after «export_pdf» in " +
+                   "the plan, or let the person close it.";
+        }
+
         // ─────────────────────────────────────────────────────────────────
         // save_document
         // ─────────────────────────────────────────────────────────────────
@@ -1141,15 +1340,49 @@ namespace Oce.Solid.Agent.Core
             int errors = 0, warnings = 0;
             bool ok;
 
+            string its = "";
+            try { its = model.GetPathName() ?? ""; } catch { }
             if (string.IsNullOrWhiteSpace(location))
             {
-                string its = "";
-                try { its = model.GetPathName() ?? ""; } catch { }
                 if (string.IsNullOrWhiteSpace(its))
                     return Failed(
                         "The document has never been saved: tell me where to put it.");
                 location = its;
             }
+            else if (SameFile(its, location))
+            {
+                // ITS OWN FILE IS SAVED WITH THE VERY STRING SOLIDWORKS HOLDS
+                // (26/10/2026). SaveAs compares the path as text: a document
+                // whose path SOLIDWORKS keeps with forward slashes (it was saved
+                // that way once) answered swGenericSaveError to the same path
+                // with backslashes, and the other way round. Four calls on a copy
+                // of the part of 13/10/2026, each with its control, gave the same
+                // rule; with the string of GetPathName the save went through.
+                location = its;
+            }
+
+            // ANOTHER FILE ALREADY THERE (report 8cd843 N55, round 14): a save onto an existing
+            // file that is not this document's own replaced it, and the answer said only the
+            // bytes. Now it says what it replaced; with «overwrite» false it refuses instead.
+            // Not a refusal by default: the bench writes in a folder that keeps the files of
+            // the run before, and so does whoever saves the same copy twice.
+            long replacedBytes = -1;
+            DateTime replacedWritten = DateTime.MinValue;
+            if (!SameFile(its, location))
+            {
+                try
+                {
+                    if (File.Exists(location))
+                    {
+                        var old = new FileInfo(location);
+                        replacedBytes = old.Length;
+                        replacedWritten = old.LastWriteTime;
+                    }
+                }
+                catch { }
+            }
+            string kept = ReplaceRefused(location, replacedBytes, replacedWritten, Bool(a, "overwrite", true));
+            if (kept != null) return Failed(kept);
 
             try
             {
@@ -1192,8 +1425,45 @@ namespace Oce.Solid.Agent.Core
                         "READ-ONLY — «" + location + "». Clear the read-only flag, or check it out " +
                         "if it is in a PDM.");
 
+                // A FILE THAT ANOTHER OPEN DOCUMENT HOLDS (26/10/2026 night, t10
+                // and t11 run twice): the second run saved a new part onto the
+                // file the first run had left open, and SOLIDWORKS answered only
+                // swGenericSaveError. Looked at after the refusal, so it never
+                // stops a save that would go through.
+                string holder = null;
+                if (!SameFile(its, location))
+                {
+                    try
+                    {
+                        var open = _sw.GetOpenDocumentByName(location) as IModelDoc2;
+                        if (open != null) holder = open.GetTitle();
+                    }
+                    catch { }
+                }
+                if (holder != null)
+                    return Failed(
+                        "The document was not saved: **another open document holds that file** — «" + holder +
+                        "» is «" + location + "», and SOLIDWORKS does not write a document onto it (code " +
+                        errors + SaveErrorNames(errors) + "). Close it first («document» «close» with that " +
+                        "«path») and save again, or give me another «path».");
+
                 // L13-7: the codes by their enum names (ErrorCodeDecoder).
+                // ITS OWN FILE REFUSED WITH THE GENERIC CODE: the two causes
+                // measured on 26/10/2026, and the road that worked. A document
+                // saved once with forward slashes in its path, and a part that
+                // got a new equation while another window was in front, both
+                // answer swGenericSaveError to every save on their own file; a
+                // save under a NEW name went through in both, and the document
+                // was savable again afterwards (the old name stayed refused).
+                bool ownFile = SameFile(its, location);
+                bool generic = (errors & (int)swFileSaveError_e.swGenericSaveError) != 0;
                 return Failed("The document was not saved (code " + errors + SaveErrorNames(errors) + ")." +
+                               (ownFile && generic
+                                   ? " SOLIDWORKS refuses to write this document onto its own file. Measured causes: " +
+                                     "the document was saved once with forward slashes in its path, or a new equation " +
+                                     "was added while another window was in front. Save it under a new name (pass a " +
+                                     "new «path»): that worked in both cases, and the document saves again afterwards."
+                                   : "") +
                                SaveWarningsTail(warnings));
             }
 
@@ -1208,7 +1478,32 @@ namespace Oce.Solid.Agent.Core
             };
             string saveWarningAdvice = SaveWarningsAdvice(warnings);
             if (saveWarningAdvice != null) measurements["save_warnings_note"] = saveWarningAdvice;
+            // What was there before (N55), always: false is the answer to «did I lose a file».
+            measurements["replaced_another_file"] = replacedBytes >= 0;
+            if (replacedBytes >= 0)
+            {
+                measurements["replaced_file"] = new Dictionary<string, object>
+                {
+                    ["byte"] = replacedBytes,
+                    ["written"] = replacedWritten.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                };
+                measurements["replaced_note"] = "«" + location + "» already existed and was not this document's file: it was " +
+                    "replaced. Pass «overwrite»: false to be refused instead.";
+            }
             return WithoutFeature(measurements);
+        }
+
+        /// <summary>
+        /// The refusal of a save onto another existing file when «overwrite» is false (report 8cd843
+        /// N55), null when the save may go on: no file there (<paramref name="bytes"/> below zero) or
+        /// overwriting allowed. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string ReplaceRefused(string location, long bytes, DateTime written, bool overwrite)
+        {
+            if (bytes < 0 || overwrite) return null;
+            return "«" + location + "» already exists (" + bytes + " bytes, written " +
+                   written.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + ") and is not this document's file, " +
+                   "and «overwrite» is false: I saved nothing. Give another «path», or «overwrite»: true to replace it.";
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -1800,6 +2095,18 @@ namespace Oce.Solid.Agent.Core
         /// not be taken is a refusal, not a pass: the file stays where it was
         /// written, and the message says so.
         /// </summary>
+        /// <summary>
+        /// The note next to «set_sheets_answer» false (report 8cd843 N22): the
+        /// answer of SetSheets has been false on complete PDFs, the page count
+        /// is the check. Under 100 characters, so CompactOutcomes keeps it. No
+        /// interop type: Oce.Solid.Agent.ContractTests calls it by reflection.
+        /// </summary>
+        internal static string SetSheetsFalseNote(int pages, int sheets)
+        {
+            return "false is seen on complete PDFs too; the check is the page count: " +
+                   (pages > 0 ? pages.ToString() : "?") + " of " + sheets;
+        }
+
         internal static string PdfPageCountRefusal(int pages, int sheets, string path)
         {
             if (pages < 0)
@@ -1811,6 +2118,49 @@ namespace Oce.Solid.Agent.Core
                        sheets + (sheets == 1 ? " sheet" : " sheets") + ". The file is there and it is not the one " +
                        "you need: look at it before sending it to the shop. (" + path + ")";
             return null;
+        }
+
+        /// <summary>
+        /// WHERE A SEARCHED TEXT IS IN THE TEXT OF THE PDF (report 8cd843, round 19,
+        /// observation, 28/10/2026). A value too long for its box is wrapped by
+        /// SOLIDWORKS, and PdfText gives each printed line as a line of its own:
+        /// measured on the PDF of round 19, a value of four words in a box of the
+        /// title block came out as two lines, the first ending in a space. The plain
+        /// search said «not_found» for a text that is printed. Only the line breaks
+        /// are ignored, joined by a space or by nothing (a word cut in two): every
+        /// other character must match as asked. «found», «on_several_lines» or
+        /// «not_found». No interop type: Oce.Solid.Agent.ContractTests calls it by
+        /// reflection.
+        /// </summary>
+        internal static string PdfSearchVerdict(string text, string wanted)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(wanted)) return "not_found";
+            if (text.IndexOf(wanted, StringComparison.Ordinal) >= 0) return "found";
+            // The spaces and tabs at a line break go with it: «A \nB» is «A B» or «AB».
+            string[] lines = text.Replace("\r\n", "\n").Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (i < lines.Length - 1) lines[i] = lines[i].TrimEnd(' ', '\t');
+                if (i > 0) lines[i] = lines[i].TrimStart(' ', '\t');
+            }
+            string joinedBySpace = string.Join(" ", lines);
+            string joinedByNothing = string.Join("", lines);
+            if (joinedBySpace.IndexOf(wanted, StringComparison.Ordinal) >= 0 ||
+                joinedByNothing.IndexOf(wanted, StringComparison.Ordinal) >= 0)
+                return "on_several_lines";
+            return "not_found";
+        }
+
+        /// <summary>
+        /// What «found_on_several_lines» means, for the answer; null when it is empty.
+        /// </summary>
+        internal static string OnSeveralLinesNote(List<string> texts)
+        {
+            if (texts == null || texts.Count == 0) return null;
+            return "«" + string.Join("», «", texts) + "» " + (texts.Count == 1 ? "is" : "are") +
+                   " in the PDF only across a line break: printed over more than one line, or where one text " +
+                   "ends and the next begins. A value wrapped in a box of the title block can run out of it: " +
+                   "look at the box.";
         }
     }
 }

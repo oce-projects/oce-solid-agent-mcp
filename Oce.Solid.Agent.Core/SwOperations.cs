@@ -82,6 +82,14 @@ namespace Oce.Solid.Agent.Core
         }
 
         /// <summary>
+        /// Whether an operation that must work on the document in front may bring
+        /// it back when another window came there (brief R1). True by default;
+        /// PlanExecutor passes its own ReactivateWindow, so a plan that stops on a
+        /// window change is refused instead.
+        /// </summary>
+        public bool MayBringDocumentBack { get; set; } = true;
+
+        /// <summary>
         /// WHEN A CHECK REJECTS A SHAPE, THE SHAPE IS ALREADY IN THE PART.
         ///
         /// The operations that check themselves — the slot counts the
@@ -258,23 +266,23 @@ namespace Oce.Solid.Agent.Core
             "plane_three_points", "weldment_profiles", "sketch_picture", "file_dependencies",
             "minimum_distance", "delete_feature",
             "export_iges", "export_pdf", "export_step", "export_stl",
-            "extrude_circle", "extrude_profile", "extrude_rectangle",
+            "extrude_circle", "extrude_profile", "extrude_regions", "extrude_rectangle",
             "extrude_section", "spur_gear",
             "extrude_on_face", "gusset", "cosmetic_thread",
             "hole_wizard", "shell", "insert_component",
             "set_sheet", "engrave_text", "body_bounding_box", "structural_member",
-            "measure_between", "set_dimension", "global_variable", "link_dimension", "reorder_feature", "edit_extrusion", "dimension_tolerance", "mass_properties",
+            "measure_between", "set_dimension", "global_variable", "link_dimension", "parameters", "reorder_feature", "edit_extrusion", "dimension_tolerance", "mass_properties",
             "loft_two_circles",
             "model_dimensions", "fillet_edges", "variable_fillet", "fillet_face",
             "circular_pattern", "fill_pattern", "set_property",
             "linear_pattern", "revolve", "save_document",
             "draft", "rib", "chamfer_edges", "suppress_instance", "suppress_feature",
-            "replace_component", "fix_component", "mirror_component",
-            "center_marks", "drawing_dimension", "note", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
+            "replace_component", "fix_component", "mirror_component", "suppress_mate", "delete_mate", "place_component",
+            "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table", "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
             "surface_finish", "datum", "geometric_tolerance",
-            "section_view", "detail_view",
+            "section_view", "detail_view", "move_view", "delete_view",
             "new_sheet", "activate_sheet", "drawing_cut_list",
-            "interference_check", "title_block",
+            "interference_check", "title_block", "sketch_details", "set_view_scale", "move_annotation", "read_drawing",
             "circular_sweep",
             "mirror",
             "move_bodies", "trim_members",
@@ -293,12 +301,101 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         public const string UnknownOperation = "Unknown operation: ";
 
+        /// <summary>
+        /// The operations whose case in <see cref="Run"/> does not pass the
+        /// reading of the document on (brief R2). For them the executor does not
+        /// read the document before the step: on 24/10/2026 a full reading of a
+        /// part with a body was one of the two that every step paid.
+        ///
+        /// A list written by hand next to a switch goes stale; the contract
+        /// suite reads the switch and fails when an operation here passes
+        /// `docState` on, or one that does not pass it is missing.
+        /// </summary>
+        internal static readonly HashSet<string> OperationsWithoutState =
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                "extrude_rectangle", "extrude_circle", "extrude_section", "spur_gear",
+                "extrude_profile", "extrude_regions", "apply_material", "dimension_tolerance", "create_plane",
+                "base_flange", "flat_pattern_dxf", "mirror", "revolve", "create_drawing",
+                "set_sheet", "standard_views", "model_view", "model_dimensions",
+                "center_marks", "drawing_dimension", "note", "delete_annotation", "hole_table",
+                "flat_pattern_view", "drawing_weld_symbol", "drawing_bom", "balloons",
+                "surface_finish", "datum", "geometric_tolerance", "section_view",
+                "detail_view", "move_view", "delete_view", "new_sheet", "activate_sheet", "drawing_cut_list",
+                "title_block", "sketch_details", "set_view_scale", "move_annotation", "read_drawing", "export_pdf", "save_document", "structural_member",
+                "rectangular_frame", "cut_list", "rib", "suppress_mate", "delete_mate", "place_component",
+            };
+
+        /// <summary>True when the operation looks at the reading of the document.</summary>
+        public static bool UsesState(string operation)
+        {
+            return operation == null || !OperationsWithoutState.Contains(operation);
+        }
+
+        /// <summary>
+        /// THE PATHS IN WINDOWS FORM, for every operation (26/10/2026). A path
+        /// written with forward slashes, «C:/folder/part.SLDPRT», is a path
+        /// Windows accepts and SOLIDWORKS does not always: SaveAs with it on the
+        /// file the document already is answered swGenericSaveError (the
+        /// unexplained failure of 13/10/2026, reproduced: the same call with
+        /// backslashes saved 140,100 bytes), and AddComponent5 answered null.
+        /// A model writes forward slashes because they need no escaping in JSON.
+        /// The arguments that name a file are turned with Path.GetFullPath when
+        /// they are rooted and hold a forward slash; anything else is left as it
+        /// came. A copy: the caller's dictionary is not touched.
+        /// </summary>
+        internal static Dictionary<string, object> WithWindowsPaths(Dictionary<string, object> arguments)
+        {
+            if (arguments == null) return null;
+            Dictionary<string, object> copy = null;
+            foreach (var key in PathArguments)
+            {
+                object raw;
+                if (!arguments.TryGetValue(key, out raw)) continue;
+                var text = raw as string;
+                if (string.IsNullOrWhiteSpace(text) || text.IndexOf('/') < 0) continue;
+                string full;
+                try
+                {
+                    if (!System.IO.Path.IsPathRooted(text.Trim())) continue;
+                    full = System.IO.Path.GetFullPath(text.Trim());
+                }
+                catch (Exception) { continue; }
+                if (copy == null) copy = new Dictionary<string, object>(arguments, StringComparer.Ordinal);
+                copy[key] = full;
+            }
+            return copy ?? arguments;
+        }
+
+        /// <summary>The arguments of the catalogue that name a file on disk.</summary>
+        internal static readonly string[] PathArguments = { "path", "profile_path", "template", "model" };
+
         public Outcome Run(
             IModelDoc2 model,
             string operation,
             Dictionary<string, object> arguments,
             DocumentState docState,
             IReadOnlyDictionary<int, References.Step> stepsDone = null)
+        {
+            // A DRAG THAT NOBODY RELEASES (library 0.198.7): while the operation runs, a drag of the view
+            // started by a simulated click is ended with Escape, and the answer says so (StuckDragGuard).
+            int mark;
+            using (StuckDragGuard.During(out mark))
+            {
+                var outcome = RunWatched(model, operation, arguments, docState, stepsDone);
+                var released = StuckDragGuard.Since(mark);
+                if (released.Count > 0 && outcome != null) outcome.Measurements["drag_released_with_escape"] = released.ToArray();
+                foreach (var r in released) _log("[agent] " + operation + ": " + r);
+                return outcome;
+            }
+        }
+
+        private Outcome RunWatched(
+            IModelDoc2 model,
+            string operation,
+            Dictionary<string, object> arguments,
+            DocumentState docState,
+            IReadOnlyDictionary<int, References.Step> stepsDone)
         {
             _stepsDone = stepsDone ?? new Dictionary<int, References.Step>();
             // It is emptied at the START: emptying it at the end would leave it full
@@ -312,6 +409,7 @@ namespace Oce.Solid.Agent.Core
             // in each operation, because every operation comes through here.
             _featuresAtStepStart = CountFeature(model);
             _featureNamesAtStepStart = FeatureNamesNow(model);
+            arguments = WithWindowsPaths(arguments);
             try
             {
                 switch (operation)
@@ -328,6 +426,9 @@ namespace Oce.Solid.Agent.Core
                     // first change.
                     case "extrude_profile":
                         return ExtrudeProfile(model, arguments);
+                    // Several regions of one plane at their heights, one step
+                    // (brief §5.2): the same executor, once per region.
+                    case "extrude_regions": return ExtrudeRegions(model, arguments);
                     case "cylindrical_cut": return CylindricalCut(model, arguments, docState);
                     // The hole made the way a hole is made: guided creation,
                     // ISO standard, thread, counterbore, countersink. It lives in
@@ -344,6 +445,8 @@ namespace Oce.Solid.Agent.Core
                     // a number instead of repeating it. EquationOperations.cs.
                     case "global_variable": return GlobalVariable(model, arguments, docState);
                     case "link_dimension": return LinkDimension(model, arguments, docState);
+                    // Variables and links in one step (brief §5.1). EquationOperations.cs.
+                    case "parameters": return Parameters(model, arguments, docState);
                     // Reordering the tree (entry Z-F3). ReorderOperations.cs.
                     case "reorder_feature": return ReorderFeature(model, arguments, docState);
                     // Changing an extrusion or a cut already made (entry Z-F4).
@@ -397,6 +500,16 @@ namespace Oce.Solid.Agent.Core
                     // that changes how the assembly rebuilds. FixComponentOperations.cs.
                     case "fix_component":
                         return FixComponent(model, arguments, docState);
+                    // A mate taken out by its uid or its name (brief R22).
+                    // MateStateOperations.cs.
+                    case "suppress_mate":
+                        return SuppressMate(model, arguments);
+                    case "delete_mate":
+                        return DeleteMate(model, arguments);
+                    // Where a component goes and how it is turned (brief R12).
+                    // PlacementOperations.cs.
+                    case "place_component":
+                        return PlaceComponent(model, arguments);
                     // The right bracket and the left one (entry GA11). MirrorComponentOperations.cs.
                     case "mirror_component":
                         return MirrorComponent(model, arguments, docState);
@@ -453,6 +566,9 @@ namespace Oce.Solid.Agent.Core
                     // `DrawingNoteOperations.cs`, where it also says why
                     // counting it in the wrong place would have closed four entries.
                     case "note": return DrawingNote(model, arguments);
+                    // Takes away a dimension or a note by its name (report 8cd843
+                    // N24): see `DrawingDeleteAnnotation.cs`.
+                    case "delete_annotation": return DeleteAnnotation(model, arguments);
                     case "hole_table": return HoleTable(model, arguments);
                     case "flat_pattern_view": return FlatPatternView(model, arguments);
                     case "drawing_weld_symbol": return DrawingWeldSymbol(model, arguments);
@@ -463,6 +579,16 @@ namespace Oce.Solid.Agent.Core
                     case "geometric_tolerance": return GeometricTolerance(model, arguments);
                     case "section_view": return SectionView(model, arguments);
                     case "detail_view": return DetailView(model, arguments);
+                    // Moves or takes away a view (report 8cd843 N54): see
+                    // `DrawingViewOperations.cs`.
+                    case "move_view": return MoveView(model, arguments);
+                    // The scale of a view already on the sheet (report 8cd843, round 21), in ViewScaleOperations.cs.
+                    case "set_view_scale": return ViewScale(model, arguments);
+                    // A dimension or a note moved (report 8cd843, round 22, point 8), in DrawingMoveAnnotation.cs.
+                    case "move_annotation": return MoveAnnotation(model, arguments);
+                    // A finished drawing read sheet by sheet (report 8cd843, round 22, point 20), in ReadDrawingOperations.cs.
+                    case "read_drawing": return ReadDrawing(model, arguments);
+                    case "delete_view": return DeleteView(model, arguments);
                     // The sheets, in SheetOperations.cs. `export_pdf` already counts
                     // the pages of the PDF, and that count was always 1
                     // because there was no way to make a second sheet.
@@ -481,6 +607,8 @@ namespace Oce.Solid.Agent.Core
                     // it says which properties it ASKS FOR and which it SHOWS, so the
                     // name to write is copied instead of guessed.
                     case "title_block": return TitleBlock(model, arguments);
+                    // What a sketch is made of (report 8cd843 N63), in SketchDetailOperations.cs.
+                    case "sketch_details": return SketchDetails(model, arguments);
                     case "export_pdf": return ExportPdf(model, arguments);
                     case "save_document": return SaveDocument(model, arguments);
 
@@ -1005,6 +1133,43 @@ namespace Oce.Solid.Agent.Core
         /// case, even if something goes wrong: it is a setting of the environment
         /// of whoever is working, not ours.
         /// </summary>
+        /// <summary>
+        /// THE MODEL AXIS EACH SKETCH AXIS RUNS ALONG (brief R7): «x» and «y» of
+        /// the contours, and «extrusion», the normal of the sketch along which
+        /// the extrusion goes. On 24/10/2026 a contour drawn on «top» came out
+        /// with its y along -Z of the model, and only a measure afterwards said
+        /// so: the description of the plane did not.
+        ///
+        /// The unit vectors of the sketch are carried into the model by the
+        /// inverse of ModelToSketchTransform, through IMathVector, so nothing
+        /// depends on the order of the nine numbers of a rotation. Each answer is
+        /// the dominant model axis with its sign.
+        /// </summary>
+        private Dictionary<string, object> SketchAxes(ISketch sketch)
+        {
+            if (sketch == null) return null;
+            var math = _sw.GetMathUtility() as IMathUtility;
+            var toSketch = sketch.ModelToSketchTransform;
+            if (math == null || toSketch == null) return null;
+            var toModel = toSketch.Inverse() as IMathTransform;
+            if (toModel == null) return null;
+            Func<double[], string> along = v =>
+            {
+                var vector = math.CreateVector(v) as IMathVector;
+                var moved = vector?.MultiplyTransform(toModel) as IMathVector;
+                var r = moved?.ArrayData as double[];
+                if (r == null || r.Length < 3) return null;
+                int k = 0;
+                for (int i = 1; i < 3; i++) if (Math.Abs(r[i]) > Math.Abs(r[k])) k = i;
+                return (r[k] >= 0 ? "+" : "-") + "XYZ"[k];
+            };
+            var x = along(new[] { 1.0, 0, 0 });
+            var y = along(new[] { 0, 1.0, 0 });
+            var normal = along(new[] { 0, 0, 1.0 });
+            if (x == null || y == null || normal == null) return null;
+            return new Dictionary<string, object> { ["x"] = x, ["y"] = y, ["extrusion"] = normal };
+        }
+
         private Outcome ExtrudeProfile(
             IModelDoc2 model, Dictionary<string, object> a,
             int maxVertices = MaxModelVertices)
@@ -1016,6 +1181,23 @@ namespace Oce.Solid.Agent.Core
             bool symmetric = Bool(a, "symmetric", false);
             string plane = Str(a, "plane", "front");
 
+            // FIXED OR DRIVEN (brief R5): locked where it is, or dimensioned
+            // from the origin so that a variable can move a vertex.
+            string dimensionsMode = Str(a, "dimensions", "fixed");
+            int curved = 0, vertices = 0;
+            foreach (var contour in contours)
+            {
+                if (contour.Circle) { vertices++; continue; }
+                foreach (var stroke in contour.Strokes)
+                {
+                    if (stroke.Spline) curved++;
+                    vertices += stroke.Points.Count;
+                }
+            }
+            string modeProblem = DimensionsModeProblem(dimensionsMode, curved, vertices);
+            if (modeProblem != null) return Failed(modeProblem);
+            bool driven = dimensionsMode == "driven";
+
             // Before the sketch: it is selected, and locked after the
             // extrusion, as the one sketch born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(model);
@@ -1023,25 +1205,82 @@ namespace Oce.Solid.Agent.Core
                 return Failed($"I did not find the plane «{plane}» in the tree.");
 
             var sketches = model.SketchManager;
-            bool addToDbBefore = false;
-            bool displayBefore = false;
-            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
+            // NO AddToDB (brief R11, measured on 26/10/2026 with Checks\UndoSplit):
+            // with AddToDB true one undo of the plan left the first extrusion in
+            // the part, in every lock tried, because «It is not possible to undo
+            // the creation of some types of sketch entities»
+            // (ISketchManager~AddToDB.html). What AddToDB gave, no relation added
+            // to the lines, is kept by turning the automatic relations off while
+            // they are drawn: on the probe 6 points for 6 vertices, 0 relations,
+            // and the whole plan undone.
+            // SNAPPING OFF TOO (0.141.1, t11 the same night): with snapping on,
+            // 6 of the 20 vertices of a star went onto points nearby (the
+            // snapping distance is in pixels, so it follows the zoom). With
+            // snapping off the ends of the lines stay apart (40 points for 20
+            // vertices), and ISketch.MergePoints joins them: on Checks\UndoSplit
+            // 20 points, every vertex where asked, the volume right and the
+            // whole plan undone.
+            int automaticRelations = (int)swUserPreferenceToggle_e.swSketchAutomaticRelations;
+            int inference = (int)swUserPreferenceToggle_e.swSketchInference;
+            bool automaticBefore = true, inferenceBefore = true;
+            try { automaticBefore = _sw.GetUserPreferenceToggle(automaticRelations); } catch { }
+            try { inferenceBefore = _sw.GetUserPreferenceToggle(inference); } catch { }
 
             int segments = 0;
+            Dictionary<string, object> axesOfSketch = null;
             try
             {
                 sketches.InsertSketch(true);
-                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, false); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, false); } catch { }
 
                 foreach (var contour in contours)
                 {
                     segments += DrawContour(sketches, contour);
                 }
+                var drawnSketch = sketches.ActiveSketch as ISketch;
+                if (drawnSketch != null) drawnSketch.MergePoints(1e-7);
+
+                // WHERE THE CONTOUR'S AXES WENT (brief R7), read from the open
+                // sketch and not from a table.
+                try { axesOfSketch = SketchAxes(sketches.ActiveSketch as ISketch); } catch { }
             }
             finally
             {
-                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, automaticBefore); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, inferenceBefore); } catch { }
             }
+
+            // EVERY VERTEX IS READ BACK: with snapping off none should move, but
+            // a vertex read wrong gives no error, it gives another shape, so the
+            // step fails (it caught the star of t11 when snapping was on).
+            var notDrawn = VerticesNotDrawn(sketches.ActiveSketch as ISketch, contours);
+            if (notDrawn != null && notDrawn.Count > 0)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed(notDrawn.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                              " vertex(es) of the profile are not where they were asked, the first at (" +
+                              notDrawn[0][0].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                              notDrawn[0][1].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              ") mm: it was drawn on a point nearby. The sketch is in the part and the extrusion " +
+                              "was not made: undo the step, move that vertex away from the points near it and try again.");
+            }
+
+            // THE DIMENSIONS GO IN WHILE THE SKETCH IS OPEN (brief R5), as
+            // `cylindrical_cut` puts its own: after the extrusion the sketch would
+            // have to be edited again, and editing it is what the FIXED relations
+            // cost (EditSketch, rebuild).
+            List<Dictionary<string, object>> vertexDimensions = null;
+            string drivenNote = null;
+            int notDriven = 0;
+            bool? fullyDefined = null;
+            string noteBlock = null;
+            int fixedRelations = 0;
+            bool locked = false;
+            if (driven)
+                vertexDimensions = DriveProfile(model, sketches.ActiveSketch as ISketch, contours, out drivenNote, out notDriven, out fullyDefined);
+            else
+                locked = LockOpenSketch(sketches.ActiveSketch as ISketch, out noteBlock, out fixedRelations);
             sketches.InsertSketch(false);
 
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
@@ -1050,22 +1289,32 @@ namespace Oce.Solid.Agent.Core
             var feature = Extrude(model, thickness, merge: true, symmetric: symmetric);
             if (feature == null) return Failed("The extrusion was not created." + WithoutSketch(model));
 
-            // The sketch is locked AFTER the extrusion: a FIXED relation added
-            // while the sketch was still being drawn raised RPC_E_SERVERFAULT
-            // in the probe of 28/9/2026 (finding M5, case R4, which passed an
-            // object[]: the typed array was measured only after the feature).
-            string noteBlock;
-            int fixedRelations;
-            bool locked = LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
-
+            // The sketch was locked while still open (brief R11, see
+            // LockOpenSketch); a driven sketch is not locked: its dimensions
+            // hold it.
             var measurements = new Dictionary<string, object>
             {
-                ["sketch_locked"] = locked,
-                ["fixed_relations"] = fixedRelations,
                 ["contours"] = contours.Count,
                 ["segments"] = segments,
                 ["thickness_mm"] = thickness,
             };
+            if (driven)
+            {
+                measurements["dimensions"] = "driven";
+                measurements["vertex_dimensions"] = vertexDimensions;
+                measurements["sketch_fully_defined"] = fullyDefined;
+                if (notDriven > 0 || drivenNote != null)
+                    measurements["warning_dimensions"] =
+                        (notDriven > 0 ? notDriven + " coordinate(s) of the vertices could not be dimensioned: the shape is right, " +
+                                         "but those vertices do not follow a variable" : "") +
+                        (drivenNote != null ? (notDriven > 0 ? "; " : "") + drivenNote : "") + ".";
+            }
+            else
+            {
+                measurements["sketch_locked"] = locked;
+                measurements["fixed_relations"] = fixedRelations;
+            }
+            if (axesOfSketch != null) measurements["sketch_axes"] = axesOfSketch;
             // Up to library 0.141.0 the note was computed and dropped: whoever
             // reads a sketch that is not locked must be able to read why.
             if (noteBlock != null) measurements["sketch_lock_note"] = noteBlock;
@@ -1075,6 +1324,733 @@ namespace Oce.Solid.Agent.Core
             // body, and whoever thought they were making a hole must be able to read it.
             if (noteContours != null) measurements["note_contours"] = noteContours;
             return Succeeded(feature, measurements, References.PlaneNormal(plane));
+        }
+
+        /// <summary>
+        /// SEVERAL HEIGHTS ON ONE PLANE, IN ONE STEP (brief §5.2). On 24/10/2026
+        /// each half of a channel took six `extrude_profile`, one per height, and
+        /// every step paid its own reading, confirmation and rebuild (brief R2).
+        /// Here the plane and a list of regions, each with its contours and its
+        /// height: every region is checked before the first is drawn
+        /// (<see cref="Regions"/>), then each one is drawn by the executor of
+        /// `extrude_profile`, one sketch and one extrusion, merged with the
+        /// bodies it touches. The answer names, for each region, the feature and
+        /// the dimension of its height, read from the feature, ready for
+        /// `link_dimension` or `parameters`.
+        ///
+        /// A region that fails after others were drawn stops the step and says
+        /// which ones are in the part: the undo entry of the plan holds them
+        /// all, so one undo withdraws the whole step.
+        /// </summary>
+        private Outcome ExtrudeRegions(IModelDoc2 model, Dictionary<string, object> a)
+        {
+            var regions = Regions(a, out string reason);
+            if (regions == null) return Failed(reason);
+            string plane = Str(a, "plane", "front");
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+
+            var done = new List<Dictionary<string, object>>();
+            var names = new List<string>();
+            Outcome last = null;
+            for (int i = 0; i < regions.Count; i++)
+            {
+                var arguments = new Dictionary<string, object>
+                {
+                    ["plane"] = plane,
+                    ["contours"] = regions[i].Contours,
+                    ["thickness_mm"] = regions[i].HeightMm,
+                };
+                Outcome outcome = ExtrudeProfile(model, arguments);
+                if (outcome == null || !outcome.Succeeded)
+                    return Failed("Region " + (i + 1).ToString(inv) + " of " + regions.Count.ToString(inv) + ": " +
+                                  (outcome == null ? "it gave no outcome." : outcome.Error) +
+                                  (names.Count > 0
+                                      ? " The region(s) before it are in the part (" + string.Join(", ", names) +
+                                        "): undo the step and they go with it, then send the regions again."
+                                      : ""));
+
+                string depthProblem;
+                string depth = DepthDimension(outcome.Feature, regions[i].HeightMm, out depthProblem);
+                var entry = new Dictionary<string, object>
+                {
+                    ["region"] = i + 1,
+                    ["feature"] = outcome.CreatedFeature,
+                    ["height_mm"] = regions[i].HeightMm,
+                    ["depth_dimension"] = depth,
+                };
+                if (depth == null) entry["depth_dimension_note"] = depthProblem;
+                Dictionary<string, object> itsMeasurements = outcome.Measurements;
+                if (itsMeasurements != null)
+                {
+                    foreach (string key in new[] { "segments", "sketch_locked", "sketch_lock_note", "note_contours" })
+                    {
+                        object value;
+                        if (itsMeasurements.TryGetValue(key, out value)) entry[key] = value;
+                    }
+                }
+                done.Add(entry);
+                names.Add(outcome.CreatedFeature);
+                last = outcome;
+            }
+
+            var measurements = new Dictionary<string, object>
+            {
+                ["regions"] = done,
+            };
+            object axes;
+            if (last.Measurements != null && last.Measurements.TryGetValue("sketch_axes", out axes))
+                measurements["sketch_axes"] = axes;
+            return Succeeded(last.Feature, measurements, References.PlaneNormal(plane));
+        }
+
+        /// <summary>One region of `extrude_regions`: its contours as they came, and its height.</summary>
+        internal sealed class Region
+        {
+            public object Contours;
+            public double HeightMm;
+        }
+
+        /// <summary>
+        /// The regions of `extrude_regions`, every one checked before anything is
+        /// drawn: a list, each item an object with «contours» that the reader of
+        /// `extrude_profile` accepts and a «height_mm» above zero. Null with the
+        /// reason otherwise. Static and without SOLIDWORKS, so that a contract can
+        /// call it.
+        /// </summary>
+        internal static List<Region> Regions(Dictionary<string, object> a, out string reason)
+        {
+            reason = null;
+            const string nothing = " I drew nothing: every region is checked before the first is drawn.";
+            object raw;
+            if (a == null || !a.TryGetValue("regions", out raw) || raw == null)
+            {
+                reason = "«regions» did not arrive: send a list of regions, each {\"contours\": [...], \"height_mm\": 10}." + nothing;
+                return null;
+            }
+            var list = raw as System.Collections.IEnumerable;
+            if (list == null || raw is string || raw is Dictionary<string, object>)
+            {
+                reason = "«regions» is not a list: write it as [{\"contours\": [...], \"height_mm\": 10}, ...]." + nothing;
+                return null;
+            }
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var regions = new List<Region>();
+            int n = 0;
+            foreach (var item in list)
+            {
+                n++;
+                string which = "Region " + n.ToString(inv);
+                var entry = item as Dictionary<string, object>;
+                if (entry == null)
+                {
+                    reason = which + " is not an object: write it as {\"contours\": [...], \"height_mm\": 10}." + nothing;
+                    return null;
+                }
+                object h;
+                double height = double.NaN;
+                if (entry.TryGetValue("height_mm", out h) && h != null && !(h is string) && !(h is bool))
+                {
+                    try { height = Convert.ToDouble(h, inv); } catch { }
+                }
+                if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0)
+                {
+                    reason = which + ": «height_mm» must be a number of millimetres above zero, and I received «" +
+                             (h == null ? "nothing" : Convert.ToString(h, inv)) + "». Give each region its height." + nothing;
+                    return null;
+                }
+                string why, note;
+                if (Contours(entry, out why, out note) == null)
+                {
+                    reason = which + ": " + why + " Write its «contours» as for extrude_profile." + nothing;
+                    return null;
+                }
+                regions.Add(new Region { Contours = entry["contours"], HeightMm = height });
+            }
+            if (regions.Count == 0)
+            {
+                reason = "«regions» is empty: give at least one region, with its «contours» and «height_mm»." + nothing;
+                return null;
+            }
+            return regions;
+        }
+
+        /// <summary>
+        /// The name of the depth of an extrusion, read from the feature and not
+        /// written by hand (brief §5.2): the dimension of the feature whose value
+        /// is the height asked, named as the driven vertices name theirs, the
+        /// first two parts of IDimension.FullName («D1@Boss-Extrude2»). Null with
+        /// the reason when no dimension of the feature reads that height.
+        /// </summary>
+        private static string DepthDimension(IFeature feature, double heightMm, out string problem)
+        {
+            problem = null;
+            if (feature == null)
+            {
+                problem = "the extrusion gave no feature to read";
+                return null;
+            }
+            try
+            {
+                int seen = 0;
+                object display = feature.GetFirstDisplayDimension();
+                while (display != null)
+                {
+                    IDimension dimension = null;
+                    try { dimension = (display as IDisplayDimension)?.GetDimension2(0); } catch { }
+                    if (dimension != null)
+                    {
+                        seen++;
+                        double readMm = ApiHelpers.ReadDimensionInConfiguration(dimension, "") * 1000.0;
+                        if (!double.IsNaN(readMm) && Math.Abs(readMm - heightMm) <= 1e-3)
+                        {
+                            string complete = "";
+                            try { complete = dimension.FullName ?? ""; } catch { }
+                            var parts = complete.Split('@');
+                            if (parts.Length >= 2) return parts[0] + "@" + parts[1];
+                            problem = "the name of the dimension cannot be read («" + complete + "»)";
+                            return null;
+                        }
+                    }
+                    object next = null;
+                    try { next = feature.GetNextDisplayDimension(display); } catch { }
+                    display = next;
+                }
+                problem = seen.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                          " dimension(s) on the feature, and none reads " +
+                          heightMm.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + " mm";
+                return null;
+            }
+            catch (Exception ex)
+            {
+                problem = "the reading threw: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// At most this many vertices in a driven profile (brief R5): two
+        /// dimensions each. PROVISIONAL: the probe Checks\DrivenSketch gives the
+        /// time of forty dimensions, and this number follows it.
+        /// </summary>
+        internal const int MaxDrivenVertices = 100;
+
+        /// <summary>A coordinate closer to zero than this sits on the axis (mm).</summary>
+        private const double VertexOnAxisMm = 1e-6;
+
+        /// <summary>Where the text of a vertex dimension goes, off the vertex (m).</summary>
+        private const double DimensionTextOffsetM = 0.005;
+
+        /// <summary>
+        /// Whether «dimensions» can be applied to this profile (brief R5); null
+        /// when it can. Pure, so that a contract can call it.
+        /// </summary>
+        internal static string DimensionsModeProblem(string mode, int curvedStrokes, int vertices)
+        {
+            if (mode != "fixed" && mode != "driven")
+                return "«dimensions» takes «fixed» (the sketch locked where it is, the default) or «driven» (a dimension " +
+                       "from the origin to every vertex, which a variable can move): write one of them. I received «" +
+                       (mode ?? "") + "».";
+            if (mode == "fixed") return null;
+            if (curvedStrokes > 0)
+                return "«dimensions»: «driven» dimensions the vertices of straight contours and the centres of circles; " +
+                       "this profile has " + curvedStrokes.ToString(System.Globalization.CultureInfo.InvariantCulture) + " curved stretch(es), " +
+                       "whose shape no dimension from the origin holds. Pass «dimensions» «fixed» for this profile, or give " +
+                       "the curve as straight segments.";
+            if (vertices > MaxDrivenVertices)
+                return "«dimensions»: «driven» puts two dimensions on every vertex, and this profile has " +
+                       vertices.ToString(System.Globalization.CultureInfo.InvariantCulture) + " (at most " +
+                       MaxDrivenVertices.ToString(System.Globalization.CultureInfo.InvariantCulture) + "). Pass «dimensions» «fixed», or drive " +
+                       "only the profile that a variable must move.";
+            return null;
+        }
+
+        /// <summary>
+        /// DIMENSIONS FROM THE ORIGIN TO EVERY VERTEX (brief R5), put while the
+        /// sketch is still open.
+        ///
+        /// On 24/10/2026 every `extrude_profile` came back locked with FIXED
+        /// relations, and the only dimension a variable could drive was the
+        /// depth: a width, a slot, the inside of a clamp could not follow a name.
+        /// Here every vertex gets a horizontal and a vertical dimension from the
+        /// sketch origin (IModelDoc2~AddHorizontalDimension2.html, «Creates a
+        /// horizontal dimension for the currently selected entities at the
+        /// specified location»; the vertical one the same), selected point first
+        /// and origin second; a circle gets the two of its centre. A coordinate of
+        /// zero gets a relation instead (the vertex vertical or horizontal with the
+        /// origin, sgVERTICALPOINTS2D / sgHORIZONTALPOINTS2D of
+        /// IModelDoc2~SketchAddConstraints.html): a dimension of zero has no side.
+        ///
+        /// A DIMENSION IS A DISTANCE. A vertex at x = -30 has a dimension of 30,
+        /// and «x_side» says «negative»: driving it keeps the vertex on its side,
+        /// and no value carries it across the axis.
+        ///
+        /// EVERY DIMENSION IS READ BACK against the coordinate it was asked for:
+        /// a sketch whose origin is not the origin of the contours (a sketch on a
+        /// face) would give dimensions from another point, and such a vertex is
+        /// said instead of named.
+        ///
+        /// `swInputDimValOnCreate` is switched off around the calls and put back,
+        /// as in <see cref="DimensionSegments"/>: with it on a dimension opens its
+        /// value box and the COM call does not return.
+        ///
+        /// A CIRCLE gets the dimension of its size too (`Extension.AddDimension`
+        /// on the circle, as `cylindrical_cut` does), under «diameter» or
+        /// «radius», whichever SOLIDWORKS made.
+        ///
+        /// NOT MEASURED YET: how the origin is selected from outside the process
+        /// (first through the sketch of the origin feature, then by position) and
+        /// whether the two calls give a sketch point against it. The probe
+        /// Checks\DrivenSketch measures both; the bench case is its judge.
+        /// </summary>
+        private List<Dictionary<string, object>> DriveProfile(
+            IModelDoc2 model, ISketch sketch, List<Contour> contours, out string note, out int notDriven, out bool? fullyDefined)
+        {
+            note = null;
+            notDriven = 0;
+            fullyDefined = null;
+            int onAxis = 0;
+            var entries = new List<Dictionary<string, object>>();
+            var points = sketch == null ? null : sketch.GetSketchPoints2() as object[];
+            if (points == null)
+            {
+                note = "the points of the sketch cannot be read";
+                notDriven = 1;
+                return entries;
+            }
+
+            var wanted = new List<double[]>();
+            foreach (var contour in contours)
+            {
+                if (contour.Circle)
+                {
+                    if (IndexOfVertex(wanted, contour.Center) < 0) wanted.Add(new[] { contour.Center[0], contour.Center[1] });
+                    continue;
+                }
+                foreach (var stroke in contour.Strokes)
+                    foreach (var p in stroke.Points)
+                        if (IndexOfVertex(wanted, p) < 0) wanted.Add(new[] { p[0], p[1] });
+            }
+
+            bool asked = true;
+            try
+            {
+                asked = _sw.GetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate);
+                _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, false);
+            }
+            catch { }
+            try
+            {
+                foreach (var v in wanted)
+                {
+                    var entry = new Dictionary<string, object>
+                    {
+                        ["vertex_mm"] = new object[] { Math.Round(v[0], 4), Math.Round(v[1], 4) },
+                    };
+                    entries.Add(entry);
+                    var point = SketchPointAt(points, v);
+                    if (point == null)
+                    {
+                        entry["problem"] = "no point of the sketch at this vertex";
+                        notDriven += 2;
+                        continue;
+                    }
+                    foreach (bool horizontal in new[] { true, false })
+                    {
+                        string axis = horizontal ? "x" : "y";
+                        string problem;
+                        string name = DriveCoordinate(model, sketch, point, horizontal, horizontal ? v[0] : v[1], out problem);
+                        if (name == null)
+                        {
+                            entry[axis + "_problem"] = problem;
+                            notDriven++;
+                            continue;
+                        }
+                        entry[axis] = name;
+                        if (name == "on_axis") onAxis++;
+                        if ((horizontal ? v[0] : v[1]) < -VertexOnAxisMm) entry[axis + "_side"] = "negative";
+                    }
+                }
+                // A COORDINATE ON AN AXIS CANNOT BE DRIVEN (brief R5, probe
+                // Checks\DrivenSketch, 26/10/2026): SOLIDWORKS gives it no
+                // dimension from the origin, so a relation holds it there, and a
+                // variable has nothing to move. It is said, not left to be found
+                // when a link_dimension has no name to take.
+                if (onAxis > 0)
+                    note = (note != null ? note + "; " : "") + onAxis +
+                           " coordinate(s) of the vertices sit on an axis of the sketch («on_axis»): a relation holds " +
+                           "each there, not a dimension, so no variable can move it off the axis; to drive one, draw " +
+                           "that vertex off the axis";
+                foreach (var contour in contours)
+                {
+                    if (!contour.Circle) continue;
+                    var entry = entries[IndexOfVertex(wanted, contour.Center)];
+                    string kind, problem;
+                    string name = DriveCircleSize(model, sketch, contour, out kind, out problem);
+                    if (name == null) { entry["size_problem"] = problem; notDriven++; continue; }
+                    // Two concentric circles share the centre and its entry.
+                    string key = kind;
+                    for (int n = 2; entry.ContainsKey(key); n++) key = kind + "_" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    entry[key] = name;
+                }
+                // FULLY DEFINED, read on the sketch still open
+                // (swConstrainedStatus_e.swFullyConstrained = 3).
+                try { fullyDefined = sketch.GetConstrainedStatus() == (int)swConstrainedStatus_e.swFullyConstrained; } catch { }
+            }
+            finally
+            {
+                try { model.ClearSelection2(true); } catch { }
+                try { _sw.SetUserPreferenceToggle((int)swUserPreferenceToggle_e.swInputDimValOnCreate, asked); } catch { }
+            }
+            return entries;
+        }
+
+        /// <summary>
+        /// One coordinate of a vertex: the name of its dimension for an equation
+        /// («D3@Sketch1»), «on_axis» when it sits on the axis and a relation ties
+        /// it there, or null with the reason in <paramref name="problem"/>.
+        /// </summary>
+        private string DriveCoordinate(
+            IModelDoc2 model, ISketch sketch, ISketchPoint point, bool horizontal, double coordinateMm, out string problem)
+        {
+            problem = null;
+            try
+            {
+                if (Math.Abs(coordinateMm) <= VertexOnAxisMm)
+                {
+                    int before = SketchRelationCount(sketch);
+                    model.ClearSelection2(true);
+                    if (!point.Select4(false, null) || !SelectSketchOrigin(model, true))
+                    {
+                        problem = "the vertex or the origin could not be selected";
+                        return null;
+                    }
+                    model.SketchAddConstraints(horizontal ? "sgVERTICALPOINTS2D" : "sgHORIZONTALPOINTS2D");
+                    model.ClearSelection2(true);
+                    if (before < 0 || SketchRelationCount(sketch) <= before)
+                    {
+                        problem = "the relation that keeps the vertex on the axis was not born";
+                        return null;
+                    }
+                    return "on_axis";
+                }
+
+                model.ClearSelection2(true);
+                if (!point.Select4(false, null) || !SelectSketchOrigin(model, true))
+                {
+                    problem = "the vertex or the origin could not be selected";
+                    return null;
+                }
+                double xM = point.X, yM = point.Y;
+                var made = (horizontal
+                    ? model.AddHorizontalDimension2(xM / 2, yM + DimensionTextOffsetM, 0)
+                    : model.AddVerticalDimension2(xM + DimensionTextOffsetM, yM / 2, 0)) as IDisplayDimension;
+                model.ClearSelection2(true);
+                IDimension dimension = made == null ? null : made.GetDimension2(0);
+                if (dimension == null)
+                {
+                    problem = "SOLIDWORKS gave no dimension";
+                    return null;
+                }
+                double readMm = ApiHelpers.ReadDimensionInConfiguration(dimension, "") * 1000.0;
+                if (double.IsNaN(readMm) || Math.Abs(readMm - Math.Abs(coordinateMm)) > 1e-3)
+                {
+                    problem = "the dimension reads " + readMm.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm for a coordinate of " + Math.Abs(coordinateMm).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm: it does not measure from the origin of the contours";
+                    return null;
+                }
+                string complete = "";
+                try { complete = dimension.FullName ?? ""; } catch { }
+                var parts = complete.Split('@');
+                if (parts.Length < 2)
+                {
+                    problem = "the name of the dimension cannot be read («" + complete + "»)";
+                    return null;
+                }
+                return parts[0] + "@" + parts[1];
+            }
+            catch (Exception ex)
+            {
+                problem = "the call threw: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Selects the origin of the part for a dimension or a relation of the
+        /// open sketch: the point of the sketch of the origin feature (type
+        /// `OriginProfileFeature`, any language), else the sketch point at 0,0,0
+        /// by position (IModelDocExtension~SelectByID2.html: «Name of object to
+        /// select or an empty string»). Which of the two works from outside the
+        /// process is what the probe Checks\DrivenSketch measures.
+        /// </summary>
+        private bool SelectSketchOrigin(IModelDoc2 model, bool append)
+        {
+            try
+            {
+                var f = model.FirstFeature() as IFeature;
+                while (f != null)
+                {
+                    string type = "";
+                    try { type = f.GetTypeName2(); } catch { }
+                    if (type == PartOrigin)
+                    {
+                        var originSketch = f.GetSpecificFeature2() as ISketch;
+                        var originPoints = originSketch == null ? null : originSketch.GetSketchPoints2() as object[];
+                        var origin = originPoints != null && originPoints.Length > 0 ? originPoints[0] as ISketchPoint : null;
+                        if (origin != null && origin.Select4(append, null)) return true;
+                        break;
+                    }
+                    f = f.GetNextFeature() as IFeature;
+                }
+            }
+            catch { }
+            try { return model.Extension.SelectByID2("", "EXTSKETCHPOINT", 0, 0, 0, append, 0, null, 0); }
+            catch { return false; }
+        }
+
+        /// <summary>All the relations of a sketch (swAll), or -1 when they cannot be read.</summary>
+        private static int SketchRelationCount(ISketch sketch)
+        {
+            try
+            {
+                var manager = sketch == null ? null : sketch.RelationManager;
+                return manager == null ? -1 : manager.GetRelationsCount((int)swSketchRelationFilterType_e.swAll);
+            }
+            catch { return -1; }
+        }
+
+        /// <summary>
+        /// THE REBUILD THAT KEEPS THE UNDO OF AN ASSEMBLY (brief R23). On t9
+        /// (26/10/2026) every plan on an assembly answered false to
+        /// FinishRecordingUndoObject, and «undo» could not withdraw it.
+        /// Checks\AssemblyUndo measured why the same night: insert, insert and a
+        /// coincident mate inside one recording, each followed by a rebuild.
+        /// With EditRebuild3, ForceRebuild3(false) or ForceRebuild3(true) the
+        /// recording answered false and no undo took anything away, not even
+        /// the native ones; with IModelDocExtension.Rebuild (swRebuildAll,
+        /// swUpdateMates or swUpdateDirtyOnly) or no rebuild at all it answered
+        /// true and one undo emptied the assembly. The mate moved the component
+        /// in every way. On a part or a drawing it is EditRebuild3, as before:
+        /// on a part the undo of a plan held (t10, 26/10/2026); on a drawing it
+        /// was not measured.
+        /// </summary>
+        public static bool RebuildKeepingUndo(IModelDoc2 model)
+        {
+            if (model == null) return false;
+            if (model.GetType() == (int)swDocumentTypes_e.swDocASSEMBLY)
+                return model.Extension.Rebuild((int)swRebuildOptions_e.swRebuildAll);
+            return model.EditRebuild3();
+        }
+
+        /// <summary>
+        /// WHAT THE PLAN DOES AFTER EVERY STEP THAT SUCCEEDED, in one place so that the
+        /// bench runs the same code as the plan executor (report 8cd843 N34, round 9):
+        /// the rebuild, and after «save_document» the save flag, read once that rebuild
+        /// is over. The drawing saved by the plan read «unsaved» right after, and
+        /// «document close» refused to close it.
+        /// </summary>
+        public static void AfterStep(IModelDoc2 model, string operation, Dictionary<string, object> measurements)
+        {
+            if (model == null) return;
+            bool unsavedBefore = true;
+            try { unsavedBefore = model.GetSaveFlag(); } catch { }
+            if (RebuildsAfterStep(model.GetType(), unsavedBefore)) { try { RebuildKeepingUndo(model); } catch { } }
+            if (measurements == null || !string.Equals(operation, "save_document", StringComparison.Ordinal)) return;
+            bool unsaved;
+            try { unsaved = model.GetSaveFlag(); } catch { return; }
+            measurements["unsaved_changes"] = unsaved;
+            if (unsaved) measurements["warning_unsaved_after_save"] = UnsavedAfterSaveWarning(Title(model));
+        }
+
+        /// <summary>
+        /// Whether the plan rebuilds a document after a step (report 8cd843 N34). Not a
+        /// drawing with no unsaved change: on a drawing EditRebuild3 raises the save
+        /// flag every time, with no view out of date and the update stamp still
+        /// (a probe on two copies of the drawing of the report, 27/10/2026), so the
+        /// rebuild after «save_document» left the drawing «to be saved». A drawing
+        /// with nothing changed has nothing a rebuild could show. Parts and
+        /// assemblies are rebuilt as before. Pure, so the contract suite reads it.
+        /// </summary>
+        internal static bool RebuildsAfterStep(int documentType, bool unsavedChanges)
+        {
+            return documentType != (int)swDocumentTypes_e.swDocDRAWING || unsavedChanges;
+        }
+
+        /// <summary>
+        /// What a save must say when SOLIDWORKS marks the document as changed again
+        /// at once (report 8cd843 N34). Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string UnsavedAfterSaveWarning(string title)
+        {
+            return "The file is written, but SOLIDWORKS marks «" + (title ?? "") + "» as changed again right after: " +
+                   "«document close» will refuse to close it. What is on disk is what this step saved; to close it " +
+                   "without asking, close it by hand without saving.";
+        }
+
+        private static string Title(IModelDoc2 model)
+        {
+            try { return model.GetTitle(); } catch { return null; }
+        }
+
+        /// <summary>
+        /// Brief R11: the vertices of the straight strokes (mm) that no point of
+        /// the open sketch holds, within a ten-thousandth of a mm; empty when
+        /// every one is there, null when the points cannot be read. Circles and
+        /// splines are not checked: their points are not vertices.
+        ///
+        /// THE POINTS ARE READ ONCE (27/10/2026): every vertex was compared with
+        /// every point by reading ISketchPoint.X and .Y again, two calls out of
+        /// process per comparison. A wheel of 17 teeth has 136 vertices of lines
+        /// and some 170 points: tens of thousands of COM calls. On the first
+        /// full bench after brief R11 the wheel stopped the run at 94 s, and
+        /// alone it took 19.8 s (scenario t16); how much of that was this loop
+        /// was not measured.
+        /// </summary>
+        private static List<double[]> VerticesNotDrawn(ISketch sketch, List<Contour> contours)
+        {
+            object[] points = sketch == null ? null : sketch.GetSketchPoints2() as object[];
+            if (points == null) return null;
+            var drawn = new List<double[]>(points.Length);
+            foreach (var raw in points)
+            {
+                var p = raw as ISketchPoint;
+                if (p != null) drawn.Add(new[] { p.X * 1000.0, p.Y * 1000.0 });
+            }
+            var notDrawn = new List<double[]>();
+            foreach (Contour contour in contours)
+            {
+                if (contour.Circle) continue;
+                foreach (Stroke stroke in contour.Strokes)
+                {
+                    if (stroke.Spline) continue;
+                    foreach (double[] vertex in stroke.Points)
+                        if (!DrawnAt(drawn, vertex)) notDrawn.Add(vertex);
+                }
+            }
+            return notDrawn;
+        }
+
+        /// <summary>
+        /// Brief R11: the FIXED relations go on while the sketch is still open.
+        /// Locked after the extrusion (EditSketch, then a rebuild)
+        /// FinishRecordingUndoObject answered false and one undo took nothing
+        /// away; locked open, with a typed SketchSegment[], the whole plan was
+        /// undone (Checks\UndoSplit, ways «after» and «open», 26/10/2026). The
+        /// RPC_E_SERVERFAULT of 28/9/2026 (finding M5) came with an object[].
+        /// False with the reason in <paramref name="note"/> when the relations
+        /// read back are fewer than the segments.
+        /// </summary>
+        private static bool LockOpenSketch(ISketch sketch, out string note, out int fixedRelations)
+        {
+            note = null;
+            fixedRelations = 0;
+            if (sketch == null) { note = "the sketch is not open"; return false; }
+            int before = FixedRelationCount(sketch);
+            if (before < 0) { note = "the relations of the sketch cannot be read"; return false; }
+            object[] segments = sketch.GetSketchSegments() as object[];
+            if (segments == null || segments.Length == 0) { note = "the sketch has no segments to lock"; return false; }
+            var typedSegments = new SketchSegment[segments.Length];
+            for (int i = 0; i < segments.Length; i++) typedSegments[i] = (SketchSegment)segments[i];
+            ISketchRelationManager relations = sketch.RelationManager;
+            try { relations.AddRelation(typedSegments, (int)swConstraintType_e.swConstraintType_FIXED); }
+            catch (Exception ex) { note = "AddRelation FIXED failed: " + ex.Message; return false; }
+            int after = FixedRelationCount(sketch);
+            if (after < 0) { note = "the relations of the sketch cannot be read after the lock"; return false; }
+            fixedRelations = after - before;
+            if (fixedRelations < segments.Length)
+            {
+                note = fixedRelations + " FIXED relation(s) read back for " + segments.Length + " segment(s)";
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>A point read from the sketch (mm, x and y) at a vertex (mm), within a ten-thousandth of a mm.</summary>
+        private static bool DrawnAt(List<double[]> drawn, double[] vertexMm)
+        {
+            foreach (double[] d in drawn)
+                if (Math.Abs(d[0] - vertexMm[0]) < 1e-4 && Math.Abs(d[1] - vertexMm[1]) < 1e-4) return true;
+            return false;
+        }
+
+        /// <summary>The point of the sketch at a vertex (mm), within a ten-thousandth of a mm, or null.</summary>
+        private static ISketchPoint SketchPointAt(object[] points, double[] vertexMm)
+        {
+            foreach (var raw in points)
+            {
+                var p = raw as ISketchPoint;
+                if (p == null) continue;
+                if (Math.Abs(p.X * 1000.0 - vertexMm[0]) < 1e-4 && Math.Abs(p.Y * 1000.0 - vertexMm[1]) < 1e-4) return p;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The size of a circle of the open sketch, dimensioned: the name of the
+        /// dimension, and in <paramref name="kind"/> «diameter» or «radius» from
+        /// the value read back; null with the reason in <paramref name="problem"/>.
+        /// </summary>
+        private string DriveCircleSize(IModelDoc2 model, ISketch sketch, Contour circle, out string kind, out string problem)
+        {
+            kind = null;
+            problem = null;
+            try
+            {
+                var segments = sketch == null ? null : sketch.GetSketchSegments() as object[];
+                ISketchSegment found = null;
+                double radiusM = 0, cxM = 0, cyM = 0;
+                if (segments != null)
+                    foreach (var raw in segments)
+                    {
+                        var arc = raw as ISketchArc;
+                        var centre = arc == null ? null : arc.GetCenterPoint2() as ISketchPoint;
+                        if (centre == null) continue;
+                        double r = arc.GetRadius();
+                        if (Math.Abs(centre.X * 1000.0 - circle.Center[0]) < 1e-4 &&
+                            Math.Abs(centre.Y * 1000.0 - circle.Center[1]) < 1e-4 &&
+                            Math.Abs(r * 2000.0 - circle.Diameter) < 1e-4)
+                        {
+                            found = raw as ISketchSegment;
+                            radiusM = r; cxM = centre.X; cyM = centre.Y;
+                            break;
+                        }
+                    }
+                if (found == null) { problem = "the circle is not in the sketch"; return null; }
+                model.ClearSelection2(true);
+                if (!found.Select4(false, null)) { problem = "the circle could not be selected"; return null; }
+                var made = model.Extension.AddDimension(cxM + radiusM, cyM + radiusM, 0, 0) as IDisplayDimension;
+                model.ClearSelection2(true);
+                IDimension dimension = made == null ? null : made.GetDimension2(0);
+                if (dimension == null) { problem = "SOLIDWORKS gave no dimension"; return null; }
+                double readMm = ApiHelpers.ReadDimensionInConfiguration(dimension, "") * 1000.0;
+                if (Math.Abs(readMm - circle.Diameter) < 1e-3) kind = "diameter";
+                else if (Math.Abs(readMm - circle.Diameter / 2.0) < 1e-3) kind = "radius";
+                else
+                {
+                    problem = "the dimension of the circle reads " + readMm.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm for a diameter of " + circle.Diameter.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + " mm";
+                    return null;
+                }
+                string complete = "";
+                try { complete = dimension.FullName ?? ""; } catch { }
+                var parts = complete.Split('@');
+                if (parts.Length < 2) { problem = "the name of the dimension cannot be read («" + complete + "»)"; return null; }
+                return parts[0] + "@" + parts[1];
+            }
+            catch (Exception ex)
+            {
+                problem = "the call threw: " + ex.Message;
+                return null;
+            }
+        }
+
+        /// <summary>The index of a vertex (mm) in the list, within a ten-thousandth of a mm, or -1.</summary>
+        private static int IndexOfVertex(List<double[]> vertices, double[] p)
+        {
+            for (int i = 0; i < vertices.Count; i++)
+                if (Math.Abs(vertices[i][0] - p[0]) < 1e-4 && Math.Abs(vertices[i][1] - p[1]) < 1e-4) return i;
+            return -1;
         }
 
         /// <summary>
@@ -1206,133 +2182,6 @@ namespace Oce.Solid.Agent.Core
                 }
             }
             return created as ISketchSegment;
-        }
-
-        /// <summary>
-        /// LOCKS THE SKETCH WHERE IT IS.
-        ///
-        /// A generated sketch without relations stays UNDER-DEFINED: a careless
-        /// drag moves a vertex and the part changes without anyone knowing. The
-        /// customer noticed it looking at the sketch of the first gear.
-        ///
-        /// A FIXED relation (swConstraintType_FIXED = 17), NOT FullyDefineSketch:
-        /// that one does not measure, it adds relations and MOVES the geometry to
-        /// satisfy them (two nearly parallel sides become parallel, and the sketch
-        /// turns fully defined and a few tenths away from the confirmed one).
-        ///
-        /// THE SKETCH MUST BE OPEN AND THE ARRAY TYPED (finding M5,
-        /// probe_fixed_relation of 28/9/2026: an L profile of six lines extruded
-        /// 10 mm, 11000 mm3, the sketch found by JustCreatedSketch after the
-        /// extrusion):
-        ///   * sketch closed, object[] (this method up to library 0.141.0):
-        ///     AddRelation returns null, 0 FIXED relations before and after the
-        ///     rebuild, and the sketch was declared locked all the same;
-        ///   * EditSketch, object[]: RPC_E_SERVERFAULT, 0 relations;
-        ///   * EditSketch, SketchSegment[] (DispatchWrapper[] the same): an
-        ///     ISketchRelation back, 6 FIXED relations read back after
-        ///     InsertSketch(true) and EditRebuild3, status 2 (under constrained)
-        ///     -> 3 (fully constrained), volume 11000 -> 11000, no sketch left
-        ///     active.
-        /// ISketchRelationManager~AddRelation.html (Remarks): "A sketch must be
-        /// active for this method to have any effect." IModelDoc2~EditSketch.html:
-        /// "If the selection is a feature, its underlying sketch is placed in edit
-        /// mode." SketchSegment[] and not object[] is the rule of the structural
-        /// member group too (WeldmentOperations.cs, measured 9/9/2026).
-        ///
-        /// THE ANSWER IS WHAT IS READ BACK, not what the call returned: the FIXED
-        /// relations are counted before the call and again after leaving the
-        /// sketch and rebuilding, on the sketch taken again from its feature. The
-        /// sketch is locked only when every segment got its relation;
-        /// <paramref name="fixedRelations"/> is the count that was added.
-        ///
-        /// A failure does not fail the operation: the part is right all the same,
-        /// it is only editable by mistake. It goes in the result (the note says
-        /// why) and the plan goes on.
-        ///
-        /// WHICH SKETCH (scheme S7, Z-C21.5): the one ProfileFeature born since
-        /// <paramref name="namesBeforeSketch"/>, the names the caller took before
-        /// opening the sketch, found again in the tree after the feature as the
-        /// probe found it. A sketch used by a feature stays in the top-level
-        /// walk of IFirstFeature (measured 14/9/2026, see WithoutSketch), and
-        /// the feature itself is no ProfileFeature, so it is still the one born.
-        /// Until library 0.146.0 it was the last sketch of the tree.
-        /// </summary>
-        private bool LockSketch(IModelDoc2 model, HashSet<string> namesBeforeSketch, out string note, out int fixedRelations)
-        {
-            note = null;
-            fixedRelations = 0;
-            int sketchesBorn;
-            IFeature sketchFeature = JustCreatedSketch(model, namesBeforeSketch, out sketchesBorn);
-            var sketch = sketchFeature?.GetSpecificFeature2() as ISketch;
-            if (sketch == null)
-            {
-                note = sketchesBorn > 1
-                    ? sketchesBorn + " sketches born since the sketch was opened: which one to lock is not known"
-                    : "sketch not found after the feature";
-                return false;
-            }
-            int before = FixedRelationCount(sketch);
-            if (before < 0) { note = "the relations of the sketch cannot be read"; return false; }
-
-            int segmentCount = 0;
-            bool inEdit = false;
-            try
-            {
-                model.ClearSelection2(true);
-                if (!sketchFeature.Select2(false, 0)) note = "the sketch could not be selected";
-                else
-                {
-                    model.EditSketch();
-                    inEdit = true;
-                    if (model.SketchManager.ActiveSketch == null) note = "EditSketch did not open the sketch";
-                    else
-                    {
-                        // Taken again from the feature once in edit mode, as the probe did.
-                        sketch = sketchFeature.GetSpecificFeature2() as ISketch;
-                        var segments = sketch?.GetSketchSegments() as object[];
-                        if (segments == null || segments.Length == 0) note = "the sketch has no segments";
-                        else
-                        {
-                            segmentCount = segments.Length;
-                            var typedSegments = new SketchSegment[segments.Length];
-                            for (int i = 0; i < segments.Length; i++) typedSegments[i] = (SketchSegment)segments[i];
-                            var relations = sketch.RelationManager;
-                            if (relations == null) note = "the sketch has no relation manager";
-                            else relations.AddRelation(typedSegments, (int)swConstraintType_e.swConstraintType_FIXED);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                note = "AddRelation FIXED failed: " + ex.Message;
-            }
-            finally
-            {
-                // Leave the sketch only if one is open: InsertSketch(true) with
-                // no active sketch and a feature selected would OPEN one.
-                bool stillOpen = false;
-                try { stillOpen = model.SketchManager.ActiveSketch != null; } catch { }
-                if (stillOpen) { try { model.SketchManager.InsertSketch(true); } catch { } }
-                if (inEdit || stillOpen) { try { model.EditRebuild3(); } catch { } }
-                try { model.ClearSelection2(true); } catch { }
-            }
-
-            int after = FixedRelationCount(sketchFeature.GetSpecificFeature2() as ISketch);
-            if (after < 0)
-            {
-                note = (note == null ? "" : note + "; ") + "the relations cannot be read back after the rebuild";
-                return false;
-            }
-            fixedRelations = after - before;
-            if (note != null) return false;
-            if (segmentCount == 0 || fixedRelations < segmentCount)
-            {
-                note = fixedRelations + " FIXED relation(s) read back after the rebuild for " + segmentCount +
-                       " segment(s): the sketch is not locked";
-                return false;
-            }
-            return true;
         }
 
         /// <summary>
@@ -2217,6 +3066,91 @@ namespace Oce.Solid.Agent.Core
             return outside;
         }
 
+        /// <summary>
+        /// How far a drawn sketch entity may be from where it was asked, in
+        /// metres (brief R10): 0.0001 mm.
+        /// </summary>
+        internal const double SketchToleranceM = 1e-7;
+
+        /// <summary>
+        /// Why the circle is not the one asked for, or null (brief R10): its
+        /// centre and its radius read back from the sketch.
+        /// </summary>
+        private static string MisplacedCircle(
+            ISketchSegment circle, double[] centre, double radiusM,
+            out double measuredRadiusM, out double centreOffsetM)
+        {
+            measuredRadiusM = radiusM;
+            centreOffsetM = 0;
+            var arc = circle as ISketchArc;
+            if (arc == null) return "SOLIDWORKS gave back no circle.";
+            ISketchPoint point = null;
+            try { point = arc.GetCenterPoint2() as ISketchPoint; measuredRadiusM = arc.GetRadius(); }
+            catch (Exception ex) { return "its centre could not be read back (" + ex.Message + ")."; }
+            if (point == null) return "its centre could not be read back.";
+            double du = point.X - centre[0], dv = point.Y - centre[1];
+            centreOffsetM = Math.Sqrt(du * du + dv * dv);
+            var problems = new List<string>();
+            if (centreOffsetM > SketchToleranceM)
+                problems.Add("its centre is " + (centreOffsetM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                             " mm away from the point asked");
+            if (Math.Abs(measuredRadiusM - radiusM) > SketchToleranceM)
+                problems.Add("its diameter is " + (2 * measuredRadiusM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                             " mm instead of " + (2 * radiusM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+            return problems.Count == 0 ? null : string.Join(", and ", problems) + ".";
+        }
+
+        /// <summary>
+        /// Why the rectangle is not the one asked for, or null (brief R10): the
+        /// box of the end points of its sides against the two corners asked.
+        /// </summary>
+        private static string MisplacedRectangle(object[] sides, double[] p1, double[] p2, out double cornerOffsetM)
+        {
+            cornerOffsetM = 0;
+            if (sides == null || sides.Length < 4) return "SOLIDWORKS gave back no rectangle.";
+            double minU = double.MaxValue, minV = double.MaxValue, maxU = double.MinValue, maxV = double.MinValue;
+            try
+            {
+                foreach (var s in sides)
+                {
+                    var line = s as ISketchLine;
+                    if (line == null) continue;
+                    foreach (var end in new[] { line.GetStartPoint2() as ISketchPoint, line.GetEndPoint2() as ISketchPoint })
+                    {
+                        if (end == null) return "a corner could not be read back.";
+                        minU = Math.Min(minU, end.X); maxU = Math.Max(maxU, end.X);
+                        minV = Math.Min(minV, end.Y); maxV = Math.Max(maxV, end.Y);
+                    }
+                }
+            }
+            catch (Exception ex) { return "its corners could not be read back (" + ex.Message + ")."; }
+            if (minU == double.MaxValue) return "its sides could not be read back.";
+            cornerOffsetM = new[]
+            {
+                Math.Abs(minU - Math.Min(p1[0], p2[0])), Math.Abs(maxU - Math.Max(p1[0], p2[0])),
+                Math.Abs(minV - Math.Min(p1[1], p2[1])), Math.Abs(maxV - Math.Max(p1[1], p2[1])),
+            }.Max();
+            return cornerOffsetM > SketchToleranceM
+                ? "a side is " + (cornerOffsetM * 1000).ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                  " mm away from where it was asked."
+                : null;
+        }
+
+        /// <summary>
+        /// THROUGH, UNLESS A DEPTH WAS GIVEN (scenario t15, 27/10/2026): a
+        /// `cylindrical_cut` sent with «depth_mm» 5 and no «through_all» drilled
+        /// through the 20 mm block (1570.8 mm3 = π·5²·20), because «through_all»
+        /// defaulted to true and the depth was dropped without a word. A depth
+        /// given is now a blind cut; «through_all» true written beside it still
+        /// wins, as the catalog says («depth_mm» only if not through), and the
+        /// pair case `limit_pocket_that_covers_everything` sends both on purpose.
+        /// Used by the hole and the slot, whose default is through.
+        /// </summary>
+        private static bool ThroughAllAsked(Dictionary<string, object> a)
+        {
+            return Bool(a, "through_all", !HasReference(a, "depth_mm"));
+        }
+
         private Outcome CylindricalCut(IModelDoc2 model, Dictionary<string, object> a, DocumentState docState)
         {
             string uidFace = Str(a, "face_uid", "");
@@ -2227,7 +3161,7 @@ namespace Oce.Solid.Agent.Core
             if (axes == null) return Failed(error);
 
             double diameter = Num(a, "diameter_mm");
-            bool throughAll = Bool(a, "through_all", true);
+            bool throughAll = ThroughAllAsked(a);
             double depth = Num(a, "depth_mm", 0);
             double x, y;
             if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);
@@ -2269,19 +3203,42 @@ namespace Oce.Solid.Agent.Core
                 try { sketches.InsertSketch(false); } catch { }
                 return Failed(error);
             }
-            // WITH THE ANCHOR, `AddToDB` true around the creation: the
-            // relations SOLIDWORKS guesses (center on the origin, on a
-            // midpoint) would add up with the anchor and overconstrain the
-            // sketch. Without an anchor the hole is born as it has always been born.
+            // `AddToDB` TRUE AROUND THE CREATION, ALWAYS (brief R10). With it
+            // false SOLIDWORKS infers: on 24/10/2026, on 26P000012, four holes
+            // of 0.992 asked at four points came out with their centres moved
+            // up to 0.09 mm onto nearby edges and diameters of 1.036 and 1.144
+            // (journal: CreateCircle(-0.005802, ...) for a centre asked at
+            // -0.00578), and every step answered «succeeded» with the diameter
+            // asked for. Up to library 0.153.1 it was set only with an anchor,
+            // where the guessed relations would also overconstrain the sketch.
             ISketchSegment cutCircle;
             bool addBefore = sketches.AddToDB;
+            bool displayBefore = sketches.DisplayWhenAdded;
             try
             {
-                if (!anchor.Empty) sketches.AddToDB = true;
+                sketches.AddToDB = true;
+                sketches.DisplayWhenAdded = false;
                 cutCircle = sketches.CreateCircleByRadius(
                     center[0], center[1], center[2], Units.M(diameter / 2));
             }
-            finally { sketches.AddToDB = addBefore; }
+            finally
+            {
+                sketches.AddToDB = addBefore;
+                sketches.DisplayWhenAdded = displayBefore;
+            }
+
+            // AND WHAT WAS DRAWN IS READ BACK before anything is built on it.
+            double measuredRadiusM, centreOffsetM;
+            string misplaced = MisplacedCircle(
+                cutCircle, center, Units.M(diameter / 2), out measuredRadiusM, out centreOffsetM);
+            if (misplaced != null)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed("The hole of " + diameter.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                              " mm was not drawn where it was asked: " + misplaced +
+                              " Try a centre a little away from the edges already on the face, or check «x_mm» " +
+                              "and «y_mm» against the face." + WithoutSketch(model));
+            }
 
             // THE DIAMETER, ON THE HOLE'S SKETCH.
             //
@@ -2364,9 +3321,22 @@ namespace Oce.Solid.Agent.Core
             string doesNotHold = MovementTest(model, anchor, feature);
             if (doesNotHold != null) return Failed(doesNotHold + RemoveCut(model, feature, volumeBefore));
 
+            // A THROUGH HOLE THAT DRILLED NO WALL IS NOT A HOLE (brief R10): on
+            // 26P000012 two of them answered «succeeded» with walls_drilled 0.
+            if (throughAll && walls == 0)
+                return Failed(
+                    "The through hole drilled no wall: no face of " +
+                    diameter.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                    " mm came out of the cut, so it did not go through the material where it was asked. " +
+                    "Check that the centre lies on material of the face, in the face's coordinates, and try again." +
+                    RemoveCut(model, feature, volumeBefore));
+
             var measurements = new Dictionary<string, object>
             {
-                ["diameter_mm"] = diameter,
+                // MEASURED, not repeated from the request (brief R10).
+                ["diameter_mm"] = Math.Round(2 * measuredRadiusM * 1000, 4),
+                ["diameter_requested_mm"] = diameter,
+                ["centre_offset_mm"] = Math.Round(centreOffsetM * 1000, 4),
                 ["through_all"] = throughAll,
                 ["walls_drilled"] = walls >= 0 ? (object)walls : null,
                 ["dimensions_on_sketch"] = placedDimensions,
@@ -2528,15 +3498,32 @@ namespace Oce.Solid.Agent.Core
                 try { sketches.InsertSketch(false); } catch { }
                 return Failed(error);
             }
+            // `AddToDB` TRUE AROUND THE CREATION, ALWAYS, and read back: the same
+            // inference that moved the holes moves the corners (brief R10).
             object[] cutSides;
             bool addBefore = sketches.AddToDB;
+            bool displayBefore = sketches.DisplayWhenAdded;
             try
             {
-                if (!anchor.Empty) sketches.AddToDB = true;
+                sketches.AddToDB = true;
+                sketches.DisplayWhenAdded = false;
                 cutSides = sketches.CreateCornerRectangle(
                     p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]) as object[];
             }
-            finally { sketches.AddToDB = addBefore; }
+            finally
+            {
+                sketches.AddToDB = addBefore;
+                sketches.DisplayWhenAdded = displayBefore;
+            }
+            double cornerOffsetM;
+            string misplacedRectangle = MisplacedRectangle(cutSides, p1, p2, out cornerOffsetM);
+            if (misplacedRectangle != null)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed("The pocket was not drawn where it was asked: " + misplacedRectangle +
+                              " Try a position a little away from the edges already on the face, or check " +
+                              "«x_mm» and «y_mm» against the face." + WithoutSketch(model));
+            }
 
             // THE POCKET'S TWO DIMENSIONS, for the same reason as the round hole.
             //
@@ -2688,7 +3675,7 @@ namespace Oce.Solid.Agent.Core
             double length = Num(a, "length_mm");
             double width = Num(a, "width_mm");
             double angle = Num(a, "angle_deg", 0);
-            bool throughAll = Bool(a, "through_all", true);
+            bool throughAll = ThroughAllAsked(a);
             double depth = Num(a, "depth_mm", 0);
             double x, y;
             if (!RequiredNum(a, "x_mm", out x, out error)) return Failed(error);
@@ -4680,7 +5667,9 @@ namespace Oce.Solid.Agent.Core
             DocumentState.EntitySignature signature;
             var signatureInPlane = ExpectedSignature(a, uid);
             bool wasAnEdge = signatureInPlane != null && signatureInPlane.ContainsKey("length_mm");
-            if ((docState != null && docState.Signatures.TryGetValue(uid, out signature) && signature.Type == "EDGE") ||
+            // By rank too (brief R17): an edge beyond the thirty listed is found
+            // by TryGetSignature, not by the dictionary of the listed ones.
+            if ((docState != null && docState.TryGetSignature(uid, out signature) && signature.Type == "EDGE") ||
                 wasAnEdge)
             {
                 signature = EdgeSignature(
@@ -4948,24 +5937,39 @@ namespace Oce.Solid.Agent.Core
 
             double angle = Num(a, "angle_deg", 360);
             string plane = Str(a, "plane", "front");
-            // Before the sketch: it is selected, and locked after the
-            // revolve, as the one sketch born since (scheme S7).
+            // Before the sketch: it is selected after drawing as the one sketch
+            // born since (scheme S7).
             var sketchNamesBefore = FeatureNamesNow(model);
             if (!SelectPlane(model, plane))
                 return Failed($"I did not find the plane «{plane}» in the tree.");
 
+            // THE WAY OF extrude_profile SINCE BRIEF R11 (scenario t13, 27/10/2026:
+            // two revolves in one plan answered «undo_entry_recorded» false and an
+            // undo took nothing away). Up to library 0.164.0 this drew with AddToDB
+            // on, whose entities cannot always be undone (ISketchManager~AddToDB.html),
+            // and locked the sketch AFTER the revolve with EditSketch and a rebuild,
+            // which Checks\UndoSplit measured to close the plan's undo entry empty.
+            // Now: no AddToDB, automatic relations and snapping off while drawing,
+            // the ends joined with MergePoints, every vertex read back, and the
+            // FIXED relations put in while the sketch is still open.
             var sketches = model.SketchManager;
-            bool addToDbBefore = false, displayBefore = false;
-            try { addToDbBefore = sketches.AddToDB; displayBefore = sketches.DisplayWhenAdded; } catch { }
+            int automaticRelations = (int)swUserPreferenceToggle_e.swSketchAutomaticRelations;
+            int inference = (int)swUserPreferenceToggle_e.swSketchInference;
+            bool automaticBefore = true, inferenceBefore = true;
+            try { automaticBefore = _sw.GetUserPreferenceToggle(automaticRelations); } catch { }
+            try { inferenceBefore = _sw.GetUserPreferenceToggle(inference); } catch { }
 
             int segments = 0;
             bool createdAxis = false;
             try
             {
                 sketches.InsertSketch(true);
-                try { sketches.AddToDB = true; sketches.DisplayWhenAdded = false; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, false); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, false); } catch { }
 
                 foreach (var contour in contours) segments += DrawContour(sketches, contour);
+                var drawnSketch = sketches.ActiveSketch as ISketch;
+                if (drawnSketch != null) drawnSketch.MergePoints(1e-7);
 
                 var axisSegment = sketches.CreateCenterLine(
                     Units.M(axisPoints[0][0]), Units.M(axisPoints[0][1]), 0,
@@ -4979,12 +5983,32 @@ namespace Oce.Solid.Agent.Core
             }
             finally
             {
-                try { sketches.AddToDB = addToDbBefore; sketches.DisplayWhenAdded = displayBefore; } catch { }
+                try { _sw.SetUserPreferenceToggle(automaticRelations, automaticBefore); } catch { }
+                try { _sw.SetUserPreferenceToggle(inference, inferenceBefore); } catch { }
             }
-            sketches.InsertSketch(false);
 
             if (!createdAxis)
+            {
+                try { sketches.InsertSketch(false); } catch { }
                 return Failed("I could not draw the axis of revolution." + WithoutSketch(model));
+            }
+            // EVERY VERTEX IS READ BACK, as in extrude_profile: a vertex drawn
+            // wrong gives no error, it gives another shape.
+            var notDrawn = VerticesNotDrawn(sketches.ActiveSketch as ISketch, contours);
+            if (notDrawn != null && notDrawn.Count > 0)
+            {
+                try { sketches.InsertSketch(false); } catch { }
+                return Failed(notDrawn.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                              " vertex(es) of the profile are not where they were asked, the first at (" +
+                              notDrawn[0][0].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "; " +
+                              notDrawn[0][1].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) +
+                              ") mm: it was drawn on a point nearby. The sketch is in the part and the revolve " +
+                              "was not made: undo the step, move that vertex away from the points near it and try again.");
+            }
+            string noteBlock;
+            int fixedRelations;
+            bool locked = LockOpenSketch(sketches.ActiveSketch as ISketch, out noteBlock, out fixedRelations);
+            sketches.InsertSketch(false);
             if (!SelectJustCreatedSketch(model, sketchNamesBefore, out string selError))
                 return Failed(selError + WithoutSketch(model));
 
@@ -5032,9 +6056,6 @@ namespace Oce.Solid.Agent.Core
                     "different from the one I showed you: withdraw it — " +
                     Sentences.HowToWithdrawIt + ".");
 
-            string noteBlock;
-            int fixedRelations;
-            bool locked = LockSketch(model, sketchNamesBefore, out noteBlock, out fixedRelations);
             var revolveMeasures = new Dictionary<string, object>
             {
                 ["sketch_locked"] = locked,
@@ -5939,7 +6960,7 @@ namespace Oce.Solid.Agent.Core
         /// and so for all eleven sizes from M3 to M24. On a vector
         /// read wrong those numbers would not add up.
         /// </summary>
-        private static double? VolumeMm3(IModelDoc2 model)
+        internal static double? VolumeMm3(IModelDoc2 model)
         {
             var partDoc = model as IPartDoc;
             if (partDoc == null) return null;
@@ -6894,9 +7915,35 @@ namespace Oce.Solid.Agent.Core
             };
         }
 
+        /// <summary>
+        /// The way out of <see cref="WithoutSketch"/> when the sketch stays (library
+        /// 0.198.12): the reason goes to the log, with whether a sketch is still open for
+        /// editing (ISketchManager~ActiveSketch.html). Up to 0.198.11 every reason gave
+        /// the same sentence and none was logged, and the unexpected nulls of
+        /// the structural member in the full benches of 2/11/2026 came with it.
+        /// </summary>
+        private string LeftBehind(string why, IModelDoc2 model)
+        {
+            string open = "";
+            try
+            {
+                var sketch = model?.SketchManager?.ActiveSketch;
+                if (sketch != null)
+                {
+                    string name = "";
+                    try { name = (sketch as IFeature)?.Name ?? ""; } catch { }
+                    open = name.Length > 0 ? "; a sketch is still open for editing: «" + name + "»"
+                                           : "; a sketch is still open for editing";
+                }
+            }
+            catch { }
+            _log("[agent] the sketch stays in the part: " + why + open);
+            return LeftSketchBehind;
+        }
+
         private string WithoutSketch(IModelDoc2 model)
         {
-            if (model == null) return LeftSketchBehind;
+            if (model == null) return LeftBehind("no document", model);
 
             // ── 2 and 3. the newest feature BORN IN THIS STEP ───────────
             // (Z-C21.5, scheme S7): not the last feature of the tree, which on
@@ -6906,30 +7953,33 @@ namespace Oce.Solid.Agent.Core
             List<IFeature> features;
             List<string> names, types;
             if (_featureNamesAtStepStart == null ||
-                !ReadFeatureTree(model, out features, out names, out types)) return LeftSketchBehind;
+                !ReadFeatureTree(model, out features, out names, out types))
+                return LeftBehind(_featureNamesAtStepStart == null
+                    ? "the tree at the start of the step was not read" : "the tree could not be read now", model);
             var born = BornFeatureIndices(names, _featureNamesAtStepStart);
-            if (born.Count == 0) return LeftSketchBehind;
+            if (born.Count == 0) return LeftBehind("no feature was born in this step", model);
             IFeature last = features[born[born.Count - 1]];
             int featureNow = features.Count;
 
             // ── 1. and it must be a sketch, and NOT the origin ──────────
             ISketch sketch = null;
             try { sketch = last.GetSpecificFeature2() as ISketch; } catch { }
-            if (sketch == null) return LeftSketchBehind;
+            if (sketch == null) return LeftBehind("the newest feature born in this step is not a sketch", model);
             string typ = "";
             try { typ = last.GetTypeName2(); } catch { }
-            if (typ == PartOrigin) return LeftSketchBehind;
+            if (typ == PartOrigin) return LeftBehind("the newest feature born in this step is the origin", model);
 
             // ── 4. and it must have no children ─────────────────────────
-            try { if (last.IGetChildCount() > 0) return LeftSketchBehind; }
-            catch { return LeftSketchBehind; }
+            try { if (last.IGetChildCount() > 0) return LeftBehind("the sketch has children", model); }
+            catch { return LeftBehind("its children could not be counted", model); }
 
             // What must NOT change, read before touching anything. If it cannot
             // be read (entry Z-C8), nothing is deleted: without the before we could not
             // say that removing the sketch did not change the part.
             double? volumeBefore = VolumeMm3(model);
             int bodiesBefore = CountSolidBodies(model);
-            if (volumeBefore == null || bodiesBefore < 0) return LeftSketchBehind;
+            if (volumeBefore == null || bodiesBefore < 0)
+                return LeftBehind("the volume or the bodies could not be read before deleting", model);
 
             string itemName = "";
             try { itemName = last.Name; } catch { }
@@ -6938,7 +7988,7 @@ namespace Oce.Solid.Agent.Core
             try
             {
                 model.ClearSelection2(true);
-                if (!last.Select2(false, 0)) return LeftSketchBehind;
+                if (!last.Select2(false, 0)) return LeftBehind("Select2 did not select it", model);
                 removed = model.Extension.DeleteSelection2(
                     (int)swDeleteSelectionOptions_e.swDelete_Absorbed);
             }
@@ -6952,7 +8002,7 @@ namespace Oce.Solid.Agent.Core
                 try { model.ClearSelection2(true); } catch { }
             }
 
-            if (!removed) return LeftSketchBehind;
+            if (!removed) return LeftBehind("DeleteSelection2 answered false", model);
 
             // ── and now we count ────────────────────────────────────────
             int featureAfter = CountFeature(model);
@@ -7599,7 +8649,7 @@ namespace Oce.Solid.Agent.Core
         {
             reason = null;
             DocumentState.EntitySignature signature = null;
-            bool present = docState != null && docState.Signatures.TryGetValue(uid, out signature) &&
+            bool present = docState != null && docState.TryGetSignature(uid, out signature) &&
                             signature.Type == "EDGE";
             if (present && SignatureMatches(a, uid, signature, out reason)) return signature;
             string refusal = present ? reason : disappeared;

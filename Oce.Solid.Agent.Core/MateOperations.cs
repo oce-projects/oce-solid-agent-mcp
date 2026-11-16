@@ -113,27 +113,66 @@ namespace Oce.Solid.Agent.Core
             // do not exist: the catalogue had two types that could never succeed,
             // and they failed with a SOLIDWORKS error that sent one looking
             // elsewhere. The why is stated before touching anything.
+            //
+            // A FACE CAN BE NAMED BY A POINT (brief R12, 26/10/2026): «face_a»
+            // {"point_mm": [x, y, z]} takes the face of the component that passes
+            // through that point of the assembly, planar or curved, so concentric
+            // and tangent are possible again when at least one face is named that
+            // way. Between two faces named by direction they still are not.
+            double[] pointA, pointB;
+            string facingA, facingB, faceProblem;
+            if (!FaceRequest(a, "face_a", out facingA, out pointA, out faceProblem)) return Failed(faceProblem);
+            if (!FaceRequest(a, "face_b", out facingB, out pointB, out faceProblem)) return Failed(faceProblem);
+            string labelA = FaceLabel(facingA, pointA), labelB = FaceLabel(facingB, pointB);
+
+            // THE WIDTH MATE (report 8cd843, round 21, point 7): the rule 2 of the owner, «centre
+            // with width», and the bridge could only read it. It wants two faces on each
+            // component: the width on component_a (the sides of a channel), the tab on
+            // component_b (the sides of the clip), and puts the tab in the middle of the width
+            // (swMateWidth_Centered, the WidthMateOption 0 AddMate5 is called with).
+            bool width = WidthAsked(Str(a, "variant", "coincident"));
+            double[] pointA2 = null, pointB2 = null;
+            string facingA2 = null, facingB2 = null, labelA2 = null, labelB2 = null;
+            string widthProblem = WidthFacesProblem(width, a.ContainsKey("face_a2"), a.ContainsKey("face_b2"));
+            if (widthProblem != null) return Failed(widthProblem);
+            if (width)
+            {
+                if (!FaceRequest(a, "face_a2", out facingA2, out pointA2, out faceProblem)) return Failed(faceProblem);
+                if (!FaceRequest(a, "face_b2", out facingB2, out pointB2, out faceProblem)) return Failed(faceProblem);
+                labelA2 = FaceLabel(facingA2, pointA2);
+                labelB2 = FaceLabel(facingB2, pointB2);
+                string sameProblem = WidthSameFaceProblem(labelA, labelA2, labelB, labelB2);
+                if (sameProblem != null) return Failed(sameProblem);
+            }
+
             string requested = (Str(a, "variant", "coincident") ?? "").Trim().ToLowerInvariant();
-            if (requested == "concentric" || requested == "tangent")
+            if ((requested == "concentric" || requested == "tangent") && pointA == null && pointB == null)
                 return Failed(
                     "«" + requested + "» wants at least one curved face (a cylinder, a hole), and here " +
-                    "the faces are chosen by direction — up, down, front… — which only works for planar " +
-                    "faces: between two planar faces a «" + requested + "» does not exist. With planar " +
-                    "faces there are coincident, parallel, perpendicular and distance. I touched " +
-                    "nothing.");
+                    "both faces are chosen by direction — up, down, front… — which only works for planar " +
+                    "faces: between two planar faces a «" + requested + "» does not exist. Name the curved " +
+                    "face by a point on it instead: «face_a» {\"point_mm\": [x, y, z]} in mm of the assembly. " +
+                    "I touched nothing.");
 
-            string facingA = Str(a, "face_a", null);
-            string facingB = Str(a, "face_b", null);
             // THE DIRECTIONS ARE THE ASSEMBLY'S (finding M1, lot Z-C21.5): the
             // faces come from the bodies in the PART's coordinates, so each
             // normal is turned by the component's Transform2 before it is
             // compared with the direction asked for. ComponentAxes is the
             // reading of Transform2 that finding N26 measured (the axes of a
-            // mirrored instance, MirrorComponentOperations.cs).
-            var faceA = FaceNormalOf(compA, facingA, ComponentAxes(compA), out string why1);
+            // mirrored instance, MirrorComponentOperations.cs). A point goes the
+            // other way, from the assembly into the part (FaceAtPoint).
+            var faceA = PickFace(compA, facingA, pointA, out string why1);
             if (faceA == null) return Failed("On «" + uidA + "»: " + why1);
-            var faceB = FaceNormalOf(compB, facingB, ComponentAxes(compB), out string why2);
+            var faceB = PickFace(compB, facingB, pointB, out string why2);
             if (faceB == null) return Failed("On «" + uidB + "»: " + why2);
+            IFace2 faceA2 = null, faceB2 = null;
+            if (width)
+            {
+                faceA2 = PickFace(compA, facingA2, pointA2, out string why3);
+                if (faceA2 == null) return Failed("On «" + uidA + "»: " + why3);
+                faceB2 = PickFace(compB, facingB2, pointB2, out string why4);
+                if (faceB2 == null) return Failed("On «" + uidB + "»: " + why4);
+            }
 
             string typeName = Str(a, "variant", "coincident");
             int typ = MateType(typeName);
@@ -163,6 +202,26 @@ namespace Oce.Solid.Agent.Core
                 ? (int)swMateAlign_e.swMateAlignANTI_ALIGNED
                 : 0;   // swAlignNONE = aligned
 
+            // THE SIDE OF A DISTANCE MATE IS CHOSEN (brief R21, 25/10/2026). A
+            // distance mate «down» of C1 on «down» of C2, 11.7 mm, put C2 at Y
+            // -11.7: the second face ends on the side the first face looks at
+            // (Flip false, probe N10 below), and the half that had to sit on top
+            // went underneath, with no way to ask for the other side.
+            // «distance_side»: along_normal_a (the default, what SOLIDWORKS does
+            // with Flip false) or against_normal_a (Flip true). After the mate the
+            // side is MEASURED (SignedGapMm) and a mate on the other side is taken
+            // out and refused.
+            string side = (Str(a, "distance_side", "") ?? "").Trim().ToLowerInvariant();
+            if (side.Length > 0 && typ != (int)swMateType_e.swMateDISTANCE)
+                return Failed("«distance_side» is only for a «distance» mate: a «" + typeName + "» has no side to " +
+                               "choose. Remove it, or ask for «distance». I touched nothing.");
+            if (side.Length == 0) side = SideAlongNormalA;
+            if (side != SideAlongNormalA && side != SideAgainstNormalA)
+                return Failed("«distance_side» «" + Str(a, "distance_side", "") + "» unknown: try " + SideAlongNormalA +
+                               " (the default: face B ends on the side face A looks at) or " + SideAgainstNormalA +
+                               ". I touched nothing.");
+            bool flip = side == SideAgainstNormalA;
+
             // ── IT IS COUNTED FIRST ─────────────────────────────────────
             int priorA = MatesOf(compA), priorB = MatesOf(compB);
 
@@ -174,23 +233,37 @@ namespace Oce.Solid.Agent.Core
             // blocked by definition.
             string nameA = NameOf(compA), nameB = NameOf(compB);
             var topLevel = TopLevelNamesOf(assemblyDoc);
+            // Timed (library 0.179.4): the test of the directions is up to thirteen rebuilds per
+            // component per reading, read before and after the mate; PhaseClock says how much
+            // of the call it is ("mate.direction_test", once before and once after).
+            System.Diagnostics.Stopwatch directionClock = System.Diagnostics.Stopwatch.StartNew();
             var beforeA = ReadBlockedDirections(model, assemblyDoc, nameA, topLevel);
             var beforeB = ReadBlockedDirections(model, assemblyDoc, nameB, topLevel);
+            PhaseClock.Spent("mate.direction_test", directionClock.Elapsed.TotalMilliseconds);
 
             // The test moved the components and rebuilt: the handles and the
             // faces are taken again, as after the mate below.
             var testedA = ComponentByName(assemblyDoc, nameA) ?? compA;
             var testedB = ComponentByName(assemblyDoc, nameB) ?? compB;
-            faceA = FaceNormalOf(testedA, facingA, ComponentAxes(testedA), out why1);
+            faceA = PickFace(testedA, facingA, pointA, out why1);
             if (faceA == null)
                 return Failed("On «" + uidA + "», after the test of its directions: " + why1 +
                                DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
                                " Nothing was mated. Read the assembly state again and ask for the mate once more.");
-            faceB = FaceNormalOf(testedB, facingB, ComponentAxes(testedB), out why2);
+            faceB = PickFace(testedB, facingB, pointB, out why2);
             if (faceB == null)
                 return Failed("On «" + uidB + "», after the test of its directions: " + why2 +
                                DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
                                " Nothing was mated. Read the assembly state again and ask for the mate once more.");
+            if (width)
+            {
+                faceA2 = PickFace(testedA, facingA2, pointA2, out why1);
+                faceB2 = PickFace(testedB, facingB2, pointB2, out why2);
+                if (faceA2 == null || faceB2 == null)
+                    return Failed("On «" + (faceA2 == null ? uidA : uidB) + "», after the test of its directions: " +
+                                   (faceA2 == null ? why1 : why2) + DriftAfterTest(uidA, beforeA) + DriftAfterTest(uidB, beforeB) +
+                                   " Nothing was mated. Read the assembly state again and ask for the mate once more.");
+            }
 
             object mate;
             int error = 0;
@@ -204,11 +277,22 @@ namespace Oce.Solid.Agent.Core
                 // one face only, or a face left selected by an earlier step or
                 // by hand. The finally below clears the selection on this exit
                 // too.
-                bool selectedA = (faceA as IEntity).Select4(true, null);
-                bool selectedB = selectedA && (faceB as IEntity).Select4(true, null);
+                // A WIDTH MATE (round 21, point 7): IAssemblyDoc~AddMate5.html, Remarks,
+                // «swMateType_e.swMateWIDTH: use selection mark 16»; the example Create and Edit
+                // Width Mate (C#) selects the two width faces with mark 1 and the two tab faces
+                // with mark 16. Select (DraftOperations.cs) reads each answer of Select4.
+                var widthHandler = width ? model.SelectionManager as ISelectionMgr : null;
+                bool selectedA = width
+                    ? Select(widthHandler, faceA, SelectionMarks.WidthMateWidthFaces) &&
+                      Select(widthHandler, faceA2, SelectionMarks.WidthMateWidthFaces)
+                    : (faceA as IEntity).Select4(true, null);
+                bool selectedB = selectedA && (width
+                    ? Select(widthHandler, faceB, SelectionMarks.WidthMateTabFaces) &&
+                      Select(widthHandler, faceB2, SelectionMarks.WidthMateTabFaces)
+                    : (faceB as IEntity).Select4(true, null));
                 if (!selectedA || !selectedB)
                     return Failed(
-                        "I could not select the «" + (selectedA ? facingB : facingA) + "» face of " +
+                        "I could not select the «" + (selectedA ? labelB : labelA) + "» face of " +
                         (selectedA ? uidB : uidA) + " (IEntity.Select4 answered false), so AddMate5 was " +
                         "not called: it would have mated whatever else was selected. Nothing was " +
                         "changed. Read the assembly state again and ask for the mate once more.");
@@ -219,12 +303,13 @@ namespace Oce.Solid.Agent.Core
                 // above only), with mark 0 and with the guide's mark 1: every
                 // Flip = false variant
                 // ended at s = +30 mm, the requested side, IMate2.Flipped False;
-                // Flip = true sent it to s = -30 mm. So Flip stays false, and
-                // Transform2 is not reread against the side.
+                // Flip = true sent it to s = -30 mm. Since brief R21 (26/10/2026)
+                // Flip is «distance_side» against_normal_a, and the side is read
+                // back after the mate (see below).
                 mate = assemblyDoc.AddMate5(
-                    typ, align, false,
+                    typ, align, flip,
                     Units.M(distance), Units.M(distance), Units.M(distance),
-                    0, 0, 0, 0, 0, false, false, 0, out error);
+                    0, 0, 0, 0, 0, false, false, (int)swMateWidthOptions_e.swMateWidth_Centered, out error);
             }
             catch (Exception ex)
             {
@@ -236,12 +321,12 @@ namespace Oce.Solid.Agent.Core
             if (error != (int)swAddMateError_e.swAddMateError_NoError)
                 return Failed(
                     "SOLIDWORKS refused the mate: " + MateErrorName(error) +
-                    ". The two faces are the «" + facingA + "» of " + uidA + " and the «" +
-                    facingB + "» of " + uidB + "; the mate requested is «" +
+                    ". The two faces are the «" + labelA + "» of " + uidA + " and the «" +
+                    labelB + "» of " + uidB + "; the mate requested is «" +
                     typeName + "»" +
                     (align == 0 ? " aligned" : " opposite") + ".");
 
-            try { model.EditRebuild3(); } catch { }
+            try { RebuildKeepingUndo(model); } catch { }
 
             // ── AND IT IS COUNTED AFTER ─────────────────────────────────
             //
@@ -268,8 +353,10 @@ namespace Oce.Solid.Agent.Core
             // SOLIDWORKS's own answer is read first, to be quoted: on a
             // redundant mate it says nothing is wrong (probe zc14, 30/9/2026).
             int whatsWrong = HowManyProblems(model);
+            System.Diagnostics.Stopwatch directionClockAfter = System.Diagnostics.Stopwatch.StartNew();
             var afterA = beforeA.Status == ReadingMeasured ? ReadBlockedDirections(model, assemblyDoc, nameA, topLevel) : beforeA;
             var afterB = beforeB.Status == ReadingMeasured ? ReadBlockedDirections(model, assemblyDoc, nameB, topLevel) : beforeB;
+            PhaseClock.Spent("mate.direction_test", directionClockAfter.Elapsed.TotalMilliseconds);
             string verdict = MateVerdict(
                 BothReadings(beforeA, afterA), beforeA.Blocked, afterA.Blocked,
                 BothReadings(beforeB, afterB), beforeB.Blocked, afterB.Blocked);
@@ -283,7 +370,8 @@ namespace Oce.Solid.Agent.Core
             if (verdict == MateRedundant && !OnlyStandardMates(model, out notStandard))
                 verdict = MateNotJudged;
             string mateSaid =
-                "«" + facingA + "» of " + uidA + " on «" + facingB + "» of " + uidB + " (" + typeName +
+                "«" + labelA + (width ? "» and «" + labelA2 : "") + "» of " + uidA + " on «" + labelB +
+                (width ? "» and «" + labelB2 : "") + "» of " + uidB + " (" + typeName + (width ? ", centered" : "") +
                 (typ == (int)swMateType_e.swMateDISTANCE
                     ? " " + distance.ToString("0.###", CultureInfo.InvariantCulture) + " mm" : "") + ")";
             string directions =
@@ -309,13 +397,52 @@ namespace Oce.Solid.Agent.Core
                 return Failed(refusal);
             }
 
+            // ── WHERE THE TWO COMPONENTS ENDED UP (brief R21) ──
+            //
+            // The verdict used to say what the mate blocked, never where the
+            // component went: on 25/10/2026 «blocked TY, RX, RZ» came with the
+            // half under the other one. The placements are read after the
+            // direction test put everything back, and for a distance mate the
+            // side face B ended on is measured on the two faces themselves: they
+            // are faces of the part files (GetBodies3), so they hold while only
+            // the placements change.
+            var placedA = ReadTransform(ComponentByName(assemblyDoc, nameA) ?? riA);
+            var placedB = ReadTransform(ComponentByName(assemblyDoc, nameB) ?? riB);
+            double gap = double.NaN;
+            if (typ == (int)swMateType_e.swMateDISTANCE)
+            {
+                gap = SignedGapMm(placedA, PointOfFace(faceA), ApiHelpers.NormalIfPlanar(faceA), placedB, PointOfFace(faceB));
+                string ended = double.IsNaN(gap) ? null : gap >= 0 ? SideAlongNormalA : SideAgainstNormalA;
+                if (ended != null && ended != side && Math.Abs(gap) > PlacedWithinMm)
+                {
+                    string refusal =
+                        "The mate " + mateSaid + " put face B on the other side: asked " + side + ", it ended " +
+                        ended + " (" + gap.ToString("0.###", CultureInfo.InvariantCulture) + " mm along the normal of " +
+                        "face A). Send «distance_side»: «" + ended + "» for this result, or check the faces. " +
+                        RemoveTheMateJustMade(model, assemblyDoc, mate, nameA, nameB, uidA, uidB, priorA, priorB);
+                    _log("[agent] " + refusal);
+                    return Failed(refusal);
+                }
+            }
+
             var measurements = new Dictionary<string, object>
             {
                 ["kind"] = typeName,
                 ["mates_before"] = new object[] { priorA, priorB },
                 ["mates_after"] = new object[] { laterA, laterB },
             };
-            if (typ == (int)swMateType_e.swMateDISTANCE) measurements["distance_mm"] = distance;
+            if (width)
+            {
+                measurements["width_faces"] = new object[] { labelA, labelA2 };
+                measurements["tab_faces"] = new object[] { labelB, labelB2 };
+            }
+            if (typ == (int)swMateType_e.swMateDISTANCE)
+            {
+                measurements["distance_mm"] = distance;
+                measurements["distance_side"] = side;
+                if (!double.IsNaN(gap)) measurements["face_b_along_normal_a_mm"] = Math.Round(gap, 3);
+            }
+            measurements["placement_after"] = new object[] { Placement(uidA, placedA), Placement(uidB, placedB) };
 
             bool fixedA = IsFixed(riA), fixedB = IsFixed(riB);
             measurements["resting_a"] = !fixedA && laterA == 0;
@@ -332,7 +459,9 @@ namespace Oce.Solid.Agent.Core
 
             string verdictValue =
                 "Mated " + mateSaid + ". Now " + uidA + " has " + laterA + (laterA == 1 ? " mate" : " mates") +
-                " and " + uidB + " has " + laterB + ". " + directions +
+                " and " + uidB + " has " + laterB + ". " + WherePlaced(uidA, placedA) + " " + WherePlaced(uidB, placedB) +
+                (double.IsNaN(gap) ? "" : " Face B is " + gap.ToString("0.###", CultureInfo.InvariantCulture) +
+                                          " mm along the normal of face A.") + " " + directions +
                 (notStandard != null
                     ? " This mate blocks nothing new by the test, but the assembly has " + notStandard + ": the test " +
                       "moves one way only, so a direction held at the end of a limit reads blocked, and I do not call " +
@@ -478,8 +607,9 @@ namespace Oce.Solid.Agent.Core
         /// For each of the six moves (5 mm along X, Y, Z of the assembly, the
         /// translation part [9..11] of ArrayData; 5 degrees about X, Y, Z
         /// through the component's origin): IComponent2.Transform2 is set to the
-        /// moved transform built with IMathUtility.CreateTransform, EditRebuild3,
-        /// Transform2 read again. IComponent2~Transform2.html, Remarks: «This
+        /// moved transform built with IMathUtility.CreateTransform, a rebuild
+        /// (<see cref="RebuildForTest"/>: EditRebuild3 in the probe,
+        /// IModelDocExtension.Rebuild since brief R23), Transform2 read again. IComponent2~Transform2.html, Remarks: «This
         /// property lets you violate existing mate relationships. If you place a
         /// component at an invalid location based on the mate definitions, then
         /// IModelDoc2::Rebuild recalculates existing mate relationships and moves
@@ -507,8 +637,8 @@ namespace Oce.Solid.Agent.Core
         ///
         /// NEVER A GUESS: a transform that cannot be set or read, a set that did
         /// not move the component by the step asked, a rebuild that answers false
-        /// (EditRebuild3 «only works in-context of the active document»,
-        /// IModelDoc2~EditRebuild3.html, Remarks), a move that after the rebuild
+        /// (EditRebuild3, the probe's, «only works in-context of the active
+        /// document», IModelDoc2~EditRebuild3.html, Remarks), a move that after the rebuild
         /// is neither back nor where it was moved (the probe's «ELSEWHERE») or an
         /// orientation that does not come back makes the reading ReadingUnknown,
         /// with the reason. A fixed
@@ -581,7 +711,7 @@ namespace Oce.Solid.Agent.Core
                 { why = "setting Transform2 did not move it by the step asked (" + d + ")"; break; }
                 reading.Rebuilds++;
                 if (!RebuildForTest(model))
-                { why = "EditRebuild3 did not answer true after the move " + d + RebuildFalseHint; break; }
+                { why = "The rebuild did not answer true after the move " + d + RebuildFalseHint; break; }
                 var afterRebuild = ReadTransform(ComponentByName(assemblyDoc, name));
                 bool? isBlocked = DirectionBlocked(reference, afterRebuild, k);
                 if (isBlocked == null)
@@ -610,7 +740,7 @@ namespace Oce.Solid.Agent.Core
                 { why = "Transform2 could not be set to put it back after the move " + d; break; }
                 reading.Rebuilds++;
                 if (!RebuildForTest(model))
-                { why = "EditRebuild3 did not answer true after putting it back from " + d + RebuildFalseHint; break; }
+                { why = "The rebuild did not answer true after putting it back from " + d + RebuildFalseHint; break; }
                 var back = ReadTransform(ComponentByName(assemblyDoc, name));
                 double turned = AngleBetweenDeg(back, reference);
                 if (double.IsNaN(turned))
@@ -786,7 +916,9 @@ namespace Oce.Solid.Agent.Core
             " (a feature or mate in error makes every rebuild answer false)";
 
         /// <summary>
-        /// EditRebuild3, whose answer counts: a rebuild that did not happen would
+        /// The rebuild (RebuildKeepingUndo since brief R23: on an assembly
+        /// IModelDocExtension.Rebuild, because EditRebuild3 emptied the undo of
+        /// the plan), whose answer counts: a rebuild that did not happen would
         /// read every direction free. The price is known: a document with a
         /// feature in error answers false on every rebuild (DocumentByPath,
         /// RebuildIfActivationAsked), so on such an assembly the test reads
@@ -794,7 +926,7 @@ namespace Oce.Solid.Agent.Core
         /// </summary>
         private static bool RebuildForTest(IModelDoc2 model)
         {
-            try { return model.EditRebuild3(); }
+            try { return RebuildKeepingUndo(model); }
             catch { return false; }
         }
 
@@ -913,7 +1045,7 @@ namespace Oce.Solid.Agent.Core
                     if (feature.Select2(false, 0))
                         deleted = model.Extension.DeleteSelection2((int)swDeleteSelectionOptions_e.swDelete_Absorbed);
                     model.ClearSelection2(true);
-                    model.EditRebuild3();
+                    RebuildKeepingUndo(model);
                 }
                 catch { }
             }
@@ -960,23 +1092,58 @@ namespace Oce.Solid.Agent.Core
 
         /// <summary>
         /// How far a component went in ONE direction between two transforms:
-        /// for 0..2 the displacement ALONG that axis, in mm; for 3..5 the angle
-        /// between the two rotation parts, in degrees. NaN when either is
-        /// unreadable. Along the axis only: a slide along another, free,
-        /// direction says nothing about the one tested (probe, S3).
+        /// for 0..2 the displacement ALONG that axis, in mm; for 3..5 the turn
+        /// ABOUT that axis, in degrees. NaN when either is unreadable. Along
+        /// and about the axis only: a slide along another, free, direction says
+        /// nothing about the one tested (probe, S3), and neither does a turn
+        /// about another, free, axis (report 8cd843 N3, see TurnAboutAxisDeg).
         /// </summary>
         internal static double MovementOf(double[] from, double[] to, int direction)
         {
             if (!ReadableTransform(from) || !ReadableTransform(to) || direction < 0 || direction >= DirectionNames.Length)
                 return double.NaN;
             if (direction < 3) return Math.Abs(to[9 + direction] - from[9 + direction]) * 1000.0;
-            return AngleBetweenDeg(from, to);
+            return TurnAboutAxisDeg(from, to, direction - 3);
+        }
+
+        /// <summary>
+        /// THE TURN ABOUT ONE AXIS OF THE ASSEMBLY between two transforms, in
+        /// degrees (report 8cd843 N3, 27/10/2026). The relative turn is
+        /// Q = R'^T R (R' = R Q^T, see MovedForTest); its rotation vector, angle
+        /// times axis, is read from the skew part of Q, and the component on the
+        /// axis 0, 1 or 2 is returned. Measured on SOLIDWORKS: a distance mate
+        /// between the «up» faces of two components put the normal back after
+        /// the test turned the clip 5 degrees about Z, and left it 0.218 degrees
+        /// away -- θ²/2 of 5 degrees, a turn about the normal of the face, which
+        /// is the free direction RY. The whole angle (AngleBetweenDeg) read RZ
+        /// «neither back nor where it was moved», the mate verdict «unknown»
+        /// (scenario t18b, the calls of the session that found it). NaN when
+        /// either transform is unreadable.
+        /// </summary>
+        internal static double TurnAboutAxisDeg(double[] from, double[] to, int axis)
+        {
+            if (!ReadableTransform(from) || !ReadableTransform(to) || axis < 0 || axis > 2) return double.NaN;
+            var q = new double[3, 3];
+            for (int a = 0; a < 3; a++)
+                for (int b = 0; b < 3; b++)
+                {
+                    double v = 0;
+                    for (int i = 0; i < 3; i++) v += to[i * 3 + a] * from[i * 3 + b];
+                    q[a, b] = v;
+                }
+            double trace = q[0, 0] + q[1, 1] + q[2, 2];
+            double angle = Math.Acos(Math.Max(-1.0, Math.Min(1.0, (trace - 1.0) / 2.0)));
+            double sine = Math.Sin(angle);
+            double factor = sine < 1e-9 ? 0.5 : angle / (2.0 * sine);
+            double skew = axis == 0 ? q[2, 1] - q[1, 2] : axis == 1 ? q[0, 2] - q[2, 0] : q[1, 0] - q[0, 1];
+            return Math.Abs(skew * factor) * 180.0 / Math.PI;
         }
 
         /// <summary>
         /// THE RULE OF THE PROBE: after the move and the rebuild, a translation
         /// is BLOCKED when it is back within 0.01 mm along its axis, a rotation
-        /// when the rotation is back within 0.01 degree; otherwise it is free.
+        /// when the turn about its axis is back within 0.01 degree (report
+        /// 8cd843 N3: not the whole turn); otherwise it is free.
         /// Null when a transform is unreadable, never «free» or «blocked».
         /// </summary>
         internal static bool? DirectionBlocked(double[] start, double[] afterRebuild, int direction)
@@ -1107,10 +1274,52 @@ namespace Oce.Solid.Agent.Core
 
         // =================================================================
 
-        // Concentric and tangent are no longer there (entry Z-C21.2, M17): with the faces
-        // chosen by direction they cannot succeed, and the refusal sits in Mate.
+        // Concentric and tangent left in Z-C21.2 (M17): with the faces chosen by
+        // direction they cannot succeed. They are back since brief R12 (26/10/2026)
+        // for a face named by a point, which can be curved; between two faces named
+        // by direction the refusal sits in Mate.
         private static readonly string[] KnownTypes =
-            { "coincident", "parallel", "perpendicular", "distance" };
+            { "coincident", "parallel", "perpendicular", "distance", "concentric", "tangent", "width" };
+
+        /// <summary>Whether «variant» asks a width mate (round 21, point 7). Pure.</summary>
+        internal static bool WidthAsked(string variant)
+        {
+            return string.Equals((variant ?? "").Trim(), "width", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// What is wrong with the second faces (round 21, point 7): a width mate wants
+        /// «face_a2» and «face_b2», any other mate refuses them. Null when they are right.
+        /// Pure, so the contract suite reads it.
+        /// </summary>
+        internal static string WidthFacesProblem(bool width, bool hasA2, bool hasB2)
+        {
+            if (width && (!hasA2 || !hasB2))
+                return "A «width» mate wants two faces on each component: «face_a» and «face_a2», the two faces of " +
+                       "the width on «component_a» (the sides of a channel), «face_b» and «face_b2», the two faces of " +
+                       "the tab on «component_b» (the sides of the clip that goes in the middle). Give " +
+                       (!hasA2 && !hasB2 ? "«face_a2» and «face_b2»" : !hasA2 ? "«face_a2»" : "«face_b2»") +
+                       ". I touched nothing.";
+            if (!width && (hasA2 || hasB2))
+                return "«face_a2» and «face_b2» are only for a «width» mate: the other mates take one face on each " +
+                       "component. Remove them, or ask for «width». I touched nothing.";
+            return null;
+        }
+
+        /// <summary>
+        /// A width mate between a face and itself (round 21, point 7): the two faces of the
+        /// width, or of the tab, asked the same way. Null when they differ. Pure.
+        /// </summary>
+        internal static string WidthSameFaceProblem(string a1, string a2, string b1, string b2)
+        {
+            if (string.Equals(a1, a2, StringComparison.OrdinalIgnoreCase))
+                return "«face_a» and «face_a2» are the same face («" + a1 + "»): a width is between two faces, give the " +
+                       "opposite one in «face_a2» (left and right, front and back). I touched nothing.";
+            if (string.Equals(b1, b2, StringComparison.OrdinalIgnoreCase))
+                return "«face_b» and «face_b2» are the same face («" + b1 + "»): a tab is between two faces, give the " +
+                       "opposite one in «face_b2» (left and right, front and back). I touched nothing.";
+            return null;
+        }
 
         private static int MateType(string itemName)
         {
@@ -1121,6 +1330,9 @@ namespace Oce.Solid.Agent.Core
                 case "parallel": return (int)swMateType_e.swMatePARALLEL;
                 case "perpendicular": return (int)swMateType_e.swMatePERPENDICULAR;
                 case "distance": return (int)swMateType_e.swMateDISTANCE;
+                case "concentric": return (int)swMateType_e.swMateCONCENTRIC;
+                case "tangent": return (int)swMateType_e.swMateTANGENT;
+                case "width": return (int)swMateType_e.swMateWIDTH;
                 default: return -1;
             }
         }
@@ -1312,6 +1524,155 @@ namespace Oce.Solid.Agent.Core
 
         private static readonly string[] KnownFacings =
             { "up", "down", "right", "left", "front", "back" };
+
+        /// <summary>A point given for a face is on it when it is closer than this (mm).</summary>
+        private const double FacePointWithinMm = 0.05;
+
+        /// <summary>
+        /// «face_a» or «face_b» as asked: a direction (a string) or a point of the
+        /// assembly ({"point_mm": [x, y, z]}). False with the sentence of the
+        /// refusal when it is neither; a missing field passes as a null direction,
+        /// which FaceNormalOf refuses with the list of directions.
+        /// </summary>
+        private static bool FaceRequest(Dictionary<string, object> a, string key, out string facing,
+                                        out double[] pointMm, out string problem)
+        {
+            facing = null; pointMm = null; problem = null;
+            object raw;
+            if (!a.TryGetValue(key, out raw) || raw == null || raw is string) { facing = Str(a, key, null); return true; }
+            var asked = raw as Dictionary<string, object>;
+            pointMm = asked == null ? null : Triplet(asked, "point_mm");
+            if (pointMm != null) return true;
+            problem = "«" + key + "» is a direction (" + string.Join(", ", KnownFacings) + ") or a point on the face, " +
+                      "{\"point_mm\": [x, y, z]} in mm of the assembly. Send it again in one of the two forms; I " +
+                      "touched nothing.";
+            return false;
+        }
+
+        /// <summary>How a face is said in a sentence: its direction, or «the face at [..] mm».</summary>
+        private static string FaceLabel(string facing, double[] pointMm)
+        {
+            if (pointMm == null) return facing;
+            return "face at " + MmText(new object[] { pointMm[0], pointMm[1], pointMm[2] });
+        }
+
+        /// <summary>The face asked: by direction (FaceNormalOf) or by a point (FaceAtPoint).</summary>
+        private IFace2 PickFace(IComponent2 c, string facing, double[] pointMm, out string why)
+        {
+            return pointMm == null ? FaceNormalOf(c, facing, ComponentAxes(c), out why) : FaceAtPoint(c, pointMm, out why);
+        }
+
+        /// <summary>
+        /// The face of the component that passes through a point of the assembly
+        /// (mm), planar or curved (brief R12). The point is taken into the part
+        /// file with the component's transform (AssemblyToPart: the bodies of
+        /// GetBodies3 are in the part's space, RAG 82zq) and each face answers its
+        /// closest point (IFace2.GetClosestPointOn, bounded by the face). The face
+        /// is taken when it is within <see cref="FacePointWithinMm"/>; a point that
+        /// is that close to two faces is on an edge and is refused, as is a point
+        /// no face reaches (the nearest distance is said).
+        /// </summary>
+        private static IFace2 FaceAtPoint(IComponent2 c, double[] pointMm, out string why)
+        {
+            why = null;
+            var transform = ReadTransform(c);
+            var inPart = AssemblyToPart(transform, new[] { pointMm[0] / 1000.0, pointMm[1] / 1000.0, pointMm[2] / 1000.0 });
+            if (inPart == null)
+            {
+                why = "I cannot read where the component is (Transform2), so I cannot tell which of its faces passes " +
+                      "through that point. Read the state again and try again; nothing was changed.";
+                return null;
+            }
+            object[] bodies = null;
+            try { bodies = c.GetBodies3((int)swBodyType_e.swSolidBody, out _) as object[]; } catch { }
+            if (bodies == null || bodies.Length == 0)
+            {
+                why = "the component has no solid bodies to take a face from.";
+                return null;
+            }
+            IFace2 wins = null;
+            double best = double.MaxValue, second = double.MaxValue;
+            foreach (var o in bodies)
+            {
+                var body = o as IBody2;
+                var face = body == null ? null : body.GetFirstFace() as IFace2;
+                while (face != null)
+                {
+                    double[] near = null;
+                    try { near = face.GetClosestPointOn(inPart[0], inPart[1], inPart[2]) as double[]; } catch { }
+                    if (near != null && near.Length >= 3)
+                    {
+                        double dx = near[0] - inPart[0], dy = near[1] - inPart[1], dz = near[2] - inPart[2];
+                        double mm = Math.Sqrt(dx * dx + dy * dy + dz * dz) * 1000.0;
+                        if (mm < best) { second = best; best = mm; wins = face; }
+                        else if (mm < second) second = mm;
+                    }
+                    face = face.GetNextFace() as IFace2;
+                }
+            }
+            string at = MmText(new object[] { pointMm[0], pointMm[1], pointMm[2] });
+            if (wins == null || best > FacePointWithinMm)
+            {
+                why = "no face of the component passes through " + at + (wins == null ? "" : ": the nearest is " +
+                      best.ToString("0.###", CultureInfo.InvariantCulture) + " mm away") + ". Give a point ON the face, " +
+                      "in mm of the assembly (the state gives «origin_mm» and «axes» of each component). Nothing was changed.";
+                return null;
+            }
+            if (second <= FacePointWithinMm)
+            {
+                why = "the point " + at + " lies on two faces (it is on an edge): move it inside the face you want. " +
+                      "Nothing was changed.";
+                return null;
+            }
+            return wins;
+        }
+
+        /// <summary>
+        /// A point of the assembly (metres) in the part file, with the component's
+        /// transform: the rows are the part's axes in the assembly, so the part
+        /// coordinate i is row i · (p - translation). The inverse of
+        /// PartToAssembly for a point. Null on a bad input.
+        /// </summary>
+        internal static double[] AssemblyToPart(double[] t, double[] p)
+        {
+            if (!ReadableTransform(t) || p == null || p.Length < 3) return null;
+            double dx = p[0] - t[9], dy = p[1] - t[10], dz = p[2] - t[11];
+            var r = new double[3];
+            for (int i = 0; i < 3; i++) r[i] = t[i * 3] * dx + t[i * 3 + 1] * dy + t[i * 3 + 2] * dz;
+            return r;
+        }
+
+        /// <summary>The two values of «distance_side» (brief R21).</summary>
+        private const string SideAlongNormalA = "along_normal_a";
+        private const string SideAgainstNormalA = "against_normal_a";
+
+        /// <summary>A point that lies on the face, in the part's metres (IFace2.GetClosestPointOn of the origin); null when unreadable.</summary>
+        private static double[] PointOfFace(IFace2 face)
+        {
+            try
+            {
+                var p = face == null ? null : face.GetClosestPointOn(0, 0, 0) as double[];
+                return p == null || p.Length < 3 ? null : new[] { p[0], p[1], p[2] };
+            }
+            catch { return null; }
+        }
+
+        /// <summary>{component, origin_mm, axes} of a placement, for «placement_after».</summary>
+        private static Dictionary<string, object> Placement(string uid, double[] transform)
+        {
+            return new Dictionary<string, object>
+            {
+                ["component"] = uid,
+                ["origin_mm"] = OriginMm(transform),
+                ["axes"] = AxesValue(transform),
+            };
+        }
+
+        /// <summary>«C2: origin [..] mm, axes +X -Y -Z.» for the verdict.</summary>
+        private static string WherePlaced(string uid, double[] transform)
+        {
+            return uid + ": origin " + MmText(OriginMm(transform)) + ", axes " + AxesText(transform) + ".";
+        }
 
         private static double[] Direction(string facing)
         {

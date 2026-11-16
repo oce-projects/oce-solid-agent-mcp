@@ -205,10 +205,13 @@ if (Test-Path -LiteralPath $Source) {
     # in the switch», which was false. A check that accuses the right code
     # stops being looked at after twice.
     #
-    # We only look inside the body of `Run`, if it is found: elsewhere in the
-    # file there are other switches (plane names, view names) that are beside the point.
+    # We only look inside the body of the method that holds `switch (operation)`, if it
+    # is found: elsewhere in the file there are other switches (plane names, view names)
+    # that are beside the point. It was `Run` up to library 0.198.6; since 0.198.7 `Run`
+    # only watches the call (StuckDragGuard) and the switch is in `RunWatched`, and this
+    # check, anchored on «public Outcome Run(», read 0 labels.
     $body = $text
-    $start = $text.IndexOf("public Outcome Run(")
+    $start = $text.IndexOf("switch (operation)")
     if ($start -ge 0) {
         $bodyEnd = $text.IndexOf("`n        }", $start)
         if ($bodyEnd -gt $start) { $body = $text.Substring($start, $bodyEnd - $start) }

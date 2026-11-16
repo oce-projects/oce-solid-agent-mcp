@@ -244,5 +244,20 @@ namespace Oce.Solid.Agent.Core
         /// that has no page in the extracted guide (hole C of the audit).
         /// MEASURED: axis_from_hole_wall
         public const int AxisFace = 1;
+
+        // ── IAssemblyDoc.AddMate5, the width mate ───────────────────────────
+
+        /// <summary>The two faces of the width (component_a) of a width mate.</summary>
+        /// Guide: IAssemblyDoc~AddMate5.html names one mark for a width mate, 16, and
+        /// not which faces take it; the example Create_Width_Mate_Example_CSharp.htm
+        /// selects each width face with SelectByRay(..., «2, true , 1, 0») and each tab
+        /// face with mark 16, then hands them to WidthSelection and TabSelection.
+        /// Not measured yet: the bench case the_width_mate_centres_the_tab holds it.
+        public const int WidthMateWidthFaces = 1;
+
+        /// <summary>The two faces of the tab (component_b) of a width mate.</summary>
+        /// Guide: IAssemblyDoc~AddMate5.html, Remarks, «swMateType_e.swMateWIDTH 16»;
+        /// the tab faces in Create_Width_Mate_Example_CSharp.htm.
+        public const int WidthMateTabFaces = 16;
     }
 }

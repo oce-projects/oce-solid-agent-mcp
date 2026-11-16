@@ -75,8 +75,13 @@ namespace Oce.Solid.Agent.Core
                 {
                     var p = ApiHelpers.EdgeParameters(e, out ICurve curva);
                     if (curva == null || !curva.IsLine()) continue;
-                    var a = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.StartPoint)).MultiplyTransform(tr)).ArrayData as double[];
-                    var b = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.EndPoint)).MultiplyTransform(tr)).ArrayData as double[];
+                    // The component's placement first on a view of an assembly
+                    // (report 8cd843 N23): without it the side is chosen among
+                    // edges that are not where the sheet shows them.
+                    var edgeToSheet = ToSheetOf(e, tr, out _, out _);
+                    if (edgeToSheet == null) continue;
+                    var a = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.StartPoint)).MultiplyTransform(edgeToSheet)).ArrayData as double[];
+                    var b = ((IMathPoint)((IMathPoint)mu.CreatePoint(p.EndPoint)).MultiplyTransform(edgeToSheet)).ArrayData as double[];
                     bool horizontal = Math.Abs(a[1] - b[1]) < 1e-6, vertical = Math.Abs(a[0] - b[0]) < 1e-6;
                     if (fy != 0 && !horizontal || fx != 0 && !vertical) continue;
                     if (Math.Abs(a[0] - b[0]) + Math.Abs(a[1] - b[1]) < 1e-4) continue;   // too short to attach anything to

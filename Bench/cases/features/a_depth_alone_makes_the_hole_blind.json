@@ -1,0 +1,22 @@
+{
+  "name": "a_depth_alone_makes_the_hole_blind",
+  "family": "features",
+  "why": "SCENARIO t15 (27/10/2026): a «cylindrical_cut» with «depth_mm» 5 and no «through_all» drilled through the 20 mm block (1570.8 mm3 removed, pi x 5^2 x 20), because «through_all» defaulted to true and the depth was dropped without a word. A depth given alone is a blind cut now; «through_all» true written beside a depth still wins (the pair case limit_pocket_that_covers_everything sends both on purpose). Block 100 x 60 x 20: a 6 mm hole with «through_all» true and a depth goes through, then a 10 mm hole 5 deep removes pi x 5^2 x 5. The blind one second: afterwards its bottom is another «up» face and the selector would become ambiguous. Volumes computed by script.",
+  "defect_caught": "A depth given without «through_all» that drills through; «through_all» true that no longer wins over a depth.",
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 100, "width_mm": 60, "thickness_mm": 20, "centered": true },
+      "expect": [ { "what": "volume_mm3", "equal_to": 120000 } ] },
+    { "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=up)", "x_mm": -20, "y_mm": 0, "diameter_mm": 6, "through_all": true, "depth_mm": 5 },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 119434.51, "tolerance": 0.05, "tolerance_why": "pi inside: 120000 minus pi x 3^2 x 20" },
+        { "what": "measurements.through_all", "equal_to": true, "why": "through_all written beside the depth wins" } ] },
+    { "operation": "cylindrical_cut",
+      "arguments": { "face_uid": "@face(normal=up)", "x_mm": 20, "y_mm": 0, "diameter_mm": 10, "depth_mm": 5 },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 119041.81, "tolerance": 0.05, "tolerance_why": "pi inside: minus pi x 5^2 x 5" },
+        { "what": "measurements.through_all", "equal_to": false, "why": "the depth alone makes it blind" } ] }
+  ]
+}

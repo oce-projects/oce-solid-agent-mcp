@@ -313,6 +313,26 @@ namespace Oce.Solid.Agent.Bench
             // the contract checks verify in the abstract.
             _pretendWithoutSolidWorks = arguments.Remove("--pretend-no-solidworks");
 
+            // `--leash-ms <n>`: the leash of THIS run, in milliseconds (at least
+            // 1000). The leash at 90 s fires after hours and cannot be provoked;
+            // with `--leash-ms 1500 --group <a small one>` the first call that
+            // lasts more than a second and a half stops the run, and the report
+            // of the guardian (what SOLIDWORKS was doing, the slowest calls) can
+            // be read with one's own eyes. Never on a full run: it stops it.
+            int leashAt = arguments.IndexOf("--leash-ms");
+            if (leashAt >= 0 && leashAt + 1 < arguments.Count)
+            {
+                int ms;
+                if (!int.TryParse(arguments[leashAt + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out ms) || ms < 1000)
+                {
+                    Console.WriteLine("--leash-ms wants a whole number of milliseconds, at least 1000: «" +
+                                      arguments[leashAt + 1] + "» is not one.");
+                    return 2;
+                }
+                Leash = new Shared.Leash(ms);
+                arguments.RemoveRange(leashAt, 2);
+            }
+
             // `--group <names>`: a single family of checks, while working.
             //
             // ── WHY IT EXISTS (entry F13) ─────────────────────────────────
@@ -545,7 +565,24 @@ namespace Oce.Solid.Agent.Bench
             Log("SolidWorks " + _sw.RevisionNumber() +
                    ", library " + _addin.GetName().Version +
                    (_slow ? ", with --slow" : "") +
-                   (chosen == null ? "" : ", ONLY the groups " + string.Join(", ", chosen)));
+                   (chosen == null ? "" : ", ONLY the groups " + string.Join(", ", chosen)) +
+                   // The templates from a local copy (library 0.179.1, OCE_LOCAL_COPIES): a run
+                   // that opens other files than the workstation must say so in its first line.
+                   (string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable("OCE_LOCAL_COPIES"))
+                       ? "" : ", templates from the local copy " + System.Environment.GetEnvironmentVariable("OCE_LOCAL_COPIES")) +
+                   // The sequence of API calls (bridge 0.157.2): a run with it and a run
+                   // without it are two different measures, and the first line says which.
+                   (ApiSequenceWanted() ? ", API sequence on" : ", API sequence OFF (OCE_API_SEQUENCE)"));
+
+            // THE LIBRARY'S OWN PHASES (bridge 0.157.4). PhaseClock collects only on a thread
+            // that called Begin: the bridge does it for every call, the bench now once for the
+            // whole run, on this thread, where the cases run. Its totals («state.edges»,
+            // «mate.direction_test», «drawing.new_document», ...) are printed with the
+            // bench's own phases. A library older than PhaseClock has none: nothing is added.
+            _phaseClock = ReflectionLog.Global.TypeIn(_addin, NS + "PhaseClock");
+            MethodInfo beginClock = _phaseClock == null ? null
+                : ReflectionLog.Global.Method(_phaseClock, "Begin", BindingFlags.Public | BindingFlags.Static);
+            try { if (beginClock != null) beginClock.Invoke(null, null); } catch { }
 
             // ── `--mutate` IS A RUN OF ITS OWN ─────────────────────────────
             //
@@ -677,6 +714,10 @@ namespace Oce.Solid.Agent.Bench
             CheckCountPerGroup();
             CheckTheTestIdentities();
             CheckTheReflectionLog();
+            Console.WriteLine(Slowest());
+            var phases = Phases();
+            Console.WriteLine(phases);
+            Log(phases);
 
             var summary =
                 (notLaunched.Count > 0
@@ -1705,7 +1746,7 @@ namespace Oce.Solid.Agent.Bench
             int closed = 0;
             foreach (var n in names)
             {
-                try { _sw.CloseDoc(n); closed++; }
+                try { CloseTitle(n); closed++; }
                 catch { }
             }
 
@@ -2554,20 +2595,26 @@ namespace Oce.Solid.Agent.Bench
             if (docState == null) docState = ReadObjectState(doc);
             var run = _tOperations.GetMethod("Run",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            object objectState = docState is Dictionary<string, object> ? ReadObjectState(doc) : docState;
+            // Given the dictionary only, the object is read again: a phase of its own, so the
+            // table says how many steps still pay a second reading (bridge 0.157.2).
+            object objectState = docState is Dictionary<string, object>
+                ? ReadObjectState(doc, "read state again before the step") : docState;
 
             // THE LEASH (entry K18): it announces what it is about to do,
             // and says when it came back. The guardian watches from outside.
             Leash.Begin(operation, DateTime.Now);
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             object outcome;
             try
             {
-                outcome = run.Invoke(op, new object[]
+                outcome = InSequence(() => run.Invoke(op, new object[]
                 {
                     doc, operation, arguments, objectState, null,
-                });
+                }));
             }
             finally { Leash.Finished(); }
+            Lasted(operation, clock.ElapsedMilliseconds);
+            Phase("call " + operation, clock.ElapsedMilliseconds);
             bool succeeded = (bool)_tOutcome.GetField("Succeeded").GetValue(outcome);
             if (!succeeded)
             {
@@ -2587,11 +2634,32 @@ namespace Oce.Solid.Agent.Bench
             }
             catch { }
 
-            try { doc.EditRebuild3(); } catch { }
-            return _tOutcome.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
+            // THE SAME AFTER-STEP AS THE PLAN (report 8cd843 N34, round 9): the bench
+            // rebuilt on its own with EditRebuild3, so it could not see what the plan
+            // executor does after a step. A library older than SwOperations.AfterStep
+            // does not have it, and then the bench rebuilds as before.
+            var measured = _tOutcome.GetField("Measurements").GetValue(outcome) as Dictionary<string, object>;
+            var afterStep = _tOperations.GetMethod("AfterStep", BindingFlags.Public | BindingFlags.Static);
+            // Timed and inside the sequence of API calls (bridge 0.157.2); the calls
+            // stay written as the N34 contract reads them.
+            var afterClock = System.Diagnostics.Stopwatch.StartNew();
+            InSequence(() =>
+            {
+                if (afterStep != null)
+                {
+                    try { afterStep.Invoke(null, new object[] { doc, operation, measured }); } catch { }
+                }
+                else
+                {
+                    try { doc.EditRebuild3(); } catch { }
+                }
+                return true;
+            });
+            Phase("after step", afterClock.ElapsedMilliseconds);
+            return measured;
         }
 
-        private static object ReadObjectState(IModelDoc2 doc)
+        private static object ReadObjectState(IModelDoc2 doc, string phase = "read state")
         {
             var read = _tState.GetMethod("Read",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
@@ -2602,15 +2670,28 @@ namespace Oce.Solid.Agent.Bench
             // datum stops being an extra: a view attaches to the
             // path of an open document, and if it is not seen it cannot
             // be named.
-            return read.Invoke(null, new object[] { doc, _sw });
+            return Timed(phase, () => InSequence(() => read.Invoke(null, new object[] { doc, _sw })));
         }
 
         private static Dictionary<string, object> ReadState(IModelDoc2 doc)
         {
-            var docState = ReadObjectState(doc);
+            object ignored;
+            return ReadState(doc, out ignored);
+        }
+
+        /// <summary>
+        /// The state, and the object it was read into (bridge 0.157.2). The object
+        /// is what `Run` hands to the operation: given back to `Run` while the
+        /// document has not changed, the operation gets the same reading the
+        /// dictionary describes, and `Run` does not read the whole state a second
+        /// time just before the step (run g22_5: every step read it twice).
+        /// </summary>
+        private static Dictionary<string, object> ReadState(IModelDoc2 doc, out object raw)
+        {
+            raw = ReadObjectState(doc);
             var data = _tState.GetProperty("Data",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            return data.GetValue(docState) as Dictionary<string, object>;
+            return data.GetValue(raw) as Dictionary<string, object>;
         }
 
         /// <summary>
@@ -2638,7 +2719,8 @@ namespace Oce.Solid.Agent.Bench
             var limit = tFilter.GetField("Limit", BindingFlags.Public | BindingFlags.Instance);
             if (most == null || limit == null) return null;
             limit.SetValue(filter, most.GetRawConstantValue());
-            var docState = readFaces.Invoke(null, new object[] { doc, _sw, false, filter });
+            var docState = Timed("read state, every face",
+                () => InSequence(() => readFaces.Invoke(null, new object[] { doc, _sw, false, filter })));
             var data = _tState.GetProperty("Data",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             return data.GetValue(docState) as Dictionary<string, object>;
@@ -2865,12 +2947,29 @@ namespace Oce.Solid.Agent.Bench
         private static readonly Dictionary<string, string> _localModels =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        // ── AND A COPY THAT IS GONE IS COPIED AGAIN (bridge 0.170.14, 3/11/2026) ──
+        //
+        // The full bench of 0.170.13 begun at 12:34:33 lost every new assembly from 1608.8 s on:
+        // 27 times «SOLIDWORKS did not produce the new assembly to test on (it answered null)»,
+        // 26 bench errors, and the copy of the assembly template (.asmdot) no longer in
+        // %TEMP%\bench-models. At 13:00:00 a scheduled cleaner of %TEMP% of this workstation had
+        // run (its log: 369 deleted, 1 failed): it deletes what has not been modified for 3 days,
+        // and File.Copy keeps the time of the original (9/9/2026 for the part template, .prtdot),
+        // so the fresh copies looked abandoned. The part template stayed. Now the copy takes the
+        // time of now, and a copy that is no
+        // longer there when it is asked for is copied again, and it is said.
         internal static string LocalModel(string its)
         {
             if (string.IsNullOrWhiteSpace(its)) return its;
 
             string already;
-            if (_localModels.TryGetValue(its, out already)) return already;
+            if (_localModels.TryGetValue(its, out already))
+            {
+                if (string.Equals(already, its, StringComparison.OrdinalIgnoreCase) || File.Exists(already))
+                    return already;
+                Console.WriteLine("  the local copy " + already + " is gone: I copy the model again");
+                _localModels.Remove(its);
+            }
 
             string arrival = its;
             try
@@ -2881,6 +2980,7 @@ namespace Oce.Solid.Agent.Bench
                     Directory.CreateDirectory(folder);
                     var copy = Path.Combine(folder, Path.GetFileName(its));
                     File.Copy(its, copy, true);
+                    File.SetLastWriteTime(copy, DateTime.Now);
                     arrival = copy;
                     Console.WriteLine("  model copied locally: " +
                                       Path.GetFileName(its) + " -> " + folder);
@@ -2957,8 +3057,433 @@ namespace Oce.Solid.Agent.Bench
         // would turn a slow check into a false alarm, and a false
         // alarm switches the guardian off the next day.
         // ══════════════════════════════════════════════════════════════
-        internal static readonly Shared.Leash Leash =
+        internal static Shared.Leash Leash =
             new Shared.Leash(90000);
+
+        // THE SLOWEST CALLS OF THE RUN (27/10/2026). The first full bench after
+        // brief R11 stopped at 94 s on «spur_gear» after almost four hours; alone,
+        // on the same SOLIDWORKS right after, the same call took 19.8 s. Nothing
+        // in the run said how long the other calls had lasted, so nothing said
+        // whether SOLIDWORKS had been slowing down for hours or had stopped at
+        // once. The ten slowest, with the time of day, are written before the
+        // summary and by the guardian when it stops the run.
+        // A class of its own and not KeyValuePair: the contract checks count
+        // every «.Value» on a receiver they cannot type.
+        private sealed class SlowCall
+        {
+            internal string Call;
+            internal long Ms;
+        }
+
+        private static List<SlowCall> _slowest = new List<SlowCall>();
+        private static readonly object _slowestKey = new object();
+        private static int _callsTimed;
+
+        private static void Lasted(string what, long ms)
+        {
+            lock (_slowestKey)
+            {
+                _callsTimed++;
+                // A local list and not the field: an «Add» on a field of type
+                // List<T> is a call the language checks cannot decide.
+                var all = new List<SlowCall>(_slowest);
+                all.Add(new SlowCall
+                {
+                    Call = what + " at " + DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
+                    Ms = ms,
+                });
+                all.Sort((a, b) => b.Ms.CompareTo(a.Ms));
+                if (all.Count > 10) all.RemoveRange(10, all.Count - 10);
+                _slowest = all;
+            }
+        }
+
+        private static string Slowest()
+        {
+            lock (_slowestKey)
+            {
+                var lines = new List<string>();
+                lines.Add("slowest calls of the run (" + _callsTimed + " timed):");
+                foreach (var s in _slowest)
+                    lines.Add("    " + (s.Ms / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + " s  " + s.Call);
+                return string.Join(System.Environment.NewLine, lines);
+            }
+        }
+
+        // WHERE THE TIME OF A RUN GOES (bridge 0.157.2, 29/10/2026). The ten slowest
+        // calls say which call was slow, not where the hours of a run go: on run g22_5
+        // (29/10/2026, 6,696 s) the work around each call — the state read twice, the
+        // volume, the after-step, the documents of each case — was never measured, and
+        // the time of a step could only be deduced from the diary. Each phase adds its
+        // milliseconds here; «call <operation>» is the operation alone. The table is
+        // printed after the slowest calls and written to the log.
+        private sealed class PhaseTime
+        {
+            internal long Ms;
+            internal int Times;
+        }
+
+        private static readonly Dictionary<string, PhaseTime> _phases = new Dictionary<string, PhaseTime>();
+
+        /// <summary>The library's PhaseClock, or null when the library has none (bridge 0.157.4).</summary>
+        private static Type _phaseClock;
+
+        // A class of its own and not KeyValuePair, as SlowCall: the contract checks
+        // count every «.Value» on a receiver they cannot type.
+        private sealed class LibraryPhase
+        {
+            internal string Name;
+            internal double Ms;
+            internal int Times;
+        }
+
+        // THE PHASES OF EACH CASE (bridge 0.159.2, 30/10/2026). The table of the run says
+        // where the whole run goes, not which case: in the A/B of libraries 0.180.0 and
+        // 0.181.0 (29/10/2026) cut_list_in_the_drawing took 45.1 s up to its first check
+        // instead of 12.5-14.3 s, in one run out of eight, and about 27 of those seconds
+        // fell in no phase that the totals of the run could point at. Between
+        // CasePhasesBegin and CasePhasesEnd every phase is added here too, and the end
+        // writes ONE line to the journal:
+        //   «TIME <case> <total> s | <phase> <s> x<times> | ... | inside them: ... |
+        //    outside the phases <s>».
+        // A phase is «inside» when it is recorded while a Timed phase is running (the new
+        // document inside the preparation): the outer phase already counts it, and adding
+        // it again would invent time. Null outside a case.
+        private static Dictionary<string, PhaseTime> _casePhases;
+        private static Dictionary<string, PhaseTime> _caseInner;
+        private static System.Diagnostics.Stopwatch _caseClock;
+        private static int _timedDepth;
+
+        private static void Phase(string what, long ms)
+        {
+            lock (_slowestKey)
+            {
+                PhaseTime p;
+                if (!_phases.TryGetValue(what, out p))
+                {
+                    p = new PhaseTime();
+                    _phases[what] = p;
+                }
+                p.Ms += ms;
+                p.Times++;
+                if (_casePhases != null && _caseInner != null)
+                {
+                    var into = _timedDepth > 0 ? _caseInner : _casePhases;
+                    PhaseTime c;
+                    if (!into.TryGetValue(what, out c))
+                    {
+                        c = new PhaseTime();
+                        into[what] = c;
+                    }
+                    c.Ms += ms;
+                    c.Times++;
+                }
+            }
+        }
+
+        private static T Timed<T>(string phase, Func<T> work)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            _timedDepth++;
+            try { return work(); }
+            finally
+            {
+                _timedDepth--;
+                Phase(phase, clock.ElapsedMilliseconds);
+            }
+        }
+
+        private static void CasePhasesBegin()
+        {
+            lock (_slowestKey)
+            {
+                _casePhases = new Dictionary<string, PhaseTime>();
+                _caseInner = new Dictionary<string, PhaseTime>();
+                _caseClock = System.Diagnostics.Stopwatch.StartNew();
+            }
+        }
+
+        private static void CasePhasesEnd(string itemName)
+        {
+            string line;
+            lock (_slowestKey)
+            {
+                if (_casePhases == null || _caseInner == null || _caseClock == null) return;
+                long total = _caseClock.ElapsedMilliseconds;
+                long counted = 0;
+                var outer = new List<string>();
+                foreach (var name in _casePhases.Keys.OrderByDescending(k => _casePhases[k].Ms).ToList())
+                {
+                    PhaseTime p = _casePhases[name];
+                    counted += p.Ms;
+                    outer.Add(name + " " + Seconds(p.Ms) + " x" + p.Times.ToString(CultureInfo.InvariantCulture));
+                }
+                var inner = new List<string>();
+                foreach (var name in _caseInner.Keys.OrderByDescending(k => _caseInner[k].Ms).ToList())
+                {
+                    PhaseTime p = _caseInner[name];
+                    inner.Add(name + " " + Seconds(p.Ms) + " x" + p.Times.ToString(CultureInfo.InvariantCulture));
+                }
+                line = "TIME " + itemName + " " + Seconds(total) + " s | " + string.Join(" | ", outer) +
+                       (inner.Count > 0 ? " | inside them: " + string.Join(", ", inner) : "") +
+                       " | outside the phases " + Seconds(total - counted);
+                _casePhases = null;
+                _caseInner = null;
+                _caseClock = null;
+            }
+            Log(line);
+        }
+
+        private static string Seconds(long ms)
+        {
+            return (ms / 1000.0).ToString("0.0", CultureInfo.InvariantCulture);
+        }
+
+        private static string Phases()
+        {
+            lock (_slowestKey)
+            {
+                var lines = new List<string>();
+                lines.Add("time by phase of the run (seconds, times, phase):");
+                foreach (var name in _phases.Keys.OrderByDescending(k => _phases[k].Ms).ToList())
+                {
+                    PhaseTime p = _phases[name];
+                    lines.Add("    " + (p.Ms / 1000.0).ToString("0.0", CultureInfo.InvariantCulture).PadLeft(8) +
+                              " s " + p.Times.ToString(CultureInfo.InvariantCulture).PadLeft(6) + "  " + name);
+                }
+                // The library's phases, read on this thread (the one that called Begin).
+                Dictionary<string, object> library = null;
+                MethodInfo totals = _phaseClock == null ? null
+                    : ReflectionLog.Global.Method(_phaseClock, "Totals", BindingFlags.Public | BindingFlags.Static);
+                try { if (totals != null) library = totals.Invoke(null, null) as Dictionary<string, object>; }
+                catch { }
+                if (library != null && library.Count > 0)
+                {
+                    lines.Add("library phases (PhaseClock, seconds, times, phase):");
+                    var rows = new List<LibraryPhase>();
+                    foreach (string phase in library.Keys)
+                    {
+                        var slot = library[phase] as Dictionary<string, object>;
+                        if (slot == null) continue;
+                        rows.Add(new LibraryPhase
+                        {
+                            Name = phase,
+                            Ms = Convert.ToDouble(slot["ms"], CultureInfo.InvariantCulture),
+                            Times = Convert.ToInt32(slot["n"], CultureInfo.InvariantCulture),
+                        });
+                    }
+                    rows.Sort((x, y) => y.Ms.CompareTo(x.Ms));
+                    foreach (LibraryPhase row in rows)
+                        lines.Add("    " + (row.Ms / 1000.0).ToString("0.0", CultureInfo.InvariantCulture).PadLeft(8) +
+                                  " s " + row.Times.ToString(CultureInfo.InvariantCulture).PadLeft(6) + "  " + row.Name);
+                }
+                return string.Join(System.Environment.NewLine, lines);
+            }
+        }
+
+        // THE SEQUENCE OF API CALLS, ANNOUNCED AS THE BRIDGE ANNOUNCES IT (bridge 0.157.2).
+        //
+        // The bridge sets ISldWorks.CommandInProgress around every call since 0.130.2
+        // (Bridge/Session.cs, BeginApiSequence; ISldWorks~CommandInProgress.html: «Improves
+        // performance of out-of-process applications»), and on 26/10/2026 that was 10.58
+        // times faster on the same plan. The bench never set it: it measured SOLIDWORKS in a
+        // mode the bridge does not use. Same rule as the bridge: set only if it was false,
+        // put back only what was set here, so nested phases change nothing; the same
+        // OCE_API_SEQUENCE (0, false or off) turns it off, to measure the two ways.
+        private static T InSequence<T>(Func<T> work)
+        {
+            bool ours = false;
+            if (_sw != null && ApiSequenceWanted())
+            {
+                try
+                {
+                    if (!_sw.CommandInProgress)
+                    {
+                        _sw.CommandInProgress = true;
+                        ours = true;
+                    }
+                }
+                catch { }
+            }
+            try { return work(); }
+            finally
+            {
+                if (ours)
+                {
+                    try { _sw.CommandInProgress = false; } catch { }
+                }
+            }
+        }
+
+        // THE TREE AND THE GRAPHICS OFF FOR THE STEPS OF A CASE (bridge 0.158.0), as the
+        // plan executor turns them off for a plan when OCE_UI_FREEZE asks for it (library
+        // 0.180.0, UiFreeze). By reflection, like the reading: a library older than
+        // UiFreeze has none, and then the case runs as before. Timed, so the table says
+        // what turning them off and back on costs.
+        private static IDisposable _freeze;
+
+        private static void FreezeOn(IModelDoc2 doc)
+        {
+            FreezeOff();
+            Assembly library = _tState.Assembly;
+            var tFreeze = library.GetType("Oce.Solid.Agent.Core.UiFreeze");
+            var begin = tFreeze == null ? null : tFreeze.GetMethod("Begin", BindingFlags.Public | BindingFlags.Static);
+            if (begin == null || doc == null) return;
+            _freeze = Timed("ui freeze", () => InSequence(() => begin.Invoke(null, new object[] { doc }))) as IDisposable;
+        }
+
+        private static void FreezeOff()
+        {
+            var thaw = _freeze;
+            _freeze = null;
+            if (thaw != null) Timed("ui thaw", () => InSequence(() => { thaw.Dispose(); return true; }));
+        }
+
+        // THE STATE OF EVERY STEP WRITTEN TO A FILE (bridge 0.158.0), when OCE_BENCH_STATE_DUMP
+        // names a folder: «<case>__<step>.json», step 00 being the reading before the first
+        // step. Two runs that differ in one setting are then compared field by field
+        // (by a script outside the repository, RAG note 94), so a change that makes the bench faster also says how
+        // much of the state it changed. A file that cannot be written is said and the case
+        // goes on: a dump is never a check.
+        private static void DumpState(string itemName, int step, Dictionary<string, object> state)
+        {
+            var folder = System.Environment.GetEnvironmentVariable("OCE_BENCH_STATE_DUMP");
+            if (string.IsNullOrWhiteSpace(folder) || state == null) return;
+            try
+            {
+                System.IO.Directory.CreateDirectory(folder);
+                var name = itemName;
+                foreach (var bad in System.IO.Path.GetInvalidFileNameChars()) name = name.Replace(bad, '_');
+                var s = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                // WriteAllText without an encoding writes UTF-8 without a BOM.
+                System.IO.File.WriteAllText(
+                    System.IO.Path.Combine(folder, name + "__" + step.ToString("00", CultureInfo.InvariantCulture) + ".json"),
+                    s.Serialize(state));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("       | state of step " + step + " not written: " + ex.Message);
+            }
+        }
+
+        /// <summary>What `OCE_API_SEQUENCE` means, as in Bridge/Session.cs: on unless `0`, `false` or `off`.</summary>
+        private static bool ApiSequenceWanted()
+        {
+            return Wanted("OCE_API_SEQUENCE");
+        }
+
+        /// <summary>True unless the variable says 0, false or off.</summary>
+        private static bool Wanted(string variable)
+        {
+            var v = System.Environment.GetEnvironmentVariable(variable);
+            if (string.IsNullOrWhiteSpace(v)) return true;
+            v = v.Trim();
+            return !(v == "0" ||
+                     string.Equals(v, "false", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(v, "off", StringComparison.OrdinalIgnoreCase));
+        }
+
+        // THE OBJECTS OF A CALL ARE LET GO, AS THE BRIDGE LETS THEM GO (bridge 0.159.7).
+        //
+        // The bridge collects the garbage after every tools/call (Program.cs,
+        // ReleaseSolidWorksObjects, bridge 0.152.6) and keeps no reading between two calls:
+        // Session.State hands back the dictionary only. When the wrappers of faces, edges and
+        // curves are finalized, SOLIDWORKS throws away the geometry it had evaluated for them,
+        // and the next reading evaluates it again. Measured on 30/10/2026 with a probe outside
+        // the repository (RAG note 95), a welded frame read with no rebuild: about 150 ms with
+        // no collection between two readings, about 2,100 ms after one, 8 readings of 8. The
+        // bench never collected: it measured warm readings the bridge never makes, and turned
+        // cold only where the collector happened to run — noise in its times. Now every step
+        // starts as a call of the bridge starts: nothing of the previous reading kept, the
+        // garbage collected. OCE_BENCH_RELEASE (0, false or off) turns it off, to measure the
+        // two ways.
+        //
+        // AND NOTHING IS RELEASED WHILE THE STEP RUNS (bridge 0.160.2, see Shared.FinalizerGate):
+        // the bridge holds the finalizer thread for the whole call, so the bench holds it from
+        // here to the next step. The gate is opened first, or the collection would wait for the
+        // finalizers for ever; RunSteps opens it when the case ends. OCE_FINALIZER_GATE (0, false
+        // or off) leaves it open, as in the bridge.
+        private static void ReleaseAsTheBridge()
+        {
+            if (!Wanted("OCE_BENCH_RELEASE")) return;
+            Shared.FinalizerGate.Open();
+            Timed("release objects as the bridge", () =>
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                return true;
+            });
+            if (Shared.FinalizerGate.Wanted && !Shared.FinalizerGate.Close(2000))
+                Console.WriteLine("  the finalizer thread was not held within 2000 ms: a SOLIDWORKS object may be released while this step runs");
+        }
+
+        /// <summary>Whether <see cref="ReleaseAsTheBridge"/> runs (OCE_BENCH_RELEASE).</summary>
+        private static bool ReleaseWanted()
+        {
+            return Wanted("OCE_BENCH_RELEASE");
+        }
+
+        /// <summary>
+        /// WHAT SOLIDWORKS IS DOING WHILE A CALL DOES NOT COME BACK (27/10/2026).
+        /// The leash says which call and for how long; it cannot say whether
+        /// SOLIDWORKS is still working on it (a slow call: processor) or waits
+        /// for something (a window, a lock, the network: no processor). The
+        /// processor time of SLDWORKS is read twice, five seconds apart, with
+        /// «Responding» and its visible windows: a modal shows up there by its
+        /// title. Raw numbers first; the reading of them can be wrong: below half
+        /// a second of processor in five seconds it is called idle.
+        /// </summary>
+        private static string WhatSolidWorksIsDoing()
+        {
+            System.Diagnostics.Process[] all;
+            try { all = System.Diagnostics.Process.GetProcessesByName("SLDWORKS"); }
+            catch (Exception ex) { return "the SOLIDWORKS processes cannot be read: " + ex.Message; }
+            if (all.Length == 0) return "no SLDWORKS process is running";
+            var lines = new List<string>();
+            foreach (var p in all)
+            {
+                try
+                {
+                    var before = p.TotalProcessorTime;
+                    System.Threading.Thread.Sleep(5000);
+                    p.Refresh();
+                    long cpuMs = (long)(p.TotalProcessorTime - before).TotalMilliseconds;
+                    lines.Add("SOLIDWORKS pid " + p.Id + ": processor " + cpuMs + " ms in 5 s (" +
+                              (cpuMs >= 500 ? "busy: the call is slow" : "idle: the call waits for something") +
+                              "), responding " + p.Responding + ", visible windows: " + VisibleWindowsOf((uint)p.Id));
+                }
+                catch (Exception ex) { lines.Add("SOLIDWORKS pid " + p.Id + " cannot be read: " + ex.Message); }
+            }
+            return string.Join(System.Environment.NewLine, lines);
+        }
+
+        // Buffers of char and not StringBuilder: the contract checks count the
+        // name of its namespace, written in full, as a call they cannot decide.
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetWindowTextW", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int TitleOf(IntPtr h, char[] buffer, int size);
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int ClassOf(IntPtr h, char[] buffer, int size);
+
+        /// <summary>Class and title of the visible top-level windows of a process, at most eight.</summary>
+        private static string VisibleWindowsOf(uint pid)
+        {
+            var found = new List<string>();
+            EnumWindows((h, l) =>
+            {
+                uint its;
+                GetWindowThreadProcessId(h, out its);
+                if (its != pid || !IsWindowVisible(h)) return true;
+                var kind = new char[64];
+                int kindLength = ClassOf(h, kind, kind.Length);
+                var title = new char[256];
+                int titleLength = TitleOf(h, title, title.Length);
+                found.Add(new string(kind, 0, Math.Max(0, kindLength)) + " «" +
+                          new string(title, 0, Math.Max(0, titleLength)) + "»");
+                return found.Count < 8;
+            }, IntPtr.Zero);
+            return found.Count == 0 ? "none" : string.Join("; ", found);
+        }
 
         private static System.Threading.Thread _guardian;
 
@@ -2991,9 +3516,16 @@ namespace Oce.Solid.Agent.Bench
                     Console.WriteLine(report);
                     Console.WriteLine("INVALID RUN: it stopped here, and " +
                                       "what comes after was not tried.");
+                    Console.Out.Flush();
+                    var doing = WhatSolidWorksIsDoing();
+                    var slowest = Slowest();
+                    Console.WriteLine(doing);
+                    Console.WriteLine(slowest);
                     Console.WriteLine(new string('!', 76));
                     Console.Out.Flush();
                     Log(report);
+                    Log(doing);
+                    Log(slowest);
                     // `System.Environment` in full: SOLIDWORKS's interop
                     // has an `Environment` of its own, and without the whole name the
                     // compiler does not know which of the two.
@@ -3019,6 +3551,7 @@ namespace Oce.Solid.Agent.Bench
             // operation: `NewDocument` reading the template from a
             // network share. The leash serves above all here.
             Leash.Begin("NewDocument (the document template)", DateTime.Now);
+            var newClock = System.Diagnostics.Stopwatch.StartNew();
             IModelDoc2 born;
             try
             {
@@ -3027,6 +3560,8 @@ namespace Oce.Solid.Agent.Bench
                     : _sw.NewDocument(tpl, 0, 0, 0) as IModelDoc2;
             }
             finally { Leash.Finished(); }
+            Lasted("NewDocument", newClock.ElapsedMilliseconds);
+            Phase("new document", newClock.ElapsedMilliseconds);
 
             if (born != null) { Sentinel.Succeeded(); return born; }
 
@@ -3094,10 +3629,61 @@ namespace Oce.Solid.Agent.Bench
             return planes;
         }
 
+        /// <summary>
+        /// RELEASE BEFORE CLOSING, AS THE BRIDGE DOES (bridge 0.170.13, 3/11/2026).
+        ///
+        /// SOLIDWORKS faults when the last reference to a co-edge read from a drawing view is
+        /// released after that drawing is closed: an access violation in slduiu.dll at offset
+        /// 0x94d513, inside the remote Release (combase!CRemoteUnknown::RemReleaseWorker). COM
+        /// catches it and reports it in silence: 86 entries of the Application log from 26/9/2026 to
+        /// 3/11/2026. The co-edges of view edges are read by IsAVisibleHole (center marks), and by
+        /// the drawing dimensions and the drawing rounds. On 3/11/2026 the report did not end: the
+        /// main thread of SOLIDWORKS stayed in it, and the full bench stopped with exit 5 («THE
+        /// CALL DOES NOT COME BACK»).
+        ///
+        /// Measured the same day. The group bare-views alone gave the violation 2 runs of 2, in the
+        /// second the bench exited; with bare-views + client-port and OCE_BENCH_RELEASE=0, 2 of 2,
+        /// again at the exit; with the release on, 2 of 2 in the middle of client-port, at its first
+        /// collection. A probe outside the repository (a box, one view, the 8 co-edges of its 4
+        /// edges, SOLIDWORKS restarted before every scene): released after the close, the
+        /// violation in 3 scenes of 3, the release took 5065 to 5220 ms; released before the close,
+        /// 0 of 3, 21 to 26 ms. The 4 edges themselves released after the close: 0 of 2.
+        ///
+        /// The bridge never does it: it collects after every call, and before a «document» call it
+        /// lets go what it still holds, so a document is closed with nothing of it left in the
+        /// bridge. The groups of the bench written in C#, and the cases at their end, closed their
+        /// documents with the wrappers of the last operation still waiting for a collection.
+        /// Every close of the bench goes through here: the garbage collected first, with the
+        /// finalizer gate open (closed, the wait would never end), and closed again if it was.
+        /// It does not depend on OCE_BENCH_RELEASE: it keeps SOLIDWORKS standing, it does not
+        /// imitate a timing of the bridge.
+        /// </summary>
+        private static void ReleaseBeforeClosing()
+        {
+            bool held = Shared.FinalizerGate.IsClosed;
+            Shared.FinalizerGate.Open();
+            Timed("release before closing", () =>
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                return true;
+            });
+            if (held && !Shared.FinalizerGate.Close(2000))
+                Console.WriteLine("  the finalizer thread was not held again within 2000 ms after the release before closing");
+        }
+
+        /// <summary>`ISldWorks.CloseDoc(title)` after <see cref="ReleaseBeforeClosing"/>: the only CloseDoc of the bench.</summary>
+        private static void CloseTitle(string title)
+        {
+            ReleaseBeforeClosing();
+            _sw.CloseDoc(title);
+        }
+
         private static void Close(IModelDoc2 doc)
         {
             if (doc == null) return;
-            try { _sw.CloseDoc(doc.GetTitle()); } catch { }
+            try { CloseTitle(doc.GetTitle()); } catch { }
         }
 
         private static void Plate(IModelDoc2 doc, double L, double W, double H)

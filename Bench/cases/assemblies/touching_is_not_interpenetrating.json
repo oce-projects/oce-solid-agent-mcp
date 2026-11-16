@@ -38,6 +38,11 @@
           "why": "**THE SAME ASSEMBLY, AT THE SAME INSTANT, WITH ANOTHER QUESTION.** Zero in the previous step, one now: the argument changes the verdict, and it is the only way to show it. Two parts that share a face are well assembled if they are a cover, and are a part that does not fit if they are a shaft in a hole." },
         { "what": "measurements.touching_counts", "equal_to": true,
           "why": "and the answer says with which of the two questions it was given" },
+        { "what": "measurements.contacts", "equal_to": 1,
+          "why": "**THE ONE IT FOUND IS A CONTACT, NOT A VOLUME** (report 8cd843 N15, 27/10/2026): the faces that touch come as a sheet body, and up to library 0.169.0 its mass properties were read as a volume -- 368475 mm3 on the clip assembly, «one part inside the other»." },
+        { "what": "measurements.volume_total_mm3", "equal_to": 0, "tolerance": 0.001,
+          "tolerance_why": "the answer rounds each volume to the thousandth of mm3: a contact adds exactly 0, and anything above the rounding is a volume that is not there",
+          "why": "two plates that touch share no volume: the total that the verdict reads is zero" },
         { "what": "state.how_many_components", "equal_to": 2,
           "why": "two calls in a row and the assembly is still what it was: the check touches nothing, and the detection is switched off after every run. If it stayed on, the document would stay in interference mode for whoever opens it afterwards." } ] }
   ]

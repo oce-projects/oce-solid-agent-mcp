@@ -5,6 +5,7 @@ using System.Text;
 using Oce.Solid.Agent.Mcp;
 using Oce.Solid.Agent.Bridge;
 using Oce.Solid.Agent.Tools;
+using Shared;
 
 namespace Oce.Solid.Agent
 {
@@ -62,10 +63,65 @@ namespace Oce.Solid.Agent
             return "unknown";
         }
 
+        /// <summary>
+        /// The warning for an executable on a network drive, or null (brief R14).
+        ///
+        /// Windows maps the executable and its libraries into memory from where
+        /// they are, and reads their pages again when it needs them. From a
+        /// network drive a page that cannot be read in that moment is an
+        /// EXCEPTION_IN_PAGE_ERROR, which .NET raises as a SEHException that no
+        /// `catch` sees: the process ends. It is the most likely cause of the
+        /// crash of 25/10/2026 (bridge started from a network share, first
+        /// `api_search` after 22 idle minutes); it was not reproduced.
+        /// </summary>
+        internal static string NetworkLocation(string path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(path)) return null;
+                bool network = path.StartsWith(@"\", StringComparison.Ordinal);
+                if (!network)
+                {
+                    var root = Path.GetPathRoot(path);
+                    network = !string.IsNullOrEmpty(root) &&
+                              new DriveInfo(root).DriveType == DriveType.Network;
+                }
+                return network
+                    ? "the bridge runs from a network drive (" + Path.GetDirectoryName(path) + "): if the " +
+                      "network drops while Windows reads a page of the program, the bridge ends without " +
+                      "an answer. Install it on a local disk (Installer.exe) and point the client there."
+                    : null;
+            }
+            catch { return null; }
+        }
+
         private static int Main(string[] arguments)
         {
             Console.OutputEncoding = new UTF8Encoding(false);
             Console.InputEncoding = new UTF8Encoding(false);
+
+            // THE BRIDGE'S OWN LOG, before anything can go wrong (brief R24).
+            CallLog.Start(Version);
+
+            // A CRASH LEAVES ITS CAUSE IN THE LOG (brief R14). On 25/10/2026 the
+            // bridge died of a SEHException inside `api_search`, the client
+            // said «Connection closed», and the cause was found only in the
+            // Windows event log. An exception of that kind (a corrupted-state
+            // exception) is not caught by the loop's `catch`: this handler is
+            // the last place where it can at least be written down.
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                try { Protocol.Note("[bridge] crashed: " + e.ExceptionObject); } catch { }
+            };
+
+            // FROM A NETWORK DRIVE THE BRIDGE CAN DIE OF THE NETWORK (brief R14).
+            var fromNetwork = NetworkLocation(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (fromNetwork != null) Protocol.Note("[bridge] " + fromNetwork);
+            Oce.Solid.Agent.Core.PlanExecutor.GuardianReport = text =>
+            {
+                Console.Error.WriteLine(text);
+                CallLog.Note(text);
+            };
 
             var session = new Session();
             var reason = session.Attach();
@@ -126,6 +182,20 @@ namespace Oce.Solid.Agent
                 // is listening: they would find an answer they were not expecting.
                 bool isNotification = !message.ContainsKey("id");
 
+                // NO DOCUMENT CHANGES WHILE A READING IS HELD (bridge 0.160.0, see
+                // Session.ForgetKeptReading): with OCE_KEEP_LAST_READING=1 the last reading keeps
+                // faces and edges alive; before a «document» call it is let go and collected, so a
+                // document is closed with nothing of it held, as without the switch.
+                if (method == "tools/call" && IsDocumentCall(parameters) && session.ForgetKeptReading())
+                    ReleaseSolidWorksObjects();
+
+                // NO SOLIDWORKS OBJECT IS RELEASED WHILE THE CALL RUNS (bridge 0.160.2, see
+                // Shared.FinalizerGate): the finalizer thread is held from here to the answer, and
+                // what a collection finds dead meanwhile is released by the collection below.
+                bool gate = FinalizerGate.Wanted;
+                if (gate && !FinalizerGate.Close(GateWaitMs))
+                    Protocol.Note("[bridge] the finalizer thread was not held within " + GateWaitMs +
+                                  " ms: a SOLIDWORKS object may be released while this call runs");
                 try
                 {
                     var response = Serve(method, parameters, tools, session, catalog, id);
@@ -138,10 +208,70 @@ namespace Oce.Solid.Agent
                         Protocol.Send(output, Protocol.Error(
                             id, Protocol.InternalError, ex.Message));
                 }
+                finally { if (gate) FinalizerGate.Open(); }
+                if (method == "tools/call")
+                {
+                    // The documents of the last plan are let go first, or the collection cannot
+                    // release them (bridge 0.160.1, see Session.ForgetLastPlan).
+                    session.ForgetLastPlan();
+                    ReleaseSolidWorksObjects();
+                }
             }
 
             Protocol.Note("[bridge] closed");
             return 0;
+        }
+
+        /// <summary>
+        /// LETS SOLIDWORKS FREE WHAT A CALL TOUCHED (report 8cd843, round 14, 27/10/2026).
+        ///
+        /// Every SOLIDWORKS object the bridge reads (a document, a sheet, a view, a note)
+        /// comes to this process as a runtime callable wrapper, and SOLIDWORKS keeps the
+        /// object alive until the wrapper is finalized. The wrappers are small in this
+        /// process, so its garbage collector seldom runs, and a drawing closed through the
+        /// bridge stayed in the memory of SOLIDWORKS. Measured on a fresh SOLIDWORKS with
+        /// the same cycle (a drawing, a second sheet, save, close), 15 times:
+        /// through bridge 0.152.5 the working set of SLDWORKS went from 532 to 1094 MB in
+        /// 10 cycles and SOLIDWORKS fell painting the window of the next drawing
+        /// (uiBaseView_c::OnPaint, uiModelView_c::OnPrepareDC), at the 8th cycle in a
+        /// second run; with a collection after every call, 15 cycles and no fall, from
+        /// 537 to 812 MB; the same cycle driven without the bridge, 20 cycles and no fall,
+        /// from 660 to 746 MB. GDI (at most 2091) and USER objects (1722) were far from
+        /// their limit of 10000. It runs after the answer is sent, so the client does not
+        /// wait for it (about 0.9 s per call, measured inside the call).
+        ///
+        /// It was not enough (30/10/2026: 8 falls in 8 runs of the same cycle, bridge 0.159.10 and
+        /// 0.160.1). One hypothesis: a collection also starts by itself during a call, and the
+        /// finalizer thread then releases wrappers while SOLIDWORKS is working. Since 0.160.2 the
+        /// finalizer thread is held while a call runs (Shared.FinalizerGate), and this collection
+        /// runs with the gate open. Measured the same day, the gate does not cure the falls either
+        /// (3 falls in 3 runs with it, 3 in 3 without): it stays against the release in the middle
+        /// of a call, and the cause of the falls is elsewhere.
+        /// </summary>
+        /// <summary>
+        /// How long a call waits for the finalizer thread to be held (Shared.FinalizerGate).
+        /// After the collection of the previous call nothing is left to finalize, and it is held
+        /// at once; a finalizer thread still busy after 2 s is stuck on something else, and the
+        /// call goes on rather than wait for it.
+        /// </summary>
+        private const int GateWaitMs = 2000;
+
+        private static void ReleaseSolidWorksObjects()
+        {
+            try
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            }
+            catch (Exception ex) { Protocol.Note("[bridge] releasing the SOLIDWORKS objects of the call: " + ex.Message); }
+        }
+
+        /// <summary>True when the parameters of a tools/call name the «document» tool.</summary>
+        private static bool IsDocumentCall(Dictionary<string, object> parameters)
+        {
+            return parameters != null && parameters.TryGetValue("name", out var n) &&
+                   string.Equals(Convert.ToString(n), "document", StringComparison.Ordinal);
         }
 
         private static Dictionary<string, object> Serve(
@@ -296,8 +426,26 @@ namespace Oce.Solid.Agent
                     // `arguments`: it belongs to the PROTOCOL, not to the tool,
                     // and a generic client puts it there without knowing anything
                     // about what this bridge does.
-                    return Protocol.Response(
-                        id, tools.Invoke(itemName, itsItems, Progress.Token(parameters)));
+                    // ONE LINE OF THE BRIDGE'S LOG PER CALL (brief R24), with
+                    // the time of each phase; written also when the tool throws.
+                    var call = CallLog.Begin(itemName, itsItems, id);
+                    Dictionary<string, object> answer = null;
+                    // THE SEQUENCE IS ANNOUNCED TO SOLIDWORKS for the length of
+                    // the call (brief R2), and put back whatever happens.
+                    bool sequence = Core.PhaseClock.Time("session.api_sequence", () => session.BeginApiSequence());
+                    try
+                    {
+                        answer = tools.Invoke(itemName, itsItems, Progress.Token(parameters));
+                    }
+                    catch (Exception ex)
+                    {
+                        session.EndApiSequence(sequence);
+                        CallLog.End(call, null, ex);
+                        throw;
+                    }
+                    session.EndApiSequence(sequence);
+                    CallLog.End(call, answer, null);
+                    return Protocol.Response(id, answer);
                 }
 
                 // ── CANCELLATION, AND A NO THAT IS SAID (entry W2.2) ─────────────

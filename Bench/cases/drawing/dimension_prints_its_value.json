@@ -1,0 +1,58 @@
+{
+  "name": "dimension_prints_its_value",
+  "family": "drawing",
+  "why": "REPORT 8CD843, ROUND 21, POINT 4 (P1, 28/10/2026). On the real drawings of 26P000009 and 26P000011 an edge of 0.75 mm was printed «0,8», 1.835 «1,8», 3.535 «3,5» and 10.018 «10» (args21 009_V1, 009_V5): the template gives one decimal, and the answer said the right value in «mm» beside the wrong number in «text_shown» without a word. Now a dimension placed gets the decimals its value needs, «decimals» fixes them, and a dimension that still prints another number is listed in «rounded_on_the_sheet».",
+
+  "defect_caught": "A dimension that prints a rounded number (80.125 printed «80,1» or «80,13») answered as placed; «decimals» asked and not applied, or applied without saying the dimension it rounds; a «decimals» that cannot be used taken anyway.",
+
+  "_why_these_numbers": "80.125 needs three decimals, more than a template gives: the top view (V2) shows it beside 120. 10.25 needs two: with «decimals» 0 the front view (V1) prints it «10», and that is said.",
+
+  "start": { "new_part": true },
+  "steps": [
+    { "operation": "extrude_rectangle",
+      "arguments": { "plane": "top", "length_mm": 120, "width_mm": 80.125, "thickness_mm": 10.25, "centered": true },
+      "expect": [
+        { "what": "volume_mm3", "equal_to": 98553.75, "tolerance": 0.01,
+          "tolerance_why": "120 x 80.125 x 10.25, computed: the plate whose numbers need decimals" } ] },
+
+    { "operation": "save_document",
+      "arguments": { "path": "{WORK}\\dimension_prints_its_value.sldprt" },
+      "expect": [
+        { "what": "measurements.warnings", "equal_to": 0,
+          "why": "a drawing is made on a saved part" } ] },
+
+    { "operation": "create_drawing",
+      "arguments": { "paper_size": "A3" },
+      "expect": [ { "what": "state.kind", "equal_to": "drawing", "why": "the drawing is the active document" } ] },
+
+    { "operation": "standard_views",
+      "arguments": { "model": "{WORK}\\dimension_prints_its_value.sldprt" },
+      "expect": [ { "what": "measurements.views_created", "equal_to": 3, "why": "the views the dimensions go on" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "view": "V2" },
+      "expect": [
+        { "what": "measurements.dimensions_mm", "includes": ["80.125", "120"],
+          "why": "the width and the length of the plate, read back from the model" },
+        { "what": "measurements.rounded_on_the_sheet", "equal_to": [],
+          "why": "THE NUMBER ON THE SHEET IS THE VALUE: 80.125 printed with the three decimals it needs, whatever the template gives" },
+        { "what": "measurements.decimals_asked", "equal_to": null,
+          "why": "no «decimals» asked: each dimension gets the ones its value needs" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "view": "V1", "decimals": 0 },
+      "expect": [
+        { "what": "measurements.dimensions_mm", "includes": ["10.25"],
+          "why": "the thickness, read back from the model" },
+        { "what": "measurements.decimals_asked", "equal_to": 0,
+          "why": "the decimals asked, said back" },
+        { "what": "measurements.rounded_on_the_sheet", "includes": ["10.25 mm printed 10"],
+          "why": "WHAT «decimals» ROUNDS IS SAID: with no decimal 10.25 prints «10», and the answer says it instead of leaving it to the drawing" } ] },
+
+    { "operation": "drawing_dimension",
+      "arguments": { "view": "V2", "decimals": 9 },
+      "must_fail": {
+        "message_includes": ["«decimals» cannot be used", "9 is not a whole number from 0 to 8", "Give a whole number from 0 to 8", "I touched nothing"],
+        "twin": "dimension_prints_its_value" } }
+  ]
+}
